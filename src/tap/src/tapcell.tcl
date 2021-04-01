@@ -971,7 +971,7 @@ proc find_blockages {db} {
   foreach inst [[[$db getChip] getBlock] getInsts] {
     if { [$inst isBlock] } {
       if { ![$inst isPlaced] } {
-        utl::warn 20 "Macro [$inst getName] is not placed"
+        utl::warn TAP 20 "Macro [$inst getName] is not placed"
         continue
       }
       lappend blockages $inst
