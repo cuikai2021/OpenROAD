@@ -43,10 +43,10 @@ using odb::dbTech;
 
 // Defined by OpenRoad.i inlines
 const char *
-openroad_version();
+eden_version();
 
 const char *
-openroad_git_sha1();
+eden_git_sha1();
 
 odb::dbDatabase *
 get_db();
@@ -63,10 +63,10 @@ get_db_block();
 %}
 
 const char *
-openroad_version();
+eden_version();
 
 const char *
-openroad_git_sha1();
+eden_git_sha1();
 
 odb::dbDatabase *
 get_db();

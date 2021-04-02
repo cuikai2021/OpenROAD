@@ -58,13 +58,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Disable compiler specific extensions like gnu++11.
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(OPENROAD_VERSION ${PROJECT_VERSION})
-message(STATUS "OpenROAD version: ${OPENROAD_VERSION}")
+set(EDEN_VERSION ${PROJECT_VERSION})
+message(STATUS "Eden version: ${EDEN_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(GetGitRevisionDescription)
-get_git_head_revision(GIT_REFSPEC OPENROAD_GIT_SHA1)
-message(STATUS "OpenROAD git sha: ${OPENROAD_GIT_SHA1}")
+if (NOT EDEN_GIT_SHA1)
+  get_git_head_revision(GIT_REFSPEC EDEN_GIT_SHA1)
+endif()
+message(STATUS "OpenROAD git sha: ${EDEN_GIT_SHA1}")
 
 # Default to bulding optimnized/release executable.
 if(NOT CMAKE_BUILD_TYPE)
