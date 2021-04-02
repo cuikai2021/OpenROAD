@@ -20,6 +20,7 @@ Makefile
 include/openroad/Version.hh
 
 build
+debug_build
 test/results
 flow
 
