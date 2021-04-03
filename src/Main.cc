@@ -58,7 +58,7 @@
 #include "openroad/Version.hh"
 #include "openroad/InitOpenRoad.hh"
 #include "openroad/OpenRoad.hh"
-#include "utility/Logger.h" 
+#include "utl/Logger.h" 
 #include "gui/gui.h"
 
 using std::string;
@@ -152,7 +152,7 @@ main(int argc,
     return 0;
   }
   if (argc == 2 && stringEq(argv[1], "-version")) {
-    printf("%s %s\n", OPENROAD_VERSION, OPENROAD_GIT_SHA1);
+    printf("%s %s\n", EDEN_VERSION, EDEN_GIT_SHA1);
     return 0;
   }
 
@@ -211,7 +211,7 @@ tclReadlineInit(Tcl_Interp *interp)
     "eval $auto_index(::tclreadline::ScriptCompleter)",
     "::tclreadline::readline builtincompleter true",
     "::tclreadline::readline customcompleter ::tclreadline::ScriptCompleter",
-    "proc ::tclreadline::prompt1 {} { return \"openroad " OPENROAD_VERSION "> \" }",
+    "proc ::tclreadline::prompt1 {} { return \"openroad " EDEN_VERSION "> \" }",
     "proc ::tclreadline::prompt2 {} { return \"...> \" }",
     "::tclreadline::Loop"
   };
@@ -321,9 +321,9 @@ static void
 showSplash()
 {
   utl::Logger *logger = ord::OpenRoad::openRoad()->getLogger();
-  string sha = OPENROAD_GIT_SHA1;
-  logger->report("OpenROAD {} {}",
-                 OPENROAD_VERSION,
+  string sha = EDEN_GIT_SHA1;
+  logger->report("Eden {} {}",
+                 EDEN_VERSION,
                  sha.c_str());
   logger->report("This program is licensed under the BSD-3 license. See the LICENSE file for details.");
   logger->report("Components of this program may be licensed under more restrictive licenses which must be honored.");

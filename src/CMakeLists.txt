@@ -140,16 +140,16 @@ add_subdirectory(PartitionMgr)
 add_subdirectory(antenna_checker)
 add_subdirectory(gui)
 add_subdirectory(TritonRoute)
-add_subdirectory(utility)
+add_subdirectory(utl)
 add_subdirectory(pdrev)
 
 ################################################################
 
-add_executable(openroad
+add_executable(eden
   ${OPENROAD_SOURCE}
 )
 
-target_compile_options(openroad
+target_compile_options(eden
   PRIVATE
     -Wall -Wextra -pedantic -Wcast-qual -Wredundant-decls -Wformat-security
     $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
@@ -157,15 +157,15 @@ target_compile_options(openroad
 )
 
 # Disable compiler specific extensions like gnu++11.
-set_target_properties(openroad PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_features(openroad PUBLIC cxx_std_17)
+set_target_properties(eden PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_features(eden PUBLIC cxx_std_17)
 
-target_include_directories(openroad
+target_include_directories(eden
   PUBLIC
     ../include
 )
 
-target_link_libraries(openroad
+target_link_libraries(eden
   ifp
   openroad_swig
   openroad_swig_py
@@ -190,28 +190,28 @@ target_link_libraries(openroad
   psm
   antennachecker
   PartitionMgr
-  utility
+  utl
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
 # tclReadline
 if (TCL_READLINE_LIBRARY AND TCL_READLINE_H)
-  target_compile_definitions(openroad PRIVATE ENABLE_READLINE)
-  target_link_libraries(openroad ${TCL_READLINE_LIBRARY})
-  target_include_directories(openroad PRIVATE ${TCL_READLINE_H})
+  target_compile_definitions(eden PRIVATE ENABLE_READLINE)
+  target_link_libraries(eden ${TCL_READLINE_LIBRARY})
+  target_include_directories(eden PRIVATE ${TCL_READLINE_H})
   message(STATUS "TCL readline enabled")
 else()
   message(STATUS "TCL readline disabled")
 endif()
 
 if (ZLIB_FOUND)
-  target_link_libraries(openroad ${ZLIB_LIBRARIES})
+  target_link_libraries(eden ${ZLIB_LIBRARIES})
 endif()
 
 # Optional CUDD library for OpenSTA
 if (CUDD_LIB)
-  target_link_libraries(openroad ${CUDD_LIB})
+  target_link_libraries(eden ${CUDD_LIB})
 endif()
 
 # Ancient versions of glibc found on CentOS required librt.
@@ -220,7 +220,7 @@ endif()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   find_library(LIBRT rt)
-  target_link_libraries(openroad ${LIBRT})
+  target_link_libraries(eden ${LIBRT})
 endif()
 
 ################################################################
@@ -228,7 +228,7 @@ endif()
 # cmake .. -DCMAKE_INSTALL_PREFIX=<prefix_path>
 
 # executable
-install(TARGETS openroad DESTINATION bin)
+install(TARGETS eden DESTINATION bin)
 
 ################################################################
 
