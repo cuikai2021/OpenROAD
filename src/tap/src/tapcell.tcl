@@ -577,6 +577,8 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
         # check if site is filled
         set overlap [check_if_filled $x $tap_width $ori $row_fill_check]
         if {$overlap == 0} {
+          puts $pitch
+          puts $x
           build_cell $block $master $ori $x $lly $prefix
         }
       }
