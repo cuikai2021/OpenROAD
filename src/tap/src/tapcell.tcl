@@ -476,8 +476,9 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
   variable phy_idx
   set start_phy_idx $phy_idx
   set block [[$db getChip] getBlock]
-
+  #puts $tapcell_master
   set master [$db findMaster $tapcell_master]
+  #puts $master
   if { $master == "NULL" } {
     utl::error TAP 11 "Master $tapcell_master not found."
   }
@@ -517,6 +518,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
 
   set rows_with_macros [dict create]
   foreach {key macro_rows} [get_macro_outlines $rows] {
+    #puts "macro rows,keys\: $key, rows\: $macro_rows"
     foreach {bot_row top_row} $macro_rows {
       incr bot_row -1
       incr top_row
@@ -530,7 +532,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
     }
   }
   set rows_with_macros [lsort -integer [dict keys $rows_with_macros]]
-
+  #puts $rows_with_macros
   for {set row_idx 0} {$row_idx < [llength $rows]} {incr row_idx} {
     set subrows [lindex $rows $row_idx]
     set row_y [[[lindex $subrows 0] getBBox] yMin]
@@ -554,14 +556,17 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
       set urx [$row_bb xMax]
       set ury [$row_bb yMax]
       set ori [$row getOrient]
-
+   
       set offset 0
       set pitch -1
 
+      set narrow_channel 0
+      if {$urx - $llx < $dist2} {set narrow_channel 1}
+
       if {[expr $row_idx % 2] == 0} {
-        set offset $dist1
+        set offset 0
       } else {
-        set offset $dist2
+        set offset $dist1
       }
 
       if {$row_idx == 0 || $row_idx == [expr [llength $rows]-1] || $gaps_above_below} {
@@ -570,7 +575,10 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
       } else {
         set pitch $dist2
       }
-
+      if {$narrow_channel} {
+        set pitch $dist1
+        set offset 0
+      }
       for {set x [expr $llx+$offset]} {$x < $urx} {set x [expr $x+$pitch]} {
         set x [make_site_loc $x $site_x -1 $llx]
 
@@ -578,6 +586,14 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
         set overlap [check_if_filled $x $tap_width $ori $row_fill_check]
         if {$overlap == 0} {
           build_cell $block $master $ori $x $lly $prefix
+        } else {
+          #if overlap, check more sites to add
+          for {set x1 $x; set count 0} {$count < 10} {set x1 [expr $x1 + $site_x]; incr count} {
+            set x1 [make_site_loc $x1 $site_x -1 $llx]
+            set overlap1 [check_if_filled $x1 $tap_width $ori $row_fill_check]
+            if {$overlap1 == 0} {build_cell $block $master $ori $x1 $lly $prefix; break}
+
+          }
         }
       }
     }
@@ -996,12 +1012,12 @@ proc build_cell {block master orientation x y prefix} {
   variable filled_sites
 
   if {$x < 0 || $y < 0} {
-    return
+    return "location error $master"
   }
   set name "${prefix}${phy_idx}"
   set inst [odb::dbInst_create $block $master $name]
   if {$inst == "NULL"} {
-    return
+    return "inst error $master $name"
   }
   $inst setOrient $orientation
   $inst setLocation $x $y
@@ -1012,6 +1028,7 @@ proc build_cell {block master orientation x y prefix} {
   lappend filled_sites "[$inst_bb yMin] [$inst_bb xMin] [$inst_bb xMax]"
 
   incr phy_idx
+  return "build cell successfully"
 }
 
 proc build_row {block name site start_x end_x y orient direction min_row_width} {
