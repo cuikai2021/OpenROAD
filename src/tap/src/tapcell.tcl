@@ -476,9 +476,9 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
   variable phy_idx
   set start_phy_idx $phy_idx
   set block [[$db getChip] getBlock]
-  puts $tapcell_master
+  #puts $tapcell_master
   set master [$db findMaster $tapcell_master]
-  puts $master
+  #puts $master
   if { $master == "NULL" } {
     utl::error TAP 11 "Master $tapcell_master not found."
   }
@@ -518,7 +518,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
 
   set rows_with_macros [dict create]
   foreach {key macro_rows} [get_macro_outlines $rows] {
-    puts "macro rows,keys\: $key, rows\: $macro_rows"
+    #puts "macro rows,keys\: $key, rows\: $macro_rows"
     foreach {bot_row top_row} $macro_rows {
       incr bot_row -1
       incr top_row
@@ -532,7 +532,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
     }
   }
   set rows_with_macros [lsort -integer [dict keys $rows_with_macros]]
-  puts $rows_with_macros
+  #puts $rows_with_macros
   for {set row_idx 0} {$row_idx < [llength $rows]} {incr row_idx} {
     set subrows [lindex $rows $row_idx]
     set row_y [[[lindex $subrows 0] getBBox] yMin]
