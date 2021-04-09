@@ -95,9 +95,13 @@ class LevelBalancer
   unsigned computeMaxTreeDepth(TreeBuilder* parent);
 
  private:
+
+  bool updateBuildCache(TreeBuilder* builder, unsigned parentDepth);
+
   TreeBuilder* _root;
   CtsOptions* _options;
   Logger* _logger;
   CellLevelMap cgcLevelMap_;
+  std::map<TreeBuilder*, std::set<unsigned> > _buildCache;
 };
 }
