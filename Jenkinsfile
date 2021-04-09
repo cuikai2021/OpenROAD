@@ -105,7 +105,7 @@ pipeline {
       script {
         if ( env.BRANCH_NAME == 'master' ) {
           echo('Main development branch: report to stakeholders and commit author.');
-          EMAIL_TO="$COMMIT_AUTHOR_EMAIL, \$DEFAULT_RECIPIENTS, cherry@parallaxsw.com";
+          EMAIL_TO="$COMMIT_AUTHOR_EMAIL, \$DEFAULT_RECIPIENTS, bangxiang@icbench.com";
           REPLY_TO="$EMAIL_TO";
         } else {
           echo('Feature development branch: report only to commit author.');

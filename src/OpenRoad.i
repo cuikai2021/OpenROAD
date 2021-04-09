@@ -231,15 +231,15 @@ using odb::dbTech;
 %inline %{
 
 const char *
-openroad_version()
+eden_version()
 {
-  return OPENROAD_VERSION;
+  return EDEN_VERSION;
 }
 
 const char *
-openroad_git_sha1()
+eden_git_sha1()
 {
-  return OPENROAD_GIT_SHA1;
+  return EDEN_GIT_SHA1;
 }
 
 void

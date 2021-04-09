@@ -112,11 +112,29 @@ void LevelBalancer::addBufferLevels(TreeBuilder* builder, std::vector<ClockInst*
   prevLevelSubNet->setLeafLevel(true);
 }
 
+bool LevelBalancer::updateBuildCache(TreeBuilder* builder, unsigned parentDepth) {
+  if (_buildCache.count(builder)) {
+    if (_buildCache[builder].count(parentDepth)) {
+      return false;
+    } else {
+      _buildCache[builder].insert(parentDepth);  
+    }
+  } else {
+    _buildCache[builder] = {parentDepth};
+  }
+  return true;
+}
+
 void LevelBalancer::fixTreeLevels(TreeBuilder* builder, unsigned parentDepth, unsigned maxTreeDepth)
 {
   unsigned currLevel = builder->getTreeBufLevels() + parentDepth;
   if (currLevel >= maxTreeDepth)
     return;
+
+ 
+  if (!updateBuildCache(builder, parentDepth)) {
+    return;
+  }
 
   _logger->report("Fixing from level {} (parent={} + current={}) to max {} for driver {}",
                     parentDepth + builder->getTreeBufLevels(), parentDepth, builder->getTreeBufLevels(),
@@ -154,7 +172,7 @@ void LevelBalancer::fixTreeLevels(TreeBuilder* builder, unsigned parentDepth, un
 
       if (currLevel != clusterLevel) {
         for (ClockInst* clockInstObj : cluster.second) {
-          fixTreeLevels(cgcLevelMap_[clockInstObj->getDbInputPin()->getInst()].second,
+          fixTreeLevels(cgcLevelMap_[clockInstObj->getDbInputPin()->getInst()].second, 
                         currLevel+bufLevels+1, maxTreeDepth);
         }
       }
