@@ -218,7 +218,7 @@ endif()
 
 if (Python3_FOUND AND BUILD_PYTHON)
   message(STATUS "Python3 enabled")
-  target_compile_definitions(openroad PRIVATE ENABLE_PYTHON3)
+  target_compile_definitions(eden PRIVATE ENABLE_PYTHON3)
 
   swig_lib(NAME      openroad_swig_py
 		   NAMESPACE ord
@@ -233,7 +233,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
       opendb
       OpenSTA
   )
-  target_link_libraries(openroad
+  target_link_libraries(eden
     openroad_swig_py
     opendbpy
   )
