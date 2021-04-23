@@ -3127,11 +3127,100 @@ bool FlexDRWorker::routeNet(drNet* net)
   return searchSuccess;
 }
 
+// bug fix: overlapped path
+bool FlexDRWorker::routeNet_postPatchOverlappedPath(drNet* net,
+  const vector<FlexMazeIdx> &points, int begin, int end,
+  frArea reqArea, frCoord viaHalf, frLayer *layer)
+{
+  if ((reqArea == 0) || (end-begin != 4) || (begin == 0))
+    return false;
+
+  bool preferH = layer->getDir() == frPrefRoutingDirEnum::frcHorzPrefRoutingDir;
+  auto width = layer->getWidth();
+  bool patchStyle = true; // not really used
+
+  frPoint p[4];
+  for (size_t i = 0; i < 4; ++i)
+    gridGraph_.getPoint(p[i], points[begin+i].x(), points[begin+i].y());
+  if (preferH) {
+    if ((p[0].y() != p[1].y()) // H
+      || (p[1].x() != p[2].x()) // V
+      || (p[2].y() != p[3].y())) // H
+      return false;
+    if (std::abs(p[1].y()-p[2].y()) >= width)
+      return false;
+    if ((p[0].x() < p[1].x()) && (p[3].x() < p[2].x())) // left
+      patchStyle = true;
+    else if ((p[0].x() > p[1].x()) && (p[3].x() > p[2].x())) // right
+      patchStyle = false;
+    else
+      return false;
+  }
+  else {
+    if ((p[0].x() != p[1].x()) // V
+      || (p[1].y() != p[2].y()) // H
+      || (p[2].x() != p[3].x())) // V
+      return false;
+    if (std::abs(p[1].x()-p[2].x()) >= width)
+      return false;
+    if ((p[0].y() < p[1].y()) && (p[3].y() < p[2].y())) // top
+      patchStyle = true;
+    else if ((p[0].y() > p[1].y()) && (p[3].y() > p[2].y())) // down
+      patchStyle = false;
+    else
+      return false;
+  }
+
+  frCoord h0 = preferH? std::abs(p[0].x()-p[1].x()): std::abs(p[0].y()-p[1].y());
+  frCoord v = preferH? std::abs(p[1].y()-p[2].y()): std::abs(p[1].x()-p[2].x());
+  frCoord h1 = preferH? std::abs(p[2].x()-p[3].x()): std::abs(p[2].y()-p[3].y());
+  frArea currArea = std::max(h0, h1)*width+std::min(h0, h1)*v+(width+v)*(width/2+viaHalf/width);
+  if (currArea >= reqArea)
+    return false;
+
+  double gapLength = double(reqArea-(currArea-viaHalf))/width;
+  auto mGrid = getDesign()->getTech()->getManufacturingGrid();
+  frCoord patchLengthLong = frCoord(ceil(gapLength/mGrid))*mGrid;
+  frCoord patchLengthShort = frCoord(ceil((gapLength+std::abs(h0-h1))/mGrid))*mGrid;
+
+  frCoord patchLengthL = (h0 > h1)? patchLengthLong: patchLengthShort;
+  frCoord patchLengthR = (h1 > h0)? patchLengthLong: patchLengthShort;
+
+  auto costL = routeNet_postAstarAddPathMetal_isClean(
+      points[begin], preferH, patchStyle, patchLengthL);
+  auto costR = routeNet_postAstarAddPathMetal_isClean(
+      points[end-1], preferH, patchStyle, patchLengthR);
+
+  logger_->report("{}: patch overlapped path: z {}, [{},{}), via half {}",
+    net->getFrNet()->getName(), points[begin].z(), begin, end, viaHalf);
+  logger_->report("    ({},{})-({},{})-({},{})-({},{})",
+    p[0].x(), p[0].y(), p[1].x(), p[1].y(), p[2].x(), p[2].y(), p[3].x(), p[3].y());
+  logger_->report("    path {}-{}-{}, area {}/{}, L {} {}, R {} {}",
+    h0, v, h1, currArea, reqArea, patchLengthL, costL, patchLengthR, costR);
+
+  if (costL <= costR) {
+    routeNet_postAstarAddPatchMetal_addPWire(
+        net, points[begin], preferH, patchStyle, patchLengthL, width);
+  } else {
+    routeNet_postAstarAddPatchMetal_addPWire(
+        net, points[end-1], preferH, patchStyle, patchLengthR, width);
+  }
+
+  return true;
+}
+
 void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
     drNet* net,
     const vector<FlexMazeIdx>& path,
     const map<FlexMazeIdx, frCoord>& areaMap)
 {
+  std::string hit = "";
+  bool eO = false; //net->getFrNet()->getName() == hit;
+  if (eO) {
+    logger_->report("{} post-A* patch, path {}, areaMap {}", hit, path.size(), areaMap.size());
+    for (auto &idx_area: areaMap)
+      logger_->report("{} areaMap[{}] {}", hit, idx_area.first, idx_area.second);
+  }
   if (path.empty()) {
     return;
   }
@@ -3140,23 +3229,35 @@ void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
   for (int i = 0; i < (int) path.size() - 1; ++i) {
     auto currIdx = path[i];
     auto nextIdx = path[i + 1];
+
+    frPoint xy;
+    gridGraph_.getPoint(xy, currIdx.x(), currIdx.y());
+
     if (currIdx.z() == nextIdx.z()) {
       points.push_back(currIdx);
+      if (eO) logger_->report("{} points[{}] ({},{},{}) ({},{})", hit, points.size()-1, currIdx.x(), currIdx.y(), currIdx.z(), xy.x(), xy.y());
     } else {
       if (currIdx.z() < nextIdx.z()) {
         for (auto z = currIdx.z(); z < nextIdx.z(); ++z) {
           FlexMazeIdx tmpIdx(currIdx.x(), currIdx.y(), z);
           points.push_back(tmpIdx);
+          if (eO) logger_->report("{} points[{}] ({},{},{}) ({},{})", hit, points.size()-1, currIdx.x(), currIdx.y(), z, xy.x(), xy.y());
         }
       } else {
         for (auto z = currIdx.z(); z > nextIdx.z(); --z) {
           FlexMazeIdx tmpIdx(currIdx.x(), currIdx.y(), z);
           points.push_back(tmpIdx);
+          if (eO) logger_->report("{} points[{}] ({},{},{}) ({},{})", hit, points.size()-1, currIdx.x(), currIdx.y(), z, xy.x(), xy.y());
         }
       }
     }
   }
   points.push_back(path.back());
+  {
+    frPoint xy;
+    gridGraph_.getPoint(xy, path.back().x(), path.back().y());
+    if (eO) logger_->report("{} points[{}] ({},{},{}) ({},{})", hit, points.size()-1, path.back().x(), path.back().y(), path.back().z(), xy.x(), xy.y());
+  }
 
   auto layerNum = gridGraph_.getLayerNum(points.front().z());
   auto minAreaConstraint
@@ -3193,6 +3294,12 @@ void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
         currArea += getHalfViaEncArea(prevIdx.z(), true, net);
         endViaHalfEncArea = getHalfViaEncArea(prevIdx.z(), true, net);
       }
+
+      if (eO) {
+        logger_->report("{} points[{}].z {}, area {}, start {}, end {}, req {}",
+          hit, i-1, prevIdx.z(), currArea, startViaHalfEncArea, endViaHalfEncArea, reqArea);
+      }
+
       // push to minArea violation
       if (currArea < reqArea) {
         FlexMazeIdx bp, ep;
@@ -3266,6 +3373,12 @@ void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
         routeNet_postAstarAddPatchMetal(
             net, bp, ep, gapArea, patchWidth, bpPatchStyle, epPatchStyle);
       }
+      else {
+        routeNet_postPatchOverlappedPath(
+          net, points, prev_i, i, reqArea,
+          std::min(startViaHalfEncArea, endViaHalfEncArea),
+          getDesign()->getTech()->getLayer(layerNum));
+      }
       // init for next path
       if (currIdx.z() < prevIdx.z()) {
         currArea = getHalfViaEncArea(prevIdx.z() - 1, true, net);
@@ -3291,8 +3404,16 @@ void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
       gridGraph_.getPoint(bp, prevIdx.x(), prevIdx.y());
       gridGraph_.getPoint(ep, currIdx.x(), currIdx.y());
       frCoord pathLength = abs(bp.x() - ep.x()) + abs(bp.y() - ep.y());
+
+      frArea prevArea = currArea;
+
       if (currArea < reqArea) {
         currArea += pathLength * pathWidth;
+      }
+
+      if (eO) {
+        logger_->report("{} points[{}].z {}, add ({},{}), area {}->{}, req {}",
+          hit, i-1, prevIdx.z(), pathLength, pathWidth, prevArea, currArea, reqArea);
       }
     }
     prevIdx = currIdx;
@@ -3307,6 +3428,14 @@ void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
       currArea += areaMap.find(prevIdx)->second;
     }
     endViaHalfEncArea = 0;
+
+    if (eO) {
+      logger_->report("{} points[{}].z {}, area {}, start {}, end {}, req {}",
+        hit, points.size()-1, prevIdx.z(), currArea, startViaHalfEncArea, endViaHalfEncArea, reqArea);
+    }
+
+    // do we need to patch overlapped path here?
+
     if (currArea < reqArea) {
       FlexMazeIdx bp, ep;
       frArea gapArea = reqArea

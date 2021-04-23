@@ -958,6 +958,9 @@ class FlexDRWorker
                                                 frCoord patchWidth);
   void routeNet_postRouteAddPathCost(drNet* net);
   void routeNet_postRouteAddPatchMetalCost(drNet* net);
+  bool routeNet_postPatchOverlappedPath(drNet* net,
+    const vector<FlexMazeIdx> &points, int begin, int end,
+    frArea reqArea, frCoord viaHalf, frLayer *layer);
 
   // drc
   void route_drc();
