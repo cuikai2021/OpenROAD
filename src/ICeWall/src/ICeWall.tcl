@@ -314,13 +314,13 @@ namespace eval ICeWall {
 
       if {[dict exists $inst $type scaled_origin]} {
         set origin [dict get $inst $type scaled_origin]
-        set scaled_centre [get_centre $origin $cell_width $cell_height $orient]
+        set scaled_centre [get_centre $origin $width $height $orient]
       } elseif {[dict exists $inst $type origin]} {
         set origin [list \
           x [expr round([dict get $inst $type origin x] * $def_units)] \
           y [expr round([dict get $inst $type origin y] * $def_units)] \
         ]
-        set scaled_centre [get_centre $origin $cell_width $cell_height $orient]
+        set scaled_centre [get_centre $origin $width $height $orient]
       }
     }
     
