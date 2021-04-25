@@ -35,7 +35,7 @@ namespace eval ICeWall {
 
     set library $library_data
   }
-    
+
   proc get_origin {centre width height orient} {
       switch -exact $orient {
         R0    {
@@ -224,6 +224,46 @@ namespace eval ICeWall {
       return [get_scaled_origin $padcell cell]
     }
   }
+
+  proc absolute_origin_to_origin {absolute_origin width height orient} {
+    switch -exact $orient {
+        R0    {
+          set x [expr [dict get $absolute_origin x] ]
+          set y [expr [dict get $absolute_origin y] ]
+        }
+        R180  {
+          set x [expr [dict get $absolute_origin x] + $width]
+          set y [expr [dict get $absolute_origin y] + $height]
+        }
+        MX    {
+          set x [expr [dict get $absolute_origin x] ]
+          set y [expr [dict get $absolute_origin y] + $height]
+        }
+        MY    {
+          set x [expr [dict get $absolute_origin x] + $width]
+          set y [expr [dict get $absolute_origin y] ]
+        }
+        R90   {
+          set x [expr [dict get $absolute_origin x] + $height]
+          set y [expr [dict get $absolute_origin y] ]
+        }
+        R270  {
+          set x [expr [dict get $absolute_origin x] ]
+          set y [expr [dict get $absolute_origin y] + $width]
+        }
+        MXR90 {
+          set x [expr [dict get $absolute_origin x] ]
+          set y [expr [dict get $absolute_origin y] ]
+        }
+        MYR90 {
+          set x [expr [dict get $absolute_origin x] + $height]
+          set y [expr [dict get $absolute_origin y] + $width]
+        }
+        default {utl::error "PAD" 6 "Illegal orientation $orient specified"}
+      }
+
+      return [list x $x y $y]
+  }
   
   proc get_scaled_origin {padcell {type "cell"}} {
     variable library
@@ -256,17 +296,26 @@ namespace eval ICeWall {
         set height [$cell getHeight]
       }
 
-      if {[dict exists $inst $type scaled_centre]} {
-        set centre [dict get $inst $type scaled_centre]
-        set scaled_origin [get_origin $centre $width $height $orient]
-      } elseif {[dict exists $inst $type centre]} {
-        set centre [list \
-          x [expr round([dict get $inst $type centre x] * $def_units)] \
-          y [expr round([dict get $inst $type centre y] * $def_units)] \
+      if {[dict exists $inst $type absolute_origin]} {
+        set absolute_origin [dict get $inst $type absolute_origin]
+        set scaled_absolute_origin [list \
+          x [expr round([lindex $absolute_origin 1] * $def_units)] \
+          y [expr round([lindex $absolute_origin 3] * $def_units)] \
         ]
-        set scaled_origin [get_origin $centre $width $height $orient]
+        set scaled_origin [absolute_origin_to_origin $scaled_absolute_origin $width $height $orient]
       } else {
+        if {[dict exists $inst $type scaled_centre]} {
+          set centre [dict get $inst $type scaled_centre]
+          set scaled_origin [get_origin $centre $width $height $orient]
+        } elseif {[dict exists $inst $type centre]} {
+          set centre [list \
+            x [expr round([dict get $inst $type centre x] * $def_units)] \
+            y [expr round([dict get $inst $type centre y] * $def_units)] \
+          ]
+          set scaled_origin [get_origin $centre $width $height $orient]
+        } else {
         # debug "padcell: $padcell, data: [dict get $inst]"
+        }
       }
     }
     # debug "end" 
@@ -2482,6 +2531,7 @@ namespace eval ICeWall {
     ]
   }
 
+
   proc invert_transform {x y origin orientation} {
     set x [expr $x - [lindex $origin 0]]
     set y [expr $y - [lindex $origin 1]]
@@ -2838,7 +2888,7 @@ namespace eval ICeWall {
         }
 
         set orient [get_padcell_orient $padcell]
-	set origin [get_padcell_scaled_origin $padcell]
+        set origin [get_padcell_scaled_origin $padcell]
         # debug "padcell: $padcell, orient: $orient, origin: $origin"
         # set offset [get_padcell_cell_offset $padcell]
         # set location [transform_point {*}$offset [list 0 0] $orient]
