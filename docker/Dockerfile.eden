@@ -1,0 +1,9 @@
+FROM registry.cn-shanghai.aliyuncs.com/openroad/env_openroad:0207
+
+ARG EDEN_GIT_SHA1
+
+COPY . /Eden
+WORKDIR /Eden
+
+# Build
+RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
