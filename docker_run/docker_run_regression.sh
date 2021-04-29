@@ -1,5 +1,5 @@
 #! /bin/sh
-docker run -it --rm --network=host \
+docker run --rm --network=host \
   --workdir /Eden \
   --entrypoint /bin/bash \
   registry.cn-shanghai.aliyuncs.com/openroad/regression:lastest \
