@@ -112,6 +112,16 @@ message(STATUS "spdlog: ${spdlog_VERSION}")
 find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
+# gtest and gmock
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIR})
+message(STATUS "gtest path: ${GTEST_INCLUDE_DIR}")
+# get_filename_component(GTEST_LIBRARIES_DIR ${GTEST_LIBRARIES} DIRECTORY)
+message(STATUS "gtest lib: ${GTEST_LIBRARIES}")
+
+# Enable gtest and gmock with pthread
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lgtest -lgmock")
+
 ################################################################
 
 # Build flow tools
@@ -137,6 +147,7 @@ add_subdirectory(gui)
 add_subdirectory(TritonRoute)
 add_subdirectory(utl)
 add_subdirectory(pdrev)
+add_subdirectory(utt)
 
 ################################################################
 
@@ -184,8 +195,10 @@ target_link_libraries(eden
   antennachecker
   PartitionMgr
   utl
+  utt
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
+  ${GTEST_LIBRARIES}
 )
 
 # tclReadline
@@ -270,3 +283,62 @@ add_custom_target(openroad_tags etags -o TAGS
   WORKING_DIRECTORY ${OPENROAD_HOME}/src
   DEPENDS ${OPENROAD_SOURCE} ${OPENROAD_HEADERS} ${OPENROAD_TCL_FILES}
 )
+
+#########################
+# build unit test
+
+set(UNITTEST_PATH "utt/unittest")
+
+add_executable(unittest
+  OpenRoad.cc
+  TestMain.cc
+  ${UNITTEST_PATH}/mpl/TestMpl.cc
+)
+
+target_compile_options(unittest
+  PRIVATE
+    -Wall -Wextra -pedantic -Wcast-qual -Wredundant-decls -Wformat-security
+    $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
+    $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
+)
+
+# Disable compiler specific extensions like gnu++11.
+set_target_properties(unittest PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_features(unittest PUBLIC cxx_std_17)
+
+target_include_directories(unittest
+  PUBLIC
+  ../include
+)
+
+target_link_libraries(unittest
+  ifp
+  openroad_swig
+  replace
+  dpl
+  fin
+  rsz
+  ppl
+  flute
+  dbSta
+  OpenSTA
+  opendb
+  opendbtcl
+  OpenRCX
+  TritonCTS
+  grt
+  tap
+  gui
+  TritonRoute
+  mpl
+  psm
+  antennachecker
+  PartitionMgr
+  utl
+  utt
+  ${TCL_LIBRARY}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${GTEST_LIBRARIES}
+)
+
+install(TARGETS unittest DESTINATION bin)

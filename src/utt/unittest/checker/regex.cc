@@ -1,0 +1,28 @@
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include <regex>
+#include <string>
+#include <iterator>
+
+using ::testing::StartsWith;
+
+//need c++11 to run regex
+std::string word_fixer(std::string str)
+{
+    std::string res = std::regex_replace(str, std::regex("(.)\\1+"), "$1$1", std::regex_constants::format_default);
+    res = std::regex_replace(res, std::regex("(.)\\1(.)\\2"), "$1$1$2", std::regex_constants::format_default);
+    std::cout << res <<std::endl;
+    return res;
+}
+
+TEST(testcase_regex, test0)
+{
+    std::string test = "hellllloooooognqoewinqowerpqwn";
+    EXPECT_THAT(word_fixer(test), StartsWith("hello"));
+}
+
+int main(int argc, char **argv)
+{
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
