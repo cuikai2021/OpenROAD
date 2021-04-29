@@ -8,10 +8,22 @@ WORKDIR /Eden
 RUN wget -P /usr/bin  http://gosspublic.alicdn.com/ossutil/1.7.3/ossutil64
 RUN chmod 755 /usr/bin/ossutil64
 
-ARG aki
-ARG aks
+ARG ALI_ACCESS_KEY_ID
+ARG ALI_ACCESS_KEY_SECRET
 
-RUN ossutil64 config -e oss-cn-shanghai.aliyuncs.com -i ${aki} -k ${aks}
+RUN ossutil64 config -e oss-cn-shanghai.aliyuncs.com -i ${ALI_ACCESS_KEY_ID} -k ${ALI_ACCESS_KEY_SECRET}
+
+ARG GTIHUB_API_TOKEN
+ENV GTIHUB_API_TOKEN ${GTIHUB_API_TOKEN}
+
+ARG ISSUE_ASSIGNEE
+ENV ISSUE_ASSIGNEE ${ISSUE_ASSIGNEE}
+
+ARG TRIGGER_FROM
+ENV TRIGGER_FROM ${TRIGGER_FROM}
+
+ARG GIT_HEAD
+ENV GIT_HEAD ${GIT_HEAD}
 
 # Build
 RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8

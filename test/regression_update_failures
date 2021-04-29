@@ -2,14 +2,24 @@
 # The next line is executed by /bin/sh, but not Tcl \
 exec tclsh $0 ${1+"$@"}
 
+set github_api_token $env(GITHUB_API_TOKEN)
+set assignee $env(ISSUE_ASSIGNEE)
+set trigger_from $env(TRIGGER_FROM)
+set git_head $env(GIT_HEAD)
+
 set test_dir [file dirname [file normalize [info script]]]
+
+source "$test_dir/json.tcl"
+
 set openroad_dir [file dirname $test_dir]
 set curtime [clock clicks -milliseconds]
 set regression_name "regression-$curtime"
 set regression_dir "$openroad_dir/$regression_name"
-set ossurl "https://icbench-devops.oss-cn-shanghai.aliyuncs.com/$regression_name"
+set ossurl "https://icbench-devops.oss-cn-shanghai.aliyuncs.com"
 set osspath "oss://icbench-devops"
 set failures_count 0
+set github_create_issue_url "https://api.github.com/repos/ICBench/Eden/issues"
+
 
 array set all_test_dirs { ifp "src/ifp/test" dbSta "src/dbSta/test" ppl "src/ppl/test" \
 pdngen "src/pdngen/test" ICeWall "src/ICeWall/test" mpl "src/mpl/test" rsz "src/rsz/test" replace "src/replace/test" \
@@ -17,13 +27,30 @@ TritonCTS "src/TritonCTS/test" dpl "src/dpl/test" psm "src/psm/test" grt "src/gr
 antenna_checker "src/antenna_checker/test" OpenDB "src/OpenDB/test" OpenRCX "src/OpenRCX/test" PartitionMgr "src/PartitionMgr/test" \
 TritonRoute "src/TritonRoute/test" }
 
+proc greate_github_issue {} {
+    global regression_name;
+    global ossurl;
+    global github_create_issue_url;
+    global github_api_token;
+    global assignee;
+    global trigger_from;
+    global git_head;
+    set download_url "$ossurl/$regression_name.tar.gz";
+
+    set title "$regression_name failure"
+    set body "from: $trigger_from \n head: $ $git_head \n failure_results: $download_url"
+
+    set json_body [json::stringify [dict create title "$title" body "$body" assignees "$assignee"] 0 { title string body string assignees array }];
+    puts $json_body;
+    exec curl -s -H "Accept:application/vnd.github.v3+json" -H "Authorization:token $github_api_token" -X POST --data $json_body $github_create_issue_url
+}
+
 proc read_failures_item { failures_file } {
     set items [list];
     if { [catch {set fp [open $failures_file r]} result] } {
         printf "open file '$failures_file' error.";
-        exit;
+        exit -1;
     }
-    puts $failures_file;
     while {1} {
         set line [gets $fp];
         lappend items $line;
@@ -106,8 +133,9 @@ proc main {} {
     if {$failures_count > 0} {
         exec tar -Pzcvf "$regression_name.tar.gz" $regression_name;
         exec ossutil64 cp "$regression_name.tar.gz" $osspath;
-    } else {
-
+        greate_github_issue;
+        exec rm -rf "$regression_dir"
+        exec rm -rf "$regression_name.tar.gz"
     }
 }
 
