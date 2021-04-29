@@ -4,9 +4,12 @@ exec tclsh $0 ${1+"$@"}
 
 set test_dir [file dirname [file normalize [info script]]]
 set openroad_dir [file dirname $test_dir]
-set curtime [clock seconds]
-set ossurl "https://icbench-devops.oss-cn-shanghai.aliyuncs.com/regression-$curtime"
-set osspath "oss://icbench-devops/regression-$curtime"
+set curtime [clock clicks -milliseconds]
+set regression_name "regression-$curtime"
+set regression_dir "$openroad_dir/$regression_name"
+set ossurl "https://icbench-devops.oss-cn-shanghai.aliyuncs.com/$regression_name"
+set osspath "oss://icbench-devops"
+set failures_count 0
 
 array set all_test_dirs { ifp "src/ifp/test" dbSta "src/dbSta/test" ppl "src/ppl/test" \
 pdngen "src/pdngen/test" ICeWall "src/ICeWall/test" mpl "src/mpl/test" rsz "src/rsz/test" replace "src/replace/test" \
@@ -34,9 +37,12 @@ proc read_failures_item { failures_file } {
 
 proc update_failure_item { project test_dir failure_item} {
     global openroad_dir;
-    global osspath;
-    set osspath_result "$osspath/$project/results/";
-    set osspath_expectation "$osspath/$project/expectation/";
+    global regression_dir;
+    set result_dir "$regression_dir/$project/results/";
+    set expectation_dir "$regression_dir/$project/expectation/";
+
+    exec mkdir -p $result_dir;
+    exec mkdir -p $expectation_dir;
 
     set test_results_dir "$openroad_dir/$test_dir/results";
 
@@ -46,32 +52,36 @@ proc update_failure_item { project test_dir failure_item} {
     set result_defok_file "$test_dir/results/$failure_item.def";
 
     if { [file exists $ok_file] == 1} { 
-        exec ossutil64 cp $ok_file $osspath_expectation;
+        exec cp $ok_file $expectation_dir;
     }
 
     if { [file exists $defok_file] == 1} { 
-        exec ossutil64 cp $defok_file $osspath_expectation;
+        exec cp $defok_file $expectation_dir;
     }
 
     if { [file exists $result_ok_file] == 1} { 
-        exec ossutil64 cp $result_ok_file $osspath_result;
+        exec cp $result_ok_file $result_dir;
     }
 
     if { [file exists $result_defok_file] == 1} { 
-        exec ossutil64 cp $result_defok_file $osspath_result;
+        exec cp $result_defok_file $result_dir;
     }
 }
 
 proc update_failures { project test_dir } {
     global openroad_dir;
     global osspath;
-    set osspath_project "$osspath/$project/";
+    global regression_dir;
+    global failures_count;
+    set project_dir "$regression_dir/$project/";
     set failures_file "$openroad_dir/$test_dir/results/failures";
     if { [file exists $failures_file] == 1} {               
         puts "$project run regression failures";
         set failure_items [read_failures_item $failures_file];
         if { [llength failure_items] > 0 } {
-            exec ossutil64 cp $failures_file $osspath_project;
+            set failures_count [expr {$failures_count + 1}];
+            exec mkdir -p $project_dir;
+            exec cp $failures_file $project_dir;
             foreach item $failure_items {
                 update_failure_item $project $test_dir $item;
             }
@@ -81,6 +91,24 @@ proc update_failures { project test_dir } {
     }
 }
 
-foreach { name dir } [array get all_test_dirs] {
-    update_failures $name $dir;
+proc main {} {
+    global all_test_dirs;
+    global regression_dir;
+    global regression_name;
+    global osspath;
+    global failures_count;
+
+    exec mkdir -p $regression_dir;
+    foreach { name dir } [array get all_test_dirs] {
+        update_failures $name $dir;
+    }
+
+    if {$failures_count > 0} {
+        exec tar -Pzcvf "$regression_name.tar.gz" $regression_name;
+        exec ossutil64 cp "$regression_name.tar.gz" $osspath;
+    } else {
+
+    }
 }
+
+main
