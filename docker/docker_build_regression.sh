@@ -1,0 +1,9 @@
+docker build \
+-f docker/Dockerfile.regression \
+-t registry.cn-shanghai.aliyuncs.com/openroad/regression:lastest \
+--build-arg ALI_ACCESS_KEY_ID=$ALI_ACCESS_KEY_ID \
+--build-arg ALI_ACCESS_KEY_SECRET=$ALI_ACCESS_KEY_SECRET \
+--build-arg TRIGGER_FROM=$TRIGGER_FROM \
+--build-arg GIT_HEAD=$GIT_HEAD \
+--build-arg ISSUE_ASSIGNEE=$ISSUE_ASSIGNEE \
+--build-arg GTIHUB_API_TOKEN=$GTIHUB_API_TOKEN .
