@@ -571,7 +571,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
 
       if {$row_idx == 0 || $row_idx == [expr [llength $rows]-1] || $gaps_above_below} {
         set pitch $dist1
-        set offset $dist1
+        set offset 0
       } else {
         set pitch $dist2
       }
@@ -588,7 +588,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
           build_cell $block $master $ori $x $lly $prefix
         } else {
           #if overlap, check more sites to add
-          for {set x1 $x; set count 0} {$count < 10} {set x1 [expr $x1 + $site_x]; incr count} {
+          for {set x1 $x; set count 0} {$count < 10 && $x < $urx} {set x1 [expr $x1 + $site_x]; incr count} {
             set x1 [make_site_loc $x1 $site_x -1 $llx]
             set overlap1 [check_if_filled $x1 $tap_width $ori $row_fill_check]
             if {$overlap1 == 0} {build_cell $block $master $ori $x1 $lly $prefix; break}

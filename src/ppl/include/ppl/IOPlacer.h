@@ -131,6 +131,8 @@ class IOPlacer
   Direction getDirection(std::string direction);
   void addPinGroup(PinList* group);
   void addPinToList(odb::dbBTerm* pin, PinList* pin_group);
+  // 0419 haoyuan enhance ioplacer
+  void readIOfromFileIntoDB(odb::dbBTerm* _pin_name, odb::dbTechLayer* _layer, double _llx, double _lly, double _width, double _depth, Edge _orientation);
 
  private:
   Netlist netlist_;
@@ -187,6 +189,8 @@ class IOPlacer
   void populateIOPlacer(std::set<int> hor_layer_idx,
                         std::set<int> ver_layer_idx);
   void commitIOPlacementToDB(std::vector<IOPin>& assignment);
+  // 0419 haoyuan enhance ioplacer
+  int metersToMfgGrid(double dist) const;
   void initCore(std::set<int> hor_layer_idxs, std::set<int> ver_layer_idxs);
   void initNetlist();
   void initTracks();
