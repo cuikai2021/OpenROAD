@@ -38,7 +38,7 @@ proc greate_github_issue {} {
     set download_url "$ossurl/$regression_name.tar.gz";
 
     set title "$regression_name failure"
-    set body "from: $trigger_from \n head: $ $git_head \n failure_results: $download_url"
+    set body "from: $trigger_from \n head: $git_head \n failure_results: $download_url"
 
     set json_body [json::stringify [dict create title "$title" body "$body" assignees "$assignee"] 0 { title string body string assignees array }];
     puts $json_body;
