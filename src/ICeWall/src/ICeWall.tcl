@@ -35,7 +35,7 @@ namespace eval ICeWall {
 
     set library $library_data
   }
-    
+
   proc get_origin {centre width height orient} {
       switch -exact $orient {
         R0    {
@@ -224,6 +224,46 @@ namespace eval ICeWall {
       return [get_scaled_origin $padcell cell]
     }
   }
+
+  proc absolute_origin_to_origin {absolute_origin width height orient} {
+    switch -exact $orient {
+        R0    {
+          set x [expr [dict get $absolute_origin x] ]
+          set y [expr [dict get $absolute_origin y] ]
+        }
+        R180  {
+          set x [expr [dict get $absolute_origin x] + $width]
+          set y [expr [dict get $absolute_origin y] + $height]
+        }
+        MX    {
+          set x [expr [dict get $absolute_origin x] ]
+          set y [expr [dict get $absolute_origin y] + $height]
+        }
+        MY    {
+          set x [expr [dict get $absolute_origin x] + $width]
+          set y [expr [dict get $absolute_origin y] ]
+        }
+        R90   {
+          set x [expr [dict get $absolute_origin x] + $height]
+          set y [expr [dict get $absolute_origin y] ]
+        }
+        R270  {
+          set x [expr [dict get $absolute_origin x] ]
+          set y [expr [dict get $absolute_origin y] + $width]
+        }
+        MXR90 {
+          set x [expr [dict get $absolute_origin x] ]
+          set y [expr [dict get $absolute_origin y] ]
+        }
+        MYR90 {
+          set x [expr [dict get $absolute_origin x] + $height]
+          set y [expr [dict get $absolute_origin y] + $width]
+        }
+        default {utl::error "PAD" 6 "Illegal orientation $orient specified"}
+      }
+
+      return [list x $x y $y]
+  }
   
   proc get_scaled_origin {padcell {type "cell"}} {
     variable library
@@ -256,17 +296,26 @@ namespace eval ICeWall {
         set height [$cell getHeight]
       }
 
-      if {[dict exists $inst $type scaled_centre]} {
-        set centre [dict get $inst $type scaled_centre]
-        set scaled_origin [get_origin $centre $width $height $orient]
-      } elseif {[dict exists $inst $type centre]} {
-        set centre [list \
-          x [expr round([dict get $inst $type centre x] * $def_units)] \
-          y [expr round([dict get $inst $type centre y] * $def_units)] \
+      if {[dict exists $inst $type absolute_origin]} {
+        set absolute_origin [dict get $inst $type absolute_origin]
+        set scaled_absolute_origin [list \
+          x [expr round([lindex $absolute_origin 1] * $def_units)] \
+          y [expr round([lindex $absolute_origin 3] * $def_units)] \
         ]
-        set scaled_origin [get_origin $centre $width $height $orient]
+        set scaled_origin [absolute_origin_to_origin $scaled_absolute_origin $width $height $orient]
       } else {
+        if {[dict exists $inst $type scaled_centre]} {
+          set centre [dict get $inst $type scaled_centre]
+          set scaled_origin [get_origin $centre $width $height $orient]
+        } elseif {[dict exists $inst $type centre]} {
+          set centre [list \
+            x [expr round([dict get $inst $type centre x] * $def_units)] \
+            y [expr round([dict get $inst $type centre y] * $def_units)] \
+          ]
+          set scaled_origin [get_origin $centre $width $height $orient]
+        } else {
         # debug "padcell: $padcell, data: [dict get $inst]"
+        }
       }
     }
     # debug "end" 
@@ -314,13 +363,21 @@ namespace eval ICeWall {
 
       if {[dict exists $inst $type scaled_origin]} {
         set origin [dict get $inst $type scaled_origin]
-        set scaled_centre [get_centre $origin $cell_width $cell_height $orient]
+        set scaled_centre [get_centre $origin $width $height $orient]
+      } elseif {[dict exists $inst $type absolute_origin]} {
+        set absolute_origin [dict get $inst $type absolute_origin]
+        set scaled_absolute_origin [list \
+          x [expr round([lindex $absolute_origin 1] * $def_units)] \
+          y [expr round([lindex $absolute_origin 3] * $def_units)] \
+        ]
+        set origin [absolute_origin_to_origin $scaled_absolute_origin $width $height $orient]
+        set scaled_centre [get_centre $origin $width $height $orient]
       } elseif {[dict exists $inst $type origin]} {
         set origin [list \
           x [expr round([dict get $inst $type origin x] * $def_units)] \
           y [expr round([dict get $inst $type origin y] * $def_units)] \
         ]
-        set scaled_centre [get_centre $origin $cell_width $cell_height $orient]
+        set scaled_centre [get_centre $origin $width $height $orient]
       }
     }
     
@@ -457,7 +514,7 @@ namespace eval ICeWall {
     variable footprint
 
     if {![dict exists $footprint scaled_core_area]} {
-      utl::error "PAD"  16 "Scaled core area not defined"
+      utl::error "PAD" 16 "Scaled core area not defined"
     }
 
     return [dict get $footprint scaled_core_area]
@@ -516,18 +573,19 @@ namespace eval ICeWall {
   
   proc get_padcell_inst_name {padcell} {
     variable footprint
-
-    if {[is_padcell_power $padcell] || [is_padcell_ground $padcell]} {
-      set inst_name "u_$padcell"
+    
+    if {[dict exists $footprint padcell $padcell pad_inst_name]} {
+      set inst_name [format [dict get $footprint padcell $padcell pad_inst_name] [get_padcell_assigned_name $padcell]]
     } else {
-      set info [dict get $footprint padcell $padcell]
-
-      if {[dict exists $footprint padcell $padcell pad_inst_name]} {
-        set inst_name [format [dict get $footprint padcell $padcell pad_inst_name] [get_padcell_assigned_name $padcell]]
-      } elseif {[dict exists $footprint pad_inst_name]} {
-        set inst_name [format [dict get $footprint pad_inst_name] [get_padcell_assigned_name $padcell]]
+      if {[is_padcell_power $padcell] || [is_padcell_ground $padcell]} {
+        set padcell_assigned_name $padcell
       } else {
-        set inst_name "u_[get_padcell_assigned_name $padcell]"
+        set padcell_assigned_name [get_padcell_assigned_name $padcell]
+      }
+      if {[dict exists $footprint pad_inst_name]} {
+        set inst_name [format [dict get $footprint pad_inst_name] $padcell_assigned_name]
+      } else {
+        set inst_name "u_$padcell_assigned_name"
       }
     }
     
@@ -766,9 +824,9 @@ namespace eval ICeWall {
       if {![dict exists $library cells]} {
         utl::error "PAD" 49 "No cells defined in the library description"
       } elseif {![dict exists $library cells $cell_type]} {
-        utl::error "PAD"  96 "No cell $cell_type defined in library ([dict keys [dict get $library cells]])"
+        utl::error "PAD" 96 "No cell $cell_type defined in library ([dict keys [dict get $library cells]])"
       } else {
-        utl::error "PAD"  97 "No entry found in library definition for cell $cell_type on $position side"
+        utl::error "PAD" 97 "No entry found in library definition for cell $cell_type on $position side"
       }
     }
 
@@ -821,20 +879,6 @@ namespace eval ICeWall {
       }
     }
     return $cell_list
-  }
-
-  proc get_tracks {} {
-    variable footprint 
-
-    if {![dict exists $footprint tracks]} {
-      dict set footprint tracks "tracks.info"
-    }
-
-    if {![file exists [dict get $footprint tracks]]} {
-      write_track_file [dict get $footprint tracks] [dict get $footprint core_area]
-    }
-    
-    return [dict get $footprint tracks]
   }
 
   proc get_library_pad_pin_name {type} {
@@ -1478,26 +1522,6 @@ namespace eval ICeWall {
     }
   }
   
-  proc write_track_file {track_info_file core_area} {
-    variable db
-    variable tech 
-    variable def_units
-    set ch [open $track_info_file "w"]
-
-    set tech [$db getTech]
-    foreach layer [$tech getLayers] {
-      if {[$layer getType] == "ROUTING"} {
-        set x_offset [expr round([lindex $core_area 0] * $def_units) % [$layer getPitchX]]
-        set y_offset [expr round([lindex $core_area 1] * $def_units) % [$layer getPitchY]]
-
-        puts $ch [format "%s Y %.3f %.3f" [$layer getName] [expr 1.0 * $x_offset / $def_units] [expr 1.0 * [$layer getPitchX] / $def_units]]
-        puts $ch [format "%s X %.3f %.3f" [$layer getName] [expr 1.0 * $y_offset / $def_units] [expr 1.0 * [$layer getPitchY] / $def_units]]
-      }
-    }
-    
-    close $ch
-  }
-  
   proc read_signal_assignments {signal_assignment_file} {
     if {![file exists $signal_assignment_file]} {
       utl::error "PAD" 7 "File $signal_assignment_file not found"
@@ -2056,6 +2080,7 @@ namespace eval ICeWall {
         set net [$block findNet $assigned_name] 
         if {$net == "NULL"} {
           if {$type == "POWER" || $type == "GROUND"} {
+            utl::info "PAD" 51 "Creating pad ring net: $assigned_name"
             set net [odb::dbNet_create $block $assigned_name]
           }
           if {$net == "NULL"} {
@@ -2071,6 +2096,7 @@ namespace eval ICeWall {
         while {[$block findNet "_UNASSIGNED_$idx"] != "NULL"} {
           incr idx
         }
+        utl::info "PAD" 52 "Creating pad ring net: _UNASSIGNED_$idx"
         set net [odb::dbNet_create $block "_UNASSIGNED_$idx"]
         set term [odb::dbBTerm_create $net "_UNASSIGNED_$idx"]
       } else {
@@ -2513,6 +2539,7 @@ namespace eval ICeWall {
     ]
   }
 
+
   proc invert_transform {x y origin orientation} {
     set x [expr $x - [lindex $origin 0]]
     set y [expr $y - [lindex $origin 1]]
@@ -2865,12 +2892,11 @@ namespace eval ICeWall {
         set cell_width  [expr min([$cell getHeight],[$cell getWidth])]
 
         if {[set inst [get_padcell_inst $padcell]] == "NULL"} {
-          # utl::warn "PAD" 13 "Expected instance $name for signal $name not found"
           continue
         }
 
         set orient [get_padcell_orient $padcell]
-	set origin [get_padcell_scaled_origin $padcell]
+        set origin [get_padcell_scaled_origin $padcell]
         # debug "padcell: $padcell, orient: $orient, origin: $origin"
         # set offset [get_padcell_cell_offset $padcell]
         # set location [transform_point {*}$offset [list 0 0] $orient]
@@ -3129,12 +3155,50 @@ namespace eval ICeWall {
       # Need to set these nets as SPECIAL so the detail router does not try to route them.
       dict for {signal sections} [dict get $segment cells] {
         # debug "Signal: $signal"
-        foreach section [dict keys $sections] {
+        set section_keys [dict keys $sections]
+        foreach section $section_keys {
           # debug "Section: $section"
-          if {[set net [$block findNet "${signal}_$section"]] != "NULL"} {
-            # utl::error "PAD" 14 "Net ${signal}_$section already exists, so cannot be used in the pad ring"
-          } else {
-            set net [odb::dbNet_create $block "${signal}_$section"]
+          
+          # Determine net name for ring
+          # search for existing nets
+          set candidate_nets [dict create]
+          foreach inst_pin_name [dict get $sections $section] {
+            set inst_name [dict get $inst_pin_name inst_name]
+            set pin_name [dict get $inst_pin_name pin_name]
+            
+            if {[set inst [$block findInst $inst_name]] == "NULL"} {
+              # debug "Cant find instance $inst_name"
+              continue
+            }
+            if {[set iterm [$inst findITerm $pin_name]] == "NULL"} {
+              continue
+            }
+            if {[set net [$iterm getNet]] == "NULL"} {
+              # no net connected so we'll assume we need to make it
+              continue
+            }
+            dict set candidate_nets $net ""
+          }
+          set candidate_nets [dict keys $candidate_nets]
+          set net "NULL"
+          if {[llength $candidate_nets] == 1} {
+            set net [lindex $candidate_nets 0]
+          } elseif {[llength $candidate_nets] > 1} {
+            utl::warn PAD 50 "Multiple nets found on $signal in pad ring"
+          }
+          
+          if {$net == "NULL"} {
+            # no net was found, we need to make it
+            set net_name "${signal}"
+            if {[llength $section_keys] > 1} {
+              append net_name "_$section"
+            }
+            if {[set net [$block findNet $net_name]] != "NULL"} {
+              # utl::error "PAD" 14 "Net ${signal}_$section already exists, so cannot be used in the pad ring"
+            } else {
+              utl::info "PAD" 53 "Creating pad ring net: $net_name"
+              set net [odb::dbNet_create $block $net_name]
+            }
           }
           # debug "Net: [$net getName]"
           $net setSpecial
