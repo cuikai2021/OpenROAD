@@ -1155,10 +1155,10 @@ void IOPlacer::readIOfromFileIntoDB(odb::dbBTerm* _pin_name, odb::dbTechLayer* _
   }
 
   int llx, lly,urx,ury,width,depth = 0;
-  width = metersToMfgGrid(_width/1e+6);
-  depth = metersToMfgGrid(_depth/1e+6);
-  llx = metersToMfgGrid(_llx/1e+6);
-  lly = metersToMfgGrid(_lly/1e+6);
+  width = micronsToMfgGrid(_width);
+  depth = micronsToMfgGrid(_depth);
+  llx = micronsToMfgGrid(_llx);
+  lly = micronsToMfgGrid(_lly);
   if (_orientation == Edge::left) {
     llx = llx;
     lly = lly-width/2;
@@ -1192,16 +1192,16 @@ void IOPlacer::readIOfromFileIntoDB(odb::dbBTerm* _pin_name, odb::dbTechLayer* _
   bpin->setPlacementStatus(odb::dbPlacementStatus::PLACED);
 }
 
-int IOPlacer::metersToMfgGrid(double dist) const
+int IOPlacer::micronsToMfgGrid(double dist) const
 {
   odb::dbTech *tech = db_->getTech();
   int dbu = tech->getDbUnitsPerMicron();
   if (tech->hasManufacturingGrid()) {
     int grid = tech->getManufacturingGrid();
-    return round(round(dist * dbu * 1e+6 / grid) * grid);
+    return round(round(dist * dbu / grid) * grid);
   }
   else
-    return round(dist * 1e+9);
+    return round(dist * 1e+3);
 }
 
 }  // namespace ppl
