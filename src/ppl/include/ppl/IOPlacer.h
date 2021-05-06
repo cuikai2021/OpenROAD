@@ -190,7 +190,7 @@ class IOPlacer
                         std::set<int> ver_layer_idx);
   void commitIOPlacementToDB(std::vector<IOPin>& assignment);
   // 0419 haoyuan enhance ioplacer
-  int metersToMfgGrid(double dist) const;
+  int micronsToMfgGrid(double dist) const;
   void initCore(std::set<int> hor_layer_idxs, std::set<int> ver_layer_idxs);
   void initNetlist();
   void initTracks();
