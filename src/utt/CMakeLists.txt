@@ -1,18 +1,10 @@
-set(CHECKER_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include" CACHE INTERNAL "GLOBAL_INCLUDES" )
-# add_library(checker SHARED Checker.cpp)
-
-# target_link_libraries(checker ${GTEST_LIBRARIES})
-
+# cmake list for build unit test tool
 
 add_library(utt)
 
-add_subdirectory(unittest/checker)
-
-include_directories(..)
-
 target_sources(utt
   PRIVATE
-    src/Checker.cpp
+    src/itest.cpp
 )
   
 target_include_directories(utt

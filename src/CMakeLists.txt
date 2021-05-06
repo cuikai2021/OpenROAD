@@ -287,12 +287,35 @@ add_custom_target(openroad_tags etags -o TAGS
 #########################
 # build unit test
 
-set(UNITTEST_PATH "utt/unittest")
-
 add_executable(unittest
+../utest/utt/EdenTestUTT.cc
+../utest/utl/EdenTestUTL.cc
+../utest/TritonRoute/EdenTestTRITONROUTE.cc
+../utest/TritonCTS/EdenTestTRITONCTS.cc
+../utest/tap/EdenTestTAP.cc
+../utest/sta/EdenTestSTA.cc
+../utest/rsz/EdenTestRSZ.cc
+../utest/replace/EdenTestREPLACE.cc
+../utest/psm/EdenTestPSM.cc
+../utest/pdrev/EdenTestPDREV.cc
+../utest/PDNSim/EdenTestPDNSIM.cc
+../utest/pdngen/EdenTestPDNGEN.cc
+../utest/PartitionMgr/EdenTestPARTITIONMGR.cc
+../utest/OpenRCX/EdenTestOPENRCX.cc
+../utest/OpenDB/EdenTestOPENDB.cc
+../utest/ifp/EdenTestIFP.cc
+../utest/ICeWall/EdenTestICEWALL.cc
+../utest/gui/EdenTestGUI.cc
+../utest/grt/EdenTestGRT.cc
+../utest/flute3/EdenTestFLUTE3.cc
+../utest/fin/EdenTestFIN.cc
+../utest/dpl/EdenTestDPL.cc
+../utest/dbSta/EdenTestDBSTA.cc
+../utest/antenna_checker/EdenTestANTENNA_CHECKER.cc
   OpenRoad.cc
-  TestMain.cc
-  ${UNITTEST_PATH}/mpl/TestMpl.cc
+  Main.cc
+  ../utest/mpl/EdenTestMPL.cc
+  ../utest/ppl/EdenTestPPL.cc
 )
 
 target_compile_options(unittest
@@ -339,6 +362,11 @@ target_link_libraries(unittest
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
   ${GTEST_LIBRARIES}
+)
+
+target_compile_definitions(unittest
+  PUBLIC
+  -DGTEST_ENABLE
 )
 
 install(TARGETS unittest DESTINATION bin)

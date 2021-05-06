@@ -1,9 +1,9 @@
-#include <Checker.h>
+#include <itest.h>
 #include <mpl/MacroPlacer.h>
 
 using namespace mpl;
 
-TEST(testcase_coreEdgeFromIndex, test0)
+TEST(mpl_testcase_coreEdgeFromIndex, test0)
 {
   EXPECT_EQ(coreEdgeFromIndex(0), CoreEdge::West);
   EXPECT_EQ(coreEdgeFromIndex(1), CoreEdge::East);

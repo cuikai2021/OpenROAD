@@ -35,9 +35,6 @@ include("openroad")
 
 add_subdirectory(src/ParquetFP)
 
-# add ut directory
-# add_subdirectory(ut)
-
 swig_lib(NAME      mpl
          NAMESPACE mpl
          I_FILE    src/MacroPlacer.i
@@ -50,13 +47,11 @@ target_sources(mpl
     src/MacroPlacer.cpp
     src/MakeMacroPlacer.cpp
     src/graphics.cpp
-    # ut/TestMpl.cc
 )
 
 target_include_directories(mpl
   PUBLIC
     include
-    ${CHECKER_INCLUDE}
 )
 
 target_link_libraries(mpl
@@ -67,5 +62,4 @@ target_link_libraries(mpl
     opendb
     utl
     gui
-    ${GTEST_LIBRARIES}
 )

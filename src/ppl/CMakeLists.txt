@@ -58,7 +58,7 @@ target_sources(ppl
 target_include_directories(ppl
   PUBLIC
     include
-  PRIVATE
+  # PRIVATE
     src
 )
 

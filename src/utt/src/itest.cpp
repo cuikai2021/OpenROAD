@@ -1,6 +1,6 @@
-#include <Checker.h>
+#include <itest.h>
 
-namespace utt {
+namespace testing {
 
 inline std::ifstream init_istream(std::string path)
 {
@@ -13,11 +13,11 @@ inline bool isblank(std::string str, ignore ig)
 {
   for (unsigned int i = 0; i < str.size(); ++i) {
     if (str[i] != ' ') {
-      if (ig != no_ignore) {
-        if (ig == ignore_commit_script && str[i] == '#') {
+      if (ig != kNoIgnore) {
+        if (ig == kIgnoreCommitScript && str[i] == '#') {
           return true;
         }
-        if (ig == ignore_commit_code && i < str.size() - 1 && str[i] == '/'
+        if (ig == kIgnoreCommitCode && i < str.size() - 1 && str[i] == '/'
             && str[i + 1] == '/') {
           return true;
         }

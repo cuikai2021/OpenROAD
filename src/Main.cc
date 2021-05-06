@@ -32,6 +32,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////////
+#ifdef GTEST_ENABLE
+  #include <gmock/gmock.h>
+  #include <gtest/gtest.h>
+
+  #include "itest.h"
+#endif
 
 #include <array>
 #include <stdio.h>
@@ -154,6 +160,7 @@ initPython()
 }
 #endif
 
+#ifndef GTEST_ENABLE
 int
 main(int argc,
      char *argv[])
@@ -224,6 +231,7 @@ main(int argc,
   Tcl_Main(1, argv, ord::tclAppInit);
   return 0;
 }
+#endif
 
 #ifdef ENABLE_READLINE
 static int
@@ -359,3 +367,16 @@ showSplash()
   logger->report("This program is licensed under the BSD-3 license. See the LICENSE file for details.");
   logger->report("Components of this program may be licensed under more restrictive licenses which must be honored.");
 }
+
+/////////////////////////////////////////////
+//
+// Main functions for all unit test
+//
+/////////////////////////////////////////////
+#ifdef GTEST_ENABLE
+int main(int argc, char** argv)
+{
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+#endif
