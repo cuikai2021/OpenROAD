@@ -113,6 +113,13 @@ find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # gtest and gmock
+# first set openMP incase can not find gtest correctly
+FIND_PACKAGE(OpenMP)
+IF(OPENMP_FOUND)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+ENDIF()
+
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 message(STATUS "gtest path: ${GTEST_INCLUDE_DIR}")
