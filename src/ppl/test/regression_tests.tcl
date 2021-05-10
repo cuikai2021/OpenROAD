@@ -27,4 +27,5 @@ record_tests {
   group_pins6
   group_pins7
   group_pins_warn1
+  readPins
 }
