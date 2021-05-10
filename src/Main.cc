@@ -32,10 +32,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////////
-#ifdef GTEST_ENABLE
-  #include <gmock/gmock.h>
-  #include <gtest/gtest.h>
-
+#ifdef ENABLE_GTEST
   #include "itest.h"
 #endif
 
@@ -160,7 +157,18 @@ initPython()
 }
 #endif
 
-#ifndef GTEST_ENABLE
+/////////////////////////////////////////////
+//
+// Main functions for all unit test
+//
+/////////////////////////////////////////////
+#ifdef ENABLE_GTEST
+int main(int argc, char** argv)
+{
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+#else
 int
 main(int argc,
      char *argv[])
@@ -367,16 +375,3 @@ showSplash()
   logger->report("This program is licensed under the BSD-3 license. See the LICENSE file for details.");
   logger->report("Components of this program may be licensed under more restrictive licenses which must be honored.");
 }
-
-/////////////////////////////////////////////
-//
-// Main functions for all unit test
-//
-/////////////////////////////////////////////
-#ifdef GTEST_ENABLE
-int main(int argc, char** argv)
-{
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
-#endif

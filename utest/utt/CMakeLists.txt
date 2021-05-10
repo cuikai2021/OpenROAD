@@ -1,11 +1,25 @@
-# copy neccessary files into targetzone
+# cmake list for build unit test tool
 
-file(COPY 
-  regex_copy.cc 
-  regex.cc 
-  DESTINATION 
-  ${CMAKE_BINARY_DIR}/test_file 
-  FOLLOW_SYMLINK_CHAIN
+add_library(utt)
+
+target_sources(utt
+  PRIVATE
+    src/itest.cpp
+)
+  
+target_include_directories(utt
+  PUBLIC
+    include
 )
 
+target_link_libraries(utt
+  PUBLIC
+  ${GTEST_LIBRARIES}
+)
 
+file(COPY 
+  test_file/regex_copy.txt
+  test_file/regex.txt
+  DESTINATION 
+  ${CMAKE_BINARY_DIR}/src/test_file 
+)
