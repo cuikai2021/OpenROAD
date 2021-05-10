@@ -364,6 +364,14 @@ namespace eval ICeWall {
       if {[dict exists $inst $type scaled_origin]} {
         set origin [dict get $inst $type scaled_origin]
         set scaled_centre [get_centre $origin $width $height $orient]
+      } elseif {[dict exists $inst $type absolute_origin]} {
+        set absolute_origin [dict get $inst $type absolute_origin]
+        set scaled_absolute_origin [list \
+          x [expr round([lindex $absolute_origin 1] * $def_units)] \
+          y [expr round([lindex $absolute_origin 3] * $def_units)] \
+        ]
+        set origin [absolute_origin_to_origin $scaled_absolute_origin $width $height $orient]
+        set scaled_centre [get_centre $origin $width $height $orient]
       } elseif {[dict exists $inst $type origin]} {
         set origin [list \
           x [expr round([dict get $inst $type origin x] * $def_units)] \
