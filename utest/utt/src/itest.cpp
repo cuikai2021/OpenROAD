@@ -2,51 +2,38 @@
 
 namespace testing {
 
-inline std::ifstream init_istream(std::string path)
+bool compareFiles(const std::string& p1, const std::string& p2)
 {
-  std::ifstream infile;
-  infile.open(path);
-  return infile;
-}
+  std::ifstream f1(p1, std::ifstream::binary | std::ifstream::ate);
+  std::ifstream f2(p2, std::ifstream::binary | std::ifstream::ate);
 
-inline bool isblank(std::string str, ignore ig)
-{
-  for (unsigned int i = 0; i < str.size(); ++i) {
-    if (str[i] != ' ') {
-      if (ig != kNoIgnore) {
-        if (ig == kIgnoreCommitScript && str[i] == '#') {
-          return true;
-        }
-        if (ig == kIgnoreCommitCode && i < str.size() - 1 && str[i] == '/'
-            && str[i + 1] == '/') {
-          return true;
-        }
-      }
-      return false;
-    }
+  if (f1.fail() || f2.fail()) {
+    return false;  // file problem
   }
-  return true;
+
+  if (f1.tellg() != f2.tellg()) {
+    return false;  // size mismatch
+  }
+
+  // seek back to beginning and use std::equal to compare contents
+  f1.seekg(0, std::ifstream::beg);
+  f2.seekg(0, std::ifstream::beg);
+  return std::equal(std::istreambuf_iterator<char>(f1.rdbuf()),
+                    std::istreambuf_iterator<char>(),
+                    std::istreambuf_iterator<char>(f2.rdbuf()));
 }
 
-void file_equal(std::string file0, std::string file1, ignore ig)
+void file_equal(const std::string file0, const std::string file1, bool need_equal)
 {
-  std::string s0 = {};
-  std::string s1 = {};
-  std::ifstream if0 = init_istream(file0);
-  std::ifstream if1 = init_istream(file1);
+  std::string msg = "two files are different";
 
-  while (std::getline(if0, s0)) {
-    if (!isblank(s0, ig)) {
-      while (std::getline(if1, s1) && isblank(s1, ig))
-        ;
-      if (s0.compare(s1)) {
-        FAIL() << ":\n(file0: " << file0 << ")\n"
-               << s0 << "\n(file1:" << file1 << ")\n"
-               << s1;
-        break;
-      }
+  if (!(compareFiles(file0, file1) != need_equal))
+  {
+    if(!need_equal){
+      msg = "two files are same";
     }
+    FAIL() << msg;
   }
 }
 
-}  // namespace utt
+}  // namespace testing
