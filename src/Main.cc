@@ -32,6 +32,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////////
+#ifdef ENABLE_GTEST
+  #include "itest.h"
+#endif
 
 #include <array>
 #include <stdio.h>
@@ -154,6 +157,18 @@ initPython()
 }
 #endif
 
+/////////////////////////////////////////////
+//
+// Main functions for all unit test
+//
+/////////////////////////////////////////////
+#ifdef ENABLE_GTEST
+int main(int argc, char** argv)
+{
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+#else
 int
 main(int argc,
      char *argv[])
@@ -224,6 +239,7 @@ main(int argc,
   Tcl_Main(1, argv, ord::tclAppInit);
   return 0;
 }
+#endif
 
 #ifdef ENABLE_READLINE
 static int
