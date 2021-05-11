@@ -270,3 +270,111 @@ add_custom_target(openroad_tags etags -o TAGS
   WORKING_DIRECTORY ${OPENROAD_HOME}/src
   DEPENDS ${OPENROAD_SOURCE} ${OPENROAD_HEADERS} ${OPENROAD_TCL_FILES}
 )
+
+#########################
+# build unit test
+if(GTEST STREQUAL ON)
+
+  # find gtest and gmock lib
+  # first set openMP incase can not find gtest correctly
+  FIND_PACKAGE(OpenMP)
+  IF(OPENMP_FOUND)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  ENDIF()
+
+  find_package(GTest REQUIRED)
+  include_directories(${GTEST_INCLUDE_DIR})
+  message(STATUS "gtest path: ${GTEST_INCLUDE_DIR}")
+  # get_filename_component(GTEST_LIBRARIES_DIR ${GTEST_LIBRARIES} DIRECTORY)
+  message(STATUS "gtest lib: ${GTEST_LIBRARIES}")
+
+  # Enable gtest and gmock with pthread
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lgtest -lgmock")
+
+  add_subdirectory(../utest utest)
+
+  add_executable(utEden
+    ../utest/utt/EdenTestUTT.cc
+    ../utest/utl/EdenTestUTL.cc
+    ../utest/TritonRoute/EdenTestTRITONROUTE.cc
+    ../utest/TritonCTS/EdenTestTRITONCTS.cc
+    ../utest/tap/EdenTestTAP.cc
+    ../utest/sta/EdenTestSTA.cc
+    ../utest/rsz/EdenTestRSZ.cc
+    ../utest/replace/EdenTestREPLACE.cc
+    ../utest/psm/EdenTestPSM.cc
+    ../utest/pdrev/EdenTestPDREV.cc
+    ../utest/PDNSim/EdenTestPDNSIM.cc
+    ../utest/pdngen/EdenTestPDNGEN.cc
+    ../utest/PartitionMgr/EdenTestPARTITIONMGR.cc
+    ../utest/OpenRCX/EdenTestOPENRCX.cc
+    ../utest/OpenDB/EdenTestOPENDB.cc
+    ../utest/ifp/EdenTestIFP.cc
+    ../utest/ICeWall/EdenTestICEWALL.cc
+    ../utest/gui/EdenTestGUI.cc
+    ../utest/grt/EdenTestGRT.cc
+    ../utest/flute3/EdenTestFLUTE3.cc
+    ../utest/fin/EdenTestFIN.cc
+    ../utest/dpl/EdenTestDPL.cc
+    ../utest/dbSta/EdenTestDBSTA.cc
+    ../utest/antenna_checker/EdenTestANTENNA_CHECKER.cc
+    ../utest/mpl/EdenTestMPL.cc
+    ../utest/ppl/EdenTestPPL.cc
+    ${OPENROAD_SOURCE}
+  )
+
+  target_compile_options(utEden
+    PRIVATE
+      -Wall -Wextra -pedantic -Wcast-qual -Wredundant-decls -Wformat-security
+      $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
+      $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
+  )
+
+  # Disable compiler specific extensions like gnu++11.
+  set_target_properties(utEden PROPERTIES CXX_EXTENSIONS OFF)
+  target_compile_features(utEden PUBLIC cxx_std_17)
+
+  target_include_directories(utEden
+    PUBLIC
+    ../include
+  )
+
+  target_link_libraries(utEden
+    ifp
+    openroad_swig
+    replace
+    dpl
+    fin
+    rsz
+    ppl
+    flute
+    dbSta
+    OpenSTA
+    opendb
+    opendbtcl
+    OpenRCX
+    TritonCTS
+    grt
+    tap
+    gui
+    TritonRoute
+    mpl
+    psm
+    antennachecker
+    PartitionMgr
+    utl
+    utt
+    ${TCL_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${GTEST_LIBRARIES}
+  )
+
+  target_compile_definitions(utEden
+    PUBLIC
+    -DENABLE_GTEST
+  )
+
+  install(TARGETS utEden DESTINATION bin)
+
+endif()
