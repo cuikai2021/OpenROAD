@@ -19,6 +19,7 @@ set ossurl "https://icbench-devops.oss-cn-shanghai.aliyuncs.com"
 set osspath "oss://icbench-devops"
 set failures_count 0
 set github_create_issue_url "https://api.github.com/repos/ICBench/Eden/issues"
+set devops_results_dir "$openroad_dir/devops_results"
 
 
 array set all_test_dirs { ifp "src/ifp/test" dbSta "src/dbSta/test" ppl "src/ppl/test" \
@@ -35,6 +36,8 @@ proc greate_github_issue {} {
     global assignee;
     global trigger_from;
     global git_head;
+    global devops_results_dir;
+    
     set download_url "$ossurl/$regression_name.tar.gz";
 
     set title "$regression_name failure"
@@ -42,7 +45,7 @@ proc greate_github_issue {} {
 
     set json_body [json::stringify [dict create title "$title" body "$body" assignees "$assignee"] 0 { title string body string assignees array }];
     puts $json_body;
-    exec curl -s -H "Accept:application/vnd.github.v3+json" -H "Authorization:token $github_api_token" -X POST --data $json_body $github_create_issue_url
+    exec curl -s -H "Accept:application/vnd.github.v3+json" -H "Authorization:token $github_api_token" -X POST --data $json_body $github_create_issue_url  > "$devops_results_dir/create_issue_output.json";
 }
 
 proc read_failures_item { failures_file } {
