@@ -338,6 +338,7 @@ if(GTEST STREQUAL ON)
   target_include_directories(utEden
     PUBLIC
     ../include
+    TritonCTS/src
   )
 
   target_link_libraries(utEden
