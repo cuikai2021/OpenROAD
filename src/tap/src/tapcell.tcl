@@ -588,6 +588,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
           build_cell $block $master $ori $x $lly $prefix
         } else {
           #if overlap, check more sites to add
+
           for {set x1 $x; set count 0} {$count < 10 && $x1 < $urx} {set x1 [expr $x1 + $site_x]; incr count} {
             set x1 [make_site_loc $x1 $site_x -1 $llx]
             set overlap1 [check_if_filled $x1 $tap_width $ori $row_fill_check]
