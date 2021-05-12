@@ -113,10 +113,12 @@ fi
 
 mkdir -p "${buildDir}"
 if [[ "${keepLog}" == "yes"  ]]; then
-    logName="${buildDir}/openroad-build-$(date +%s).log"
+    mkdir -p "${buildDir}/buildLog"
+    logName="${buildDir}/buildLog/openroad-build-$(date +%s).log"
+    cmake "${cmakeOptions[@]}" -B "${buildDir}" . 2>&1 | tee "${logName}"
+    time cmake --build "${buildDir}" -j "${numThreads}" 2>&1 | tee -a "${logName}"
 else
-    logName=/dev/null
+    cmake "${cmakeOptions[@]}" -B "${buildDir}" .
+    time cmake --build "${buildDir}" -j "${numThreads}"
 fi
 
-cmake "${cmakeOptions[@]}" -B "${buildDir}" . 2>&1 | tee "${logName}"
-time cmake --build "${buildDir}" -j "${numThreads}" 2>&1 | tee -a "${logName}"

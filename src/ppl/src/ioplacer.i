@@ -200,6 +200,12 @@ run_io_placement(bool randomMode)
 }
 
 void
+run_single_io_read(odb::dbBTerm* _pin_name, odb::dbTechLayer* _layer, double _llx, double _lly, double _width, double _depth, Edge _orientation)
+{
+  getIOPlacer()->readIOfromFileIntoDB(_pin_name, _layer, _llx, _lly, _width, _depth, _orientation);
+}
+
+void
 set_report_hpwl(bool report)
 {
   getIOPlacer()->getParameters()->setReportHPWL(report);

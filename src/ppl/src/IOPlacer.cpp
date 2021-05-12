@@ -1041,8 +1041,9 @@ void IOPlacer::initNetlist()
 
   for (odb::dbBTerm* b_term : bterms) {
     odb::dbNet* net = b_term->getNet();
-    if (!net) {
+    if (net == nullptr) {
       logger_->warn(PPL, 38, "Pin {} without net", b_term->getConstName());
+      continue;
     }
 
     Direction dir = Direction::inout;
@@ -1131,6 +1132,77 @@ void IOPlacer::commitIOPlacementToDB(std::vector<IOPin>& assignment)
     odb::dbBox::create(bpin, layer, x_min, y_min, x_max, y_max);
     bpin->setPlacementStatus(odb::dbPlacementStatus::PLACED);
   }
+}
+
+void IOPlacer::readIOfromFileIntoDB(odb::dbBTerm* _pin_name, odb::dbTechLayer* _layer, double _llx, double _lly, double _width, double _depth, Edge _orientation)
+{
+  //int layer_level = atoi(_layer.c_str());
+  //const char * pin_name = _pin_name.c_str();
+  //odb::dbTechLayer* layer = tech_->findRoutingLayer(layer_level);
+  //odb::dbBTerm* bterm = block_->findBTerm(pin_name);
+  odb::dbTechLayer* layer = _layer;
+  odb::dbBTerm* bterm = _pin_name;
+  // destroy bpins first, if exist
+  odb::dbSet<odb::dbBPin> bpins = bterm->getBPins();
+  odb::dbSet<odb::dbBPin>::iterator bpin_iter;
+  std::vector<odb::dbBPin*> all_b_pins;
+  for (bpin_iter = bpins.begin(); bpin_iter != bpins.end(); ++bpin_iter) {
+    odb::dbBPin* cur_b_pin = *bpin_iter;
+    all_b_pins.push_back(cur_b_pin);
+  }
+
+  for (odb::dbBPin* bpin : all_b_pins) {
+    odb::dbBPin::destroy(bpin);
+  }
+
+  int llx, lly,urx,ury,width,depth = 0;
+  width = micronsToMfgGrid(_width);
+  depth = micronsToMfgGrid(_depth);
+  llx = micronsToMfgGrid(_llx);
+  lly = micronsToMfgGrid(_lly);
+  if (_orientation == Edge::left) {
+    llx = llx;
+    lly = lly-width/2;
+    urx = llx + depth;
+    ury = lly + width;
+  }
+  
+  if (_orientation == Edge::right) {
+    llx = llx-depth;
+    lly = lly-width/2;
+    urx = llx + depth;
+    ury = lly + width;
+  }
+
+  if (_orientation == Edge::top) {
+    llx = llx-width/2;
+    lly = lly-depth;
+    urx = llx + width;
+    ury = lly + depth;
+  }
+
+  if (_orientation == Edge::bottom) {
+    llx = llx-width/2;
+    lly = lly;
+    urx = llx + width;
+    ury = lly + depth;
+  }
+  
+  odb::dbBPin* bpin = odb::dbBPin::create(bterm);
+  odb::dbBox::create(bpin, layer, llx, lly, urx, ury);
+  bpin->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+}
+
+int IOPlacer::micronsToMfgGrid(double dist) const
+{
+  odb::dbTech *tech = db_->getTech();
+  int dbu = tech->getDbUnitsPerMicron();
+  if (tech->hasManufacturingGrid()) {
+    int grid = tech->getManufacturingGrid();
+    return round(round(dist * dbu / grid) * grid);
+  }
+  else
+    return round(dist * 1e+3);
 }
 
 }  // namespace ppl
