@@ -146,11 +146,6 @@ proc update_failures { project test_dir } {
     }
 }
 
-proc parse_gtest_output {} {
-    global gtest_output;
-    set gtest [read_file $gtest_output];
-
-}
 
 proc main {} {
     global all_test_dirs;
