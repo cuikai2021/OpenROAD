@@ -2,6 +2,15 @@
 
 set -euo pipefail
 
+_installGtest(){
+    # gtest (latest)
+    cd "${baseDir}"
+    git clone https://github.com/google/googletest.git
+    cd googletest
+    cmake -B build .
+    cmake --build build -j $(nproc) --target install
+}
+
 _installCommonDev() {
     lastDir="$(pwd)"
     # tools versions
@@ -12,6 +21,7 @@ _installCommonDev() {
     eigenVersion=3.3
     lemonVersion=1.3.1
     spdlogVersion=1.8.1
+    googletest=1.10.x # recommend to use latest version
 
     # temp dir to download and compile
     baseDir=/tmp/installers
@@ -65,8 +75,31 @@ _installCommonDev() {
     cmake -B build .
     cmake --build build -j $(nproc) --target install
 
+    # gtest (latest)
+    _installGtest
+
     cd "$lastDir"
     rm -rf "${baseDir}"
+}
+
+_installIncrement(){
+    # temp dir to download and compile for increment
+    baseDir=/tmp/installers_inc
+    mkdir -p "${baseDir}"
+
+    case "${package_name}" in
+        gtest|gmock|googletest)
+            _installGtest
+            ;;
+        *)
+            echo "did not find package: ${package_name}"
+            _help
+            ;;
+    esac
+
+    cd "${baseDir}/.."
+    rm -rf "${baseDir}"
+    exit 1
 }
 
 _installUbuntuCleanUp() {
@@ -147,6 +180,9 @@ _help() {
     cat <<EOF
 usage: $0 -run[time]
        $0 -dev[elopment]
+       $0 -incr[ement] package_name 
+                package list:
+                    gtest|gmock|googletest) => googletest framwork
 EOF
     exit "${1:-1}"
 }
@@ -162,6 +198,15 @@ while [ "$#" -gt 0 ]; do
             ;;
         -dev|-development)
             option="dev"
+            ;;
+        -incr|-increment)
+            if [ $# -gt 1 ]; then
+                package_name=${2}
+                _installIncrement
+            else
+                echo "-increment: need a package name after"
+                _help
+            fi
             ;;
         *)
             echo "unknown option: ${1}" >&2
