@@ -165,7 +165,7 @@ proc main {} {
         update_failures $name $dir;
     }
 
-    set gtest_failure 0
+    set gtest_failure_items 0
 
     if { [file exists $gtest_output] == 1 } {
         set gtest [read_file $gtest_output];
@@ -173,12 +173,13 @@ proc main {} {
         set gtest_failures [dict get $gtest_body "failures"];
         set gtest_disabled [dict get $gtest_body "disabled"];
         set gtest_errors [dict get $gtest_body "errors"];
-        set gtest_failure [expr {$gtest_failures + $gtest_disabled + $gtest_errors}];
-        puts $gtest_failure;
+        set gtest_failure_items [expr {$gtest_failures + $gtest_disabled + $gtest_errors}];
         exec mv "$gtest_output" $regression_name;
     }
 
-    if { gtest_failure > 0 || $failures_count > 0 } {
+    puts $gtest_failure_items;
+
+    if { gtest_failure_items > 0 || $failures_count > 0 } {
         exec tar -Pzcvf "$regression_name.tar.gz" $regression_name;
         exec ossutil64 cp "$regression_name.tar.gz" $osspath;
         create_github_issue;
