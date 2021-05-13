@@ -4,5 +4,5 @@ docker run --rm --network=host \
   --entrypoint /bin/bash \
   --mount type=bind,source="${JENKINS_HOME}"/workspace/Eden/devops_results,target=/Eden/devops_results \
   registry.cn-shanghai.aliyuncs.com/openroad/regression:0513 \
-  -c "sh /Eden/test/regression || sh /Eden/test/regression_update_failures"
+  -c "./build/src/utEden --gtest_output=json:gtest_output.json ; sh /Eden/test/regression ; sh /Eden/test/regression_update_failures"
  
