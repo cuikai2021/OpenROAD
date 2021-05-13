@@ -155,7 +155,7 @@ proc main {} {
         create_github_issue;
         exec rm -rf "$regression_dir";
         exec rm -rf "$regression_name.tar.gz";
-    }else{
+    } else {
         create_github_pr_from_regression_to_master;
     }
 }
