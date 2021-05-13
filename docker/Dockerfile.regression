@@ -29,7 +29,7 @@ ARG REGRESSION_BRANCH
 ENV REGRESSION_BRANCH ${REGRESSION_BRANCH}
 
 # Build
-RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
+RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -DGTEST=ON -B build . && cmake --build build -j 8
 RUN ln -s /Eden/build/src/eden /Eden/build/src/openroad
 
 

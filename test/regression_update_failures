@@ -24,6 +24,8 @@ set devops_results_dir "$openroad_dir/devops_results"
 
 set github_create_pr_url "https://api.github.com/repos/ICBench/Eden/pulls"
 
+set gtest_output "gtest_output.json"
+
 
 
 array set all_test_dirs { ifp "src/ifp/test" dbSta "src/dbSta/test" ppl "src/ppl/test" \
@@ -79,6 +81,13 @@ proc read_failures_item { failures_file } {
         }
     }
     return $items;
+}
+
+proc read_file {file_path} {
+    set fd [open "$file_path" r]
+    set contents [read $fd]
+    close $fd
+    return $contents
 }
 
 proc update_failure_item { project test_dir failure_item} {
@@ -137,19 +146,39 @@ proc update_failures { project test_dir } {
     }
 }
 
+proc parse_gtest_output {} {
+    global gtest_output;
+    set gtest [read_file $gtest_output];
+
+}
+
 proc main {} {
     global all_test_dirs;
     global regression_dir;
     global regression_name;
     global osspath;
     global failures_count;
+    global gtest_output;
 
     exec mkdir -p $regression_dir;
     foreach { name dir } [array get all_test_dirs] {
         update_failures $name $dir;
     }
 
-    if {$failures_count > 0} {
+    set gtest_failure 0
+
+    if { [file exists $gtest_output] == 1 } {
+        set gtest [read_file $gtest_output];
+        set gtest_body [json::parse $gtest];
+        set gtest_failures [dict get $gtest_body "failures"];
+        set gtest_disabled [dict get $gtest_body "disabled"];
+        set gtest_errors [dict get $gtest_body "errors"];
+        set gtest_failure [expr {$gtest_failures + $gtest_disabled + $gtest_errors}];
+        puts $gtest_failure;
+        exec mv "$gtest_output" $regression_name;
+    }
+
+    if { gtest_failure > 0 || $failures_count > 0 } {
         exec tar -Pzcvf "$regression_name.tar.gz" $regression_name;
         exec ossutil64 cp "$regression_name.tar.gz" $osspath;
         create_github_issue;
