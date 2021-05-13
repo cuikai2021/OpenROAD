@@ -326,12 +326,12 @@ if(GTEST STREQUAL ON)
     fin
     rsz
     ppl
-    flute
+    sst
     dbSta
     OpenSTA
     opendb
     opendbtcl
-    OpenRCX
+    rcx
     TritonCTS
     grt
     tap
@@ -339,9 +339,10 @@ if(GTEST STREQUAL ON)
     TritonRoute
     mpl
     psm
-    antennachecker
+    ant
     PartitionMgr
     utl
+    pdn
     utt
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
