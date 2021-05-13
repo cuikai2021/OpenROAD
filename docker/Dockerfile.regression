@@ -1,4 +1,4 @@
-FROM registry.cn-shanghai.aliyuncs.com/openroad/env_openroad:0207
+FROM registry.cn-shanghai.aliyuncs.com/ieden/env_eden:0513
 
 ARG EDEN_GIT_SHA1
 
@@ -24,6 +24,9 @@ ENV TRIGGER_FROM ${TRIGGER_FROM}
 
 ARG GIT_HEAD
 ENV GIT_HEAD ${GIT_HEAD}
+
+ARG REGRESSION_BRANCH
+ENV REGRESSION_BRANCH ${REGRESSION_BRANCH}
 
 # Build
 RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
