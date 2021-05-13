@@ -174,7 +174,7 @@ proc main {} {
 
     puts $gtest_failure_items;
 
-    if { gtest_failure_items > 0 || $failures_count > 0 } {
+    if { $gtest_failure_items > 0 || $failures_count > 0 } {
         exec tar -Pzcvf "$regression_name.tar.gz" $regression_name;
         exec ossutil64 cp "$regression_name.tar.gz" $osspath;
         create_github_issue;
