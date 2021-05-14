@@ -256,6 +256,7 @@ endif()
 
 # executable
 install(TARGETS eden DESTINATION bin)
+execute_process( COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_CURRENT_BINARY_DIR}/eden" "${CMAKE_CURRENT_BINARY_DIR}/openroad")
 
 ################################################################
 
