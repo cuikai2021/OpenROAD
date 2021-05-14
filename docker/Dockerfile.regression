@@ -5,6 +5,9 @@ ARG EDEN_GIT_SHA1
 COPY . /Eden
 WORKDIR /Eden
 
+RUN apt update
+RUN apt install curl -y
+
 RUN wget -P /usr/bin  http://gosspublic.alicdn.com/ossutil/1.7.3/ossutil64
 RUN chmod 755 /usr/bin/ossutil64
 
