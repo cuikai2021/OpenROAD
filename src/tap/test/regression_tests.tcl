@@ -9,5 +9,6 @@ record_tests {
   boundary_macros
   gcd_prefix
   gcd_ripup
-  no_endcap
 }
+# removed testcase
+#   no_endcap
