@@ -1,6 +1,6 @@
 docker build \
 -f docker/Dockerfile.regression \
--t registry.cn-shanghai.aliyuncs.com/openroad/regression:0513 \
+-t registry.cn-shanghai.aliyuncs.com/openroad/regression:0514 \
 --build-arg ALI_ACCESS_KEY_ID=$ALI_ACCESS_KEY_ID \
 --build-arg ALI_ACCESS_KEY_SECRET=$ALI_ACCESS_KEY_SECRET \
 --build-arg TRIGGER_FROM=$TRIGGER_FROM \
