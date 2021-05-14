@@ -10,3 +10,5 @@ record_tests {
   gcd_prefix
   gcd_ripup
 }
+# removed testcase
+#   no_endcap
