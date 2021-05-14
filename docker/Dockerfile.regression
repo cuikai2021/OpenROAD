@@ -1,4 +1,4 @@
-FROM registry.cn-shanghai.aliyuncs.com/ieden/env_eden:0513
+FROM registry.cn-shanghai.aliyuncs.com/ieden/env_eden_ubuntu:0514
 
 ARG EDEN_GIT_SHA1
 
