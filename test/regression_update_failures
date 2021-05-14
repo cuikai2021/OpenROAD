@@ -49,8 +49,7 @@ proc create_github_issue {} {
     set title "$regression_name failure"
     set body "from: $trigger_from \n head: $git_head \n failure_results: $download_url"
 
-    set json_body [json::stringify [dict create title "$title" body "$body" assignees "$assignee"] 0 { title string body string assignees array }];
-    puts $json_body;
+    set json_body [json::stringify [dict create title "$title" body "$body" assignees "$assignee" labels "CI"] 0 { title string body string assignees array labels array}];
     exec curl -s -H "Accept:application/vnd.github.v3+json" -H "Authorization:token $github_api_token" -X POST --data $json_body $github_create_issue_url  > "$devops_results_dir/create_issue_output.json";
 }
 
