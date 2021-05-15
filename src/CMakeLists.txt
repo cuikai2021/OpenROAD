@@ -135,6 +135,7 @@ add_subdirectory(PartitionMgr)
 add_subdirectory(antenna_checker)
 add_subdirectory(gui)
 add_subdirectory(TritonRoute)
+add_subdirectory(Banyan)
 add_subdirectory(utl)
 add_subdirectory(pdrev)
 
@@ -179,6 +180,7 @@ target_link_libraries(eden
   tap
   gui
   TritonRoute
+  Banyan
   mpl
   psm
   antennachecker
@@ -298,6 +300,7 @@ if(GTEST STREQUAL ON)
     ../utest/utt/EdenTestUTT.cc
     ../utest/utl/EdenTestUTL.cc
     ../utest/TritonRoute/EdenTestTRITONROUTE.cc
+    ../utest/Banyan/EdenTestBANYAN.cc
     ../utest/TritonCTS/EdenTestTRITONCTS.cc
     ../utest/tap/EdenTestTAP.cc
     ../utest/sta/EdenTestSTA.cc
@@ -359,6 +362,7 @@ if(GTEST STREQUAL ON)
     tap
     gui
     TritonRoute
+    Banyan
     mpl
     psm
     antennachecker

@@ -76,6 +76,7 @@
 #include "tap/MakeTapcell.h"
 #include "OpenRCX/MakeOpenRCX.h"
 #include "triton_route/MakeTritonRoute.h"
+#include "banyan/MakeBanyan.h"
 #include "psm/MakePDNSim.hh"
 #include "antennachecker/MakeAntennaChecker.hh"
 #include "PartitionMgr/src/MakePartitionMgr.h"
@@ -127,6 +128,7 @@ OpenRoad::OpenRoad()
     tapcell_(nullptr),
     extractor_(nullptr),
     detailed_router_(nullptr),
+    banyan_(nullptr),
     antenna_checker_(nullptr),
     replace_(nullptr),
     pdnsim_(nullptr), 
@@ -148,6 +150,7 @@ OpenRoad::~OpenRoad()
   deleteMacroPlacer(macro_placer_);
   deleteOpenRCX(extractor_);
   deleteTritonRoute(detailed_router_);
+  deleteBanyan(banyan_);
   deleteReplace(replace_);
   deleteFinale(finale_);
   deleteAntennaChecker(antenna_checker_);
@@ -207,6 +210,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   macro_placer_ = makeMacroPlacer();
   extractor_ = makeOpenRCX();
   detailed_router_ = makeTritonRoute();
+  banyan_ = makeBanyan();
   replace_ = makeReplace();
   pdnsim_ = makePDNSim();
   antenna_checker_ = makeAntennaChecker();
@@ -235,6 +239,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initMacroPlacer(this);
   initOpenRCX(this);
   initTritonRoute(this);
+  initBanyan(this);
   initPDNSim(this);
   initAntennaChecker(this);
   initPartitionMgr(this);

@@ -103,6 +103,10 @@ namespace triton_route {
 class TritonRoute;
 }
 
+namespace banyan {
+class Banyan;
+}
+
 namespace psm {
 class PDNSim;
 }
@@ -151,6 +155,7 @@ public:
   mpl::MacroPlacer *getMacroPlacer() { return macro_placer_; }
   rcx::Ext *getOpenRCX() { return extractor_; }
   triton_route::TritonRoute *getTritonRoute() { return detailed_router_; }
+  banyan::Banyan *getBanyan() { return banyan_; }
   gpl::Replace* getReplace() { return replace_; }
   psm::PDNSim* getPDNSim() { return pdnsim_; }
   grt::GlobalRouter* getFastRoute() { return fastRoute_; }
@@ -235,6 +240,7 @@ private:
   tap::Tapcell *tapcell_;
   rcx::Ext *extractor_;
   triton_route::TritonRoute *detailed_router_;
+  banyan::Banyan *banyan_;
   ant::AntennaChecker *antenna_checker_;
   gpl::Replace *replace_;
   psm::PDNSim *pdnsim_; 
