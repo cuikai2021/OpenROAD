@@ -31,7 +31,7 @@ set gtest_output "gtest_output.json"
 array set all_test_dirs { ifp "src/ifp/test" dbSta "src/dbSta/test" ppl "src/ppl/test" \
 pdngen "src/pdngen/test" ICeWall "src/ICeWall/test" mpl "src/mpl/test" rsz "src/rsz/test" replace "src/replace/test" \
 TritonCTS "src/TritonCTS/test" dpl "src/dpl/test" psm "src/psm/test" grt "src/grt/test" tap "src/tap/test" \
-antenna_checker "src/antenna_checker/test" OpenDB "src/OpenDB/test" OpenRCX "src/OpenRCX/test" PartitionMgr "src/PartitionMgr/test" \
+ant "src/ant/test" OpenDB "src/OpenDB/test" rcx "src/rcx/test" PartitionMgr "src/PartitionMgr/test" \
 TritonRoute "src/TritonRoute/test" }
 
 proc create_github_issue {} {

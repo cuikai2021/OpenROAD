@@ -1,0 +1,160 @@
+[==========] Running 32 tests from 27 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from ICeWall_
+[ RUN      ] ICeWall_.test0
+[       OK ] ICeWall_.test0 (0 ms)
+[----------] 1 test from ICeWall_ (0 ms total)
+
+[----------] 1 test from OpenDB_
+[ RUN      ] OpenDB_.test0
+[       OK ] OpenDB_.test0 (0 ms)
+[----------] 1 test from OpenDB_ (0 ms total)
+
+[----------] 1 test from OpenRCX_
+[ RUN      ] OpenRCX_.test0
+[       OK ] OpenRCX_.test0 (0 ms)
+[----------] 1 test from OpenRCX_ (0 ms total)
+
+[----------] 1 test from PDNSim_
+[ RUN      ] PDNSim_.test0
+[       OK ] PDNSim_.test0 (0 ms)
+[----------] 1 test from PDNSim_ (0 ms total)
+
+[----------] 1 test from PartitionMgr_
+[ RUN      ] PartitionMgr_.test0
+[       OK ] PartitionMgr_.test0 (0 ms)
+[----------] 1 test from PartitionMgr_ (0 ms total)
+
+[----------] 1 test from TritonCTS_clock_inst
+[ RUN      ] TritonCTS_clock_inst.constructor_and_basic_functions
+[       OK ] TritonCTS_clock_inst.constructor_and_basic_functions (0 ms)
+[----------] 1 test from TritonCTS_clock_inst (0 ms total)
+
+[----------] 6 tests from TritonCTS_clock
+[ RUN      ] TritonCTS_clock.clock_basic_functions
+[       OK ] TritonCTS_clock.clock_basic_functions (0 ms)
+[ RUN      ] TritonCTS_clock.clock_add_find_clock
+[       OK ] TritonCTS_clock.clock_add_find_clock (0 ms)
+[ RUN      ] TritonCTS_clock.clock_buffer_iteration
+[       OK ] TritonCTS_clock.clock_buffer_iteration (0 ms)
+[ RUN      ] TritonCTS_clock.clock_subNet_add_iteration
+[       OK ] TritonCTS_clock.clock_subNet_add_iteration (0 ms)
+[ RUN      ] TritonCTS_clock.sub_net_basic_function
+[       OK ] TritonCTS_clock.sub_net_basic_function (0 ms)
+[ RUN      ] TritonCTS_clock.clock_sink_all_function__compute_region_and_iteration
+ ************************************
+ *         Clock net report         *
+ ************************************
+ Net name: netName
+ Clock pin: clockPin (0, 0)
+ Number of sinks: 
+ ***********************************
+	Pin name 	Pos
+	 name 	 (666, 888)
+	 name 	 (667, 889)
+[       OK ] TritonCTS_clock.clock_sink_all_function__compute_region_and_iteration (0 ms)
+[----------] 6 tests from TritonCTS_clock (0 ms total)
+
+[----------] 1 test from TritonRoute_
+[ RUN      ] TritonRoute_.test0
+[       OK ] TritonRoute_.test0 (0 ms)
+[----------] 1 test from TritonRoute_ (0 ms total)
+
+[----------] 1 test from antenna_checker_
+[ RUN      ] antenna_checker_.test0
+[       OK ] antenna_checker_.test0 (0 ms)
+[----------] 1 test from antenna_checker_ (0 ms total)
+
+[----------] 1 test from dbSta_
+[ RUN      ] dbSta_.test0
+[       OK ] dbSta_.test0 (0 ms)
+[----------] 1 test from dbSta_ (0 ms total)
+
+[----------] 1 test from dpl_
+[ RUN      ] dpl_.test0
+[       OK ] dpl_.test0 (0 ms)
+[----------] 1 test from dpl_ (0 ms total)
+
+[----------] 1 test from fin_
+[ RUN      ] fin_.test0
+[       OK ] fin_.test0 (0 ms)
+[----------] 1 test from fin_ (0 ms total)
+
+[----------] 1 test from flute3_
+[ RUN      ] flute3_.test0
+[       OK ] flute3_.test0 (0 ms)
+[----------] 1 test from flute3_ (0 ms total)
+
+[----------] 1 test from grt_
+[ RUN      ] grt_.test0
+[       OK ] grt_.test0 (0 ms)
+[----------] 1 test from grt_ (0 ms total)
+
+[----------] 1 test from gui_
+[ RUN      ] gui_.test0
+[       OK ] gui_.test0 (0 ms)
+[----------] 1 test from gui_ (0 ms total)
+
+[----------] 1 test from ifp_
+[ RUN      ] ifp_.test0
+[       OK ] ifp_.test0 (0 ms)
+[----------] 1 test from ifp_ (0 ms total)
+
+[----------] 1 test from mpl_testcase_coreEdgeFromIndex
+[ RUN      ] mpl_testcase_coreEdgeFromIndex.test0
+[       OK ] mpl_testcase_coreEdgeFromIndex.test0 (0 ms)
+[----------] 1 test from mpl_testcase_coreEdgeFromIndex (0 ms total)
+
+[----------] 1 test from pdngen_
+[ RUN      ] pdngen_.test0
+[       OK ] pdngen_.test0 (0 ms)
+[----------] 1 test from pdngen_ (0 ms total)
+
+[----------] 1 test from pdrev_
+[ RUN      ] pdrev_.test0
+[       OK ] pdrev_.test0 (0 ms)
+[----------] 1 test from pdrev_ (0 ms total)
+
+[----------] 1 test from ppl_testcase_Interval_constructor
+[ RUN      ] ppl_testcase_Interval_constructor.test0
+[       OK ] ppl_testcase_Interval_constructor.test0 (0 ms)
+[----------] 1 test from ppl_testcase_Interval_constructor (0 ms total)
+
+[----------] 1 test from psm_
+[ RUN      ] psm_.test0
+[       OK ] psm_.test0 (0 ms)
+[----------] 1 test from psm_ (0 ms total)
+
+[----------] 1 test from replace_
+[ RUN      ] replace_.test0
+[       OK ] replace_.test0 (0 ms)
+[----------] 1 test from replace_ (0 ms total)
+
+[----------] 1 test from rsz_
+[ RUN      ] rsz_.test0
+[       OK ] rsz_.test0 (0 ms)
+[----------] 1 test from rsz_ (0 ms total)
+
+[----------] 1 test from sta_
+[ RUN      ] sta_.test0
+[       OK ] sta_.test0 (0 ms)
+[----------] 1 test from sta_ (0 ms total)
+
+[----------] 1 test from tap_
+[ RUN      ] tap_.test0
+[       OK ] tap_.test0 (0 ms)
+[----------] 1 test from tap_ (0 ms total)
+
+[----------] 1 test from utl_
+[ RUN      ] utl_.test0
+[       OK ] utl_.test0 (0 ms)
+[----------] 1 test from utl_ (0 ms total)
+
+[----------] 1 test from testcase_file_equal
+[ RUN      ] testcase_file_equal.test0
+[       OK ] testcase_file_equal.test0 (0 ms)
+[----------] 1 test from testcase_file_equal (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 32 tests from 27 test suites ran. (0 ms total)
+[  PASSED  ] 32 tests.
