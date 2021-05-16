@@ -1,0 +1,191 @@
+# modified files
+
+# Conflicts
+
+	no conflicts
+
+# fix bugs after merge
+
+	no bugs need to be fixed
+
+On branch tmp
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	modified:   README.md
+	modified:   include/ord/OpenRoad.hh
+	modified:   jenkins/Jenkinsfile.nightly
+	modified:   src/OpenDB/include/opendb/ISdb.h
+	modified:   src/OpenDB/include/opendb/db.h
+	new file:   src/OpenDB/include/opendb/rcx.h
+	modified:   src/OpenDB/include/opendb/wire.h
+	modified:   src/OpenDB/src/codeGenerator/dbGCellGrid.json
+	modified:   src/OpenDB/src/db/dbBox.cpp
+	modified:   src/OpenDB/src/db/dbBox.h
+	modified:   src/OpenDB/src/db/dbGCellGrid.cpp
+	modified:   src/OpenDB/src/lefin/lefin.cpp
+	new file:   src/OpenDB/test/data/gscl45nm_ext_macros.lef
+	modified:   src/OpenDB/test/lef_data_access.ok
+	modified:   src/OpenDB/test/lef_data_access.tcl
+	modified:   src/OpenRoad.cc
+	modified:   src/OpenRoad.i
+	modified:   src/OpenRoad.tcl
+	modified:   src/PartitionMgr/CMakeLists.txt
+	modified:   src/PartitionMgr/README.md
+	modified:   src/PartitionMgr/src/Hypergraph.h
+	modified:   src/PartitionMgr/src/HypergraphDecomposition.h
+	modified:   src/PartitionMgr/src/MakePartitionMgr.h
+	new file:   src/PartitionMgr/src/PartOptions.cpp
+	modified:   src/PartitionMgr/src/PartitionMgr.h
+	modified:   src/PartitionMgr/src/partitionmgr.i
+	modified:   src/PartitionMgr/src/partitionmgr.tcl
+	modified:   src/TritonRoute/src/db/obj/frBlockage.h
+	modified:   src/TritonRoute/src/gc/FlexGC_init.cpp
+	modified:   src/TritonRoute/src/io/io.cpp
+	modified:   src/TritonRoute/test/fixture.cpp
+	modified:   src/TritonRoute/test/fixture.h
+	modified:   src/TritonRoute/test/gcTest.cpp
+	modified:   src/ant/include/ant/AntennaChecker.hh
+	modified:   src/ant/src/AntennaChecker.cc
+	modified:   src/ant/src/AntennaChecker.i
+	modified:   src/ant/src/AntennaChecker.tcl
+	modified:   src/ant/test/sw130_random.tcl
+	modified:   src/ant/test/sw130_random_simple.tcl
+	modified:   src/dpl/include/dpl/Opendp.h
+	modified:   src/dpl/messages.txt
+	modified:   src/dpl/src/FillerPlacement.cpp
+	modified:   src/dpl/src/Opendp.i
+	modified:   src/dpl/src/Opendp.tcl
+	modified:   src/dpl/test/pad08.tcl
+	modified:   src/grt/include/grt/GlobalRouter.h
+	modified:   src/grt/src/GlobalRouter.cpp
+	modified:   src/grt/src/fastroute/include/FastRoute.h
+	modified:   src/grt/src/fastroute/src/DataProc.cpp
+	modified:   src/grt/src/fastroute/src/DataProc.h
+	modified:   src/grt/src/fastroute/src/DataType.h
+	modified:   src/grt/src/fastroute/src/FastRoute.cpp
+	modified:   src/grt/src/fastroute/src/RipUp.cpp
+	modified:   src/grt/src/fastroute/src/maze3D.cpp
+	modified:   src/grt/src/fastroute/src/utility.cpp
+	modified:   src/grt/test/ndr_1w_3s.ok
+	modified:   src/grt/test/ndr_1w_3s.tcl
+	modified:   src/grt/test/ndr_2w_3s.guideok
+	modified:   src/grt/test/ndr_2w_3s.ok
+	modified:   src/grt/test/ndr_2w_3s.tcl
+	modified:   src/grt/test/no_tracks.ok
+	modified:   src/ppl/include/ppl/IOPlacer.h
+	modified:   src/ppl/messages.txt
+	modified:   src/ppl/src/IOPlacer.cpp
+	modified:   src/ppl/src/IOPlacer.i
+	modified:   src/ppl/src/IOPlacer.tcl
+	modified:   src/ppl/test/add_constraint5.ok
+	new file:   src/ppl/test/add_constraint6.ok
+	new file:   src/ppl/test/add_constraint6.tcl
+	new file:   src/ppl/test/add_constraint6_1.defok
+	new file:   src/ppl/test/add_constraint6_2.defok
+	modified:   src/ppl/test/no_tracks.ok
+	modified:   src/ppl/test/regression_tests.tcl
+	modified:   src/rcx/include/rcx/extRCap.h
+	modified:   src/rcx/src/ext.cpp
+	modified:   src/rcx/src/extCC.cpp
+	modified:   src/rcx/src/extFlow.cpp
+	modified:   src/rcx/src/extmain.cpp
+	modified:   src/rcx/src/extmeasure.cpp
+	modified:   src/rcx/src/netRC.cpp
+	modified:   src/rcx/test/45_gcd.ok
+	modified:   src/rcx/test/45_gcd.tcl
+	modified:   src/rcx/test/ext_pattern.tcl
+	modified:   src/rcx/test/gcd.ok
+	modified:   src/rcx/test/gcd.tcl
+	modified:   src/rcx/test/regression
+	deleted:    src/rcx/test/regression_rcx.tcl
+	modified:   src/replace/src/routeBase.cpp
+	modified:   src/rsz/include/rsz/Resizer.hh
+	modified:   src/rsz/src/Resizer.cc
+	modified:   src/rsz/src/Resizer.i
+	renamed:    src/rsz/test/gcd.sdc -> src/rsz/test/gcd_nangate45.sdc
+	renamed:    src/rsz/test/gcd_placed.def -> src/rsz/test/gcd_nangate45_placed.def
+	modified:   src/rsz/test/gcd_resize.ok
+	modified:   src/rsz/test/gcd_resize.tcl
+	modified:   src/rsz/test/repair_hold7.ok
+	modified:   src/rsz/test/repair_hold7.tcl
+	modified:   src/rsz/test/repair_hold9.ok
+	modified:   src/rsz/test/repair_hold9.tcl
+	modified:   src/rsz/test/resize_slack2.ok
+	modified:   src/rsz/test/resize_slack2.tcl
+	modified:   src/sta
+	modified:   src/utl/include/utl/Logger.h
+	modified:   test/aes_nangate45.sdc
+	modified:   test/aes_nangate45.tcl
+	modified:   test/aes_nangate45.v
+	modified:   test/aes_sky130hd.sdc
+	modified:   test/aes_sky130hd.tcl
+	modified:   test/aes_sky130hd.v
+	modified:   test/aes_sky130hs.sdc
+	modified:   test/aes_sky130hs.tcl
+	modified:   test/aes_sky130hs.v
+	modified:   test/flow.tcl
+	deleted:    test/flow_td.tcl
+	modified:   test/gcd_nangate45.sdc
+	modified:   test/gcd_nangate45.tcl
+	modified:   test/gcd_nangate45.v
+	modified:   test/gcd_sky130hd.sdc
+	modified:   test/gcd_sky130hd.tcl
+	modified:   test/gcd_sky130hd.v
+	modified:   test/gcd_sky130hs.sdc
+	modified:   test/gcd_sky130hs.tcl
+	modified:   test/gcd_sky130hs.v
+	modified:   test/ibex_sky130hd.sdc
+	modified:   test/ibex_sky130hd.tcl
+	modified:   test/ibex_sky130hd.v
+	modified:   test/ibex_sky130hs.sdc
+	modified:   test/ibex_sky130hs.v
+	modified:   test/jpeg_sky130hd.sdc
+	modified:   test/jpeg_sky130hd.tcl
+	modified:   test/jpeg_sky130hd.v
+	modified:   test/jpeg_sky130hs.sdc
+	modified:   test/jpeg_sky130hs.tcl
+	modified:   test/jpeg_sky130hs.v
+	modified:   test/tinyRocket_nangate45.sdc
+	modified:   test/tinyRocket_nangate45.tcl
+	modified:   test/tinyRocket_nangate45.v
+
+Unmerged paths:
+  (use "git add/rm <file>..." as appropriate to mark resolution)
+	deleted by us:   .github/workflows/github-actions-cron-sync-fork-from-upstream.yml
+	deleted by us:   .github/workflows/github-actions-on-label-create.yml
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   src/sta (new commits)
+
+# commits
+
+Update README.md
+Rework the automatically sync branch github action.
+grt: fix edgeCostsPerLayer assignment
+grt: use per-layer tracks consumption in maze3D
+grt: fix overflow check
+grt: update ndr tests
+grt: allow 3D overflow for ndrs
+grt: use per layer track consumption
+grt: add per layer track consumption for ndrs
+resetting default seed to reset on each call to partition_netlist and removing extra function
+ppl: switching parse_pin_names to use database instance conversion instead of using names to find bterms
+[DRT] Fix Y --> X typo in getFrOrient
+Update github-actions-on-label-create.yml
+Update github-actions-on-label-create.yml
+Update github-actions-on-label-create.yml
+ppl: clear_constraints -> clear_io_pin_constraints
+Update github-actions-on-label-create.yml
+Update github-actions-on-label-create.yml
+Update github-actions-on-label-create.yml
+Update github-actions-on-label-create.yml
+ppl: correct typo in warn 44 message referencing missing variable
+Revert "grt: remove *100 for congest driven place api"
+ensuring random seed is the same from openroad session to session
+par: ensuring random seeds change from run to run with option (random_seed) to keep seeds the same
+par: switching std::vectors to const to conform with swig interface template
