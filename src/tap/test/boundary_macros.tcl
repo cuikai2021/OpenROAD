@@ -18,7 +18,7 @@ tapcell -distance "20" \
   -cnrcap_nwin_master "FILLCELL_X1" \
   -cnrcap_nwout_master "FILLCELL_X1" \
   -incnrcap_nwin_master "FILLCELL_X1" \
-  -incnrcap_nwout_master "FILLCELL_X1"
+  -incnrcap_nwout_master "FILLCELL_X1" \
 
 check_placement -verbose
 
