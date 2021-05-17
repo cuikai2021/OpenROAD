@@ -65,7 +65,7 @@ proc tapcell { args } {
               -tap_nwout3_master -tap_nwintie_master -tap_nwouttie_master \
               -cnrcap_nwin_master -cnrcap_nwout_master -incnrcap_nwin_master \
               -incnrcap_nwout_master -tbtie_cpp -tap_prefix -endcap_prefix} \
-    flags {-no_cell_at_top_bottom -add_boundary_cell}
+    flags {-no_cell_at_top_bottom -add_boundary_cell -force -channel}
 
   if { [info exists keys(-tapcell_master)] } {
     set tapcell_master $keys(-tapcell_master)
@@ -153,6 +153,12 @@ proc tapcell { args } {
   if {[info exists flags(-add_boundary_cell)]} {
     utl::warn TAP 17 "add_boundary_cell option is deprecated."
   }
+  if {[info exists flags(-force)]} {
+    set force 1
+  } else {set force 0}
+  if {[info exists flags(-channel)]} {
+    set channel 1
+  } else {set channel 0}
   
   set tap_prefix $tap::default_tapcell_prefix
   if { [info exists keys(-tap_prefix)] } {
@@ -220,7 +226,7 @@ proc tapcell { args } {
     tap::insert_around_macros $db $rows $tap_macro_masters [$db findMaster $cnrcap_nwin_master] $endcap_prefix
   }
 
-  tap::insert_tapcells $db $rows $tapcell_master $dist $tap_prefix
+  tap::insert_tapcells $db $rows $tapcell_master $dist $tap_prefix $force $channel
 
   set tap::filled_sites []
 }
@@ -477,7 +483,7 @@ proc pick_corner_master {top_bottom ori cnrcap_nwin_master cnrcap_nwout_master e
   }
 }
 
-proc insert_tapcells {db rows tapcell_master dist prefix} {
+proc insert_tapcells {db rows tapcell_master dist prefix force channel} {
   variable filled_sites
   variable phy_idx
   set start_phy_idx $phy_idx
@@ -569,19 +575,34 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
       set narrow_channel 0
       if {$urx - $llx < $dist2} {set narrow_channel 1}
 
-      if {[expr $row_idx % 2] == 0} {
-        set offset 0
+      if {$channel} {
+        if {[expr $row_idx % 2] == 0} {
+          set offset 0
+        } else {
+          set offset $dist1
+        }
+
+        if {$row_idx == 0 || $row_idx == [expr [llength $rows]-1] || $gaps_above_below} {
+          set pitch $dist1
+          set offset 0
+        } else {
+          set pitch $dist2
+        }
       } else {
-        set offset $dist1
+        if {[expr $row_idx % 2] == 0} {
+          set offset $dist1
+        } else {
+          set offset $dist2
+        }
+        if {$row_idx == 0 || $row_idx == [expr [llength $rows]-1] || $gaps_above_below} {
+          set pitch $dist1
+          set offset $dist1
+        } else {
+          set pitch $dist2
+        }
       }
 
-      if {$row_idx == 0 || $row_idx == [expr [llength $rows]-1] || $gaps_above_below} {
-        set pitch $dist1
-        set offset 0
-      } else {
-        set pitch $dist2
-      }
-      if {$narrow_channel} {
+      if {$channel && $narrow_channel} {
         set pitch $dist1
         set offset 0
       }
@@ -593,6 +614,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
         if {$overlap == 0} {
           build_cell $block $master $ori $x $lly $prefix
         } else {
+		if {$force} {
           #if overlap, check more sites to add
 
           for {set x1 $x; set count 0} {$count < 10 && $x1 < $urx} {set x1 [expr $x1 + $site_x]; incr count} {
@@ -602,6 +624,7 @@ proc insert_tapcells {db rows tapcell_master dist prefix} {
 
           }
         }
+	}
       }
     }
   }
