@@ -43,14 +43,14 @@ _installCommonDev() {
     cd swig-rel-${swigVersion}
     ./autogen.sh
     ./configure --prefix=/usr
-    $SUDO make -j $(nproc)
+    make -j $(nproc)
     $SUDO make -j $(nproc) install
-    $SUDO rm -rf swig-rel-${swigVersion}
+    rm -rf swig-rel-${swigVersion}
 
     # boost
     cd "${baseDir}"
-    boostVersionUndercore=${boostVersion//._/}
-    $PROXYCHAINS wget https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_${boostVersionUndercore}.tar.gz -o boost-${boostVersion}
+    boostVersionUndercore=${boostVersion//./_}
+    wget https://icbench-static.oss-cn-shanghai.aliyuncs.com/deps/boost_1_72_0.tar.gz -o boost-${boostVersion}
     tar -xf boost_${boostVersionUndercore}.tar.gz
     cd boost_${boostVersionUndercore}
     ./bootstrap.sh
