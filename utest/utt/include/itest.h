@@ -4,6 +4,7 @@
 #include <iterator>
 #include <string>
 #include <algorithm>
+#include <memory>
 
 namespace testing {
 

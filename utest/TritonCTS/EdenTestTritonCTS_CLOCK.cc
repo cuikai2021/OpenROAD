@@ -1,8 +1,6 @@
 #include <Clock.h>
 #include <itest.h>
 
-#include <memory>
-
 #include "utl/Logger.h"
 
 using namespace cts;
@@ -44,7 +42,6 @@ TEST(TritonCTS_clock_inst, constructor_and_basic_functions)
 class TritonCTS_clock : public ::testing::Test
 {
  protected:
-
   std::shared_ptr<Clock> clock = std::make_shared<Clock>(netName,
                                                          clockPin,
                                                          sdcClockName,
@@ -95,9 +92,7 @@ TEST_F(TritonCTS_clock, clock_add_find_clock)
   // allow to add clock buffer with same name
   clockInst = &(clock->addClockBuffer(name, master, x + 1, y + 1));
   EXPECT_EQ(clockInst->getLocation().computeDist(*pos), 2);
-
 }
-
 
 TEST_F(TritonCTS_clock, clock_buffer_iteration)
 {
@@ -109,7 +104,7 @@ TEST_F(TritonCTS_clock, clock_buffer_iteration)
   std::deque<bool> isBuffer;
 
   for (int i = 0; i < 10; ++i) {
-      clock->addClockBuffer(name + std::to_string(i), master, x, y);
+    clock->addClockBuffer(name + std::to_string(i), master, x, y);
   }
 
   clock->forEachClockBuffer([&bufferName](const ClockInst& inst) {
@@ -135,8 +130,8 @@ TEST_F(TritonCTS_clock, clock_subNet_add_iteration)
   std::vector<std::string> sinkName;
   Clock::SubNet subNet(name);
 
-  //allow to add same sub net into clock
-  //but only save the largest index in the deque
+  // allow to add same sub net into clock
+  // but only save the largest index in the deque
   for (int i = 0; i < 10; ++i) {
     subNet.addInst(clock_inst);
   }
@@ -223,7 +218,7 @@ TEST_F(TritonCTS_clock, clock_sink_all_function__compute_region_and_iteration)
   std::vector<double> cap;
   std::vector<odb::dbITerm*> pin;
 
-  //basic functions
+  // basic functions
   clock->addSink(name, x, y);
   clock->addSink(name, x + 1, y + 1, pinObj.get(), inputCap);
   EXPECT_EQ(clock->getNumSinks(), 2);
@@ -260,5 +255,4 @@ TEST_F(TritonCTS_clock, clock_sink_all_function__compute_region_and_iteration)
   EXPECT_EQ(cap[3], 8.8f);
   EXPECT_EQ(pin[2], nullptr);
   EXPECT_EQ(pin[3], pinObj.get());
-
 }
