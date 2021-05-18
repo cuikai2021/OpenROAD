@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+SUDO="";
+PROXYCHAINS=""
+
 _installGtest(){
     # gtest (latest)
     cd "${baseDir}"
@@ -29,39 +32,40 @@ _installCommonDev() {
 
     # CMake
     cd "${baseDir}"
-    wget https://cmake.org/files/v${cmakeVersionBig}/cmake-${cmakeVersionSmall}-Linux-x86_64.sh
-    chmod +x cmake-${cmakeVersionSmall}-Linux-x86_64.sh
+    $PROXYCHAINS wget https://cmake.org/files/v${cmakeVersionBig}/cmake-${cmakeVersionSmall}-Linux-x86_64.sh
+    $SUDO chmod +x cmake-${cmakeVersionSmall}-Linux-x86_64.sh
     ./cmake-${cmakeVersionSmall}-Linux-x86_64.sh --skip-license --prefix=/usr/local
 
     # SWIG
     cd "${baseDir}"
-    wget https://github.com/swig/swig/archive/rel-${swigVersion}.tar.gz
+    $PROXYCHAINS wget https://github.com/swig/swig/archive/rel-${swigVersion}.tar.gz
     tar xfz rel-${swigVersion}.tar.gz
     cd swig-rel-${swigVersion}
     ./autogen.sh
     ./configure --prefix=/usr
-    make -j $(nproc)
-    make -j $(nproc) install
-    rm -rf swig-rel-${swigVersion}
+    $SUDO make -j $(nproc)
+    $SUDO make -j $(nproc) install
+    $SUDO rm -rf swig-rel-${swigVersion}
 
     # boost
     cd "${baseDir}"
-    wget https://github.com/boostorg/boost/archive/refs/tags/boost-${boostVersion}.tar.gz -o boost-${boostVersion}
-    tar -xf boost-${boostVersion}.tar.gz
-    cd boost-${boostVersion}
+    boostVersionUndercore=${boostVersion//._/}
+    $PROXYCHAINS wget https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_${boostVersionUndercore}.tar.gz -o boost-${boostVersion}
+    tar -xf boost_${boostVersionUndercore}.tar.gz
+    cd boost_${boostVersionUndercore}
     ./bootstrap.sh
-    ./b2 install --with-iostreams --with-test -j $(nproc)
+    $SUDO ./b2 install --with-iostreams --with-test -j $(nproc)
 
     # eigen
     cd "${baseDir}"
-    git clone -b ${eigenVersion} https://gitlab.com/libeigen/eigen.git
+    $PROXYCHAINS git clone -b ${eigenVersion} https://gitlab.com/libeigen/eigen.git
     cd eigen
     cmake -B build .
     cmake --build build -j $(nproc) --target install
 
     # lemon
     cd "${baseDir}"
-    wget http://lemon.cs.elte.hu/pub/sources/lemon-${lemonVersion}.tar.gz
+    $PROXYCHAINS wget http://lemon.cs.elte.hu/pub/sources/lemon-${lemonVersion}.tar.gz
     tar -xf lemon-${lemonVersion}.tar.gz
     cd lemon-${lemonVersion}
     cmake -B build .
@@ -69,7 +73,7 @@ _installCommonDev() {
 
     # spdlog
     cd "${baseDir}"
-    git clone -b "v${spdlogVersion}" https://github.com/gabime/spdlog.git
+    $PROXYCHAINS git clone -b "v${spdlogVersion}" https://github.com/gabime/spdlog.git
     cd spdlog
     cmake -B build .
     cmake --build build -j $(nproc) --target install
@@ -78,7 +82,7 @@ _installCommonDev() {
     _installGtest
 
     cd "$lastDir"
-    rm -rf "${baseDir}"
+    $SUDO rm -rf "${baseDir}"
 }
 
 _installIncrement(){
@@ -197,6 +201,12 @@ while [ "$#" -gt 0 ]; do
             ;;
         -dev|-development)
             option="dev"
+            ;;
+        -local_build)
+            SUDO="sudo"
+            ;;
+        -proxychains)
+            PROXYCHAINS="proxychains"
             ;;
         -incr|-increment)
             if [ $# -gt 1 ]; then
