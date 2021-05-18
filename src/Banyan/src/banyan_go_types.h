@@ -7,14 +7,23 @@ struct box
 {
     // the layer the box belongs to
     // 0, 1, 2, ...: routing layers from the lowest
-    // -1, -2, ...: cut layers between 0/1, 1/2, etc.
     int la;
 
 	int x, y, w, h;
 }; // struct box
 
+// a via connecting two layers
+struct via
+{
+    // index into the viadef array
+    int viadef_index;
+
+    int x, y;
+}; // struct via
+
 #ifndef __cplusplus
 typedef struct box box;
+typedef struct via via;
 #endif
 
 // a pin that can be accessed from a few boxes
@@ -25,8 +34,12 @@ struct pin
     const char *name;
 
     // index into the box array
-    long long box_begin;
-    long long box_end;
+    size_t box_begin;
+    size_t box_end;
+
+    // index into the via array
+    size_t via_begin;
+    size_t via_end;    
 }; // struct pin
 
 // a net of pins that need to be connected
@@ -38,13 +51,25 @@ struct net
     const char *name;
 
     // index into the pin array
-    long long pin_begin;
-    long long pin_end;
+    size_t pin_begin;
+    size_t pin_end;
 
     // returned boxes
-    long long rbox_begin;
-    long long rbox_end;
+    size_t rbox_begin;
+    size_t rbox_end;
+
+    // returned vias
+    size_t rvia_begin;
+    size_t rvia_end;
 }; // struct net
+
+struct viadef
+{
+    // for diagnostics only
+    const char *name;
+
+    box top, bottom;
+}; // struct viadef
 
 struct layer
 {
@@ -52,8 +77,13 @@ struct layer
     int pitch;
 
     // index into the track array
-    long long track_begin;
-    long long track_end;
+    size_t track_begin;
+    size_t track_end;
+
+    // index into the viadef array
+    // viadef connect this and one layer below
+    size_t viadef_begin;
+    size_t viadef_end;
 }; // struct layer
 
 struct track
@@ -68,4 +98,7 @@ struct entry_ret
 {
     box *rboxes; // need free
     size_t rboxes_size;
+
+    via *rvias; // need free
+    size_t rvias_size;
 }; // struct entry_ret
