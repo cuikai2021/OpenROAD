@@ -22,6 +22,9 @@ OPTIONS:
                                                   -cmake= and double quotes if
                                                   <key> has muliple <values>
                                                   e.g.: -cmake='-DFLAGS="-a -b"'
+        to build Eden with gtest:
+            ./etc/Build.sh -cmake=-DGTEST=ON
+
   -compiler=COMPILER_NAME                       Compiler name: gcc or clang
                                                   Default: gcc
   -dir=PATH                                     Path to store build files.

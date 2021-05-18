@@ -26,3 +26,5 @@ flow
 coverage-output
 
 devops_results
+
+utest/*/*.py
