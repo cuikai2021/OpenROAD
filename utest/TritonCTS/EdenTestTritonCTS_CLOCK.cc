@@ -122,12 +122,13 @@ TEST_F(TritonCTS_clock, clock_buffer_iteration)
   }
 }
 
-TEST_F(TritonCTS_clock, clock_subNet_add_iteration)
+TEST_F(TritonCTS_clock, clock_subNet_add_remove_iteration)
 {
   const std::string name = "SubNet";
   ClockInst clock_inst("name", "master", CLOCK_SINK, 0, 0, nullptr, 0.0f);
   ClockInst replace("replace", "master", CLOCK_SINK, 1, 1, nullptr, 0.0f);
   std::vector<std::string> sinkName;
+  std::set<ClockInst*> sinksToRemove;
   Clock::SubNet subNet(name);
 
   // allow to add same sub net into clock
@@ -156,9 +157,11 @@ TEST_F(TritonCTS_clock, clock_subNet_add_iteration)
   }
   EXPECT_EQ(sinkName[8], "replace");
 
-  // subNet.removeSinks();
-  // EXPECT_EQ(subNet.findIndex(&clock_inst), 0);
-  // EXPECT_EQ(subNet.getNumSinks(), 0);
+  sinksToRemove.insert(&clock_inst);
+  sinksToRemove.insert(&replace);
+  subNet.removeSinks(sinksToRemove);
+  EXPECT_EQ(subNet.findIndex(&clock_inst), 0);
+  EXPECT_EQ(subNet.getNumSinks(), 0);
 }
 
 TEST_F(TritonCTS_clock, sub_net_basic_function)
