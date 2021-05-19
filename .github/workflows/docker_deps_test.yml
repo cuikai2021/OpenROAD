@@ -1,0 +1,35 @@
+# This is a basic workflow to help you get started with Actions
+
+name: update-deps
+
+# Controls when the action will run.   触发机制
+on: 
+  push:
+    branches: devops-dev
+    commits:
+      modified: [etc/DependencyInstaller.sh, docker/Dockerfile.deps]
+
+
+  # Triggers the workflow on push or pull request events but only for the master branch 
+  
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel  任务
+jobs:
+  # This workflow contains a single job called "build"  
+  relesase-eden-deps-docker:
+    # The type of runner that the job will run on   运行环境
+    runs-on:  [self-hosted, linux]
+    env: 
+      docker-hub-url: registry.cn-shanghai.aliyuncs.com/ieden
+      docker-image-name: deps_eden_ubuntu
+      docker-image-tag: ${{ env.docker-hub-url/docker-image-name:${date %m%d} }}
+    if:
+    # Steps represent a sequence of tasks that will be executed as part of the job  执行步骤
+    steps:
+      
+    
+      - name: docker-build
+        uses: actions/checkout@v2
+        run: sh docker/docker_build_deps.sh 
+
+      - name: docker-push
+        run: docker push
