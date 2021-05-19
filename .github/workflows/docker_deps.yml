@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: update-deps
+name: deps-modify-checkout
 
 # Controls when the action will run.   触发机制
 on: 
@@ -12,7 +12,7 @@ jobs:
   # This workflow contains a single job called "build"  
   relesase-eden-deps-docker:
     # The type of runner that the job will run on   运行环境
-    runs-on:  [self-hosted, linux]
+    runs-on:  ubuntu-latest
     env: 
       docker-image-tag-prefix: 'registry.cn-shanghai.aliyuncs.com/ieden/deps_eden_ubuntu:'
     if: ${{ contains(github.event.head_commit.modified, 'docker/docker_build_deps.sh') || contains(github.event.head_commit.modified, 'docker/Dockerfile.deps')}}
@@ -22,9 +22,5 @@ jobs:
         - name: docker-checkout
           uses: actions/checkout@v2
           
-        - name: docker-get-tag
-          run: 
-            tag: ${{env.docker-image-tag-prefix}}$GITHUB_RUN_NUMBER
-          
-        - name: docker-build
-          run: sh docker/docker_build_deps.sh ${{ tag }}
+        - name: docker-build 
+          run: sh docker/docker_build_deps.sh ${{env.docker-image-tag-prefix}}$GITHUB_RUN_NUMBER
