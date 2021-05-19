@@ -7,6 +7,5 @@ FROM $copyImage AS copyfrom
 USER root 
 
 COPY ./etc/DependencyInstaller.sh /tmp
- 
 RUN bash /tmp/DependencyInstaller.sh -dev 
 RUN bash rm -f /tmp/DependencyInstaller.sh
