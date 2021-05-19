@@ -50,7 +50,7 @@ _installCommonDev() {
     # boost
     cd "${baseDir}"
     boostVersionUndercore=${boostVersion//./_}
-    wget https://icbench-static.oss-cn-shanghai.aliyuncs.com/deps/boost_1_72_0.tar.gz -o boost-${boostVersion}
+    wget https://icbench-static.oss-cn-shanghai.aliyuncs.com/deps/boost_${boostVersionUndercore}.tar.gz -o boost-${boostVersion}
     tar -xf boost_${boostVersionUndercore}.tar.gz
     cd boost_${boostVersionUndercore}
     ./bootstrap.sh
@@ -82,7 +82,7 @@ _installCommonDev() {
     _installGtest
 
     cd "$lastDir"
-    $SUDO rm -rf "${baseDir}"
+    rm -rf "${baseDir}"
 }
 
 _installIncrement(){
