@@ -3,7 +3,7 @@
 ARG ubuntuVersion=20.04
 
 ARG copyImage=ubuntu:${ubuntuVersion}
-FROM $copyImage AS copyfrom
+FROM $copyImage
 USER root 
 
 COPY ./etc/DependencyInstaller.sh /tmp
