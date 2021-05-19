@@ -1,26 +1,32 @@
-# This is a basic workflow to help you get started with Actions
-
 name: deps-modify-checkout
 
-# Controls when the action will run.   触发机制
 on: 
   push:
     branches: devops-dev
   
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel  任务
 jobs:
-  # This workflow contains a single job called "build"  
   relesase-eden-deps-docker:
-    # The type of runner that the job will run on   运行环境
-    runs-on:  ubuntu-latest
-    env: 
-      docker-image-tag-prefix: 'registry.cn-shanghai.aliyuncs.com/ieden/deps_eden_ubuntu:'
-    if: ${{ contains(github.event.head_commit.modified, 'docker/docker_build_deps.sh') || contains(github.event.head_commit.modified, 'docker/Dockerfile.deps')}}
-    # Steps represent a sequence of tasks that will be executed as part of the job  执行步骤
+    runs-on:  [self-hosts,linux]
+    if: ${{ contains(github.event.head_commit.modified, 'docker/Dockerfile.deps')}}
+
     steps:
-      
-        - name: docker-checkout
+        - name: checkout
           uses: actions/checkout@v2
-          
-        - name: docker-build 
-          run: sh docker/docker_build_deps.sh ${{env.docker-image-tag-prefix}}$GITHUB_RUN_NUMBER
+          with:
+            ref: devops-dev
+
+        - name: build-and-push-docker
+          id: build-and-push-docker
+          uses: risfeng/docker-image-build-push-action@v1.0
+          with:
+            name: docker-build 
+            registry_url: 'registry.cn-shanghai.aliyuncs.com'
+            namespaces: 'ieden'
+            repository_name: env_eden_ubuntu
+            user_name: ${{ secrets.DOCKER_HUB_USERNAME }}
+            password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+            image_version: ${{github.run_number}
+            docker_file: './docker/Dockerfile.deps'
+
+        - name: show-docker-image-tag
+          run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.image_pull_url }}"
