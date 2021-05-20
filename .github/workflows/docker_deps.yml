@@ -2,20 +2,30 @@ name: deps-modify-checkout
 
 on: 
   push:
-    branches: devops-dev
+    branches: 
+      - devops-dev
   
 jobs:
   relesase-eden-deps-docker:
-    runs-on:  [self-hosts,linux]
-    if: ${{ contains(github.event.head_commit.modified, 'docker/Dockerfile.deps')}}
+    runs-on:  [self-hosted]
 
     steps:
-        - name: checkout
-          uses: actions/checkout@v2
+        - name: files-filter
+          uses: dorny/paths-filter@v2
+          id: filter
           with:
-            ref: devops-dev
+            filters: |
+              modified:
+                - '.github/workflows/docker_deps.yml'
+                - 'docker/Dockerfile.deps'
+                - 'etc/DependencyInstaller.sh'
+              
+        - name: checkout
+          if: ${{ steps.filter.outputs.modified == 'true' }}
+          uses: actions/checkout@v2
 
         - name: build-and-push-docker
+          if: ${{ success() }}
           id: build-and-push-docker
           uses: risfeng/docker-image-build-push-action@v1.0
           with:
@@ -25,8 +35,9 @@ jobs:
             repository_name: env_eden_ubuntu
             user_name: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-            image_version: ${{github.run_number}
-            docker_file: './docker/Dockerfile.deps'
+            image_version: ${{github.run_number}}
+            docker_file: 'docker/Dockerfile.deps'
 
         - name: show-docker-image-tag
+          if: ${{ success() }}
           run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.image_pull_url }}"
