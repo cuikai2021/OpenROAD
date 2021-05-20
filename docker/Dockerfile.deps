@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ARG ubuntuVersion=latest
+ARG ubuntuVersion=20.04
 
 ARG copyImage=ubuntu:${ubuntuVersion}
 FROM $copyImage
