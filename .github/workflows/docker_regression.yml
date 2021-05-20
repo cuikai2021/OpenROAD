@@ -39,9 +39,9 @@ jobs:
             tags: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
             
         - name: run-regression
-          if: ${{ success() }}
-          run: ./docker_run/docker_run_regression.sh ${github_workspace}
-
+          #if: ${{ success() }}
+          #run: ./docker_run/docker_run_regression.sh ${github_workspace}
+          run: ${github_workspace}
 
         - name: show-success-log
           if: ${{ success() }}
