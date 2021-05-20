@@ -22,6 +22,7 @@ jobs:
           uses: dorny/paths-filter@v2
           id: filter
           with:
+            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             filters: |
               modified:
                 - '.github/workflows/docker_deps.yml'
