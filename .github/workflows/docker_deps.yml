@@ -8,8 +8,16 @@ on:
 jobs:
   relesase-eden-deps-docker:
     runs-on:  [self-hosted]
+    env:
+          DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
+          DOCKER_NAMESPACE: ieden
+          DOCKER_DEPS_IMAGENAME: eden_deps_ubuntu
+          DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
 
     steps:
+        - name: checkout
+          uses: actions/checkout@v2
+
         - name: files-filter
           uses: dorny/paths-filter@v2
           id: filter
@@ -17,27 +25,22 @@ jobs:
             filters: |
               modified:
                 - '.github/workflows/docker_deps.yml'
-                - 'docker/Dockerfile.deps'
+                - ${{ env.DOCKER_DEPS_FILEPATH }}
                 - 'etc/DependencyInstaller.sh'
               
-        - name: checkout
-          if: ${{ steps.filter.outputs.modified == 'true' }}
-          uses: actions/checkout@v2
-
         - name: build-and-push-docker
-          if: ${{ success() }}
+          if: ${{ steps.filter.outputs.modified == 'true' }}
           id: build-and-push-docker
-          uses: risfeng/docker-image-build-push-action@v1.0
+          uses: docker/build-push-action@v2
           with:
-            name: docker-build 
-            registry_url: 'registry.cn-shanghai.aliyuncs.com'
-            namespaces: 'ieden'
-            repository_name: env_eden_ubuntu
-            user_name: ${{ secrets.DOCKER_HUB_USERNAME }}
+            registry: ${{ env.DOCKER_REGISTRY }}
+            username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-            image_version: ${{github.run_number}}
-            docker_file: 'docker/Dockerfile.deps'
+            context: .
+            file: ${{ env.DOCKER_DEPS_FILEPATH }}
+            push: true
+            tags: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME, github.run_number) }}
 
         - name: show-docker-image-tag
           if: ${{ success() }}
-          run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.image_pull_url }}"
+          run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.digest }}"
