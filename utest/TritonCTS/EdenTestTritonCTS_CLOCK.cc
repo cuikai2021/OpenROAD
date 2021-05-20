@@ -216,7 +216,7 @@ TEST_F(TritonCTS_clock, clock_sink_all_function__compute_region_and_iteration)
   double factor = 6.6f;
   Box<DBU> box;
   Box<double> cluBox;
-  utl::Logger* logger = new utl::Logger();
+  auto logger = std::make_shared<utl::Logger>();
   std::vector<std::pair<float, float>> cluster;
   std::vector<double> cap;
   std::vector<odb::dbITerm*> pin;
@@ -226,7 +226,7 @@ TEST_F(TritonCTS_clock, clock_sink_all_function__compute_region_and_iteration)
   clock->addSink(name, x + 1, y + 1, pinObj.get(), inputCap);
   EXPECT_EQ(clock->getNumSinks(), 2);
 
-  ASSERT_NO_THROW(clock->report(logger));
+  ASSERT_NO_THROW(clock->report(logger.get()));
 
   // compute region with odb::Box<T>
   box = clock->computeSinkRegion();

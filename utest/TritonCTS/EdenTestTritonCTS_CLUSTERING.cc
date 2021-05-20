@@ -49,7 +49,7 @@ class TritonCTS_clustering : public ::testing::Test
   std::vector<std::pair<float, float>> sinks
       = loadSinks("utest/TritonCTS/old_faithful.csv");
   std::shared_ptr<clustering> cluster
-      = std::make_shared<clustering>(sinks, xBranch, yBranch, logger);
+      = std::make_shared<clustering>(sinks, xBranch, yBranch, logger.get());
 
   const unsigned CAP
       = (unsigned) (sinks.size() * 0.6f);  //_options->getClusteringCapacity()
@@ -67,7 +67,7 @@ class TritonCTS_clustering : public ::testing::Test
  private:
   float xBranch = 0.0f;
   float yBranch = 0.0f;
-  utl::Logger* logger = new utl::Logger();
+  std::shared_ptr<utl::Logger> logger = std::make_shared<utl::Logger>();
 };
 
 TEST_F(TritonCTS_clustering, basic_functions_and_plot)
