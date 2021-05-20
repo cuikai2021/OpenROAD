@@ -1,0 +1,32 @@
+name: dockerfile-regression-build
+
+on: 
+  push:
+    branches: 
+      - devops-dev
+  
+jobs:
+  relesase-eden-regressions-docker:
+    runs-on:  [self-hosted]
+
+    steps:
+        - name: checkout
+          uses: actions/checkout@v2
+
+        - name: publish docker
+          if: ${{ success() }}
+          uses: risfeng/docker-image-build-push-action@v1.0
+          with:
+            name: docker-build 
+            registry_url: 'registry.cn-shanghai.aliyuncs.com'
+            namespaces: 'ieden'
+            repository_name: env_eden_ubuntu
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_PASSWORD }}
+            image_version: ${{github.run_number}}
+            docker_file: 'docker/Dockerfile.regression'
+            
+
+        - name: show-success-log
+          if: ${{ success() }}
+          run: echo "successfully build"
