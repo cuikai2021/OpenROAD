@@ -10,6 +10,9 @@ jobs:
     runs-on:  [self-hosted]
 
     steps:
+        - name: checkout
+          uses: actions/checkout@v2
+
         - name: files-filter
           uses: dorny/paths-filter@v2
           id: filter
@@ -20,12 +23,8 @@ jobs:
                 - 'docker/Dockerfile.deps'
                 - 'etc/DependencyInstaller.sh'
               
-        - name: checkout
-          if: ${{ steps.filter.outputs.modified == 'true' }}
-          uses: actions/checkout@v2
-
         - name: build-and-push-docker
-          if: ${{ success() }}
+          if: ${{ steps.filter.outputs.modified == 'true' }}
           id: build-and-push-docker
           uses: risfeng/docker-image-build-push-action@v1.0
           with:
