@@ -40,7 +40,8 @@ jobs:
             
         - name: run-regression
           if: ${{ success() }}
-          run: ./docker_run/docker_run_regression.sh
+          run: ./docker_run/docker_run_regression.sh ${github_workspace}
+
 
         - name: show-success-log
           if: ${{ success() }}
