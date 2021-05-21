@@ -2,7 +2,8 @@ name: dockerfile-regression-build-and-run
 
 on: 
   push:
-    branch: devops-dev
+    branches: 
+      - devops-dev
 
 jobs:
   relesase-eden-regressions-docker:
@@ -42,7 +43,7 @@ jobs:
             
         - name: run-regression
           if: ${{ success() }}
-          run: ./docker_run/docker_run_regression.sh ${{ GITHUB_WORKSPACE }} ${ REGRESSION_ENV }
+          run: ./docker_run/docker_run_regression.sh ${ GITHUB_WORKSPACE } ${ REGRESSION_ENV }
 
         - name: show-success-log
           if: ${{ success() }}
