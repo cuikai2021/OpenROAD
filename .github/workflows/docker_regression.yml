@@ -40,7 +40,7 @@ jobs:
             context: .
             file: ${{ env.DOCKER_REGRESSION_FILEPATH }}
             push: false
-            tags: ${{ REGRESSION_ENV }}
+            tags: ${{ env.REGRESSION_ENV }}
             
         - name: run-regression
           if: ${{ success() }}
