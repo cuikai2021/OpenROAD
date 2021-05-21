@@ -23,6 +23,8 @@ jobs:
           id: filter
           with:
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+            base: ${{ github.event.before }}
+            ref: ${{ github.event.after }}
             filters: |
               modified:
                 - '.github/workflows/docker_deps.yml'
