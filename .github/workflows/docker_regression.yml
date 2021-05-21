@@ -31,6 +31,7 @@ jobs:
             REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
 
         - name: build-docker-regression
+          if: ${{ success() }}
           uses: docker/build-push-action@v2
           with:
             registry: ${{ env.DOCKER_REGISTRY }}
@@ -39,7 +40,7 @@ jobs:
             context: .
             file: ${{ env.DOCKER_REGRESSION_FILEPATH }}
             push: false
-            tags: ${ REGRESSION_ENV }
+            tags: ${{ env.REGRESSION_ENV }}
             
         - name: run-regression
           if: ${{ success() }}
