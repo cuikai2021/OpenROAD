@@ -30,6 +30,7 @@ jobs:
                 - 'etc/DependencyInstaller.sh'
               
         - name: login-to-acr
+          if: ${{ steps.filter.outputs.modified == 'true' }}
           uses: docker/login-action@v1
           with:
             registry: ${{ env.DOCKER_REGISTRY }}
@@ -37,7 +38,7 @@ jobs:
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
         
         - name: build-and-push-docker
-          if: ${{ steps.filter.outputs.modified == 'true' }}
+          if: ${{ success() }}
           id: build-and-push-docker
           uses: docker/build-push-action@v2
           with:
