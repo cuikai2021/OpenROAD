@@ -36,7 +36,7 @@ jobs:
             registry: ${{ env.DOCKER_REGISTRY }}
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-        
+
         - name: build-and-push-docker
           if: ${{ success() }}
           id: build-and-push-docker
