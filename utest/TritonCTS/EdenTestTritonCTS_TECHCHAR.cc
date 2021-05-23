@@ -4,6 +4,9 @@
 
 #include <db_sta/dbSta.hh>
 
+#define TEST_OK_FILES_PATH "utest/TritonCTS/test"
+#define TEST_FILES_PATH TEST_OK_FILES_PATH"/results"
+
 using namespace cts;
 
 class TritonCTS_WireSegment : public ::testing::Test
@@ -59,11 +62,15 @@ TEST_F(TritonCTS_WireSegment, buffers)
 class TritonCTS_TechChar : public ::testing::Test
 {
  public:
-  constexpr static const char* logName = "utest/TritonCTS/tech_char.log";
+  constexpr static const char* logName = TEST_FILES_PATH"/tech_char.log";
   constexpr static const char* writeName
-      = "utest/TritonCTS/tech_char_write.log";
+      = TEST_FILES_PATH"/tech_char_write.log";
   constexpr static const char* writeSolName
-      = "utest/TritonCTS/tech_char_write_sol.log";
+      = TEST_FILES_PATH"/tech_char_write_sol.log";
+  constexpr static const char* logOk = TEST_OK_FILES_PATH"/tech_char.ok";
+  constexpr static const char* writeOk = TEST_OK_FILES_PATH"//tech_char_write.ok";
+  constexpr static const char* writeSolOk = TEST_OK_FILES_PATH"/tech_char_write_sol.ok";
+  
 
  protected:
   TechChar tech = TechChar(&options, &logger);
@@ -177,20 +184,6 @@ TEST_F(TritonCTS_TechChar, create)
   openRoad->getTritonCts()->getParms()->setSizeSinkClustering(10);
   openRoad->getTritonCts()->getParms()->setMaxDiameter(60);
   openRoad->getTritonCts()->getParms()->setNumStaticLayers(1);
-  
-  // Tcl_Eval(interp,
-  //          "clock_tree_synthesis -root_buf CLKBUF_X3 \
-  //                    -buf_list CLKBUF_X3 \
-  //                    -wire_unit 20 \
-  //                    -post_cts_disable \
-  //                    -sink_clustering_enable \
-  //                    -distance_between_buffers 100 \
-  //                    -sink_clustering_size 10 \
-  //                    -sink_clustering_max_diameter 60 \
-  //                    -num_static_layers 1");
-  // give char_cap and char_slew a not zero min value
-  // openRoad->getTritonCts()->getParms()->setMaxCharCap(1.0f);
-  // openRoad->getTritonCts()->getParms()->setMaxCharSlew(1.0f);
 
   // test create() with techChar created in openRoad, but not the one we
   // prepared. It is because too much arguments input that only can be called by
@@ -222,11 +215,11 @@ TEST_F(TritonCTS_TechChar, create)
 TEST(TritonCTS_Total, file_equal)
 {
   // segment wire
-  EXPECT_FILE_EQ(TritonCTS_TechChar::logName, "utest/TritonCTS/tech_char.ok");
+  EXPECT_FILE_EQ(TritonCTS_TechChar::logName, TritonCTS_TechChar::logOk);
 
   // tech char
   EXPECT_FILE_EQ(TritonCTS_TechChar::writeName,
-                 "utest/TritonCTS/tech_char_write.ok");
+                 TritonCTS_TechChar::writeOk);
   EXPECT_FILE_EQ(TritonCTS_TechChar::writeSolName,
-                 "utest/TritonCTS/tech_char_write_sol.ok");
+                 TritonCTS_TechChar::writeSolOk);
 }

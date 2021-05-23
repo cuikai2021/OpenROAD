@@ -5,6 +5,9 @@
 #include "tritoncts/TritonCTS.h"
 #include "utl/Logger.h"
 
+#define TEST_OK_FILES_PATH "utest/TritonCTS/test"
+#define TEST_FILES_PATH TEST_OK_FILES_PATH "/results"
+
 using namespace CKMeans;
 using namespace cts;
 
@@ -47,7 +50,7 @@ class TritonCTS_clustering : public ::testing::Test
 
  protected:
   std::vector<std::pair<float, float>> sinks
-      = loadSinks("utest/TritonCTS/old_faithful.csv");
+      = loadSinks(TEST_OK_FILES_PATH "/old_faithful.csv");
   std::shared_ptr<clustering> cluster
       = std::make_shared<clustering>(sinks, xBranch, yBranch, logger.get());
 
@@ -78,7 +81,7 @@ TEST_F(TritonCTS_clustering, basic_functions_and_plot)
   int iter = 0;
   std::vector<std::vector<CKMeans::flop*>> plotClusters;
   std::vector<std::pair<float, float>> newMeans;
-  std::string plotFile = "utest/TritonCTS/plot_basic_ut";
+  std::string plotFile = "/plot_basic_ut";
   std::string fileName = plotFile + "__" + std::to_string(iter);
 
   EXPECT_FLOAT_EQ(cluster->calcDist(loc1, flop.get()), 82.5f);
@@ -89,9 +92,10 @@ TEST_F(TritonCTS_clustering, basic_functions_and_plot)
   newMeans.emplace_back(4.25f, 80.0f);
   newMeans.emplace_back(2.15f, 55.0f);
 
-  cluster->setPlotFileName(plotFile);
+  cluster->setPlotFileName(TEST_FILES_PATH + plotFile);
   cluster->plotClusters(plotClusters, newMeans, means, iter);
-  EXPECT_FILE_EQ(fileName + ".py", fileName + ".ok");
+  EXPECT_FILE_EQ(TEST_FILES_PATH + fileName + ".py",
+                 TEST_OK_FILES_PATH + fileName + ".ok");
 }
 
 TEST_F(TritonCTS_clustering, calculate_silhoute)
@@ -132,7 +136,7 @@ TEST_F(TritonCTS_clustering, interative_kmeans)
   std::pair<float, float> branchingPoint(4.5f, 4.5f);
   std::vector<std::vector<unsigned>> clustersGet;
   std::vector<std::pair<float, float>> result
-      = loadSinks("utest/TritonCTS/cluster_result.csv");
+      = loadSinks(TEST_OK_FILES_PATH "/cluster_result.csv");
 
   cluster->iterKmeans(MAX / 5, means.size(), CAP, 0, means, 5, 2);
   EXPECT_NEAR(means[0].first, 1.25f, 0.1f);
