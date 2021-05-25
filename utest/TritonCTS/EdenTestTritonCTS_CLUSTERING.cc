@@ -92,6 +92,7 @@ TEST_F(TritonCTS_clustering, basic_functions_and_plot)
   newMeans.emplace_back(4.25f, 80.0f);
   newMeans.emplace_back(2.15f, 55.0f);
 
+  system("mkdir -p " TEST_FILES_PATH);
   cluster->setPlotFileName(TEST_FILES_PATH + plotFile);
   cluster->plotClusters(plotClusters, newMeans, means, iter);
   EXPECT_FILE_EQ(TEST_FILES_PATH + fileName + ".py",
