@@ -11,7 +11,7 @@ jobs:
     env:
           DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
           DOCKER_NAMESPACE: ieden
-          DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
+          # DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
           DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
           ALI_ACCESS_KEY_ID: ${{ secrets.ALI_OSS_ACCESS_KEY_ID }}
           ALI_ACCESS_KEY_SECRET: ${{ secrets.ALI_OSS_ACCESS_KEY_SK }}
@@ -26,6 +26,17 @@ jobs:
           uses: actions/checkout@v2
           with:
             submodules: true
+        
+        
+        - name: set-imagename
+          if: ${{github.ref == refs/heads/main}}
+          uses: allenevans/set-env@v2.0.1
+          with:
+            DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu 
+        - if: ${{github.ref != refs/heads/main}}
+          uses: allenevans/set-env@v2.0.1
+          with:
+            DOCKER_REGRESSION_IMAGENAME: eden_regression_test 
 
         - name: set-env
           uses: allenevans/set-env@v2.0.1
@@ -51,7 +62,7 @@ jobs:
             
         - name: run-regression
           if: ${{ success() }}
-          run: ./docker_run/docker_run_regression.sh ${ GITHUB_WORKSPACE } ${ REGRESSION_ENV }
+          run: ./docker_run/docker_run_regression.sh ${{ github.workspace }} ${ env.REGRESSION_ENV }
 
         - name: show-success-log
           if: ${{ success() }}
