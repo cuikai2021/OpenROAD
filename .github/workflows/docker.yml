@@ -7,7 +7,9 @@ jobs:
    set-env:
     runs-on: [self-hosted]
     
-
+          # GITHUB_API_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          # ALI_ACCESS_KEY_ID: ${{ secrets.ALI_OSS_ACCESS_KEY_ID }}
+          # ALI_ACCESS_KEY_SECRET: ${{ secrets.ALI_OSS_ACCESS_KEY_SK }}
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -20,13 +22,10 @@ jobs:
           DOCKER_NAMESPACE: ieden
           DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
           DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
-          ALI_ACCESS_KEY_ID: ${{ secrets.ALI_OSS_ACCESS_KEY_ID }}
-          ALI_ACCESS_KEY_SECRET: ${{ secrets.ALI_OSS_ACCESS_KEY_SK }}
           TRIGGER_FROM: push
           GIT_HEAD: ${{ github.event.head_commit.id }}
           ISSUE_ASSIGNEE: ${{ github.event.head_commit.committer.name }}
           REGRESSION_BRANCH: ${{ github.ref }}
-          GITHUB_API_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           DOCKER_DEPS_IMAGENAME: eden_deps_ubuntu
           DOCKER_DEPS_IMAGENAME_TEST: eden_deps_ubuntu_test
           DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
@@ -40,22 +39,11 @@ jobs:
           access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
       - run: ossutil cp -rf env.json oss://icbench-static/environments/Eden/devops-dev/
 
-      - name: JSON reader
-        uses: antifree/json-to-variables@v1.0.1
-        with:
-         filename: 'env.json'
-         prefix: test
-
 
 
    relesase-eden-deps-docker:
     needs: set-env
     runs-on:  [self-hosted]
-    env:
-          DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
-          DOCKER_NAMESPACE: ieden
-          DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
-
 
     steps:
         - name: checkout
@@ -133,19 +121,6 @@ jobs:
    relesase-eden-regressions-docker:
     needs: relesase-eden-deps-docker
     runs-on:  [self-hosted]
-    
-    env:
-          DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
-          DOCKER_NAMESPACE: ieden
-          DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
-          ALI_ACCESS_KEY_ID: ${{ secrets.ALI_OSS_ACCESS_KEY_ID }}
-          ALI_ACCESS_KEY_SECRET: ${{ secrets.ALI_OSS_ACCESS_KEY_SK }}
-          TRIGGER_FROM: push
-          GIT_HEAD: ${{ github.event.head_commit.id }}
-          ISSUE_ASSIGNEE: ${{ github.event.head_commit.committer.name }}
-          REGRESSION_BRANCH: ${{ github.ref }}
-          GITHUB_API_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-
 
     steps:
         - name: checkout
@@ -157,8 +132,8 @@ jobs:
           uses: manyuanrong/setup-ossutil@v2.0
           with:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
-            access-key-id: "${{secrets.ACCESSKEY_ID}}"
-            access-key-secret: "${{secrets.ACCESSKEY_SECRET}}"
+            access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
+            access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
         - run: ossutil cp -rf oss://icbench-static/environments/Eden/devops-dev/env.json /home/runner/work/Eden/Eden/
       
         - name: JSON reader
@@ -173,13 +148,10 @@ jobs:
             DOCKER_REGISTRY: ${{env.env_DOCKER_REGISTRY}}
             DOCKER_NAMESPACE: ${{env.env_DOCKER_NAMESPACE}}
             DOCKER_REGRESSION_FILEPATH: ${{env.env_DOCKER_REGRESSION_FILEPATH}}
-            ALI_ACCESS_KEY_ID: ${{env.env_ALI_ACCESS_KEY_ID}}
-            ALI_ACCESS_KEY_SECRET: ${{env.env_ALI_ACCESS_KEY_SECRET}}
             TRIGGER_FROM: ${{env.env_TRIGGER_FROM}}
             GIT_HEAD: ${{env.env_GIT_HEAD}}
             ISSUE_ASSIGNEE: ${{env.env_ISSUE_ASSIGNEE}}
             REGRESSION_BRANCH: ${{env.env_REGRESSION_BRANCH}}
-            GITHUB_API_TOKEN: ${{env.env_GITHUB_API_TOKEN}}
 
         - name: set-imagename
           if: ${{github.actor == 'ICBench'}}
@@ -204,13 +176,13 @@ jobs:
             file: ${{ env.DOCKER_REGRESSION_FILEPATH }}
             push: false
             build-args: |
-              ALI_ACCESS_KEY_ID=${{ env.ALI_ACCESS_KEY_ID }}
-              ALI_ACCESS_KEY_SECRET=${{ env.ALI_ACCESS_KEY_SECRET }}
+              ALI_ACCESS_KEY_ID=${{ secret.ALI_ACCESS_KEY_ID }}
+              ALI_ACCESS_KEY_SECRET=${{ secret.ALI_ACCESS_KEY_SECRET }}
               TRIGGER_FROM=${{ env.TRIGGER_FROM }}
               GIT_HEAD=${{ env.GIT_HEAD }}
               ISSUE_ASSIGNEE=${{ env.ISSUE_ASSIGNEE }}
               REGRESSION_BRANCH=${{ env.REGRESSION_BRANCH }}
-              GITHUB_API_TOKEN=${{ env.GITHUB_API_TOKEN }}
+              GITHUB_API_TOKEN=${{ secret.DEVOPS_GITHUB_ACCESSTOKEN }}
             tags: ${{ env.REGRESSION_ENV }}
             
         - name: run-regression
