@@ -99,7 +99,7 @@ TEST_F(TritonCTS_clustering, basic_functions_and_plot)
                  TEST_OK_FILES_PATH + fileName + ".ok");
 }
 
-TEST_F(TritonCTS_clustering, calculate_silhoute)
+TEST_F(TritonCTS_clustering, calculate_silhouette)
 {
   float silh = cluster->calcSilh(means, CAP, 0);
   EXPECT_NEAR(silh, -0.25f, 0.01f);
@@ -130,7 +130,7 @@ TEST_F(TritonCTS_clustering, kmeans)
   EXPECT_NEAR(means[1].second, 80.0f, 0.1f);
 }
 
-TEST_F(TritonCTS_clustering, interative_kmeans)
+TEST_F(TritonCTS_clustering, iterative_kmeans)
 {
   unsigned index = 0;
   std::vector<std::pair<float, float>> segMeans;
