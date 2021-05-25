@@ -48,6 +48,7 @@ jobs:
 
 
    relesase-eden-deps-docker:
+    needs: set-env
     runs-on:  [self-hosted]
     env:
           DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
@@ -126,6 +127,7 @@ jobs:
           run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.digest }}"
 
    relesase-eden-regressions-docker:
+    needs: relesase-eden-deps-docker
     runs-on:  [self-hosted]
     env:
           DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
