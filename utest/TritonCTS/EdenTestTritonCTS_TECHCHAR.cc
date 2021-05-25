@@ -169,7 +169,7 @@ TEST_F(TritonCTS_TechChar, create)
   openRoad->readLef(lefName, "test", true, true);
   openRoad->readDef(defName, false, false, false);
 
-  // give arguments necessay to tritonCTS
+  // give arguments necessary to tritonCTS
   // from regression source `check_buffer.tcl`
   Tcl_Eval(interp, "create_clock -period 5 clk");
   Tcl_Eval(interp, "set_wire_rc -clock -layer metal5");
