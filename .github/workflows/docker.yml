@@ -1,12 +1,13 @@
-name: set-env
+name: docker
 on:
   push:
       branches: 
-      - devops-dev
+       - devops-dev
 jobs:
    set-env:
     runs-on: [self-hosted]
     
+
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -31,13 +32,12 @@ jobs:
           DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
           DOCKER_REGRESSION_IMAGENAME_TEST: eden_regression_test
 
-          
       - name: upload to aliyun
         uses: manyuanrong/setup-ossutil@v2.0
         with:
           endpoint: "oss-cn-shanghai.aliyuncs.com"
-          access-key-id: "${{secrets.ACCESSKEY_ID}}"
-          access-key-secret: "${{secrets.ACCESSKEY_SECRET}}"
+          access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
+          access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
       - run: ossutil cp -rf env.json oss://icbench-static/environments/Eden/devops-dev/
 
       - name: JSON reader
@@ -45,6 +45,7 @@ jobs:
         with:
          filename: 'env.json'
          prefix: test
+
 
 
    relesase-eden-deps-docker:
@@ -55,6 +56,7 @@ jobs:
           DOCKER_NAMESPACE: ieden
           DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
 
+
     steps:
         - name: checkout
           uses: actions/checkout@v2
@@ -63,8 +65,8 @@ jobs:
           uses: manyuanrong/setup-ossutil@v2.0
           with:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
-            access-key-id: "${{secrets.ACCESSKEY_ID}}"
-            access-key-secret: "${{secrets.ACCESSKEY_SECRET}}"
+            access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
+            access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
         - run: ossutil cp -rf oss://icbench-static/environments/Eden/devops-dev/env.json /home/runner/work/Eden/Eden/
       
         - name: JSON reader
@@ -126,9 +128,12 @@ jobs:
           if: ${{ success() }}
           run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.digest }}"
 
+
+
    relesase-eden-regressions-docker:
     needs: relesase-eden-deps-docker
     runs-on:  [self-hosted]
+    
     env:
           DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
           DOCKER_NAMESPACE: ieden
@@ -140,6 +145,7 @@ jobs:
           ISSUE_ASSIGNEE: ${{ github.event.head_commit.committer.name }}
           REGRESSION_BRANCH: ${{ github.ref }}
           GITHUB_API_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
 
     steps:
         - name: checkout
