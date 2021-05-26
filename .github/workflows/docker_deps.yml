@@ -78,4 +78,4 @@ jobs:
           with:
             workflow: relesase eden regressions docker
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-            ref: ${{ github.event.ref }}
+            ref: ${{ github.ref }}
