@@ -35,4 +35,6 @@ jobs:
       - name: invoke workflow
         uses: benc-uk/workflow-dispatch@v1
         with:
-         workflow: relesase eden deps docker
+          workflow: relesase eden deps docker
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          ref: ${{ github.ref }}
