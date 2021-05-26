@@ -47,7 +47,7 @@ jobs:
             file: ${{ env.env_DOCKER_REGRESSION_FILEPATH }}
             push: false
             tags: ${{ env.REGRESSION_ENV }}
-            
+
         - run: mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
 
         - name: run regression
