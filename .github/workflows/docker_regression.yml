@@ -1,5 +1,5 @@
 name: relesase eden regressions docker
-on: workflow_dispatch
+on: [workflow_dispatch]
 
 jobs: 
   relesase-eden-regressions-docker:
