@@ -1,0 +1,77 @@
+name: relesase eden deps docker
+on: [workflow_dispatch]
+      
+jobs: 
+  relesase-eden-deps-docker:
+    runs-on: [self-hosted]
+
+    steps:
+        - name: checkout
+          uses: actions/checkout@v2
+
+        - name: download from aliyun
+          uses: manyuanrong/setup-ossutil@v2.0
+          with:
+            endpoint: "oss-cn-shanghai.aliyuncs.com"
+            access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
+            access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
+        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/env.json .
+      
+        - uses: antifree/json-to-variables@v1.0.1
+          with:
+           filename: 'env.json'
+           prefix: env
+
+        # - name: files-filter
+        #   uses: dorny/paths-filter@v2
+        #   id: filter
+        #   with:
+        #     base: ${{ github.event.before }}
+        #     ref: ${{ github.event.after }}
+        #     token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+        #     filters: |
+        #       modified:
+        #         - '.github/workflows/docker.yml'
+        #         - ${{ env.env_DOCKER_DEPS_FILEPATH }}
+        #         - 'etc/DependencyInstaller.sh'
+
+        - if: ${{github.actor == 'ICBench'}}
+          uses: allenevans/set-env@v2.0.1
+          with:
+            DOCKER_DEPS_IMAGENAME: ${{env.env_DOCKER_DEPS_IMAGENAME}}
+
+        - if: ${{github.actor != 'ICBench'}}
+          uses: allenevans/set-env@v2.0.1
+          with:
+            DOCKER_DEPS_IMAGENAME: ${{env.env_DOCKER_DEPS_IMAGENAME_TEST}}
+
+        - name: login to acr
+          if: ${{ success() }}
+          uses: docker/login-action@v1
+          with:
+            registry: ${{env.env_DOCKER_REGISTRY}}
+            username: ${{ secrets.DOCKER_HUB_USERNAME }}
+            password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+        - name: build and push docker
+          if: ${{ success() }}
+          id: build-and-push-docker
+          uses: docker/build-push-action@v2
+          with:
+            registry: ${{ env.env_DOCKER_REGISTRY }}
+            username: ${{ secrets.DOCKER_HUB_USERNAME }}
+            password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+            context: .
+            file: ${{ env.env_DOCKER_DEPS_FILEPATH }}
+            push: true
+            tags: ${{ format('{0}/{1}/{2}:{3}', env.env_DOCKER_REGISTRY, env.env_DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME, github.run_number) }}
+
+        - name: show docker image tag
+          if: ${{ success() }}
+          run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.digest }}"
+
+        - name: invoke workflow
+          uses: benc-uk/workflow-dispatch@v1.1
+          with:
+            workflow: relesase eden regressions docker
+            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
