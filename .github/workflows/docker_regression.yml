@@ -1,12 +1,10 @@
 name: relesase eden regressions docker
-on:
-  workflow_dispatch:
-      branches: [devops-dev]
-      
+on: workflow_dispatch
+
 jobs: 
   relesase-eden-regressions-docker:
     needs: relesase-eden-deps-docker
-    runs-on:  [self-hosted]
+    runs-on: [self-hosted]
 
     steps:
         - name: checkout
