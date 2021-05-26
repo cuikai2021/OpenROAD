@@ -1,7 +1,5 @@
 name: relesase eden deps docker
-on:
-  workflow_dispatch:
-      branches: [devops-dev]
+on: workflow_dispatch
       
 jobs: 
   relesase-eden-deps-docker:
