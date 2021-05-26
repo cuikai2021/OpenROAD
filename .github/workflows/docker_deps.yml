@@ -3,7 +3,6 @@ on: [workflow_dispatch]
       
 jobs: 
   relesase-eden-deps-docker:
-    needs: set-env
     runs-on: [self-hosted]
 
     steps:
