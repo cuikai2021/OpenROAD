@@ -1,9 +1,8 @@
 name: relesase eden deps docker
 on:
-  workflow_run:
-      workflows: ["set env"]
+  workflow_dispatch:
       branches: [devops-dev]
-      types: [completed]
+      
 jobs: 
   relesase-eden-deps-docker:
     needs: set-env
@@ -73,3 +72,8 @@ jobs:
         - name: show docker image tag
           if: ${{ success() }}
           run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.digest }}"
+
+        - name: invoke workflow
+          uses: benc-uk/workflow-dispatch@v1
+          with:
+           workflow: relesase eden regressions docker
