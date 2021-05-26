@@ -2,6 +2,7 @@ name: relesase eden regressions docker
 on:
   workflow_run:
       workflows: ["set env", "relesase eden deps docker"]
+      branches: [devops-dev]
       types: [completed]
 jobs: 
   relesase-eden-regressions-docker:

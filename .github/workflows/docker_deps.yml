@@ -2,6 +2,7 @@ name: relesase eden deps docker
 on:
   workflow_run:
       workflows: ["set env"]
+      branches: [devops-dev]
       types: [completed]
 jobs: 
   relesase-eden-deps-docker:
