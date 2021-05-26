@@ -37,4 +37,3 @@ jobs:
         with:
           workflow: relesase eden deps docker
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-          ref: ${{ github.ref }}

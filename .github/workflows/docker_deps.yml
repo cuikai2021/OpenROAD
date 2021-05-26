@@ -4,7 +4,7 @@ on: workflow_dispatch
 jobs: 
   relesase-eden-deps-docker:
     needs: set-env
-    runs-on:  [self-hosted]
+    runs-on: [self-hosted]
 
     steps:
         - name: checkout
@@ -76,4 +76,3 @@ jobs:
           with:
             workflow: relesase eden regressions docker
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-            ref: ${{ github.ref }}
