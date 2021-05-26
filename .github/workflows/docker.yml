@@ -34,7 +34,7 @@ jobs:
           endpoint: "oss-cn-shanghai.aliyuncs.com"
           access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
           access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
-      - run: ossutil cp -rf env.json oss://icbench-static/environments/${{github.repository}}/${{event.ref}}/
+      - run: ossutil cp -rf env.json oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/
 
 
 
@@ -52,7 +52,7 @@ jobs:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
             access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
             access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
-        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{event.ref}}/env.json .
+        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/env.json .
       
         - name: JSON reader
           uses: antifree/json-to-variables@v1.0.1
@@ -131,7 +131,7 @@ jobs:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
             access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
             access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
-        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{event.ref}}/env.json .
+        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/env.json .
       
         - name: JSON reader
           uses: antifree/json-to-variables@v1.0.1
@@ -173,13 +173,13 @@ jobs:
             file: ${{ env.DOCKER_REGRESSION_FILEPATH }}
             push: false
             build-args: |
-              ALI_ACCESS_KEY_ID=${{ secret.ALI_ACCESS_KEY_ID }}
-              ALI_ACCESS_KEY_SECRET=${{ secret.ALI_ACCESS_KEY_SECRET }}
+              ALI_ACCESS_KEY_ID=${{ secrets.ALI_OSS_ACCESS_KEY_ID }}
+              ALI_ACCESS_KEY_SECRET=${{ secrets.ALI_OSS_ACCESS_KEY_SK}}
               TRIGGER_FROM=${{ env.TRIGGER_FROM }}
               GIT_HEAD=${{ env.GIT_HEAD }}
               ISSUE_ASSIGNEE=${{ env.ISSUE_ASSIGNEE }}
               REGRESSION_BRANCH=${{ env.REGRESSION_BRANCH }}
-              GITHUB_API_TOKEN=${{ secret.DEVOPS_GITHUB_ACCESSTOKEN }}
+              GITHUB_API_TOKEN=${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             tags: ${{ env.REGRESSION_ENV }}
             
         - name: run-regression
