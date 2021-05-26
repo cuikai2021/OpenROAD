@@ -11,18 +11,13 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
 
-      - name: json-creator
-        uses: zynICBench/json-creator@v2.1
+      - uses: zynICBench/json-creator@v2.1
         with:
           file-name: 'env.json'
           DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
           DOCKER_NAMESPACE: ieden
           DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
           DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
-          TRIGGER_FROM: push
-          GIT_HEAD: ${{ github.event.head_commit.id }}
-          ISSUE_ASSIGNEE: ${{ github.event.head_commit.committer.name }}
-          REGRESSION_BRANCH: ${{ github.ref }}
           DOCKER_DEPS_IMAGENAME: eden_deps_ubuntu
           DOCKER_DEPS_IMAGENAME_TEST: eden_deps_ubuntu_test
           DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
@@ -54,62 +49,56 @@ jobs:
             access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
         - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/env.json .
       
-        - name: JSON reader
-          uses: antifree/json-to-variables@v1.0.1
+        - uses: antifree/json-to-variables@v1.0.1
           with:
            filename: 'env.json'
            prefix: env
 
-        - name: set-env
-          uses: allenevans/set-env@v2.0.1
-          with:
-            DOCKER_REGISTRY: ${{env.env_DOCKER_REGISTRY}}
-            DOCKER_NAMESPACE: ${{env.env_DOCKER_NAMESPACE}}
-            DOCKER_DEPS_FILEPATH: ${{env.env_DOCKER_DEPS_FILEPATH}}
+        # - name: files-filter
+        #   uses: dorny/paths-filter@v2
+        #   id: filter
+        #   with:
+        #     base: ${{ github.event.before }}
+        #     ref: ${{ github.event.after }}
+        #     token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+        #     filters: |
+        #       modified:
+        #         - '.github/workflows/docker.yml'
+        #         - ${{ env.env_DOCKER_DEPS_FILEPATH }}
+        #         - 'etc/DependencyInstaller.sh'
 
-        - name: files-filter
-          uses: dorny/paths-filter@v2
-          id: filter
-          with:
-            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-            filters: |
-              modified:
-                - '.github/workflows/docker_deps.yml'
-                - ${{ env.DOCKER_DEPS_FILEPATH }}
-                - 'etc/DependencyInstaller.sh'
-              
-        - name: login-to-acr
-          if: ${{ steps.filter.outputs.modified == 'true' }}
-          uses: docker/login-action@v1
-          with:
-            registry: ${{ env.DOCKER_REGISTRY }}
-            username: ${{ secrets.DOCKER_HUB_USERNAME }}
-            password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-
-        - name: set-imagename
-          if: ${{github.actor == 'ICBench'}}
+        - if: ${{github.actor == 'ICBench'}}
           uses: allenevans/set-env@v2.0.1
           with:
             DOCKER_DEPS_IMAGENAME: ${{env.env_DOCKER_DEPS_IMAGENAME}}
+
         - if: ${{github.actor != 'ICBench'}}
           uses: allenevans/set-env@v2.0.1
           with:
             DOCKER_DEPS_IMAGENAME: ${{env.env_DOCKER_DEPS_IMAGENAME_TEST}}
 
-        - name: build-and-push-docker
+        - name: login to acr
+          if: ${{ success() }}
+          uses: docker/login-action@v1
+          with:
+            registry: ${{env.env_DOCKER_REGISTRY}}
+            username: ${{ secrets.DOCKER_HUB_USERNAME }}
+            password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+        - name: build and push docker
           if: ${{ success() }}
           id: build-and-push-docker
           uses: docker/build-push-action@v2
           with:
-            registry: ${{ env.DOCKER_REGISTRY }}
+            registry: ${{ env.env_DOCKER_REGISTRY }}
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
             context: .
-            file: ${{ env.DOCKER_DEPS_FILEPATH }}
+            file: ${{ env.env_DOCKER_DEPS_FILEPATH }}
             push: true
             tags: ${{ format('{0}/{1}/{2}:{3}', env.env_DOCKER_REGISTRY, env.env_DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME, github.run_number) }}
 
-        - name: show-docker-image-tag
+        - name: show docker image tag
           if: ${{ success() }}
           run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.digest }}"
 
@@ -133,59 +122,39 @@ jobs:
             access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
         - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/env.json .
       
-        - name: JSON reader
+        - name: json reader
           uses: antifree/json-to-variables@v1.0.1
           with:
            filename: 'env.json'
            prefix: env
 
-        - name: set-env
-          uses: allenevans/set-env@v2.0.1
-          with:
-            DOCKER_REGISTRY: ${{env.env_DOCKER_REGISTRY}}
-            DOCKER_NAMESPACE: ${{env.env_DOCKER_NAMESPACE}}
-            DOCKER_REGRESSION_FILEPATH: ${{env.env_DOCKER_REGRESSION_FILEPATH}}
-            TRIGGER_FROM: ${{env.env_TRIGGER_FROM}}
-            GIT_HEAD: ${{env.env_GIT_HEAD}}
-            ISSUE_ASSIGNEE: ${{env.env_ISSUE_ASSIGNEE}}
-            REGRESSION_BRANCH: ${{env.env_REGRESSION_BRANCH}}
-
-        - name: set-imagename
-          if: ${{github.actor == 'ICBench'}}
+        - if: ${{github.actor == 'ICBench'}}
           uses: allenevans/set-env@v2.0.1
           with:
             DOCKER_REGRESSION_IMAGENAME: ${{env.env_DOCKER_REGRESSION_IMAGENAME}}
+
         - if: ${{github.actor != 'ICBench'}}
           uses: allenevans/set-env@v2.0.1
           with:
             DOCKER_REGRESSION_IMAGENAME: ${{env.env_DOCKER_REGRESSION_IMAGENAME_TEST}}
 
-        - name: set-env
-          uses: allenevans/set-env@v2.0.1
+        - uses: allenevans/set-env@v2.0.1
           with:
             REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.env_DOCKER_REGISTRY, env.env_DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
 
-        - name: build-docker-regression
+        - name: build docker regression
           if: ${{ success() }}
           uses: docker/build-push-action@v2
           with:
             context: .
-            file: ${{ env.DOCKER_REGRESSION_FILEPATH }}
+            file: ${{ env.env_DOCKER_REGRESSION_FILEPATH }}
             push: false
-            build-args: |
-              ALI_ACCESS_KEY_ID=${{ secrets.ALI_OSS_ACCESS_KEY_ID }}
-              ALI_ACCESS_KEY_SECRET=${{ secrets.ALI_OSS_ACCESS_KEY_SK}}
-              TRIGGER_FROM=${{ env.TRIGGER_FROM }}
-              GIT_HEAD=${{ env.GIT_HEAD }}
-              ISSUE_ASSIGNEE=${{ env.ISSUE_ASSIGNEE }}
-              REGRESSION_BRANCH=${{ env.REGRESSION_BRANCH }}
-              GITHUB_API_TOKEN=${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             tags: ${{ env.REGRESSION_ENV }}
             
-        - name: run-regression
+        - name: run regression
           if: ${{ success() }}
-          run: ./docker_run/docker_run_regression.sh ${{ github.workspace }} ${{ env.REGRESSION_ENV }}
+          run: ./docker_run/docker_run_regression.sh ${{ github.workspace }}
 
-        - name: show-success-log
+        - name: show success log
           if: ${{ success() }}
           run: echo "successfully run"
