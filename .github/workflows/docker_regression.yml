@@ -3,7 +3,6 @@ on: [workflow_dispatch]
 
 jobs: 
   relesase-eden-regressions-docker:
-    needs: relesase-eden-deps-docker
     runs-on: [self-hosted]
 
     steps:
