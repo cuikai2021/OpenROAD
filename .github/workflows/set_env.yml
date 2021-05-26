@@ -33,7 +33,7 @@ jobs:
       - run: ossutil cp -rf env.json oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/
 
       - name: invoke workflow
-        uses: benc-uk/workflow-dispatch@v1
+        uses: benc-uk/workflow-dispatch@v1.1
         with:
           workflow: relesase eden deps docker
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
