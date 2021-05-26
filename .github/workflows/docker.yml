@@ -173,8 +173,8 @@ jobs:
             file: ${{ env.DOCKER_REGRESSION_FILEPATH }}
             push: false
             build-args: |
-              ALI_ACCESS_KEY_ID=${{ secret.ALI_ACCESS_KEY_ID }}
-              ALI_ACCESS_KEY_SECRET=${{ secret.ALI_ACCESS_KEY_SECRET }}
+              ALI_ACCESS_KEY_ID=${{ secret.ALI_OSS_ACCESS_KEY_ID }}
+              ALI_ACCESS_KEY_SECRET=${{ secret.ALI_OSS_ACCESS_KEY_SK}}
               TRIGGER_FROM=${{ env.TRIGGER_FROM }}
               GIT_HEAD=${{ env.GIT_HEAD }}
               ISSUE_ASSIGNEE=${{ env.ISSUE_ASSIGNEE }}
