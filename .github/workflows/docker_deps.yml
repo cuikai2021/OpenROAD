@@ -21,17 +21,9 @@ jobs:
           with:
            filename: 'env.json'
            prefix: env        
-        
-        - name: file changes
-          id: change
-          uses: trilom/file-changes-action@v1.2.3
-          with:
-            githubToken: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-            pushBefore: ${{env.env_GITHUB_EVENT_BEFORE}}
-            pushAfter: ${{env.env_GITHUB_EVENT_AFTER}}
 
         - name: login to acr
-          if: ${{contains( steps.change.outputs.files_modified, 'deps' )}}
+          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true'}}
           uses: docker/login-action@v1
           with:
             registry: ${{env.env_DOCKER_REGISTRY}}
@@ -50,7 +42,6 @@ jobs:
             file: ${{ env.env_DOCKER_DEPS_FILEPATH }}
             push: true
             tags: ${{ env.env_DEPS_ENV }}
-
 
         - name: show docker image tag
           if: ${{ success() }}
