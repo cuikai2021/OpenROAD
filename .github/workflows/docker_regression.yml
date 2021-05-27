@@ -17,12 +17,18 @@ jobs:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
             access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
             access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
-        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/env.json .
+        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/env.json .
+        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/latest_docker_deps_image.json .
       
         - name: json reader
           uses: antifree/json-to-variables@v1.0.1
           with:
            filename: 'env.json'
+           prefix: env
+
+        - uses: antifree/json-to-variables@v1.0.1
+          with:
+           filename: 'latest_docker_deps_image.json'
            prefix: env
 
         - name: build docker regression
@@ -33,8 +39,8 @@ jobs:
             file: ${{ env.env_DOCKER_REGRESSION_FILEPATH }}
             push: false
             tags: ${{ env.env_REGRESSION_ENV }}
-            build_args: | 
-              FROM_IMAGE_TAG: ${{ env.env_REGRESSION_ENV }}
+            build_args: |
+              FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
 
         - run: mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
 
@@ -42,6 +48,12 @@ jobs:
           if: ${{ success() }}
           run: ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }}
 
-        - name: show success log
+        - name: success pull request
           if: ${{ success() }}
           run: echo "successfully run"
+
+        - name: success pull request
+          if: ${{ success() }}
+          run: echo "successfully run"
+
+        
