@@ -9,8 +9,6 @@ jobs:
     env:
       DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
       DOCKER_NAMESPACE: ieden
-      
-      
       DOCKER_DEPS_IMAGENAME: eden_deps_ubuntu
       DOCKER_DEPS_IMAGENAME_TEST: eden_deps_ubuntu_test
       DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
