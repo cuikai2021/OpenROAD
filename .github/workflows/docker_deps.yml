@@ -35,7 +35,7 @@ jobs:
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
         - name: build and push docker
-          if: ${{ success() }}
+          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
           id: build-and-push-docker
           uses: docker/build-push-action@v2
           with:
@@ -48,16 +48,16 @@ jobs:
             tags: ${{ env.DEPS_ENV }}
 
         - uses: zynICBench/json-creator@v2.1
-          if: ${{ success() }}
+          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
           with:
             file-name: 'latest_docker_deps_image.json'
             DEPS_ENV: ${{ env.DEPS_ENV }} 
 
-        - if: ${{ success() }}
+        - if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
           run: ossutil cp -rf latest_docker_deps_image.json oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/
 
         - name: show docker image tag
-          if: ${{ success() }}
+          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
           run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.digest }}"
 
         - name: invoke workflow
