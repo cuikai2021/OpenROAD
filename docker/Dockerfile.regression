@@ -1,4 +1,5 @@
-FROM registry.cn-shanghai.aliyuncs.com/ieden/env_eden_ubuntu:0514
+ARG FROM_IMAGE_TAG
+FROM $FROM_IMAGE_TAG
 
 ARG EDEN_GIT_SHA1
 
