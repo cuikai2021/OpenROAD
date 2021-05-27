@@ -1,0 +1,20 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.path as mpath
+import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
+from matplotlib.collections import PatchCollection
+
+plt.scatter(-0, -0, s=1)
+plt.scatter(-0.142857, -0.142857, s=1)
+plt.scatter(-0.285714, -0.285714, s=1)
+plt.scatter(-0.428571, -0.428571, s=1)
+plt.scatter(-0.571429, -0.571429, s=1)
+plt.scatter(-0.714286, -0.714286, s=1)
+plt.scatter(-0.857143, -0.857143, s=1)
+plt.scatter(-1, -1, s=1)
+plt.scatter(-1.14286, -1.14286, s=1)
+plt.scatter(-1.28571, -1.28571, s=1)
+plt.plot([-0.642857, -0.642857], [-1.64286, -0.642857], c = 'r')
+plt.plot([-0.642857, -0.642857], [0.357143, -0.642857], c = 'r')
+plt.show()

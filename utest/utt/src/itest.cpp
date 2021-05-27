@@ -32,7 +32,7 @@ void file_equal(const std::string file0, const std::string file1, bool need_equa
     if(!need_equal){
       msg = "two files are same";
     }
-    FAIL() << msg;
+    FAIL() << msg << "\n" << file0 << "\n" << file1;
   }
 }
 
