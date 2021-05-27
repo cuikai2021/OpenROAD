@@ -11,6 +11,18 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
 
+      - if: ${{github.actor == 'ICBench'}}
+        uses: allenevans/set-env@v2.0.1
+        with:
+          DOCKER_DEPS_IMAGENAME: ${{env.env_DOCKER_DEPS_IMAGENAME}}
+          DOCKER_REGRESSION_IMAGENAME: ${{env.env_DOCKER_REGRESSION_IMAGENAME}}
+
+      - if: ${{github.actor != 'ICBench'}}
+        uses: allenevans/set-env@v2.0.1
+        with:
+          DOCKER_DEPS_IMAGENAME: ${{env.env_DOCKER_DEPS_IMAGENAME_TEST}}
+          DOCKER_REGRESSION_IMAGENAME: ${{env.env_DOCKER_REGRESSION_IMAGENAME_TEST}}
+
       - uses: zynICBench/json-creator@v2.1
         with:
           file-name: 'env.json'
@@ -25,6 +37,8 @@ jobs:
           DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
           GITHUB_ENV_BEFORE: ${{github.event.before}}
           GITHUB_ENV_AFTER: ${{github.event.after}}
+          DEPS_ENV: ${{ format('{0}/{1}/{2}:{3}', DOCKER_REGISTRY, DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME, github.run_number) }}
+          REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', DOCKER_REGISTRY, DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
 
       - name: upload to aliyun
         uses: manyuanrong/setup-ossutil@v2.0

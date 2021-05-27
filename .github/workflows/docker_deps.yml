@@ -17,22 +17,11 @@ jobs:
             access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
         - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/env.json .
         
-
         - uses: antifree/json-to-variables@v1.0.1
           with:
            filename: 'env.json'
            prefix: env        
         
-        - if: ${{github.actor == 'ICBench'}}
-          uses: allenevans/set-env@v2.0.1
-          with:
-            DOCKER_DEPS_IMAGENAME: ${{env.env_DOCKER_DEPS_IMAGENAME}}
-
-        - if: ${{github.actor != 'ICBench'}}
-          uses: allenevans/set-env@v2.0.1
-          with:
-            DOCKER_DEPS_IMAGENAME: ${{env.env_DOCKER_DEPS_IMAGENAME_TEST}}
-
         - name: file changes
           id: change
           uses: trilom/file-changes-action@v1.2.3
@@ -40,7 +29,6 @@ jobs:
             githubToken: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             pushBefore: ${{env.env_GITHUB_EVENT_BEFORE}}
             pushAfter: ${{env.env_GITHUB_EVENT_AFTER}}
-
 
         - name: login to acr
           if: ${{contains( steps.change.outputs.files_modified, 'deps' )}}
@@ -61,7 +49,7 @@ jobs:
             context: .
             file: ${{ env.env_DOCKER_DEPS_FILEPATH }}
             push: true
-            tags: ${{ format('{0}/{1}/{2}:{3}', env.env_DOCKER_REGISTRY, env.env_DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME, github.run_number) }}
+            tags: ${{ env.env_DEPS_ENV }}
 
 
         - name: show docker image tag
