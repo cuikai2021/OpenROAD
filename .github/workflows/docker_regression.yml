@@ -37,10 +37,11 @@ jobs:
           with:
             context: .
             file: ${{ env.env_DOCKER_REGRESSION_FILEPATH }}
+            build-args: |
+              FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
             push: false
             tags: ${{ env.env_REGRESSION_ENV }}
-            build_args: |
-              FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
+
 
         - run: mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
 
@@ -55,5 +56,3 @@ jobs:
         - name: success pull request
           if: ${{ success() }}
           run: echo "successfully run"
-
-        
