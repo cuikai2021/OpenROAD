@@ -38,11 +38,6 @@ jobs:
           pushBefore: ${{ github.event.before }}
           pushAfter: ${{ github.event.after }}
 
-      - if: ${{ contains(steps.change.outputs.files_added, 'docker_deps.yml') || contains(steps.change.outputs.files_modified, 'docker_deps.yml') || contains(steps.change.outputs.files_added, 'Dockerfile.dev') || contains(steps.change.outputs.files_modified, 'Dockerfile.dev')|| contains(steps.change.outputs.files_added, 'DependencyInstaller.sh') || contains(steps.change.outputs.files_modified, 'DependencyInstaller.sh') }}
-        uses: allenevans/set-env@v2.0.1
-        with: 
-          IS_FILES_MODIFIED_OR_ADDED: true
-
       - uses: zynICBench/json-creator@v2.1
         with:
           file-name: 'env.json'
@@ -50,7 +45,7 @@ jobs:
           DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
           DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
           DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
-          IS_FILES_MODIFIED_OR_ADDED: ${{ env.IS_FILE_MODIFIED_OR_ADDED }}  
+          IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, .github/workflows/docker_deps.yml) || contains(steps.change.outputs.files, docker/Dockerfile.dev) || contains(steps.change.outputs.files, etc/DependencyInstaller.sh) }}  
           DEPS_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME, github.run_number) }}
           REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
 
