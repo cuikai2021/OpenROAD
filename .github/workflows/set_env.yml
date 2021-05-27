@@ -23,6 +23,8 @@ jobs:
           DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
           DOCKER_REGRESSION_IMAGENAME_TEST: eden_regression_test
           DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
+          GITHUB_ENV_BEFORE: ${{github.event.before}}
+          GITHUB_ENV_AFTER: ${{github.event.after}}
 
       - name: upload to aliyun
         uses: manyuanrong/setup-ossutil@v2.0

@@ -1,3 +1,4 @@
+ARG FROM_IMAGE_TAG
 FROM registry.cn-shanghai.aliyuncs.com/ieden/env_eden_ubuntu:0514
 
 ARG EDEN_GIT_SHA1
