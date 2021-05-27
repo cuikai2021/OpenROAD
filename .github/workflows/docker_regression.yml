@@ -32,7 +32,7 @@ jobs:
             context: .
             file: ${{ env.env_DOCKER_REGRESSION_FILEPATH }}
             push: false
-            tags: ${{ env.REGRESSION_ENV }}
+            tags: ${{ env.env_REGRESSION_ENV }}
             build_args: | 
               FROM_IMAGE_TAG: ${{ env.env_REGRESSION_ENV }}
 
