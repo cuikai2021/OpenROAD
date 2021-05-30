@@ -66,12 +66,14 @@ jobs:
                 done
               fi
 
-
         - if: ${{ success() }}
           run: |
               echo ${{ env.EXIST_REGRESSION_FAILURES }}
-              echo ${{ env.EXIST_REGRESSION_FAILURES }}
+              echo ${{ env.REGRESSION_FAILURES_FILE }}
  
+        - if: ${{ env.EXIST_REGRESSION_FAILURES == true }}
+          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression-${{github.run_number)}}/
+
         - name: success pull request
           if: ${{ env.EXIST_REGRESSION_FAILURES == false }}
           uses: octokit/request-action@v2.x
@@ -105,6 +107,3 @@ jobs:
                "Message is ${{env.env_HEAD_COMMIT_MESSAGE}}. The branch is ${{github.ref}}. The action sha value is ${{env.env_EVENT_AFTER}}."
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-
-        - if: ${{ env.Not_EXIST_FILE == false }}
-          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression-${{github.run_number)}}/
