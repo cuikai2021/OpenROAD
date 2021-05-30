@@ -44,15 +44,13 @@ jobs:
 
 
         - if: ${{ success() }}
-          run: |
-              mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
-              echo "EXIST_RESULT_DIR=true" >> $GITHUB_ENV
+          run: mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
 
         - name: run regression
           if: ${{ success() }}
           run: ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }}
 
-        - if: ${{ env.EXIST_RESULT_DIR == true }}
+        - if: ${{ success() }}
           run: |
               is_empty_dir(){ 
               return `ls -A $1|wc -w`
@@ -68,16 +66,16 @@ jobs:
                 done
               fi
 
-        - if: ${{ env.EXIST_RESULT_DIR == true && env.EXIST_RESULT_DIR == true }}
+        - if: ${{ success() }}
           run: |
               echo ${{ env.EXIST_REGRESSION_FAILURES }}
               echo ${{ env.REGRESSION_FAILURES_FILE }}
  
-        - if: ${{ env.EXIST_RESULT_DIR == true && env.EXIST_REGRESSION_FAILURES == true }}
+        - if: ${{ env.EXIST_REGRESSION_FAILURES == true }}
           run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/
 
         - name: success pull request
-          if: ${{ env.EXIST_RESULT_DIR == true && env.EXIST_REGRESSION_FAILURES == false }}
+          if: ${{ env.EXIST_REGRESSION_FAILURES == false }}
           uses: octokit/request-action@v2.x
           id: pulls
           with:
@@ -97,7 +95,7 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
         - name: failure issue
-          if: ${{ env.EXIST_RESULT_DIR == true && env.EXIST_REGRESSION_FAILURES == true }}
+          if: ${{ env.EXIST_REGRESSION_FAILURES == true }}
           uses: octokit/request-action@v2.x
           id: issues
           with:
