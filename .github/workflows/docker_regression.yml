@@ -44,13 +44,15 @@ jobs:
 
 
         - if: ${{ success() }}
-          run: mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
+          run: |
+              mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
+              echo "EXIST_RESULT_DIR=true" >> $GITHUB_ENV
 
         - name: run regression
           if: ${{ success() }}
           run: ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }}
 
-        - if: ${{ success() }}
+        - if: ${{ env.EXIST_RESULT_DIR == true }}
           run: |
               is_empty_dir(){ 
               return `ls -A $1|wc -w`
@@ -66,16 +68,16 @@ jobs:
                 done
               fi
 
-        - if: ${{ success() }}
+        - if: ${{ env.EXIST_RESULT_DIR == true && env.EXIST_RESULT_DIR == true }}
           run: |
               echo ${{ env.EXIST_REGRESSION_FAILURES }}
               echo ${{ env.REGRESSION_FAILURES_FILE }}
  
-        - if: ${{ env.EXIST_REGRESSION_FAILURES == true }}
-          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression-${{github.run_number)}}/
+        - if: ${{ env.EXIST_RESULT_DIR == true && env.EXIST_REGRESSION_FAILURES == true }}
+          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/
 
         - name: success pull request
-          if: ${{ env.EXIST_REGRESSION_FAILURES == false }}
+          if: ${{ env.EXIST_RESULT_DIR == true && env.EXIST_REGRESSION_FAILURES == false }}
           uses: octokit/request-action@v2.x
           id: pulls
           with:
@@ -83,27 +85,32 @@ jobs:
             owner: ${{github.actor}}
             repo: ${{github.repository}}
             head_sha: ${{ github.sha }}
-            title: "success pull request"
+            title: ${{env.env_HEAD_COMMIT_MESSAGE}}
             base: ${{github.ref}}
             head: master
             labels: "CI"
-            body: 
-               "Message is ${{env.env_HEAD_COMMIT_MESSAGE}}. The branch is ${{github.ref}}. The action sha value is ${{env.env_EVENT_AFTER}}."
+            body: |
+               The regression run success
+               The branch is ${{github.ref}}
+               The action sha value is ${{env.env_EVENT_AFTER}}
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
         - name: failure issue
-          if: ${{ env.EXIST_REGRESSION_FAILURES == true }}
+          if: ${{ env.EXIST_RESULT_DIR == true && env.EXIST_REGRESSION_FAILURES == true }}
           uses: octokit/request-action@v2.x
           id: issues
           with:
             route: POST /repos/{owner}/{repo}/issues
             owner: ${{github.actor}}
             repo: ${{github.repository}}
-            title: "failure issue"
+            title: ${{env.env_HEAD_COMMIT_MESSAGE}}
             labels: "CI"
             assignees: ${{env.env_HEAD_COMMIT_COMMITER_NAME}}
             body: |
-               "Message is ${{env.env_HEAD_COMMIT_MESSAGE}}. The branch is ${{github.ref}}. The action sha value is ${{env.env_EVENT_AFTER}}."
+               The regression run failure
+               The branch is ${{github.ref}}
+               The action sha value is ${{env.env_EVENT_AFTER}}
+               The regression failure info can download from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/${{env.REGRESSION_FAILURES_FILE}} 
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
