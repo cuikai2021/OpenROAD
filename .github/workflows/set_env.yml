@@ -13,7 +13,7 @@ jobs:
       DOCKER_DEPS_IMAGENAME_TEST: eden_deps_ubuntu_test
       DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
       DOCKER_REGRESSION_IMAGENAME_TEST: eden_regression_test
-    
+       
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -48,6 +48,9 @@ jobs:
           IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
           DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
           REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
+          HEAD_COMMIT_MESSAGE: ${{github.event.head_commit.message}}
+          HEAD_COMMIT_COMMITER_NAME: ${{github.event.head_commit.committer.name}}
+          EVENT_AFTER: ${{ github.event.after }}
 
       - name: upload to aliyun
         uses: manyuanrong/setup-ossutil@v2.0
