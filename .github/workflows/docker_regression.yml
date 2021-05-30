@@ -51,8 +51,34 @@ jobs:
 
         - name: success pull request
           if: ${{ success() }}
-          run: echo "successfully run"
+          uses: octokit/request-action@v2.x
+          id: pulls
+          with:
+            route: POST /repos/{owner}/{repo}/pulls
+            owner: ${{github.actor}}
+            repo: ${{github.repository}}
+            head_sha: ${{ github.sha }}
+            title: "success pull request"
+            base: ${{github.base.ref}}
+            head: ${{github.head.ref}}
+            labels: "CI"
+            body: 
+               "Message is ${{env.env_HEAD_COMMIT.MESSAGE}}. The branch is ${{github.ref}}. The action sha value is ${{env.env_AFTER}}."
+          env:
+            GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: success pull request
-          if: ${{ success() }}
-          run: echo "successfully run"
+        - name: failure issue
+          if: ${{ failure() }}
+          uses: octokit/request-action@v2.x
+          id: issues
+          with:
+            route: POST /repos/{owner}/{repo}/issues
+            owner: ${{github.actor}}
+            repo: ${{github.repository}}
+            title: "failure issue"
+            labels: "CI"
+            assignees: ${{env.env_HEAD_COMMIT.COMMITER.NAME}}
+            body: |
+               "Message is ${{env.env_HEAD_COMMIT.MESSAGE}}. The branch is ${{github.ref}}. The action sha value is ${{env.env_AFTER}}."
+          env:
+             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
