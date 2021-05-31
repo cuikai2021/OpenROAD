@@ -50,6 +50,9 @@ jobs:
           if: ${{ success() }}
           run: ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }}
 
+        - name: upload coverage result
+          run: ossutil cp -rf ${{ env.env_CODE_COVERAGE_PATH }} oss://icbench-devops/regression-${{github.run_number}}/coverage-result/
+
         - if: ${{ success() }}
           run: |
               if [`ls -A ${{ env.env_DOCKER_RESULT_PATH }}|wc -w`==0]
@@ -72,6 +75,7 @@ jobs:
         - if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/
 
+
         - name: success pull request
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' }}
           uses: octokit/request-action@v2.x
@@ -89,6 +93,7 @@ jobs:
                The regression run success
                The branch is ${{github.ref}}
                The action sha value is ${{env.env_EVENT_AFTER}}
+               The coverage output can be downloaded from ${{env.env_COVERAGE_DOWNLOAD_PATH}}
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
@@ -107,6 +112,7 @@ jobs:
                The regression run failure
                The branch is ${{github.ref}}
                The action sha value is ${{env.env_EVENT_AFTER}}
-               The regression failure info can download from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/${{env.REGRESSION_FAILURES_FILE}} 
+               The regression failure info can be downloaded from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/${{env.REGRESSION_FAILURES_FILE}} 
+               The coverage output can be downloaded from ${{env.env_COVERAGE_DOWNLOAD_PATH}}
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
