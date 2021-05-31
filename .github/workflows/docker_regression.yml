@@ -52,15 +52,12 @@ jobs:
 
         - if: ${{ success() }}
           run: |
-              is_empty_dir(){ 
-              return `ls -A $1|wc -w`
-              }
-              if [is_empty_dir(${{ env.env_DOCKER_RESULT_PATH }})==0]
+              if [`ls -A ${{ env.env_DOCKER_RESULT_PATH }}|wc -w`==0]
               then 
                 echo "EXIST_REGRESSION_FAILURES=false" >> $GITHUB_ENV
               else 
                 echo "EXIST_REGRESSION_FAILURES=true" >> $GITHUB_ENV
-                for file in 'ls ${{ env.env_DOCKER_RESULT_PATH }}'
+                for file in `ls ${{ env.env_DOCKER_RESULT_PATH }}`
                 do
                   echo "REGRESSION_FAILURES_FILE=$file" >> $GITHUB_ENV
                   break
