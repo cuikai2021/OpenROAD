@@ -52,7 +52,7 @@ jobs:
           HEAD_COMMIT_COMMITER_NAME: ${{github.event.head_commit.committer.name}}
           EVENT_AFTER: ${{ github.event.after }}
           CODE_COVERAGE_PATH: coverage-output/
-          COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/icbench-devops/${{ github.run_number }}/coverage-result/
+          COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/icbench-devops/regression-${{ github.run_number }}/coverage-result/
 
       - name: upload to aliyun
         uses: manyuanrong/setup-ossutil@v2.0

@@ -51,7 +51,7 @@ jobs:
           run: ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }}
 
         - name: upload coverage result
-          run: ossutil cp -rf ${{ env.env_CODE_COVERAGE_PATH }} oss://icbench-devops/${{github.run_number}}/coverage-result/
+          run: ossutil cp -rf ${{ env.env_CODE_COVERAGE_PATH }} oss://icbench-devops/regression-${{github.run_number}}/coverage-result/
 
         - if: ${{ success() }}
           run: |
