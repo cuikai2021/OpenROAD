@@ -60,7 +60,8 @@ jobs:
                 echo "EXIST_REGRESSION_FAILURES=false" >> $GITHUB_ENV
               else 
                 echo "EXIST_REGRESSION_FAILURES=true" >> $GITHUB_ENV
-                for file in ${{ env.env_DOCKER_RESULT_PATH }}/*; do
+                for file in 'ls ${{ env.env_DOCKER_RESULT_PATH }}'
+                do
                   echo "REGRESSION_FAILURES_FILE=$file" >> $GITHUB_ENV
                   break
                 done
