@@ -9,7 +9,8 @@ jobs:
         - name: checkout
           uses: actions/checkout@v2
 
-        - uses: manyuanrong/setup-ossutil@v2.0
+        - name: 1. connect to aliyun
+          uses: manyuanrong/setup-ossutil@v2.0
           with:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
             access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
