@@ -63,7 +63,7 @@ jobs:
 
         - if: ${{ success() }}
           run: |
-              if [`ls -A ${{ env.env_DOCKER_RESULT_PATH }}|wc -w`==0]
+              if [ `ls -A ${{ env.env_DOCKER_RESULT_PATH }}|wc -w` -eq '0' ]
               then 
                 echo "EXIST_REGRESSION_FAILURES=false" >> $GITHUB_ENV
               else 
@@ -93,7 +93,7 @@ jobs:
             owner: ${{github.actor}}
             repo: ${{github.repository}}
             head_sha: ${{ github.sha }}
-            title: ${{env.env_HEAD_COMMIT_MESSAGE}}
+            title: regression succeeded, run number is ${{github.run_number}}
             base: ${{github.ref}}
             head: master
             labels: "CI"
@@ -113,7 +113,7 @@ jobs:
             route: POST /repos/{owner}/{repo}/issues
             owner: ${{github.actor}}
             repo: ${{github.repository}}
-            title: ${{env.env_HEAD_COMMIT_MESSAGE}}
+            title: regression failed, run number is ${{github.run_number}}
             labels: "CI"
             assignees: ${{env.env_HEAD_COMMIT_COMMITER_NAME}}
             body: |
