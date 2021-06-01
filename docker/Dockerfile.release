@@ -1,0 +1,10 @@
+ARG FROM_IMAGE_TAG
+FROM ${FROM_IMAGE_TAG}
+
+ARG EDEN_GIT_SHA1
+
+COPY . /Eden
+WORKDIR /Eden
+
+# Build
+RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
