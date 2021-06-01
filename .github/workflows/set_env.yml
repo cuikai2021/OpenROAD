@@ -46,13 +46,14 @@ jobs:
           DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
           DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
           CODE_COVERAGE_PATH: ${{ github.workspace }}/coverage-output
+          COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/icbench-devops/regression-${{ github.run_number }}/coverage-result
           IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
           DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
           REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
           HEAD_COMMIT_MESSAGE: ${{github.event.head_commit.message}}
           HEAD_COMMIT_COMMITER_NAME: ${{github.event.head_commit.committer.name}}
           EVENT_AFTER: ${{ github.event.after }}
-          COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/icbench-devops/regression-${{ github.run_number }}/coverage-result/
+          
 
       - name: upload to aliyun
         uses: manyuanrong/setup-ossutil@v2.0
