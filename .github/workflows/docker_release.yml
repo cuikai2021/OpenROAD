@@ -1,0 +1,34 @@
+name: docker release
+on:
+  workflow_dispatch:
+    inputs:
+      commit_id:
+        description: 'commit id of repo(Eden) to make it'
+        required: true
+      release_name:
+        description: 'docker release name, like 0409p2'
+        required: true
+jobs:
+  set-env:
+    runs-on: [self-hosted]
+    steps:
+        - name: checkout
+          uses: actions/checkout@v2
+
+        - run: mkdir -p ${{ github.workspace}}/release-output
+
+        - name: run release
+          run: ./docker_run/docker_run_release.sh ${{ github.workspace}}/release-output
+
+        - name: generate changelog
+          run: echo "# release success" > ${{ github.workflow }}-CHANGELOG.txt
+        - name: release
+          uses: softprops/action-gh-release@v1
+          with:
+            body_path: ${{ github.workflow }}-CHANGELOG.txt
+            files: |
+              ${{github.workspace}}/build/eden
+              ${{github.workspace}}/build/openroad
+
+          env:
+            GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
