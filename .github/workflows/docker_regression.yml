@@ -60,8 +60,7 @@ jobs:
 
         - name: package /coverage-result
           run: |
-            tar -zcvf ${{ env.env_CODE_COVERAGE_PATH }}.tar.gz  ${{ env.env_CODE_COVERAGE_PATH }} 
-            echo "CODE_COVERAGE_FILE=${{ env.env_CODE_COVERAGE_PATH }}.tar.gz" >> $GITHUB_ENV
+            tar -zcvf /coverage-result/coverage-result.tar.gz  ${{ env.env_CODE_COVERAGE_PATH }} 
 
         - name: upload coverage result
           run: ossutil cp -rf ${{ env.CODE_COVERAGE_FILE }} oss://icbench-devops/regression-${{github.run_number}}/coverage-result/
@@ -105,7 +104,7 @@ jobs:
                The regression run success
                The branch is ${{github.ref}}
                The action sha value is ${{env.env_EVENT_AFTER}}
-               The coverage output can be downloaded from ${{ env.env_COVERAGE_DOWNLOAD_PATH }}${{ env.CODE_COVERAGE_FILE }}
+               The coverage output can be downloaded from ${{ env.env_COVERAGE_DOWNLOAD_PATH }}/coverage-result.tar.gz
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
@@ -125,6 +124,6 @@ jobs:
                The branch is ${{github.ref}}
                The action sha value is ${{env.env_EVENT_AFTER}}
                The regression failure info can be downloaded from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/${{env.REGRESSION_FAILURES_FILE}} 
-               The coverage output can be downloaded from ${{ env.env_COVERAGE_DOWNLOAD_PATH }}${{ env.CODE_COVERAGE_FILE }}
+               The coverage output can be downloaded from ${{ env.env_COVERAGE_DOWNLOAD_PATH }}/coverage-result.tar.gz
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
