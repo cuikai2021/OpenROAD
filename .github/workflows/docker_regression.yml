@@ -89,9 +89,8 @@ jobs:
           uses: octokit/request-action@v2.x
           id: pulls
           with:
-            route: POST /repos/{owner}/{repo}/pulls
-            owner: ${{github.actor}}
-            repo: ${{github.repository}}
+            route: POST /repos/{repository}/pulls
+            repository: ${{github.repository}}
             head_sha: ${{ github.sha }}
             title: regression succeeded, run number is ${{github.run_number}}
             base: ${{github.ref}}
@@ -110,9 +109,9 @@ jobs:
           uses: octokit/request-action@v2.x
           id: issues
           with:
-            route: POST /repos/{owner}/{repo}/issues
+            route: POST /repos/{repository}/issues
             owner: ${{github.actor}}
-            repo: ${{github.repository}}
+            repository: ${{github.repository}}
             title: regression failed, run number is ${{github.run_number}}
             labels: "CI"
             assignees: ${{env.env_HEAD_COMMIT_COMMITER_NAME}}
