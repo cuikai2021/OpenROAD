@@ -31,8 +31,9 @@ jobs:
            filename: 'latest_docker_deps_image.json'
            prefix: env
 
-        - run: EDEN_GIT_SHA1=`git rev-parse HEAD` 
-               echo "EDEN_GIT_SHA1" >> $GITHUB_ENV
+        - run: |
+            EDEN_GIT_SHA1=`git rev-parse HEAD` 
+            echo "EDEN_GIT_SHA1" >> $GITHUB_ENV
 
         - name: build docker regression
           if: ${{ success() }}
