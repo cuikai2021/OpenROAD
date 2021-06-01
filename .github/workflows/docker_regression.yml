@@ -31,6 +31,10 @@ jobs:
            filename: 'latest_docker_deps_image.json'
            prefix: env
 
+        - run: |
+            EDEN_GIT_SHA1=`git rev-parse HEAD`
+            echo "EDEN_GIT_SHA1=$EDEN_GIT_SHA1" >> $GITHUB_ENV
+
         - name: build docker regression
           if: ${{ success() }}
           uses: docker/build-push-action@v2
@@ -39,12 +43,16 @@ jobs:
             file: ${{ env.env_DOCKER_REGRESSION_FILEPATH }}
             build-args: |
               FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
+              EDEN_GIT_SHA1=${{env.EDEN_GIT_SHA1}}
+
             push: false
             tags: ${{ env.env_REGRESSION_ENV }}
 
 
         - if: ${{ success() }}
-          run: mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
+          run: |
+            mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
+            mkdir -p ${{ env.env_CODE_COVERAGE_PATH }}
 
         - name: run regression
           if: ${{ success() }}
