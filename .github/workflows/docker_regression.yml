@@ -60,10 +60,10 @@ jobs:
 
         - name: package /coverage-result
           run: |
-            tar -zcvf /coverage-result/coverage-result.tar.gz  ${{ env.env_CODE_COVERAGE_PATH }} 
+            tar -zcvf coverage-result.tar.gz  ${{ env.env_CODE_COVERAGE_PATH }} 
 
         - name: upload coverage result
-          run: ossutil cp -rf ${{ env.CODE_COVERAGE_FILE }} oss://icbench-devops/regression-${{github.run_number}}/coverage-result/
+          run: ossutil cp -rf coverage-result.tar.gz oss://icbench-devops/regression-${{github.run_number}}/coverage-result/
 
         - if: ${{ success() }}
           run: |
