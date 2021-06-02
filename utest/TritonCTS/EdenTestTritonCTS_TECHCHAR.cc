@@ -210,6 +210,9 @@ TEST_F(TritonCTS_TechChar, create)
   otech->setLenghthUnit(
       setValue);  // modify LENGTH_UNIT_MICRON but not _lengthUnit
   EXPECT_EQ(otech->getLengthUnit(), 7);
+
+    // clear all data 
+  openRoad->getDb()->clear();
 }
 
 TEST(TritonCTS_Total, file_equal)
