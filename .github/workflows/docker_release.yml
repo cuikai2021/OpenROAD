@@ -49,6 +49,7 @@ jobs:
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
             context: .
+            build-args: FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
             file: docker/Dockerfile.release
             push: true
             tags: ${{ env.RELEASE_ENV }}
