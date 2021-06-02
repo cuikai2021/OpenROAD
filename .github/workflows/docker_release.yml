@@ -18,10 +18,11 @@ jobs:
           uses: actions/checkout@v2
 
         - run: mkdir -p ${{ github.workspace}}/release-output
-
+         
         - name: run release
           run: ./docker_run/docker_run_release.sh ${{ github.workspace }}/release-output
-
+          env:
+            GITHUB_TOKEN: ${{ secrets.TEST_TOKEN }}
         - name: generate changelog
           run: echo "# release success" > ${{ github.workflow }}-CHANGELOG.txt
         - name: release
