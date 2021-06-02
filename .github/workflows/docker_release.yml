@@ -20,7 +20,7 @@ jobs:
         - run: mkdir -p ${{ github.workspace}}/release-output
 
         - name: run release
-          run: ./docker_run/docker_run_release.sh ${{ github.workspace}}/release-output
+          run: ./docker_run/docker_run_release.sh ${{ github.workspace }}/release-output
 
         - name: generate changelog
           run: echo "# release success" > ${{ github.workflow }}-CHANGELOG.txt
