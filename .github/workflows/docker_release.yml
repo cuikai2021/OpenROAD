@@ -49,7 +49,7 @@ jobs:
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
             context: .
-            file: docker/Dockerfile.regression
+            file: docker/Dockerfile.release
             push: true
             tags: ${{ env.RELEASE_ENV }}
 
