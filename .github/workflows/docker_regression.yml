@@ -46,10 +46,8 @@ jobs:
             build-args: |
               FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
               EDEN_GIT_SHA1=${{env.EDEN_GIT_SHA1}}
-
             push: false
             tags: ${{ env.env_REGRESSION_ENV }}
-
 
         - if: ${{ success() }}
           run: |
@@ -88,7 +86,6 @@ jobs:
  
         - if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/
-
 
         - name: success pull request
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' }}

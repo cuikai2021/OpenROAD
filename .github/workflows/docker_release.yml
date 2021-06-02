@@ -8,6 +8,8 @@ on:
       release_name:
         description: 'docker release name, like 0409p2'
         required: true
+env:
+  RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_deps_ubuntu:${{github.run_number}}
 jobs:
   release:
     runs-on: [self-hosted]
@@ -22,21 +24,17 @@ jobs:
             access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
             access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
         - name: download from aliyun
-          run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/env.json .
+        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/latest_docker_deps_image.json .
         
         - uses: antifree/json-to-variables@v1.0.1
           with:
-           filename: 'env.json'
-           prefix: env        
-
-        - uses: allenevans/set-env@v2.0.1
-          with:
-            RELEASE_ENV: ${{ format('{0}:{1}', env.env_RELEASE_ENV_PREFIX, github.run_number) }}
+           filename: 'latest_docker_deps_image.json'
+           prefix: env
 
         - name: login to acr
           uses: docker/login-action@v1
           with:
-            registry: ${{env.env_DOCKER_REGISTRY}}
+            registry: registry.cn-shanghai.aliyuncs.com
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
@@ -44,11 +42,11 @@ jobs:
           id: build-and-push-docker
           uses: docker/build-push-action@v2
           with:
-            registry: ${{ env.env_DOCKER_REGISTRY }}
+            registry: registry.cn-shanghai.aliyuncs.com
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
             context: .
-            file: ${{ env.env_RELEASE_FILEPATH }}
+            file: docker/Dockerfile.regression
             push: true
             tags: ${{ env.RELEASE_ENV }}
 
