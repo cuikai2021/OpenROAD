@@ -9,7 +9,7 @@ on:
         description: 'docker release name, like 0409p2'
         required: true
 env:
-  GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+  GITHUB_TOKEN: ${{ secrets.TEST_TOKEN }}
 jobs:
   release:
     runs-on: [self-hosted]
@@ -32,4 +32,4 @@ jobs:
               ${{github.workspace}}/build/eden
               ${{github.workspace}}/build/openroad
           env:
-            GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+            GITHUB_TOKEN: ${{ secrets.TEST_TOKEN }}
