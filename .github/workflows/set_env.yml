@@ -1,0 +1,69 @@
+name: set env
+on:
+  push:
+      branches: 
+       - devops-dev
+jobs:
+  set-env:
+    runs-on: [self-hosted]
+    env:
+      DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
+      DOCKER_NAMESPACE: ieden
+      DOCKER_DEPS_IMAGENAME: eden_deps_ubuntu
+      DOCKER_DEPS_IMAGENAME_TEST: eden_deps_ubuntu_test
+      DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
+      DOCKER_REGRESSION_IMAGENAME_TEST: eden_regression_test
+       
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - if: ${{github.actor == 'ICBench'}}
+        uses: allenevans/set-env@v2.0.1
+        with:
+          DOCKER_DEPS_IMAGENAME: ${{env.DOCKER_DEPS_IMAGENAME}}
+          DOCKER_REGRESSION_IMAGENAME: ${{env.DOCKER_REGRESSION_IMAGENAME}}
+
+      - if: ${{github.actor != 'ICBench'}}
+        uses: allenevans/set-env@v2.0.1
+        with:
+          DOCKER_DEPS_IMAGENAME: ${{env.DOCKER_DEPS_IMAGENAME_TEST}}
+          DOCKER_REGRESSION_IMAGENAME: ${{env.DOCKER_REGRESSION_IMAGENAME_TEST}}
+
+      - name: file changes
+        id: change
+        uses: trilom/file-changes-action@v1.2.3
+        with:
+          githubToken: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          pushBefore: ${{ github.event.before }}
+          pushAfter: ${{ github.event.after }}
+
+      - uses: zynICBench/json-creator@v2.1
+        with:
+          file-name: 'env.json'
+          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
+          DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
+          DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
+          CODE_COVERAGE_PATH: ${{ github.workspace }}/coverage-output
+          IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
+          DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
+          REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
+          HEAD_COMMIT_MESSAGE: ${{github.event.head_commit.message}}
+          HEAD_COMMIT_COMMITER_NAME: ${{github.event.head_commit.committer.name}}
+          EVENT_AFTER: ${{ github.event.after }}
+          
+
+      - name: upload to aliyun
+        uses: manyuanrong/setup-ossutil@v2.0
+        with:
+          endpoint: "oss-cn-shanghai.aliyuncs.com"
+          access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
+          access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
+      - run: ossutil cp -rf env.json oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/
+
+      - name: invoke workflow
+        uses: benc-uk/workflow-dispatch@v1.1
+        with:
+          workflow: relesase eden deps docker
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}

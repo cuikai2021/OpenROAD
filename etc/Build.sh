@@ -33,7 +33,7 @@ OPTIONS:
   -clean                                        Remove build dir before compile
   -no-gui                                       Disable GUI support
   -threads=NUM_THREADS                          Number of threads to use during
-                                                  compile. Default: \`nproc\`
+                                                  json ; ./etc/CodeCoverage.sh ; sh /Eden/test/regression_update_failures"compile. Default: \`nproc\`
   -keep-log                                     Keep a compile log in build dir
   -help                                         Shows this message
 
