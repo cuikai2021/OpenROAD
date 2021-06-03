@@ -1,6 +1,7 @@
 #include <HTreeBuilder.h>
 #include <itest.h>
 #include <tritoncts/TritonCTS.h>
+#include <SinkClustering.h>
 
 #include "Clock.h"
 #include "CtsOptions.h"
@@ -387,6 +388,9 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
   }
   options->setNumClockRoots(numberOfClocks);
 
+  // test SinkClustering and its plot by the way
+  openRoad->getLogger()->setDebugLevel(utl::CTS, "Stree", 1);
+
   // build tree
   for (auto builder : _builder) {
     builder->setTechChar(*tech);
@@ -394,6 +398,7 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
   }
   _builder[0]->plotSolution();
   system("mv plot0.py " TEST_FILES_PATH "/plot0.py");
+  system("mv plot_clustering.py " TEST_FILES_PATH "/plot_sink_clustering.py");
 
   EXPECT_EQ(_builder[0]->computeMinDelaySegment(tech->getMaxSegmentLength(),
                                                 1,
@@ -404,7 +409,10 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
                                                 outSlew),
             24);
 
+  
+  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot0.py", TEST_OK_FILES_PATH "/plot0.ok");
+  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot_sink_clustering.py", TEST_OK_FILES_PATH "/plot_sink_clustering.ok");
+
   // clear all data
   openRoad->getDb()->clear();
-  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot0.py", TEST_OK_FILES_PATH "/plot0.ok");
 }
