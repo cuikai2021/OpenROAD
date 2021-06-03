@@ -61,13 +61,12 @@ jobs:
           run: ./docker_run/docker_run_release.sh ${{ github.workspace }}/release-output ${{ env.RELEASE_ENV }}
 
         - name: generate changelog
-          run: echo "# release success" > ${{ github.workflow }}-CHANGELOG.txt
+          run: echo "# release success" > CHANGELOG.txt
         - name: release
           uses: softprops/action-gh-release@v1
           with:
-            body_path: ${{ github.workflow }}-CHANGELOG.txt
+            body_path: CHANGELOG.txt
             files: |
               ${{github.workspace}}/build/eden
-              ${{github.workspace}}/build/openroad
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
