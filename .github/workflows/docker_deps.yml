@@ -55,7 +55,7 @@ jobs:
             DEPS_ENV: ${{ env.DEPS_ENV }} 
 
         - if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
-          run: ossutil cp -rf latest_docker_deps_image.json oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/
+          run: ossutil cp -rf latest_docker_deps_image.json oss://icbench-static/environments/${{github.repository}}/
 
         - name: show docker image tag
           if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
