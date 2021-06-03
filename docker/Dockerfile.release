@@ -11,6 +11,6 @@ RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 
 
 RUN mv ./build/src/eden /tmp/
 RUN mv ./build/src/openroad /tmp/
-RUN rm -r .*
+RUN rm -r *
 RUN mv /tmp/eden ./build/src
 RUN mv /tmp/openroad ./build/src
