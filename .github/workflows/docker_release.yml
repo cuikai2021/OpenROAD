@@ -18,6 +18,7 @@ jobs:
         - name: checkout
           uses: actions/checkout@v2
           with: 
+            submodules: true
             ref: ${{ github.event.inputs.inputs.commit_id }}
 
         - name: connect to aliyun
