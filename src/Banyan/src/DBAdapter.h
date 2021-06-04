@@ -12,6 +12,7 @@ class dbDatabase;
 class dbBlock;
 class dbVia;
 class dbTechLayer;
+class dbNet;
 }
 
 namespace utl {
@@ -23,6 +24,7 @@ namespace banyan{
 class DBAdapter
 {
  public:
+  virtual void updateDB(struct entry_ret* ret) = 0;
   virtual const std::vector<banyan_go::net>& getNets() const = 0;
   virtual const std::vector<banyan_go::pin>& getPins() const = 0;
   virtual const std::vector<banyan_go::box>& getBoxes() const = 0;
@@ -58,6 +60,10 @@ class OpenDBAdapter : public DBAdapter
   int addedViaDefIndex_ = 0;
   std::map<std::string,int> viaDefNameToIdxs_;
 
+  int addedNetIndex_=0;
+  std::map<std::string,int> netNameToIdxs_;
+
+
 
   int defdist(int x);
 
@@ -66,14 +72,13 @@ class OpenDBAdapter : public DBAdapter
   void addRoutingLayer(odb::dbTechLayer* layer);
   void addCutLayer(odb::dbTechLayer* layer);
   void addMasterSliceLayer(odb::dbTechLayer* layer);
-  void addDefaultMasterSliceLayer();
-  void addDefaultCutLayer();
 
   void getTracksFromOpenDB();
   void getViaDefsFromOpenDB();
   void addViaDef(odb::dbVia* odbvia);
 
   void addBox(banyan_go::box box);
+  void addNet(odb::dbNet* net);
 
 
   void getNetsFromOpenDB();
@@ -85,10 +90,11 @@ class OpenDBAdapter : public DBAdapter
       getLayersFromOpenDB();
       getTracksFromOpenDB();
       getViaDefsFromOpenDB();
-      // getNetsFromOpenDB();
-      // getPinsFromOpenDB();
+      getNetsFromOpenDB();
+      getPinsFromOpenDB();
   };
-  
+
+  void updateDB(struct entry_ret* ret);
   const std::vector<banyan_go::net>& getNets() const { return nets_; }
   const std::vector<banyan_go::pin>& getPins() const { return pins_; }
   const std::vector<banyan_go::box>& getBoxes() const { return boxes_; }

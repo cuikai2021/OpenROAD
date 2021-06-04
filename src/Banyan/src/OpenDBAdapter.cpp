@@ -134,14 +134,13 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
   odb::dbBlock* block = db_->getChip()->getBlock();
 
   logger_->info(utl::BY, 667, "chip top block name {}", block->getName());
-  odb::dbSet<odb::dbVia> vias = block->getVias();
-  if (vias.size() == 0) {
+  if (block->getVias().size() == 0) {
     logger_->info(utl::BY, 667, "vias in def is empty");
     return;
   }
 
-  for (auto via : vias) {
-    addViaDef(via);
+  for (auto via : block->getVias()) {
+      addViaDef(via);
   }
 }
 
@@ -274,6 +273,16 @@ void OpenDBAdapter::getNetsFromOpenDB()
   logger_->info(utl::BY, 667, "OpenDBAdapter getNetsFromOpenDB");
   odb::dbBlock* block = db_->getChip()->getBlock();
   logger_->info(utl::BY, 667, "chip top block name {}", block->getName());
+  for (auto net : block->getNets()) {
+    addNet(net);
+  }
+}
+
+void OpenDBAdapter::addNet(odb::dbNet* net)
+{
+  nets_.push_back({copy_string(net->getName()), 0, 0, 0, 0, 0, 0});
+  netNameToIdxs_.insert(make_pair(net->getName(), addedNetIndex_));
+  addedNetIndex_++;
 }
 
 void OpenDBAdapter::getPinsFromOpenDB()
@@ -281,6 +290,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
   logger_->info(utl::BY, 667, "OpenDBAdapter getPinsFromOpenDB");
   odb::dbBlock* block = db_->getChip()->getBlock();
   logger_->info(utl::BY, 667, "chip top block name {}", block->getName());
+}
+
+void OpenDBAdapter::updateDB(struct entry_ret* ret)
+{
 }
 
 }  // namespace banyan
