@@ -24,6 +24,7 @@ target_sources(Banyan
   PRIVATE
     src/Banyan.cpp
     src/MakeBanyan.cpp
+    src/OpenDBAdapter.cpp
 )
 
 target_include_directories(Banyan

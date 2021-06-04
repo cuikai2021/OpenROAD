@@ -1,0 +1,1 @@
+../../../build/src/eden -exit soca.tcl
