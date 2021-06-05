@@ -11,9 +11,15 @@ namespace banyan {
 
 char* copy_string(std::string in_str)
 {
-  char* out_str = new char[in_str.length()];
+  char* out_str = new char[in_str.length() + 1];
   in_str.copy(out_str, in_str.length());
+  out_str[in_str.length()] = '\0';
   return out_str;
+}
+
+size_t calLastIndex(int index)
+{
+  return size_t(index == 0 ? index : index - 1);
 }
 
 int OpenDBAdapter::defdist(int x)
@@ -26,7 +32,6 @@ int OpenDBAdapter::defdist(int x)
 
 void OpenDBAdapter::getLayersFromOpenDB()
 {
-  logger_->info(utl::BY, 667, "OpenDBAdapter getLayersFromOpenDB");
   auto tech = db_->getTech();
 
   for (auto layer : tech->getLayers()) {
@@ -50,8 +55,13 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
 {
   assert(addedLayerIndex_ > 1);
   assert(hasAddedMasterSliceLayer_ && hasAddedCutLayer_);
-
-  layers_.push_back({(int) layer->getWidth(), layer->getPitch(), 0, 0, 0, 0});
+  if (layer->getPitchX() != 0) {
+    layers_.push_back(
+        {(int) layer->getWidth(), layer->getPitchX(), 0, 0, 0, 0});
+  } else {
+    layers_.push_back(
+        {(int) layer->getWidth(), layer->getPitchY(), 0, 0, 0, 0});
+  }
   layerNameToIdxs_.insert(make_pair(layer->getName(), addedLayerIndex_));
   addedLayerIndex_++;
 }
@@ -99,14 +109,11 @@ void OpenDBAdapter::getTracksFromOpenDB()
   }
 
   int trackIndex = 0;
-  for (std::map<std::string, std::vector<odb::dbTrackGrid*>>::iterator iter
-       = tracksGroupByLayerName.begin();
-       iter != tracksGroupByLayerName.end();
-       iter++) {
-    int layerIdx = layerNameToIdxs_.find(iter->first)->second;
+  for (auto& [layerName, tracks] : tracksGroupByLayerName) {
+    int layerIdx = layerNameToIdxs_.find(layerName)->second;
     int laTrackBegin = trackIndex;
 
-    for (auto track : iter->second) {
+    for (auto track : tracks) {
       std::vector<int> gridX;
       std::vector<int> gridY;
       track->getGridX(gridX);
@@ -124,45 +131,54 @@ void OpenDBAdapter::getTracksFromOpenDB()
     }
 
     layers_.at(layerIdx).track_begin = laTrackBegin;
-    layers_.at(layerIdx).track_end = trackIndex - 1;
+    layers_.at(layerIdx).track_end = calLastIndex(trackIndex);
   }
 }
 
 void OpenDBAdapter::getViaDefsFromOpenDB()
 {
-  logger_->info(utl::BY, 667, "OpenDBAdapter getViaDefsFromOpenDB");
   odb::dbBlock* block = db_->getChip()->getBlock();
-
-  logger_->info(utl::BY, 667, "chip top block name {}", block->getName());
   if (block->getVias().size() == 0) {
-    logger_->info(utl::BY, 667, "vias in def is empty");
     return;
   }
 
+  std::map<std::string, std::vector<odb::dbVia*>> viasGroupByTopLayerName;
   for (auto via : block->getVias()) {
-    addViaDef(via);
+    std::string lname = via->getTopLayer()->getName();
+    if (viasGroupByTopLayerName.count(lname) == 0) {
+      std::vector<odb::dbVia*> groupedVias;
+      groupedVias.push_back(via);
+      viasGroupByTopLayerName.insert(make_pair(lname, groupedVias));
+    } else {
+      viasGroupByTopLayerName.find(lname)->second.push_back(via);
+    }
   }
-}
 
-void OpenDBAdapter::addBox(banyan_go::box box)
-{
-  boxes_.push_back(box);
-  addedBoxIndex_++;
+  for (auto& [layerName, bTerms] : viasGroupByTopLayerName) {
+    int layerIdx = layerNameToIdxs_.find(layerName)->second;
+
+    int viaDefIndexBegin = addedViaDefIndex_;
+    for (auto via : block->getVias()) {
+      addViaDef(via);
+    }
+
+    layers_.at(layerIdx).viadef_begin = viaDefIndexBegin;
+    layers_.at(layerIdx).viadef_end = calLastIndex(addedViaDefIndex_);
+  }
 }
 
 void OpenDBAdapter::addViaDef(odb::dbVia* via)
 {
-  logger_->info(
-      utl::BY,
-      667,
-      "______________________________________________________________");
   std::string vname = via->getName();
-  logger_->info(utl::BY, 667, "via name {}", vname);
+
+  int botLayerIdx
+      = layerNameToIdxs_.find(via->getBottomLayer()->getName())->second;
+  int topLayerIdx
+      = layerNameToIdxs_.find(via->getTopLayer()->getName())->second;
 
   struct banyan_go::box botBox;
   struct banyan_go::box topBox;
   odb::dbTechViaGenerateRule* rule = via->getViaGenerateRule();
-
   if (via->hasParams() && (rule != nullptr)) {
     odb::dbViaParams P;
     via->getViaParams(P);
@@ -197,8 +213,6 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
 
     int botTranformX = -currX / 2 + xOrigin + xBotOffset;
     int botTranformY = -currY / 2 + yOrigin + yBotOffset;
-    int botLayerIdx
-        = layerNameToIdxs_.find(via->getBottomLayer()->getName())->second;
     botBox = {botLayerIdx,
               botTranformX - xBotEnc,
               botTranformY - yBotEnc,
@@ -207,8 +221,6 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
 
     int topTranformX = -currX / 2 + xOrigin + xTopOffset;
     int topTranformY = -currY / 2 + yOrigin + yTopOffset;
-    int topLayerIdx
-        = layerNameToIdxs_.find(via->getTopLayer()->getName())->second;
     topBox = {topLayerIdx,
               topTranformX - xTopEnc,
               topTranformY - yTopEnc,
@@ -228,10 +240,6 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
     }
 
     int cnt = 0;
-    int botLayerIdx
-        = layerNameToIdxs_.find(via->getBottomLayer()->getName())->second;
-    int topLayerIdx
-        = layerNameToIdxs_.find(via->getTopLayer()->getName())->second;
 
     for (auto& [layerName, boxes] : layerNameToBoxes) {
       for (auto box : boxes) {
@@ -265,9 +273,7 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
 
 void OpenDBAdapter::getNetsFromOpenDB()
 {
-  logger_->info(utl::BY, 667, "OpenDBAdapter getNetsFromOpenDB");
   odb::dbBlock* block = db_->getChip()->getBlock();
-  logger_->info(utl::BY, 667, "chip top block name {}", block->getName());
   for (auto net : block->getNets()) {
     addNet(net);
   }
@@ -280,16 +286,66 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
   addedNetIndex_++;
 }
 
+void OpenDBAdapter::addBox(odb::dbBox* box)
+{
+  int layerIdx = layerNameToIdxs_.find(box->getTechLayer()->getName())->second;
+  boxes_.push_back({layerIdx,
+                    defdist(box->xMin()),
+                    defdist(box->yMin()),
+                    defdist(box->getDX()),
+                    defdist(box->getDY())});
+  addedBoxIndex_++;
+}
+
+void OpenDBAdapter::addVia(odb::dbBox* box)
+{
+  odb::dbTechVia* via = box->getTechVia();
+  if (via == nullptr) {
+    via = box->getBlockVia()->getTechVia();
+  }
+  int viaDefIdx = viaDefNameToIdxs_.find(via->getName())->second;
+  vias_.push_back({viaDefIdx, box->xMin(), box->yMin()});
+  addedViaIndex_++;
+}
+
 void OpenDBAdapter::getPinsFromOpenDB()
 {
-  logger_->info(utl::BY, 667, "OpenDBAdapter getPinsFromOpenDB");
   odb::dbBlock* block = db_->getChip()->getBlock();
-  logger_->info(utl::BY, 667, "chip top block name {}", block->getName());
-
+  std::map<std::string, std::vector<odb::dbBTerm*>> bTermsGroupByNetName;
   for (auto bTerm : block->getBTerms()) {
-    for (auto bpin : bTerm->getBPins()) {
-      bpin->getBoxes()
+    std::string nname = bTerm->getNet()->getName();
+    if (bTermsGroupByNetName.count(nname) == 0) {
+      std::vector<odb::dbBTerm*> groupedBTerms;
+      groupedBTerms.push_back(bTerm);
+      bTermsGroupByNetName.insert(make_pair(nname, groupedBTerms));
+    } else {
+      bTermsGroupByNetName.find(nname)->second.push_back(bTerm);
     }
+  }
+  for (auto& [netName, bTerms] : bTermsGroupByNetName) {
+    int pinIndexBegin = addedPinIndex_;
+    int netIdx = netNameToIdxs_.find(netName)->second;
+    for (auto bTerm : bTerms) {
+      int boxIndexBegin = addedBoxIndex_;
+      int viaIndexBegin = addedViaIndex_;
+      for (auto bPin : bTerm->getBPins()) {
+        for (auto box : bPin->getBoxes()) {
+          if (box->isVia()) {
+            addVia(box);
+          } else {
+            addBox(box);
+          }
+        }
+      }
+      pins_.push_back({copy_string(bTerm->getName()),
+                       (size_t) boxIndexBegin,
+                       (size_t) calLastIndex(addedBoxIndex_),
+                       (size_t) viaIndexBegin,
+                       (size_t) calLastIndex(addedViaIndex_)});
+      addedPinIndex_++;
+    }
+    nets_.at(netIdx).pin_begin = pinIndexBegin;
+    nets_.at(netIdx).pin_end = calLastIndex(addedPinIndex_);
   }
 }
 

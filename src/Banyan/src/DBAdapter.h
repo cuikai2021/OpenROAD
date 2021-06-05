@@ -2,10 +2,9 @@
 
 #include <map>
 
-
 #include "banyan_go.h"
 #include "string.h"
-
+#include "utl/Logger.h"
 
 namespace odb {
 class dbDatabase;
@@ -13,13 +12,15 @@ class dbBlock;
 class dbVia;
 class dbTechLayer;
 class dbNet;
-}
+class dbBox;
+class dbVia;
+}  // namespace odb
 
 namespace utl {
 class Logger;
 }
 
-namespace banyan{
+namespace banyan {
 
 class DBAdapter
 {
@@ -46,27 +47,25 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::track> tracks_;
 
  protected:
-
   odb::dbDatabase* db_;
   utl::Logger* logger_;
 
   bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
   int addedLayerIndex_ = 0;
-  std::map<std::string,int> layerNameToIdxs_;
-
-  int addedBoxIndex_ = 0;
+  std::map<std::string, int> layerNameToIdxs_;
 
   int addedViaDefIndex_ = 0;
-  std::map<std::string,int> viaDefNameToIdxs_;
+  std::map<std::string, int> viaDefNameToIdxs_;
 
-  int addedNetIndex_=0;
-  std::map<std::string,int> netNameToIdxs_;
+  int addedNetIndex_ = 0;
+  std::map<std::string, int> netNameToIdxs_;
 
-
+  int addedBoxIndex_ = 0;
+  int addedViaIndex_ = 0;
+  int addedPinIndex_ = 0;
 
   int defdist(int x);
-
 
   void getLayersFromOpenDB();
   void addRoutingLayer(odb::dbTechLayer* layer);
@@ -77,21 +76,22 @@ class OpenDBAdapter : public DBAdapter
   void getViaDefsFromOpenDB();
   void addViaDef(odb::dbVia* odbvia);
 
-  void addBox(banyan_go::box box);
+  void addBox(odb::dbBox* box);
+  void addVia(odb::dbBox* box);
   void addNet(odb::dbNet* net);
-
 
   void getNetsFromOpenDB();
   void getPinsFromOpenDB();
 
-  
  public:
-  OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger):db_(db),logger_(logger){
-      getLayersFromOpenDB();
-      getTracksFromOpenDB();
-      getViaDefsFromOpenDB();
-      getNetsFromOpenDB();
-      getPinsFromOpenDB();
+  OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger)
+      : db_(db), logger_(logger)
+  {
+    getLayersFromOpenDB();
+    getTracksFromOpenDB();
+    getViaDefsFromOpenDB();
+    getNetsFromOpenDB();
+    getPinsFromOpenDB();
   };
 
   void updateDB(struct entry_ret* ret);
@@ -104,5 +104,4 @@ class OpenDBAdapter : public DBAdapter
   const std::vector<banyan_go::track>& getTracks() const { return tracks_; }
 };
 
-
-}  // namespace
+}  // namespace banyan

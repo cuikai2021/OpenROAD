@@ -2,10 +2,10 @@
 
 #include <dlfcn.h>
 
+#include "DBAdapter.h"
+#include "banyan_go.h"
 #include "sta/StaMain.hh"
 #include "utl/Logger.h"
-#include "banyan_go.h"
-#include "DBAdapter.h"
 
 namespace sta {
 // Tcl files encoded into strings.
@@ -27,7 +27,8 @@ Banyan::~Banyan()
 }
 
 void Banyan::init(Tcl_Interp* tcl_interp,
-  odb::dbDatabase* db, utl::Logger* logger)
+                  odb::dbDatabase* db,
+                  utl::Logger* logger)
 {
   db_ = db;
   logger_ = logger;
@@ -38,13 +39,63 @@ void Banyan::init(Tcl_Interp* tcl_interp,
 
 int Banyan::main()
 {
-  
-
-  logger_->info(utl::DRT, 666, "banyan main");
-  
   OpenDBAdapter bdAdapter(db_, logger_);
-  
 
+  for (auto layer : bdAdapter.getLayers()) {
+    logger_->info(utl::BY,
+                  900,
+                  "layer pitch {} width {} track_begin {} track_end {} viadef_begin {} viadef_end {}",
+                  layer.pitch,
+                  layer.width,
+                  layer.track_begin,
+                  layer.track_end,
+                  layer.viadef_begin,
+                  layer.viadef_end);
+  }
+
+  for (auto track : bdAdapter.getTracks()) {
+    logger_->info(utl::BY,
+                  900,
+                  "track layer {} line {} tmin {} tmax {}",
+                  track.la,
+                  track.line,
+                  track.tmin,
+                  track.tmax);
+  }
+
+  for (auto viadef : bdAdapter.getViadefs()) {
+    logger_->info(utl::BY,
+                  900,
+                  "viadef name {} top.la {} top.x{} top.y {} top.w {} top.h {} bot.la {} bot.x {} bot.y {} bot.w {} bot.h {}",
+                  viadef.name,
+                  viadef.top.la,
+                  viadef.top.x,
+                  viadef.top.y,
+                  viadef.top.w,
+                  viadef.top.h,
+                  viadef.top.la,
+                  viadef.bottom.la,
+                  viadef.bottom.x,
+                  viadef.bottom.y,
+                  viadef.bottom.w,
+                  viadef.bottom.h);
+  }
+
+  for (auto net : bdAdapter.getNets()) {
+    logger_->info(
+        utl::BY, 900, "net name {} pin_end {} pin_begin {}", net.name, net.pin_begin, net.pin_end);
+  }
+
+  for (auto pin : bdAdapter.getPins()) {
+    logger_->info(utl::BY,
+                  900,
+                  "pin name {} box_end {} box_begin {} via_begin {} via_end {}",
+                  pin.name,
+                  pin.box_begin,
+                  pin.box_end,
+                  pin.via_begin,
+                  pin.via_end);
+  }
   // void *so = dlopen("banyan.so", RTLD_NOW);
   // if (so == nullptr)
   // {
@@ -108,4 +159,4 @@ int Banyan::main()
   return 0;
 }
 
-} // namespace Banyan
+}  // namespace banyan
