@@ -140,7 +140,7 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
   }
 
   for (auto via : block->getVias()) {
-      addViaDef(via);
+    addViaDef(via);
   }
 }
 
@@ -214,11 +214,6 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
               topTranformY - yTopEnc,
               currX + topTranformX + xTopEnc,
               currY + topTranformY + yTopEnc};
-
-    viadefs_.push_back({copy_string(vname), botBox, topBox});
-    viaDefNameToIdxs_.insert(make_pair(vname, addedViaDefIndex_));
-    addedViaDefIndex_++;
-
   } else {
     std::map<std::string, std::set<odb::dbBox*>> layerNameToBoxes;
 
@@ -290,6 +285,12 @@ void OpenDBAdapter::getPinsFromOpenDB()
   logger_->info(utl::BY, 667, "OpenDBAdapter getPinsFromOpenDB");
   odb::dbBlock* block = db_->getChip()->getBlock();
   logger_->info(utl::BY, 667, "chip top block name {}", block->getName());
+
+  for (auto bTerm : block->getBTerms()) {
+    for (auto bpin : bTerm->getBPins()) {
+      bpin->getBoxes()
+    }
+  }
 }
 
 void OpenDBAdapter::updateDB(struct entry_ret* ret)
