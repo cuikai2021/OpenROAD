@@ -64,7 +64,7 @@ jobs:
           run: |
             echo "## release success" > CHANGELOG.txt
             echo "### version: 1.${{github.run_number}}" >> CHANGELOG.txt
-            echo "### commit id: ${{github.event.inputs.inputs.commit_id}}" >> CHANGELOG.txt
+            echo "### commit id: ${{github.event.inputs.commit_id}}" >> CHANGELOG.txt
             echo "### docker id: ${{ env.RELEASE_ENV }}" >> CHANGELOG.txt
         - name: release
           uses: softprops/action-gh-release@v1
