@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "DBAdapter.h"
+#include "GroupedRange.hpp"
 #include "opendb/db.h"
 #include "utl/Logger.h"
 
@@ -21,6 +22,33 @@ size_t calLastIndex(int index)
 {
   return size_t(index == 0 ? index : index - 1);
 }
+
+struct TrackLayerName
+{
+  typedef std::string value_type;
+  value_type operator()(odb::dbTrackGrid* track) const
+  {
+    return track->getTechLayer()->getName();
+  }
+};
+
+struct ViaTopLayer
+{
+  typedef std::string value_type;
+  value_type operator()(odb::dbVia* via) const
+  {
+    return via->getTopLayer()->getName();
+  }
+};
+
+struct BTermNetName
+{
+  typedef std::string value_type;
+  value_type operator()(odb::dbBTerm* bTerm) const
+  {
+    return bTerm->getNet()->getName();
+  }
+};
 
 int OpenDBAdapter::calLayerPitch(odb::dbTechLayer* layer)
 {
@@ -102,25 +130,12 @@ void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
 void OpenDBAdapter::getTracksFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
-  auto tracks = block->getTrackGrids();
-  std::map<std::string, std::vector<odb::dbTrackGrid*>> tracksGroupByLayerName;
-  for (auto track : tracks) {
-    std::string lname = track->getTechLayer()->getName();
-    if (tracksGroupByLayerName.count(lname) == 0) {
-      std::vector<odb::dbTrackGrid*> groupedTracks;
-      groupedTracks.push_back(track);
-      tracksGroupByLayerName.insert(make_pair(lname, groupedTracks));
-    } else {
-      tracksGroupByLayerName.find(lname)->second.push_back(track);
-    }
-  }
-
+  const auto tracks = block->getTrackGrids();
   int trackIndex = 0;
-  for (auto& [layerName, tracks] : tracksGroupByLayerName) {
-    int layerIdx = layerNameToIdxs_.find(layerName)->second;
+  for (auto group : utl::group_by(tracks.begin(), tracks.end(), TrackLayerName())) {
+    int layerIdx = layerNameToIdxs_.find(group.value)->second;
     int laTrackBegin = trackIndex;
-
-    for (auto track : tracks) {
+    for (auto track : group.range) {
       std::vector<int> gridX;
       std::vector<int> gridY;
       track->getGridX(gridX);
@@ -136,7 +151,6 @@ void OpenDBAdapter::getTracksFromOpenDB()
                          (int) gridY.back()});
       trackIndex++;
     }
-
     layers_.at(layerIdx).track_begin = laTrackBegin;
     layers_.at(layerIdx).track_end = calLastIndex(trackIndex);
   }
@@ -148,24 +162,13 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
   if (block->getVias().size() == 0) {
     return;
   }
+  const auto vias = block->getVias();
 
-  std::map<std::string, std::vector<odb::dbVia*>> viasGroupByTopLayerName;
-  for (auto via : block->getVias()) {
-    std::string lname = via->getTopLayer()->getName();
-    if (viasGroupByTopLayerName.count(lname) == 0) {
-      std::vector<odb::dbVia*> groupedVias;
-      groupedVias.push_back(via);
-      viasGroupByTopLayerName.insert(make_pair(lname, groupedVias));
-    } else {
-      viasGroupByTopLayerName.find(lname)->second.push_back(via);
-    }
-  }
-
-  for (auto& [layerName, bTerms] : viasGroupByTopLayerName) {
-    int layerIdx = layerNameToIdxs_.find(layerName)->second;
+  for (auto group : utl::group_by(vias.begin(), vias.end(), ViaTopLayer())) {
+    int layerIdx = layerNameToIdxs_.find(group.value)->second;
 
     int viaDefIndexBegin = addedViaDefIndex_;
-    for (auto via : block->getVias()) {
+    for (auto via : group.range) {
       addViaDef(via);
     }
 
@@ -318,21 +321,11 @@ void OpenDBAdapter::addVia(odb::dbBox* box)
 void OpenDBAdapter::getPinsFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
-  std::map<std::string, std::vector<odb::dbBTerm*>> bTermsGroupByNetName;
-  for (auto bTerm : block->getBTerms()) {
-    std::string nname = bTerm->getNet()->getName();
-    if (bTermsGroupByNetName.count(nname) == 0) {
-      std::vector<odb::dbBTerm*> groupedBTerms;
-      groupedBTerms.push_back(bTerm);
-      bTermsGroupByNetName.insert(make_pair(nname, groupedBTerms));
-    } else {
-      bTermsGroupByNetName.find(nname)->second.push_back(bTerm);
-    }
-  }
-  for (auto& [netName, bTerms] : bTermsGroupByNetName) {
+  const auto bTerms = block->getBTerms();
+  for (auto group : utl::group_by(bTerms.begin(), bTerms.end(), BTermNetName())) {
     int pinIndexBegin = addedPinIndex_;
-    int netIdx = netNameToIdxs_.find(netName)->second;
-    for (auto bTerm : bTerms) {
+    int netIdx = netNameToIdxs_.find(group.value)->second;
+    for (auto bTerm : group.range) {
       int boxIndexBegin = addedBoxIndex_;
       int viaIndexBegin = addedViaIndex_;
       for (auto bPin : bTerm->getBPins()) {

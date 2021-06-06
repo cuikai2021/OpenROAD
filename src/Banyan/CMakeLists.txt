@@ -25,6 +25,7 @@ target_sources(Banyan
     src/Banyan.cpp
     src/MakeBanyan.cpp
     src/OpenDBAdapter.cpp
+    src/GroupedRange.hpp
 )
 
 target_include_directories(Banyan
