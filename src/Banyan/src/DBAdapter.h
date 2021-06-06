@@ -66,6 +66,7 @@ class OpenDBAdapter : public DBAdapter
   int addedPinIndex_ = 0;
 
   int defdist(int x);
+  int calLayerPitch(odb::dbTechLayer* layer);
 
   void getLayersFromOpenDB();
   void addRoutingLayer(odb::dbTechLayer* layer);

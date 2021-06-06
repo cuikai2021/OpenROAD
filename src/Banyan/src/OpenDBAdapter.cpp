@@ -22,6 +22,12 @@ size_t calLastIndex(int index)
   return size_t(index == 0 ? index : index - 1);
 }
 
+int OpenDBAdapter::calLayerPitch(odb::dbTechLayer* layer)
+{
+  return (int) (layer->getPitchX() > 0 ? layer->getPitchX()
+                                       : layer->getPitchY());
+}
+
 int OpenDBAdapter::defdist(int x)
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
@@ -57,10 +63,10 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
   assert(hasAddedMasterSliceLayer_ && hasAddedCutLayer_);
   if (layer->getPitchX() != 0) {
     layers_.push_back(
-        {(int) layer->getWidth(), layer->getPitchX(), 0, 0, 0, 0});
+        {(int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
   } else {
     layers_.push_back(
-        {(int) layer->getWidth(), layer->getPitchY(), 0, 0, 0, 0});
+        {(int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
   }
   layerNameToIdxs_.insert(make_pair(layer->getName(), addedLayerIndex_));
   addedLayerIndex_++;
@@ -71,7 +77,8 @@ void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
   assert(addedLayerIndex_ > 0);
   assert(hasAddedMasterSliceLayer_);
 
-  layers_.push_back({(int) layer->getWidth(), layer->getPitch(), 0, 0, 0, 0});
+  layers_.push_back(
+      {(int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
   layerNameToIdxs_.insert(make_pair(layer->getName(), addedLayerIndex_));
   addedLayerIndex_++;
   hasAddedCutLayer_ = true;
@@ -304,7 +311,7 @@ void OpenDBAdapter::addVia(odb::dbBox* box)
     via = box->getBlockVia()->getTechVia();
   }
   int viaDefIdx = viaDefNameToIdxs_.find(via->getName())->second;
-  vias_.push_back({viaDefIdx, box->xMin(), box->yMin()});
+  vias_.push_back({viaDefIdx, defdist(box->xMin()), defdist(box->yMin())});
   addedViaIndex_++;
 }
 
