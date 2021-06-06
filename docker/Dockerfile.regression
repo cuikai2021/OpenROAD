@@ -1,38 +1,10 @@
-FROM registry.cn-shanghai.aliyuncs.com/ieden/env_eden_ubuntu:0514
+ARG FROM_IMAGE_TAG
+FROM ${FROM_IMAGE_TAG}
 
 ARG EDEN_GIT_SHA1
 
 COPY . /Eden
 WORKDIR /Eden
 
-RUN apt update
-RUN apt install curl -y
-
-RUN wget -P /usr/bin  http://gosspublic.alicdn.com/ossutil/1.7.3/ossutil64
-RUN chmod 755 /usr/bin/ossutil64
-
-ARG ALI_ACCESS_KEY_ID
-ARG ALI_ACCESS_KEY_SECRET
-
-RUN ossutil64 config -e oss-cn-shanghai.aliyuncs.com -i ${ALI_ACCESS_KEY_ID} -k ${ALI_ACCESS_KEY_SECRET}
-
-ARG GITHUB_API_TOKEN
-ENV GITHUB_API_TOKEN ${GITHUB_API_TOKEN}
-
-ARG ISSUE_ASSIGNEE
-ENV ISSUE_ASSIGNEE ${ISSUE_ASSIGNEE}
-
-ARG TRIGGER_FROM
-ENV TRIGGER_FROM ${TRIGGER_FROM}
-
-ARG GIT_HEAD
-ENV GIT_HEAD ${GIT_HEAD}
-
-ARG REGRESSION_BRANCH
-ENV REGRESSION_BRANCH ${REGRESSION_BRANCH}
-
 # Build
-RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -DGTEST=ON -B build . && cmake --build build -j 8
-
-
-
+RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -DGTEST=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fprofile-arcs -ftest-coverage" -DCMAKE_EXE_LINKER_FLAGS=-lgcov -B build . && cmake --build build -j 8
