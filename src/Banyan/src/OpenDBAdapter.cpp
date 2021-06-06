@@ -32,6 +32,15 @@ struct TrackLayerName
   }
 };
 
+struct BoxLayerName
+{
+  typedef std::string value_type;
+  value_type operator()(odb::dbBox* box) const
+  {
+    return box->getTechLayer()->getName();
+  }
+};
+
 struct ViaTopLayer
 {
   typedef std::string value_type;
@@ -132,7 +141,8 @@ void OpenDBAdapter::getTracksFromOpenDB()
   odb::dbBlock* block = db_->getChip()->getBlock();
   const auto tracks = block->getTrackGrids();
   int trackIndex = 0;
-  for (auto group : utl::group_by(tracks.begin(), tracks.end(), TrackLayerName())) {
+  for (auto group :
+       utl::group_by(tracks.begin(), tracks.end(), TrackLayerName())) {
     int layerIdx = layerNameToIdxs_.find(group.value)->second;
     int laTrackBegin = trackIndex;
     for (auto track : group.range) {
@@ -237,22 +247,11 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
               currX + topTranformX + xTopEnc,
               currY + topTranformY + yTopEnc};
   } else {
-    std::map<std::string, std::set<odb::dbBox*>> layerNameToBoxes;
-
-    for (auto box : via->getBoxes()) {
-      std::string lname = box->getTechLayer()->getName();
-      if (layerNameToBoxes.count(lname) == 0) {
-        std::set<odb::dbBox*> groupedBoxes;
-        layerNameToBoxes.insert(make_pair(lname, groupedBoxes));
-      } else {
-        layerNameToBoxes.find(lname)->second.insert(box);
-      }
-    }
-
     int cnt = 0;
-
-    for (auto& [layerName, boxes] : layerNameToBoxes) {
-      for (auto box : boxes) {
+    const auto boxes = via->getBoxes();
+    for (auto group :
+         utl::group_by(boxes.begin(), boxes.end(), BoxLayerName())) {
+      for (auto box : group.range) {
         switch (cnt) {
           case 0:
             botBox = {botLayerIdx,
@@ -322,7 +321,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
   const auto bTerms = block->getBTerms();
-  for (auto group : utl::group_by(bTerms.begin(), bTerms.end(), BTermNetName())) {
+  for (auto group :
+       utl::group_by(bTerms.begin(), bTerms.end(), BTermNetName())) {
     int pinIndexBegin = addedPinIndex_;
     int netIdx = netNameToIdxs_.find(group.value)->second;
     for (auto bTerm : group.range) {
