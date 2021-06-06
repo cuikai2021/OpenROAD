@@ -55,7 +55,24 @@ struct BTermNetName
   typedef std::string value_type;
   value_type operator()(odb::dbBTerm* bTerm) const
   {
+    auto net = bTerm->getNet();
+    if (net == nullptr) {
+      return std::string("nullnet");
+    }
     return bTerm->getNet()->getName();
+  }
+};
+
+struct ITermNetName
+{
+  typedef std::string value_type;
+  value_type operator()(odb::dbITerm* iTerm) const
+  {
+    auto net = iTerm->getNet();
+    if (net == nullptr) {
+      return std::string("nullnet");
+    }
+    return iTerm->getNet()->getName();
   }
 };
 
@@ -306,6 +323,16 @@ void OpenDBAdapter::addBox(odb::dbBox* box)
   addedBoxIndex_++;
 }
 
+void OpenDBAdapter::addNotLayerBox( odb::dbBox* box)
+{
+  boxes_.push_back({-1,
+                    defdist(box->xMin()),
+                    defdist(box->yMin()),
+                    defdist(box->getDX()),
+                    defdist(box->getDY())});
+  addedBoxIndex_++;
+}
+
 void OpenDBAdapter::addVia(odb::dbBox* box)
 {
   odb::dbTechVia* via = box->getTechVia();
@@ -321,10 +348,28 @@ void OpenDBAdapter::getPinsFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
   const auto bTerms = block->getBTerms();
+  const auto iTerms = block->getITerms();
+  std::map<std::string, std::vector<odb::dbITerm*>> netName2iTerms;
+
+  for (auto iTerm : iTerms) {
+    auto nname
+        = iTerm->getNet() == nullptr ? "nullnet" : iTerm->getNet()->getName();
+    auto iter = netName2iTerms.find(nname);
+    if (iter == netName2iTerms.end()) {
+      netName2iTerms[nname] = {iTerm};
+    } else {
+      iter->second.push_back(iTerm);
+    }
+  }
+
   for (auto group :
        utl::group_by(bTerms.begin(), bTerms.end(), BTermNetName())) {
+    const std::string& nname = group.value;
+    if (nname == "nullnet") {
+      continue;
+    }
     int pinIndexBegin = addedPinIndex_;
-    int netIdx = netNameToIdxs_.find(group.value)->second;
+    int netIdx = netNameToIdxs_.find(nname)->second;
     for (auto bTerm : group.range) {
       int boxIndexBegin = addedBoxIndex_;
       int viaIndexBegin = addedViaIndex_;
@@ -344,8 +389,61 @@ void OpenDBAdapter::getPinsFromOpenDB()
                        (size_t) calLastIndex(addedViaIndex_)});
       addedPinIndex_++;
     }
+
+    auto iter = netName2iTerms.find(nname);
+    if (iter != netName2iTerms.end()) {
+      for (auto iTerm : iter->second) {
+        int boxIndexBegin = addedBoxIndex_;
+        int viaIndexBegin = addedViaIndex_;
+
+        auto inst = iTerm->getInst();
+        auto mTerm = iTerm->getMTerm();
+
+        addNotLayerBox(inst->getBBox());
+
+        pins_.push_back({copy_string(std::to_string(iTerm->getId()) + "_"
+                                     + mTerm->getName()),
+                         (size_t) boxIndexBegin,
+                         (size_t) calLastIndex(addedBoxIndex_),
+                         (size_t) viaIndexBegin,
+                         (size_t) calLastIndex(addedViaIndex_)});
+        addedPinIndex_++;
+      }
+      netName2iTerms.erase(iter);
+    }
+
     nets_.at(netIdx).pin_begin = pinIndexBegin;
     nets_.at(netIdx).pin_end = calLastIndex(addedPinIndex_);
+  }
+  if (netName2iTerms.size() > 0) {
+    for (const auto& iter : netName2iTerms) {
+      const auto& nname = iter.first;
+      if (nname == "nullnet") {
+        continue;
+      }
+      int pinIndexBegin = addedPinIndex_;
+      int netIdx = netNameToIdxs_.find(nname)->second;
+      for (auto iTerm : iter.second) {
+        int boxIndexBegin = addedBoxIndex_;
+        int viaIndexBegin = addedViaIndex_;
+
+        auto inst = iTerm->getInst();
+        auto mTerm = iTerm->getMTerm();
+
+        addNotLayerBox(inst->getBBox());
+
+        pins_.push_back({copy_string(std::to_string(iTerm->getId()) + "_"
+                                     + mTerm->getName()),
+                         (size_t) boxIndexBegin,
+                         (size_t) calLastIndex(addedBoxIndex_),
+                         (size_t) viaIndexBegin,
+                         (size_t) calLastIndex(addedViaIndex_)});
+        addedPinIndex_++;
+      }
+
+      nets_.at(netIdx).pin_begin = pinIndexBegin;
+      nets_.at(netIdx).pin_end = calLastIndex(addedPinIndex_);
+    }
   }
 }
 

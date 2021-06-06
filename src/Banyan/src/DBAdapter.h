@@ -78,6 +78,8 @@ class OpenDBAdapter : public DBAdapter
   void addViaDef(odb::dbVia* odbvia);
 
   void addBox(odb::dbBox* box);
+  void addNotLayerBox(odb::dbBox* box);
+
   void addVia(odb::dbBox* box);
   void addNet(odb::dbNet* net);
 
