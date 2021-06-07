@@ -96,6 +96,27 @@ int Banyan::main()
                   pin.via_begin,
                   pin.via_end);
   }
+
+  for (auto box : bdAdapter.getBoxes()) {
+    logger_->info(utl::BY,
+                  900,
+                  "box la {} x {} y {} w {} h {}",
+                  box.la,
+                  box.x,
+                  box.y,
+                  box.w,
+                  box.h);
+  }
+
+  for (auto via : bdAdapter.getVias()) {
+    logger_->info(utl::BY,
+                  900,
+                  "via viadef_index {} x {} y {}",
+                  via.viadef_index,
+                  via.x,
+                  via.y);
+  }
+
   // void *so = dlopen("banyan.so", RTLD_NOW);
   // if (so == nullptr)
   // {

@@ -13,7 +13,10 @@ class dbVia;
 class dbTechLayer;
 class dbNet;
 class dbBox;
+class dbSBox;
+class dbWire;
 class dbVia;
+class Rect;
 }  // namespace odb
 
 namespace utl {
@@ -78,10 +81,14 @@ class OpenDBAdapter : public DBAdapter
   void addViaDef(odb::dbVia* odbvia);
 
   void addBox(odb::dbBox* box);
-  void addNotLayerBox(odb::dbBox* box);
+  void addBox(std::string layerName, const odb::Rect& rect);
+  void addBox(std::string layerName, int left, int bottom, int right, int top);
 
-  void addVia(odb::dbBox* box);
   void addNet(odb::dbNet* net);
+  void addWire(odb::dbWire* wire);
+  void addSpecialPath(odb::dbSBox* sbox);
+  void addVia(odb::dbSBox* box);
+  void addVia(std::string viaName, int x, int y);
 
   void getNetsFromOpenDB();
   void getPinsFromOpenDB();
