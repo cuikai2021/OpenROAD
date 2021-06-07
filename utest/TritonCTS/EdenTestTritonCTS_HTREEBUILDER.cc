@@ -1,7 +1,8 @@
 #include <HTreeBuilder.h>
-#include <itest.h>
-#include <tritoncts/TritonCTS.h>
 #include <SinkClustering.h>
+#include <itest.h>
+#include <LevelBalancer.h>
+#include <tritoncts/TritonCTS.h>
 
 #include "Clock.h"
 #include "CtsOptions.h"
@@ -311,10 +312,8 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
 
   openRoad->init(interp);
   // read pdk incase runtime error
-  openRoad->getSta()->readLiberty(libName,
-                                  openRoad->getSta()->cmdCorner(),
-                                  sta::MinMaxAll::all(),
-                                  true);
+  openRoad->getSta()->readLiberty(
+      libName, openRoad->getSta()->cmdCorner(), sta::MinMaxAll::all(), true);
   openRoad->readLef(lefName, "test", true, true);
   openRoad->readDef(defName, false, false, false);
 
@@ -396,6 +395,13 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
     builder->setTechChar(*tech);
     builder->run();
   }
+  // run level balancer
+  for (TreeBuilder* builder : _builder) {
+    if (!builder->getParent() && builder->getChildren().size()) {
+      LevelBalancer balancer(builder, options, logger.get());
+      balancer.run();
+    }
+  }
   _builder[0]->plotSolution();
   system("mv plot0.py " TEST_FILES_PATH "/plot0.py");
   system("mv plot_clustering.py " TEST_FILES_PATH "/plot_sink_clustering.py");
@@ -409,9 +415,9 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
                                                 outSlew),
             24);
 
-  
   EXPECT_FILE_EQ(TEST_FILES_PATH "/plot0.py", TEST_OK_FILES_PATH "/plot0.ok");
-  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot_sink_clustering.py", TEST_OK_FILES_PATH "/plot_sink_clustering.ok");
+  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot_sink_clustering.py",
+                 TEST_OK_FILES_PATH "/plot_sink_clustering.ok");
 
   // clear all data
   openRoad->getDb()->clear();
