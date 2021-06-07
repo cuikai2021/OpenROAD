@@ -43,7 +43,6 @@ jobs:
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
         - name: build and push docker
-          id: build-and-push-docker
           uses: docker/build-push-action@v2
           with:
             registry: ${{ env.DOCKER_REGISTRY }}
@@ -54,11 +53,6 @@ jobs:
             file: docker/Dockerfile.release
             push: true
             tags: ${{ env.RELEASE_ENV }}
-
-        - run: mkdir -p ${{ github.workspace }}/release-output
-         
-        - name: run release
-          run: ./docker_run/docker_run_release.sh ${{ github.workspace }}/release-output ${{ env.RELEASE_ENV }}
 
         - name: generate changelog
           run: |
