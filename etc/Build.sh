@@ -32,8 +32,7 @@ OPTIONS:
   -coverage                                     Enable cmake coverage options
   -clean                                        Remove build dir before compile
   -no-gui                                       Disable GUI support
-  -threads=NUM_THREADS                          Number of threads to use during
-                                                  compile. Default: \`nproc\`
+  -threads=NUM_THREADS                          Number of threads to use during compile. Default: \`nproc\`
   -keep-log                                     Keep a compile log in build dir
   -help                                         Shows this message
 

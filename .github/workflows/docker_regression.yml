@@ -20,7 +20,7 @@ jobs:
             access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
             access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
         - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/env.json .
-        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/latest_docker_deps_image.json .
+        - run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/latest_docker_deps_image.json .
       
         - name: json reader
           uses: antifree/json-to-variables@v1.0.1
@@ -125,7 +125,7 @@ jobs:
                The action sha value is ${{env.env_EVENT_AFTER}}
 
                The regression failure info can be downloaded from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/${{env.REGRESSION_FAILURES_FILE}} 
-
+               
                The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result.tar.gz
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
