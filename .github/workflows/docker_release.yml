@@ -9,7 +9,7 @@ on:
         description: 'docker release name, like 0409p2'
         required: true
 env:
-  RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{github.event.inputs.release_name}}
+  RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}
   DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
 jobs:
   release:
@@ -25,10 +25,10 @@ jobs:
           uses: manyuanrong/setup-ossutil@v2.0
           with:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
-            access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
-            access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
+            access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
+            access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
         - name: download from aliyun
-          run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/latest_docker_deps_image.json .
+          run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
         
         - uses: antifree/json-to-variables@v1.0.1
           with:
@@ -55,7 +55,7 @@ jobs:
             push: true
             tags: ${{ env.RELEASE_ENV }}
 
-        - run: mkdir -p ${{ github.workspace}}/release-output
+        - run: mkdir -p ${{ github.workspace }}/release-output
          
         - name: run release
           run: ./docker_run/docker_run_release.sh ${{ github.workspace }}/release-output ${{ env.RELEASE_ENV }}
@@ -63,8 +63,8 @@ jobs:
         - name: generate changelog
           run: |
             echo "## release success" > CHANGELOG.txt
-            echo "### version: 1.${{github.run_number}}" >> CHANGELOG.txt
-            echo "### commit id: ${{github.event.inputs.commit_id}}" >> CHANGELOG.txt
+            echo "### version: 1.${{ github.run_number }}" >> CHANGELOG.txt
+            echo "### commit id: ${{ github.event.inputs.commit_id }}" >> CHANGELOG.txt
             echo "### docker id: ${{ env.RELEASE_ENV }}" >> CHANGELOG.txt
         - name: release
           uses: softprops/action-gh-release@v1

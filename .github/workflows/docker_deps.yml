@@ -9,14 +9,14 @@ jobs:
         - name: checkout
           uses: actions/checkout@v2
 
-        - name: 1. connect to aliyun
+        - name: connect to aliyun
           uses: manyuanrong/setup-ossutil@v2.0
           with:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
-            access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
-            access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
-        - name: 2. download from aliyun
-          run: ossutil cp -rf oss://icbench-static/environments/${{github.repository}}/${{github.ref}}/env.json .
+            access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
+            access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
+        - name: download from aliyun
+          run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
         
         - uses: antifree/json-to-variables@v1.0.1
           with:
@@ -28,10 +28,10 @@ jobs:
             DEPS_ENV: ${{ format('{0}:{1}', env.env_DEPS_ENV_PREFIX, github.run_number) }}
 
         - name: login to acr
-          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true'}}
+          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
           uses: docker/login-action@v1
           with:
-            registry: ${{env.env_DOCKER_REGISTRY}}
+            registry: ${{ env.env_DOCKER_REGISTRY }}
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
@@ -55,7 +55,7 @@ jobs:
             DEPS_ENV: ${{ env.DEPS_ENV }} 
 
         - if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
-          run: ossutil cp -rf latest_docker_deps_image.json oss://icbench-static/environments/${{github.repository}}/
+          run: ossutil cp -rf latest_docker_deps_image.json oss://icbench-static/environments/${{ github.repository }}/
 
         - name: show docker image tag
           if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}

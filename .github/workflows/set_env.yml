@@ -18,17 +18,17 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
 
-      - if: ${{github.actor == 'ICBench'}}
+      - if: ${{ github.actor == 'ICBench' }}
         uses: allenevans/set-env@v2.0.1
         with:
-          DOCKER_DEPS_IMAGENAME: ${{env.DOCKER_DEPS_IMAGENAME}}
-          DOCKER_REGRESSION_IMAGENAME: ${{env.DOCKER_REGRESSION_IMAGENAME}}
+          DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME }}
+          DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME }}
 
-      - if: ${{github.actor != 'ICBench'}}
+      - if: ${{ github.actor != 'ICBench' }}
         uses: allenevans/set-env@v2.0.1
         with:
-          DOCKER_DEPS_IMAGENAME: ${{env.DOCKER_DEPS_IMAGENAME_TEST}}
-          DOCKER_REGRESSION_IMAGENAME: ${{env.DOCKER_REGRESSION_IMAGENAME_TEST}}
+          DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME_TEST }}
+          DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME_TEST }}
 
       - name: file changes
         id: change
@@ -49,8 +49,8 @@ jobs:
           IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
           DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
           REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
-          HEAD_COMMIT_MESSAGE: ${{github.event.head_commit.message}}
-          HEAD_COMMIT_COMMITER_NAME: ${{github.event.head_commit.committer.name}}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          HEAD_COMMIT_COMMITER_NAME: ${{ github.event.head_commit.committer.name }}
           EVENT_AFTER: ${{ github.event.after }}
           
 
@@ -58,9 +58,9 @@ jobs:
         uses: manyuanrong/setup-ossutil@v2.0
         with:
           endpoint: "oss-cn-shanghai.aliyuncs.com"
-          access-key-id: "${{secrets.ALI_OSS_ACCESS_KEY_ID}}"
-          access-key-secret: "${{secrets.ALI_OSS_ACCESS_KEY_SK}}"
-      - run: ossutil cp -rf env.json oss://icbench-static/environments/${{github.repository}}/${{github.event.ref}}/
+          access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
+          access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
+      - run: ossutil cp -rf env.json oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/
 
       - name: invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
