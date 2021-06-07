@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+SUDO="";
+PROXYCHAINS=""
+
 _installGtest(){
     # gtest (latest)
     cd "${baseDir}"
@@ -29,43 +32,44 @@ _installCommonDev() {
 
     # CMake
     cd "${baseDir}"
-    wget https://cmake.org/files/v${cmakeVersionBig}/cmake-${cmakeVersionSmall}-Linux-x86_64.sh
+
+    $PROXYCHAINS wget https://cmake.org/files/v${cmakeVersionBig}/cmake-${cmakeVersionSmall}-Linux-x86_64.sh
     md5sum -c <(echo "73041a43d27a30cdcbfdfdb61310d081  cmake-${cmakeVersionSmall}-Linux-x86_64.sh") || exit 1
-    chmod +x cmake-${cmakeVersionSmall}-Linux-x86_64.sh
+    $SUDO chmod +x cmake-${cmakeVersionSmall}-Linux-x86_64.sh
     ./cmake-${cmakeVersionSmall}-Linux-x86_64.sh --skip-license --prefix=/usr/local
 
     # SWIG
     cd "${baseDir}"
-    wget https://github.com/swig/swig/archive/rel-${swigVersion}.tar.gz
+    $PROXYCHAINS wget https://github.com/swig/swig/archive/rel-${swigVersion}.tar.gz
     md5sum -c <(echo "ef6a6d1dec755d867e7f5e860dc961f7  rel-${swigVersion}.tar.gz") || exit 1
     tar xfz rel-${swigVersion}.tar.gz
     cd swig-rel-${swigVersion}
     ./autogen.sh
     ./configure --prefix=/usr
     make -j $(nproc)
-    make -j $(nproc) install
+    $SUDO make -j $(nproc) install
     rm -rf swig-rel-${swigVersion}
 
     # boost
     cd "${baseDir}"
-    boostVersionUnderscore=${boostVersion//./_}
-    wget https://boostorg.jfrog.io/artifactory/main/release/${boostVersion}/source/boost_${boostVersionUnderscore}.tar.gz
+    boostVersionUndercore=${boostVersion//./_}
+    wget https://icbench-static.oss-cn-shanghai.aliyuncs.com/deps/boost_${boostVersionUndercore}.tar.gz -o boost-${boostVersion}
     md5sum -c <(echo "e2b0b1eac302880461bcbef097171758  boost_${boostVersionUnderscore}.tar.gz") || exit 1
-    tar -xf boost_${boostVersionUnderscore}.tar.gz
-    cd boost_${boostVersionUnderscore}
+    tar -xf boost_${boostVersionUndercore}.tar.gz
+    cd boost_${boostVersionUndercore}
     ./bootstrap.sh
-    ./b2 install --with-iostreams --with-test -j $(nproc)
+    $SUDO ./b2 install --with-iostreams --with-test -j $(nproc)
 
     # eigen
     cd "${baseDir}"
-    git clone -b ${eigenVersion} https://gitlab.com/libeigen/eigen.git
+    $PROXYCHAINS git clone -b ${eigenVersion} https://gitlab.com/libeigen/eigen.git
     cd eigen
     cmake -B build .
     cmake --build build -j $(nproc) --target install
 
     # lemon
     cd "${baseDir}"
-    wget http://lemon.cs.elte.hu/pub/sources/lemon-${lemonVersion}.tar.gz
+    $PROXYCHAINS wget http://lemon.cs.elte.hu/pub/sources/lemon-${lemonVersion}.tar.gz
     md5sum -c <(echo "e89f887559113b68657eca67cf3329b5  lemon-${lemonVersion}.tar.gz") || exit 1
     tar -xf lemon-${lemonVersion}.tar.gz
     cd lemon-${lemonVersion}
@@ -74,7 +78,7 @@ _installCommonDev() {
 
     # spdlog
     cd "${baseDir}"
-    git clone -b "v${spdlogVersion}" https://github.com/gabime/spdlog.git
+    $PROXYCHAINS git clone -b "v${spdlogVersion}" https://github.com/gabime/spdlog.git
     cd spdlog
     cmake -B build .
     cmake --build build -j $(nproc) --target install
@@ -209,6 +213,12 @@ while [ "$#" -gt 0 ]; do
             ;;
         -dev|-development)
             option="dev"
+            ;;
+        -local_build)
+            SUDO="sudo"
+            ;;
+        -proxychains)
+            PROXYCHAINS="proxychains"
             ;;
         -incr|-increment)
             if [ $# -gt 1 ]; then
