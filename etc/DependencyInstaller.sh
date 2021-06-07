@@ -32,7 +32,6 @@ _installCommonDev() {
 
     # CMake
     cd "${baseDir}"
-
     $PROXYCHAINS wget https://cmake.org/files/v${cmakeVersionBig}/cmake-${cmakeVersionSmall}-Linux-x86_64.sh
     md5sum -c <(echo "73041a43d27a30cdcbfdfdb61310d081  cmake-${cmakeVersionSmall}-Linux-x86_64.sh") || exit 1
     $SUDO chmod +x cmake-${cmakeVersionSmall}-Linux-x86_64.sh
@@ -53,7 +52,7 @@ _installCommonDev() {
     # boost
     cd "${baseDir}"
     boostVersionUndercore=${boostVersion//./_}
-    wget https://icbench-static.oss-cn-shanghai.aliyuncs.com/deps/boost_${boostVersionUndercore}.tar.gz -o boost-${boostVersion}
+    $PROXYCHAINS wget https://boostorg.jfrog.io/artifactory/main/release/${boostVersion}/source/boost_${boostVersionUnderscore}.tar.gz
     md5sum -c <(echo "e2b0b1eac302880461bcbef097171758  boost_${boostVersionUnderscore}.tar.gz") || exit 1
     tar -xf boost_${boostVersionUndercore}.tar.gz
     cd boost_${boostVersionUndercore}
