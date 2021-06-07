@@ -1,0 +1,18 @@
+ARG FROM_IMAGE_TAG
+FROM ${FROM_IMAGE_TAG} AS build_stage
+
+ARG EDEN_GIT_SHA1
+
+COPY . /Eden
+WORKDIR /Eden
+
+# Build
+RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
+
+
+FROM ubuntu:20.04
+
+COPY --from=build_stage /Eden/build/src/eden /Eden/build/src
+COPY --from=build_stage /Eden/build/src/openroad /Eden/build/src 
+
+WORKDIR /Eden
