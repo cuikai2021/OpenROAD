@@ -51,11 +51,11 @@ _installCommonDev() {
 
     # boost
     cd "${baseDir}"
-    boostVersionUndercore=${boostVersion//./_}
+    boostVersionUnderscore=${boostVersion//./_}
     $PROXYCHAINS wget https://boostorg.jfrog.io/artifactory/main/release/${boostVersion}/source/boost_${boostVersionUnderscore}.tar.gz
     md5sum -c <(echo "e2b0b1eac302880461bcbef097171758  boost_${boostVersionUnderscore}.tar.gz") || exit 1
-    tar -xf boost_${boostVersionUndercore}.tar.gz
-    cd boost_${boostVersionUndercore}
+    tar -xf boost_${boostVersionUnderscore}.tar.gz
+    cd boost_${boostVersionUnderscore}
     ./bootstrap.sh
     $SUDO ./b2 install --with-iostreams --with-test -j $(nproc)
 
