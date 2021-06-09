@@ -465,7 +465,7 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
   decoder.begin(wire);
   odb::dbWireDecoder::OpCode pathId = decoder.next();
   while (pathId != odb::dbWireDecoder::END_DECODE) {
-    layerName = decoder.getLayer()->getName();
+    layerName = "";
     viaName = "";
     shape = "";
     hasBeginPoint = false;
@@ -490,6 +490,7 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
         case odb::dbWireDecoder::SHORT:
         case odb::dbWireDecoder::VWIRE:
           layerName = decoder.getLayer()->getName();
+          assert(layerNameToIdxs_.find(layerName) != layerNameToIdxs_.end());
           break;
         case odb::dbWireDecoder::POINT:
           if (!hasBeginPoint) {
@@ -551,11 +552,12 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
     addBox(layerName, left, bottom, right, top);
   }
   if (hasEndPoint) {
-    bool isHorizontal = true;
-    if (beginX == endX) {
-      isHorizontal = false;
+    if (beginX > endX || beginY > endY) {
+      swap(beginX, endX);
+      swap(beginY, endY);
+      swap(beginExt, endExt);
     }
-
+    bool isHorizontal = (beginX != endX);
     if (isHorizontal) {
       addBox(layerName,
              beginX - beginExt,
