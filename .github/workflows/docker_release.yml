@@ -8,8 +8,10 @@ on:
       release_name:
         description: 'docker release name, like 0409p2'
         required: true
+
 env:
   RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}
+  YOYSY_ENV: registry.cn-shanghai.aliyuncs.com/openroad/yosys:0207
   DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
 jobs:
   release:
@@ -49,7 +51,9 @@ jobs:
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
             context: .
-            build-args: FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
+            build-args: |
+              FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
+              YOSYS_IMAGE_TAG=${{ env.YOSYS_ENV }}
             file: docker/Dockerfile.release
             push: true
             tags: ${{ env.RELEASE_ENV }}
