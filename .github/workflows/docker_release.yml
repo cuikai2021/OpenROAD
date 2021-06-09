@@ -57,7 +57,7 @@ jobs:
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
             context: .
             build-args: |
-              FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
+              DEPS_IMAGE_TAG=${{ env.env_DEPS_ENV }}
               YOSYS_IMAGE_TAG=${{ env.YOSYS_ENV }}
               EDEN_GIT_SHA1=${{ env.EDEN_GIT_SHA1 }}
             file: docker/Dockerfile.release
