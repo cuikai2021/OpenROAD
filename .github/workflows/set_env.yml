@@ -45,7 +45,7 @@ jobs:
           DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
           DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
           DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
-          CODE_COVERAGE_PATH: ${{ github.workspace }}/coverage-output
+          CODE_COVERAGE_PATH: ${{ github.workspace }}/coverage_results
           IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
           DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
           REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
