@@ -53,7 +53,7 @@ jobs:
             context: .
             build-args: |
               FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
-              YOYSY_IMAGE_TAG=${{ env.YOYSY_ENV }}
+              YOSYS_IMAGE_TAG=${{ env.YOSYS_ENV }}
             file: docker/Dockerfile.release
             push: true
             tags: ${{ env.RELEASE_ENV }}
