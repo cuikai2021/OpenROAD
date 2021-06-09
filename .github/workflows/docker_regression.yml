@@ -5,7 +5,7 @@ jobs:
   relesase-eden-regressions-docker:
     runs-on: [self-hosted]
     env:
-      COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/icbench-devops/regression-${{ github.run_number }}/coverage-result
+      COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/icbench-devops/coverage-outputs/${{ github.run_number }}
 
     steps:
         - name: checkout
@@ -56,11 +56,11 @@ jobs:
           if: ${{ success() }}
           run: ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }} ${{ env.env_CODE_COVERAGE_PATH }} ${{ env.env_REGRESSION_ENV }}
 
-        - name: package ./coverage-result
+        - name: package ./coverage-output
           run: |
-            tar -zcvf coverage-result.tar.gz  ${{ env.env_CODE_COVERAGE_PATH }} 
+            tar -zcvf coverage-result.tar.gz coverage-outputs
         - name: upload coverage result
-          run: ossutil cp -rf coverage-result.tar.gz oss://icbench-devops/regression-${{ github.run_number }}/coverage-result/
+          run: ossutil cp -rf coverage-result.tar.gz oss://icbench-devops/coverage-outputs/${{ github.run_number }}/
 
         - if: ${{ success() }}
           run: |
@@ -81,7 +81,7 @@ jobs:
               echo ${{ env.REGRESSION_FAILURES_FILE }}
  
         - if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
-          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/
+          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression-outputs/${{ github.run_number }}
 
         - name: success pull request
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' }}
