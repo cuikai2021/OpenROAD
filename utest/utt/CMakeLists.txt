@@ -16,10 +16,3 @@ target_link_libraries(utt
   PUBLIC
   ${GTEST_LIBRARIES}
 )
-
-file(COPY 
-  test_file/regex_copy.txt
-  test_file/regex.txt
-  DESTINATION 
-  ${CMAKE_BINARY_DIR}/src/test_file 
-)

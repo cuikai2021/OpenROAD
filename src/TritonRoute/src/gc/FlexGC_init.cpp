@@ -150,7 +150,6 @@ bool FlexGCWorker::Impl::initDesign_skipObj(frBlockObject* obj)
 
 void FlexGCWorker::Impl::initDesign()
 {
-
   if (ignoreDB_) {
     return;
   }
@@ -349,7 +348,7 @@ gcNet* FlexGCWorker::Impl::initDRObj(drConnFig* obj, gcNet* currNet)
   }
   return currNet;
 }
-
+// creates net polygons based on the net shapes
 void FlexGCWorker::Impl::initDRWorker()
 {
   if (!getDRWorker()) {

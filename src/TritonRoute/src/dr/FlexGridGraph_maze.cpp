@@ -471,9 +471,9 @@ void FlexGridGraph::getPrevGrid(frMIdx& gridX,
 
     if (isForbiddenVia2Via) {
       if (drWorker_ && drWorker_->getDRIter() >= 3) {
-        nextPathCost += ggMarkerCost_ * edgeLength;
+        nextPathCost = INT_MAX / 2;  //+= ggMarkerCost_ * edgeLength;
       } else {
-        nextPathCost += ggDRCCost_ * edgeLength;
+        nextPathCost = INT_MAX / 2;  //+= ggDRCCost_ * edgeLength;
       }
     }
   }
@@ -552,14 +552,14 @@ frCoord FlexGridGraph::getCostsNDR(frMIdx gridX,
   frMIdx startX, startY, endX, endY;
   frCoord r, x1, x2, y1, y2;
   frCoord sp, wext;
-  frCoord layerWidth = max((int) layer->getMinWidth(), ndr_->getWidth(gridZ));
+  frCoord layerWidth = max((int) layer->getWidth(), ndr_->getWidth(gridZ));
   sp = max(ndr_->getSpacing(gridZ),
-           getMinSpacingValue(layer, layerWidth, layer->getMinWidth(), 0));
-  wext = max(ndr_->getWireExtension(gridZ), (int) layer->getMinWidth() / 2)
-         - layer->getMinWidth() / 2;
+           getMinSpacingValue(layer, layerWidth, layer->getWidth(), 0));
+  wext = max(ndr_->getWireExtension(gridZ), (int) layer->getWidth() / 2)
+         - layer->getWidth() / 2;
 
   // get iteration bounds
-  r = layerWidth / 2 + sp + layer->getMinWidth() / 2 - 1;
+  r = layerWidth / 2 + sp + layer->getWidth() / 2 - 1;
   if (dir == frDirEnum::N || dir == frDirEnum::S) {
     startX = getLowerBoundIndex(xCoords_, x1 = (xCoords_[gridX] - r));
     endX = getUpperBoundIndex(xCoords_, x2 = (xCoords_[gridX] + r));
@@ -620,8 +620,8 @@ frCoord FlexGridGraph::getCostsNDR(frMIdx gridX,
   // get costs
   for (frMIdx x = startX; x <= endX; x++) {
     for (frMIdx y = startY; y <= endY; y++) {
-      cost += (hasShapeCost(x, y, gridZ, dir) ? SHAPECOST * el : 0);
-      cost += (hasDRCCost(x, y, gridZ, dir) ? ggDRCCost_ * el : 0);
+      cost += (hasFixedShapeCost(x, y, gridZ, dir) ? FIXEDSHAPECOST * el : 0);
+      cost += (hasRouteShapeCost(x, y, gridZ, dir) ? ggDRCCost_ * el : 0);
       cost += (hasMarkerCost(x, y, gridZ, dir) ? ggMarkerCost_ * el : 0);
       cost += (isBlocked(x, y, gridZ, dir)
                    ? BLOCKCOST * layer->getMinWidth() * 20
@@ -643,13 +643,13 @@ frCoord FlexGridGraph::getViaCostsNDR(frMIdx gridX,
     return getCosts(gridX, gridY, gridZ, dir, layer);
   frMIdx startX, startY, endX, endY;
   frCoord x1, x2, y1, y2;
-  frCoord layerWidth = max((int) layer->getMinWidth(), ndr_->getWidth(gridZ));
+  frCoord layerWidth = max((int) layer->getWidth(), ndr_->getWidth(gridZ));
   frCoord r,
       sp = max(ndr_->getSpacing(gridZ),
-               getMinSpacingValue(layer, layerWidth, layer->getMinWidth(), 0));
+               getMinSpacingValue(layer, layerWidth, layer->getWidth(), 0));
 
   // get iteration bounds
-  r = layerWidth / 2 + sp + layer->getMinWidth() / 2 - 1;
+  r = layerWidth / 2 + sp + layer->getWidth() / 2 - 1;
   frCoord el = getEdgeLength(gridX, gridY, gridZ, dir);
   frCoord cost = el;
 
@@ -657,8 +657,9 @@ frCoord FlexGridGraph::getViaCostsNDR(frMIdx gridX,
   endX = getUpperBoundIndex(xCoords_, x2 = (xCoords_[gridX] + r));
   startY = getLowerBoundIndex(yCoords_, y1 = (yCoords_[gridY] - r));
   endY = getUpperBoundIndex(yCoords_, y2 = (yCoords_[gridY] + r));
-  cost += (hasShapeCost(gridX, gridY, gridZ, dir) ? SHAPECOST * el : 0);
-  cost += (hasDRCCost(gridX, gridY, gridZ, dir) ? ggDRCCost_ * el : 0);
+  cost += (hasFixedShapeCost(gridX, gridY, gridZ, dir) ? FIXEDSHAPECOST * el
+                                                       : 0);
+  cost += (hasRouteShapeCost(gridX, gridY, gridZ, dir) ? ggDRCCost_ * el : 0);
   cost += (hasMarkerCost(gridX, gridY, gridZ, dir) ? ggMarkerCost_ * el : 0);
   cost += (isBlocked(gridX, gridY, gridZ, dir)
                ? BLOCKCOST * layer->getMinWidth() * 20
@@ -692,8 +693,8 @@ frCoord FlexGridGraph::getViaCostsNDR(frMIdx gridX,
   // get costs
   for (frMIdx x = startX; x <= endX; x++) {
     for (frMIdx y = startY; y <= endY; y++) {
-      cost += (hasShapeCost(x, y, gridZ, dir) ? SHAPECOST * el : 0);
-      cost += (hasDRCCost(x, y, gridZ, dir) ? ggDRCCost_ * el : 0);
+      cost += (hasFixedShapeCost(x, y, gridZ, dir) ? FIXEDSHAPECOST * el : 0);
+      cost += (hasRouteShapeCost(x, y, gridZ, dir) ? ggDRCCost_ * el : 0);
       cost += (hasMarkerCost(x, y, gridZ, dir) ? ggMarkerCost_ * el : 0);
     }
   }
@@ -707,9 +708,9 @@ frCost FlexGridGraph::getCosts(frMIdx gridX,
                                frLayer* layer) const
 {
   bool gridCost = hasGridCost(gridX, gridY, gridZ, dir);
-  bool drcCost = hasDRCCost(gridX, gridY, gridZ, dir);
+  bool drcCost = hasRouteShapeCost(gridX, gridY, gridZ, dir);
   bool markerCost = hasMarkerCost(gridX, gridY, gridZ, dir);
-  bool shapeCost = hasShapeCost(gridX, gridY, gridZ, dir);
+  bool shapeCost = hasFixedShapeCost(gridX, gridY, gridZ, dir);
   bool blockCost = isBlocked(gridX, gridY, gridZ, dir);
   bool guideCost = hasGuide(gridX, gridY, gridZ, dir);
   frCoord edgeLength = getEdgeLength(gridX, gridY, gridZ, dir);
@@ -719,7 +720,7 @@ frCost FlexGridGraph::getCosts(frMIdx gridX,
          + (gridCost ? GRIDCOST * edgeLength : 0)
          + (drcCost ? ggDRCCost_ * edgeLength : 0)
          + (markerCost ? ggMarkerCost_ * edgeLength : 0)
-         + (shapeCost ? SHAPECOST * edgeLength : 0)
+         + (shapeCost ? FIXEDSHAPECOST * edgeLength : 0)
          + (blockCost ? BLOCKCOST * layer->getMinWidth() * 20 : 0)
          + (!guideCost ? GUIDECOST * edgeLength : 0);
 }
@@ -801,9 +802,34 @@ frMIdx FlexGridGraph::getUpperBoundIndex(const frVector<frCoord>& tracks,
       ||  // comment out for non-buffer enablement
       currGrid.getLastDir() == dir) {
     return false;
-  } else {
-    return true;
+  } 
+  if (ndr_) {
+    frCoord halfWidth = (frCoord) design_->getTech()
+                     ->getLayer(getLayerNum(currGrid.z()))
+                     ->getWidth()
+                 / 2;
+    if (ndr_->getWidth(currGrid.z()) > 2 * halfWidth
+        && !isSrc(currGrid.x(), currGrid.y(), currGrid.z())) {
+      halfWidth = ndr_->getWidth(currGrid.z()) / 2;
+      // if the expansion goes parallel to a die border and the wire goes out of
+      // the die box, forbid expansion
+      if (dir == frDirEnum::N || dir == frDirEnum::S) {
+        if (xCoords_[currGrid.x()] - halfWidth
+                < design_->getTopBlock()->getDieBox().left()
+            || xCoords_[currGrid.x()] + halfWidth
+                   > design_->getTopBlock()->getDieBox().right())
+          return false;
+      } else if (dir == frDirEnum::E || dir == frDirEnum::W) {
+        if (yCoords_[currGrid.y()] - halfWidth
+                < design_->getTopBlock()->getDieBox().bottom()
+            || yCoords_[currGrid.y()] + halfWidth
+                   > design_->getTopBlock()->getDieBox().top())
+          return false;
+      }
+    }
   }
+  
+  return true;
 }
 
 void FlexGridGraph::traceBackPath(const FlexWavefrontGrid& currGrid,
@@ -874,7 +900,6 @@ bool FlexGridGraph::search(vector<FlexMazeIdx>& connComps,
                            const frPoint& centerPt,
                            map<FlexMazeIdx, frBox3D*>& mazeIdx2TaperBox)
 {
-
   // prep nextPinBox
   frMIdx xDim, yDim, zDim;
   getDim(xDim, yDim, zDim);

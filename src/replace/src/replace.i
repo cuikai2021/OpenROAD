@@ -1,5 +1,5 @@
 %{
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 #include "replace/Replace.h"
 
 namespace ord {
@@ -198,13 +198,6 @@ set_routability_inflation_ratio_coef_cmd(float coef)
 {
   Replace* replace = getReplace();
   replace->setRoutabilityInflationRatioCoef(coef);
-}
-
-void
-set_routability_pitch_scale_cmd(float scale) 
-{
-  Replace* replace = getReplace();
-  replace->setRoutabilityPitchScale(scale);
 }
 
 void

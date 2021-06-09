@@ -27,12 +27,12 @@ void file_equal(const std::string file0, const std::string file1, bool need_equa
 {
   std::string msg = "two files are different";
 
-  if (!(compareFiles(file0, file1) != need_equal))
+  if (compareFiles(file0, file1) != need_equal)
   {
     if(!need_equal){
       msg = "two files are same";
     }
-    FAIL() << msg;
+    FAIL() << msg << "\n" << file0 << "\n" << file1;
   }
 }
 

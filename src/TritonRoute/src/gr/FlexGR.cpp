@@ -56,7 +56,7 @@ void FlexGR::main(odb::dbDatabase* db)
   // gen topology + pattern route for 2D connectivty
   initGR();
   // populate region query for 2D
-  getRegionQuery()->initGRObj(getTech()->getLayers().size());
+  getRegionQuery()->initGRObj();
 
   getRegionQuery()->printGRObj();
 
@@ -113,7 +113,7 @@ void FlexGR::main(odb::dbDatabase* db)
   layerAssign();
 
   // populate region query for 3D
-  getRegionQuery()->initGRObj(getTech()->getLayers().size());
+  getRegionQuery()->initGRObj();
 
   // reportCong3D();
 
@@ -163,7 +163,7 @@ void FlexGR::searchRepairMacro(int iter,
   }
 
   frBox dieBox;
-  getDesign()->getTopBlock()->getBoundaryBBox(dieBox);
+  getDesign()->getTopBlock()->getDieBox(dieBox);
 
   auto gCellPatterns = getDesign()->getTopBlock()->getGCellPatterns();
   auto& xgp = gCellPatterns.at(0);
@@ -273,7 +273,7 @@ void FlexGR::searchRepair(int iter,
   }
 
   frBox dieBox;
-  getDesign()->getTopBlock()->getBoundaryBBox(dieBox);
+  getDesign()->getTopBlock()->getDieBox(dieBox);
 
   auto gCellPatterns = getDesign()->getTopBlock()->getGCellPatterns();
   auto& xgp = gCellPatterns.at(0);
@@ -654,7 +654,7 @@ void FlexGR::updateDbCongestion(odb::dbDatabase* db, FlexGRCMap* cmap)
   gcell->addGridPatternY(
       ygp->getStartCoord(), ygp->getCount(), ygp->getSpacing());
   frBox dieBox;
-  design_->getTopBlock()->getBoundaryBBox(dieBox);
+  design_->getTopBlock()->getDieBox(dieBox);
   gcell->addGridPatternX(dieBox.right(), 1, 0);
   gcell->addGridPatternY(dieBox.top(), 1, 0);
   unsigned cmapLayerIdx = 0;

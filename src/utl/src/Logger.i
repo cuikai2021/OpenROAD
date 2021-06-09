@@ -105,6 +105,21 @@ critical(utl::ToolId tool,
   logger->critical(tool, id, msg);
 }
 
+void
+open_metrics(const char *metrics_filename)
+{
+  Logger *logger = getLogger();
+  logger->addMetricsSink(metrics_filename);
+}
+
+void
+metric(const char *metric,
+       const char *value)
+{
+  Logger *logger = getLogger();
+  logger->metric(metric, value);
+}
+
 } // namespace
 
 %} // inline
