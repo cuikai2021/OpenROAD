@@ -1,7 +1,7 @@
 #include <HTreeBuilder.h>
+#include <LevelBalancer.h>
 #include <SinkClustering.h>
 #include <itest.h>
-#include <LevelBalancer.h>
 #include <tritoncts/TritonCTS.h>
 
 #include "Clock.h"
@@ -415,9 +415,27 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
                                                 outSlew),
             24);
 
+  // test no argument sink clustering by the way
+  // it will match points into pair of lowest cost
+  SinkClustering matching(options, tech);
+
+  for (float i = 0.0f; i < 10; ++i) {
+    for (float j = 0.0f; j < 10; ++j) {
+      matching.addPoint(i, j);
+      if ((i + j) > 10)
+        matching.addCap(options->getSinkBufferInputCap());
+      else
+        matching.addCap(1.0f);
+    }
+  }
+  matching.run();
+  system("mv plot.py " TEST_FILES_PATH "/plot_sink_clustering_no_arg.py");
+
   EXPECT_FILE_EQ(TEST_FILES_PATH "/plot0.py", TEST_OK_FILES_PATH "/plot0.ok");
   EXPECT_FILE_EQ(TEST_FILES_PATH "/plot_sink_clustering.py",
                  TEST_OK_FILES_PATH "/plot_sink_clustering.ok");
+  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot_sink_clustering_no_arg.py",
+                 TEST_OK_FILES_PATH "/plot_sink_clustering_no_arg.ok");
 
   // clear all data
   openRoad->getDb()->clear();
