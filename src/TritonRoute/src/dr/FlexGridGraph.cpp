@@ -26,12 +26,13 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "dr/FlexGridGraph.h"
+
 #include <fstream>
 #include <iostream>
 #include <map>
 
 #include "dr/FlexDR.h"
-#include "dr/FlexGridGraph.h"
 
 using namespace std;
 using namespace fr;
@@ -116,7 +117,7 @@ void FlexGridGraph::initEdges(
   // initialize grid graph
   frMIdx xIdx = 0, yIdx = 0, zIdx = 0;
   frBox dieBox;
-  design_->getTopBlock()->getBoundaryBBox(dieBox);
+  design_->getTopBlock()->getDieBox(dieBox);
   for (const auto& [layerNum, dir] : zMap) {
     frLayerNum nonPrefLayerNum;
     const auto layer = getTech()->getLayer(layerNum);

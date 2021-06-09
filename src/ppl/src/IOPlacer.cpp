@@ -53,7 +53,7 @@ void IOPlacer::init(odb::dbDatabase* db, Logger* logger)
   db_ = db;
   logger_ = logger;
   parms_ = std::make_unique<Parameters>();
-  top_grid_ = TopLayerGrid(-1, -1, -1, -1, -1, -1, -1, -1, -1);
+  top_grid_ = TopLayerGrid(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 void IOPlacer::clear()
@@ -63,7 +63,6 @@ void IOPlacer::clear()
   top_grid_ = TopLayerGrid();
   zero_sink_ios_.clear();
   sections_.clear();
-  sections_for_constraints_.clear();
   slots_.clear();
   top_layer_slots_.clear();
   assignment_.clear();
@@ -110,32 +109,56 @@ void IOPlacer::initParms()
   }
 }
 
-void IOPlacer::randomPlacement()
-{
-  for (const Constraint &constraint : constraints_) {
-    std::vector<Section> sections = createSectionsPerConstraint(constraint);
-    int first_slot = sections.front().begin_slot;
-    int last_slot = sections.back().end_slot;
-
-    std::vector<int> valid_slots;
-    for (int i = first_slot; i <= last_slot; i++) {
-      if (!slots_[i].blocked) {
-        valid_slots.push_back(i);
-      }
-    }
-
-    std::vector<int> pin_indices = findPinsForConstraint(constraint, netlist_);
-
-    bool top_layer = constraint.interval.edge == Edge::invalid;
-    randomPlacement(pin_indices, valid_slots, top_layer);
-  }
-
+std::vector<int> IOPlacer::getValidSlots(int first, int last, bool top_layer) {
   std::vector<int> valid_slots;
-  for (int i = 0; i < slots_.size(); i++) {
-    if (!slots_[i].blocked) {
+
+  std::vector<Slot> &slots = top_layer ? top_layer_slots_ : slots_;
+
+  for (int i = first; i <= last; i++) {
+    if (!slots[i].blocked) {
       valid_slots.push_back(i);
     }
   }
+
+  return valid_slots;
+}
+
+void IOPlacer::randomPlacement()
+{
+  for (Constraint &constraint : constraints_) {
+    int first_slot = constraint.sections.front().begin_slot;
+    int last_slot = constraint.sections.back().end_slot;
+
+    bool top_layer = constraint.interval.edge == Edge::invalid;
+    for (std::vector<int>& io_group : netlist_.getIOGroups()) {
+      const PinList& pin_list = constraint.pin_list;
+      IOPin& io_pin = netlist_.getIoPin(io_group[0]);
+      if (io_pin.isPlaced()) {
+        continue;
+      }
+
+      if (std::find(pin_list.begin(), pin_list.end(), io_pin.getBTerm()) != pin_list.end()) {
+        std::vector<int> valid_slots = getValidSlots(first_slot, last_slot, top_layer);
+        randomPlacement(io_group, valid_slots, top_layer, true);
+      }
+    }
+
+    std::vector<int> valid_slots = getValidSlots(first_slot, last_slot, top_layer);
+    std::vector<int> pin_indices = findPinsForConstraint(constraint, netlist_);
+    randomPlacement(pin_indices, valid_slots, top_layer, false);
+  }
+
+  for (std::vector<int>& io_group : netlist_.getIOGroups()) {
+    IOPin& io_pin = netlist_.getIoPin(io_group[0]);
+    if (io_pin.isPlaced()) {
+      continue;
+    }
+    std::vector<int> valid_slots = getValidSlots(0, slots_.size()-1, false);
+
+    randomPlacement(io_group, valid_slots, false, true);
+  }
+
+  std::vector<int> valid_slots = getValidSlots(0, slots_.size()-1, false);
 
   std::vector<int> pin_indices;
   for (int i = 0; i < netlist_.numIOPins(); i++) {
@@ -144,10 +167,10 @@ void IOPlacer::randomPlacement()
     }
   }
 
-  randomPlacement(pin_indices, valid_slots, false);
+  randomPlacement(pin_indices, valid_slots, false, false);
 }
 
-void IOPlacer::randomPlacement(std::vector<int> pin_indices, std::vector<int> slot_indices, bool top_layer)
+void IOPlacer::randomPlacement(std::vector<int> pin_indices, std::vector<int> slot_indices, bool top_layer, bool is_group)
 {
   if (pin_indices.size() > slot_indices.size()) {
     logger_->error(PPL, 72, "Number of pins ({}) exceed number of valid positions ({})", pin_indices.size(), slot_indices.size());
@@ -157,7 +180,7 @@ void IOPlacer::randomPlacement(std::vector<int> pin_indices, std::vector<int> sl
 
   int num_i_os = pin_indices.size();
   int num_slots = slot_indices.size();
-  double shift = num_slots / double(num_i_os);
+  double shift = is_group ? 1 : num_slots / double(num_i_os);
   int idx = 0;
   std::vector<int> vSlots(num_slots);
   std::vector<int> vIOs(num_i_os);
@@ -176,7 +199,7 @@ void IOPlacer::randomPlacement(std::vector<int> pin_indices, std::vector<int> sl
     vIOs[i] = i;
   }
 
-  if (vIOs.size() > 1) {
+  if (vIOs.size() > 1 && !is_group) {
     utl::shuffle(vIOs.begin(), vIOs.end(), g);
   }
 
@@ -212,7 +235,7 @@ void IOPlacer::initIOLists()
     idx++;
   }
 
-  for (PinList pin_group : pin_groups_) {
+  for (PinGroup pin_group : pin_groups_) {
     netlist_io_pins_.createIOGroup(pin_group);
   }
 }
@@ -392,10 +415,6 @@ void IOPlacer::defineSlots()
 {
   Point lb = core_.getBoundary().ll();
   Point ub = core_.getBoundary().ur();
-  int lb_x = lb.x();
-  int lb_y = lb.y();
-  int ub_x = ub.x();
-  int ub_y = ub.y();
 
   /*******************************************
    *  Order of the edges when creating slots  *
@@ -544,64 +563,51 @@ void IOPlacer::createSections()
   createSectionsPerEdge(Edge::left, hor_layers_);
 }
 
-void IOPlacer::assignConstrainedPinsToSections()
+std::vector<Section> IOPlacer::assignConstrainedPinsToSections(Constraint &constraint)
 {
+  bool top_layer = constraint.interval.edge == Edge::invalid;
+  std::vector<Slot> &slots = top_layer ? top_layer_slots_ : slots_;
   Netlist& netlist = netlist_io_pins_;
-  int pins_assigned = assignConstrainedGroupsToSections();
+  assignConstrainedGroupsToSections(constraint, constraint.sections);
 
-  for (Constraint &constraint : constraints_) {
-    std::vector<Section> sections_for_constraint = createSectionsPerConstraint(constraint);
-    int slots_count = 0;
-    for (Section sec : sections_for_constraint) {
-      slots_count += sec.num_slots;
+  int total_slots_count = 0;
+  for (Section& sec : constraint.sections) {
+    int new_slots_count = 0;
+    for (int slot_idx = sec.begin_slot; slot_idx <= sec.end_slot; slot_idx++) {
+      new_slots_count += (slots[slot_idx].blocked || slots[slot_idx].used) ? 0 : 1;
     }
-
-    std::vector<int> pin_indices = findPinsForConstraint(constraint, netlist);
-    
-    if (pin_indices.size() > slots_count) {
-      logger_->error(PPL, 74, "Number of pins ({}) exceed number of valid positions ({}) for constraint.", pin_indices.size(), slots_count);
-    }
-
-    for (int idx : pin_indices) {
-      IOPin& io_pin = netlist.getIoPin(idx);
-
-      if (assignPinToSection(io_pin, idx, sections_for_constraint)) {
-        pins_assigned++;
-      }
-    }
-
-    for (Section &section : sections_for_constraint) {
-      if (section.net.numIOPins() > 0) {
-        sections_for_constraints_.push_back(section);
-      }
-    }
+    sec.num_slots = new_slots_count;
+    total_slots_count += new_slots_count;
   }
+
+  std::vector<int> pin_indices = findPinsForConstraint(constraint, netlist);
+  
+  if (pin_indices.size() > total_slots_count) {
+    logger_->error(PPL, 74, "Number of pins ({}) exceed number of valid positions ({}) for constraint.", pin_indices.size(), total_slots_count);
+  }
+
+  for (int idx : pin_indices) {
+    IOPin& io_pin = netlist.getIoPin(idx);
+    assignPinToSection(io_pin, idx, constraint.sections);
+  }
+
+  return constraint.sections;
 }
 
-int IOPlacer::assignConstrainedGroupsToSections()
+void IOPlacer::assignConstrainedGroupsToSections(Constraint &constraint,
+                                                 std::vector<Section> &sections)
 {
   int total_pins_assigned = 0;
   Netlist& net = netlist_io_pins_;
 
   for (std::vector<int>& io_group : net.getIOGroups()) {
-    for (Constraint &constraint : constraints_) {
-      std::vector<Section> sections_for_constraint = createSectionsPerConstraint(constraint);
-      const PinList& pin_list = constraint.pin_list;
-      IOPin& io_pin = net.getIoPin(io_group[0]);
+    const PinList& pin_list = constraint.pin_list;
+    IOPin& io_pin = net.getIoPin(io_group[0]);
 
-      if (std::find(pin_list.begin(), pin_list.end(), io_pin.getBTerm()) != pin_list.end()) {
-        total_pins_assigned += assignGroupToSection(io_group, sections_for_constraint);
-        for (Section &section : sections_for_constraint) {
-          if (section.net.numIOPins() > 0) {
-            sections_for_constraints_.push_back(section);
-          }
-        }
-        break;
-      }
+    if (std::find(pin_list.begin(), pin_list.end(), io_pin.getBTerm()) != pin_list.end()) {
+      total_pins_assigned += assignGroupToSection(io_group, sections);
     }
   }
-
-  return total_pins_assigned;
 }
 
 int IOPlacer::assignGroupsToSections()
@@ -674,13 +680,12 @@ int IOPlacer::assignGroupToSection(const std::vector<int> &io_group,
   return total_pins_assigned;
 }
 
-bool IOPlacer::assignPinsToSections()
+bool IOPlacer::assignPinsToSections(int assigned_pins_count)
 {
   Netlist& net = netlist_io_pins_;
   std::vector<Section>& sections = sections_;
   
   createSections();
-  int sections_count = sections_.size();
 
   int total_pins_assigned = assignGroupsToSections();
 
@@ -692,9 +697,7 @@ bool IOPlacer::assignPinsToSections()
     idx++;
   }
 
-  for (Section& sec : sections_for_constraints_) {
-    total_pins_assigned += sec.net.numIOPins();
-  }
+  total_pins_assigned += assigned_pins_count;
 
   if (total_pins_assigned == net.numIOPins()) {
     logger_->report("Successfully assigned I/O pins");
@@ -748,7 +751,7 @@ void IOPlacer::printConfig()
   logger_->info(PPL, 9, " * Force Pin Spread      {}", force_pin_spread_);
 }
 
-void IOPlacer::setupSections()
+void IOPlacer::setupSections(int assigned_pins_count)
 {
   bool all_assigned;
   int i = 0;
@@ -757,7 +760,7 @@ void IOPlacer::setupSections()
     logger_->info(PPL, 10, "Tentative {} to setup sections", i++);
     printConfig();
 
-    all_assigned = assignPinsToSections();
+    all_assigned = assignPinsToSections(assigned_pins_count);
 
     slots_per_section_ *= (1 + slots_increase_factor_);
     if (sections_.size() > MAX_SECTIONS_RECOMMENDED) {
@@ -820,16 +823,8 @@ void IOPlacer::updateOrientation(IOPin& pin)
 
 void IOPlacer::updatePinArea(IOPin& pin)
 {
-  const int x = pin.getX();
-  const int y = pin.getY();
-  const int l = pin.getLayer();
   const int mfg_grid = tech_->getManufacturingGrid();
   
-  int lower_x_bound = core_.getBoundary().ll().x();
-  int lower_y_bound = core_.getBoundary().ll().y();
-  int upper_x_bound = core_.getBoundary().ur().x();
-  int upper_y_bound = core_.getBoundary().ur().y();
-
   if (pin.getLayer() != top_grid_.layer) {
     int index;
 
@@ -987,7 +982,7 @@ void IOPlacer::getPinsFromDirectionConstraint(Constraint &constraint)
       constraint.pin_list.empty()) {
     for (const IOPin& io_pin : netlist.getIOPins()) {
       if (io_pin.getDirection() == constraint.direction) {
-        constraint.pin_list.push_back(io_pin.getBTerm());
+        constraint.pin_list.insert(io_pin.getBTerm());
       }
     }
   }
@@ -998,6 +993,9 @@ std::vector<int> IOPlacer::findPinsForConstraint(const Constraint &constraint, N
   std::vector<int> pin_indices;
   const PinList &pin_list = constraint.pin_list;
   for (odb::dbBTerm* bterm : pin_list) {
+    if (bterm->getFirstPinPlacementStatus().isFixed()){
+      continue;
+    }
     int idx = netlist.getIoPinIdx(bterm);
     IOPin& io_pin = netlist.getIoPin(idx);
     if (!io_pin.isPlaced() && !io_pin.isAssignedToSection()) {
@@ -1013,11 +1011,36 @@ std::vector<int> IOPlacer::findPinsForConstraint(const Constraint &constraint, N
 void IOPlacer::initConstraints()
 {
   std::reverse(constraints_.begin(), constraints_.end());
-  Netlist& netlist = netlist_io_pins_;
-  int pins_assigned = 0;
   for (Constraint &constraint : constraints_) {
     getPinsFromDirectionConstraint(constraint);
+    constraint.sections = createSectionsPerConstraint(constraint);
+    int num_slots = 0;
+    for (Section sec : constraint.sections) {
+      num_slots += sec.num_slots;
+    }
+    constraint.pins_per_slots = (float)constraint.pin_list.size()/num_slots;
   }
+  sortConstraints();
+}
+
+void IOPlacer::sortConstraints() {
+  std::stable_sort(constraints_.begin(),
+                   constraints_.end(),
+                   [&](const Constraint& c1, const Constraint& c2) {
+                      // treat every non-overlapping constraint as equal, so stable_sort keeps the user order
+                      return (c1.pins_per_slots < c2.pins_per_slots) && overlappingConstraints(c1, c2);
+                   });
+}
+
+bool IOPlacer::overlappingConstraints(const Constraint& c1, const Constraint& c2) {
+  const Interval& interv1 = c1.interval;
+  const Interval& interv2 = c2.interval;
+
+  if (interv1.edge == interv2.edge) {
+    return std::max(interv1.begin, interv2.begin) <= std::min(interv1.end, interv2.end);
+  }
+
+  return false;
 }
 
 Edge IOPlacer::getEdge(std::string edge)
@@ -1050,14 +1073,9 @@ Direction IOPlacer::getDirection(std::string direction)
   return Direction::invalid;
 }
 
-void IOPlacer::addPinGroup(PinList* group)
+void IOPlacer::addPinGroup(PinGroup* group)
 {
   pin_groups_.push_back(*group);
-}
-
-void IOPlacer::addPinToList(odb::dbBTerm* pin, PinList* pin_group)
-{
-  pin_group->push_back(pin);
 }
 
 void IOPlacer::findPinAssignment(std::vector<Section>& sections)
@@ -1092,6 +1110,16 @@ void IOPlacer::findPinAssignment(std::vector<Section>& sections)
   }
 }
 
+void IOPlacer::updateSlots()
+{
+  for (Slot& slot : slots_) {
+    slot.blocked = slot.used;
+  }
+  for (Slot& slot : top_layer_slots_) {
+    slot.blocked = slot.used;
+  }
+}
+
 void IOPlacer::run(bool random_mode)
 {
   initParms();
@@ -1115,11 +1143,18 @@ void IOPlacer::run(bool random_mode)
     logger_->info(PPL, 3, "Random pin placement.");
     randomPlacement();
   } else {
-    assignConstrainedPinsToSections();
+    int constrained_pins_cnt = 0;
+    for (Constraint &constraint : constraints_) {
+      std::vector<Section> sections_for_constraint = assignConstrainedPinsToSections(constraint);
+      for (Section& sec : sections_for_constraint) {
+        constrained_pins_cnt += sec.net.numIOPins();
+      }
 
-    findPinAssignment(sections_for_constraints_);
+      findPinAssignment(sections_for_constraint);
+      updateSlots();
+    }
 
-    setupSections();
+    setupSections(constrained_pins_cnt);
 
     findPinAssignment(sections_);
   }
@@ -1271,9 +1306,9 @@ void IOPlacer::initCore(std::set<int> hor_layer_idxs,
 
 void IOPlacer::addTopLayerPinPattern(int layer, int x_step, int y_step,
                                      int llx, int lly, int urx, int ury,
-                                     int width, int height)
+                                     int width, int height, int keepout)
 {
-  top_grid_ = TopLayerGrid(layer, x_step, y_step, llx, lly, urx, ury, width, height);
+  top_grid_ = TopLayerGrid(layer, x_step, y_step, llx, lly, urx, ury, width, height, keepout);
 }
 
 void IOPlacer::findSlotsForTopLayer()
@@ -1284,14 +1319,90 @@ void IOPlacer::findSlotsForTopLayer()
         top_layer_slots_.push_back({false, false, Point(x, y), top_grid_.layer, Edge::invalid});
       }
     }
+
+    filterObstructedSlotsForTopLayer();
+  }
+}
+
+void IOPlacer::filterObstructedSlotsForTopLayer()
+{
+  // Collect top_grid_ obstructions
+  std::vector<odb::Rect> obstructions;
+
+  // Get routing obstructions
+  for (odb::dbObstruction* obstruction : block_->getObstructions()) {
+    odb::dbBox* box = obstruction->getBBox();
+    if (box->getTechLayer()->getRoutingLevel() == top_grid_.layer) {
+      odb::Rect obstruction_rect;
+      box->getBox(obstruction_rect);
+      obstructions.push_back(obstruction_rect);
+    }
+  }
+
+  // Get already routed special nets
+  for (odb::dbNet* net : block_->getNets()) {
+    if (net->isSpecial()) {
+      for (odb::dbSWire* swire : net->getSWires()) {
+        for (odb::dbSBox* wire : swire->getWires()) {
+          if (!wire->isVia()) {
+            if (wire->getTechLayer()->getRoutingLevel() == top_grid_.layer) {
+              odb::Rect obstruction_rect;
+              wire->getBox(obstruction_rect);
+              obstructions.push_back(obstruction_rect);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Get already placed pins
+  for (odb::dbBTerm* term : block_->getBTerms()) {
+    for (odb::dbBPin* pin : term->getBPins()) {
+      if (pin->getPlacementStatus().isFixed()) {
+        for (odb::dbBox* box : pin->getBoxes()) {
+          if (box->getTechLayer()->getRoutingLevel() == top_grid_.layer) {
+            odb::Rect obstruction_rect;
+            box->getBox(obstruction_rect);
+            obstructions.push_back(obstruction_rect);
+          }
+        }
+      }
+    }
+  }
+
+  // check for slots that go beyond the die boundary
+  odb::Rect die_area;
+  block_->getDieArea(die_area);
+  for (auto& slot : top_layer_slots_) {
+    odb::Point& point = slot.pos;
+    if (point.x() - top_grid_.width/2 < die_area.xMin()
+        || point.y() - top_grid_.height/2 < die_area.yMin()
+        || point.x() + top_grid_.width/2 > die_area.xMax()
+        || point.y() + top_grid_.height/2 > die_area.yMax()) {
+      // mark slot as blocked since it extends beyond the die area
+      slot.blocked = true;
+    }
+  }
+
+  // check for slots that overlap with obstructions
+  for (odb::Rect& rect : obstructions) {
+    for (auto& slot : top_layer_slots_) {
+      odb::Point& point = slot.pos;
+      // mock slot with keepout
+      odb::Rect pin_rect(point.x() - top_grid_.width/2  - top_grid_.keepout,
+                         point.y() - top_grid_.height/2 - top_grid_.keepout,
+                         point.x() + top_grid_.width/2  + top_grid_.keepout,
+                         point.y() + top_grid_.height/2 + top_grid_.keepout);
+      if (rect.intersects(pin_rect)) { // mark slot as blocked
+        slot.blocked = true;
+      }
+    }
   }
 }
 
 std::vector<Section> IOPlacer::findSectionsForTopLayer(const odb::Rect& region)
 {
-  const Point& lb = core_.getBoundary().ll();
-  const Point& ub = core_.getBoundary().ur();
-
   int lb_x = region.xMin();
   int lb_y = region.yMin();
   int ub_x = region.xMax();
@@ -1411,7 +1522,7 @@ void IOPlacer::initNetlist()
   }
 
   int group_idx = 0;
-  for (PinList pin_group : pin_groups_) {
+  for (PinGroup pin_group : pin_groups_) {
     int group_created = netlist_.createIOGroup(pin_group); 
     if(group_created == pin_group.size()) {
       group_idx++;

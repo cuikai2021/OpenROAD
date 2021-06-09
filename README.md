@@ -331,11 +331,12 @@ The `-location` defines the center of the pin.
 The `-pin_size` option defines the width and height of the pin.
 
 ```
-define_pin_shape_pattern {[-layer layer]
-                          [-x_step x_step]
-                          [-y_step y_step]
-                          [-region {llx lly urx ury}]
-                          [-size {width height}]
+define_pin_shape_pattern [-layer layer]
+                         [-x_step x_step]
+                         [-y_step y_step]
+                         [-region {llx lly urx ury}]
+                         [-size {width height}]
+                         [-pin_keepout dist]
 ```
 
 The `define_pin_shape_pattern` command defines a pin placement grid at the specified layer.
@@ -345,6 +346,7 @@ The `-region` option defines the {llx, lly, urx, ury} region of the placement gr
 The `-x_step` and `-y_step` options define the distance between each valid position on the grid.
 The `-size` option defines the width and height of the pins assigned to this grid. The center of the
 pins are placed on the grid positions. Pins may have half of their shapes outside the defined region.
+The `-pin_keepout` option defines the boundary (microns) around existing routing obstructions the pins should avoid, defaults to the `layer` minimum spacing.
 
 ```
 set_io_pin_constraint -direction direction -pin_names names -region edge:interval
@@ -930,3 +932,13 @@ Options description:
   the voltage value is obtained from operating conditions in the liberty.
 
 ###### Note: See the file [Vsrc_aes.loc file](https://github.com/The-OpenROAD-Project/PDNSim/blob/master/test/aes/Vsrc.loc) for an example with a description specified [here](https://github.com/The-OpenROAD-Project/PDNSim/blob/master/doc/Vsrc_description.md).
+
+#### TCL functions
+
+Get the die and core areas as a list in microns: "llx lly urx ury"
+
+```
+ord::get_die_area
+ord::get_core_area
+```
+

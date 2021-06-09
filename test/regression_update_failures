@@ -2,12 +2,6 @@
 # The next line is executed by /bin/sh, but not Tcl \
 exec tclsh $0 ${1+"$@"}
 
-set github_api_token $env(GITHUB_API_TOKEN)
-set assignee $env(ISSUE_ASSIGNEE)
-set trigger_from $env(TRIGGER_FROM)
-set git_head $env(GIT_HEAD)
-set regression_branch $env(REGRESSION_BRANCH)
-
 set test_dir [file dirname [file normalize [info script]]]
 
 source "$test_dir/json.tcl"
@@ -16,16 +10,9 @@ set openroad_dir [file dirname $test_dir]
 set curtime [clock clicks -milliseconds]
 set regression_name "regression-$curtime"
 set regression_dir "$openroad_dir/$regression_name"
-set ossurl "https://icbench-devops.oss-cn-shanghai.aliyuncs.com"
-set osspath "oss://icbench-devops"
 set failures_count 0
-set github_create_issue_url "https://api.github.com/repos/ICBench/Eden/issues"
-set devops_results_dir "$openroad_dir/devops_results"
-
-set github_create_pr_url "https://api.github.com/repos/ICBench/Eden/pulls"
-
 set gtest_output "gtest_output.json"
-
+set devops_results_dir "$openroad_dir/devops_results"
 
 
 array set all_test_dirs { ifp "src/ifp/test" dbSta "src/dbSta/test" ppl "src/ppl/test" \
@@ -34,36 +21,6 @@ TritonCTS "src/TritonCTS/test" dpl "src/dpl/test" psm "src/psm/test" grt "src/gr
 ant "src/ant/test" OpenDB "src/OpenDB/test" rcx "src/rcx/test" PartitionMgr "src/PartitionMgr/test" \
 TritonRoute "src/TritonRoute/test" }
 
-proc create_github_issue {} {
-    global regression_name;
-    global ossurl;
-    global github_create_issue_url;
-    global github_api_token;
-    global assignee;
-    global trigger_from;
-    global git_head;
-    global devops_results_dir;
-    
-    set download_url "$ossurl/$regression_name.tar.gz";
-
-    set title "$regression_name failure"
-    set body "from: $trigger_from \n head: $git_head \n failure_results: $download_url"
-
-    set json_body [json::stringify [dict create title "$title" body "$body" assignees "$assignee" labels "CI"] 0 { title string body string assignees array labels array}];
-    exec curl -s -H "Accept:application/vnd.github.v3+json" -H "Authorization:token $github_api_token" -X POST --data $json_body $github_create_issue_url  > "$devops_results_dir/create_issue_output.json";
-}
-
-proc create_github_pr_from_regression_to_master {} {
-    global regression_name;
-    global regression_branch;
-    global github_create_pr_url;
-    global devops_results_dir;
-    global github_api_token;
-
-    set title "$regression_name success"
-    set json_body [json::stringify [dict create title "$title" head "$regression_branch" base "master"] 0 { title string head string base string }];
-    exec curl -s -H "Accept:application/vnd.github.v3+json" -H "Authorization:token $github_api_token" -X POST --data $json_body $github_create_pr_url  > "$devops_results_dir/create_pr_output.json";
-}
 
 proc read_failures_item { failures_file } {
     set items [list];
@@ -124,7 +81,6 @@ proc update_failure_item { project test_dir failure_item} {
 
 proc update_failures { project test_dir } {
     global openroad_dir;
-    global osspath;
     global regression_dir;
     global failures_count;
     set project_dir "$regression_dir/$project/";
@@ -150,11 +106,12 @@ proc main {} {
     global all_test_dirs;
     global regression_dir;
     global regression_name;
-    global osspath;
     global failures_count;
     global gtest_output;
+    global devops_results_dir;
 
     exec mkdir -p $regression_dir;
+
     foreach { name dir } [array get all_test_dirs] {
         update_failures $name $dir;
     }
@@ -175,13 +132,8 @@ proc main {} {
 
     if { $gtest_failure_items > 0 || $failures_count > 0 } {
         exec tar -Pzcvf "$regression_name.tar.gz" $regression_name;
-        exec ossutil64 cp "$regression_name.tar.gz" $osspath;
-        create_github_issue;
-        exec rm -rf "$regression_dir";
-        exec rm -rf "$regression_name.tar.gz";
-    } else {
-        create_github_pr_from_regression_to_master;
-    }
+        exec mv "$regression_name.tar.gz" $devops_results_dir;
+    } 
 }
 
 main

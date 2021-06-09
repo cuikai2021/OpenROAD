@@ -27,4 +27,4 @@ coverage-output
 
 devops_results
 
-utest/*/*.py
+utest/*/test/results

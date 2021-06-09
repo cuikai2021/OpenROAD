@@ -304,49 +304,54 @@ proc cut_rows {db endcap_master blockages halo_x halo_y} {
     }
   }
   
+  # cut rows around macros
   foreach row $blocked_rows {
-    set row_name [$row getName]
-    set row_bb [$row getBBox]
-
-    set row_site [$row getSite]
-    set site_width [$row_site getWidth]
-    set orient [$row getOrient]
-    set direction [$row getDirection]
-
-    set start_origin_x [$row_bb xMin]
-    set start_origin_y [$row_bb yMin]
-
-    set curr_min_row_width [expr $min_row_width + 2*$site_width]
-
-    set row_blockage_bboxs [dict get $row_blockages $row_name]
-    set row_blockage_xs []
-    foreach row_blockage_bbox [dict get $row_blockages $row_name] {
-      lappend row_blockage_xs "[$row_blockage_bbox xMin] [$row_blockage_bbox xMax]"
-    }
-    set row_blockage_xs [lsort -integer -index 0 $row_blockage_xs]
-
-    set row_sub_idx 1
-    foreach blockage $row_blockage_xs {
-      lassign $blockage blockage_x0 blockage_x1
-      # ensure rows are an integer length of sitewidth
-      set new_row_end_x [make_site_loc [expr $blockage_x0 - $halo_x] $site_width -1 $start_origin_x]
-      build_row $block "${row_name}_$row_sub_idx" $row_site $start_origin_x $new_row_end_x $start_origin_y $orient $direction $curr_min_row_width
-      incr row_sub_idx
-      
-      set start_origin_x [make_site_loc [expr $blockage_x1 + $halo_x] $site_width 1 $start_origin_x]
-    }
-
-    # Make last row
-    build_row $block "${row_name}_$row_sub_idx" $row_site $start_origin_x [$row_bb xMax] $start_origin_y $orient $direction $curr_min_row_width
-    
-    # Remove current row
-    odb::dbRow_destroy $row
+    tap::cut_row $block $row $row_blockages $min_row_width $halo_x $halo_y
   }
 
   set cut_rows_count [expr [llength [$block getRows]]-$rows_count]
   utl::info TAP 1 "Macro blocks found: $block_count"
   utl::info TAP 2 "Original rows: $rows_count"
   utl::info TAP 3 "Created rows: $cut_rows_count"
+}
+
+proc cut_row {block row row_blockages min_row_width halo_x halo_y} {
+  set row_name [$row getName]
+  set row_bb [$row getBBox]
+
+  set row_site [$row getSite]
+  set site_width [$row_site getWidth]
+  set orient [$row getOrient]
+  set direction [$row getDirection]
+
+  set start_origin_x [$row_bb xMin]
+  set start_origin_y [$row_bb yMin]
+
+  set curr_min_row_width [expr $min_row_width + 2*$site_width]
+
+  set row_blockage_bboxs [dict get $row_blockages $row_name]
+  set row_blockage_xs []
+  foreach row_blockage_bbox [dict get $row_blockages $row_name] {
+    lappend row_blockage_xs "[$row_blockage_bbox xMin] [$row_blockage_bbox xMax]"
+  }
+  set row_blockage_xs [lsort -integer -index 0 $row_blockage_xs]
+
+  set row_sub_idx 1
+  foreach blockage $row_blockage_xs {
+    lassign $blockage blockage_x0 blockage_x1
+    # ensure rows are an integer length of sitewidth
+    set new_row_end_x [make_site_loc [expr $blockage_x0 - $halo_x] $site_width -1 $start_origin_x]
+    build_row $block "${row_name}_$row_sub_idx" $row_site $start_origin_x $new_row_end_x $start_origin_y $orient $direction $curr_min_row_width
+    incr row_sub_idx
+    
+    set start_origin_x [make_site_loc [expr $blockage_x1 + $halo_x] $site_width 1 $start_origin_x]
+  }
+
+  # Make last row
+  build_row $block "${row_name}_$row_sub_idx" $row_site $start_origin_x [$row_bb xMax] $start_origin_y $orient $direction $curr_min_row_width
+  
+  # Remove current row
+  odb::dbRow_destroy $row
 }
 
 proc insert_endcaps {db rows endcap_master cnrcap_masters prefix} {
@@ -385,6 +390,9 @@ proc insert_endcaps {db rows endcap_master cnrcap_masters prefix} {
 
   for {set cur_row $bottom_row} {$cur_row <= $top_row} {incr cur_row} {
     foreach subrow [lindex $rows $cur_row] {
+      if {![check_symmetry $endcap_master [$subrow getOrient]]} {
+        continue
+      }
       set row_bb [$subrow getBBox]
       set row_ori [$subrow getOrient]
 
@@ -561,6 +569,9 @@ proc insert_tapcells {db rows tapcell_master dist prefix force channel} {
     }
 
     foreach row $subrows {
+      if {![check_symmetry $master [$row getOrient]]} {
+        continue
+      }
       set site_x [[$row getSite] getWidth]
       set row_bb [$row getBBox]
       set llx [$row_bb xMin]
@@ -712,7 +723,7 @@ proc insert_at_top_bottom {db rows masters endcap_master prefix} {
       set x_start [expr $llx+$endcapwidth]
       set x_end [expr $urx-$endcapwidth]
 
-      insert_at_top_bottom_helper $block $cur_row $ori $x_start $x_end $lly $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $prefix
+      insert_at_top_bottom_helper $block $cur_row 0 $ori $x_start $x_end $lly $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $prefix
     }
   }
   set topbottom_cnt [expr $phy_idx - $start_phy_idx]
@@ -720,10 +731,11 @@ proc insert_at_top_bottom {db rows masters endcap_master prefix} {
   return $topbottom_cnt
 }
 
-proc insert_at_top_bottom_helper {block top_bottom ori x_start x_end lly tap_nwintie_master tap_nwin2_master tap_nwin3_master tap_nwouttie_master tap_nwout2_master tap_nwout3_master prefix} {
+proc insert_at_top_bottom_helper {block top_bottom is_macro ori x_start x_end lly tap_nwintie_master tap_nwin2_master tap_nwin3_master tap_nwouttie_master tap_nwout2_master tap_nwout3_master prefix} {
   if {$top_bottom == 1} {
     # top
-    if { $ori == "MX" } {
+    if {($ori == "R0" && $is_macro) || \
+        ($ori == "MX" && !$is_macro)} {
       set master $tap_nwintie_master
       set tb2_master $tap_nwin2_master
       set tb3_master $tap_nwin3_master
@@ -734,7 +746,8 @@ proc insert_at_top_bottom_helper {block top_bottom ori x_start x_end lly tap_nwi
     }
   } else {
     # bottom
-    if { $ori == "R0" } {
+    if {($ori == "MX" && $is_macro) || \
+        ($ori == "R0" && !$is_macro)} {
       set master $tap_nwintie_master
       set tb2_master $tap_nwin2_master
       set tb3_master $tap_nwin3_master
@@ -758,7 +771,9 @@ proc insert_at_top_bottom_helper {block top_bottom ori x_start x_end lly tap_nwi
   #insert tb tie
   set x $x_start
   for {set n 0} {$n < $tbtiecount} {incr n} {
-    build_cell $block $master $ori $x $lly $prefix
+    if {[check_symmetry $master $ori]} {
+      build_cell $block $master $ori $x $lly $prefix
+    }
     set x [expr $x+$tbtiewidth]
   }
 
@@ -772,13 +787,17 @@ proc insert_at_top_bottom_helper {block top_bottom ori x_start x_end lly tap_nwi
   
   # fill with 3s
   for {set n 0} {$n < $tb3tiecount} {incr n} {
-    build_cell $block $tb3_master $ori $x $lly $prefix
+    if {[check_symmetry $tb3_master $ori]} {
+      build_cell $block $tb3_master $ori $x $lly $prefix
+    }
     set x [expr $x+$tap3_master_width]
   }
   
   # fill with 2s
   for {} {$x < $x_end} {set x [expr $x+$tap2_master_width]} {
-    build_cell $block $tb2_master $ori $x $lly $prefix
+    if {[check_symmetry $tb2_master $ori]} {
+      build_cell $block $tb2_master $ori $x $lly $prefix
+    }
   }
 }
 
@@ -856,7 +875,7 @@ proc insert_around_macros {db rows masters corner_master prefix} {
           set row_end [expr $row_end - $corner_cell_width]
         }
         # do top row
-        insert_at_top_bottom_helper $block 1 $top_row_ori $row_start $row_end $top_row_y $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $prefix
+        insert_at_top_bottom_helper $block 1 1 $top_row_ori $row_start $row_end $top_row_y $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $prefix
         
         # do corners
         if { $top_row_ori == "R0" } {
@@ -868,9 +887,13 @@ proc insert_around_macros {db rows masters corner_master prefix} {
         }
         
         # NE corner
-        build_cell $block $incnr_master $top_row_ori [expr $x_start - [$incnr_master getWidth]] $top_row_y $prefix
+        if {[check_symmetry $incnr_master $top_row_ori]} {
+          build_cell $block $incnr_master $top_row_ori $x_end $top_row_y $prefix
+        }
         # NW corner
-        build_cell $block $incnr_master $west_ori $x_end $top_row_y $prefix
+        if {[check_symmetry $incnr_master $west_ori]} {
+          build_cell $block $incnr_master $west_ori [expr $x_start - [$incnr_master getWidth]] $top_row_y $prefix
+        }
       }
       if {$bot_row >= 1} {
         set bot_row_inst [lindex $rows $bot_row 0]
@@ -889,7 +912,7 @@ proc insert_around_macros {db rows masters corner_master prefix} {
         }
         
         # do bottom row
-        insert_at_top_bottom_helper $block 0 $bot_row_ori $row_start $row_end $bot_row_y $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $prefix
+        insert_at_top_bottom_helper $block 0 1 $bot_row_ori $row_start $row_end $bot_row_y $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $prefix
         
         # do corners
         if { $bot_row_ori == "MX" } {
@@ -901,9 +924,13 @@ proc insert_around_macros {db rows masters corner_master prefix} {
         }
         
         # SE corner
-        build_cell $block $incnr_master $bot_row_ori [expr $x_start - [$incnr_master getWidth]] $bot_row_y $prefix
+        if {[check_symmetry $incnr_master $bot_row_ori]} {
+          build_cell $block $incnr_master $bot_row_ori $x_end $bot_row_y $prefix
+        }
         # SW corner
-        build_cell $block $incnr_master $west_ori $x_end $bot_row_y $prefix
+        if {[check_symmetry $incnr_master $west_ori]} {
+          build_cell $block $incnr_master $west_ori [expr $x_start - [$incnr_master getWidth]] $bot_row_y $prefix
+        }
       }
     }
   }
@@ -1059,6 +1086,7 @@ proc build_cell {block master orientation x y prefix} {
   $inst setOrient $orientation
   $inst setLocation $x $y
   $inst setPlacementStatus LOCKED
+  $inst setSourceType DIST
 
   set inst_bb [$inst getBBox]
 
@@ -1123,6 +1151,29 @@ proc remove_cells {prefix} {
   }
 
   return $removed
+}
+
+proc check_symmetry {master ori} {
+  set symmetry_x [$master getSymmetryX]
+  set symmetry_y [$master getSymmetryY]
+
+  switch $ori {
+    R0 {
+      return 1
+    }
+    MX {
+      return $symmetry_x
+    }
+    MY {
+      return $symmetry_y
+    }
+    R180 {
+      return [expr $symmetry_x && $symmetry_y]
+    }
+    default {
+      return 0
+    }
+  }
 }
 
 # namespace end
