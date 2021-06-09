@@ -465,7 +465,7 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
   decoder.begin(wire);
   odb::dbWireDecoder::OpCode pathId = decoder.next();
   while (pathId != odb::dbWireDecoder::END_DECODE) {
-    layerName = "";
+    layerName = decoder.getLayer()->getName();
     viaName = "";
     shape = "";
     hasBeginPoint = false;
@@ -527,7 +527,6 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
           viaName = decoder.getTechVia()->getName();
           break;
         case odb::dbWireDecoder::RECT:
-          layerName = decoder.getLayer()->getName();
           decoder.getRect(left, bottom, right, top);
           left = defdist(left);
           bottom = defdist(bottom);
@@ -551,7 +550,26 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
   if (hasRect) {
     addBox(layerName, left, bottom, right, top);
   }
+  if (hasEndPoint) {
+    bool isHorizontal = true;
+    if (beginX == endX) {
+      isHorizontal = false;
+    }
 
+    if (isHorizontal) {
+      addBox(layerName,
+             beginX - beginExt,
+             beginY - width / 2,
+             endX + endExt,
+             endY + width / 2);
+    } else {
+      addBox(layerName,
+             beginX - width / 2,
+             beginY - beginExt,
+             endX + width / 2,
+             endY + endExt);
+    }
+  }
   if (viaName != "") {
     int x, y;
     if (hasEndPoint) {
@@ -568,6 +586,22 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
 void OpenDBAdapter::getPinsFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
+  int boxIndexBegin = addedBoxIndex_;
+  int viaIndexBegin = addedViaIndex_;
+  for (auto blockage : block->getObstructions()) {
+    auto layerName = blockage->getBBox()->getTechLayer()->getName();
+    int xl = blockage->getBBox()->xMin();
+    int yl = blockage->getBBox()->yMin();
+    int xh = blockage->getBBox()->xMax();
+    int yh = blockage->getBBox()->yMax();
+    addBox(layerName, xl, yl, xh, yh);
+  }
+  pins_.push_back({copy_string("pin_blockage"),
+                   (size_t) boxIndexBegin,
+                   (size_t) calLastIndex(addedBoxIndex_),
+                   (size_t) viaIndexBegin,
+                   (size_t) calLastIndex(addedViaIndex_)});
+  addedPinIndex_++;
 
   auto nets = block->getNets();
   for (auto net : nets) {
@@ -580,8 +614,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
     const auto netBTerms = net->getBTerms();
     for (auto bTerm : netBTerms) {
-      int boxIndexBegin = addedBoxIndex_;
-      int viaIndexBegin = addedViaIndex_;
+      boxIndexBegin = addedBoxIndex_;
+      viaIndexBegin = addedViaIndex_;
 
       for (auto bPin : bTerm->getBPins()) {
         for (auto box : bPin->getBoxes()) {
@@ -604,8 +638,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
     const auto netITerms = net->getITerms();
     for (auto iTerm : netITerms) {
-      int boxIndexBegin = addedBoxIndex_;
-      int viaIndexBegin = addedViaIndex_;
+      boxIndexBegin = addedBoxIndex_;
+      viaIndexBegin = addedViaIndex_;
       auto inst = iTerm->getInst();
       auto mTerm = iTerm->getMTerm();
 
@@ -638,8 +672,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
-      int boxIndexBegin = addedBoxIndex_;
-      int viaIndexBegin = addedViaIndex_;
+      boxIndexBegin = addedBoxIndex_;
+      viaIndexBegin = addedViaIndex_;
       addWire(net->getWire());
 
       pins_.push_back({copy_string(nName + "_wire"),
@@ -651,8 +685,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
     }
 
     if (net->isSpecial()) {
-      int boxIndexBegin = addedBoxIndex_;
-      int viaIndexBegin = addedViaIndex_;
+      boxIndexBegin = addedBoxIndex_;
+      viaIndexBegin = addedViaIndex_;
       for (auto swire : net->getSWires()) {
         for (auto box : swire->getWires()) {
           if (!box->isVia()) {
@@ -662,7 +696,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
           }
         }
       }
-      pins_.push_back({copy_string(nName + "_special"),
+      pins_.push_back({copy_string(nName + "_special_wire"),
                        (size_t) boxIndexBegin,
                        (size_t) calLastIndex(addedBoxIndex_),
                        (size_t) viaIndexBegin,
