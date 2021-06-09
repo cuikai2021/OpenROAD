@@ -5,7 +5,7 @@ jobs:
   relesase-eden-regressions-docker:
     runs-on: [self-hosted]
     env:
-      COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/icbench-devops/coverage-results/${{ github.run_number }}
+      COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/coverage_results/${{ github.run_number }}
 
     steps:
         - name: checkout
@@ -56,11 +56,11 @@ jobs:
           if: ${{ success() }}
           run: ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }} ${{ env.env_CODE_COVERAGE_PATH }} ${{ env.env_REGRESSION_ENV }}
 
-        - name: package ./coverage-result
+        - name: package ./coverage_results
           run: |
-            tar -zcvf coverage-result.tar.gz coverage-results
+            tar -zcvf coverage-result.tar.gz coverage_results
         - name: upload coverage result
-          run: ossutil cp -rf coverage-result.tar.gz oss://icbench-devops/coverage-results/${{ github.run_number }}/
+          run: ossutil cp -rf coverage-result.tar.gz oss://icbench-devops/coverage_results/${{ github.run_number }}/
 
         - if: ${{ success() }}
           run: |
@@ -81,7 +81,7 @@ jobs:
               echo ${{ env.REGRESSION_FAILURES_FILE }}
  
         - if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
-          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression-results/${{ github.run_number }}
+          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}
 
         - name: success pull request
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' }}
@@ -124,7 +124,7 @@ jobs:
 
                The action sha value is ${{ env.env_EVENT_AFTER }}
 
-               The regression failure info can be downloaded from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/${{ env.REGRESSION_FAILURES_FILE }} 
+               The regression failure info can be downloaded from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/regression_results/${{ github.run_number }}/${{ env.REGRESSION_FAILURES_FILE }} 
                
                The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result.tar.gz
           env:
