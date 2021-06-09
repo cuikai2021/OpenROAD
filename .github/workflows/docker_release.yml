@@ -45,6 +45,10 @@ jobs:
             username: ${{ secrets.DOCKER_HUB_USERNAME }}
             password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
+        - run: |
+            EDEN_GIT_SHA1=`git rev-parse HEAD`
+            echo "EDEN_GIT_SHA1=$EDEN_GIT_SHA1" >> $GITHUB_ENV
+            
         - name: build and push docker
           uses: docker/build-push-action@v2
           with:
@@ -55,6 +59,7 @@ jobs:
             build-args: |
               FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
               YOSYS_IMAGE_TAG=${{ env.YOSYS_ENV }}
+              EDEN_GIT_SHA1=${{ env.EDEN_GIT_SHA1 }}
             file: docker/Dockerfile.release
             push: true
             tags: ${{ env.RELEASE_ENV }}
