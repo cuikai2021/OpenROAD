@@ -162,8 +162,6 @@ class TritonCTS_HTreeBuilder : public ::testing::Test
   void incrementNumClocks() { numberOfClocks = numberOfClocks + 1; }
 
  protected:
-  const char* logFile = TEST_FILES_PATH "/h_tree_builder.log";
-  const char* okFile = TEST_OK_FILES_PATH "/h_tree_builder.ok";
   std::set<odb::dbNet*> visitedClockNets;
   unsigned numberOfClocks = 0;
   std::set<odb::dbNet*> staClockNets;
@@ -292,7 +290,7 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
   sta::dbSta* openSta = nullptr;
   odb::dbBlock* block = nullptr;
   ord::OpenRoad* openRoad = ord::OpenRoad::openRoad();
-  auto logger = std::make_shared<Logger>(logFile);
+  auto logger = std::make_shared<Logger>();
 
   unsigned outCap = 0;
   unsigned outSlew = 0;
@@ -302,8 +300,6 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
   const char* defName = "utest/TritonCTS/test/clustered_test.def";
   const char* lefName = "src/TritonCTS/test/Nangate45/Nangate45.lef";
   const char* libName = "src/TritonCTS/test/Nangate45/Nangate45_typ.lib";
-
-  remove(logFile);
 
   // Setup the app with tcl
   auto* interp = Tcl_CreateInterp();  // no need to free it manually
@@ -394,13 +390,6 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
   for (auto builder : _builder) {
     builder->setTechChar(*tech);
     builder->run();
-  }
-  // run level balancer
-  for (TreeBuilder* builder : _builder) {
-    if (!builder->getParent() && builder->getChildren().size()) {
-      LevelBalancer balancer(builder, options, logger.get());
-      balancer.run();
-    }
   }
   _builder[0]->plotSolution();
   system("mv plot0.py " TEST_FILES_PATH "/plot0.py");
