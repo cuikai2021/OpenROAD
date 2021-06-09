@@ -12,7 +12,7 @@ FROM ${YOSYS_IMAGE_TAG} AS yosys_stage
 
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG}
-RUN apt install -y libreadline8 klayout
+RUN apt install -y libreadline8 klayout libffi6 && ln -s /lib/x86_64-linux-gnu/libreadline.so.8 /lib/x86_64-linux-gnu/libreadline.so.6
 COPY --from=yosys_stage /yosys/yosys* /usr/local/bin
 COPY --from=build_stage /Eden/build/src/eden /usr/local/bin
 WORKDIR /Eden
