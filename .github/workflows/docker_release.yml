@@ -11,8 +11,9 @@ on:
 
 env:
   RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}
-  YOYSY_ENV: registry.cn-shanghai.aliyuncs.com/openroad/yosys:0207
+  YOSYS_ENV: registry.cn-shanghai.aliyuncs.com/openroad/yosys:0207
   DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
+
 jobs:
   release:
     runs-on: [self-hosted]
