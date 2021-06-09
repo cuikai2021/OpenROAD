@@ -1,7 +1,8 @@
 #include <HTreeBuilder.h>
+#include <LevelBalancer.h>
+#include <SinkClustering.h>
 #include <itest.h>
 #include <tritoncts/TritonCTS.h>
-#include <SinkClustering.h>
 
 #include "Clock.h"
 #include "CtsOptions.h"
@@ -161,8 +162,6 @@ class TritonCTS_HTreeBuilder : public ::testing::Test
   void incrementNumClocks() { numberOfClocks = numberOfClocks + 1; }
 
  protected:
-  const char* logFile = TEST_FILES_PATH "/h_tree_builder.log";
-  const char* okFile = TEST_OK_FILES_PATH "/h_tree_builder.ok";
   std::set<odb::dbNet*> visitedClockNets;
   unsigned numberOfClocks = 0;
   std::set<odb::dbNet*> staClockNets;
@@ -291,7 +290,7 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
   sta::dbSta* openSta = nullptr;
   odb::dbBlock* block = nullptr;
   ord::OpenRoad* openRoad = ord::OpenRoad::openRoad();
-  auto logger = std::make_shared<Logger>(logFile);
+  auto logger = std::make_shared<Logger>();
 
   unsigned outCap = 0;
   unsigned outSlew = 0;
@@ -302,8 +301,6 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
   const char* lefName = "src/TritonCTS/test/Nangate45/Nangate45.lef";
   const char* libName = "src/TritonCTS/test/Nangate45/Nangate45_typ.lib";
 
-  remove(logFile);
-
   // Setup the app with tcl
   auto* interp = Tcl_CreateInterp();  // no need to free it manually
   Tcl_Init(interp);
@@ -311,10 +308,8 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
 
   openRoad->init(interp);
   // read pdk incase runtime error
-  openRoad->getSta()->readLiberty(libName,
-                                  openRoad->getSta()->cmdCorner(),
-                                  sta::MinMaxAll::all(),
-                                  true);
+  openRoad->getSta()->readLiberty(
+      libName, openRoad->getSta()->cmdCorner(), sta::MinMaxAll::all(), true);
   openRoad->readLef(lefName, "test", true, true);
   openRoad->readDef(defName, false, false, false);
 
@@ -409,9 +404,27 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
                                                 outSlew),
             24);
 
-  
+  // test no argument sink clustering by the way
+  // it will match points into pair of lowest cost
+  SinkClustering matching(options, tech);
+
+  for (float i = 0.0f; i < 10; ++i) {
+    for (float j = 0.0f; j < 10; ++j) {
+      matching.addPoint(i, j);
+      if ((i + j) > 10)
+        matching.addCap(options->getSinkBufferInputCap());
+      else
+        matching.addCap(1.0f);
+    }
+  }
+  matching.run();
+  system("mv plot.py " TEST_FILES_PATH "/plot_sink_clustering_no_arg.py");
+
   EXPECT_FILE_EQ(TEST_FILES_PATH "/plot0.py", TEST_OK_FILES_PATH "/plot0.ok");
-  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot_sink_clustering.py", TEST_OK_FILES_PATH "/plot_sink_clustering.ok");
+  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot_sink_clustering.py",
+                 TEST_OK_FILES_PATH "/plot_sink_clustering.ok");
+  EXPECT_FILE_EQ(TEST_FILES_PATH "/plot_sink_clustering_no_arg.py",
+                 TEST_OK_FILES_PATH "/plot_sink_clustering_no_arg.ok");
 
   // clear all data
   openRoad->getDb()->clear();
