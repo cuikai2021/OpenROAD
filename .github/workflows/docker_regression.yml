@@ -14,7 +14,7 @@ jobs:
             submodules: true
         
         - name: download from aliyun
-          uses: manyuanrong/setup-ossutil@v2.0
+          uses: manyuanrong/setup-ossutil@v2.0 
           with:
             endpoint: "oss-cn-shanghai.aliyuncs.com"
             access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
@@ -58,9 +58,9 @@ jobs:
 
         - name: package ./coverage_results
           run: |
-            tar -zcvf coverage-result.tar.gz coverage_results
+            tar -zcvf coverage-result-${{ github.run_number }}.tar.gz coverage_results
         - name: upload coverage result
-          run: ossutil cp -rf coverage-result.tar.gz oss://icbench-devops/coverage_results/${{ github.run_number }}/
+          run: ossutil cp -rf coverage-result-${{ github.run_number }}.tar.gz oss://icbench-devops/coverage_results/${{ github.run_number }}/
 
         - if: ${{ success() }}
           run: |
@@ -102,7 +102,7 @@ jobs:
 
                The action sha value is ${{ env.env_EVENT_AFTER }}
                
-               The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result.tar.gz
+               The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
@@ -126,6 +126,6 @@ jobs:
 
                The regression failure info can be downloaded from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/regression_results/${{ github.run_number }}/${{ env.REGRESSION_FAILURES_FILE }} 
                
-               The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result.tar.gz
+               The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
