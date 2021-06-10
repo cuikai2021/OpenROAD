@@ -4,6 +4,8 @@ ARG YOSYS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS build_stage
 COPY . /Eden
 WORKDIR /Eden
+
+ARG EDEN_GIT_SHA1
 RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
 
 ARG DEPS_IMAGE_TAG
