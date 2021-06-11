@@ -59,6 +59,108 @@ using sta::OperatingConditions;
 using odb::dbInst;
 using odb::dbMasterType;
 
+////////////////////////////////////////////////////////////////
+
+void
+Resizer::setLayerRC(dbTechLayer *layer,
+                    const Corner *corner,
+                    double res,
+                    double cap)
+{
+  if (layer_res_.empty()) {
+    int layer_count = db_->getTech()->getLayerCount();
+    int corner_count = sta_->corners()->count();
+    layer_res_.resize(layer_count);
+    layer_cap_.resize(layer_count);
+    for (int i = 0; i < layer_count; i++) {
+      layer_res_[i].resize(corner_count);
+      layer_cap_[i].resize(corner_count);
+    }
+  }
+
+  layer_res_[layer->getNumber()][corner->index()] = res;
+  layer_cap_[layer->getNumber()][corner->index()] = cap;
+}
+
+void
+Resizer::layerRC(dbTechLayer *layer,
+                 const Corner *corner,
+                 // Return values.
+                 double &res,
+                 double &cap)
+{
+  if (layer_res_.empty()) {
+    res = 0.0;
+    cap = 0.0;
+  }
+  else {
+    res = layer_res_[layer->getNumber()][corner->index()];
+    cap = layer_cap_[layer->getNumber()][corner->index()];
+  }
+}
+
+////////////////////////////////////////////////////////////////
+
+void
+Resizer::setWireSignalRC(const Corner *corner,
+                         double res,
+                         double cap)
+{
+  wire_signal_res_.resize(sta_->corners()->count());
+  wire_signal_cap_.resize(sta_->corners()->count());
+  wire_signal_res_[corner->index()] = res;
+  wire_signal_cap_[corner->index()] = cap;
+}
+
+double
+Resizer::wireSignalResistance(const Corner *corner)
+{
+  if (wire_signal_res_.empty())
+    return 0.0;
+  else
+    return wire_signal_res_[corner->index()];
+}
+
+double
+Resizer::wireSignalCapacitance(const Corner *corner)
+{
+  if (wire_signal_cap_.empty())
+    return 0.0;
+  else
+    return wire_signal_cap_[corner->index()];
+}
+
+void
+Resizer::setWireClkRC(const Corner *corner,
+                      double res,
+                      double cap)
+{
+  wire_clk_res_.resize(sta_->corners()->count());
+  wire_clk_cap_.resize(sta_->corners()->count());
+  wire_clk_res_[corner->index()] = res;
+  wire_clk_cap_[corner->index()] = cap;
+}
+
+double
+Resizer::wireClkResistance(const Corner *corner)
+{
+  if (wire_clk_res_.empty())
+    return 0.0;
+  else
+    return wire_clk_res_[corner->index()];
+}
+
+double
+Resizer::wireClkCapacitance(const Corner *corner)
+{
+  if (wire_clk_cap_.empty())
+    return 0.0;
+  else
+    return wire_clk_cap_[corner->index()];
+}
+
+////////////////////////////////////////////////////////////////
+
 void
 Resizer::ensureWireParasitics()
 {
@@ -87,9 +189,12 @@ Resizer::ensureWireParasitic(const Net *net)
     if (drivers && !drivers->empty()) {
       PinSet::Iterator drvr_iter(drivers);
       Pin *drvr_pin = drvr_iter.next();
+      // Sufficient to check for parasitic for one corner because
+      // they are all made at the same time.
+      const Corner *corner = sta_->corners()->findCorner(0);
+      const ParasiticAnalysisPt *parasitic_ap = corner->findParasiticAnalysisPt(max_);
       if (parasitics_invalid_.hasKey(net)
-          || parasitics_->findPiElmore(drvr_pin, RiseFall::rise(),
-                                       parasitics_ap_) == nullptr)
+          || parasitics_->findPiElmore(drvr_pin,RiseFall::rise(),parasitic_ap) == nullptr)
         estimateWireParasitic(net);
     }
   }
@@ -99,26 +204,27 @@ void
 Resizer::ensureWireParasitic(const Pin *drvr_pin,
                              const Net *net)
 {
+  // Sufficient to check for parasitic for one corner because
+  // they are all made at the same time.
+  const Corner *corner = sta_->corners()->findCorner(0);
+  const ParasiticAnalysisPt *parasitic_ap = corner->findParasiticAnalysisPt(max_);
   if (have_estimated_parasitics_
       && net
       && (parasitics_invalid_.hasKey(net)
           || parasitics_->findPiElmore(drvr_pin, RiseFall::rise(),
-                                       parasitics_ap_) == nullptr)) {
-      estimateWireParasitic(net);
-      parasitics_invalid_.erase(net);
+                                       parasitic_ap) == nullptr)) {
+    estimateWireParasitic(net);
+    parasitics_invalid_.erase(net);
   }
 }
 
 void
 Resizer::estimateWireParasitics()
 {
-  if (wire_cap_ > 0.0) {
+  if (!wire_signal_cap_.empty()) {
     sta_->ensureClkNetwork();
-
-    sta_->deleteParasitics();
-    corner_ = sta_->cmdCorner();
-    sta_->corners()->makeParasiticAnalysisPtsSingle();
-    parasitics_ap_ = corner_->findParasiticAnalysisPt(MinMax::max());
+    // Make separate parasitics for each corner, same for min/max.
+    sta_->setParasiticAnalysisPts(true, false);
 
     NetIterator *net_iter = network_->netIterator(network_->topInstance());
     while (net_iter->hasNext()) {
@@ -139,7 +245,7 @@ Resizer::estimateWireParasitic(const Net *net)
     if (isPadNet(net))
       // When an input port drives a pad instance with huge input
       // cap the elmore delay is gigantic. Annotate with zero
-      // wire capacitance to prevent wireload model parasitics.
+      // wire capacitance to prevent wireload model parasitics from being used.
       makePadParasitic(net);
     else
       estimateWireParasiticSteiner(net);
@@ -163,18 +269,21 @@ Resizer::makePadParasitic(const Net *net)
 {
   const Pin *pin1, *pin2;
   net2Pins(net, pin1, pin2);
-  Parasitic *parasitic = sta_->makeParasiticNetwork(net, false, parasitics_ap_);
-  ParasiticNode *n1 = parasitics_->ensureParasiticNode(parasitic, pin1);
-  ParasiticNode *n2 = parasitics_->ensureParasiticNode(parasitic, pin2);
+  for (Corner *corner : *sta_->corners()) {
+    const ParasiticAnalysisPt *parasitics_ap = corner->findParasiticAnalysisPt(max_);
+    Parasitic *parasitic = sta_->makeParasiticNetwork(net, false, parasitics_ap);
+    ParasiticNode *n1 = parasitics_->ensureParasiticNode(parasitic, pin1);
+    ParasiticNode *n2 = parasitics_->ensureParasiticNode(parasitic, pin2);
 
-  // Use a small resistor to keep the connectivity intact.
-  parasitics_->makeResistor(nullptr, n1, n2, .001, parasitics_ap_);
+    // Use a small resistor to keep the connectivity intact.
+    parasitics_->makeResistor(nullptr, n1, n2, .001, parasitics_ap);
 
-  ReducedParasiticType reduce_to = sta_->arcDelayCalc()->reducedParasiticType();
-  const OperatingConditions *op_cond = sdc_->operatingConditions(MinMax::max());
-  parasitics_->reduceTo(parasitic, net, reduce_to, op_cond,
-                        corner_, MinMax::max(), parasitics_ap_);
-  parasitics_->deleteParasiticNetwork(net, parasitics_ap_);
+    ReducedParasiticType reduce_to = sta_->arcDelayCalc()->reducedParasiticType();
+    const OperatingConditions *op_cond = sdc_->operatingConditions(max_);
+    parasitics_->reduceTo(parasitic, net, reduce_to, op_cond,
+                          corner, max_, parasitics_ap);
+    parasitics_->deleteParasiticNetwork(net, parasitics_ap);
+  }
 }
 
 void
@@ -184,48 +293,53 @@ Resizer::estimateWireParasiticSteiner(const Net *net)
   if (tree) {
     debugPrint(logger_, RSZ, "resizer_parasitics", 1, "estimate wire {}",
                sdc_network_->pathName(net));
-    Parasitic *parasitic = sta_->makeParasiticNetwork(net, false, parasitics_ap_);
-    bool is_clk = sta_->isClock(net);
-    int branch_count = tree->branchCount();
-    for (int i = 0; i < branch_count; i++) {
-      Point pt1, pt2;
-      Pin *pin1, *pin2;
-      SteinerPt steiner_pt1, steiner_pt2;
-      int wire_length_dbu;
-      tree->branch(i,
-                   pt1, pin1, steiner_pt1,
-                   pt2, pin2, steiner_pt2,
-                   wire_length_dbu);
-      ParasiticNode *n1 = findParasiticNode(tree, parasitic, net, pin1, steiner_pt1);
-      ParasiticNode *n2 = findParasiticNode(tree, parasitic, net, pin2, steiner_pt2);
-      if (n1 != n2) {
-        if (wire_length_dbu == 0)
-          // Use a small resistor to keep the connectivity intact.
-          parasitics_->makeResistor(nullptr, n1, n2, 1.0e-3, parasitics_ap_);
-        else {
-          float wire_length = dbuToMeters(wire_length_dbu);
-          float wire_cap = wire_length * (is_clk ? wire_clk_cap_ : wire_cap_);
-          float wire_res = wire_length * (is_clk ? wire_clk_res_ : wire_res_);
-          // Make pi model for the wire.
-          debugPrint(logger_, RSZ, "resizer_parasitics", 2,
-                     " pi {} l={} c2={} rpi={} c1={} {}",
-                     parasitics_->name(n1),
-                     units_->distanceUnit()->asString(wire_length),
-                     units_->capacitanceUnit()->asString(wire_cap / 2.0),
-                     units_->resistanceUnit()->asString(wire_res),
-                     units_->capacitanceUnit()->asString(wire_cap / 2.0),
-                     parasitics_->name(n2));
-          parasitics_->incrCap(n1, wire_cap / 2.0, parasitics_ap_);
-          parasitics_->makeResistor(nullptr, n1, n2, wire_res, parasitics_ap_);
-          parasitics_->incrCap(n2, wire_cap / 2.0, parasitics_ap_);
+    for (Corner *corner : *sta_->corners()) {
+      const ParasiticAnalysisPt *parasitics_ap = corner->findParasiticAnalysisPt(max_);
+      Parasitic *parasitic = sta_->makeParasiticNetwork(net, false, parasitics_ap);
+      bool is_clk = sta_->isClock(net);
+      double wire_cap=is_clk ? wireClkCapacitance(corner) : wireSignalCapacitance(corner);
+      double wire_res=is_clk ? wireClkResistance(corner) : wireSignalResistance(corner);
+      int branch_count = tree->branchCount();
+      for (int i = 0; i < branch_count; i++) {
+        Point pt1, pt2;
+        Pin *pin1, *pin2;
+        SteinerPt steiner_pt1, steiner_pt2;
+        int wire_length_dbu;
+        tree->branch(i,
+                     pt1, pin1, steiner_pt1,
+                     pt2, pin2, steiner_pt2,
+                     wire_length_dbu);
+        ParasiticNode *n1 = findParasiticNode(tree, parasitic, net, pin1, steiner_pt1);
+        ParasiticNode *n2 = findParasiticNode(tree, parasitic, net, pin2, steiner_pt2);
+        if (n1 != n2) {
+          if (wire_length_dbu == 0)
+            // Use a small resistor to keep the connectivity intact.
+            parasitics_->makeResistor(nullptr, n1, n2, 1.0e-3, parasitics_ap);
+          else {
+            double length = dbuToMeters(wire_length_dbu);
+            double cap = length * wire_cap;
+            double res = length * wire_res;
+            // Make pi model for the wire.
+            debugPrint(logger_, RSZ, "resizer_parasitics", 2,
+                       " pi {} l={} c2={} rpi={} c1={} {}",
+                       parasitics_->name(n1),
+                       units_->distanceUnit()->asString(length),
+                       units_->capacitanceUnit()->asString(cap / 2.0),
+                       units_->resistanceUnit()->asString(res),
+                       units_->capacitanceUnit()->asString(cap / 2.0),
+                       parasitics_->name(n2));
+            parasitics_->incrCap(n1, cap / 2.0, parasitics_ap);
+            parasitics_->makeResistor(nullptr, n1, n2, res, parasitics_ap);
+            parasitics_->incrCap(n2, cap / 2.0, parasitics_ap);
+          }
         }
       }
+      ReducedParasiticType reduce_to = ReducedParasiticType::pi_elmore;
+      const OperatingConditions *op_cond = sdc_->operatingConditions(max_);
+      parasitics_->reduceTo(parasitic, net, reduce_to, op_cond,
+                            corner, max_, parasitics_ap);
+      parasitics_->deleteParasiticNetwork(net, parasitics_ap);
     }
-    ReducedParasiticType reduce_to = ReducedParasiticType::pi_elmore;
-    const OperatingConditions *op_cond = sdc_->operatingConditions(MinMax::max());
-    parasitics_->reduceTo(parasitic, net, reduce_to, op_cond,
-                          corner_, MinMax::max(), parasitics_ap_);
-    parasitics_->deleteParasiticNetwork(net, parasitics_ap_);
     delete tree;
   }
 }
@@ -310,22 +424,6 @@ Resizer::findParasiticNode(SteinerTree *tree,
     return parasitics_->ensureParasiticNode(parasitic, pin);
   else 
     return parasitics_->ensureParasiticNode(parasitic, net, steiner_pt);
-}
-
-bool
-Resizer::hasTopLevelPort(const Net *net)
-{
-  bool has_top_level_port = false;
-  NetConnectedPinIterator *pin_iter = network_->connectedPinIterator(net);
-  while (pin_iter->hasNext()) {
-    Pin *pin = pin_iter->next();
-    if (network_->isTopLevelPort(pin)) {
-      has_top_level_port = true;
-      break;
-    }
-  }
-  delete pin_iter;
-  return has_top_level_port;
 }
 
 void

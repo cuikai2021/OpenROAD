@@ -38,13 +38,12 @@ sta::define_cmd_args "initialize_floorplan" {[-utilization util]\
 					       [-core_space space | {bottom top left right}]\
 					       [-die_area {lx ly ux uy}]\
 					       [-core_area {lx ly ux uy}]\
-					       [-site site_name]\
-					       [-tracks tracks_file]}
+					       [-site site_name]}
 
 proc initialize_floorplan { args } {
   sta::parse_key_args "initialize_floorplan" args \
     keys {-utilization -aspect_ratio -core_space \
-	    -die_area -core_area -site -tracks} \
+	    -die_area -core_area -site} \
     flags {}
 
   sta::check_argc_eq0 "initialize_floorplan" $args
@@ -55,11 +54,6 @@ proc initialize_floorplan { args } {
     set site_name $keys(-site)
   } else {
     utl::warn IFP 11 "use -site to add placement rows."
-  }
-
-  set tracks_file ""
-  if { [info exists keys(-tracks)] } {
-    set tracks_file $keys(-tracks)
   }
 
   sta::check_argc_eq0 "initialize_floorplan" $args
@@ -104,7 +98,7 @@ proc initialize_floorplan { args } {
       [sta::distance_ui_sta $core_sp_top] \
       [sta::distance_ui_sta $core_sp_left] \
       [sta::distance_ui_sta $core_sp_right] \
-      $site_name $tracks_file
+      $site_name
   } elseif [info exists keys(-die_area)] {
     set die_area $keys(-die_area)
     if { [llength $die_area] != 4 } {
@@ -134,12 +128,18 @@ proc initialize_floorplan { args } {
 	[sta::distance_ui_sta $die_ux] [sta::distance_ui_sta $die_uy] \
 	[sta::distance_ui_sta $core_lx] [sta::distance_ui_sta $core_ly] \
 	[sta::distance_ui_sta $core_ux] [sta::distance_ui_sta $core_uy] \
-	$site_name $tracks_file
+	$site_name
     } else {
       utl::error IFP 17 "no -core_area specified."
     }
   } else {
     utl::error IFP 19 "no -utilization or -die_area specified."
+  }
+
+  set block [ord::get_db_block]
+  set placement_blockages [$block getBlockages]
+  if {[llength $placement_blockages] > 0} {
+    ifp::cut_rows $block $placement_blockages
   }
 }
 
@@ -174,10 +174,10 @@ proc make_tracks { args } {
     set layer_name [lindex $args 0]
     set layer [$tech findLayer $layer_name]
     if { $layer == "NULL" } {
-      utl::error "IFP" 21 "layer $layer_name not found."
+      utl::error "IFP" 23 "layer $layer_name not found."
     }
     if { [$layer getType] != "ROUTING" } {
-      utl::error "IFP" 22 "layer $layer_name is not a routing layer."
+      utl::error "IFP" 25 "layer $layer_name is not a routing layer."
     }
 
     if { [info exists keys(-x_pitch)] } {
@@ -230,7 +230,7 @@ namespace eval ifp {
 proc make_layer_tracks { layer x_offset x_pitch y_offset y_pitch } {
   set block [ord::get_db_block]
   if { $block == "NULL"} {
-    utl::error IFP 21 "No block defined."
+    utl::error IFP 24 "No block defined."
   } else {
     set die_area [$block getDieArea]
     set grid [$block findTrackGrid $layer]
@@ -267,6 +267,34 @@ proc microns_to_mfg_grid { microns } {
   } else {
     return [ord::microns_to_dbu $microns]
   }  
+}
+
+proc cut_rows {block placement_blockages} {
+  utl::info "IFP" 6 "Placement blockages found: [llength $placement_blockages]"
+
+  # Gather rows needing to be cut because of placement blockages
+  set rows_to_cut []
+  set row_placement_blockages [dict create]
+  foreach blockage $placement_blockages {
+    if {![$blockage isSoft]} {
+      foreach row [$block getRows] {
+        set row_name [$row getName]
+        if {![dict exists $row_placement_blockages $row_name]} {
+          if {[tap::overlaps $blockage $row 0 0]} {
+            lappend rows_to_cut $row
+          }
+          dict lappend row_placement_blockages $row_name [$blockage getBBox]
+        }
+      }
+    }
+  }
+
+  # cut rows around placement blockages
+  foreach row $rows_to_cut {
+    tap::cut_row $block $row $row_placement_blockages 0 0 0
+  }
+
+  utl::info "IFP" 23 "Cut rows: [llength $rows_to_cut]"
 }
 
 }

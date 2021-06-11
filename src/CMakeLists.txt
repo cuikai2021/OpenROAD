@@ -21,7 +21,6 @@ set(OPENSTA_HOME ${PROJECT_SOURCE_DIR}/src/sta)
 set(OPENDB_HOME ${PROJECT_SOURCE_DIR}/src/OpenDB)
 set(DBSTA_HOME ${PROJECT_SOURCE_DIR}/src/dbSta)
 set(RESIZER_HOME ${PROJECT_SOURCE_DIR}/src/rsz)
-set(PDNGEN_HOME ${OPENROAD_HOME}/src/pdngen)
 set(ICEWALL_HOME ${OPENROAD_HOME}/src/ICeWall)
 
 set(OPENROAD_SOURCE
@@ -57,11 +56,20 @@ if (TCL_READLINE_H)
   message(STATUS "TCL readline header: ${TCL_READLINE_H}")
 endif()
 
+option(BUILD_TCLX "Build with tclX included" ON)
+if (BUILD_TCLX AND TCLX_LIBRARY)
+  message(STATUS "TclX library: ${TCLX_LIBRARY}")
+endif()
+if (BUILD_TCLX AND TCLX_H)
+  message(STATUS "TclX header: ${TCLX_H}")
+endif()
+
 find_package(SWIG 3.0 REQUIRED)
 include(UseSWIG)
 
 find_package(Boost REQUIRED)
 find_package(Python3 COMPONENTS Development REQUIRED)
+option(BUILD_PYTHON "Build the Python3 interface" ON)
 
 ################################################################
 
@@ -71,25 +79,10 @@ swig_lib(NAME      openroad_swig
          SCRIPTS   ${OPENSTA_HOME}/tcl/Util.tcl
                    OpenRoad.tcl
                    ${ICEWALL_HOME}/src/ICeWall.tcl
-                   ${PDNGEN_HOME}/src/PdnGen.tcl
                    ${OPENDB_HOME}/src/db/OpenDB.tcl
 )
 
 target_link_libraries(openroad_swig
-  PRIVATE
-    dbSta
-    opendb
-    OpenSTA
-)
-
-swig_lib(NAME      openroad_swig_py
-         NAMESPACE ord
-         LANGUAGE  python
-         I_FILE    OpenRoad-py.i
-         SCRIPTS   ${CMAKE_CURRENT_BINARY_DIR}/openroad_swig_py.py
-)
-
-target_link_libraries(openroad_swig_py
   PRIVATE
     dbSta
     opendb
@@ -125,7 +118,7 @@ add_subdirectory(OpenDB)
 add_subdirectory(sta)
 add_subdirectory(dbSta)
 add_subdirectory(rsz)
-add_subdirectory(flute3)
+add_subdirectory(sst)
 add_subdirectory(replace)
 add_subdirectory(dpl)
 add_subdirectory(fin)
@@ -134,14 +127,15 @@ add_subdirectory(TritonCTS)
 add_subdirectory(grt)
 add_subdirectory(tap)
 add_subdirectory(mpl)
-add_subdirectory(OpenRCX)
+add_subdirectory(rcx)
 add_subdirectory(psm)
 add_subdirectory(PartitionMgr)
-add_subdirectory(antenna_checker)
+add_subdirectory(ant)
 add_subdirectory(gui)
 add_subdirectory(TritonRoute)
 add_subdirectory(utl)
 add_subdirectory(pdrev)
+add_subdirectory(pdngen)
 
 ################################################################
 
@@ -168,19 +162,17 @@ target_include_directories(eden
 target_link_libraries(eden
   ifp
   openroad_swig
-  openroad_swig_py
   replace
   dpl
   fin
   rsz
   ppl
-  flute
+  sst
   dbSta
   OpenSTA
   opendb
   opendbtcl
-  opendbpy
-  OpenRCX
+  rcx
   TritonCTS
   grt
   tap
@@ -188,9 +180,10 @@ target_link_libraries(eden
   TritonRoute
   mpl
   psm
-  antennachecker
+  ant
   PartitionMgr
   utl
+  pdn
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
@@ -205,6 +198,15 @@ else()
   message(STATUS "TCL readline disabled")
 endif()
 
+if (BUILD_TCLX AND TCLX_LIBRARY AND TCLX_H)
+  target_compile_definitions(openroad PRIVATE ENABLE_TCLX)
+  target_link_libraries(openroad ${TCLX_LIBRARY})
+  target_include_directories(openroad PRIVATE ${TCLX_H})
+  message(STATUS "Tcl Extended enabled")
+else()
+  message(STATUS "Tcl Extended disabled")
+endif()
+
 if (ZLIB_FOUND)
   target_link_libraries(eden ${ZLIB_LIBRARIES})
 endif()
@@ -212,6 +214,31 @@ endif()
 # Optional CUDD library for OpenSTA
 if (CUDD_LIB)
   target_link_libraries(eden ${CUDD_LIB})
+endif()
+
+if (Python3_FOUND AND BUILD_PYTHON)
+  message(STATUS "Python3 enabled")
+  target_compile_definitions(eden PRIVATE ENABLE_PYTHON3)
+
+  swig_lib(NAME      openroad_swig_py
+		   NAMESPACE ord
+		   LANGUAGE  python
+		   I_FILE    OpenRoad-py.i
+		   SCRIPTS   ${CMAKE_CURRENT_BINARY_DIR}/openroad_swig_py.py
+  )
+
+  target_link_libraries(openroad_swig_py
+    PRIVATE
+      dbSta
+      opendb
+      OpenSTA
+  )
+  target_link_libraries(eden
+    openroad_swig_py
+    opendbpy
+  )
+else()
+  message(STATUS "Python3 disabled")
 endif()
 
 # Ancient versions of glibc found on CentOS required librt.
@@ -229,12 +256,13 @@ endif()
 
 # executable
 install(TARGETS eden DESTINATION bin)
+execute_process( COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_CURRENT_BINARY_DIR}/eden" "${CMAKE_CURRENT_BINARY_DIR}/openroad")
 
 ################################################################
 
 add_custom_target(openroad_tags etags -o TAGS
   ${OPENROAD_SOURCE}
-  ${OPENROAD_HOME}/include/openroad/*.hh
+  ${OPENROAD_HOME}/include/ord/*.hh
   ${OPENROAD_HOME}/src/dbSta/src/*.hh
   ${DBSTA_HOME}/include/db_sta/*.hh
   ${OPENROAD_HOME}/src/dbSta/src/*.cc
@@ -243,3 +271,90 @@ add_custom_target(openroad_tags etags -o TAGS
   WORKING_DIRECTORY ${OPENROAD_HOME}/src
   DEPENDS ${OPENROAD_SOURCE} ${OPENROAD_HEADERS} ${OPENROAD_TCL_FILES}
 )
+
+#########################
+# build unit test
+if(GTEST STREQUAL ON)
+
+  # find gtest and gmock lib
+  # first set openMP incase can not find gtest correctly
+  FIND_PACKAGE(OpenMP)
+  IF(OPENMP_FOUND)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  ENDIF()
+
+  find_package(GTest REQUIRED)
+  include_directories(${GTEST_INCLUDE_DIR})
+  message(STATUS "gtest path: ${GTEST_INCLUDE_DIR}")
+  # get_filename_component(GTEST_LIBRARIES_DIR ${GTEST_LIBRARIES} DIRECTORY)
+  message(STATUS "gtest lib: ${GTEST_LIBRARIES}")
+
+  # Enable gtest and gmock with pthread
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lgtest -lgmock")
+
+  add_subdirectory(../utest utest)
+
+  file(GLOB_RECURSE UTEST_SRC ../utest/*.cc)
+
+  add_executable(utEden
+    ${UTEST_SRC}
+    ${OPENROAD_SOURCE}
+  )
+
+  target_compile_options(utEden
+    PRIVATE
+      -Wall -Wextra -pedantic -Wcast-qual -Wredundant-decls -Wformat-security
+      $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
+      $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
+  )
+
+  # Disable compiler specific extensions like gnu++11.
+  set_target_properties(utEden PROPERTIES CXX_EXTENSIONS OFF)
+  target_compile_features(utEden PUBLIC cxx_std_17)
+
+  target_include_directories(utEden
+    PUBLIC
+    ../include
+    TritonCTS/src
+  )
+
+  target_link_libraries(utEden
+    ifp
+    openroad_swig
+    replace
+    dpl
+    fin
+    rsz
+    ppl
+    sst
+    dbSta
+    OpenSTA
+    opendb
+    opendbtcl
+    rcx
+    TritonCTS
+    grt
+    tap
+    gui
+    TritonRoute
+    mpl
+    psm
+    ant
+    PartitionMgr
+    utl
+    pdn
+    utt
+    ${TCL_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${GTEST_LIBRARIES}
+  )
+
+  target_compile_definitions(utEden
+    PUBLIC
+    -DENABLE_GTEST
+  )
+
+  install(TARGETS utEden DESTINATION bin)
+
+endif()

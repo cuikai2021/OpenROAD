@@ -946,7 +946,7 @@ proc determine_num_via_rows {via_info constraints} {
   return $rows
 }
 
-proc init_via_width_height {lower_layer width height constraints} {
+proc init_via_width_height {via_info lower_layer width height constraints} {
   variable def_units
   variable upper_width
   variable lower_width
@@ -964,7 +964,6 @@ proc init_via_width_height {lower_layer width height constraints} {
   variable xcut_spacing
   variable ycut_spacing
 
-  set via_info [lindex [select_via_info $lower_layer] 1]
   set upper_layer [dict get $via_info upper layer]
 
   set xcut_pitch [lindex [dict get $via_info cut spacing] 0]
@@ -1039,8 +1038,7 @@ proc get_enclosure_by_direction {layer xenc yenc max_enclosure min_enclosure} {
   return $info
 }
 
-proc via_generate_rule {rule_name rows columns constraints} {
-  variable via_info
+proc via_generate_rule {viarule_name via_info rule_name rows columns constraints} {
   variable xcut_pitch
   variable ycut_pitch
   variable xcut_spacing
@@ -1071,7 +1069,7 @@ proc via_generate_rule {rule_name rows columns constraints} {
 
   return [list [list \
     name $rule_name \
-    rule [lindex [select_via_info [dict get $via_info lower layer]] 0] \
+    rule $viarule_name \
     cutsize [dict get $via_info cut size] \
     layers [list [dict get $via_info lower layer] [dict get $via_info cut layer] [dict get $via_info upper layer]] \
     cutspacing [list $xcut_spacing $ycut_spacing] \
@@ -1088,8 +1086,7 @@ proc via_generate_rule {rule_name rows columns constraints} {
   ]]
 }
 
-proc via_generate_array_rule {rule_name rows columns} {
-  variable via_info
+proc via_generate_array_rule {viarule_name via_info rule_name rows columns} {
   variable xcut_pitch
   variable ycut_pitch
   variable xcut_spacing
@@ -1134,7 +1131,7 @@ proc via_generate_array_rule {rule_name rows columns} {
     set array_spacing [expr max($xcut_spacing,$ycut_spacing,[dict get $spacing_rule arraycuts $use_array_size spacing])]
 
     set rule [list \
-      rule [lindex [select_via_info [dict get $via_info lower layer]] 0] \
+      rule $viarule_name \
       cutsize [dict get $via_info cut size] \
       layers [list [dict get $via_info lower layer] [dict get $via_info cut layer] [dict get $via_info upper layer]] \
       cutspacing [list $xcut_spacing $ycut_spacing] \
@@ -1207,7 +1204,7 @@ proc via_generate_array_rule {rule_name rows columns} {
 
     set rule [list \
       name $rule_name \
-      rule [lindex [select_via_info [dict get $via_info lower layer]] 0] \
+      rule $viarule_name \
       cutsize [dict get $via_info cut size] \
       layers [list [dict get $via_info lower layer] [dict get $via_info cut layer] [dict get $via_info upper layer]] \
       cutspacing [list $xcut_spacing $ycut_spacing] \
@@ -1227,10 +1224,9 @@ proc via_generate_array_rule {rule_name rows columns} {
   return $rule_list
 }
 
-proc via_split_cuts_rule {rows columns constraints} {
+proc via_split_cuts_rule {rule_name via_info rows columns constraints} {
   variable tech
   variable def_units
-  variable via_info
   variable min_lower_enclosure
   variable max_lower_enclosure
   variable min_upper_enclosure
@@ -1253,7 +1249,7 @@ proc via_split_cuts_rule {rows columns constraints} {
   
   set rule {}
   set rule [list \
-    rule [lindex [select_via_info $lower] 0] \
+    rule $rule_name \
     cutsize [dict get $via_info cut size] \
     layers [list $lower [dict get $via_info cut layer] $upper] \
     cutspacing [list $xcut_spacing $ycut_spacing] \
@@ -1353,7 +1349,7 @@ proc via_split_cuts_rule {rows columns constraints} {
 
 # Given the via rule expressed in via_info, what is the via with the largest cut area that we can make
 # Try using a via generate rule
-proc get_via_option {lower width height constraints} {
+proc get_via_option {viarule_name via_info lower width height constraints} {
   variable upper_width
   variable lower_width
   variable upper_height
@@ -1363,19 +1359,17 @@ proc get_via_option {lower width height constraints} {
   variable max_lower_enclosure
   variable min_upper_enclosure
   variable max_upper_enclosure
-  variable via_info
   variable default_cutclass
   variable grid_data
   variable via_location
   variable def_units
 
   # debug "{$lower $width $height}"
-  set via_info [lindex [select_via_info $lower] 1]
   set lower_dir [get_dir $lower]
 
   set upper [dict get $via_info upper layer]
 
-  init_via_width_height $lower $width $height $constraints
+  init_via_width_height $via_info $lower $width $height $constraints
   # debug "lower: $lower, width: $width, height: $height, lower_width: $lower_width, lower_height: $lower_height"
   get_via_enclosure $via_info [expr min($lower_width,$lower_height)] [expr min($upper_width,$upper_height)]
 
@@ -1391,13 +1385,13 @@ proc get_via_option {lower width height constraints} {
   
   if {[dict exists $constraints split_cuts] && ([lsearch -exact [dict get $constraints split_cuts] $lower] > -1 || [lsearch -exact [dict get $constraints split_cuts] $upper] > -1)} {
     # debug "via_split_cuts_rule"
-    set rules [via_split_cuts_rule $rows $columns $constraints]
+    set rules [via_split_cuts_rule $viarule_name $via_info $rows $columns $constraints]
   } elseif {[use_arrayspacing [dict get $via_info cut layer] $rows $columns]} {
     # debug "via_generate_array_rule"
-    set rules [via_generate_array_rule [get_viarule_name $lower $width $height] $rows $columns]
+    set rules [via_generate_array_rule $viarule_name $via_info [get_viarule_name $lower $width $height] $rows $columns]
   } else {
     # debug "via_generate_rule"
-    set rules [via_generate_rule [get_viarule_name $lower $width $height] $rows $columns $constraints]
+    set rules [via_generate_rule $viarule_name $via_info [get_viarule_name $lower $width $height] $rows $columns $constraints]
   }
 
   # Check minimum_cuts
@@ -1461,13 +1455,17 @@ proc get_via_option {lower width height constraints} {
 
 proc get_viarule_name {lower width height} {
   set rules [select_via_info $lower]
-  set first_key [lindex [dict keys $rules] 0]
-  #if {![dict exists $rules $first_key cut layer]} {
-  #  debug "$lower $width $height"
-  #  debug "$rules"
-  #  debug "$first_key"
-  #}
-  set cut_layer [dict get $rules $first_key cut layer]
+  if {[llength $rules] > 0} {
+    set first_key [lindex [dict keys $rules] 0]
+    #if {![dict exists $rules $first_key cut layer]} {
+    #  debug "$lower $width $height"
+    #  debug "$rules"
+    #  debug "$first_key"
+    #}
+    set cut_layer [dict get $rules $first_key cut layer]
+  } else {
+    set cut_layer $lower
+  }
 
   return ${cut_layer}_${width}x${height}
 }
@@ -1487,6 +1485,13 @@ proc select_rule {rule1 rule2} {
   return $rule1
 }
 
+proc connection_specifies_fixed_via {constraints lower} {
+  if {[dict exists $constraints use_fixed_via]} {
+    return [dict exists $constraints use_fixed_via $lower]
+  }
+  return 0
+}
+
 proc get_via {lower width height constraints} {
   # First cur will assume that all crossing points (x y) are on grid for both lower and upper layers
   # TODO: Refine the algorithm to cope with offgrid intersection points
@@ -1496,18 +1501,24 @@ proc get_via {lower width height constraints} {
   
   if {![dict exists $physical_viarules $rule_name]} {
     set selected_rule {}
-
-    dict for {name rule} [select_via_info $lower] {
-      set result [get_via_option $lower $width $height $constraints]
-      if {$selected_rule == {}} {
-        set selected_rule $result
-      } else {
-        # Choose the best between selected rule and current result, the winner becomes the new selected rule
-        set selected_rule [select_rule $selected_rule $result]
+    # debug "$constraints"
+    if {[connection_specifies_fixed_via $constraints $lower]} {
+      # debug "Using fixed_via for $rule_name"
+      set via_name [dict get $constraints use_fixed_via $lower]
+      dict set physical_viarules $rule_name [list [list name $via_name fixed $via_name origin_x 0 origin_y 0 layers [list $lower "cut" "upper"]]]
+    } else {
+      dict for {name rule} [select_via_info $lower] {
+        set result [get_via_option $name $rule $lower $width $height $constraints]
+        if {$selected_rule == {}} {
+          set selected_rule $result
+        } else {
+          # Choose the best between selected rule and current result, the winner becomes the new selected rule
+          set selected_rule [select_rule $selected_rule $result]
+        }
       }
+      dict set physical_viarules $rule_name $selected_rule
+      # debug "Via [dict size $physical_viarules]: $rule_name"
     }
-    dict set physical_viarules $rule_name $selected_rule
-    # debug "Via [dict size $physical_viarules]: $rule_name"
   }
 
   return $rule_name
@@ -1571,11 +1582,28 @@ proc instantiate_via {physical_via_name x y constraints} {
   return $via_insts
 }
 
-proc generate_vias {layer1 layer2 intersections constraints} {
+proc generate_vias {layer1 layer2 intersections connection} {
   variable logical_viarules
   variable metal_layers
   variable via_location
+  variable tech
 
+  set constraints {}
+  if {[dict exists $connection constraints]} {
+    set constraints [dict get $connection constraints]
+  }
+  if {[dict exists $connection fixed_vias]} {
+    foreach via_name [dict get $connection fixed_vias] {
+      if {[set via [$tech findVia $via_name]] != "NULL"} {
+        set lower_layer_name [[$via getBottomLayer] getName]
+        dict set constraints use_fixed_via $lower_layer_name $via_name
+      } else {
+        utl::warn "PDN" 99 "Via $via_name specified in the grid specification does not exist in this technology"
+      }
+    }
+  }
+
+  # debug "    Constraints: $constraints"
   set vias {}
   set layer1_name $layer1
   set layer2_name $layer2
@@ -1729,7 +1757,7 @@ proc get_grid_wire_pitch {layer_name} {
 }
 
 ## Proc to generate via locations, both for a normal via and stacked via
-proc generate_via_stacks {l1 l2 tag constraints} {
+proc generate_via_stacks {l1 l2 tag connection} {
   variable logical_viarules
   variable stripe_locs
   variable def_units
@@ -1825,7 +1853,7 @@ proc generate_via_stacks {l1 l2 tag constraints} {
   
   # debug "Added [llength $intersections] intersections"
 
-  return [generate_vias $l1 $l2 $intersections $constraints]
+  return [generate_vias $l1 $l2 $intersections $connection]
 }
 
 proc add_stripe {layer type polygon_set} {
@@ -2174,12 +2202,7 @@ proc generate_grid_vias {tag net_name} {
         set l1 [lindex $connection 0]
         set l2 [lindex $connection 1]
         # debug "    $l1 to $l2"
-        set constraints {}
-        if {[dict exists $connection constraints]} {
-          set constraints [dict get $connection constraints]
-        }
-        # debug "    Constraints: $constraints"
-        set connections [generate_via_stacks $l1 $l2 $tag $constraints]
+        set connections [generate_via_stacks $l1 $l2 $tag $connection]
         lappend vias [list net_name $net_name connections $connections]
     }
   }
@@ -2638,6 +2661,7 @@ proc export_opendb_vias {} {
     foreach rule $rules {
       # Dont create illegal vias
       if {[dict exists $rule illegal]} {continue}
+      if {[dict exists $rule fixed]} {continue}
       
       # debug "$rule"
       set via [$block findVia [dict get $rule name]]
@@ -2668,6 +2692,73 @@ proc export_opendb_vias {} {
   # debug "end"
 }
 
+proc get_global_connect_list_default {voltage_domain is_region} {
+  variable block
+  variable voltage_domains
+  
+  foreach net_type "primary_power primary_ground" {
+    set net_name [dict get $voltage_domains $voltage_domain $net_type]
+    set net [$block findNet $net_name]
+    foreach term [get_valid_mterms $net_name] {
+      if {$is_region} {
+        pdn::add_global_connect $block $voltage_domain ".*" $term $net
+      } else {
+        pdn::add_global_connect ".*" $term $net
+      }
+    }
+  }
+}
+
+proc get_global_connect_list {net_name} {
+  variable design_data
+  variable global_connections
+  variable voltage_domains
+  
+  set connect_patterns {}
+  foreach pattern [dict get $global_connections $net_name] {
+    lappend connect_patterns $pattern
+  }
+  
+  return $connect_patterns
+}
+
+proc export_opendb_global_connection {} {
+  variable block
+  variable design_data
+  variable global_connections
+  variable voltage_domains
+  
+  ## Do global connect statements first
+  get_global_connect_list_default [dict get $design_data core_domain] false
+  foreach net_type "power_nets ground_nets" {
+    foreach net_name [dict get $design_data $net_type] {
+      set net [$block findNet $net_name]
+      foreach pattern [get_global_connect_list $net_name] {
+        pdn::add_global_connect [dict get $pattern inst_name] [dict get $pattern pin_name] $net
+      }
+    }
+  }
+  
+  ## Do regions second
+  set core_domain_name [dict get $design_data core_domain]
+  foreach voltage_domain [dict keys $voltage_domains] {
+    if {$voltage_domain != $core_domain_name} {
+      get_global_connect_list_default $voltage_domain true
+      
+      foreach {net_type netname} [dict get $voltage_domains $voltage_domain] {
+        set net [$block findNet $net_name]
+        
+        # loop over all patterns
+        foreach pattern [get_global_connect_list $net_name] {
+          pdn::add_global_connect $block $voltage_domain [dict get $pattern inst_name] [dict get $pattern pin_name] $net
+        }
+      }
+    }
+  }
+  
+  pdn::global_connect $block
+}
+
 proc export_opendb_specialnet {net_name signal_type} {
   variable block
   variable instances
@@ -2685,39 +2776,6 @@ proc export_opendb_specialnet {net_name signal_type} {
   $net setSigType $signal_type
   # debug "net $net_name. signaltype, $signal_type, global_connections: $global_connections"
   
-  set mterms_list [get_valid_mterms $net_name]
-  foreach inst [$block getInsts] {
-    set master [$inst getMaster]
-    foreach mterm [$master getMTerms] {
-      if {[$mterm getSigType] == $signal_type && [dict exists $global_connections $net_name]} {
-        foreach pattern [dict get $global_connections $net_name] {
-          if {[regexp [dict get $pattern inst_name] [$inst getName]] &&
-            [regexp [dict get $pattern pin_name] [$mterm getName]]} {
-            odb::dbITerm_connect $inst $net $mterm
-          } else {
-            #PHY cells like ENDCAPS, WELLTAPS have uncertain pwr/gnd connections when there are voltage domains.
-            #This is to detect where the PHY cells are placed, the pwr/gnd pins are connected automatically
-            set box [$inst getBBox]
-            set inst_llx [$box xMin]
-            set inst_lly [$box yMin]
-            set inst_urx [$box xMax]
-            set inst_ury [$box yMax]
-            set domain_name [get_voltage_domain $inst_llx $inst_lly $inst_urx $inst_ury]
-            if {($net_name == [get_domain_power $domain_name] || 
-              $net_name == [get_domain_ground $domain_name] ) &&
-              [lsearch -exact $mterms_list [$mterm getName]] >= 0} {
-              odb::dbITerm_connect $inst $net $mterm
-            }
-          }
-        }
-      }
-    }
-    foreach iterm [$inst getITerms] {
-      if {[$iterm getNet] != "NULL" && [[$iterm getNet] getName] == $net_name} {
-        $iterm setSpecial
-      }
-    }
-  }
   if {[check_snet_is_unique $net]} {
     $net setWildConnected
   }
@@ -2759,7 +2817,13 @@ proc export_opendb_specialnet {net_name signal_type} {
         set x        [dict get $via_inst x]
         set y        [dict get $via_inst y]
         # debug "$via_name $x $y [$block findVia $via_name]"
-        odb::dbSBox_create $swire [$block findVia $via_name] $x $y "STRIPE"
+        if {[set defvia [$block findVia $via_name]] != "NULL"} {
+          odb::dbSBox_create $swire $defvia $x $y "STRIPE"
+        } elseif {[set techvia [$tech findVia $via_name]] != "NULL"} {
+          odb::dbSBox_create $swire $techvia $x $y "STRIPE"
+        } else {
+          utl::error "PDN" 99 "Cannot find via $via_name"
+        }
         # debug "via created"
       }
     }
@@ -2779,6 +2843,7 @@ proc export_opendb_specialnets {} {
     export_opendb_specialnet $net_name "GROUND"
   }
   
+  export_opendb_global_connection
 }
 
 proc export_opendb_power_pin {net_name signal_type} {
@@ -2788,6 +2853,8 @@ proc export_opendb_power_pin {net_name signal_type} {
   variable tech
   variable voltage_domains
   variable design_data
+  
+  if {![dict exists $design_data grid stdcell grid pins]} {return}
   
   set net [$block findNet $net_name]
   set bterm [odb::dbBTerm_create $net "${net_name}"]
@@ -2813,7 +2880,8 @@ proc export_opendb_power_pin {net_name signal_type} {
   }
 
   foreach lay [lreverse $metal_layers] {
-    if {[array names stripe_locs "$lay,$signal_type"] == ""} {continue}
+    if {[array names stripe_locs "$lay,$signal_type"] == "" || 
+        [lsearch -exact [dict get $design_data grid stdcell grid pins] $lay] == -1} {continue}
     foreach shape [::odb::getPolygons $stripe_locs($lay,$signal_type)] {
       set points [::odb::getPoints $shape]
       if {[llength $points] != 4} {
@@ -2832,9 +2900,6 @@ proc export_opendb_power_pin {net_name signal_type} {
       }
 
     }
-    # debug "created $count pins on $net_name (layer:$lay)"
-    # Only promote metal on top layers to be pins
-    break
   }
 }
 
@@ -3072,12 +3137,17 @@ proc init {{PDN_cfg "PDN.cfg"}} {
   variable rails_start_with
   variable physical_viarules
   variable stdcell_area
+  variable voltage_domains
 
 #    set ::start_time [clock clicks -milliseconds]
   init_tech 
-   
+  
+  if {![file exists $PDN_cfg]} {
+    utl::error "PDN" 28 "File $PDN_cfg does not exist"
+  }
+ 
   if {![file_exists_non_empty $PDN_cfg]} {
-    utl::error "PDN" 28 "File $PDN_cfg does not exist, or exists but empty"
+    utl::error "PDN" 28 "File $PDN_cfg is empty"
   }
 
   set design_name [$block getName]
@@ -3105,8 +3175,10 @@ proc init {{PDN_cfg "PDN.cfg"}} {
   
   if {[info vars ::core_domain] == ""} {
     set  ::core_domain "CORE"
+    dict set voltage_domains $::core_domain primary_power [lindex $::power_nets 0]
+    dict set voltage_domains $::core_domain primary_ground [lindex $::ground_nets 0]
   }
-
+  
   if {[info vars ::stripes_start_with] == ""} {
     set stripes_start_with "GROUND"
   } else {
@@ -3273,7 +3345,7 @@ proc specify_grid {type specification} {
       }
     }
   }
-  
+
   if {[dict exists $specification template]} {
     set_template_size {*}[dict get $specification template size]
   }
@@ -4987,7 +5059,7 @@ proc opendb_update_grid {} {
   utl::info "PDN" 15 "Writing to database"
   export_opendb_vias
   export_opendb_specialnets
-  # export_opendb_power_pins
+  export_opendb_power_pins
 }
   
 proc apply_pdn {config is_verbose} {

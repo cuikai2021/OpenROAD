@@ -1,0 +1,131 @@
+name: relesase eden regressions docker
+on: [workflow_dispatch]
+
+jobs: 
+  relesase-eden-regressions-docker:
+    runs-on: [self-hosted]
+    env:
+      COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/coverage_results/${{ github.run_number }}
+
+    steps:
+        - name: checkout
+          uses: actions/checkout@v2
+          with:
+            submodules: true
+        
+        - name: download from aliyun
+          uses: manyuanrong/setup-ossutil@v2.0 
+          with:
+            endpoint: "oss-cn-shanghai.aliyuncs.com"
+            access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
+            access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
+        - run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
+        - run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
+      
+        - name: json reader
+          uses: antifree/json-to-variables@v1.0.1
+          with:
+           filename: 'env.json'
+           prefix: env
+
+        - uses: antifree/json-to-variables@v1.0.1
+          with:
+           filename: 'latest_docker_deps_image.json'
+           prefix: env
+
+        - run: |
+            EDEN_GIT_SHA1=`git rev-parse HEAD`
+            echo "EDEN_GIT_SHA1=$EDEN_GIT_SHA1" >> $GITHUB_ENV
+        - name: build docker regression
+          if: ${{ success() }}
+          uses: docker/build-push-action@v2
+          with:
+            context: .
+            file: ${{ env.env_DOCKER_REGRESSION_FILEPATH }}
+            build-args: |
+              FROM_IMAGE_TAG=${{ env.env_DEPS_ENV }}
+              EDEN_GIT_SHA1=${{ env.EDEN_GIT_SHA1 }}
+            push: false
+            tags: ${{ env.env_REGRESSION_ENV }}
+
+        - if: ${{ success() }}
+          run: |
+            mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
+            mkdir -p ${{ env.env_CODE_COVERAGE_PATH }}
+        - name: run regression
+          if: ${{ success() }}
+          run: ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }} ${{ env.env_CODE_COVERAGE_PATH }} ${{ env.env_REGRESSION_ENV }}
+
+        - name: package ./coverage_results
+          run: |
+            tar -zcvf coverage-result-${{ github.run_number }}.tar.gz coverage_results
+        - name: upload coverage result
+          run: ossutil cp -rf coverage-result-${{ github.run_number }}.tar.gz oss://icbench-devops/coverage_results/${{ github.run_number }}/
+
+        - if: ${{ success() }}
+          run: |
+              if [ `ls -A ${{ env.env_DOCKER_RESULT_PATH }}|wc -w` -eq '0' ]
+              then 
+                echo "EXIST_REGRESSION_FAILURES=false" >> $GITHUB_ENV
+              else 
+                echo "EXIST_REGRESSION_FAILURES=true" >> $GITHUB_ENV
+                for file in `ls ${{ env.env_DOCKER_RESULT_PATH }}`
+                do
+                  echo "REGRESSION_FAILURES_FILE=$file" >> $GITHUB_ENV
+                  break
+                done
+              fi
+        - if: ${{ success() }}
+          run: |
+              echo ${{ env.EXIST_REGRESSION_FAILURES }}
+              echo ${{ env.REGRESSION_FAILURES_FILE }}
+ 
+        - if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
+          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}
+
+        - name: success pull request
+          if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' }}
+          uses: octokit/request-action@v2.x
+          id: pulls
+          with:
+            route: POST /repos/{repository}/pulls
+            repository: ${{ github.repository }}
+            head_sha: ${{ github.sha }}
+            title: regression succeeded, run number is ${{ github.run_number }}
+            base: master
+            head: ${{ github.ref }}
+            labels: "CI"
+            body: |
+               The regression run success
+
+               The branch is ${{ github.ref }}
+
+               The action sha value is ${{ env.env_EVENT_AFTER }}
+               
+               The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz
+          env:
+            GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
+        - name: failure issue
+          if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
+          uses: octokit/request-action@v2.x
+          id: issues
+          with:
+            route: POST /repos/{repository}/issues
+            owner: ${{ github.actor }}
+            repository: ${{ github.repository }}
+            title: regression failed, run number is ${{ github.run_number }}
+            labels: "CI"
+            assignees: ${{ env.env_HEAD_COMMIT_COMMITER_NAME }}
+            body: |
+               The regression run failure
+
+               The branch is ${{ github.ref }}
+
+               The action sha value is ${{ env.env_EVENT_AFTER }}
+
+               The regression failure info can be downloaded from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/regression_results/${{ github.run_number }}/${{ env.REGRESSION_FAILURES_FILE }} 
+               
+               The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz
+          env:
+             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}

@@ -17,10 +17,14 @@ TAGS
 .DS_Store
 Makefile
 
-include/openroad/Version.hh
+include/ord/Version.hh
 
 build*
 test/results
 flow
 
 coverage-output
+
+devops_results
+
+utest/*/test/results

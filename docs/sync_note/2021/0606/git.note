@@ -1,0 +1,271 @@
+# modified files
+
+# Conflicts
+
+	no conflicts
+
+# fix bugs after merge
+
+	no bugs need to be fixed
+
+# merge details
+
+Removing test/report_flow_metrics.tcl
+Removing test/modifyLefSpacing.py
+Removing test/mergeLef.py
+Auto-merging src/tap/src/tapcell.tcl
+Auto-merging src/ppl/test/regression_tests.tcl
+Auto-merging src/ppl/src/IOPlacer.tcl
+Auto-merging src/ppl/src/IOPlacer.i
+Auto-merging src/ppl/src/IOPlacer.cpp
+Auto-merging src/ppl/include/ppl/IOPlacer.h
+Removing src/TritonRoute/test/testcase/ispd18_sample/ispd18_sample.param
+Auto-merging etc/DependencyInstaller.sh
+Auto-merging Jenkinsfile
+Merge made by the 'recursive' strategy.
+ Jenkinsfile                                        |     1 +
+ README.md                                          |    12 +-
+ docs/contrib/DatabaseMath.rst                      |     2 +-
+ docs/index.rst                                     |    20 +-
+ etc/DependencyInstaller.sh                         |    20 +-
+ src/TritonRoute/include/triton_route/TritonRoute.h |    19 +
+ src/TritonRoute/messages.txt                       |   174 +-
+ src/TritonRoute/src/TritonRoute.cpp                |    36 +-
+ src/TritonRoute/src/TritonRoute.i                  |    33 +
+ src/TritonRoute/src/TritonRoute.tcl                |   110 +-
+ src/TritonRoute/src/db/obj/frBlock.h               |    48 +-
+ src/TritonRoute/src/db/obj/frInst.cpp              |     4 +-
+ src/TritonRoute/src/dr/FlexDR.cpp                  |   208 +-
+ src/TritonRoute/src/dr/FlexDR.h                    |     5 +-
+ src/TritonRoute/src/dr/FlexDR_end.cpp              |     2 +-
+ src/TritonRoute/src/dr/FlexDR_graphics.cpp         |     2 +-
+ src/TritonRoute/src/dr/FlexDR_init.cpp             |   135 +-
+ src/TritonRoute/src/dr/FlexDR_maze.cpp             |   231 +-
+ src/TritonRoute/src/dr/FlexDR_rq.cpp               |    14 +-
+ src/TritonRoute/src/dr/FlexGridGraph.cpp           |     2 +-
+ src/TritonRoute/src/dr/FlexGridGraph.h             |    59 +-
+ src/TritonRoute/src/dr/FlexGridGraph_maze.cpp      |    45 +-
+ src/TritonRoute/src/gr/FlexGR.cpp                  |     6 +-
+ src/TritonRoute/src/gr/FlexGR_init.cpp             |     2 +-
+ src/TritonRoute/src/io/io.cpp                      |     2 +-
+ src/TritonRoute/src/io/io_parser_helper.cpp        |     2 +-
+ src/TritonRoute/test/fixture.cpp                   |     3 +-
+ src/TritonRoute/test/gc_test.tcl                   |    31 +
+ src/TritonRoute/test/ispd18_sample.tcl             |     6 +-
+ src/TritonRoute/test/regression_tests.tcl          |     3 +
+ src/TritonRoute/test/run-ispd.tcl                  |    16 +-
+ .../testcase/ispd18_sample/ispd18_sample.param     |     5 -
+ src/gui/src/layoutViewer.cpp                       |    19 +-
+ src/gui/src/layoutViewer.h                         |     1 +
+ src/ifp/messages.txt                               |    34 +-
+ src/ifp/src/InitFloorplan.cc                       |    25 +-
+ src/ifp/src/InitFloorplan.tcl                      |    40 +-
+ src/ifp/test/init_floorplan8.defok                 |    70 +-
+ src/ifp/test/init_floorplan8.tcl                   |     1 +
+ src/ifp/test/init_floorplan9.defok                 |    92 +
+ src/ifp/test/init_floorplan9.ok                    |     9 +
+ src/ifp/test/init_floorplan9.tcl                   |    19 +
+ src/ifp/test/placement_blockage1.defok             |   608 +
+ src/ifp/test/placement_blockage1.ok                |     9 +
+ src/ifp/test/placement_blockage1.tcl               |    15 +
+ src/ifp/test/placement_blockage2.defok             |   604 +
+ src/ifp/test/placement_blockage2.ok                |     9 +
+ src/ifp/test/placement_blockage2.tcl               |    15 +
+ src/ifp/test/reg2.v                                |    11 +
+ src/ifp/test/regression_tests.tcl                  |     3 +
+ src/ifp/test/sky130hd                              |     1 +
+ src/ppl/include/ppl/IOPlacer.h                     |    14 +-
+ src/ppl/src/IOPlacer.cpp                           |   158 +-
+ src/ppl/src/IOPlacer.i                             |     4 +-
+ src/ppl/src/IOPlacer.tcl                           |    18 +-
+ src/ppl/test/add_constraint8.defok                 |   395 +
+ src/ppl/test/add_constraint8.ok                    |    27 +
+ src/ppl/test/add_constraint8.tcl                   |    14 +
+ src/ppl/test/gcd_obs.def                           |   330 +
+ src/ppl/test/random5.defok                         |     6 +-
+ src/ppl/test/random6.defok                         |    54 +-
+ src/ppl/test/regression_tests.tcl                  |     2 +
+ src/ppl/test/top_layer6.defok                      |   106 +-
+ src/ppl/test/top_layer7.defok                      |   382 +
+ src/ppl/test/top_layer7.ok                         |    16 +
+ src/ppl/test/top_layer7.tcl                        |    16 +
+ src/rcx/include/rcx/ext.h                          |     1 +
+ src/rcx/src/ext.cpp                                |     2 +-
+ src/rcx/test/45_gcd.tcl                            |     2 -
+ src/rcx/test/ext_pattern.tcl                       |     2 -
+ src/rcx/test/gcd.tcl                               |     2 -
+ src/rsz/messages.txt                               |   119 +-
+ src/rsz/src/Resizer.cc                             |   126 +-
+ src/rsz/src/Resizer.tcl                            |    18 +-
+ src/rsz/test/gcd_resize.ok                         |    84 +-
+ src/rsz/test/gcd_resize.tcl                        |     4 +-
+ src/rsz/test/repair_clk_nets1.ok                   |     2 +-
+ src/rsz/test/repair_hold1.ok                       |   168 +-
+ src/rsz/test/repair_hold1.tcl                      |     7 +-
+ src/rsz/test/repair_hold11.ok                      |    49 +-
+ src/rsz/test/repair_hold11.tcl                     |     6 +-
+ src/rsz/test/repair_hold2.ok                       |    33 +-
+ src/rsz/test/repair_hold2.tcl                      |     3 +-
+ src/rsz/test/repair_hold3.ok                       |   238 +-
+ src/rsz/test/repair_hold3.tcl                      |     6 +-
+ src/rsz/test/repair_hold4.ok                       |   243 +-
+ src/rsz/test/repair_hold4.tcl                      |     6 +-
+ src/rsz/test/repair_hold5.ok                       |   291 +-
+ src/rsz/test/repair_hold5.tcl                      |    13 +-
+ src/rsz/test/repair_hold6.ok                       |   294 +-
+ src/rsz/test/repair_hold6.tcl                      |    15 +-
+ src/rsz/test/repair_hold7.ok                       |     9 +-
+ src/rsz/test/repair_hold7.tcl                      |     6 +
+ src/rsz/test/repair_hold8.ok                       |    53 +-
+ src/rsz/test/repair_hold8.tcl                      |     6 +-
+ src/rsz/test/repair_hold9.ok                       |     1 +
+ src/rsz/test/repair_wire1.ok                       |     2 +-
+ src/rsz/test/repair_wire5.ok                       |     2 +-
+ src/rsz/test/repair_wire6.ok                       |     2 +-
+ src/rsz/test/repair_wire7.ok                       |     2 +-
+ src/sta                                            |     2 +-
+ src/tap/src/tapcell.tcl                            |   130 +-
+ src/tap/test/regression_tests.tcl                  |     1 +
+ src/tap/test/symmetry.def                          |  1087 ++
+ src/tap/test/symmetry.defok                        |  1143 ++
+ src/tap/test/symmetry.lef                          | 11545 +++++++++++++++++++
+ src/tap/test/symmetry.ok                           |    19 +
+ src/tap/test/symmetry.tcl                          |    12 +
+ src/utl/include/utl/Logger.h                       |    16 +-
+ src/utl/src/Logger.i                               |     5 +-
+ test/aes_nangate45.metrics_limits                  |    16 +
+ test/aes_nangate45.tcl                             |     4 -
+ test/aes_sky130hd.metrics_limits                   |    16 +
+ test/aes_sky130hd.tcl                              |     4 -
+ test/aes_sky130hs.metrics_limits                   |    16 +
+ test/aes_sky130hs.tcl                              |     4 -
+ test/flow.tcl                                      |    92 +-
+ test/flow_helpers.tcl                              |    30 -
+ test/flow_metrics.tcl                              |   286 +
+ test/gcd_nangate45.metrics_limits                  |    16 +
+ test/gcd_nangate45.tcl                             |     4 -
+ test/gcd_sky130hd.metrics_limits                   |    16 +
+ test/gcd_sky130hd.tcl                              |     5 -
+ test/gcd_sky130hs.metrics_limits                   |    16 +
+ test/gcd_sky130hs.tcl                              |     5 -
+ test/ibex_sky130hd.metrics_limits                  |    16 +
+ test/ibex_sky130hd.tcl                             |     4 -
+ test/ibex_sky130hs.metrics_limits                  |    16 +
+ test/ibex_sky130hs.tcl                             |     7 +-
+ test/jpeg_sky130hd.metrics_limits                  |    16 +
+ test/jpeg_sky130hd.tcl                             |     4 -
+ test/jpeg_sky130hs.metrics_limits                  |    16 +
+ test/jpeg_sky130hs.tcl                             |     7 +-
+ test/mergeLef.py                                   |    86 -
+ test/modifyLefSpacing.py                           |    36 -
+ test/regression.tcl                                |   126 +-
+ test/regression_tests.tcl                          |    17 +-
+ test/regression_vars.tcl                           |    12 +-
+ test/report_flow_metrics                           |    23 +
+ test/report_flow_metrics.tcl                       |    95 -
+ test/save_flow_metrics                             |    54 +
+ test/tinyRocket_nangate45.metrics_limits           |    16 +
+ test/tinyRocket_nangate45.tcl                      |     6 -
+ 143 files changed, 18487 insertions(+), 2762 deletions(-)
+ create mode 100644 src/TritonRoute/test/gc_test.tcl
+ delete mode 100644 src/TritonRoute/test/testcase/ispd18_sample/ispd18_sample.param
+ create mode 100644 src/ifp/test/init_floorplan9.defok
+ create mode 100644 src/ifp/test/init_floorplan9.ok
+ create mode 100755 src/ifp/test/init_floorplan9.tcl
+ create mode 100644 src/ifp/test/placement_blockage1.defok
+ create mode 100644 src/ifp/test/placement_blockage1.ok
+ create mode 100644 src/ifp/test/placement_blockage1.tcl
+ create mode 100644 src/ifp/test/placement_blockage2.defok
+ create mode 100644 src/ifp/test/placement_blockage2.ok
+ create mode 100644 src/ifp/test/placement_blockage2.tcl
+ create mode 100644 src/ifp/test/reg2.v
+ create mode 120000 src/ifp/test/sky130hd
+ create mode 100644 src/ppl/test/add_constraint8.defok
+ create mode 100644 src/ppl/test/add_constraint8.ok
+ create mode 100644 src/ppl/test/add_constraint8.tcl
+ create mode 100755 src/ppl/test/gcd_obs.def
+ create mode 100644 src/ppl/test/top_layer7.defok
+ create mode 100644 src/ppl/test/top_layer7.ok
+ create mode 100644 src/ppl/test/top_layer7.tcl
+ create mode 100644 src/tap/test/symmetry.def
+ create mode 100644 src/tap/test/symmetry.defok
+ create mode 100644 src/tap/test/symmetry.lef
+ create mode 100644 src/tap/test/symmetry.ok
+ create mode 100644 src/tap/test/symmetry.tcl
+ create mode 100644 test/aes_nangate45.metrics_limits
+ create mode 100644 test/aes_sky130hd.metrics_limits
+ create mode 100644 test/aes_sky130hs.metrics_limits
+ create mode 100644 test/flow_metrics.tcl
+ create mode 100644 test/gcd_nangate45.metrics_limits
+ create mode 100644 test/gcd_sky130hd.metrics_limits
+ create mode 100644 test/gcd_sky130hs.metrics_limits
+ create mode 100644 test/ibex_sky130hd.metrics_limits
+ create mode 100644 test/ibex_sky130hs.metrics_limits
+ create mode 100644 test/jpeg_sky130hd.metrics_limits
+ create mode 100644 test/jpeg_sky130hs.metrics_limits
+ delete mode 100755 test/mergeLef.py
+ delete mode 100755 test/modifyLefSpacing.py
+ create mode 100755 test/report_flow_metrics
+ delete mode 100755 test/report_flow_metrics.tcl
+ create mode 100755 test/save_flow_metrics
+ create mode 100644 test/tinyRocket_nangate45.metrics_limits
+
+# commits
+
+ppl: add comment for sortConstraints
+ppl: restore createSectionsPerConstraint function
+ppl: sort only overlapping constraints
+ppl: sort constraints by pins per slots
+ppl: ok files for add_constraint8
+ppl: update num_slots for constraint sections
+ppl: new unit test
+ppl: move sections initialization to initConstraints
+ppl: add sections to Constraint struct
+tap: false -> 0
+tap: cover more cases in check_symmetry
+tap: update check_symmetry function
+ifp: fix message code
+ifp: remove unnecessary message
+ifp: move check
+docs correction: 2 billion units = 2 million microns
+tap: remove wrong code
+tap: unit test for symmetry check
+ifp: unit tests for placement blockages
+ifp: cut rows around placement blockages
+tap: refactor cut_rows function
+flow test clock skew limits
+flow clk skew metric
+flow clk skew metrics
+rsz use debugCheck instead of #if
+Update ifp.
+reinstate record_pass_fail_tests
+flow require json
+local json.tcl until tcllib is installed
+install tcllib
+flow check metrics against limits
+flow scriptC
+restore ibex_sky130hs, jpeg_sky130hs w/o rcx (seg fault)
+utl metrics rm tool arg
+ibex sky130hd hold slack
+rsz okfiles
+rsz debug retime->repair_setup
+rcx do not write .totCap file
+rsz repair hold do not make setup worse
+gui: ensure layout does not attempt to paint while design is still loading
+requested changes for PR
+refactoring for PR
+fix DependencyInstaller.sh default option
+fixed out-of-die viols with thick wires
+etc: add hash check for downloaded files
+Update index.rst
+ppl: modifying obstruction box for top layer code to make code mode legible
+Remove deprecated LEF merging from test
+[DRT] Remove param file from flow test
+etc: fix missing export
+etc: fix boost install
+switching to marking slots as blocked instead of removing altogether, and fixing getValidSlots to account for top layer as well
+[DRT] Remove need for TritonRoute param file (#665)
+gui: fix fit of design with zero bounds
+ppl: adding keepout parameter to define_pin_shape so pins honor existing routing
+drt: clang-format src/dr
+drt: minor cleanups

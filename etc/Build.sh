@@ -22,6 +22,9 @@ OPTIONS:
                                                   -cmake= and double quotes if
                                                   <key> has muliple <values>
                                                   e.g.: -cmake='-DFLAGS="-a -b"'
+        to build Eden with gtest:
+            ./etc/Build.sh -cmake=-DGTEST=ON
+
   -compiler=COMPILER_NAME                       Compiler name: gcc or clang
                                                   Default: gcc
   -dir=PATH                                     Path to store build files.
@@ -29,8 +32,7 @@ OPTIONS:
   -coverage                                     Enable cmake coverage options
   -clean                                        Remove build dir before compile
   -no-gui                                       Disable GUI support
-  -threads=NUM_THREADS                          Number of threads to use during
-                                                  compile. Default: \`nproc\`
+  -threads=NUM_THREADS                          Number of threads to use during compile. Default: \`nproc\`
   -keep-log                                     Keep a compile log in build dir
   -help                                         Shows this message
 
@@ -113,10 +115,12 @@ fi
 
 mkdir -p "${buildDir}"
 if [[ "${keepLog}" == "yes"  ]]; then
-    logName="${buildDir}/openroad-build-$(date +%s).log"
+    mkdir -p "${buildDir}/buildLog"
+    logName="${buildDir}/buildLog/openroad-build-$(date +%s).log"
+    cmake "${cmakeOptions[@]}" -B "${buildDir}" . 2>&1 | tee "${logName}"
+    time cmake --build "${buildDir}" -j "${numThreads}" 2>&1 | tee -a "${logName}"
 else
-    logName=/dev/null
+    cmake "${cmakeOptions[@]}" -B "${buildDir}" .
+    time cmake --build "${buildDir}" -j "${numThreads}"
 fi
 
-cmake "${cmakeOptions[@]}" -B "${buildDir}" . 2>&1 | tee "${logName}"
-time cmake --build "${buildDir}" -j "${numThreads}" 2>&1 | tee -a "${logName}"

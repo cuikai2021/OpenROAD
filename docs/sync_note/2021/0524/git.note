@@ -1,0 +1,336 @@
+# modified files
+
+# Conflicts
+
+    src/ppl/include/ppl/IOPlacer.h      (line 153~154) accept input but remind haoyuan's modification 0419
+
+# fix bugs after merge
+
+	no bugs need to be fixed
+
+On branch tmp
+Your branch is up to date with 'origin/SyncUp'.
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	new file:   .github/workflows/github-actions-on-delete-cleanup.yml
+	new file:   .whitespace
+	modified:   Jenkinsfile
+	modified:   README.md
+	modified:   jenkins/Jenkinsfile.nightly
+	modified:   src/ICeWall/test/caravel_sky130.ok
+	modified:   src/ICeWall/test/coyote_tc_sky130.ok
+	modified:   src/ICeWall/test/soc_bsg_black_parrot_nangate45.ok
+	modified:   src/OpenDB/include/opendb/db.h
+	modified:   src/OpenDB/include/opendb/geom.h
+	modified:   src/OpenDB/src/db/dbBTerm.cpp
+	modified:   src/OpenDB/src/db/dbBox.h
+	modified:   src/OpenDB/src/db/dbITerm.cpp
+	modified:   src/OpenDB/src/db/dbMPin.cpp
+	modified:   src/OpenDB/src/db/dbMTerm.cpp
+	modified:   src/OpenDB/src/db/dbTechLayer.cpp
+	modified:   src/OpenDB/src/db/dbTechLayer.h
+	modified:   src/OpenDB/src/lefin/lefin.cpp
+	modified:   src/OpenRoad.tcl
+	modified:   src/PartitionMgr/CMakeLists.txt
+	modified:   src/PartitionMgr/README.md
+	modified:   src/PartitionMgr/src/PartitionMgr.cpp
+	modified:   src/PartitionMgr/src/PartitionMgr.h
+	new file:   src/PartitionMgr/src/PartitionNetwork.cpp
+	modified:   src/PartitionMgr/src/partitionmgr.i
+	modified:   src/PartitionMgr/src/partitionmgr.tcl
+	new file:   src/PartitionMgr/test/change_eval_method.tcl
+	new file:   src/PartitionMgr/test/gcd.v
+	new file:   src/PartitionMgr/test/verilog_write.tcl
+	new file:   src/PartitionMgr/test/verilog_write.vok
+	modified:   src/TritonCTS/src/Clock.cpp
+	modified:   src/TritonCTS/src/SinkClustering.h
+	modified:   src/TritonCTS/src/StaEngine.cpp
+	modified:   src/TritonCTS/src/TechChar.h
+	modified:   src/TritonRoute/src/TritonRoute.cpp
+	modified:   src/TritonRoute/src/db/infra/frBox.h
+	modified:   src/TritonRoute/src/db/obj/frBlockage.h
+	modified:   src/TritonRoute/src/db/tech/frLayer.cc
+	modified:   src/TritonRoute/src/dr/FlexDR_conn.cpp
+	modified:   src/TritonRoute/src/dr/FlexDR_end.cpp
+	modified:   src/TritonRoute/src/dr/FlexDR_graphics.cpp
+	modified:   src/TritonRoute/src/dr/FlexDR_graphics.h
+	modified:   src/TritonRoute/src/dr/FlexGridGraph.cpp
+	modified:   src/TritonRoute/src/dr/FlexGridGraph_maze.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC_inf.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC_init.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC_main.cpp
+	modified:   src/TritonRoute/src/io/io.cpp
+	modified:   src/TritonRoute/src/io/io.h
+	modified:   src/TritonRoute/test/fixture.h
+	modified:   src/TritonRoute/test/gcTest.cpp
+	modified:   src/TritonRoute/test/run-ispd.tcl
+	modified:   src/ant/src/AntennaChecker.cc
+	modified:   src/dbSta/src/dbSta.cc
+	modified:   src/dpl/include/dpl/Opendp.h
+	modified:   src/dpl/src/CheckPlacement.cpp
+	modified:   src/dpl/src/Grid.cpp
+	modified:   src/dpl/src/Opendp.i
+	modified:   src/dpl/src/Opendp.tcl
+	modified:   src/dpl/test/obstruction1.tcl
+	new file:   src/dpl/test/obstruction2.def
+	new file:   src/dpl/test/obstruction2.defok
+	new file:   src/dpl/test/obstruction2.ok
+	new file:   src/dpl/test/obstruction2.tcl
+	modified:   src/dpl/test/regression_tests.tcl
+	modified:   src/fin/src/DensityFill.cpp
+	modified:   src/grt/include/grt/GlobalRouter.h
+	modified:   src/grt/messages.txt
+	modified:   src/grt/src/AntennaRepair.cpp
+	modified:   src/grt/src/AntennaRepair.h
+	modified:   src/grt/src/GlobalRouter.cpp
+	modified:   src/grt/src/GlobalRouter.i
+	modified:   src/grt/src/GlobalRouter.tcl
+	modified:   src/grt/src/Grid.cpp
+	modified:   src/grt/src/MakeWireParasitics.cpp
+	modified:   src/grt/src/MakeWireParasitics.h
+	modified:   src/grt/src/RoutingTracks.h
+	modified:   src/grt/src/fastroute/src/FastRoute.cpp
+	modified:   src/grt/src/fastroute/src/RSMT.cpp
+	modified:   src/grt/src/fastroute/src/RipUp.cpp
+	modified:   src/grt/src/fastroute/src/maze.cpp
+	modified:   src/grt/src/fastroute/src/maze3D.cpp
+	modified:   src/grt/src/fastroute/src/utility.cpp
+	modified:   src/grt/test/clock_route.ok
+	modified:   src/grt/test/est_rc1.ok
+	modified:   src/grt/test/est_rc2.ok
+	modified:   src/grt/test/gcd.ok
+	modified:   src/grt/test/invalid_pin_placement.ok
+	modified:   src/grt/test/multiple_calls.ok
+	modified:   src/grt/test/ndr_1w_3s.ok
+	modified:   src/grt/test/ndr_2w_3s.ok
+	modified:   src/grt/test/region_adjustment.ok
+	modified:   src/grt/test/repair_antennas1.guideok
+	modified:   src/grt/test/repair_antennas1.ok
+	modified:   src/grt/test/repair_antennas2.guideok
+	modified:   src/grt/test/repair_antennas2.ok
+	modified:   src/gui/CMakeLists.txt
+	modified:   src/gui/include/gui/gui.h
+	modified:   src/gui/src/congestionSetupDialog.cpp
+	new file:   src/gui/src/dbDescriptors.cpp
+	new file:   src/gui/src/dbDescriptors.h
+	modified:   src/gui/src/displayControls.cpp
+	modified:   src/gui/src/gui.cpp
+	new file:   src/gui/src/inspector.cpp
+	new file:   src/gui/src/inspector.h
+	modified:   src/gui/src/layoutViewer.cpp
+	modified:   src/gui/src/layoutViewer.h
+	modified:   src/gui/src/mainWindow.cpp
+	modified:   src/gui/src/mainWindow.h
+	modified:   src/gui/src/scriptWidget.cpp
+	modified:   src/gui/src/selectHighlightWindow.cpp
+	modified:   src/gui/src/selectHighlightWindow.h
+	modified:   src/gui/src/staGui.cpp
+	modified:   src/gui/src/stub.cpp
+	modified:   src/ifp/src/InitFloorplan.cc
+	modified:   src/ifp/test/auto_place_pins1.defok
+	modified:   src/ifp/test/init_floorplan1.defok
+	modified:   src/ifp/test/init_floorplan3.defok
+	modified:   src/ifp/test/init_floorplan4.defok
+	modified:   src/ifp/test/init_floorplan6.defok
+	modified:   src/ifp/test/init_floorplan7.defok
+	modified:   src/ifp/test/init_floorplan8.defok
+	modified:   src/ifp/test/make_tracks1.defok
+	modified:   src/ifp/test/make_tracks2.defok
+	modified:   src/ifp/test/make_tracks3.defok
+	modified:   src/ifp/test/make_tracks5.defok
+	modified:   src/mpl/src/MacroPlacer.cpp
+	modified:   src/mpl/src/ParquetFP/src/Nodes.cxx
+	modified:   src/mpl/src/ParquetFP/src/btree.cxx
+	modified:   src/mpl/src/ParquetFP/src/btreeanneal.cxx
+	modified:   src/mpl/src/Partition.cpp
+	modified:   src/pdngen/src/PdnGen.tcl
+	new file:   src/pdngen/test/gcd_M7_pin/PDN.cfg
+	new file:   src/pdngen/test/gcd_M7_pin/floorplan.def
+	modified:   src/pdngen/test/regression_tests.tcl
+	new file:   src/pdngen/test/test_gcd_M7_pin.defok
+	new file:   src/pdngen/test/test_gcd_M7_pin.ok
+	new file:   src/pdngen/test/test_gcd_M7_pin.tcl
+	modified:   src/ppl/src/HungarianMatching.cpp
+	modified:   src/ppl/src/IOPlacer.cpp
+	modified:   src/ppl/src/IOPlacer.i
+	modified:   src/ppl/test/add_constraint2.defok
+	modified:   src/ppl/test/add_constraint3.defok
+	modified:   src/ppl/test/add_constraint4.defok
+	modified:   src/ppl/test/add_constraint6_1.defok
+	new file:   src/ppl/test/add_constraint7.defok
+	new file:   src/ppl/test/add_constraint7.ok
+	new file:   src/ppl/test/add_constraint7.tcl
+	modified:   src/ppl/test/random4.defok
+	modified:   src/ppl/test/random5.defok
+	modified:   src/ppl/test/random6.defok
+	new file:   src/ppl/test/random7.defok
+	new file:   src/ppl/test/random7.ok
+	new file:   src/ppl/test/random7.tcl
+	new file:   src/ppl/test/random8.defok
+	new file:   src/ppl/test/random8.ok
+	new file:   src/ppl/test/random8.tcl
+	modified:   src/ppl/test/regression_tests.tcl
+	modified:   src/ppl/test/top_layer1.defok
+	modified:   src/ppl/test/top_layer2.defok
+	modified:   src/ppl/test/top_layer3.defok
+	modified:   src/ppl/test/top_layer4.defok
+	new file:   src/ppl/test/top_layer6.defok
+	new file:   src/ppl/test/top_layer6.ok
+	new file:   src/ppl/test/top_layer6.tcl
+	modified:   src/rcx/include/rcx/extRCap.h
+	modified:   src/rcx/messages.txt
+	modified:   src/rcx/src/MakeOpenRCX.cpp
+	modified:   src/rcx/src/ext.cpp
+	modified:   src/rcx/src/extBench.cpp
+	modified:   src/rcx/src/extBenchDB.cpp
+	modified:   src/rcx/src/extCC.cpp
+	modified:   src/rcx/src/extCoords.cpp
+	modified:   src/rcx/src/extDebugPrint.cpp
+	modified:   src/rcx/src/extFlow.cpp
+	modified:   src/rcx/src/extRCap.cpp
+	modified:   src/rcx/src/extRCmodel.cpp
+	modified:   src/rcx/src/extSpef.cpp
+	modified:   src/rcx/src/extSpefIn.cpp
+	modified:   src/rcx/src/ext_test_wire.cpp
+	modified:   src/rcx/src/extmain.cpp
+	modified:   src/rcx/src/extmeasure.cpp
+	modified:   src/rcx/src/extmeasure_res.cpp
+	modified:   src/rcx/src/extplanes.cpp
+	modified:   src/rcx/src/extprocess.cpp
+	modified:   src/rcx/src/extstats.cpp
+	modified:   src/rcx/src/exttree.cpp
+	modified:   src/rcx/src/hierSpef.cpp
+	modified:   src/rcx/src/netRC.cpp
+	modified:   src/rcx/src/powerConn.cpp
+	modified:   src/rcx/test/45_gcd.ok
+	modified:   src/rcx/test/ext_pattern.ok
+	modified:   src/rcx/test/gcd.ok
+	modified:   src/rcx/test/generate_pattern.ok
+	modified:   src/replace/include/replace/Replace.h
+	modified:   src/replace/src/graphics.cpp
+	modified:   src/replace/src/nesterovBase.cpp
+	modified:   src/replace/src/nesterovPlace.cpp
+	modified:   src/replace/src/replace.cpp
+	modified:   src/replace/src/replace.i
+	modified:   src/replace/src/replace.tcl
+	modified:   src/replace/src/routeBase.cpp
+	modified:   src/replace/src/routeBase.h
+	modified:   src/replace/src/timingBase.cpp
+	new file:   src/replace/test/route02.tcl
+	new file:   src/replace/test/simple01-rd.def
+	new file:   src/replace/test/simple01-rd.tcl
+	modified:   src/replace/test/simple01-td.ok
+	modified:   src/rsz/src/EstimateWireParasitics.cc
+	modified:   src/rsz/src/Resizer.cc
+	modified:   src/rsz/test/repair_hold10.ok
+	modified:   src/sst/flute.cpp
+	modified:   src/sta
+	modified:   src/tap/src/tapcell.tcl
+	modified:   src/tap/test/avoid_overlap.defok
+	modified:   src/tap/test/boundary_macros.defok
+	modified:   src/tap/test/gcd_fakeram.defok
+	modified:   src/tap/test/gcd_nangate45.defok
+	modified:   src/tap/test/gcd_prefix.defok
+	modified:   src/tap/test/gcd_sky130.defok
+	modified:   src/tap/test/no_endcap.defok
+	modified:   src/utl/include/utl/Logger.h
+	modified:   src/utl/src/Logger.cpp
+	modified:   src/utl/src/Logger.i
+	new file:   test/Nangate45/Nangate45.rc
+	new file:   test/Nangate45/Nangate45.rcx_rules
+	modified:   test/Nangate45/Nangate45.vars
+	modified:   test/aes_sky130hs.tcl
+	modified:   test/flow.tcl
+	new file:   test/get_core_die_areas.def
+	new file:   test/get_core_die_areas.ok
+	new file:   test/get_core_die_areas.tcl
+	modified:   test/ibex_sky130hd.tcl
+	modified:   test/regression_tests.tcl
+	new file:   test/report_flow_metrics.tcl
+	new file:   test/sky130hd/sky130hd.rc
+	new file:   test/sky130hd/sky130hd.rcx_rules
+	modified:   test/sky130hd/sky130hd.vars
+	new file:   test/sky130hs/sky130hs.rcx_rules
+	modified:   test/sky130hs/sky130hs.vars
+	modified:   test/tinyRocket_nangate45.tcl
+
+Unmerged paths:
+  (use "git add/rm <file>..." as appropriate to mark resolution)
+	deleted by us:   .github/workflows/github-actions-on-label-create.yml
+	both modified:   src/ppl/include/ppl/IOPlacer.h
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   src/sta (new commits)
+
+
+# commits
+
+cleanup compiler warnings
+Update run-ispd.tcl
+drt: fix assert
+Revert "drt: fix assert"
+drt: fix assert
+ppl: new unit test
+ppl: check pin placement status for constraints
+Revert "tap: update check_if_filled"
+dpl obstruction
+Update FlexDR_graphics.h
+remove log
+clang-format
+ifp okfiles
+drt: fix non-gui error
+gui: fix non-gui build missing symbols
+drt: add inspector for grid graph nodes/edges
+check double ndr definition
+test cm label
+Adding GitHub Action which cleans up deleted branches.
+Update drv limits
+Rewrite the label to push action.
+ifp first row orient R0
+Revert "Merge pull request #654 from The-OpenROAD-Project-staging/label-action-rework"
+grt: simplify std::max for l2v
+grt: fix coverity issue
+grt: fix overflow message
+grt: clang-format
+grt: remove dead code
+grt: remove deprecated function
+Adding GitHub Action which cleans up deleted branches.
+Rewrite the label to push action.
+added reading NDR from block
+[DRT] fix typo: bottom --> top
+log creating NDR
+ppl: remove wrong break
+ppl: new unit tests for random pin placement
+ppl: add getValidSlots function
+ppl: respect constrained pin groups during random placement
+ppl: respect pin groups during random placement
+Update drv limits
+log "BRANCH NDR_testing" in logger
+log
+internal power for port->port default duty cycle
+tap: update ok files
+tap: update check_if_filled
+tap: fix cells at top/bottom of the core
+tap: fix typo
+tap: fix east/west corner cells
+ ndr log
+required changes
+par: fix partition solutions from getting pinned to wrong metric
+dpl return error count
+tinyRocket n45 slack
+gcd n45 slack
+flow nangate45 rcx support
+demo CM
+add .whitespace file for testing workflow
+gui: use q as inspector hotkey
+flow write metrics, report_flow_metrics.tcl
+jenkins sideline ibex_sky130hs
+flow sideline ibex_sky130hs because rcx seg faults
+gpl simpleminded01-td
+flow enable rcx

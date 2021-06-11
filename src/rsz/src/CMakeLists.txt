@@ -43,6 +43,7 @@ swig_lib(NAME      rsz
 
 target_sources(rsz
   PRIVATE
+    BufferedNet.cc
     MakeResizer.cc
     Resizer.cc
     Rebuffer.cc
@@ -57,7 +58,7 @@ target_include_directories(rsz
 
 target_link_libraries(rsz
   PUBLIC
-    flute
+    sst
     opendb
     OpenSTA
     dbSta

@@ -415,10 +415,7 @@ int copyGrids3D(TreeNode* treenodes,
 
   n1x = treenodes[n1].x;
   n1y = treenodes[n1].y;
-  /* TODO:  <19-07-19, should this be commented? will assign garbage
-   * below> */
-  // n1l = treenodes[n1].l;
-  // n2l = treenodes[n2].l;
+  n1l = treenodes[n1].botL;
 
   cnt = 0;
   if (treeedges[edge_n1n2].n1 == n1)  // n1 is the first node of (n1, n2)
@@ -897,7 +894,7 @@ void mazeRouteMSMDOrder3D(int expand, int ripupTHlb, int ripupTHub)
       curY, curL, crossX, crossY, crossL, tmpX, tmpY, tmpL, tmpi, min_x, min_y,
       *dtmp;
   int regionX1, regionX2, regionY1, regionY2, routeLen;
-  int heapLen1, heapLen2, ind, ind1, tmpind, grid;
+  int heapLen1, heapLen2, ind, ind1, grid;
   float tmp;
   TreeEdge *treeedges, *treeedge;
   TreeNode* treenodes;
@@ -951,7 +948,7 @@ void mazeRouteMSMDOrder3D(int expand, int ripupTHlb, int ripupTHub)
   for (orderIndex = 0; orderIndex < endIND; orderIndex++) {
     netID = treeOrderPV[orderIndex].treeIndex;
 
-    int edgeCost = nets[netID]->edgeCost;
+    std::vector<int> edgeCostPerLayer = nets[netID]->edgeCostPerLayer;
 
     /* TODO:  <14-08-19, uncomment this to reproduce ispd18_test6> */
     /* if (netID == 53757) { */
@@ -1673,13 +1670,13 @@ void mazeRouteMSMDOrder3D(int expand, int ripupTHlb, int ripupTHub)
               {
                 min_y = std::min(gridsY[i], gridsY[i + 1]);
                 v_edges3D[gridsL[i] * gridV + min_y * xGrid + gridsX[i]].usage
-                    += edgeCost;
+                    += edgeCostPerLayer[gridsL[i]];
               } else  /// if(gridsY[i]==gridsY[i+1])// a horizontal edge
               {
                 min_x = std::min(gridsX[i], gridsX[i + 1]);
                 h_edges3D[gridsL[i] * gridH + gridsY[i] * (xGrid - 1) + min_x]
                     .usage
-                    += edgeCost;
+                    += edgeCostPerLayer[gridsL[i]];
               }
             }
           }

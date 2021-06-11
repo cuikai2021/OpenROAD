@@ -42,7 +42,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 #include "spdlog/formatter.h"
 #include "spdlog/sinks/base_sink.h"
 #include "utl/Logger.h"
@@ -51,8 +51,8 @@ namespace gui {
 
 ScriptWidget::ScriptWidget(QWidget* parent)
     : QDockWidget("Scripting", parent),
-      input_(new QLineEdit),
       output_(new QTextEdit),
+      input_(new QLineEdit),
       pauser_(new QPushButton("Idle")),
       historyPosition_(0)
 {
@@ -94,7 +94,7 @@ int ScriptWidget::channelOutput(ClientData instance_data,
 {
   // Buffer up the output
   ScriptWidget* widget = (ScriptWidget*) instance_data;
-  widget->outputBuffer_.append(QString::fromLatin1(buf, to_write).trimmed());
+  widget->logger_->report(std::string(buf, to_write));
   return to_write;
 }
 
@@ -124,6 +124,17 @@ Tcl_ChannelType ScriptWidget::stdout_channel_type_ = {
     nullptr                      /* truncateProc */
 };
 
+int ScriptWidget::tclExitHandler(ClientData instance_data,
+                                 Tcl_Interp *interp,
+                                 int argc,
+                                 const char **argv) {
+  ScriptWidget* widget = (ScriptWidget*) instance_data;
+  // announces exit to Qt
+  emit widget->tclExiting();
+  // does not matter from here on, since GUI is getting ready exit
+  return TCL_OK;
+}
+
 void ScriptWidget::setupTcl()
 {
   interp_ = Tcl_CreateInterp();
@@ -136,6 +147,13 @@ void ScriptWidget::setupTcl()
     Tcl_RegisterChannel(interp_, stdout_channel);  // per man page: some tcl bug
     Tcl_SetStdChannel(stdout_channel, TCL_STDOUT);
   }
+
+  // Overwrite exit to allow Qt to handle exit
+  Tcl_CreateCommand(interp_, "exit", ScriptWidget::tclExitHandler, this, nullptr);
+
+  // Ensures no newlines are present in stdout stream when using logger, but normal behavior in file writing
+  Tcl_Eval(interp_, "rename puts ::tcl::openroad::puts");
+  Tcl_Eval(interp_, "proc puts { args } { if {[llength $args] == 1} { ::tcl::openroad::puts -nonewline {*}$args } else { ::tcl::openroad::puts {*}$args } }");
 
   pauser_->setText("Running");
   pauser_->setStyleSheet("background-color: red");
@@ -308,6 +326,7 @@ class ScriptWidget::GuiSink : public spdlog::sinks::base_sink<Mutex>
 
 void ScriptWidget::setLogger(utl::Logger* logger)
 {
+  logger_ = logger;
   logger->addSink(std::make_shared<GuiSink<std::mutex>>(this));
 }
 
