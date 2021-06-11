@@ -200,7 +200,6 @@ TEST_F(TritonCTS_PostCtsOpt, global_test_level_balancer)
   openRoad->readDef(defName, false, false, false);
 
   // give arguments necessary to tritonCTS
-  // from regression source `check_buffer.tcl`
   Tcl_Eval(interp, "create_clock -period 5 clk");
   openRoad->getTritonCts()->getParms()->setRootBuffer("CLKBUF_X3");
   openRoad->getTritonCts()->setBufferList("CLKBUF_X3");
