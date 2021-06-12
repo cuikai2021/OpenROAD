@@ -553,9 +553,9 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
   }
   if (hasEndPoint) {
     if (beginX > endX || beginY > endY) {
-      swap(beginX, endX);
-      swap(beginY, endY);
-      swap(beginExt, endExt);
+      std::swap(beginX, endX);
+      std::swap(beginY, endY);
+      std::swap(beginExt, endExt);
     }
     bool isHorizontal = (beginX != endX);
     if (isHorizontal) {
