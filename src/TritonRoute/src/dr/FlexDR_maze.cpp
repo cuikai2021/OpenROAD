@@ -2774,12 +2774,12 @@ bool FlexDRWorker::routeNet_postPatchOverlappedPath(drNet* net,
   auto costR = routeNet_postAstarAddPathMetal_isClean(
       points[end-1], preferH, patchStyle, patchLengthR);
 
-  logger_->report("{}: patch overlapped path: z {}, [{},{}), via half {}",
-    net->getFrNet()->getName(), points[begin].z(), begin, end, viaHalf);
-  logger_->report("    ({},{})-({},{})-({},{})-({},{})",
-    p[0].x(), p[0].y(), p[1].x(), p[1].y(), p[2].x(), p[2].y(), p[3].x(), p[3].y());
-  logger_->report("    path {}-{}-{}, area {}/{}, L {} {}, R {} {}",
-    h0, v, h1, currArea, reqArea, patchLengthL, costL, patchLengthR, costR);
+  //logger_->report("{}: patch overlapped path: z {}, [{},{}), via half {}",
+  //  net->getFrNet()->getName(), points[begin].z(), begin, end, viaHalf);
+  //logger_->report("    ({},{})-({},{})-({},{})-({},{})",
+  //  p[0].x(), p[0].y(), p[1].x(), p[1].y(), p[2].x(), p[2].y(), p[3].x(), p[3].y());
+  //logger_->report("    path {}-{}-{}, area {}/{}, L {} {}, R {} {}",
+  //  h0, v, h1, currArea, reqArea, patchLengthL, costL, patchLengthR, costR);
 
   if (costL <= costR) {
     routeNet_postAstarAddPatchMetal_addPWire(
