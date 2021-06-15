@@ -11,7 +11,7 @@ RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS yosys_stage
 ARG YOSYS_REF
-RUN apt update && apt install -y libreadline8 klayout 
+RUN apt update && apt install -y libreadline8 klayout git
 RUN git clone -b ${YOSYS_REF} git@github.com:ICBench/yosys.git /yosys
 WORKDIR /yosys
 RUN make

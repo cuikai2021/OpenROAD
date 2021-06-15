@@ -5,8 +5,8 @@ on:
       Eden_commit_id:
         description: 'commit id of Eden to make it'
         required: true
-      yosys_commit_id:
-        description: 'commit id of yosys to make it'
+      yosys_branch:
+        description: 'branch or tag of yosys to make it'
         required: true
       release_name:
         description: 'docker release name, like 0409p2'
