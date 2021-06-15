@@ -1,6 +1,7 @@
 ARG DEPS_IMAGE_TAG
 ARG EDEN_GIT_SHA1
 ARG YOSYS_IMAGE_TAG
+ARG YOSYS_REF
 
 FROM ${DEPS_IMAGE_TAG} AS build_stage
 COPY . /Eden
@@ -12,10 +13,11 @@ ARG DEPS_IMAGE_TAG
 ARG YOSYS_IMAGE_TAG
 FROM ${YOSYS_IMAGE_TAG} AS yosys_stage
 
-
+ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG}
+ARG YOSYS_REF
 RUN apt update && apt install -y libreadline8 klayout 
-RUN git clone git@github.com:ICBench/yosys.git /yosys
+RUN git clone -b ${YOSYS_REF} git@github.com:ICBench/yosys.git /yosys
 WORKDIR /yosys
 RUN make
 

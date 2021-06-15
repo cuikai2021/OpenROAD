@@ -8,6 +8,9 @@ on:
       release_name:
         description: 'docker release name, like 0409p2'
         required: true
+      yosys_ref_id:
+        description: 'ref_id which can decide the branch of it'
+        required: true
 
 env:
   RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}
@@ -60,7 +63,9 @@ jobs:
               DEPS_IMAGE_TAG=${{ env.env_DEPS_ENV }}
               YOSYS_IMAGE_TAG=${{ env.YOSYS_ENV }}
               EDEN_GIT_SHA1=${{ env.EDEN_GIT_SHA1 }}
-            file: docker/Dockerfile.release
+              YOSYS_REF=${{ github.event.inputs.yosys_ref_id }}
+            file: |
+              docker/Dockerfile.release
             push: true
             tags: ${{ env.RELEASE_ENV }}
 
