@@ -13,7 +13,7 @@ ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS yosys_stage
 ARG YOSYS_REF
 RUN apt update && apt install -y libreadline8 klayout
-RUN git clone -b ${YOSYS_REF} git@github.com:ICBench/yosys.git /yosys
+COPY ./yosys /yosys
 WORKDIR /yosys
 RUN make
 
