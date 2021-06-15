@@ -1,25 +1,21 @@
 ARG DEPS_IMAGE_TAG
 ARG EDEN_GIT_SHA1
-ARG YOSYS_REF
 
-FROM ${DEPS_IMAGE_TAG} AS build_stage
+FROM ${DEPS_IMAGE_TAG} AS eden_build_stage
 COPY . /Eden
 WORKDIR /Eden
 ARG EDEN_GIT_SHA1
 RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
 
-ARG YOSYS_REF
 ARG DEPS_IMAGE_TAG
-FROM ${DEPS_IMAGE_TAG} AS yosys_stage
-ARG YOSYS_REF
-RUN apt update && apt install -y libreadline8 klayout
+FROM ${DEPS_IMAGE_TAG} AS yosys_build_stage
 COPY ./yosys /yosys
 WORKDIR /yosys
-RUN make
+RUN apt update && apt install -y libreadline-dev klayout pkg-config && make
 
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG}
-RUN apt install -y time
+RUN apt update && apt install -y time libreadline-dev klayout pkg-config
 COPY --from=yosys_stage /yosys/yosys* /usr/local/bin
 COPY --from=yosys_stage /yosys/share/* /usr/local/share
 COPY --from=build_stage /Eden/build/src/eden /usr/local/bin

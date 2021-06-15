@@ -71,7 +71,6 @@ jobs:
             build-args: |
               DEPS_IMAGE_TAG=${{ env.env_DEPS_ENV }}
               EDEN_GIT_SHA1=${{ env.EDEN_GIT_SHA1 }}
-              YOSYS_REF=${{ github.event.inputs.yosys_commit_id }}
             file: |
               docker/Dockerfile.release
             push: true
