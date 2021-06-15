@@ -1,22 +1,28 @@
-ARG FROM_IMAGE_TAG
-FROM ${FROM_IMAGE_TAG} AS build_stage
-
+ARG DEPS_IMAGE_TAG
 ARG EDEN_GIT_SHA1
+ARG YOSYS_IMAGE_TAG
 
+FROM ${DEPS_IMAGE_TAG} AS build_stage
 COPY . /Eden
 WORKDIR /Eden
-
-# Build
+ARG EDEN_GIT_SHA1
 RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
 
-
+ARG DEPS_IMAGE_TAG
 ARG YOSYS_IMAGE_TAG
 FROM ${YOSYS_IMAGE_TAG} AS yosys_stage
 
 
-FROM ubuntu:20.04
+FROM ${DEPS_IMAGE_TAG}
+RUN apt update && apt install -y libreadline8 klayout 
+RUN git clone git@github.com:ICBench/yosys.git /yosys
+WORKDIR /yosys
+RUN make
 
+ARG DEPS_IMAGE_TAG
+FROM ${DEPS_IMAGE_TAG}
+RUN apt install -y time
 COPY --from=yosys_stage /yosys/yosys* /usr/local/bin
+COPY --from=yosys_stage /yosys/share/* /usr/local/share
 COPY --from=build_stage /Eden/build/src/eden /usr/local/bin
-
 WORKDIR /Eden
