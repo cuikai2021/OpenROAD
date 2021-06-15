@@ -15,22 +15,24 @@ jobs:
       DOCKER_REGRESSION_IMAGENAME_TEST: eden_regression_test
        
     steps:
-      - name: checkout
+      - name: 1. checkout
         uses: actions/checkout@v2
 
-      - if: ${{ github.actor == 'ICBench' }}
+      - name: 2. ICBench image version
+        if: ${{ github.actor == 'ICBench' }}
         uses: allenevans/set-env@v2.0.1
         with:
           DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME }}
           DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME }}
 
-      - if: ${{ github.actor != 'ICBench' }}
+      - name: 2. test image version
+        if: ${{ github.actor != 'ICBench' }}
         uses: allenevans/set-env@v2.0.1
         with:
           DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME_TEST }}
           DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME_TEST }}
 
-      - name: file changes
+      - name: 3. monitor file change
         id: change
         uses: trilom/file-changes-action@v1.2.3
         with:
@@ -38,7 +40,8 @@ jobs:
           pushBefore: ${{ github.event.before }}
           pushAfter: ${{ github.event.after }}
 
-      - uses: zynICBench/json-creator@v2.1
+      - name: 4. create json file to store environment variables
+        uses: zynICBench/json-creator@v2.1
         with:
           file-name: 'env.json'
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
@@ -54,7 +57,7 @@ jobs:
           EVENT_AFTER: ${{ github.event.after }}
           
 
-      - name: upload to aliyun
+      - name: 5. upload to aliyun
         uses: manyuanrong/setup-ossutil@v2.0
         with:
           endpoint: "oss-cn-shanghai.aliyuncs.com"
@@ -62,7 +65,7 @@ jobs:
           access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
       - run: ossutil cp -rf env.json oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/
 
-      - name: invoke workflow
+      - name: 6. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           workflow: relesase eden deps docker
