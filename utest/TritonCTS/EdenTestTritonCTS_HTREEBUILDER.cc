@@ -295,8 +295,6 @@ TEST_F(TritonCTS_HTreeBuilder, run_and_plot)
   unsigned outCap = 0;
   unsigned outSlew = 0;
 
-  std::string fileName[3] = {};
-
   const char* defName = "utest/TritonCTS/test/clustered_test.def";
   const char* lefName = "src/TritonCTS/test/Nangate45/Nangate45.lef";
   const char* libName = "src/TritonCTS/test/Nangate45/Nangate45_typ.lib";
