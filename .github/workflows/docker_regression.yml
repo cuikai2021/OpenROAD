@@ -93,7 +93,7 @@ jobs:
             head_sha: ${{ github.sha }}
             title: regression succeeded, run number is ${{ github.run_number }}
             base: master
-            head: ${{ github.ref }}
+            head: ${{ github.event.after }}
             labels: "CI"
             body: |
                The regression run success
