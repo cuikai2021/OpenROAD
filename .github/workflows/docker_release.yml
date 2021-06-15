@@ -80,8 +80,8 @@ jobs:
         - name: generate changelog
           run: |
             echo "## release success" > CHANGELOG.txt
-            echo "### commit id: ${{ github.event.inputs.Eden_commit_id }}" >> CHANGELOG.txt
-            echo "### yosys branch or tag: ${{ github.event.inputs.yosys_commit_id }}" >> CHANGELOG.txt
+            echo "### eden commit id: ${{ github.event.inputs.Eden_commit_id }}" >> CHANGELOG.txt
+            echo "### yosys commit id: ${{ github.event.inputs.yosys_commit_id }}" >> CHANGELOG.txt
             echo "### docker id: ${{ env.RELEASE_ENV }}" >> CHANGELOG.txt
         - name: release
           uses: softprops/action-gh-release@v1
