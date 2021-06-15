@@ -16,6 +16,7 @@ RUN apt update && apt install -y libreadline-dev klayout pkg-config && make
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG}
 RUN apt update && apt install -y time libreadline-dev klayout pkg-config
+RUN mkdir -p /usr/local/share/yosys
 COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin
 COPY --from=yosys_build_stage /yosys/share/* /usr/local/share/yosys
 COPY --from=eden_build_stage /Eden/build/src/eden /usr/local/bin
