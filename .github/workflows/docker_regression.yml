@@ -1,4 +1,4 @@
-name: relesase eden regressions docker
+name: release eden regressions docker
 on: [workflow_dispatch]
 
 jobs: 
