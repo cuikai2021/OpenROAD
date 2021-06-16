@@ -20,4 +20,7 @@ RUN mkdir -p /usr/local/share/yosys
 COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin
 COPY --from=yosys_build_stage /yosys/share/* /usr/local/share/yosys
 COPY --from=eden_build_stage /Eden/build/src/eden /usr/local/bin
-WORKDIR /Eden
+RUN mkdir -p /Eden-flow
+WORKDIR /Eden-flow
+RUN mkdir -p /Eden-flow/flow
+RUN chmod o+rw -R /Eden-flow/flow
