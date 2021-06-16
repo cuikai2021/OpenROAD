@@ -30,7 +30,7 @@ jobs:
         - name: checkout
           uses: actions/checkout@v2
           with: 
-            repository: ${{ github.actor }}/yosys
+            repository: ICBench/yosys
             ref: ${{ github.event.inputs.yosys_commit_id }}
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             path: ${{ github.workspace }}/yosys

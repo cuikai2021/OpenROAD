@@ -1,4 +1,4 @@
-name: relesase eden deps docker
+name: release eden deps docker
 on: [workflow_dispatch]
       
 jobs: 
