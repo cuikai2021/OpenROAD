@@ -2,16 +2,19 @@ name: docker release
 on:
   workflow_dispatch:
     inputs:
-      commit_id:
-        description: 'commit id of repo(Eden) to make it'
+      Eden_commit_id:
+        description: 'commit id of Eden to make it'
+        required: true
+      yosys_commit_id:
+        description: 'commit id of yosys to make it'
         required: true
       release_name:
         description: 'docker release name, like 0409p2'
         required: true
 
+
 env:
   RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}
-  YOSYS_ENV: registry.cn-shanghai.aliyuncs.com/openroad/yosys:0207
   DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
 
 jobs:
@@ -22,7 +25,16 @@ jobs:
           uses: actions/checkout@v2
           with: 
             submodules: true
-            ref: ${{ github.event.inputs.commit_id }}
+            ref: ${{ github.event.inputs.Eden_commit_id }}
+
+        - name: checkout
+          uses: actions/checkout@v2
+          with: 
+            repository: ${{ github.actor }}/yosys
+            ref: ${{ github.event.inputs.yosys_commit_id }}
+            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+            path: ${{ github.workspace }}/yosys
+
 
         - name: connect to aliyun
           uses: manyuanrong/setup-ossutil@v2.0
@@ -58,16 +70,17 @@ jobs:
             context: .
             build-args: |
               DEPS_IMAGE_TAG=${{ env.env_DEPS_ENV }}
-              YOSYS_IMAGE_TAG=${{ env.YOSYS_ENV }}
               EDEN_GIT_SHA1=${{ env.EDEN_GIT_SHA1 }}
-            file: docker/Dockerfile.release
+            file: |
+              docker/Dockerfile.release
             push: true
             tags: ${{ env.RELEASE_ENV }}
 
         - name: generate changelog
           run: |
             echo "## release success" > CHANGELOG.txt
-            echo "### commit id: ${{ github.event.inputs.commit_id }}" >> CHANGELOG.txt
+            echo "### eden commit id: ${{ github.event.inputs.Eden_commit_id }}" >> CHANGELOG.txt
+            echo "### yosys commit id: ${{ github.event.inputs.yosys_commit_id }}" >> CHANGELOG.txt
             echo "### docker id: ${{ env.RELEASE_ENV }}" >> CHANGELOG.txt
         - name: release
           uses: softprops/action-gh-release@v1
