@@ -32,7 +32,7 @@ jobs:
             submodules: true
             repository: ICBench/Eden
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-            ref: ${{ github.event.inputs.Eden_commit_id }}/Eden_src
+            ref: ${{ github.event.inputs.Eden_commit_id }}
 
         - name: 3. checkout yosys
           uses: actions/checkout@v2
