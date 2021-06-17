@@ -215,7 +215,7 @@ TEST_F(TritonCTS_TechChar, create)
   openRoad->getDb()->clear();
 }
 
-TEST(TritonCTS_Total, file_equal)
+TEST_F(TritonCTS_TechChar, file_equal)
 {
   // segment wire
   EXPECT_FILE_EQ(TritonCTS_TechChar::logName, TritonCTS_TechChar::logOk);
