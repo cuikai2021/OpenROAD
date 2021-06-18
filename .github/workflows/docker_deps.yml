@@ -2,7 +2,7 @@ name: release eden deps docker
 on: [workflow_dispatch]
       
 jobs: 
-  relesase-eden-deps-docker:
+  release-eden-deps-docker:
     runs-on: [self-hosted]
 
     steps:
@@ -68,5 +68,5 @@ jobs:
         - name: 11. invoke workflow
           uses: benc-uk/workflow-dispatch@v1.1
           with:
-            workflow: relesase eden regressions docker
+            workflow: release eden regressions docker
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
