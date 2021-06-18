@@ -2,7 +2,7 @@ name: release eden regressions docker
 on: [workflow_dispatch]
 
 jobs: 
-  relesase-eden-regressions-docker:
+  release-eden-regressions-docker:
     runs-on: [self-hosted]
     env:
       COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/coverage_results/${{ github.run_number }}
