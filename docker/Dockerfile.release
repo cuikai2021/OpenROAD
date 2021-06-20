@@ -4,7 +4,7 @@ ARG EDEN_GIT_SHA1
 
 
 FROM ${DEPS_IMAGE_TAG} AS eden_build_stage
-COPY . /Eden
+COPY ./Eden-src /Eden
 WORKDIR /Eden
 ARG EDEN_GIT_SHA1
 RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8

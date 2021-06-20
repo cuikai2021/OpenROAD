@@ -33,6 +33,7 @@ jobs:
             repository: ICBench/Eden
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             ref: ${{ github.event.inputs.Eden_commit_id }}
+            path: ${{ github.workspace }}/Eden-src
 
         - name: 3. checkout yosys
           uses: actions/checkout@v2
@@ -99,3 +100,6 @@ jobs:
             tag_name: release_${{ github.event.inputs.release_name }}
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
+        - name: 12. delete deps and release image
+          run: docker rmi ${{ env.RELEASE_ENV }}
