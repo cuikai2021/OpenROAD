@@ -11,7 +11,7 @@ RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 
 
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS deps_stage
-RUN apt-get install -y time libreadline8 pkg-config 
+RUN apt-get install -y time libreadline-dev pkg-config 
 RUN \
   set -eu; \
   apt-get install -y klayout; \
