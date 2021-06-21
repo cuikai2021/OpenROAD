@@ -2511,6 +2511,129 @@ proc generate_core_rings {core_ring_data} {
   dict set grid_data core_ring_area combined [odb::orSets $ring_areas]
 }
 
+proc generate_core_rings_adjustable {core_ring_data rings_number} {
+  variable grid_data
+  
+  dict for {layer layer_info} $core_ring_data {
+    for {set num 0} {$num<$rings_number} {set num [expr $num + 1]} {
+      set area [list {*}[[ord::get_db_core] ll] {*}[[ord::get_db_core] ur]]
+      set offset [dict get $layer_info core_offset]
+
+      set xMin [lindex $area 0]
+      set yMin [lindex $area 1]
+      set xMax [lindex $area 2]
+      set yMax [lindex $area 3]
+
+      set spacing [dict get $layer_info spacing]
+      set width [dict get $layer_info width]
+    
+      set inner_lx [expr $xMin - $offset - ($spacing + $width) * 2 * $num]
+      set inner_ly [expr $yMin - $offset - ($spacing + $width) * 2 * $num]
+      set inner_ux [expr $xMax + $offset + ($spacing + $width) * 2 * $num]
+      set inner_uy [expr $yMax + $offset + ($spacing + $width) * 2 * $num]
+
+      set outer_lx [expr $xMin - $offset - ($spacing + $width) * (2 * $num + 1)]
+      set outer_ly [expr $yMin - $offset - ($spacing + $width) * (2 * $num + 1)]
+      set outer_ux [expr $xMax + $offset + ($spacing + $width) * (2 * $num + 1)]
+      set outer_uy [expr $yMax + $offset + ($spacing + $width) * (2 * $num + 1)]
+
+      if {[get_dir $layer] == "hor"} {
+        set lower_power \
+          [odb::newSetFromRect \
+            [expr $inner_lx - $width / 2] \
+            [expr $inner_ly - $width / 2] \
+            [expr $inner_ux + $width / 2] \
+            [expr $inner_ly + $width / 2] \
+          ]
+        set upper_power \
+          [odb::newSetFromRect \
+            [expr $inner_lx - $width / 2] \
+            [expr $inner_uy - $width / 2] \
+            [expr $inner_ux + $width / 2] \
+            [expr $inner_uy + $width / 2] \
+          ]
+
+        set lower_ground \
+          [odb::newSetFromRect \
+            [expr $outer_lx - $width / 2] \
+            [expr $outer_ly - $width / 2] \
+            [expr $outer_ux + $width / 2] \
+            [expr $outer_ly + $width / 2] \
+          ]
+        set upper_ground \
+          [odb::newSetFromRect \
+            [expr $outer_lx - $width / 2] \
+            [expr $outer_uy - $width / 2] \
+            [expr $outer_ux + $width / 2] \
+            [expr $outer_uy + $width / 2] \
+          ]
+
+        add_stripe $layer "POWER" $upper_power
+        add_stripe $layer "POWER" $lower_power
+        add_stripe $layer "GROUND" $upper_ground
+        add_stripe $layer "GROUND" $lower_ground
+
+        set core_rings [odb::orSets [list \
+          [odb::newSetFromRect [expr $outer_lx - $width / 2] [expr $outer_ly - $width / 2] [expr $outer_ux + $width / 2] [expr $inner_ly + $width / 2]] \
+          [odb::newSetFromRect [expr $outer_lx - $width / 2] [expr $inner_uy - $width / 2] [expr $outer_ux + $width / 2] [expr $outer_uy + $width / 2]] \
+        ]]
+        set core_ring_area [odb::bloatSet $core_rings $spacing]
+        dict set grid_data core_ring_area $layer $core_ring_area
+
+      } else {
+      set lhs_power \
+        [odb::newSetFromRect \
+          [expr $inner_lx - $width / 2] \
+          [expr $inner_ly - $width / 2] \
+          [expr $inner_lx + $width / 2] \
+          [expr $inner_uy + $width / 2] \
+        ]
+      set rhs_power \
+        [odb::newSetFromRect \
+          [expr $inner_ux - $width / 2] \
+          [expr $inner_ly - $width / 2] \
+          [expr $inner_ux + $width / 2] \
+          [expr $inner_uy + $width / 2] \
+        ]
+
+      set lhs_ground \
+        [odb::newSetFromRect \
+          [expr $outer_lx - $width / 2] \
+          [expr $outer_ly - $width / 2] \
+          [expr $outer_lx + $width / 2] \
+          [expr $outer_uy + $width / 2] \
+        ]
+      set rhs_ground \
+        [odb::newSetFromRect \
+          [expr $outer_ux - $width / 2] \
+          [expr $outer_ly - $width / 2] \
+          [expr $outer_ux + $width / 2] \
+          [expr $outer_uy + $width / 2] \
+        ]
+
+      add_stripe $layer "POWER" $lhs_power
+      add_stripe $layer "POWER" $rhs_power
+      add_stripe $layer "GROUND" $lhs_ground
+      add_stripe $layer "GROUND" $rhs_ground
+
+      set core_rings [odb::orSets [list \
+        [odb::newSetFromRect [expr $outer_lx - $width / 2] [expr $outer_ly - $width / 2] [expr $inner_lx + $width / 2] [expr $outer_uy + $width / 2]] \
+        [odb::newSetFromRect [expr $inner_ux - $width / 2] [expr $outer_ly - $width / 2] [expr $outer_ux + $width / 2] [expr $outer_uy + $width / 2]] \
+      ]]
+      set core_ring_area [odb::bloatSet $core_rings $spacing]
+      dict set grid_data core_ring_area $layer $core_ring_area
+
+      }
+    }
+
+  }
+  set ring_areas {}
+  foreach layer [dict keys [dict get $grid_data core_ring_area]] {
+    lappend ring_areas [dict get $grid_data core_ring_area $layer]
+  }
+  dict set grid_data core_ring_area combined [odb::orSets $ring_areas]
+}
+
 proc get_macro_boundaries {} {
   variable instances
 
@@ -3400,17 +3523,19 @@ proc get_core_facing_pins {instance pin_name side layer} {
   }
   set pins [$mterm getMPins]
   
-  # debug "start"
+   #debug "start"
   foreach pin $pins {
     foreach geom [$pin getGeometry] {
       if {[[$geom getTechLayer] getName] != $layer} {continue}
       lappend geoms $geom
     }
   }
-  # debug "$pins"
+   #debug "pin is $pins, geometry is  $geoms, [[$geom getTechLayer] getName], $layer"
   foreach geom $geoms {
+    #debug "geom for "
     set ipin [transform_box [$geom xMin] [$geom yMin] [$geom xMax] [$geom yMax] [$inst getOrigin] [$inst getOrient]]
-    # debug "$ipin [[$inst getBBox] xMin] [[$inst getBBox] yMin] [[$inst getBBox] xMax] [[$inst getBBox] yMax] "
+    #debug "$ipin"
+    #debug "$ipin [[$inst getBBox] xMin] [[$inst getBBox] yMin] [[$inst getBBox] xMax] [[$inst getBBox] yMax] "
     switch $side {
       "t" {
         if {[lindex $ipin 1] == [[$inst getBBox] yMin]} {
@@ -3446,7 +3571,7 @@ proc get_core_facing_pins {instance pin_name side layer} {
       }
     }
   }
-  # debug "$core_pins"
+  #debug "$core_pins"
   return $core_pins
 }
 
@@ -3489,35 +3614,35 @@ proc connect_pads_to_core_ring {type pin_name pads} {
         set y_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
         set y_min_blk [expr $y_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
         set y_max [dict get $instance ymin]
-        # debug "t: [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]"
+         #debug "t: [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]"
         add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]]
       }
       "b" {
-        # debug "[get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2"
+         #debug "[get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2"
         set y_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
         set y_max_blk [expr $y_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
         set y_min [dict get $instance ymax]
-        # debug "b: [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max"
+         #debug "b: [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max"
         add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max_blk]
-        # debug "end b"
+         #debug "end b"
       }
       "l" {
         set x_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
         set x_max_blk [expr $x_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
         set x_min [dict get $instance xmax]
-        # debug "l: [dict get $instance xmin] [dict get $instance ymin] $x_max [dict get $instance ymax]"
+         #debug "l: [dict get $instance xmin] [dict get $instance ymin] $x_max [dict get $instance ymax]"
         add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] [dict get $instance ymin] $x_max_blk [dict get $instance ymax]]
       }
       "r" {
         set x_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
         set x_min_blk [expr $x_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
         set x_max [dict get $instance xmin]
-        # debug "r: $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]"
+         #debug "r: $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]"
         add_padcell_blockage $pref_layer [odb::newSetFromRect $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]]
       }
     }
 
-    # debug "$pref_layer"
+     debug "$pref_layer"
     foreach pin_geometry [get_core_facing_pins $instance $pin_name $side $pref_layer] {
       set centre [dict get $pin_geometry centre]
       set width  [dict get $pin_geometry width]
@@ -3527,15 +3652,15 @@ proc connect_pads_to_core_ring {type pin_name pads} {
         set width [$layer getMaxWidth]
       }
       if {$required_direction == "hor"} {
-        # debug "added_strap $pref_layer $type $x_min [expr $centre - $width / 2] $x_max [expr $centre + $width / 2]"
+         #debug "added_strap $pref_layer $type $x_min [expr $centre - $width / 2] $x_max [expr $centre + $width / 2]"
         add_stripe $pref_layer "PAD_$type" [odb::newSetFromRect $x_min [expr $centre - $width / 2] $x_max [expr $centre + $width / 2]]
       } else {
-        # debug "added_strap $pref_layer $type [expr $centre - $width / 2] $y_min [expr $centre + $width / 2] $y_max"
+         #debug "added_strap $pref_layer $type [expr $centre - $width / 2] $y_min [expr $centre + $width / 2] $y_max"
         add_stripe $pref_layer "PAD_$type" [odb::newSetFromRect [expr $centre - $width / 2] $y_min [expr $centre + $width / 2] $y_max]
       }
     }
   }
-  # debug "end"
+   #debug "end, [get_core_facing_pins $instance $pin_name $side $pref_layer]"
 }
 
 proc add_pad_straps {tag} {
@@ -3890,7 +4015,11 @@ proc add_grid {} {
   if {[dict exists $grid_data core_ring]} {
     set area [dict get $grid_data area]
     # debug "Area $area"
-    generate_core_rings [dict get $grid_data core_ring]
+    if {[dict exists $grid_data rings_number]} {
+      generate_core_rings_adjustable [dict get $grid_data core_ring] [dict get $grid_data rings_number]
+    } else {
+      generate_core_rings [dict get $grid_data core_ring]
+    }
     if {[dict exists $grid_data gnd_pads]} {
       dict for {pin_name cells} [dict get $grid_data gnd_pads] {
         connect_pads_to_core_ring "GROUND" $pin_name $cells
