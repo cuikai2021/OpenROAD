@@ -243,7 +243,7 @@ else()
 endif()
 
 messages(
-  TARGET openroad
+  TARGET eden
   SOURCE_DIR .
   OUTPUT_DIR ..
   LOCAL
@@ -252,7 +252,7 @@ messages(
 # ICeWall isn't a proper module with its own CMakeLists.txt so it
 # is handled here (just like the tcl encoding).
 messages(
-  TARGET openroad
+  TARGET eden
   OUTPUT_DIR ICeWall
 )
 
@@ -342,7 +342,7 @@ if(GTEST STREQUAL ON)
     fin
     rsz
     ppl
-    sst
+    stt
     dbSta
     OpenSTA
     opendb
@@ -359,6 +359,7 @@ if(GTEST STREQUAL ON)
     PartitionMgr
     utl
     pdn
+    pdr
     utt
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
