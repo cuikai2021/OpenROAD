@@ -2755,7 +2755,7 @@ bool FlexDRWorker::routeNet_postPatchOverlappedPath(drNet* net,
     return false;
 
   double gapLength = double(reqArea-(currArea-viaHalf))/width;
-  auto mGrid = getDesign()->getTech()->getManufacturingGrid();
+  auto mGrid = getTech()->getManufacturingGrid();
   frCoord patchLengthLong = frCoord(ceil(gapLength/mGrid))*mGrid;
   frCoord patchLengthShort = frCoord(ceil((gapLength+std::abs(h0-h1))/mGrid))*mGrid;
 
@@ -2950,7 +2950,7 @@ void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
         routeNet_postPatchOverlappedPath(
           net, points, prev_i, i, reqArea,
           std::min(startViaHalfEncArea, endViaHalfEncArea),
-          getDesign()->getTech()->getLayer(layerNum));
+          getTech()->getLayer(layerNum));
       }
       // init for next path
       if (currIdx.z() < prevIdx.z()) {
