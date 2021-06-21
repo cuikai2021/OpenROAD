@@ -259,7 +259,7 @@ namespace eval ICeWall {
           set x [expr [dict get $absolute_origin x] + $height]
           set y [expr [dict get $absolute_origin y] + $width]
         }
-        default {utl::error "PAD" 6 "Illegal orientation $orient specified"}
+        default {utl::error "PAD" 100 "Illegal orientation $orient specified"}
       }
 
       return [list x $x y $y]
@@ -2880,7 +2880,7 @@ namespace eval ICeWall {
       set bbox {}
       set padcells_on_side [get_footprint_padcells_by_side $side_name]
       if {[llength $padcells_on_side] == 0} {
-        ord::error "PAD" 15 "No cells found on $side side"
+        utl::error "PAD" 15 "No cells found on $side side"
       }
       foreach padcell [get_footprint_padcells_by_side $side_name] {
         set name [get_padcell_inst_name $padcell]
