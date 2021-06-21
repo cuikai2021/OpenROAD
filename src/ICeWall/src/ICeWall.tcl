@@ -259,7 +259,7 @@ namespace eval ICeWall {
           set x [expr [dict get $absolute_origin x] + $height]
           set y [expr [dict get $absolute_origin y] + $width]
         }
-        default {utl::error "PAD" 6 "Illegal orientation $orient specified"}
+        default {utl::error "PAD" 100 "Illegal orientation $orient specified"}
       }
 
       return [list x $x y $y]

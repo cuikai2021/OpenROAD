@@ -274,56 +274,56 @@ proc read_pin { args } {
 
   set dbTech [ord::get_db_tech]
   if { $dbTech == "NULL" } {
-    utl::error PPL 31 "no technology found."
+    utl::error PPL 100 "no technology found."
   }
 
   set dbBlock [ord::get_db_block]
   if { $dbBlock == "NULL" } {
-    utl::error PPL 32 "no block found."
+    utl::error PPL 101 "no block found."
   }
 
   if [info exists keys(-name)] {
     set pin_name $keys(-name)
   } else {
-    utl::error PPL 17 "-name is required."
+    utl::error PPL 102 "-name is required."
   }
 
   if [info exists keys(-layer)] {
     set pin_layer $keys(-layer)
   } else {
-    utl::error PPL 17 "-layer is required."
+    utl::error PPL 103 "-layer is required."
   }
 
   if [info exists keys(-loc)] {
     set location $keys(-loc)
   } else {
-    utl::error PPL 17 "-loc is required."
+    utl::error PPL 104 "-loc is required."
   }
 
   if {! [llength $location] eq 2} {
-    utl::error PPL 17 "x y are needed"
+    utl::error PPL 105 "x y are needed"
   }
 
   if [info exists keys(-width)] {
     set width $keys(-width)
   } else {
-    utl::error PPL 17 "-width is required."
+    utl::error PPL 106 "-width is required."
   }
 
   if [info exists keys(-depth)] {
     set depth $keys(-depth)
   } else {
-    utl::error PPL 17 "-depth is required."
+    utl::error PPL 107 "-depth is required."
   }
 
   if [info exists keys(-orientation)] {
     set orientation $keys(-orientation)
   } else {
-    utl::error PPL 17 "-orientation is required."
+    utl::error PPL 108 "-orientation is required."
   }
   set db_bterm [$dbBlock findBTerm $pin_name]
   if {$db_bterm == "NULL"} {
-    utl::error PPL 31 "pin $pin_name not found."
+    utl::error PPL 109 "pin $pin_name not found."
   }
   set edge_ [ppl::parse_edge "-orientation" $orientation]
   #$dbTech findLayer $pin_layer
