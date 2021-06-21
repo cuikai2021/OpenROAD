@@ -1,0 +1,521 @@
+# modified files
+
+# Conflicts
+
+	both modified:   etc/DependencyInstaller.sh 	<line 60, accept incoming change, add `$SUDO` above>
+	both modified:   src/mpl/CMakeLists.txt			<line 67~70, accept incoming change>
+	both modified:   src/tap/src/tapcell.tcl		<line 1054, accept incoming change>
+
+# fix bugs after merge
+
+	[SyncUp] re-number duplicate warning indexes
+	[SyncUp] DRT fit remove of `design_` in `FlexDRWorker`
+	[SyncUp] fix CMakeLists.txt to fit eden project and utest
+	[SyncUp] update compilation message.txt
+
+# merge details
+
+Auto-merging src/tap/src/tapcell.tcl
+CONFLICT (content): Merge conflict in src/tap/src/tapcell.tcl
+Removing src/rsz/test/aes2_resize1.ok
+Removing src/rsz/test/aes2_rebuffer1.ok
+Auto-merging src/ppl/src/IOPlacer.tcl
+Auto-merging src/ppl/src/IOPlacer.cpp
+Auto-merging src/ppl/include/ppl/IOPlacer.h
+Auto-merging src/ppl/CMakeLists.txt
+Removing src/pdrev/src/pdrev.cpp
+Auto-merging src/mpl/CMakeLists.txt
+CONFLICT (content): Merge conflict in src/mpl/CMakeLists.txt
+Auto-merging src/TritonRoute/src/dr/FlexDR_maze.cpp
+Auto-merging src/TritonRoute/src/dr/FlexDR.h
+Auto-merging src/ICeWall/src/ICeWall.tcl
+Auto-merging src/CMakeLists.txt
+Removing etc/FindMessages.tcl
+Auto-merging etc/DependencyInstaller.sh
+CONFLICT (content): Merge conflict in etc/DependencyInstaller.sh
+Removing docs/contrib/OpenroadArch.rst
+Automatic merge failed; fix conflicts and then commit the result.
+On branch tmp
+Your branch is ahead of 'origin/SyncUp' by 84 commits.
+  (use "git push" to publish your local commits)
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	modified:   README.md
+	modified:   docker/Dockerfile.runtime
+	modified:   docs/contrib/DeveloperGuide.rst
+	modified:   docs/contrib/GettingInvolved.rst
+	modified:   docs/contrib/Logger.rst
+	deleted:    docs/contrib/OpenroadArch.rst
+	modified:   docs/index.rst
+	modified:   docs/releases/Alpha2Process.rst
+	modified:   docs/user/GettingStarted.rst
+	modified:   docs/user/UserGuide.rst
+	modified:   etc/DockerHelper.sh
+	deleted:    etc/FindMessages.tcl
+	new file:   etc/find_messages.py
+	modified:   messages.txt
+	modified:   src/CMakeLists.txt
+	modified:   src/ICeWall/messages.txt
+	modified:   src/ICeWall/src/ICeWall.tcl
+	modified:   src/OpenDB/include/opendb/db.h
+	modified:   src/OpenDB/include/opendb/dbDiff.h
+	modified:   src/OpenDB/include/opendb/dbObject.h
+	modified:   src/OpenDB/messages.txt
+	new file:   src/OpenDB/src/codeGenerator/dbTechLayerEolExtensionRule.json
+	new file:   src/OpenDB/src/codeGenerator/dbTechLayerEolKeepOutRule.json
+	modified:   src/OpenDB/src/codeGenerator/schema.json
+	modified:   src/OpenDB/src/db/CMakeLists.txt
+	modified:   src/OpenDB/src/db/OpenDB.tcl
+	modified:   src/OpenDB/src/db/dbDatabase.cpp
+	modified:   src/OpenDB/src/db/dbDiff.cpp
+	modified:   src/OpenDB/src/db/dbFlatten.cpp
+	modified:   src/OpenDB/src/db/dbObject.cpp
+	modified:   src/OpenDB/src/db/dbTechLayer.cpp
+	modified:   src/OpenDB/src/db/dbTechLayer.h
+	new file:   src/OpenDB/src/db/dbTechLayerEolExtensionRule.cpp
+	new file:   src/OpenDB/src/db/dbTechLayerEolExtensionRule.h
+	new file:   src/OpenDB/src/db/dbTechLayerEolKeepOutRule.cpp
+	new file:   src/OpenDB/src/db/dbTechLayerEolKeepOutRule.h
+	modified:   src/OpenDB/src/defin/create_box.cpp
+	modified:   src/OpenDB/src/defin/definReader.cpp
+	modified:   src/OpenDB/src/lefin/CMakeLists.txt
+	modified:   src/OpenDB/src/lefin/boostParser.h
+	modified:   src/OpenDB/src/lefin/lefLayerPropParser.h
+	modified:   src/OpenDB/src/lefin/lefTechLayerCornerSpacingParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerCutClassParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerCutEnclosureParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerCutSpacingParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerCutSpacingTableParser.cpp
+	new file:   src/OpenDB/src/lefin/lefTechLayerEolExtensionParser.cpp
+	new file:   src/OpenDB/src/lefin/lefTechLayerEolKeepOutRuleParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerMinStepParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerRectOnlyParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerRightWayOnGridOnlyParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerSpacingEolParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerSpacingTablePrlParser.cpp
+	modified:   src/OpenDB/src/lefin/lefTechLayerTypeParser.cpp
+	modified:   src/OpenDB/src/lefin/lefin.cpp
+	modified:   src/OpenDB/test/cpp/TestLef58Properties.cpp
+	modified:   src/OpenDB/test/data/gscl45nm.lef
+	modified:   src/OpenRoad.cc
+	modified:   src/PartitionMgr/CMakeLists.txt
+	modified:   src/PartitionMgr/messages.txt
+	modified:   src/PartitionMgr/src/PartitionMgr.cpp
+	modified:   src/PartitionMgr/src/partitionmgr.tcl
+	modified:   src/TritonCTS/messages.txt
+	modified:   src/TritonCTS/src/CMakeLists.txt
+	modified:   src/TritonCTS/src/SinkClustering.cpp
+	modified:   src/TritonCTS/src/TechChar.cpp
+	modified:   src/TritonCTS/src/TritonCTS.cpp
+	modified:   src/TritonCTS/test/no_clocks.ok
+	modified:   src/TritonCTS/test/no_clocks.tcl
+	modified:   src/TritonCTS/test/no_sinks.ok
+	modified:   src/TritonRoute/CMakeLists.txt
+	modified:   src/TritonRoute/messages.txt
+	modified:   src/TritonRoute/src/TritonRoute.cpp
+	modified:   src/TritonRoute/src/TritonRoute.tcl
+	modified:   src/TritonRoute/src/db/infra/frTime.cpp
+	modified:   src/TritonRoute/src/db/obj/frBlock.h
+	modified:   src/TritonRoute/src/db/tech/frConstraint.h
+	modified:   src/TritonRoute/src/db/tech/frLayer.h
+	modified:   src/TritonRoute/src/db/tech/frLookupTbl.h
+	modified:   src/TritonRoute/src/dr/FlexDR.cpp
+	modified:   src/TritonRoute/src/dr/FlexDR.h
+	modified:   src/TritonRoute/src/dr/FlexDR_conn.cpp
+	modified:   src/TritonRoute/src/dr/FlexDR_end.cpp
+	modified:   src/TritonRoute/src/dr/FlexDR_graphics.cpp
+	modified:   src/TritonRoute/src/dr/FlexDR_graphics.h
+	modified:   src/TritonRoute/src/dr/FlexDR_init.cpp
+	modified:   src/TritonRoute/src/dr/FlexDR_maze.cpp
+	modified:   src/TritonRoute/src/dr/FlexGridGraph.cpp
+	modified:   src/TritonRoute/src/dr/FlexGridGraph.h
+	modified:   src/TritonRoute/src/dr/FlexGridGraph_maze.cpp
+	modified:   src/TritonRoute/src/frBaseTypes.h
+	modified:   src/TritonRoute/src/frRegionQuery.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC.h
+	modified:   src/TritonRoute/src/gc/FlexGC_eol.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC_impl.h
+	modified:   src/TritonRoute/src/gc/FlexGC_inf.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC_init.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC_main.cpp
+	modified:   src/TritonRoute/src/gc/FlexGC_rq.cpp
+	modified:   src/TritonRoute/src/global.cpp
+	modified:   src/TritonRoute/src/global.h
+	modified:   src/TritonRoute/src/gr/FlexGR.cpp
+	modified:   src/TritonRoute/src/gr/FlexGRGridGraph.cpp
+	modified:   src/TritonRoute/src/gr/FlexGRGridGraph.h
+	modified:   src/TritonRoute/src/gr/FlexGR_end.cpp
+	modified:   src/TritonRoute/src/gr/FlexGR_init.cpp
+	modified:   src/TritonRoute/src/gr/FlexGR_maze.cpp
+	modified:   src/TritonRoute/src/gr/FlexGR_rq.cpp
+	modified:   src/TritonRoute/src/io/io.cpp
+	modified:   src/TritonRoute/src/io/io_guide.cpp
+	modified:   src/TritonRoute/src/pa/FlexPA.h
+	modified:   src/TritonRoute/src/pa/FlexPA_graphics.cpp
+	modified:   src/TritonRoute/src/pa/FlexPA_init.cpp
+	modified:   src/TritonRoute/src/pa/FlexPA_prep.cpp
+	modified:   src/TritonRoute/src/rp/FlexRP_init.cpp
+	modified:   src/TritonRoute/src/ta/FlexTA.cpp
+	modified:   src/TritonRoute/src/ta/FlexTA_assign.cpp
+	modified:   src/TritonRoute/src/ta/FlexTA_init.cpp
+	modified:   src/TritonRoute/src/ta/FlexTA_rq.cpp
+	modified:   src/TritonRoute/test/fixture.cpp
+	modified:   src/TritonRoute/test/fixture.h
+	modified:   src/TritonRoute/test/gcTest.cpp
+	modified:   src/TritonRoute/test/ispd18_sample.defok
+	modified:   src/TritonRoute/test/run-ispd.tcl
+	modified:   src/ant/messages.txt
+	modified:   src/ant/src/CMakeLists.txt
+	new file:   src/cmake/messages.cmake
+	modified:   src/cmake/openroad.cmake
+	modified:   src/dbSta/messages.txt
+	modified:   src/dbSta/src/CMakeLists.txt
+	modified:   src/dbSta/src/dbReadVerilog.cc
+	modified:   src/dbSta/test/read_verilog4.ok
+	modified:   src/dbSta/test/read_verilog6.ok
+	modified:   src/dpl/CMakeLists.txt
+	modified:   src/dpl/messages.txt
+	modified:   src/dpl/src/CheckPlacement.cpp
+	modified:   src/dpl/src/Grid.cpp
+	modified:   src/dpl/test/check4.ok
+	modified:   src/dpl/test/fragmented_row03.ok
+	modified:   src/dpl/test/multi_height03.ok
+	modified:   src/dpl/test/multi_height04.ok
+	modified:   src/fin/CMakeLists.txt
+	modified:   src/fin/messages.txt
+	modified:   src/grt/CMakeLists.txt
+	modified:   src/grt/messages.txt
+	modified:   src/grt/src/AntennaRepair.cpp
+	modified:   src/grt/src/GlobalRouter.cpp
+	modified:   src/grt/src/fastroute/CMakeLists.txt
+	modified:   src/grt/src/fastroute/src/FastRoute.cpp
+	modified:   src/grt/src/fastroute/src/RSMT.cpp
+	modified:   src/grt/src/fastroute/src/RipUp.cpp
+	modified:   src/grt/src/fastroute/src/maze.cpp
+	modified:   src/grt/src/fastroute/src/maze3D.cpp
+	modified:   src/grt/src/fastroute/src/utility.cpp
+	modified:   src/grt/src/fastroute/src/utility.h
+	modified:   src/grt/test/clock_route.ok
+	modified:   src/grt/test/gcd.ok
+	modified:   src/grt/test/multiple_calls.ok
+	modified:   src/grt/test/ndr_1w_3s.ok
+	modified:   src/grt/test/ndr_2w_3s.ok
+	modified:   src/grt/test/region_adjustment.ok
+	modified:   src/grt/test/repair_antennas1.ok
+	modified:   src/grt/test/repair_antennas2.ok
+	modified:   src/gui/CMakeLists.txt
+	modified:   src/gui/messages.txt
+	modified:   src/gui/src/layoutViewer.cpp
+	modified:   src/gui/src/mainWindow.cpp
+	modified:   src/gui/src/scriptWidget.cpp
+	modified:   src/gui/src/scriptWidget.h
+	new file:   src/gui/src/tclCmdHighlighter.cpp
+	new file:   src/gui/src/tclCmdHighlighter.h
+	new file:   src/gui/src/tclCmdInputWidget.cpp
+	new file:   src/gui/src/tclCmdInputWidget.h
+	modified:   src/ifp/messages.txt
+	modified:   src/ifp/src/CMakeLists.txt
+	modified:   src/ifp/src/InitFloorplan.tcl
+	modified:   src/mpl/messages.txt
+	modified:   src/mpl/src/MacroPlacer.cpp
+	modified:   src/mpl/test/east_west1.ok
+	modified:   src/mpl/test/east_west2.ok
+	modified:   src/mpl/test/gcd_mem1_01.ok
+	modified:   src/mpl/test/gcd_mem1_02.ok
+	modified:   src/mpl/test/gcd_mem1_03.ok
+	modified:   src/mpl/test/gcd_mem3_01.ok
+	modified:   src/mpl/test/gcd_mem3_02.ok
+	modified:   src/mpl/test/gcd_mem3_03.ok
+	modified:   src/mpl/test/gcd_mem5_01.ok
+	modified:   src/mpl/test/level3_01.ok
+	modified:   src/mpl/test/level3_02.ok
+	modified:   src/mpl/test/snap_layer1.ok
+	modified:   src/pdngen/messages.txt
+	modified:   src/pdngen/src/CMakeLists.txt
+	modified:   src/pdngen/src/PdnGen.tcl
+	modified:   src/pdngen/test/test_gcd_M7_pin.defok
+	new file:   src/pdr/.gitignore
+	renamed:    src/pdrev/CMakeLists.txt -> src/pdr/CMakeLists.txt
+	renamed:    src/pdrev/LICENSE -> src/pdr/LICENSE
+	renamed:    src/pdrev/README -> src/pdr/README
+	renamed:    src/pdrev/etc/plot_idx.py -> src/pdr/etc/plot_idx.py
+	new file:   src/pdr/include/pdr/MakePdrev.h
+	renamed:    src/pdrev/include/pdrev/pdrev.h -> src/pdr/include/pdr/pdrev.h
+	new file:   src/pdr/papers/On_computing_all_north_east_nearest_neig.pdf
+	new file:   src/pdr/papers/PrimDijkstra.pdf
+	renamed:    src/pdrev/papers/PDRev.pdf -> src/pdr/papers/PrimDijkstraRevisited.pdf
+	new file:   src/pdr/papers/l-shape.pdf
+	new file:   src/pdr/src/MakePdrev.cpp
+	new file:   src/pdr/src/edge.cpp
+	renamed:    src/pdrev/src/edge.h -> src/pdr/src/edge.h
+	renamed:    src/pdrev/src/graph.cpp -> src/pdr/src/graph.cpp
+	renamed:    src/pdrev/src/graph.h -> src/pdr/src/graph.h
+	new file:   src/pdr/src/node.cpp
+	renamed:    src/pdrev/src/node.h -> src/pdr/src/node.h
+	new file:   src/pdr/src/pdrev.cpp
+	new file:   src/pdr/src/pdrev.i
+	new file:   src/pdr/test/Nangate45
+	new file:   src/pdr/test/gcd.nets
+	new file:   src/pdr/test/pd1.ok
+	new file:   src/pdr/test/pd1.tcl
+	new file:   src/pdr/test/pd2.ok
+	new file:   src/pdr/test/pd2.tcl
+	new file:   src/pdr/test/pd_gcd.ok
+	new file:   src/pdr/test/pd_gcd.tcl
+	new file:   src/pdr/test/pd_revII_gcd.ok
+	new file:   src/pdr/test/pd_revII_gcd.tcl
+	new file:   src/pdr/test/pdrev_helpers.tcl
+	new file:   src/pdr/test/regression
+	new file:   src/pdr/test/regression_tests.tcl
+	new file:   src/pdr/test/save_ok
+	new file:   src/pdr/test/write_gcd_nets.tcl
+	deleted:    src/pdrev/src/pdrev.cpp
+	modified:   src/ppl/CMakeLists.txt
+	modified:   src/ppl/include/ppl/IOPlacer.h
+	modified:   src/ppl/messages.txt
+	modified:   src/ppl/src/HungarianMatching.cpp
+	modified:   src/ppl/src/IOPlacer.cpp
+	modified:   src/ppl/src/IOPlacer.tcl
+	modified:   src/ppl/test/add_constraint1.ok
+	modified:   src/ppl/test/add_constraint2.ok
+	modified:   src/ppl/test/add_constraint3.ok
+	modified:   src/ppl/test/add_constraint4.ok
+	modified:   src/ppl/test/add_constraint5.ok
+	modified:   src/ppl/test/add_constraint6.ok
+	modified:   src/ppl/test/add_constraint7.ok
+	modified:   src/ppl/test/add_constraint8.ok
+	modified:   src/ppl/test/blocked_region.ok
+	modified:   src/ppl/test/cells_not_placed.ok
+	modified:   src/ppl/test/exclude1.ok
+	modified:   src/ppl/test/exclude2.ok
+	modified:   src/ppl/test/exclude3.ok
+	modified:   src/ppl/test/gcd.ok
+	modified:   src/ppl/test/group_pins1.ok
+	modified:   src/ppl/test/group_pins2.ok
+	modified:   src/ppl/test/group_pins3.ok
+	modified:   src/ppl/test/group_pins4.ok
+	modified:   src/ppl/test/group_pins5.ok
+	modified:   src/ppl/test/group_pins6.ok
+	modified:   src/ppl/test/group_pins7.ok
+	modified:   src/ppl/test/group_pins_warn1.ok
+	modified:   src/ppl/test/invalid_layer.ok
+	modified:   src/ppl/test/multi_layers.ok
+	modified:   src/ppl/test/multiple_calls.ok
+	modified:   src/ppl/test/no_instance_pins.ok
+	modified:   src/ppl/test/on_grid.ok
+	modified:   src/ppl/test/place_pin1.ok
+	modified:   src/ppl/test/place_pin2.ok
+	modified:   src/ppl/test/random1.ok
+	modified:   src/ppl/test/random2.ok
+	modified:   src/ppl/test/random3.ok
+	modified:   src/ppl/test/random4.ok
+	modified:   src/ppl/test/random5.ok
+	modified:   src/ppl/test/random6.ok
+	modified:   src/ppl/test/random7.ok
+	modified:   src/ppl/test/random8.ok
+	modified:   src/ppl/test/top_layer1.ok
+	modified:   src/ppl/test/top_layer2.ok
+	modified:   src/ppl/test/top_layer3.ok
+	modified:   src/ppl/test/top_layer4.ok
+	modified:   src/ppl/test/top_layer5.ok
+	modified:   src/ppl/test/top_layer6.ok
+	modified:   src/ppl/test/top_layer7.ok
+	modified:   src/psm/messages.txt
+	modified:   src/psm/src/CMakeLists.txt
+	modified:   src/psm/src/ir_solver.cpp
+	modified:   src/rcx/messages.txt
+	modified:   src/rcx/src/CMakeLists.txt
+	modified:   src/rcx/src/ext.cpp
+	modified:   src/rcx/src/extBench.cpp
+	modified:   src/rcx/src/extFlow.cpp
+	modified:   src/rcx/src/extRCmodel.cpp
+	modified:   src/rcx/src/extmain.cpp
+	modified:   src/rcx/src/extmeasure.cpp
+	modified:   src/rcx/src/netRC.cpp
+	modified:   src/replace/CMakeLists.txt
+	modified:   src/replace/messages.txt
+	modified:   src/replace/src/nesterovBase.cpp
+	modified:   src/replace/test/simple01-td.defok
+	modified:   src/replace/test/simple01-td.ok
+	modified:   src/rsz/include/rsz/Resizer.hh
+	modified:   src/rsz/include/rsz/SteinerTree.hh
+	modified:   src/rsz/messages.txt
+	modified:   src/rsz/src/CMakeLists.txt
+	modified:   src/rsz/src/EstimateWireParasitics.cc
+	modified:   src/rsz/src/Rebuffer.cc
+	modified:   src/rsz/src/Resizer.cc
+	modified:   src/rsz/src/Resizer.i
+	modified:   src/rsz/src/SteinerTree.cc
+	modified:   src/rsz/src/Unused.cc
+	deleted:    src/rsz/test/aes2_rebuffer1.ok
+	deleted:    src/rsz/test/aes2_resize1.ok
+	modified:   src/rsz/test/make_parasitics5.ok
+	modified:   src/rsz/test/make_parasitics6.ok
+	modified:   src/rsz/test/repair_slew4.def
+	modified:   src/rsz/test/resize_slack2.ok
+	modified:   src/sta
+	renamed:    src/sst/CMakeLists.txt -> src/stt/CMakeLists.txt
+	renamed:    src/sst/LICENSE -> src/stt/LICENSE
+	renamed:    src/sst/README.md -> src/stt/README.md
+	renamed:    src/sst/etc/MakeDatVar.tcl -> src/stt/etc/MakeDatVar.tcl
+	renamed:    src/sst/etc/POST9.dat -> src/stt/etc/POST9.dat
+	renamed:    src/sst/etc/POWV9.dat -> src/stt/etc/POWV9.dat
+	renamed:    src/sst/flute.cpp -> src/stt/flute.cpp
+	renamed:    src/sst/flute.h -> src/stt/flute.h
+	modified:   src/tap/messages.txt
+	modified:   src/tap/src/CMakeLists.txt
+	modified:   src/tap/test/gcd_ripup.ok
+	modified:   src/utl/include/utl/Logger.h
+	new file:   test/aes_nangate45.metrics
+	new file:   test/aes_sky130hd.metrics
+	new file:   test/aes_sky130hs.metrics
+	new file:   test/compare_flow_metrics
+	modified:   test/flow.tcl
+	modified:   test/flow_metrics.tcl
+	new file:   test/gcd_nangate45.metrics
+	new file:   test/gcd_sky130hd.metrics
+	new file:   test/gcd_sky130hs.metrics
+	new file:   test/ibex_sky130hd.metrics
+	modified:   test/ibex_sky130hd.metrics_limits
+	new file:   test/ibex_sky130hs.metrics
+	modified:   test/ibex_sky130hs.metrics_limits
+	new file:   test/jpeg_sky130hd.metrics
+	new file:   test/jpeg_sky130hs.metrics
+	modified:   test/regression
+	modified:   test/regression.tcl
+	modified:   test/report_flow_metrics
+	modified:   test/save_flow_metrics
+	new file:   test/tinyRocket_nangate45.metrics
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   etc/DependencyInstaller.sh
+	both modified:   src/mpl/CMakeLists.txt
+	both modified:   src/tap/src/tapcell.tcl
+
+removing .github/workflows
+moving docker_deps.yml
+moving docker_regression.yml
+moving docker_release.yml
+moving set_env.yml
+restore docker_deps.yml
+restore docker_regression.yml
+restore docker_release.yml
+restore set_env.yml
+On branch tmp
+Your branch is ahead of 'origin/SyncUp' by 256 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+
+# commits
+
+fix compiler error + warning
+revert use std namespace
+fix boundary path seg merging improved conn error debugging
+
+- remove truncatedStyle checks
+doc remove duplicated instructions
+gui: break adding to output into seperate functions and provide python style command line continuation
+Update GettingStarted.rst
+gui: only add new lines to commands if they are incomplete
+gui: remove output prefix and only add prefix to first line of command
+gui: use unique pointer for context menu items
+fix flow repo name
+grt: refactor iterm->getNet()
+grt: revert unnecessary changes
+change minWidth dataType
+fix overflow
+copyrights
+Update run-ispd.tcl
+grt: ignore special nets when detecting dirty nets
+pdr: adding missing limits include
+pdr lala test
+compare_flow_metrics
+compare_flow_metrics
+pdr unsigned BE GONE!
+docs: fix local install
+docs: fix title
+docs: clarify
+docs: remove duplicated file
+rsz est rc seg fault if no driver
+pdr magic number cleanup
+pdr cleanup
+pdr prim-dijkstra star spanning tree -> 2^N run time fix
+Check that nets/bterms are not NULL
+- clang-format
+- via ext calculation back to the default method (but corrected now) - updated .defok
+tap: fix messages
+grt: fix messages
+ppl: fix messages
+update messages.txt
+adding context menu option to enable/disable syntax highlighting
+provide a little extra margin in the command line height
+switching from QVector to std::vector for unique_ptr's
+gui: adding syntax highlighting for tcl and openroad commands
+gui: add support to drag and drop file into command input area
+gui: adding support for multi-line input commands
+gui: adding support function to add lines to output and setting max line length
+pdr debug msg cleanup
+clang-format
+pdr spanning tree gui view
+handle ICeWall messages.txt specially
+odb: make auto messages.txt work
+dbSta: update results for message id fix
+Automate the building of the messages.txt files
+pdr comment
+compare_flow_metrics
+Update max_skew_violations 909 -> 914
+clang-format + change location of graphics_->show()
+update test results for msg duplicate fixes
+cleanup duplicate message ids
+ibex max cap metric
+gpl simple01-td ok
+rsz improve overlapping pin support
+fix merge error
+change ord::error to utl::error
+find_messages.py fix unicode error
+make etc/find_messages.py executable
+ Replace etc/FindMessages.tcl with etc/find_messages.py
+rsz est rc for clocks (again)
+fixed compiler errors
+revert VIAINPIN_DEFAULT_BOTTOM_LAYER check and constant
+pdr cleanup round 2
+pdr Dikstra -> Dijkstra, add papers
+rsz pd issue
+Add newline
+- MTSAFEDIST now considering ndr spacing - GC special rects always queried now
+pdr test with duplicate xy
+constexpr in constant
+ppl: use static_cast
+Fix usage of pdrev
+Give warning instead of error in case no clocks are found
+pdrev -> pdr
+flute rename lib and dir from sst to stt
+pdrev rm copies of flute structs
+revert clang in TritonRoute.i
+review changes
+pdrev rewrite interface to use functions
+gui: ignore mouse events before block is initialized
+pdrev use int instead of unsigned
+clang-format
+pdrev cleanup round 1
+pdrev unit test
+logger do not limit debugging prints
+via-in-pin 2nd fix
+Fix for `Dockerfile.runtime`, Docker helper script
+Update GettingStarted.rst
+Update GettingStarted.rst
+drt: remove design dependency from FlexDRWorker::route_queue
+drt: clarify design dependencies in gc
+fix DRC on special spacing NDR rectangles on
+VIAINPIN flag fix
+ppl: update messages.txt
+ppl: add check to avoid division by zero
+ppl: fix uninitialized struct member
+support EOLEXT in TritonRoute
