@@ -15,9 +15,9 @@ RUN apt-get install -y time libreadline-dev pkg-config
 RUN \
   set -eu; \
   apt-get install -y klayout; \
-  wget https://www.klayout.org/downloads/Ubuntu-20/klayout_0.27.1-1_amd64.deb; \
-  dpkg -i klayout_0.27.1-1_amd64.deb; \
-  rm -f klayout_0.27.1-1_amd64.deb; 
+  wget https://www.klayout.org/downloads/Ubuntu-20/klayout_0.26.6-1_amd64.deb; \
+  dpkg -i klayout_0.26.6-1_amd64.deb; \
+  rm -f klayout_0.26.6-1_amd64.deb; 
 
 
 FROM deps_stage AS yosys_build_stage
