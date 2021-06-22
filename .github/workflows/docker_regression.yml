@@ -87,8 +87,31 @@ jobs:
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}
 
-        - name: 14. success pull request
-          if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' }}
+
+        - name: 14. check status
+          id: check-status
+          uses: octokit/request-action@v2.x
+          with:
+              route: get /repos/{repo}/actions/workflows/{workflow_id}/runs
+              accept: application/vnd.github.v3+json
+              repo: ${{ github.repository }}
+              workflow_id: docker_regression.yml
+              actor: ${{ github.actor }}
+              status: queued
+          env:
+              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
+        - run: |
+            num=${{fromJSON(steps.check-status.outputs.data).total_count}}
+            if(( $num == '0' ));
+            then 
+                echo "NO_RUNNING_ACTIONS=true" >> $GITHUB_ENV
+            else 
+                echo "NO_RUNNING_ACTIONS=false" >> $GITHUB_ENV
+            fi
+
+        - name: 15. success pull request
+          if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'true' }}
           uses: octokit/request-action@v2.x
           id: pulls
           with:
@@ -110,7 +133,11 @@ jobs:
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 14. failure issue
+        - name: send email when there is running actions
+          if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'false' }}
+          run: echo "send email to administrator"
+
+        - name: 16. failure issue
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           uses: octokit/request-action@v2.x
           id: issues
@@ -134,5 +161,5 @@ jobs:
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 15. delete used images
+        - name: 17. delete used images
           run: docker rmi ${{ env.env_REGRESSION_ENV }}
