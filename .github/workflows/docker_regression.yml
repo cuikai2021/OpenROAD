@@ -133,11 +133,11 @@ jobs:
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: send email when there is running actions
+        - name: 16. send email when there is running actions
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'false' }}
-          run: echo "test： send email to administrator"
+          run: echo "send email to administrator"
 
-        - name: 16. failure issue
+        - name: 17. failure issue
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           uses: octokit/request-action@v2.x
           id: issues
@@ -161,5 +161,5 @@ jobs:
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 17. delete used images
+        - name: 18. delete used images
           run: docker rmi ${{ env.env_REGRESSION_ENV }}
