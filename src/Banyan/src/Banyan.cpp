@@ -53,6 +53,7 @@ int Banyan::main()
                   layer.viadef_end);
   }
 
+/*
   for (auto track : bdAdapter.getTracks()) {
     logger_->info(utl::BY,
                   900,
@@ -116,66 +117,40 @@ int Banyan::main()
                   via.x,
                   via.y);
   }
+*/
+  void *so = dlopen("banyan.so", RTLD_NOW);
+  if (so == nullptr)
+  {
+    logger_->error(
+      utl::BY, 667, "cannot load banyan.so: Have you set LD_LIBRARY_PATH?");
+    return -1;
+  }
+  auto banyan = (banyan_go::entry_func)dlsym(so, "banyan");
+  if (banyan == nullptr)
+  {
+    logger_->error(
+       utl::BY, 668, "caonnot find banyan in banyan.so");
+    return -1;
+  }
 
-  // void *so = dlopen("banyan.so", RTLD_NOW);
-  // if (so == nullptr)
-  // {
-  //   logger_->error(
-  //     utl::DRT, 667, "cannot load banyan.so: Have you set LD_LIBRARY_PATH?");
-  //     return -1;
-  // }
-  // auto banyan = (banyan_go::entry_func)dlsym(so, "banyan");
-  // if (banyan == nullptr)
-  // {
-  //   logger_->error(
-  //     utl::DRT, 668, "caonnot find banyan in banyan.so");
-  //     return -1;
-  // }
+  banyan_go::entry_ret ret;
 
-  // std::vector<banyan_go::net> nets;
-  // std::vector<banyan_go::pin> pins;
-  // std::vector<banyan_go::box> boxes;
-  // std::vector<banyan_go::via> vias;
-  // std::vector<banyan_go::layer> layers;
-  // std::vector<banyan_go::viadef> viadefs;
-  // std::vector<banyan_go::track> tracks;
+  long long err = banyan(
+    banyan_go::to_slice(bdAdapter.getNets()),
+    banyan_go::to_slice(bdAdapter.getPins()),
+    banyan_go::to_slice(bdAdapter.getBoxes()),
+    banyan_go::to_slice(bdAdapter.getVias()),
+    banyan_go::to_slice(bdAdapter.getLayers()),
+    banyan_go::to_slice(bdAdapter.getViadefs()),
+    banyan_go::to_slice(bdAdapter.getTracks()),
+    &ret);
 
-  // nets.push_back(banyan_go::net{"NET_1", 0, 2});
-  // pins.push_back(banyan_go::pin{"PIN_1", 0, 10, 0, 5});
-  // pins.push_back(banyan_go::pin{"PIN_2", 10, 20, 5, 10});
+  if (ret.rboxes_size != 0)
+      free(ret.rboxes);
+  if (ret.rvias_size != 0)
+      free(ret.rvias);
 
-  // for (int i = 0; i < 20; ++i)
-  //   boxes.push_back(banyan_go::box{0, i, i*i, i*i*i, i*i*i*i});
-  // for (int i = 0; i < 10; ++i)
-  //   vias.push_back(banyan_go::via{i%2, i, i*i});
-
-  // layers.push_back(banyan_go::layer{100, 5, 0, 1, 0, 0});
-  // layers.push_back(banyan_go::layer{100, 5, 1, 2, 0, 1});
-  // layers.push_back(banyan_go::layer{100, 5, 2, 3, 1, 2});
-  // viadefs.push_back(banyan_go::viadef{"VIA_1",
-  //   {1, 0, 0, 100, 100}, {0, 0, 0, 200, 200}});
-  // viadefs.push_back(banyan_go::viadef{"VIA_2",
-  //   {2, 0, 0, 300, 300}, {1, 0, 0, 400, 400}});
-  // tracks.push_back(banyan_go::track{0, 10, 0, 10000});
-  // tracks.push_back(banyan_go::track{1, 100, 0, 10000});
-  // tracks.push_back(banyan_go::track{2, 1000, 0, 10000});
-
-  // banyan_go::entry_ret ret;
-
-  // long long err = banyan(
-  //   banyan_go::to_slice(nets),
-  //   banyan_go::to_slice(pins),
-  //   banyan_go::to_slice(boxes),
-  //   banyan_go::to_slice(vias),
-  //   banyan_go::to_slice(layers),
-  //   banyan_go::to_slice(viadefs),
-  //   banyan_go::to_slice(tracks),
-  //   &ret);
-
-  // free(ret.rboxes);
-  // free(ret.rvias);
-
-  // logger_->info(utl::DRT, 666, "banyan returns {}", err);
+  logger_->info(utl::BY, 666, "banyan returns {}", err);
 
   return 0;
 }

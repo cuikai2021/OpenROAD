@@ -6,7 +6,8 @@ package main
 import "C"
 
 import (
-	"fmt"
+	"encoding/json"
+	"os"
 	"unsafe"
 )
 
@@ -43,44 +44,59 @@ func banyan(
 	viadefs []C.struct_viadef,
 	tracks []C.struct_track,
 	ret *C.struct_entry_ret) int {
+	/*
+		ret.rboxes_size = C.ulong(len(boxes))
+		ret.rboxes = boxAlloc(ret.rboxes_size)
+		ret.rvias_size = C.ulong(len(vias))
+		ret.rvias = viaAlloc(ret.rvias_size)
 
-	fmt.Printf("Hello Banyan!\n")
+		nets[0].rbox_begin = 0
+		nets[0].rbox_end = C.ulong(len(boxes))
+		nets[0].rvia_begin = 0
+		nets[0].rvia_end = C.ulong(len(vias))
 
-	fmt.Printf("layers %d, viadefs %d, tracks %d\n",
-		len(layers), len(viadefs), len(tracks))
+		for i := 0; i < len(boxes); i++ {
+			fmt.Printf("box %d: %+v\n", i, boxes[i])
+			*boxAt(ret.rboxes, i) = boxes[i]
+		}
 
-	for i := 0; i < len(nets); i++ {
-		fmt.Printf("net %d: %s, %+v\n", i, C.GoString(nets[i].name), nets[i])
+		for i := 0; i < len(vias); i++ {
+			fmt.Printf("via %d: %+v\n", i, vias[i])
+			*viaAt(ret.rvias, i) = vias[i]
+		}
+	*/
+
+	ret.rboxes_size = C.ulong(0)
+	ret.rvias_size = C.ulong(0)
+
+	jsonfile, _ := os.Create("banyan.json")
+	defer jsonfile.Close()
+	enc := json.NewEncoder(jsonfile)
+	enc.SetIndent("", "  ")
+	err := enc.Encode(newJsonDesign(
+		nets, pins, boxes, vias, layers, viadefs, tracks))
+	if err != nil {
+		panic(err)
 	}
 
-	for i := 0; i < len(pins); i++ {
-		fmt.Printf("pin %d: %s, %+v\n", i, C.GoString(pins[i].name), pins[i])
-	}
+	/*
+		jsonfile2, _ := os.Open("banyan.json")
+		defer jsonfile2.Close()
+		dec := json.NewDecoder(jsonfile2)
+		design := &jsonDesign{}
+		err = dec.Decode(design)
+		if err != nil {
+			panic(err)
+		}
 
-	for i := 0; i < len(viadefs); i++ {
-		fmt.Printf("viadef %d: %s, t %+v, b %+v\n",
-			i, C.GoString(viadefs[i].name), viadefs[i].top, viadefs[i].bottom)
-	}
-
-	ret.rboxes_size = C.ulong(len(boxes))
-	ret.rboxes = boxAlloc(ret.rboxes_size)
-	ret.rvias_size = C.ulong(len(vias))
-	ret.rvias = viaAlloc(ret.rvias_size)
-
-	nets[0].rbox_begin = 0
-	nets[0].rbox_end = C.ulong(len(boxes))
-	nets[0].rvia_begin = 0
-	nets[0].rvia_end = C.ulong(len(vias))
-
-	for i := 0; i < len(boxes); i++ {
-		fmt.Printf("box %d: %+v\n", i, boxes[i])
-		*boxAt(ret.rboxes, i) = boxes[i]
-	}
-
-	for i := 0; i < len(vias); i++ {
-		fmt.Printf("via %d: %+v\n", i, vias[i])
-		*viaAt(ret.rvias, i) = vias[i]
-	}
-
-	return 12345678987654321
+		jsonfile3, _ := os.Create("banyan2.json")
+		defer jsonfile3.Close()
+		enc = json.NewEncoder(jsonfile3)
+		enc.SetIndent("", "  ")
+		err = enc.Encode(design)
+		if err != nil {
+			panic(err)
+		}
+	*/
+	return 0
 }

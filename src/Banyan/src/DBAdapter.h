@@ -28,14 +28,14 @@ namespace banyan {
 class DBAdapter
 {
  public:
-  virtual void updateDB(struct entry_ret* ret) = 0;
-  virtual const std::vector<banyan_go::net>& getNets() const = 0;
-  virtual const std::vector<banyan_go::pin>& getPins() const = 0;
-  virtual const std::vector<banyan_go::box>& getBoxes() const = 0;
-  virtual const std::vector<banyan_go::via>& getVias() const = 0;
-  virtual const std::vector<banyan_go::layer>& getLayers() const = 0;
-  virtual const std::vector<banyan_go::viadef>& getViadefs() const = 0;
-  virtual const std::vector<banyan_go::track>& getTracks() const = 0;
+  virtual void updateDB(banyan_go::entry_ret* ret) = 0;
+  virtual std::vector<banyan_go::net>& getNets() = 0;
+  virtual std::vector<banyan_go::pin>& getPins() = 0;
+  virtual std::vector<banyan_go::box>& getBoxes() = 0;
+  virtual std::vector<banyan_go::via>& getVias() = 0;
+  virtual std::vector<banyan_go::layer>& getLayers() = 0;
+  virtual std::vector<banyan_go::viadef>& getViadefs() = 0;
+  virtual std::vector<banyan_go::track>& getTracks() = 0;
 };
 
 class OpenDBAdapter : public DBAdapter
@@ -104,14 +104,14 @@ class OpenDBAdapter : public DBAdapter
     getPinsFromOpenDB();
   };
 
-  void updateDB(struct entry_ret* ret);
-  const std::vector<banyan_go::net>& getNets() const { return nets_; }
-  const std::vector<banyan_go::pin>& getPins() const { return pins_; }
-  const std::vector<banyan_go::box>& getBoxes() const { return boxes_; }
-  const std::vector<banyan_go::via>& getVias() const { return vias_; }
-  const std::vector<banyan_go::layer>& getLayers() const { return layers_; }
-  const std::vector<banyan_go::viadef>& getViadefs() const { return viadefs_; }
-  const std::vector<banyan_go::track>& getTracks() const { return tracks_; }
+  void updateDB(banyan_go::entry_ret* ret) override;
+  std::vector<banyan_go::net>& getNets() override { return nets_; }
+  std::vector<banyan_go::pin>& getPins() override { return pins_; }
+  std::vector<banyan_go::box>& getBoxes() override { return boxes_; }
+  std::vector<banyan_go::via>& getVias() override { return vias_; }
+  std::vector<banyan_go::layer>& getLayers() override { return layers_; }
+  std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }
+  std::vector<banyan_go::track>& getTracks() override { return tracks_; }
 };
 
 }  // namespace banyan

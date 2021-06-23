@@ -49,7 +49,7 @@ int main()
 
     banyan_go::entry_ret ret;
 
-    printf("%lld\n", banyan(
+    printf("banyan returns %lld\n", banyan(
         banyan_go::to_slice(nets),
         banyan_go::to_slice(pins),
         banyan_go::to_slice(boxes),
@@ -61,6 +61,10 @@ int main()
 
     for (size_t i = 0; i < nets.size(); ++i)
     {
+        if ((nets[i].rbox_begin == nets[i].rbox_end)
+            && (nets[i].rvia_begin == nets[i].rvia_end)) {
+            continue;
+        }
         printf("net[%zu]=rbox[%zu,%zu), rvia[%zu,%zu)\n",
             i, nets[i].rbox_begin, nets[i].rbox_end,
             nets[i].rvia_begin, nets[i].rvia_end);
@@ -81,8 +85,10 @@ int main()
             ret.rvias[i].x, ret.rvias[i].y);
     }    
 
-    free(ret.rboxes);
-    free(ret.rvias);
+    if (ret.rboxes_size != 0)
+        free(ret.rboxes);
+    if (ret.rvias_size != 0)
+        free(ret.rvias);
 
     return 0;
 }
