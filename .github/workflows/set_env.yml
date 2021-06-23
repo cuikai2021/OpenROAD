@@ -42,9 +42,9 @@ jobs:
 
       - name: 4. decide committer name
         run: |
-            name1 = ${{ github.event.commits[0].committer.name }}
-            name2 = ${{ github.event.commits[1].committer.name }}
-            if(( $name1 == 'GitHub' ));
+            name1=${{ github.event.commits[0].committer.name }}
+            name2=${{ github.event.commits[1].committer.name }}
+            if [ $name1 == 'GitHub' ]
             then 
                 echo "COMMIT_COMMITER_NAME=$name2" >> $GITHUB_ENV
             else 
