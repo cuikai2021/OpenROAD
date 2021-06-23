@@ -101,7 +101,8 @@ jobs:
           env:
               GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - run: |
+        - name: 15. check the number of queued actions 
+          run: |
             num=${{fromJSON(steps.check-status.outputs.data).total_count}}
             if(( $num == '0' ));
             then 
@@ -110,7 +111,7 @@ jobs:
                 echo "NO_RUNNING_ACTIONS=false" >> $GITHUB_ENV
             fi
 
-        - name: 15. success pull request
+        - name: 16. success pull request
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'true' }}
           uses: octokit/request-action@v2.x
           id: pulls
@@ -133,11 +134,11 @@ jobs:
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 16. send email when there is running actions
+        - name: 17. send email when there is running actions
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'false' }}
           run: echo "send email to administrator"
 
-        - name: 17. failure issue
+        - name: 18. failure issue
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           uses: octokit/request-action@v2.x
           id: issues
@@ -161,5 +162,5 @@ jobs:
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 18. delete used images
+        - name: 19. delete used images
           run: docker rmi ${{ env.env_REGRESSION_ENV }}
