@@ -55,18 +55,11 @@ class OpenDBAdapter : public DBAdapter
 
   bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
-  int addedLayerIndex_ = 0;
   std::map<std::string, int> layerNameToIdxs_;
 
-  int addedViaDefIndex_ = 0;
   std::map<std::string, int> viaDefNameToIdxs_;
 
-  int addedNetIndex_ = 0;
-  std::map<std::string, int> netNameToIdxs_;
-
-  int addedBoxIndex_ = 0;
-  int addedViaIndex_ = 0;
-  int addedPinIndex_ = 0;
+  std::map<std::string, size_t> netNameToIdxs_;
 
   int defdist(int x);
   int calLayerPitch(odb::dbTechLayer* layer);

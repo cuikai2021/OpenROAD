@@ -167,12 +167,14 @@ func (layers jsonLayers) MarshalJSON() ([]byte, error) {
 	for i, layer := range layers {
 		arr = append(arr, &struct {
 			I int       `json:"la"`
+			N string    `json:"name"`
 			W C.int     `json:"w"`
 			P C.int     `json:"p"`
 			R []C.ulong `json:"r"`
-		}{i, layer.width, layer.pitch, []C.ulong{
-			layer.track_begin, layer.track_end,
-			layer.viadef_begin, layer.viadef_end}})
+		}{i, C.GoString(layer.name),
+			layer.width, layer.pitch, []C.ulong{
+				layer.track_begin, layer.track_end,
+				layer.viadef_begin, layer.viadef_end}})
 	}
 	return json.Marshal(arr)
 }
@@ -184,6 +186,7 @@ func (layer *C.struct_layer) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	layer.name = C.CString(m["name"].(string))
 	layer.width = C.int(m["w"].(float64))
 	layer.pitch = C.int(m["p"].(float64))
 	r := m["r"].([]interface{})

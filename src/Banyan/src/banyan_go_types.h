@@ -73,6 +73,9 @@ struct viadef
 
 struct layer
 {
+    // for diagnostics only
+    const char *name;
+
     int width;
     int pitch;
 

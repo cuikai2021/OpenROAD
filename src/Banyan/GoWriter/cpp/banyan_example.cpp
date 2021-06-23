@@ -36,9 +36,9 @@ int main()
     for (int i = 0; i < 10; ++i)
         vias.push_back(banyan_go::via{i%2, i, i*i});
 
-    layers.push_back(banyan_go::layer{100, 5, 0, 1, 0, 0});
-    layers.push_back(banyan_go::layer{100, 5, 1, 2, 0, 1});
-    layers.push_back(banyan_go::layer{100, 5, 2, 3, 1, 2});
+    layers.push_back(banyan_go::layer{"M1", 100, 5, 0, 1, 0, 0});
+    layers.push_back(banyan_go::layer{"M2", 100, 5, 1, 2, 0, 1});
+    layers.push_back(banyan_go::layer{"M3", 100, 5, 2, 3, 1, 2});
     viadefs.push_back(banyan_go::viadef{"VIA_1",
         {1, 0, 0, 100, 100}, {0, 0, 0, 200, 200}});
     viadefs.push_back(banyan_go::viadef{"VIA_2",

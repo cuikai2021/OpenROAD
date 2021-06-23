@@ -22,11 +22,6 @@ char* copy_string(std::string in_str)
   return out_str;
 }
 
-size_t calLastIndex(int index)
-{
-  return size_t(index == 0 ? index : index - 1);
-}
-
 std::string getViaNameFromViaBox(odb::dbSBox* box)
 {
   assert(box->isVia());
@@ -105,42 +100,39 @@ void OpenDBAdapter::getLayersFromOpenDB()
 
 void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
 {
-  assert(addedLayerIndex_ > 1);
+  assert(layers_.size() > 1);
   assert(hasAddedMasterSliceLayer_ && hasAddedCutLayer_);
+  layerNameToIdxs_.insert(make_pair(layer->getName(), (int)layers_.size()));
   if (layer->getPitchX() != 0) {
-    layers_.push_back(
-        {(int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
+    layers_.push_back({copy_string(layer->getName()),
+        (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
   } else {
-    layers_.push_back(
-        {(int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
+    layers_.push_back({copy_string(layer->getName()),
+        (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
   }
-  layerNameToIdxs_.insert(make_pair(layer->getName(), addedLayerIndex_));
-  addedLayerIndex_++;
 }
 
 void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
 {
-  assert(addedLayerIndex_ > 0);
+  assert(layers_.size() > 0);
   assert(hasAddedMasterSliceLayer_);
 
-  layers_.push_back(
-      {(int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
-  layerNameToIdxs_.insert(make_pair(layer->getName(), addedLayerIndex_));
-  addedLayerIndex_++;
+  layerNameToIdxs_.insert(make_pair(layer->getName(), -(int)layers_.size()));
+  //layers_.push_back({copy_string(layer->getName()),
+  //    (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
   hasAddedCutLayer_ = true;
 }
 
 void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
 {
-  assert(addedLayerIndex_ == 0);
+  assert(layers_.empty());
   assert(!hasAddedMasterSliceLayer_ && !hasAddedCutLayer_);
 
   if (layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::NWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::PWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::DIFFUSION) {
-    layers_.push_back({0, 0, 0, 0, 0, 0});
-    layerNameToIdxs_.insert(make_pair(layer->getName(), addedLayerIndex_));
-    addedLayerIndex_++;
+    layerNameToIdxs_.insert(make_pair(layer->getName(), 0));
+    layers_.push_back({copy_string(layer->getName()), 0, 0, 0, 0, 0, 0});
     hasAddedMasterSliceLayer_ = true;
   }
 }
@@ -149,11 +141,19 @@ void OpenDBAdapter::getTracksFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
   const auto tracks = block->getTrackGrids();
-  int trackIndex = 0;
+  size_t trackIndex = 0;
   for (auto group :
        utl::group_by(tracks.begin(), tracks.end(), TrackLayerName())) {
     int layerIdx = layerNameToIdxs_.find(group.value)->second;
-    int laTrackBegin = trackIndex;
+    if (layerIdx < 0) {
+      logger_->info(utl::BY,
+              800,
+              "ignore viadefs on layer[{}] {}",
+              layerIdx, group.value);
+      continue;
+    }
+
+    size_t laTrackBegin = trackIndex;
     for (auto track : group.range) {
       std::vector<int> gridX;
       std::vector<int> gridY;
@@ -171,7 +171,7 @@ void OpenDBAdapter::getTracksFromOpenDB()
       trackIndex++;
     }
     layers_.at(layerIdx).track_begin = laTrackBegin;
-    layers_.at(layerIdx).track_end = calLastIndex(trackIndex);
+    layers_.at(layerIdx).track_end = trackIndex;
   }
 }
 
@@ -185,14 +185,21 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
 
   for (auto group : utl::group_by(vias.begin(), vias.end(), ViaTopLayer())) {
     int layerIdx = layerNameToIdxs_.find(group.value)->second;
+    if (layerIdx < 0) {
+      logger_->info(utl::BY,
+              800,
+              "ignore viadefs on layer[{}] {}",
+              layerIdx, group.value);
+      continue;
+    }
 
-    int viaDefIndexBegin = addedViaDefIndex_;
+    size_t viaDefIndexBegin = viadefs_.size();
     for (auto via : group.range) {
       addViaDef(via);
     }
 
     layers_.at(layerIdx).viadef_begin = viaDefIndexBegin;
-    layers_.at(layerIdx).viadef_end = calLastIndex(addedViaDefIndex_);
+    layers_.at(layerIdx).viadef_end = viadefs_.size();
   }
 }
 
@@ -204,6 +211,13 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
       = layerNameToIdxs_.find(via->getBottomLayer()->getName())->second;
   int topLayerIdx
       = layerNameToIdxs_.find(via->getTopLayer()->getName())->second;
+  if ((botLayerIdx < 0) || (topLayerIdx < 0)) {
+    logger_->error(utl::BY,
+            801,
+            "invalid viadef {} layers {} {}",
+            vname, topLayerIdx, botLayerIdx);
+    throw odb::ZException("invalid viadef layers");
+  }
 
   struct banyan_go::box botBox;
   struct banyan_go::box topBox;
@@ -284,9 +298,8 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
       cnt++;
     }
   }
+  viaDefNameToIdxs_.insert(make_pair(vname, (int)viadefs_.size()));
   viadefs_.push_back({copy_string(vname), botBox, topBox});
-  viaDefNameToIdxs_.insert(make_pair(vname, addedViaDefIndex_));
-  addedViaDefIndex_++;
 }
 
 void OpenDBAdapter::getNetsFromOpenDB()
@@ -299,31 +312,42 @@ void OpenDBAdapter::getNetsFromOpenDB()
 
 void OpenDBAdapter::addNet(odb::dbNet* net)
 {
+  netNameToIdxs_.insert(make_pair(net->getName(), nets_.size()));
   nets_.push_back({copy_string(net->getName()), 0, 0, 0, 0, 0, 0});
-  netNameToIdxs_.insert(make_pair(net->getName(), addedNetIndex_));
-  addedNetIndex_++;
 }
 
 void OpenDBAdapter::addBox(odb::dbBox* box)
 {
   int layerIdx = layerNameToIdxs_.find(box->getTechLayer()->getName())->second;
+  if (layerIdx < 0) {
+    //logger_->info(utl::BY,
+    //        802,
+    //        "box on layer[{}] {}",
+    //        layerIdx, box->getTechLayer()->getName());
+  }
+
   boxes_.push_back({layerIdx,
                     defdist(box->xMin()),
                     defdist(box->yMin()),
                     defdist(box->getDX()),
                     defdist(box->getDY())});
-  addedBoxIndex_++;
 }
 
 void OpenDBAdapter::addBox(std::string layerName, const odb::Rect& rect)
 {
   int layerIdx = layerNameToIdxs_.find(layerName)->second;
+  if (layerIdx < 0) {
+    //logger_->info(utl::BY,
+    //        802,
+    //        "box on layer[{}] {}",
+    //        layerIdx, layerName);
+  }
+
   boxes_.push_back({layerIdx,
                     defdist(rect.xMin()),
                     defdist(rect.yMin()),
                     defdist(rect.dx()),
                     defdist(rect.dy())});
-  addedBoxIndex_++;
 }
 
 void OpenDBAdapter::addBox(std::string layerName,
@@ -333,8 +357,14 @@ void OpenDBAdapter::addBox(std::string layerName,
                            int top)
 {
   int layerIdx = layerNameToIdxs_.find(layerName)->second;
+  if (layerIdx < 0) {
+    //logger_->info(utl::BY,
+    //        802,
+    //        "box on layer[{}] {}",
+    //        layerIdx, layerName);
+  }
+
   boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom});
-  addedBoxIndex_++;
 }
 
 void OpenDBAdapter::addVia(odb::dbSBox* box)
@@ -346,7 +376,6 @@ void OpenDBAdapter::addVia(odb::dbSBox* box)
   box->getViaXY(x, y);
   int viaDefIdx = viaDefNameToIdxs_.find(getViaNameFromViaBox(box))->second;
   vias_.push_back({viaDefIdx, defdist(x), defdist(y)});
-  addedViaIndex_++;
 }
 
 void OpenDBAdapter::addVia(std::string viaName, int x, int y)
@@ -354,7 +383,6 @@ void OpenDBAdapter::addVia(std::string viaName, int x, int y)
   assert(viaDefNameToIdxs_.find(viaName) != viaDefNameToIdxs_.end());
   int viaDefIdx = viaDefNameToIdxs_.find(viaName)->second;
   vias_.push_back({viaDefIdx, x, y});
-  addedViaIndex_++;
 }
 
 void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
@@ -437,9 +465,15 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
       break;
   }
   int layerIdx = layerNameToIdxs_.find(layer->getName())->second;
+  if (layerIdx < 0) {
+    logger_->info(utl::BY,
+            803,
+            "special path on layer[{}] {}",
+            layerIdx, box->getTechLayer()->getName());
+  }
+
   boxes_.push_back(
       {layerIdx, defdist(x1), defdist(y1), defdist(dx), defdist(dy)});
-  addedBoxIndex_++;
 }
 
 void OpenDBAdapter::addWire(odb::dbWire* wire)
@@ -588,8 +622,8 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
 void OpenDBAdapter::getPinsFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
-  int boxIndexBegin = addedBoxIndex_;
-  int viaIndexBegin = addedViaIndex_;
+  size_t boxIndexBegin = boxes_.size();
+  size_t viaIndexBegin = vias_.size();
   for (auto blockage : block->getObstructions()) {
     auto layerName = blockage->getBBox()->getTechLayer()->getName();
     int xl = blockage->getBBox()->xMin();
@@ -599,16 +633,13 @@ void OpenDBAdapter::getPinsFromOpenDB()
     addBox(layerName, xl, yl, xh, yh);
   }
   pins_.push_back({copy_string("pin_blockage"),
-                   (size_t) boxIndexBegin,
-                   (size_t) calLastIndex(addedBoxIndex_),
-                   (size_t) viaIndexBegin,
-                   (size_t) calLastIndex(addedViaIndex_)});
-  addedPinIndex_++;
+                   boxIndexBegin, boxes_.size(),
+                   viaIndexBegin, vias_.size()});
 
   auto nets = block->getNets();
   for (auto net : nets) {
     const auto nName = net->getName();
-    int pinIndexBegin = addedPinIndex_;
+    size_t pinIndexBegin = pins_.size();
     int netIdx = netNameToIdxs_.find(nName)->second;
 
     // netNameToBTerms.erase(nName);
@@ -616,8 +647,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
     const auto netBTerms = net->getBTerms();
     for (auto bTerm : netBTerms) {
-      boxIndexBegin = addedBoxIndex_;
-      viaIndexBegin = addedViaIndex_;
+      boxIndexBegin = boxes_.size();
+      viaIndexBegin = vias_.size();
 
       for (auto bPin : bTerm->getBPins()) {
         for (auto box : bPin->getBoxes()) {
@@ -631,17 +662,14 @@ void OpenDBAdapter::getPinsFromOpenDB()
         }
       }
       pins_.push_back({copy_string(bTerm->getName()),
-                       (size_t) boxIndexBegin,
-                       (size_t) calLastIndex(addedBoxIndex_),
-                       (size_t) viaIndexBegin,
-                       (size_t) calLastIndex(addedViaIndex_)});
-      addedPinIndex_++;
+                       boxIndexBegin, boxes_.size(),
+                       viaIndexBegin, vias_.size()});
     }
 
     const auto netITerms = net->getITerms();
     for (auto iTerm : netITerms) {
-      boxIndexBegin = addedBoxIndex_;
-      viaIndexBegin = addedViaIndex_;
+      boxIndexBegin = boxes_.size();
+      viaIndexBegin = vias_.size();
       auto inst = iTerm->getInst();
       auto mTerm = iTerm->getMTerm();
 
@@ -666,29 +694,23 @@ void OpenDBAdapter::getPinsFromOpenDB()
         }
       }
       pins_.push_back({copy_string(inst->getName() + "_" + mTerm->getName()),
-                       (size_t) boxIndexBegin,
-                       (size_t) calLastIndex(addedBoxIndex_),
-                       (size_t) viaIndexBegin,
-                       (size_t) calLastIndex(addedViaIndex_)});
-      addedPinIndex_++;
+                       boxIndexBegin, boxes_.size(),
+                       viaIndexBegin, vias_.size()});
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
-      boxIndexBegin = addedBoxIndex_;
-      viaIndexBegin = addedViaIndex_;
+      boxIndexBegin = boxes_.size();
+      viaIndexBegin = vias_.size();
       addWire(net->getWire());
 
       pins_.push_back({copy_string(nName + "_wire"),
-                       (size_t) boxIndexBegin,
-                       (size_t) calLastIndex(addedBoxIndex_),
-                       (size_t) viaIndexBegin,
-                       (size_t) calLastIndex(addedViaIndex_)});
-      addedPinIndex_++;
+                       boxIndexBegin, boxes_.size(),
+                       viaIndexBegin, vias_.size()});
     }
 
     if (net->isSpecial()) {
-      boxIndexBegin = addedBoxIndex_;
-      viaIndexBegin = addedViaIndex_;
+      boxIndexBegin = boxes_.size();
+      viaIndexBegin = vias_.size();
       for (auto swire : net->getSWires()) {
         for (auto box : swire->getWires()) {
           if (!box->isVia()) {
@@ -699,15 +721,12 @@ void OpenDBAdapter::getPinsFromOpenDB()
         }
       }
       pins_.push_back({copy_string(nName + "_special_wire"),
-                       (size_t) boxIndexBegin,
-                       (size_t) calLastIndex(addedBoxIndex_),
-                       (size_t) viaIndexBegin,
-                       (size_t) calLastIndex(addedViaIndex_)});
-      addedPinIndex_++;
+                       boxIndexBegin, boxes_.size(),
+                       viaIndexBegin, vias_.size()});
     }
 
     nets_.at(netIdx).pin_begin = pinIndexBegin;
-    nets_.at(netIdx).pin_end = calLastIndex(addedPinIndex_);
+    nets_.at(netIdx).pin_end = pins_.size();
   }
 }
 

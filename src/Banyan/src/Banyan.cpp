@@ -44,7 +44,8 @@ int Banyan::main()
   for (auto layer : bdAdapter.getLayers()) {
     logger_->info(utl::BY,
                   900,
-                  "layer pitch {} width {} track_begin {} track_end {} viadef_begin {} viadef_end {}",
+                  "layer name {} pitch {} width {} tracks [{},{}) viadefs[{},{})",
+                  layer.name,
                   layer.pitch,
                   layer.width,
                   layer.track_begin,
