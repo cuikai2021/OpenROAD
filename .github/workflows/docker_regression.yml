@@ -85,7 +85,7 @@ jobs:
         
         - name: 13. upload failure file to aliyun
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
-          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}
+          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}/
 
 
         - name: 14. check status of set-env.yml
