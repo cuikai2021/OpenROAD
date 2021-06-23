@@ -172,11 +172,10 @@ jobs:
           id: issues
           with:
             route: POST /repos/{repository}/issues
-            owner: ${{ github.actor }}
             repository: ${{ github.repository }}
             title: regression failed, run number is ${{ github.run_number }}
             labels: "CI"
-            assignees: ${{ env.env_HEAD_COMMIT_COMMITER_NAME }}
+            assignees: ${{ env.env_COMMIT_COMMITER_NAME }}
             body: |
                The regression run failure
 

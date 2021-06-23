@@ -34,13 +34,24 @@ jobs:
 
       - name: 3. monitor file change
         id: change
-        uses: trilom/file-changes-action@v1.2.3
+        uses: trilom/file-changes-action@v1.2.4
         with:
           githubToken: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           pushBefore: ${{ github.event.before }}
           pushAfter: ${{ github.event.after }}
 
-      - name: 4. create json file to store environment variables
+      - name: 4. decide committer name
+        run: |
+            name1 = ${{ github.event.commits[0].committer.name }}
+            name2 = ${{ github.event.commits[1].committer.name }}
+            if(( $name1 == 'GitHub' ));
+            then 
+                echo "COMMIT_COMMITER_NAME=$name2" >> $GITHUB_ENV
+            else 
+                echo "COMMIT_COMMITER_NAME=$name1" >> $GITHUB_ENV
+            fi
+
+      - name: 5. create json file to store environment variables
         uses: zynICBench/json-creator@v2.1
         with:
           file-name: 'env.json'
@@ -52,22 +63,20 @@ jobs:
           IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
           DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
           REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
-          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          HEAD_COMMIT_COMMITER_NAME: ${{ github.event.head_commit.committer.name }}
+          COMMIT_COMMITER_NAME: ${{ env.COMMIT_COMMITER_NAME }}
           EVENT_AFTER: ${{ github.event.after }}
           
-
-      - name: 5. connect to aliyun
+      - name: 6. connect to aliyun
         uses: manyuanrong/setup-ossutil@v2.0
         with:
           endpoint: "oss-cn-shanghai.aliyuncs.com"
           access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
           access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
 
-      - name: 6. upload to aliyun
+      - name: 7. upload to aliyun
         run: ossutil cp -rf env.json oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/
 
-      - name: 7. invoke workflow
+      - name: 8. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           workflow: release eden deps docker
