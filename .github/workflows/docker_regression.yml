@@ -135,7 +135,7 @@ jobs:
 
         - name: send email when there is running actions
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'false' }}
-          run: echo "send email to administrator"
+          run: echo "test： send email to administrator"
 
         - name: 16. failure issue
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
