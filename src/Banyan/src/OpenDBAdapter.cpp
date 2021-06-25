@@ -100,15 +100,25 @@ void OpenDBAdapter::getLayersFromOpenDB()
 
 void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
 {
-  assert(layers_.size() > 1);
+  assert(layers_.size() > 0);
   assert(hasAddedMasterSliceLayer_ && hasAddedCutLayer_);
-  layerNameToIdxs_.insert(make_pair(layer->getName(), (int)layers_.size()));
+  layerNameToIdxs_.insert(make_pair(layer->getName(), (int) layers_.size()));
   if (layer->getPitchX() != 0) {
     layers_.push_back({copy_string(layer->getName()),
-        (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
+                       (int) layer->getWidth(),
+                       calLayerPitch(layer),
+                       0,
+                       0,
+                       0,
+                       0});
   } else {
     layers_.push_back({copy_string(layer->getName()),
-        (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
+                       (int) layer->getWidth(),
+                       calLayerPitch(layer),
+                       0,
+                       0,
+                       0,
+                       0});
   }
 }
 
@@ -117,8 +127,8 @@ void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
   assert(layers_.size() > 0);
   assert(hasAddedMasterSliceLayer_);
 
-  layerNameToIdxs_.insert(make_pair(layer->getName(), -(int)layers_.size()));
-  //layers_.push_back({copy_string(layer->getName()),
+  layerNameToIdxs_.insert(make_pair(layer->getName(), -(int) layers_.size()));
+  // layers_.push_back({copy_string(layer->getName()),
   //    (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
   hasAddedCutLayer_ = true;
 }
@@ -147,9 +157,10 @@ void OpenDBAdapter::getTracksFromOpenDB()
     int layerIdx = layerNameToIdxs_.find(group.value)->second;
     if (layerIdx < 0) {
       logger_->info(utl::BY,
-              800,
-              "ignore viadefs on layer[{}] {}",
-              layerIdx, group.value);
+                    800,
+                    "ignore viadefs on layer[{}] {}",
+                    layerIdx,
+                    group.value);
       continue;
     }
 
@@ -175,27 +186,66 @@ void OpenDBAdapter::getTracksFromOpenDB()
   }
 }
 
+void getLayerNameToTechViasMap(
+    const odb::dbSet<odb::dbTechVia>& vias,
+    std::map<std::string, std::vector<odb::dbTechVia*>>& layerNameToTechVias)
+{
+  for (auto via : vias) {
+    std::string lname = via->getTopLayer()->getName();
+    if (layerNameToTechVias.count(lname) == 0) {
+      std::vector<odb::dbTechVia*> groupedVias;
+      groupedVias.push_back(via);
+      layerNameToTechVias[lname] = groupedVias;
+    } else {
+      layerNameToTechVias.find(lname)->second.push_back(via);
+    }
+  }
+}
+
+void getLayerNameToViasMap(
+    const odb::dbSet<odb::dbVia>& vias,
+    std::map<std::string, std::vector<odb::dbVia*>>& layerNameToDefVias)
+{
+  for (auto via : vias) {
+    std::string lname = via->getTopLayer()->getName();
+    if (layerNameToDefVias.count(lname) == 0) {
+      std::vector<odb::dbVia*> groupedVias;
+      groupedVias.push_back(via);
+      layerNameToDefVias[lname] = groupedVias;
+    } else {
+      layerNameToDefVias.find(lname)->second.push_back(via);
+    }
+  }
+}
+
 void OpenDBAdapter::getViaDefsFromOpenDB()
 {
-  odb::dbBlock* block = db_->getChip()->getBlock();
-  if (block->getVias().size() == 0) {
-    return;
-  }
-  const auto vias = block->getVias();
+  odb::dbTech* tech = db_->getTech();
+  const auto techVias = tech->getVias();
+  std::map<std::string, std::vector<odb::dbTechVia*>> layerNameToTechVias;
+  getLayerNameToTechViasMap(techVias, layerNameToTechVias);
 
-  for (auto group : utl::group_by(vias.begin(), vias.end(), ViaTopLayer())) {
-    int layerIdx = layerNameToIdxs_.find(group.value)->second;
+  odb::dbBlock* block = db_->getChip()->getBlock();
+  const auto vias = block->getVias();
+  std::map<std::string, std::vector<odb::dbVia*>> layerNameToDefVias;
+  getLayerNameToViasMap(vias, layerNameToDefVias);
+
+  for (const auto& iter : layerNameToIdxs_) {
+    auto layerName = iter.first;
+    auto layerIdx = iter.second;
     if (layerIdx < 0) {
-      logger_->info(utl::BY,
-              800,
-              "ignore viadefs on layer[{}] {}",
-              layerIdx, group.value);
+      logger_->info(
+          utl::BY, 800, "ignore viadefs on layer[{}] {}", layerIdx, layerName);
       continue;
     }
 
     size_t viaDefIndexBegin = viadefs_.size();
-    for (auto via : group.range) {
+    for (auto via : layerNameToDefVias[layerName]) {
       addViaDef(via);
+    }
+
+    for (auto techVia : layerNameToTechVias[layerName]) {
+      addViaDef(techVia);
     }
 
     layers_.at(layerIdx).viadef_begin = viaDefIndexBegin;
@@ -203,49 +253,88 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
   }
 }
 
-void OpenDBAdapter::addViaDef(odb::dbVia* via)
+void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
 {
-  std::string vname = via->getName();
+  std::string vname;
+  int botLayerIdx;
+  int topLayerIdx;
+  odb::dbTechViaGenerateRule* rule;
+  bool viaHasParams;
+  odb::dbViaParams viaParams;
+  odb::dbSet<odb::dbBox> boxes;
 
-  int botLayerIdx
-      = layerNameToIdxs_.find(via->getBottomLayer()->getName())->second;
-  int topLayerIdx
-      = layerNameToIdxs_.find(via->getTopLayer()->getName())->second;
+  switch (viaObj->getObjectType()) {
+    case odb::dbViaObj: {
+      auto via = static_cast<odb::dbVia*>(viaObj);
+      vname = via->getName();
+      botLayerIdx
+          = layerNameToIdxs_.find(via->getBottomLayer()->getName())->second;
+      topLayerIdx
+          = layerNameToIdxs_.find(via->getTopLayer()->getName())->second;
+      rule = via->getViaGenerateRule();
+      viaHasParams = via->hasParams();
+      if (viaHasParams && rule != nullptr) {
+        via->getViaParams(viaParams);
+      } else {
+        boxes = via->getBoxes();
+      }
+      break;
+    }
+    case odb::dbTechViaObj: {
+      auto techVia = static_cast<odb::dbTechVia*>(viaObj);
+      vname = techVia->getName();
+      botLayerIdx
+          = layerNameToIdxs_.find(techVia->getBottomLayer()->getName())->second;
+      topLayerIdx
+          = layerNameToIdxs_.find(techVia->getTopLayer()->getName())->second;
+      rule = techVia->getViaGenerateRule();
+      viaHasParams = techVia->hasParams();
+      if (viaHasParams && rule != nullptr) {
+        techVia->getViaParams(viaParams);
+      } else {
+        boxes = techVia->getBoxes();
+      }
+      break;
+    }
+    default:
+      assert(false);
+  }
+
   if ((botLayerIdx < 0) || (topLayerIdx < 0)) {
     logger_->error(utl::BY,
-            801,
-            "invalid viadef {} layers {} {}",
-            vname, topLayerIdx, botLayerIdx);
+                   801,
+                   "invalid viadef {} layers {} {}",
+                   vname,
+                   topLayerIdx,
+                   botLayerIdx);
     throw odb::ZException("invalid viadef layers");
   }
+  assert(botLayerIdx != topLayerIdx);
 
   struct banyan_go::box botBox;
   struct banyan_go::box topBox;
-  odb::dbTechViaGenerateRule* rule = via->getViaGenerateRule();
-  if (via->hasParams() && (rule != nullptr)) {
-    odb::dbViaParams P;
-    via->getViaParams(P);
 
-    int xSize = defdist(P.getXCutSize());
-    int ySize = defdist(P.getYCutSize());
-    int xCutSpacing = defdist(P.getXCutSpacing());
-    int yCutSpacing = defdist(P.getYCutSpacing());
-    int xOrigin = defdist(P.getXOrigin());
-    int yOrigin = defdist(P.getYOrigin());
-    int xTopEnc = defdist(P.getXTopEnclosure());
-    int yTopEnc = defdist(P.getYTopEnclosure());
-    int xBotEnc = defdist(P.getXBottomEnclosure());
-    int yBotEnc = defdist(P.getYBottomEnclosure());
-    int xTopOffset = defdist(P.getXTopOffset());
-    int yTopOffset = defdist(P.getYTopOffset());
-    int xBotOffset = defdist(P.getXBottomOffset());
-    int yBotOffset = defdist(P.getYBottomOffset());
+  if (viaHasParams && (rule != nullptr)) {
+    int xSize = defdist(viaParams.getXCutSize());
+    int ySize = defdist(viaParams.getYCutSize());
+    int xCutSpacing = defdist(viaParams.getXCutSpacing());
+    int yCutSpacing = defdist(viaParams.getYCutSpacing());
+    int xOrigin = defdist(viaParams.getXOrigin());
+    int yOrigin = defdist(viaParams.getYOrigin());
+    int xTopEnc = defdist(viaParams.getXTopEnclosure());
+    int yTopEnc = defdist(viaParams.getYTopEnclosure());
+    int xBotEnc = defdist(viaParams.getXBottomEnclosure());
+    int yBotEnc = defdist(viaParams.getYBottomEnclosure());
+    int xTopOffset = defdist(viaParams.getXTopOffset());
+    int yTopOffset = defdist(viaParams.getYTopOffset());
+    int xBotOffset = defdist(viaParams.getXBottomOffset());
+    int yBotOffset = defdist(viaParams.getYBottomOffset());
 
     int currX = 0;
     int currY = 0;
-    for (int i = 0; i < P.getNumCutRows(); i++) {
+    for (int i = 0; i < viaParams.getNumCutRows(); i++) {
       currX = 0;
-      for (int j = 0; j < P.getNumCutCols(); j++) {
+      for (int j = 0; j < viaParams.getNumCutCols(); j++) {
         currX += xSize + xCutSpacing;
       }
       currY += ySize + yCutSpacing;
@@ -271,7 +360,6 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
               currY + topTranformY + yTopEnc};
   } else {
     int cnt = 0;
-    const auto boxes = via->getBoxes();
     for (auto group :
          utl::group_by(boxes.begin(), boxes.end(), BoxLayerName())) {
       for (auto box : group.range) {
@@ -298,7 +386,7 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
       cnt++;
     }
   }
-  viaDefNameToIdxs_.insert(make_pair(vname, (int)viadefs_.size()));
+  viaDefNameToIdxs_.insert(make_pair(vname, (int) viadefs_.size()));
   viadefs_.push_back({copy_string(vname), botBox, topBox});
 }
 
@@ -320,7 +408,7 @@ void OpenDBAdapter::addBox(odb::dbBox* box)
 {
   int layerIdx = layerNameToIdxs_.find(box->getTechLayer()->getName())->second;
   if (layerIdx < 0) {
-    //logger_->info(utl::BY,
+    // logger_->info(utl::BY,
     //        802,
     //        "box on layer[{}] {}",
     //        layerIdx, box->getTechLayer()->getName());
@@ -337,7 +425,7 @@ void OpenDBAdapter::addBox(std::string layerName, const odb::Rect& rect)
 {
   int layerIdx = layerNameToIdxs_.find(layerName)->second;
   if (layerIdx < 0) {
-    //logger_->info(utl::BY,
+    // logger_->info(utl::BY,
     //        802,
     //        "box on layer[{}] {}",
     //        layerIdx, layerName);
@@ -358,7 +446,7 @@ void OpenDBAdapter::addBox(std::string layerName,
 {
   int layerIdx = layerNameToIdxs_.find(layerName)->second;
   if (layerIdx < 0) {
-    //logger_->info(utl::BY,
+    // logger_->info(utl::BY,
     //        802,
     //        "box on layer[{}] {}",
     //        layerIdx, layerName);
@@ -467,9 +555,10 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
   int layerIdx = layerNameToIdxs_.find(layer->getName())->second;
   if (layerIdx < 0) {
     logger_->info(utl::BY,
-            803,
-            "special path on layer[{}] {}",
-            layerIdx, box->getTechLayer()->getName());
+                  803,
+                  "special path on layer[{}] {}",
+                  layerIdx,
+                  box->getTechLayer()->getName());
   }
 
   boxes_.push_back(
@@ -633,8 +722,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
     addBox(layerName, xl, yl, xh, yh);
   }
   pins_.push_back({copy_string("pin_blockage"),
-                   boxIndexBegin, boxes_.size(),
-                   viaIndexBegin, vias_.size()});
+                   boxIndexBegin,
+                   boxes_.size(),
+                   viaIndexBegin,
+                   vias_.size()});
 
   auto nets = block->getNets();
   for (auto net : nets) {
@@ -662,8 +753,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
         }
       }
       pins_.push_back({copy_string(bTerm->getName()),
-                       boxIndexBegin, boxes_.size(),
-                       viaIndexBegin, vias_.size()});
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
 
     const auto netITerms = net->getITerms();
@@ -694,8 +787,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
         }
       }
       pins_.push_back({copy_string(inst->getName() + "_" + mTerm->getName()),
-                       boxIndexBegin, boxes_.size(),
-                       viaIndexBegin, vias_.size()});
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
@@ -704,8 +799,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
       addWire(net->getWire());
 
       pins_.push_back({copy_string(nName + "_wire"),
-                       boxIndexBegin, boxes_.size(),
-                       viaIndexBegin, vias_.size()});
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
 
     if (net->isSpecial()) {
@@ -721,8 +818,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
         }
       }
       pins_.push_back({copy_string(nName + "_special_wire"),
-                       boxIndexBegin, boxes_.size(),
-                       viaIndexBegin, vias_.size()});
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
 
     nets_.at(netIdx).pin_begin = pinIndexBegin;

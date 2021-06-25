@@ -9,13 +9,14 @@
 namespace odb {
 class dbDatabase;
 class dbBlock;
-class dbVia;
+class dbObject;
 class dbTechLayer;
 class dbNet;
 class dbBox;
 class dbSBox;
 class dbWire;
 class dbVia;
+class dbTechVia;
 class Rect;
 }  // namespace odb
 
@@ -71,7 +72,7 @@ class OpenDBAdapter : public DBAdapter
 
   void getTracksFromOpenDB();
   void getViaDefsFromOpenDB();
-  void addViaDef(odb::dbVia* odbvia);
+  void addViaDef(odb::dbObject* odbvia);
 
   void addBox(odb::dbBox* box);
   void addBox(std::string layerName, const odb::Rect& rect);
