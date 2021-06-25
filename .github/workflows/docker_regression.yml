@@ -177,7 +177,7 @@ jobs:
             labels: |
                - CI
             assignees: |
-               - ${{ env.env_COMMIT_COMMITER_NAME }}
+               - "${{ env.env_COMMIT_COMMITER_NAME }}"
             body: |
                The regression run failure
 
