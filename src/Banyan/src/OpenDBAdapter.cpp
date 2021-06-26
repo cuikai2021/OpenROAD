@@ -14,14 +14,6 @@
 
 namespace banyan {
 
-char* copy_string(std::string in_str)
-{
-  char* out_str = new char[in_str.length() + 1];
-  in_str.copy(out_str, in_str.length());
-  out_str[in_str.length()] = '\0';
-  return out_str;
-}
-
 std::string getViaNameFromViaBox(odb::dbSBox* box)
 {
   assert(box->isVia());
@@ -77,6 +69,21 @@ int OpenDBAdapter::defdist(int x)
          / (double) block->getDbUnitsPerMicron();
 }
 
+void OpenDBAdapter::getDesignFromOpenDB()
+{
+  odb::dbBlock* block = db_->getChip()->getBlock();
+  
+  strs_.emplace_back(block->getName());
+  design_.name = strs_.back().c_str();
+  
+  odb::Rect box;
+  block->getDieArea(box);
+  design_.xmin = defdist(box.xMin());
+  design_.ymin = defdist(box.yMin());
+  design_.xmax = defdist(box.xMax());
+  design_.ymax = defdist(box.yMax());
+}
+
 void OpenDBAdapter::getLayersFromOpenDB()
 {
   auto tech = db_->getTech();
@@ -102,14 +109,10 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
 {
   assert(layers_.size() > 1);
   assert(hasAddedMasterSliceLayer_ && hasAddedCutLayer_);
-  layerNameToIdxs_.insert(make_pair(layer->getName(), (int)layers_.size()));
-  if (layer->getPitchX() != 0) {
-    layers_.push_back({copy_string(layer->getName()),
-        (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
-  } else {
-    layers_.push_back({copy_string(layer->getName()),
-        (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
-  }
+  auto it = layerNameToIdxs_.insert(make_pair(
+      layer->getName(), (int)layers_.size())).first;
+  layers_.push_back({it->first.c_str(),
+      (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
 }
 
 void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
@@ -118,8 +121,6 @@ void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
   assert(hasAddedMasterSliceLayer_);
 
   layerNameToIdxs_.insert(make_pair(layer->getName(), -(int)layers_.size()));
-  //layers_.push_back({copy_string(layer->getName()),
-  //    (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
   hasAddedCutLayer_ = true;
 }
 
@@ -131,8 +132,8 @@ void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
   if (layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::NWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::PWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::DIFFUSION) {
-    layerNameToIdxs_.insert(make_pair(layer->getName(), 0));
-    layers_.push_back({copy_string(layer->getName()), 0, 0, 0, 0, 0, 0});
+    auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
+    layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0});
     hasAddedMasterSliceLayer_ = true;
   }
 }
@@ -141,37 +142,51 @@ void OpenDBAdapter::getTracksFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
   const auto tracks = block->getTrackGrids();
-  size_t trackIndex = 0;
   for (auto group :
        utl::group_by(tracks.begin(), tracks.end(), TrackLayerName())) {
     int layerIdx = layerNameToIdxs_.find(group.value)->second;
     if (layerIdx < 0) {
       logger_->info(utl::BY,
               800,
-              "ignore viadefs on layer[{}] {}",
+              "ignore tracks on layer[{}] {}",
               layerIdx, group.value);
       continue;
     }
 
-    size_t laTrackBegin = trackIndex;
+    size_t laTrackBegin = tracks_.size();
+    std::vector<int> grid;
+    int dir = banyan_go::DIR_NONE, tmin = 0, tmax = 0;
     for (auto track : group.range) {
-      std::vector<int> gridX;
-      std::vector<int> gridY;
-      track->getGridX(gridX);
-      track->getGridY(gridY);
-      tracks_.push_back({layerIdx,
-                         (int) gridX.size(),
-                         (int) gridX.front(),
-                         (int) gridX.back()});
-      trackIndex++;
-      tracks_.push_back({layerIdx,
-                         (int) gridY.size(),
-                         (int) gridY.front(),
-                         (int) gridY.back()});
-      trackIndex++;
+      if (track->getTechLayer()->getDirection() == odb::dbTechLayerDir::HORIZONTAL) {
+        track->getGridY(grid);
+        dir = banyan_go::DIR_HORIZONTAL;
+        tmin = design_.xmin;
+        tmax = design_.xmax;
+        break;
+      }
+      else if (track->getTechLayer()->getDirection() == odb::dbTechLayerDir::VERTICAL) {
+        track->getGridY(grid);
+        dir = banyan_go::DIR_VERTICAL;
+        tmin = design_.ymin;
+        tmax = design_.ymax;
+        break;
+      }
     }
+
+    if (dir == banyan_go::DIR_NONE) {
+      logger_->info(utl::BY,
+              805,
+              "ignore tracks on layer[{}] {} with dir NONE",
+              layerIdx, group.value);
+    }
+
+    for (auto line: grid) {
+      tracks_.push_back({layerIdx, line, tmin, tmax});
+    }
+
+    layers_.at(layerIdx).dir = dir;
     layers_.at(layerIdx).track_begin = laTrackBegin;
-    layers_.at(layerIdx).track_end = trackIndex;
+    layers_.at(layerIdx).track_end = tracks_.size();
   }
 }
 
@@ -298,8 +313,9 @@ void OpenDBAdapter::addViaDef(odb::dbVia* via)
       cnt++;
     }
   }
-  viaDefNameToIdxs_.insert(make_pair(vname, (int)viadefs_.size()));
-  viadefs_.push_back({copy_string(vname), botBox, topBox});
+  auto it = viaDefNameToIdxs_.insert(make_pair(
+    vname, (int)viadefs_.size())).first;
+  viadefs_.push_back({it->first.c_str(), botBox, topBox});
 }
 
 void OpenDBAdapter::getNetsFromOpenDB()
@@ -312,8 +328,25 @@ void OpenDBAdapter::getNetsFromOpenDB()
 
 void OpenDBAdapter::addNet(odb::dbNet* net)
 {
-  netNameToIdxs_.insert(make_pair(net->getName(), nets_.size()));
-  nets_.push_back({copy_string(net->getName()), 0, 0, 0, 0, 0, 0});
+  auto it = netNameToIdxs_.insert(make_pair(
+    net->getName(), nets_.size())).first;
+  banyan_go::net_use use = banyan_go::USE_SIGNAL;
+  switch (net->getSigType()) {
+    case odb::dbSigType::SIGNAL:
+      break;
+    case odb::dbSigType::CLOCK:
+      use = banyan_go::USE_CLOCK;
+      break;
+    case odb::dbSigType::POWER:
+      use = banyan_go::USE_POWER;
+      break;
+    case odb::dbSigType::GROUND:
+      use = banyan_go::USE_GROUND;
+      break;
+    default:
+      throw odb::ZException("unsupported NET USE");
+  }
+  nets_.push_back({it->first.c_str(), use, 0, 0, 0, 0, 0, 0});
 }
 
 void OpenDBAdapter::addBox(odb::dbBox* box)
@@ -632,7 +665,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
     int yh = blockage->getBBox()->yMax();
     addBox(layerName, xl, yl, xh, yh);
   }
-  pins_.push_back({copy_string("pin_blockage"),
+  pins_.push_back({"obstructions",
                    boxIndexBegin, boxes_.size(),
                    viaIndexBegin, vias_.size()});
 
@@ -661,7 +694,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
           addBox(box);
         }
       }
-      pins_.push_back({copy_string(bTerm->getName()),
+      strs_.emplace_back(bTerm->getName());
+      pins_.push_back({strs_.back().c_str(),
                        boxIndexBegin, boxes_.size(),
                        viaIndexBegin, vias_.size()});
     }
@@ -693,7 +727,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
           addBox(techLayer->getName(), rect);
         }
       }
-      pins_.push_back({copy_string(inst->getName() + "_" + mTerm->getName()),
+      strs_.emplace_back(inst->getName() + "/" + mTerm->getName());
+      pins_.push_back({strs_.back().c_str(),
                        boxIndexBegin, boxes_.size(),
                        viaIndexBegin, vias_.size()});
     }
@@ -703,7 +738,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
       viaIndexBegin = vias_.size();
       addWire(net->getWire());
 
-      pins_.push_back({copy_string(nName + "_wire"),
+      strs_.emplace_back(nName + "/wire");
+      pins_.push_back({strs_.back().c_str(),
                        boxIndexBegin, boxes_.size(),
                        viaIndexBegin, vias_.size()});
     }
@@ -720,7 +756,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
           }
         }
       }
-      pins_.push_back({copy_string(nName + "_special_wire"),
+      strs_.emplace_back(nName + "/specialwire");
+      pins_.push_back({strs_.back().c_str(),
                        boxIndexBegin, boxes_.size(),
                        viaIndexBegin, vias_.size()});
     }

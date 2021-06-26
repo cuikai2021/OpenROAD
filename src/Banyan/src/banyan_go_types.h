@@ -21,9 +21,24 @@ struct via
     int x, y;
 }; // struct via
 
+enum net_use {
+    USE_GROUND = 0,
+    USE_POWER,
+    USE_CLOCK,
+    USE_SIGNAL,
+};
+
+enum layer_dir {
+    DIR_NONE = 0,
+    DIR_HORIZONTAL,
+    DIR_VERTICAL,
+};
+
 #ifndef __cplusplus
 typedef struct box box;
 typedef struct via via;
+typedef enum net_use net_use;
+typedef enum layer_dir layer_dir;
 #endif
 
 // a pin that can be accessed from a few boxes
@@ -49,6 +64,8 @@ struct net
 {
     // for diagnostics only
     const char *name;
+
+    int use;
 
     // index into the pin array
     size_t pin_begin;
@@ -76,6 +93,8 @@ struct layer
     // for diagnostics only
     const char *name;
 
+    int dir;
+
     int width;
     int pitch;
 
@@ -95,6 +114,13 @@ struct track
 
     int line, tmin, tmax;
 }; // struct track
+
+struct design
+{
+    const char *name;
+
+	int xmin, ymin, xmax, ymax;
+}; // struct design
 
 // returned
 struct entry_ret

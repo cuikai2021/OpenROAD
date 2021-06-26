@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <list>
 
 #include "banyan_go.h"
 #include "string.h"
@@ -36,6 +37,9 @@ class DBAdapter
   virtual std::vector<banyan_go::layer>& getLayers() = 0;
   virtual std::vector<banyan_go::viadef>& getViadefs() = 0;
   virtual std::vector<banyan_go::track>& getTracks() = 0;
+  virtual banyan_go::design getDesign() = 0;
+
+  virtual ~DBAdapter() {}
 };
 
 class OpenDBAdapter : public DBAdapter
@@ -48,6 +52,7 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::layer> layers_;
   std::vector<banyan_go::viadef> viadefs_;
   std::vector<banyan_go::track> tracks_;
+  banyan_go::design design_;
 
  protected:
   odb::dbDatabase* db_;
@@ -61,8 +66,12 @@ class OpenDBAdapter : public DBAdapter
 
   std::map<std::string, size_t> netNameToIdxs_;
 
+  std::list<std::string> strs_;
+
   int defdist(int x);
   int calLayerPitch(odb::dbTechLayer* layer);
+
+  void getDesignFromOpenDB();
 
   void getLayersFromOpenDB();
   void addRoutingLayer(odb::dbTechLayer* layer);
@@ -90,12 +99,15 @@ class OpenDBAdapter : public DBAdapter
   OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger)
       : db_(db), logger_(logger)
   {
+    getDesignFromOpenDB();
     getLayersFromOpenDB();
     getTracksFromOpenDB();
     getViaDefsFromOpenDB();
     getNetsFromOpenDB();
     getPinsFromOpenDB();
-  };
+  }
+
+  ~OpenDBAdapter() {}
 
   void updateDB(banyan_go::entry_ret* ret) override;
   std::vector<banyan_go::net>& getNets() override { return nets_; }
@@ -105,6 +117,7 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::layer>& getLayers() override { return layers_; }
   std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }
   std::vector<banyan_go::track>& getTracks() override { return tracks_; }
+  banyan_go::design getDesign() override { return design_; }
 };
 
 }  // namespace banyan

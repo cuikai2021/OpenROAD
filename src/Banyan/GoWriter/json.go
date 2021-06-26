@@ -5,8 +5,11 @@ package main
 */
 import "C"
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
+type jsonDesign C.struct_design
 type jsonNets []C.struct_net
 type jsonPins []C.struct_pin
 type jsonBoxes []C.struct_box
@@ -15,7 +18,8 @@ type jsonLayers []C.struct_layer
 type jsonViadefs []C.struct_viadef
 type jsonTracks []C.struct_track
 
-type jsonDesign struct {
+type jsonChip struct {
+	Design  jsonDesign  `json:"design"`
 	NN      int         `json:"numNets"`
 	Nets    jsonNets    `json:"nets"`
 	NP      int         `json:"numPins"`
@@ -32,15 +36,16 @@ type jsonDesign struct {
 	Tracks  jsonTracks  `json:"tracks"`
 }
 
-func newJsonDesign(
+func newJsonChip(
 	nets []C.struct_net,
 	pins []C.struct_pin,
 	boxes []C.struct_box,
 	vias []C.struct_via,
 	layers []C.struct_layer,
 	viadefs []C.struct_viadef,
-	tracks []C.struct_track) jsonDesign {
-	return jsonDesign{
+	tracks []C.struct_track,
+	design C.struct_design) jsonChip {
+	return jsonChip{jsonDesign(design),
 		len(nets), jsonNets(nets),
 		len(pins), jsonPins(pins),
 		len(boxes), jsonBoxes(boxes),
@@ -50,14 +55,41 @@ func newJsonDesign(
 		len(tracks), jsonTracks(tracks)}
 }
 
+func (design jsonDesign) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Name string  `json:"name"`
+		Rect []C.int `json:"rect"`
+	}{C.GoString(design.name),
+		[]C.int{design.xmin, design.ymin, design.xmax, design.ymax}})
+}
+
+func (design *jsonDesign) UnmarshalJSON(data []byte) error {
+	var v map[string]interface{}
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return err
+	}
+
+	design.name = C.CString(v["name"].(string))
+	rect := v["rect"].([]interface{})
+	design.xmin = C.int(rect[0].(float64))
+	design.ymin = C.int(rect[1].(float64))
+	design.xmax = C.int(rect[2].(float64))
+	design.ymax = C.int(rect[3].(float64))
+
+	return nil
+}
+
 func (nets jsonNets) MarshalJSON() ([]byte, error) {
 	arr := make([]interface{}, 0, len(nets))
 	for i, net := range nets {
 		arr = append(arr, &struct {
 			I int       `json:"nid"`
 			N string    `json:"name"`
+			U C.int     `json:"use"`
 			R []C.ulong `json:"r"`
-		}{i, C.GoString(net.name), []C.ulong{net.pin_begin, net.pin_end}})
+		}{i, C.GoString(net.name), net.use,
+			[]C.ulong{net.pin_begin, net.pin_end}})
 	}
 	return json.Marshal(arr)
 }
@@ -70,6 +102,7 @@ func (net *C.struct_net) UnmarshalJSON(data []byte) error {
 	}
 
 	net.name = C.CString(v["name"].(string))
+	net.use = C.int(v["use"].(float64))
 	r := v["r"].([]interface{})
 	net.pin_begin = C.ulong(r[0].(float64))
 	net.pin_end = C.ulong(r[1].(float64))
@@ -168,10 +201,11 @@ func (layers jsonLayers) MarshalJSON() ([]byte, error) {
 		arr = append(arr, &struct {
 			I int       `json:"la"`
 			N string    `json:"name"`
+			D C.int     `json:"dir"`
 			W C.int     `json:"w"`
 			P C.int     `json:"p"`
 			R []C.ulong `json:"r"`
-		}{i, C.GoString(layer.name),
+		}{i, C.GoString(layer.name), layer.dir,
 			layer.width, layer.pitch, []C.ulong{
 				layer.track_begin, layer.track_end,
 				layer.viadef_begin, layer.viadef_end}})
@@ -187,6 +221,7 @@ func (layer *C.struct_layer) UnmarshalJSON(data []byte) error {
 	}
 
 	layer.name = C.CString(m["name"].(string))
+	layer.dir = C.int(m["dir"].(float64))
 	layer.width = C.int(m["w"].(float64))
 	layer.pitch = C.int(m["p"].(float64))
 	r := m["r"].([]interface{})

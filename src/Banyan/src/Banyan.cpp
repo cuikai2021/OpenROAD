@@ -44,8 +44,9 @@ int Banyan::main()
   for (auto layer : bdAdapter.getLayers()) {
     logger_->info(utl::BY,
                   900,
-                  "layer name {} pitch {} width {} tracks [{},{}) viadefs[{},{})",
+                  "layer name {} dir {} pitch {} width {} tracks [{},{}) viadefs[{},{})",
                   layer.name,
+                  layer.dir,
                   layer.pitch,
                   layer.width,
                   layer.track_begin,
@@ -144,7 +145,7 @@ int Banyan::main()
     banyan_go::to_slice(bdAdapter.getLayers()),
     banyan_go::to_slice(bdAdapter.getViadefs()),
     banyan_go::to_slice(bdAdapter.getTracks()),
-    &ret);
+    bdAdapter.getDesign(), &ret);
 
   if (ret.rboxes_size != 0)
       free(ret.rboxes);

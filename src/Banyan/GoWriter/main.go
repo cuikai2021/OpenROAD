@@ -7,6 +7,7 @@ import "C"
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"unsafe"
 )
@@ -43,6 +44,7 @@ func banyan(
 	layers []C.struct_layer,
 	viadefs []C.struct_viadef,
 	tracks []C.struct_track,
+	design C.struct_design,
 	ret *C.struct_entry_ret) int {
 	/*
 		ret.rboxes_size = C.ulong(len(boxes))
@@ -69,34 +71,46 @@ func banyan(
 	ret.rboxes_size = C.ulong(0)
 	ret.rvias_size = C.ulong(0)
 
+	chip1 := newJsonChip(
+		nets, pins, boxes, vias, layers, viadefs, tracks, design)
+	fmt.Printf(
+		"saving %s: nets %d, pins %d, boxes %d, "+
+			"vias %d, layers %d, viadefs %d, tracks %d\n",
+		C.GoString(chip1.Design.name), chip1.NN, chip1.NP, chip1.NB,
+		chip1.NV, chip1.NL, chip1.NVD, chip1.NT)
+
 	jsonfile, _ := os.Create("banyan.json")
 	defer jsonfile.Close()
 	enc := json.NewEncoder(jsonfile)
 	enc.SetIndent("", "  ")
-	err := enc.Encode(newJsonDesign(
-		nets, pins, boxes, vias, layers, viadefs, tracks))
+	err := enc.Encode(chip1)
 	if err != nil {
 		panic(err)
 	}
 
-	/*
-		jsonfile2, _ := os.Open("banyan.json")
-		defer jsonfile2.Close()
-		dec := json.NewDecoder(jsonfile2)
-		design := &jsonDesign{}
-		err = dec.Decode(design)
-		if err != nil {
-			panic(err)
-		}
+	jsonfile2, _ := os.Open("banyan.json")
+	defer jsonfile2.Close()
+	dec := json.NewDecoder(jsonfile2)
+	chip2 := &jsonChip{}
+	err = dec.Decode(chip2)
+	if err != nil {
+		panic(err)
+	}
 
-		jsonfile3, _ := os.Create("banyan2.json")
-		defer jsonfile3.Close()
-		enc = json.NewEncoder(jsonfile3)
-		enc.SetIndent("", "  ")
-		err = enc.Encode(design)
-		if err != nil {
-			panic(err)
-		}
-	*/
+	fmt.Printf(
+		"loaded %s: nets %d, pins %d, boxes %d, "+
+			"vias %d, layers %d, viadefs %d, tracks %d\n",
+		C.GoString(chip2.Design.name), chip2.NN, chip2.NP, chip2.NB,
+		chip2.NV, chip2.NL, chip2.NVD, chip2.NT)
+
+	jsonfile3, _ := os.Create("banyan2.json")
+	defer jsonfile3.Close()
+	enc = json.NewEncoder(jsonfile3)
+	enc.SetIndent("", "  ")
+	err = enc.Encode(chip2)
+	if err != nil {
+		panic(err)
+	}
+
 	return 0
 }
