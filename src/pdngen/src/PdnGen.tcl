@@ -3658,7 +3658,7 @@ proc connect_pads_to_core_ring {type pin_name pads} {
       }
     }
 
-     debug "$pref_layer"
+     #debug "$pref_layer"
     foreach pin_geometry [get_core_facing_pins $instance $pin_name $side $pref_layer] {
       set centre [dict get $pin_geometry centre]
       set width  [dict get $pin_geometry width]
