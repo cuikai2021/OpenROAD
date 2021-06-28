@@ -2081,16 +2081,21 @@ proc adjust_area_for_core_rings {layer area} {
     set offset [dict get $grid_data core_ring $layer core_offset] 
     set width [dict get $grid_data core_ring $layer width]
     set spacing [dict get $grid_data core_ring $layer spacing]
+    if {[dict exists $grid_data rings_number]} {
+      set num [dict get $grid_data rings_number]
+      } else {
+        set num 1
+    }
     # debug "Area: $area"
     # debug "Offset: $offset, Width $width, Spacing $spacing"
 
     # The area figure includes a y offset for the width of the stdcell rail - so need to subtract it here
     set rail_width [get_rails_max_width]
 
-    set xMin [expr [lindex $area 0] - $offset - $width - $spacing - $width / 2]
-    set yMin [expr [lindex $area 1] - $offset - $width - $spacing - $width / 2 + $rail_width / 2]
-    set xMax [expr [lindex $area 2] + $offset + $width + $spacing + $width / 2]
-    set yMax [expr [lindex $area 3] + $offset + $width + $spacing + $width / 2 - $rail_width / 2]
+    set xMin [expr [lindex $area 0] - $offset - ( $width + $spacing ) * ( $num * 2 - 1 ) - $width / 2]
+    set yMin [expr [lindex $area 1] - $offset - ( $width + $spacing ) * ( $num * 2 - 1 ) - $width / 2 + $rail_width / 2]
+    set xMax [expr [lindex $area 2] + $offset + ( $width + $spacing ) * ( $num * 2 - 1 ) + $width / 2]
+    set yMax [expr [lindex $area 3] + $offset + ( $width + $spacing ) * ( $num * 2 - 1 ) + $width / 2 - $rail_width / 2]
   }
 
   if {[get_dir $layer] == "hor"} {
