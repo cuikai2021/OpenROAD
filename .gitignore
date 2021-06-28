@@ -28,3 +28,4 @@ coverage-output
 devops_results
 
 utest/*/test/results
+messages.txt
