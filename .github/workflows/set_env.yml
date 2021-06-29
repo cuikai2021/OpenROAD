@@ -1,8 +1,5 @@
 name: set env
-on: 
-  push:
-    branches:
-      - devops-dev
+on: push
 jobs:
   set-env:
     runs-on: [self-hosted]
