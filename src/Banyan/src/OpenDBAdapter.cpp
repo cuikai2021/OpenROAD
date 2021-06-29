@@ -111,7 +111,7 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
   assert(hasAddedMasterSliceLayer_ && hasAddedCutLayer_);
   auto it = layerNameToIdxs_.insert(make_pair(
       layer->getName(), (int)layers_.size())).first;
-  layers_.push_back({it->first.c_str(),
+  layers_.push_back({it->first.c_str(), banyan_go::DIR_NONE,
       (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
 }
 
