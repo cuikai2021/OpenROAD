@@ -2542,34 +2542,40 @@ proc generate_core_rings_adjustable {core_ring_data rings_number} {
       set outer_ux [expr $xMax + $offset + ($spacing + $width) * (2 * $num + 1)]
       set outer_uy [expr $yMax + $offset + ($spacing + $width) * (2 * $num + 1)]
 
+      set largest_num [expr $rings_number - 1]
+      set outest_lx [expr $xMin - $offset - ($spacing + $width) * (2 * $largest_num + 1)]
+      set outest_ly [expr $yMin - $offset - ($spacing + $width) * (2 * $largest_num + 1)]
+      set outest_ux [expr $xMax + $offset + ($spacing + $width) * (2 * $largest_num + 1)]
+      set outest_uy [expr $yMax + $offset + ($spacing + $width) * (2 * $largest_num + 1)]
+
       if {[get_dir $layer] == "hor"} {
         set lower_power \
           [odb::newSetFromRect \
-            [expr $inner_lx - $width / 2] \
+            [expr $outest_lx - $width / 2] \
             [expr $inner_ly - $width / 2] \
-            [expr $inner_ux + $width / 2] \
+            [expr $outest_ux + $width / 2] \
             [expr $inner_ly + $width / 2] \
           ]
         set upper_power \
           [odb::newSetFromRect \
-            [expr $inner_lx - $width / 2] \
+            [expr $outest_lx - $width / 2] \
             [expr $inner_uy - $width / 2] \
-            [expr $inner_ux + $width / 2] \
+            [expr $outest_ux + $width / 2] \
             [expr $inner_uy + $width / 2] \
           ]
 
         set lower_ground \
           [odb::newSetFromRect \
-            [expr $outer_lx - $width / 2] \
+            [expr $outest_lx - $width / 2] \
             [expr $outer_ly - $width / 2] \
-            [expr $outer_ux + $width / 2] \
+            [expr $outest_ux + $width / 2] \
             [expr $outer_ly + $width / 2] \
           ]
         set upper_ground \
           [odb::newSetFromRect \
-            [expr $outer_lx - $width / 2] \
+            [expr $outest_lx - $width / 2] \
             [expr $outer_uy - $width / 2] \
-            [expr $outer_ux + $width / 2] \
+            [expr $outest_ux + $width / 2] \
             [expr $outer_uy + $width / 2] \
           ]
 
@@ -2589,31 +2595,31 @@ proc generate_core_rings_adjustable {core_ring_data rings_number} {
       set lhs_power \
         [odb::newSetFromRect \
           [expr $inner_lx - $width / 2] \
-          [expr $inner_ly - $width / 2] \
+          [expr $outest_ly - $width / 2] \
           [expr $inner_lx + $width / 2] \
-          [expr $inner_uy + $width / 2] \
+          [expr $outest_uy + $width / 2] \
         ]
       set rhs_power \
         [odb::newSetFromRect \
           [expr $inner_ux - $width / 2] \
-          [expr $inner_ly - $width / 2] \
+          [expr $outest_ly - $width / 2] \
           [expr $inner_ux + $width / 2] \
-          [expr $inner_uy + $width / 2] \
+          [expr $outest_uy + $width / 2] \
         ]
 
       set lhs_ground \
         [odb::newSetFromRect \
           [expr $outer_lx - $width / 2] \
-          [expr $outer_ly - $width / 2] \
+          [expr $outest_ly - $width / 2] \
           [expr $outer_lx + $width / 2] \
-          [expr $outer_uy + $width / 2] \
+          [expr $outest_uy + $width / 2] \
         ]
       set rhs_ground \
         [odb::newSetFromRect \
           [expr $outer_ux - $width / 2] \
-          [expr $outer_ly - $width / 2] \
+          [expr $outest_ly - $width / 2] \
           [expr $outer_ux + $width / 2] \
-          [expr $outer_uy + $width / 2] \
+          [expr $outest_uy + $width / 2] \
         ]
 
       add_stripe $layer "POWER" $lhs_power
