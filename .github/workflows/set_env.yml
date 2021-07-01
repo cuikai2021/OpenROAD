@@ -63,17 +63,21 @@ jobs:
           COMMIT_COMMITER_NAME: ${{ env.COMMIT_COMMITER_NAME }}
           EVENT_AFTER: ${{ github.event.after }}
           
-      - name: 6. connect to aliyun
-        uses: manyuanrong/setup-ossutil@v2.0
-        with:
-          endpoint: "oss-cn-shanghai.aliyuncs.com"
-          access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
-          access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
+      # - name: 6. connect to aliyun
+      #   uses: zynICBench/bamboo/aliyun@master
+      #   with:
+      #     ALI_OSS_ACCESS_KEY_ID: ${{ secrets.ALI_OSS_ACCESS_KEY_ID }}
+      #     ALI_OSS_ACCESS_KEY_SK: ${{ secrets.ALI_OSS_ACCESS_KEY_SK }}
+      #     command: upload
+      #     aliyun_address: oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/
+      #     local_address: env.json
+      #     token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-      - name: 7. upload to aliyun
-        run: ossutil cp -rf env.json oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/
+      - uses: zynICBench/test1/aliyun@main
+        with: 
+            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-      - name: 8. invoke workflow
+      - name: 7. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           workflow: release eden deps docker
