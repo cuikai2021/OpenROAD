@@ -14,6 +14,14 @@ jobs:
     steps:
       - name: 1. checkout
         uses: actions/checkout@v2
+        
+      - name: checkout yosys
+        uses: actions/checkout@v2
+        with: 
+            repository: zynICBench/bamboo
+            ref: master
+            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+            path: ${{ github.workspace }}/bamboo
 
       - name: 2. ICBench image version
         if: ${{ github.repository == 'ICBench/Eden' }}
@@ -73,9 +81,9 @@ jobs:
       #     local_address: env.json
       #     token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-      - uses: zynICBench/test1/aliyun@main
-        with: 
-            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+      - run: |
+            pip install oss2
+            python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/ env.json
 
       - name: 7. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
