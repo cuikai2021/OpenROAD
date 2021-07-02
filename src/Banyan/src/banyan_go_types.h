@@ -49,6 +49,7 @@ struct net
 {
     // for diagnostics only
     const char *name;
+    size_t ndr_index;
 
     // index into the pin array
     size_t pin_begin;
@@ -95,6 +96,27 @@ struct track
 
     int line, tmin, tmax;
 }; // struct track
+
+struct ndr_layer
+{
+  int la;
+  size_t width;
+  size_t spacing;
+  size_t wire_ext;
+};
+
+struct ndr
+{
+    // for diagnostics only
+    const char* name;
+    
+    int hard_spacing;
+
+    size_t *viadefs; // need free
+
+    size_t ndr_layer_begin;
+    size_t ndr_layer_end;
+};
 
 // returned
 struct entry_ret

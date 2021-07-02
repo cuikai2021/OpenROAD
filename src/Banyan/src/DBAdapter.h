@@ -17,6 +17,7 @@ class dbSBox;
 class dbWire;
 class dbVia;
 class dbTechVia;
+class dbTechNonDefaultRule;
 class Rect;
 }  // namespace odb
 
@@ -37,6 +38,8 @@ class DBAdapter
   virtual std::vector<banyan_go::layer>& getLayers() = 0;
   virtual std::vector<banyan_go::viadef>& getViadefs() = 0;
   virtual std::vector<banyan_go::track>& getTracks() = 0;
+  virtual std::vector<banyan_go::ndr_layer>& getNDRLayers() = 0;
+  virtual std::vector<banyan_go::ndr>& getNDRs() = 0;
 };
 
 class OpenDBAdapter : public DBAdapter
@@ -49,6 +52,8 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::layer> layers_;
   std::vector<banyan_go::viadef> viadefs_;
   std::vector<banyan_go::track> tracks_;
+  std::vector<banyan_go::ndr_layer> ndrlayers_;
+  std::vector<banyan_go::ndr> ndrs_;
 
  protected:
   odb::dbDatabase* db_;
@@ -62,6 +67,9 @@ class OpenDBAdapter : public DBAdapter
 
   std::map<std::string, size_t> netNameToIdxs_;
 
+  std::map<std::string, size_t> ndrNameToIdxs_;
+
+
   int defdist(int x);
   int calLayerPitch(odb::dbTechLayer* layer);
 
@@ -73,6 +81,9 @@ class OpenDBAdapter : public DBAdapter
   void getTracksFromOpenDB();
   void getViaDefsFromOpenDB();
   void addViaDef(odb::dbObject* odbvia);
+
+  void getNDRsFromOpenDB();
+  void addNDR(odb::dbTechNonDefaultRule* ndr);
 
   void addBox(odb::dbBox* box);
   void addBox(std::string layerName, const odb::Rect& rect);
@@ -94,6 +105,7 @@ class OpenDBAdapter : public DBAdapter
     getLayersFromOpenDB();
     getTracksFromOpenDB();
     getViaDefsFromOpenDB();
+    getNDRsFromOpenDB();
     getNetsFromOpenDB();
     getPinsFromOpenDB();
   };
@@ -106,6 +118,8 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::layer>& getLayers() override { return layers_; }
   std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }
   std::vector<banyan_go::track>& getTracks() override { return tracks_; }
+  std::vector<banyan_go::ndr_layer>& getNDRLayers() override { return ndrlayers_; }
+  std::vector<banyan_go::ndr>& getNDRs() override { return ndrs_; }
 };
 
 }  // namespace banyan

@@ -400,8 +400,12 @@ void OpenDBAdapter::getNetsFromOpenDB()
 
 void OpenDBAdapter::addNet(odb::dbNet* net)
 {
+  size_t ndrIdx = 0;
+  if (net->getNonDefaultRule() != nullptr) {
+    ndrIdx = ndrNameToIdxs_.find(net->getNonDefaultRule()->getName())->second;
+  }
   netNameToIdxs_.insert(make_pair(net->getName(), nets_.size()));
-  nets_.push_back({copy_string(net->getName()), 0, 0, 0, 0, 0, 0});
+  nets_.push_back({copy_string(net->getName()), ndrIdx, 0, 0, 0, 0, 0, 0});
 }
 
 void OpenDBAdapter::addBox(odb::dbBox* box)
@@ -827,6 +831,63 @@ void OpenDBAdapter::getPinsFromOpenDB()
     nets_.at(netIdx).pin_begin = pinIndexBegin;
     nets_.at(netIdx).pin_end = pins_.size();
   }
+}
+
+void OpenDBAdapter::getNDRsFromOpenDB()
+{
+  for (auto ndr : db_->getTech()->getNonDefaultRules()) {
+    addNDR(ndr);
+  }
+  for (auto ndr : db_->getChip()->getBlock()->getNonDefaultRules()) {
+    addNDR(ndr);
+  }
+}
+
+void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
+{
+  std::vector<odb::dbTechLayerRule*> laNDRs;
+  ndr->getLayerRules(laNDRs);
+  auto ndrLayerIdxBegin = ndrlayers_.size();
+  for (auto& laNDR : laNDRs) {
+    auto lname = laNDR->getLayer()->getName();
+    auto layerIdx = layerNameToIdxs_.find(lname)->second;
+    ndrlayers_.push_back({layerIdx,
+                          (size_t) laNDR->getWidth(),
+                          (size_t) laNDR->getSpacing(),
+                          (size_t) laNDR->getWireExtension()});
+  }
+  std::vector<int> viadefIdxs;
+  std::vector<odb::dbTechVia*> vias;
+  ndr->getVias(vias);
+  for (auto via : vias) {
+    viadefIdxs.push_back(viadefs_.size());
+    addViaDef(via);
+  }
+
+  std::vector<odb::dbTechVia*> useVias;
+  ndr->getUseVias(useVias);
+  for (auto useVia : useVias) {
+    auto viadefIdx = viaDefNameToIdxs_.find(useVia->getName())->second;
+    viadefIdxs.push_back(viadefIdx);
+  }
+
+  std::vector<odb::dbTechViaGenerateRule*> useViaRules;
+  ndr->getUseViaRules(useViaRules);
+  for (auto viaRule : useViaRules) {
+    auto viadefIdx = viaDefNameToIdxs_.find(viaRule->getName())->second;
+    viadefIdxs.push_back(viadefIdx);
+  }
+  size_t* ndrLayers;
+  ndrLayers = new size_t[viadefIdxs.size()];
+  for (long unsigned int i = 0; i <= viadefIdxs.size(); i++) {
+    ndrLayers[i] = (size_t) viadefIdxs[i];
+  }
+  ndrNameToIdxs_[ndr->getName()] = ndrs_.size();
+  ndrs_.push_back({copy_string(ndr->getName()),
+                   ndr->getHardSpacing(),
+                   ndrLayers,
+                   ndrLayerIdxBegin,
+                   ndrlayers_.size()});
 }
 
 void OpenDBAdapter::updateDB(banyan_go::entry_ret* ret)
