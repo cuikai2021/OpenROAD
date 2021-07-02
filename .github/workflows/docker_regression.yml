@@ -36,22 +36,12 @@ jobs:
         - name: 3. download env.json from aliyun
           run: |
               pip install oss2
-              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py \ 
-              download \
-              ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} \
-              ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} \
-              oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json \
-              .
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
 
         - name: 4. download latest_docker_deps_image.json from aliyun
           run: |
               pip install oss2
-              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py \ 
-              download \
-              ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} \
-              ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} \
-              oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json \
-              .
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
 
         - name: 5. json reader
           uses: antifree/json-to-variables@v1.0.1

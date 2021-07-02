@@ -84,12 +84,7 @@ jobs:
       - name: 8. upload to aliyun
         run: |
             pip install oss2
-            python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py \ 
-            upload \
-            ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} \
-            ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} \
-            oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/ \
-            env.json
+            python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/ env.json
 
       - name: 9. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
