@@ -43,15 +43,29 @@ jobs:
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             path: ${{ github.workspace }}/yosys
 
-        - name: 4. connect to aliyun
-          uses: manyuanrong/setup-ossutil@v2.0
-          with:
-            endpoint: "oss-cn-shanghai.aliyuncs.com"
-            access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
-            access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
+        - name: 4. checkout bamboo
+          uses: actions/checkout@v2
+          with: 
+              repository: zynICBench/bamboo
+              ref: master
+              token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+              path: ${{ github.workspace }}/bamboo
+
+        # - name: 4. connect to aliyun
+        #   uses: manyuanrong/setup-ossutil@v2.0
+        #   with:
+        #     endpoint: "oss-cn-shanghai.aliyuncs.com"
+        #     access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
+        #     access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
         
+        # - name: 5. download from aliyun
+        #   run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
+
         - name: 5. download from aliyun
-          run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
+          run: |
+              pip install oss2
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
+
         
         - name: 6. make varibles in json file into environment
           uses: antifree/json-to-variables@v1.0.1

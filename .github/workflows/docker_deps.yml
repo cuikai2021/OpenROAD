@@ -30,7 +30,7 @@ jobs:
         - name: 3. download from aliyun
           run: |
               pip install oss2
-              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
         
         - name: 4. make varibles in json file into environment
           uses: antifree/json-to-variables@v1.0.1
@@ -78,7 +78,7 @@ jobs:
           if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
           run: |
               pip install oss2
-              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/ latest_docker_deps_image.json
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
         - name: 10. show docker image tag
           if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}

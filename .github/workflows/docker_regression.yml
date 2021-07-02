@@ -36,12 +36,12 @@ jobs:
         - name: 3. download env.json from aliyun
           run: |
               pip install oss2
-              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
 
         - name: 4. download latest_docker_deps_image.json from aliyun
           run: |
               pip install oss2
-              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
         - name: 5. json reader
           uses: antifree/json-to-variables@v1.0.1
@@ -83,8 +83,14 @@ jobs:
           run: |
             tar -zcvf coverage-result-${{ github.run_number }}.tar.gz coverage_results
         
+        # - name: 11. upload coverage result
+        #   run: ossutil cp -rf coverage-result-${{ github.run_number }}.tar.gz oss://icbench-devops/coverage_results/${{ github.run_number }}/
+
         - name: 11. upload coverage result
-          run: ossutil cp -rf coverage-result-${{ github.run_number }}.tar.gz oss://icbench-devops/coverage_results/${{ github.run_number }}/
+          run: |
+              pip install oss2
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-devops/coverage_results/${{ github.run_number }}/coverage-result-${{ github.run_number }}.tar.gz coverage-result-${{ github.run_number }}.tar.gz
+
 
         - name: 12. set environment variable according specific file
           if: ${{ success() }}
@@ -101,9 +107,15 @@ jobs:
                 done
               fi
         
+        # - name: 13. upload failure file to aliyun
+        #   if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
+        #   run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}/
+
         - name: 13. upload failure file to aliyun
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
-          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}/
+          run: |
+              pip install oss2
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-devops/regression_results/${{ github.run_number }}/${{ env.REGRESSION_FAILURES_FILE }} ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }}
 
 
         - name: 14. check status of set-env.yml
