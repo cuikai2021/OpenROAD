@@ -132,7 +132,7 @@ jobs:
             num1=${{ fromJSON(steps.check-status1.outputs.data).total_count }}
             num2=${{ fromJSON(steps.check-status2.outputs.data).total_count }}
             num3=${{ fromJSON(steps.check-status3.outputs.data).total_count }}
-            if [ $num1 + $num2 + $num3 == 0 ]
+            if [ $(expr $num1 + $num2 + $num3) == 0 ]
             then 
                 echo "NO_RUNNING_ACTIONS=true" >> $GITHUB_ENV
             else 
