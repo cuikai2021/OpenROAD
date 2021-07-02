@@ -6,24 +6,42 @@ jobs:
     runs-on: [self-hosted]
 
     steps:
-        - name: 1. checkout
+        - name: 1. checkout eden
           uses: actions/checkout@v2
-
-        - name: 2. connect to aliyun
-          uses: manyuanrong/setup-ossutil@v2.0
-          with:
-            endpoint: "oss-cn-shanghai.aliyuncs.com"
-            access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
-            access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
         
+        - name: 2. checkout bamboo
+          uses: actions/checkout@v2
+          with: 
+              repository: zynICBench/bamboo
+              ref: master
+              token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+              path: ${{ github.workspace }}/bamboo
+
+        # - name: 2. connect to aliyun
+        #   uses: manyuanrong/setup-ossutil@v2.0
+        #   with:
+        #     endpoint: "oss-cn-shanghai.aliyuncs.com"
+        #     access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
+        #     access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
+        
+        # - name: 3. download from aliyun
+        #   run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
+
         - name: 3. download from aliyun
-          run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
+          run: |
+              pip install oss2
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py \ 
+              download \
+              ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} \
+              ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} \
+              oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json \
+              .
         
         - name: 4. make varibles in json file into environment
           uses: antifree/json-to-variables@v1.0.1
           with:
-           filename: 'env.json'
-           prefix: env        
+            filename: 'env.json'
+            prefix: env
 
         - name: 5. combine and create DEPS_ENV
           uses: allenevans/set-env@v2.0.1
@@ -60,6 +78,17 @@ jobs:
         - name: 9. upload json file to aliyun repository
           if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
           run: ossutil cp -rf latest_docker_deps_image.json oss://icbench-static/environments/${{ github.repository }}/
+
+        - name: 3. upload json file to aliyun repository
+          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
+          run: |
+              pip install oss2
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py \ 
+              download \
+              ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} \
+              ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} \
+              oss://icbench-static/environments/${{ github.repository }}/ \
+              latest_docker_deps_image.json
 
         - name: 10. show docker image tag
           if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}

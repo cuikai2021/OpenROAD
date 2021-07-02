@@ -8,23 +8,51 @@ jobs:
       COVERAGE_DOWNLOAD_PATH: https://icbench-devops.oss-cn-shanghai.aliyuncs.com/coverage_results/${{ github.run_number }}
 
     steps:
-        - name: 1. checkout
+        - name: 1. checkout eden
           uses: actions/checkout@v2
           with:
             submodules: true
         
-        - name: 2. download from aliyun
-          uses: manyuanrong/setup-ossutil@v2.0 
-          with:
-            endpoint: "oss-cn-shanghai.aliyuncs.com"
-            access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
-            access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
-        - name: 3. download env.json from aliyun
-          run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
+        - name: 2. checkout bamboo
+          uses: actions/checkout@v2
+          with: 
+            repository: zynICBench/bamboo
+            ref: master
+            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+            path: ${{ github.workspace }}/bamboo
+
+        # - name: 2. download from aliyun
+        #   uses: manyuanrong/setup-ossutil@v2.0 
+        #   with:
+        #     endpoint: "oss-cn-shanghai.aliyuncs.com"
+        #     access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
+        #     access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
+        # - name: 3. download env.json from aliyun
+        #   run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
         
+        # - name: 4. download latest_docker_deps_image.json from aliyun
+        #   run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
+
+        - name: 3. download env.json from aliyun
+          run: |
+              pip install oss2
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py \ 
+              download \
+              ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} \
+              ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} \
+              oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json \
+              .
+
         - name: 4. download latest_docker_deps_image.json from aliyun
-          run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
-      
+          run: |
+              pip install oss2
+              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py \ 
+              download \
+              ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} \
+              ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} \
+              oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json \
+              .
+
         - name: 5. json reader
           uses: antifree/json-to-variables@v1.0.1
           with:
