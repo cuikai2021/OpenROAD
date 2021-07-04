@@ -1,8 +1,5 @@
 name: set env
-on: 
-  push:
-    branches:
-      - devops-dev
+on: push
 jobs:
   set-env:
     runs-on: [self-hosted]
@@ -15,24 +12,32 @@ jobs:
       DOCKER_REGRESSION_IMAGENAME_TEST: eden_regression_test
        
     steps:
-      - name: 1. checkout
+      - name: 1. checkout eden
         uses: actions/checkout@v2
+        
+      - name: 2. checkout bamboo
+        uses: actions/checkout@v2
+        with: 
+            repository: zynICBench/bamboo
+            ref: master
+            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+            path: ${{ github.workspace }}/bamboo
 
-      - name: 2. ICBench image version
+      - name: 3. ICBench image version
         if: ${{ github.repository == 'ICBench/Eden' }}
         uses: allenevans/set-env@v2.0.1
         with:
           DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME }}
           DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME }}
 
-      - name: 2. test image version
+      - name: 4. test image version
         if: ${{ github.repository != 'ICBench/Eden' }}
         uses: allenevans/set-env@v2.0.1
         with:
           DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME_TEST }}
           DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME_TEST }}
 
-      - name: 3. monitor file change
+      - name: 5. monitor file change
         id: change
         uses: trilom/file-changes-action@v1.2.4
         with:
@@ -40,7 +45,7 @@ jobs:
           pushBefore: ${{ github.event.before }}
           pushAfter: ${{ github.event.after }}
 
-      - name: 4. decide committer name
+      - name: 6. decide committer name
         run: |
             name1=${{ github.event.commits[0].committer.username }}
             name2=${{ github.event.commits[1].committer.username }}
@@ -51,7 +56,7 @@ jobs:
                 echo "COMMIT_COMMITER_NAME=$name1" >> $GITHUB_ENV
             fi
 
-      - name: 5. create json file to store environment variables
+      - name: 7. create json file to store environment variables
         uses: zynICBench/json-creator@v2.1
         with:
           file-name: 'env.json'
@@ -65,18 +70,13 @@ jobs:
           REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
           COMMIT_COMMITER_NAME: ${{ env.COMMIT_COMMITER_NAME }}
           EVENT_AFTER: ${{ github.event.after }}
-          
-      - name: 6. connect to aliyun
-        uses: manyuanrong/setup-ossutil@v2.0
-        with:
-          endpoint: "oss-cn-shanghai.aliyuncs.com"
-          access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
-          access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
 
-      - name: 7. upload to aliyun
-        run: ossutil cp -rf env.json oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/
+      - name: 8. upload to aliyun
+        run: |
+            pip install oss2
+            python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
 
-      - name: 8. invoke workflow
+      - name: 9. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           workflow: release eden deps docker
