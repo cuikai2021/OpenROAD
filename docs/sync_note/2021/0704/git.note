@@ -1,0 +1,243 @@
+# modified files
+
+# Conflicts
+
+	both modified:   src/pdngen/src/PdnGen.tcl   <line 3553, accept incoming change, The two modifications are the same>
+
+# fix bugs after merge
+
+	[unittest] modify ok files to fit new logger format
+
+# merge details
+
+Removing src/replace/messages.txt
+Auto-merging src/ppl/test/regression_tests.tcl
+Auto-merging src/ppl/src/IOPlacer.tcl
+Auto-merging src/ppl/src/IOPlacer.i
+Auto-merging src/ppl/src/IOPlacer.cpp
+Auto-merging src/pdngen/src/PdnGen.tcl
+CONFLICT (content): Merge conflict in src/pdngen/src/PdnGen.tcl
+Auto-merging src/ICeWall/src/ICeWall.tcl
+Automatic merge failed; fix conflicts and then commit the result.
+On branch tmp
+Your branch is up to date with 'origin/SyncUp'.
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	new file:   CODE_OF_CONDUCT.md
+	modified:   README.md
+	modified:   src/ICeWall/src/ICeWall.tcl
+	modified:   src/OpenDB/src/defin/definNet.cpp
+	modified:   src/OpenDB/src/defin/definNonDefaultRule.cpp
+	modified:   src/OpenDB/src/lefin/lefin.cpp
+	modified:   src/TritonCTS/src/HTreeBuilder.cpp
+	modified:   src/TritonCTS/src/PostCtsOpt.cpp
+	modified:   src/TritonCTS/src/TechChar.cpp
+	modified:   src/TritonCTS/test/balance_levels.ok
+	modified:   src/TritonCTS/test/check_buffers.ok
+	modified:   src/TritonCTS/test/check_wire_rc_cts.ok
+	modified:   src/TritonCTS/test/check_wire_rc_cts_2.ok
+	modified:   src/TritonCTS/test/find_clock.ok
+	modified:   src/TritonCTS/test/find_clock_pad.ok
+	modified:   src/TritonCTS/test/no_clocks.ok
+	modified:   src/TritonCTS/test/no_sinks.ok
+	modified:   src/TritonCTS/test/post_cts_opt.ok
+	modified:   src/TritonCTS/test/simple_test.ok
+	modified:   src/TritonCTS/test/simple_test_clustered.ok
+	modified:   src/TritonCTS/test/simple_test_clustered_max_cap.ok
+	modified:   src/TritonRoute/src/dr/FlexDR.cpp
+	modified:   src/TritonRoute/src/io/io.cpp
+	modified:   src/ant/src/AntennaChecker.cc
+	modified:   src/ant/test/sw130_random.ok
+	modified:   src/ant/test/sw130_random_simple.ok
+	modified:   src/ant/test/sw130_random_simple.rptok
+	modified:   src/dbSta/src/dbSta.i
+	modified:   src/grt/include/grt/GlobalRouter.h
+	modified:   src/grt/src/GlobalRouter.cpp
+	modified:   src/grt/src/GlobalRouter.i
+	modified:   src/grt/src/GlobalRouter.tcl
+	modified:   src/grt/src/fastroute/include/FastRoute.h
+	modified:   src/grt/src/fastroute/src/DataProc.cpp
+	modified:   src/grt/src/fastroute/src/DataProc.h
+	modified:   src/grt/src/fastroute/src/FastRoute.cpp
+	modified:   src/grt/src/fastroute/src/RSMT.cpp
+	modified:   src/grt/src/fastroute/src/maze.cpp
+	modified:   src/grt/src/fastroute/src/utility.cpp
+	modified:   src/grt/src/fastroute/src/utility.h
+	new file:   src/grt/test/congestion1.guideok
+	new file:   src/grt/test/congestion1.ok
+	new file:   src/grt/test/congestion1.tcl
+	new file:   src/grt/test/congestion2.guideok
+	new file:   src/grt/test/congestion2.ok
+	new file:   src/grt/test/congestion2.tcl
+	new file:   src/grt/test/congestion3.def
+	new file:   src/grt/test/congestion3.ok
+	new file:   src/grt/test/congestion3.tcl
+	new file:   src/grt/test/congestion4.ok
+	new file:   src/grt/test/congestion4.tcl
+	new file:   src/grt/test/congestion5.ok
+	new file:   src/grt/test/congestion5.tcl
+	new file:   src/grt/test/congestion6.ok
+	new file:   src/grt/test/congestion6.tcl
+	modified:   src/grt/test/regression_tests.tcl
+	modified:   src/gui/src/tclCmdHighlighter.cpp
+	modified:   src/gui/src/tclCmdHighlighter.h
+	modified:   src/mpl/src/MacroPlacer.cpp
+	modified:   src/pdngen/test/asap7_vias.noviarules.ok
+	modified:   src/pdngen/test/asap7_vias.ok
+	modified:   src/pdngen/test/extend_to_core_ring.ok
+	modified:   src/pdngen/test/fail_quick.ok
+	modified:   src/pdngen/test/soc_bsg_black_parrot_nangate45.ok
+	modified:   src/pdngen/test/soc_bsg_black_parrot_nangate45.pad_offset.ok
+	modified:   src/pdngen/test/tempSensor.ok
+	modified:   src/pdngen/test/test_gcd.invert_viarule.ok
+	modified:   src/pdngen/test/test_gcd.ok
+	modified:   src/pdngen/test/test_gcd_M7_pin.ok
+	modified:   src/pdngen/test/test_gcd_dual_rails.ok
+	modified:   src/pdngen/test/tinyRocket.ok
+	modified:   src/ppl/src/IOPlacer.cpp
+	modified:   src/ppl/src/IOPlacer.i
+	modified:   src/ppl/src/IOPlacer.tcl
+	modified:   src/ppl/src/Parameters.h
+	new file:   src/ppl/test/min_dist_in_tracks1.defok
+	new file:   src/ppl/test/min_dist_in_tracks1.ok
+	new file:   src/ppl/test/min_dist_in_tracks1.tcl
+	new file:   src/ppl/test/min_dist_in_tracks2.defok
+	new file:   src/ppl/test/min_dist_in_tracks2.ok
+	new file:   src/ppl/test/min_dist_in_tracks2.tcl
+	modified:   src/ppl/test/regression_tests.tcl
+	deleted:    src/replace/messages.txt
+	modified:   src/replace/src/nesterovBase.cpp
+	modified:   src/replace/src/routeBase.cpp
+	modified:   src/rsz/include/rsz/Resizer.hh
+	modified:   src/rsz/src/Resizer.cc
+	modified:   src/rsz/src/Resizer.i
+	modified:   src/rsz/src/Resizer.tcl
+	modified:   src/rsz/test/buffer_ports4.ok
+	modified:   src/rsz/test/buffer_ports4.tcl
+	modified:   src/rsz/test/gcd_resize.ok
+	modified:   src/rsz/test/hi_fanout.tcl
+	new file:   src/rsz/test/max_slew_cap.tcl
+	modified:   src/rsz/test/regression_tests.tcl
+	modified:   src/rsz/test/repair_cap1.ok
+	modified:   src/rsz/test/repair_cap2.ok
+	new file:   src/rsz/test/repair_cap3.ok
+	new file:   src/rsz/test/repair_cap3.tcl
+	modified:   src/rsz/test/repair_fanout1.ok
+	modified:   src/rsz/test/repair_hold10.ok
+	modified:   src/rsz/test/repair_hold2.ok
+	modified:   src/rsz/test/repair_hold4.ok
+	modified:   src/rsz/test/repair_hold6.ok
+	modified:   src/rsz/test/repair_hold7.ok
+	modified:   src/rsz/test/repair_hold8.ok
+	modified:   src/rsz/test/repair_hold9.ok
+	modified:   src/rsz/test/repair_setup2.ok
+	modified:   src/rsz/test/repair_slew1.ok
+	modified:   src/rsz/test/repair_slew1.tcl
+	modified:   src/rsz/test/repair_slew2.ok
+	modified:   src/rsz/test/repair_slew2.tcl
+	modified:   src/rsz/test/repair_slew3.ok
+	modified:   src/rsz/test/repair_slew5.ok
+	modified:   src/rsz/test/repair_slew6.ok
+	modified:   src/rsz/test/repair_slew6.tcl
+	modified:   src/rsz/test/repair_slew7.ok
+	new file:   src/rsz/test/repair_slew8.ok
+	new file:   src/rsz/test/repair_slew8.tcl
+	new file:   src/rsz/test/repair_slew9.ok
+	new file:   src/rsz/test/repair_slew9.tcl
+	modified:   src/rsz/test/repair_wire1.ok
+	modified:   src/rsz/test/repair_wire2.ok
+	modified:   src/rsz/test/repair_wire4.ok
+	modified:   src/rsz/test/repair_wire5.ok
+	modified:   src/rsz/test/repair_wire6.ok
+	modified:   src/rsz/test/repair_wire8.ok
+	modified:   src/rsz/test/resize6.ok
+	modified:   src/rsz/test/resize_slack2.ok
+	modified:   test/Nangate45/Nangate45.rc
+	modified:   test/aes_nangate45.metrics
+	modified:   test/aes_nangate45.metrics_limits
+	modified:   test/aes_sky130hd.metrics
+	modified:   test/aes_sky130hd.metrics_limits
+	modified:   test/aes_sky130hs.metrics
+	modified:   test/aes_sky130hs.metrics_limits
+	modified:   test/flow.tcl
+	modified:   test/flow_helpers.tcl
+	modified:   test/gcd_nangate45.metrics
+	modified:   test/gcd_nangate45.metrics_limits
+	modified:   test/gcd_sky130hd.metrics
+	modified:   test/gcd_sky130hd.metrics_limits
+	modified:   test/gcd_sky130hs.metrics
+	modified:   test/gcd_sky130hs.metrics_limits
+	modified:   test/ibex_sky130hd.metrics
+	modified:   test/ibex_sky130hd.metrics_limits
+	modified:   test/ibex_sky130hs.metrics
+	modified:   test/ibex_sky130hs.metrics_limits
+	modified:   test/ibex_sky130hs.tcl
+	modified:   test/jpeg_sky130hd.metrics
+	modified:   test/jpeg_sky130hd.metrics_limits
+	modified:   test/jpeg_sky130hs.metrics
+	modified:   test/jpeg_sky130hs.metrics_limits
+	modified:   test/regression_tests.tcl
+	modified:   test/sky130hd/sky130hd.rc
+	modified:   test/sky130hs/sky130hs.rc
+	modified:   test/tinyRocket_nangate45.metrics
+	modified:   test/tinyRocket_nangate45.metrics_limits
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   src/pdngen/src/PdnGen.tcl
+
+removing .github/workflows
+moving docker_deps.yml
+moving docker_regression.yml
+moving docker_release.yml
+moving set_env.yml
+restore docker_deps.yml
+restore docker_regression.yml
+restore docker_release.yml
+restore set_env.yml
+On branch tmp
+Your branch is ahead of 'origin/SyncUp' by 79 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+
+# commits
+
+gui: correcting highlighting for else, elseif, and commands within {}
+update ok files with fixed messages
+update ok files with fixed messages
+fix ant messages
+rsz sideline buffer_ports6
+ppl: unit tests
+ppl: update readme
+ppl: add flag to allow min_distance in number of tracks instead of microns
+rsz rm debug
+ibex_sky130hs max cap
+rsz flow metrics
+rsz okfiles
+rsz remove special net exceptions
+comment
+n45, sky130 updated layer rc
+update layer rc
+Create CODE_OF_CONDUCT.md
+drt: report all constraints properly in the drc report
+pad: correct variable referenced in error PAD-15
+Apply review comments
+rsz repair_design margins use values instead of percentage
+rsz metrics
+Updates to allow bp_single testcase to run through ICeWall
+grt: bug fix
+grt: overflow_iterations -> congestion_iterations
+repair_design -max_slew_margin -max_cap_margin
+rsz repair_hold oks
+drt: skip graph enablement on special nets
+gpl: ensure minimum number of bins is 2x2
+gpl: remove messages.txt
+rsz resize hold buffers
+rsz repair_design on input ports
+nangate45/sky130hd/sky130hs set_layer_rc to match rcx
+sky130hd adj layer caps
