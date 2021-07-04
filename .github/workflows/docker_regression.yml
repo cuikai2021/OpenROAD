@@ -21,18 +21,6 @@ jobs:
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             path: ${{ github.workspace }}/bamboo
 
-        # - name: 2. download from aliyun
-        #   uses: manyuanrong/setup-ossutil@v2.0 
-        #   with:
-        #     endpoint: "oss-cn-shanghai.aliyuncs.com"
-        #     access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
-        #     access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
-        # - name: 3. download env.json from aliyun
-        #   run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json .
-        
-        # - name: 4. download latest_docker_deps_image.json from aliyun
-        #   run: ossutil cp -rf oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json .
-
         - name: 3. download env.json from aliyun
           run: |
               pip install oss2
@@ -82,9 +70,6 @@ jobs:
         - name: 10. package ./coverage_results
           run: |
             tar -zcvf coverage-result-${{ github.run_number }}.tar.gz coverage_results
-        
-        # - name: 11. upload coverage result
-        #   run: ossutil cp -rf coverage-result-${{ github.run_number }}.tar.gz oss://icbench-devops/coverage_results/${{ github.run_number }}/
 
         - name: 11. upload coverage result
           run: |
@@ -106,10 +91,6 @@ jobs:
                   break
                 done
               fi
-        
-        # - name: 13. upload failure file to aliyun
-        #   if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
-        #   run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}/
 
         - name: 13. upload failure file to aliyun
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
