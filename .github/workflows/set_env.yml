@@ -23,19 +23,19 @@ jobs:
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             path: ${{ github.workspace }}/bamboo
 
-      - name: 3. ICBench image version
-        if: ${{ github.repository == 'ICBench/Eden' }}
-        uses: allenevans/set-env@v2.0.1
-        with:
-          DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME }}
-          DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME }}
+      # - name: 3. ICBench image version
+      #   if: ${{ github.repository == 'ICBench/Eden' }}
+      #   uses: allenevans/set-env@v2.0.1
+      #   with:
+      #     DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME }}
+      #     DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME }}
 
-      - name: 4. test image version
-        if: ${{ github.repository != 'ICBench/Eden' }}
-        uses: allenevans/set-env@v2.0.1
-        with:
-          DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME_TEST }}
-          DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME_TEST }}
+      # - name: 4. test image version
+      #   if: ${{ github.repository != 'ICBench/Eden' }}
+      #   uses: allenevans/set-env@v2.0.1
+      #   with:
+      #     DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME_TEST }}
+      #     DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME_TEST }}
 
       - name: 5. monitor file change
         id: change
@@ -56,24 +56,28 @@ jobs:
                 echo "COMMIT_COMMITER_NAME=$name1" >> $GITHUB_ENV
             fi
 
+      # - name: 7. create json file to store environment variables
+      #   uses: zynICBench/json-creator@v2.1
+      #   with:
+      #     file-name: 'env.json'
+      #     DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+      #     DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
+      #     DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
+      #     DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
+      #     CODE_COVERAGE_PATH: ${{ github.workspace }}/coverage_results
+      #     IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
+      #     DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
+      #     REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
+      #     COMMIT_COMMITER_NAME: ${{ env.COMMIT_COMMITER_NAME }}
+      #     EVENT_AFTER: ${{ github.event.after }}
+
       - name: 7. create json file to store environment variables
-        uses: zynICBench/json-creator@v2.1
-        with:
-          file-name: 'env.json'
-          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
-          DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
-          DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
-          DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
-          CODE_COVERAGE_PATH: ${{ github.workspace }}/coverage_results
-          IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
-          DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
-          REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
-          COMMIT_COMMITER_NAME: ${{ env.COMMIT_COMMITER_NAME }}
-          EVENT_AFTER: ${{ github.event.after }}
+        run: |
+            pip install oss2
+            python3 ${{github.workspace}}/bamboo/json/json_create.py ${{ github.repository }} ${{ github.workspace }} ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }} ${{ github.run_number }} ${{ env.COMMIT_COMMITER_NAME }} ${{ github.event.after }}
 
       - name: 8. upload to aliyun
         run: |
-            pip install oss2
             python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
 
       - name: 9. invoke workflow
