@@ -21,34 +21,30 @@ jobs:
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
             path: ${{ github.workspace }}/bamboo
 
-        - name: 3. download env.json from aliyun
+        - name: 3. download env.json and latest_docker_deps_image.json from aliyun
           run: |
               pip install oss2
               python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
-
-        - name: 4. download latest_docker_deps_image.json from aliyun
-          run: |
-              pip install oss2
               python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
-        - name: 5. json reader
+        - name: 4. json reader
           uses: antifree/json-to-variables@v1.0.1
           with:
            filename: 'env.json'
            prefix: env
 
-        - name: 6. make varibles in json file into environment
+        - name: 5. make varibles in json file into environment
           uses: antifree/json-to-variables@v1.0.1
           with:
            filename: 'latest_docker_deps_image.json'
            prefix: env
 
-        - name: 7. get sha1 and put into env variable
+        - name: 6. get sha1 and put into env variable
           run: |
             EDEN_GIT_SHA1=`git rev-parse HEAD`
             echo "EDEN_GIT_SHA1=$EDEN_GIT_SHA1" >> $GITHUB_ENV
 
-        - name: 8. build docker regression
+        - name: 7. build docker regression
           if: ${{ success() }}
           uses: docker/build-push-action@v2
           with:
@@ -60,24 +56,18 @@ jobs:
             push: false
             tags: ${{ env.env_REGRESSION_ENV }}
 
-        - name: 9. run regression
+        - name: 8. run regression
           if: ${{ success() }}
           run: |
-            mkdir -p ${{ env.env_DOCKER_RESULT_PATH }}
-            mkdir -p ${{ env.env_CODE_COVERAGE_PATH }}
+            mkdir -p ${{ env.env_DOCKER_RESULT_PATH }} && mkdir -p ${{ env.env_CODE_COVERAGE_PATH }}
             ./docker_run/docker_run_regression.sh ${{ env.env_DOCKER_RESULT_PATH }} ${{ env.env_CODE_COVERAGE_PATH }} ${{ env.env_REGRESSION_ENV }}
 
-        - name: 10. package ./coverage_results
+        - name: 9. package ./coverage_results and upload
           run: |
-            tar -zcvf coverage-result-${{ github.run_number }}.tar.gz coverage_results
-
-        - name: 11. upload coverage result
-          run: |
-              pip install oss2
+              tar -zcvf coverage-result-${{ github.run_number }}.tar.gz coverage_results
               python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-devops/coverage_results/${{ github.run_number }}/coverage-result-${{ github.run_number }}.tar.gz coverage-result-${{ github.run_number }}.tar.gz
 
-
-        - name: 12. set environment variable according specific file
+        - name: 10. set environment variable according specific file
           if: ${{ success() }}
           run: |
               if [ `ls -A ${{ env.env_DOCKER_RESULT_PATH }}|wc -w` -eq '0' ]
@@ -92,14 +82,13 @@ jobs:
                 done
               fi
 
-        - name: 13. upload failure file to aliyun
+        - name: 11. upload failure file to aliyun
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           run: |
               pip install oss2
               python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-devops/regression_results/${{ github.run_number }}/${{ env.REGRESSION_FAILURES_FILE }} ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }}
 
-
-        - name: 14. check status of set-env.yml
+        - name: 12. check status of set-env.yml
           id: check-status1
           uses: octokit/request-action@v2.x
           with:
@@ -112,7 +101,7 @@ jobs:
           env:
               GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 15. check status of docker_deps.yml
+        - name: 13. check status of docker_deps.yml
           id: check-status2
           uses: octokit/request-action@v2.x
           with:
@@ -125,7 +114,7 @@ jobs:
           env:
               GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 16. check status of docker_regression.yml
+        - name: 14. check status of docker_regression.yml
           id: check-status3
           uses: octokit/request-action@v2.x
           with:
@@ -138,7 +127,7 @@ jobs:
           env:
               GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 17. check the number of queued actions 
+        - name: 15. check the number of queued actions 
           run: |
             num1=${{ fromJSON(steps.check-status1.outputs.data).total_count }}
             num2=${{ fromJSON(steps.check-status2.outputs.data).total_count }}
@@ -150,7 +139,7 @@ jobs:
                 echo "NO_RUNNING_ACTIONS=false" >> $GITHUB_ENV
             fi
 
-        - name: 18. success pull request
+        - name: 16. success pull request
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'true' }}
           uses: octokit/request-action@v2.x
           id: pulls
@@ -173,11 +162,11 @@ jobs:
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 19. send email when there is running actions
+        - name: 17. send email when there is running actions
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'false' }}
           run: echo "send email to administrator"
 
-        - name: 20. failure issue
+        - name: 18. failure issue
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           uses: octokit/request-action@v2.x
           id: issues
@@ -202,5 +191,5 @@ jobs:
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 21. delete used images
+        - name: 19. delete used images
           run: docker rmi ${{ env.env_REGRESSION_ENV }}
