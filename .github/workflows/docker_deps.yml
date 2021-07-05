@@ -29,9 +29,8 @@ jobs:
             prefix: env
 
         - name: 5. combine and create DEPS_ENV
-          uses: allenevans/set-env@v2.0.1
-          with:
-            DEPS_ENV: ${{ format('{0}:{1}', env.env_DEPS_ENV_PREFIX, github.run_number) }}
+          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
+          run: python3 ${{github.workspace}}/bamboo/json/latest_image.py ${{ env.env_DEPS_ENV_PREFIX }} ${{ github.run_number }} ${{ github.workspace }}
 
         - name: 6. login to acr
           if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
@@ -51,28 +50,16 @@ jobs:
             context: .
             file: ${{ env.env_DOCKER_DEPS_FILEPATH }}
             push: true
-            tags: ${{ env.DEPS_ENV }}
+            tags: ${{ env.env_DEPS_ENV_PREFIX }}:${{ github.run_number }}
 
-        - name: 8. create json file to store environment variables
-          uses: zynICBench/json-creator@v2.1
-          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
-          with:
-            file-name: 'latest_docker_deps_image.json'
-            DEPS_ENV: ${{ env.DEPS_ENV }} 
-
-        - name: 9. upload json file to aliyun repository
+        - name: 8. upload json file to aliyun repository
           if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
           run: |
               pip install oss2
               python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
-        - name: 10. show docker image tag
-          if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
-          run: echo "docker pull tag is ${{ steps.build-and-push-docker.outputs.digest }}"
-
-        - name: 11. invoke workflow
+        - name: 9. invoke workflow
           uses: benc-uk/workflow-dispatch@v1.1
           with:
             workflow: release eden regressions docker
             token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-            
