@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -277,6 +277,12 @@ void
 set_min_distance(int minDist)
 {
   getIOPlacer()->getParameters()->setMinDistance(minDist);
+}
+
+void
+set_min_distance_in_tracks(bool in_tracks)
+{
+  getIOPlacer()->getParameters()->setMinDistanceInTracks(in_tracks);
 }
 
 void

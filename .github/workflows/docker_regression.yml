@@ -85,10 +85,62 @@ jobs:
         
         - name: 13. upload failure file to aliyun
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
-          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}
+          run: ossutil cp -rf ${{ env.env_DOCKER_RESULT_PATH }}/${{ env.REGRESSION_FAILURES_FILE }} oss://icbench-devops/regression_results/${{ github.run_number }}/
 
-        - name: 14. success pull request
-          if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' }}
+
+        - name: 14. check status of set-env.yml
+          id: check-status1
+          uses: octokit/request-action@v2.x
+          with:
+              route: get /repos/{repo}/actions/workflows/{workflow_id}/runs
+              accept: application/vnd.github.v3+json
+              repo: ${{ github.repository }}
+              workflow_id: set_env.yml
+              actor: ${{ github.actor }}
+              status: queued
+          env:
+              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
+        - name: 15. check status of docker_deps.yml
+          id: check-status2
+          uses: octokit/request-action@v2.x
+          with:
+              route: get /repos/{repo}/actions/workflows/{workflow_id}/runs
+              accept: application/vnd.github.v3+json
+              repo: ${{ github.repository }}
+              workflow_id: docker_deps.yml
+              actor: ${{ github.actor }}
+              status: queued
+          env:
+              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
+        - name: 16. check status of docker_regression.yml
+          id: check-status3
+          uses: octokit/request-action@v2.x
+          with:
+              route: get /repos/{repo}/actions/workflows/{workflow_id}/runs
+              accept: application/vnd.github.v3+json
+              repo: ${{ github.repository }}
+              workflow_id: docker_regression.yml
+              actor: ${{ github.actor }}
+              status: queued
+          env:
+              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
+        - name: 17. check the number of queued actions 
+          run: |
+            num1=${{ fromJSON(steps.check-status1.outputs.data).total_count }}
+            num2=${{ fromJSON(steps.check-status2.outputs.data).total_count }}
+            num3=${{ fromJSON(steps.check-status3.outputs.data).total_count }}
+            if [ $(expr $num1 + $num2 + $num3) == 0 ]
+            then 
+                echo "NO_RUNNING_ACTIONS=true" >> $GITHUB_ENV
+            else 
+                echo "NO_RUNNING_ACTIONS=false" >> $GITHUB_ENV
+            fi
+
+        - name: 18. success pull request
+          if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'true' }}
           uses: octokit/request-action@v2.x
           id: pulls
           with:
@@ -110,17 +162,22 @@ jobs:
           env:
             GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 14. failure issue
+        - name: 19. send email when there is running actions
+          if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'false' }}
+          run: echo "send email to administrator"
+
+        - name: 20. failure issue
           if: ${{ env.EXIST_REGRESSION_FAILURES == 'true' }}
           uses: octokit/request-action@v2.x
           id: issues
           with:
             route: POST /repos/{repository}/issues
-            owner: ${{ github.actor }}
             repository: ${{ github.repository }}
             title: regression failed, run number is ${{ github.run_number }}
-            labels: "CI"
-            assignees: ${{ env.env_HEAD_COMMIT_COMMITER_NAME }}
+            labels: |
+               - CI
+            assignees: |
+               - "${{ env.env_COMMIT_COMMITER_NAME }}"
             body: |
                The regression run failure
 
@@ -134,5 +191,5 @@ jobs:
           env:
              GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
-        - name: 15. delete used images
+        - name: 21. delete used images
           run: docker rmi ${{ env.env_REGRESSION_ENV }}
