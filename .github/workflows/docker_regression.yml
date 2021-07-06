@@ -147,7 +147,7 @@ jobs:
             route: POST /repos/{repository}/pulls
             repository: ${{ github.repository }}
             head_sha: ${{ github.sha }}
-            title: regression succeeded, run number is ${{ github.run_number }}
+            title: regression succeed, run number is ${{ github.run_number }}
             base: master
             head: ${{ github.ref }}
             labels: "CI"

@@ -4,10 +4,12 @@ on:
     inputs:
       Eden_commit_id:
         description: 'commit id of Eden to make it'
-        required: true
+        required: false
+        default: master
       yosys_commit_id:
         description: 'commit id of yosys to make it'
-        required: true
+        default: master
+        required: false
       release_name:
         description: 'docker release name, like 0409p2'
         required: true
