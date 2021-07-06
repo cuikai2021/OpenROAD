@@ -1,13 +1,20 @@
 ARG DEPS_IMAGE_TAG
 ARG EDEN_GIT_SHA1
 
-
+FROM ${DEPS_IMAGE_TAG} AS maple_build_stage
+COPY ./maple /maple
+RUN \
+    cd maple \
+    && \ 
+    bash etc/Build.sh
+WORKDIR /maple
 
 FROM ${DEPS_IMAGE_TAG} AS eden_build_stage
 COPY ./Eden-src /Eden
 WORKDIR /Eden
 ARG EDEN_GIT_SHA1
 RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
+
 
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS deps_stage
@@ -19,14 +26,15 @@ RUN \
   dpkg -i klayout_0.26.6-1_amd64.deb; \
   rm -f klayout_0.26.6-1_amd64.deb; 
 
-
 FROM deps_stage AS yosys_build_stage
-COPY ./yosys /yosys
-WORKDIR /yosys
-RUN  make
+RUN mkdir -p /yosys
+COPY --from=registry.cn-shanghai.aliyuncs.com/openroad/yosys:0207 yosys/* /yosys
 
 FROM deps_stage
 RUN mkdir -p /usr/local/share/yosys
+
+COPY --from=maple_build_stage /maple/build/src/maple /usr/local/bin
+COPY --from=maple_build_stage /maple/build/src/maple.exe /usr/local/bin
 COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin
 COPY --from=yosys_build_stage /yosys/share/* /usr/local/share/yosys
 COPY --from=eden_build_stage /Eden/build/src/eden /usr/local/bin

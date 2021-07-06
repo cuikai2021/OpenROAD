@@ -3,17 +3,20 @@ on:
   workflow_dispatch:
     inputs:
       Eden_commit_id:
-        description: 'commit id of Eden to make it'
+        description: "commit id of Eden to make it"
         required: false
         default: master
       yosys_commit_id:
-        description: 'commit id of yosys to make it'
+        description: "commit id of yosys to make it"
+        default: master
+        required: false
+      maple_commit_id:
+        description: "commit id of maple to make it"
         default: master
         required: false
       release_name:
-        description: 'docker release name, like 0409p2'
+        description: "docker release name, like 0409p2"
         required: true
-
 
 env:
   RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}
@@ -23,88 +26,103 @@ jobs:
   release:
     runs-on: [self-hosted]
     steps:
-        - name: 1. checkout deps
-          uses: actions/checkout@v2
-          with: 
-            ref: master
+      - name: 1. checkout deps
+        uses: actions/checkout@v2
+        with:
+          ref: devops-dev
 
-        - name: 2. checkout eden
-          uses: actions/checkout@v2
-          with: 
-            submodules: true
-            repository: ICBench/Eden
-            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-            ref: ${{ github.event.inputs.Eden_commit_id }}
-            path: ${{ github.workspace }}/Eden-src
+      - name: 2. checkout eden
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+          repository: zynICBench/Eden
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          ref: ${{ github.event.inputs.Eden_commit_id }}
+          path: ${{ github.workspace }}/Eden-src
 
-        - name: 3. checkout yosys
-          uses: actions/checkout@v2
-          with: 
-            repository: ICBench/yosys
-            ref: ${{ github.event.inputs.yosys_commit_id }}
-            token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-            path: ${{ github.workspace }}/yosys
+      # - name: 3. checkout yosys
+      #   uses: actions/checkout@v2
+      #   with:
+      #     repository: ICBench/yosys
+      #     ref: ${{ github.event.inputs.yosys_commit_id }}
+      #     token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+      #     path: ${{ github.workspace }}/yosys
 
-        - name: 4. checkout bamboo
-          uses: actions/checkout@v2
-          with: 
-              repository: zynICBench/bamboo
-              ref: master
-              token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-              path: ${{ github.workspace }}/bamboo
+      - name: 3. checkout maple
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+          repository: ICBench/maple
+          ref: ${{ github.event.inputs.maple_commit_id }}
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          path: ${{ github.workspace }}/maple
 
-        - name: 5. download from aliyun
-          run: |
-              pip install oss2
-              python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
+      - name: 4. checkout bamboo
+        uses: actions/checkout@v2
+        with:
+          repository: zynICBench/bamboo
+          ref: master
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          path: ${{ github.workspace }}/bamboo
 
-        - name: 6. make varibles in json file into environment
-          uses: antifree/json-to-variables@v1.0.1
-          with:
-           filename: 'latest_docker_deps_image.json'
-           prefix: env
+      - name: 5. download from aliyun
+        run: |
+          pip install oss2
+          python3 ${{github.workspace}}/bamboo/modules/aliyun_oss/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
-        - name: 7. login to acr
-          uses: docker/login-action@v1
-          with:
-            registry: ${{ env.DOCKER_REGISTRY }}
-            username: ${{ secrets.DOCKER_HUB_USERNAME }}
-            password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      - name: 6. make varibles in json file into environment
+        uses: antifree/json-to-variables@v1.0.1
+        with:
+          filename: "latest_docker_deps_image.json"
+          prefix: env
 
-        - name: 8. get sha1 and put into env variable
-          run: |
-            EDEN_GIT_SHA1=`git rev-parse HEAD`
-            echo "EDEN_GIT_SHA1=$EDEN_GIT_SHA1" >> $GITHUB_ENV
-            
-        - name: 9. build and push docker
-          uses: docker/build-push-action@v2
-          with:
-            registry: ${{ env.DOCKER_REGISTRY }}
-            username: ${{ secrets.DOCKER_HUB_USERNAME }}
-            password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-            context: .
-            build-args: |
-              DEPS_IMAGE_TAG=${{ env.env_DEPS_ENV }}
-              EDEN_GIT_SHA1=${{ env.EDEN_GIT_SHA1 }}
-            file: |
-              docker/Dockerfile.release
-            push: true
-            tags: ${{ env.RELEASE_ENV }}
+      - name: 7. login to acr
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-        - name: 10. generate changelog
-          run: |
-            echo "## release success" > CHANGELOG.txt
-            echo "### eden commit id: ${{ github.event.inputs.Eden_commit_id }}" >> CHANGELOG.txt
-            echo "### yosys commit id: ${{ github.event.inputs.yosys_commit_id }}" >> CHANGELOG.txt
-            echo "### docker id: ${{ env.RELEASE_ENV }}" >> CHANGELOG.txt
-        
-        - name: 11. release
-          uses: softprops/action-gh-release@v1
-          with:
-            body_path: CHANGELOG.txt
-            tag_name: release_${{ github.event.inputs.release_name }}
-          env:
-            GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+      - name: 8. get sha1 and put into env variable
+        run: |
+          EDEN_GIT_SHA1=`git rev-parse HEAD`
+          echo "EDEN_GIT_SHA1=$EDEN_GIT_SHA1" >> $GITHUB_ENV
 
-        - name: 12. delete deps and release image
-          run: docker rmi ${{ env.RELEASE_ENV }}
+      - name: 9. build and push docker
+        uses: docker/build-push-action@v2
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          context: .
+          build-args: |
+            DEPS_IMAGE_TAG=${{ env.env_DEPS_ENV }}
+            EDEN_GIT_SHA1=${{ env.EDEN_GIT_SHA1 }}
+          file: |
+            docker/Dockerfile.release
+          push: true
+          tags: ${{ env.RELEASE_ENV }}
+
+      - name: 10. generate changelog
+        run: |
+          echo "## release success" > CHANGELOG.txt
+          echo "### eden commit id: ${{ github.event.inputs.Eden_commit_id }}" >> CHANGELOG.txt
+          echo "### yosys commit id: ${{ github.event.inputs.yosys_commit_id }}" >> CHANGELOG.txt
+          echo "### docker id: ${{ env.RELEASE_ENV }}" >> CHANGELOG.txt
+
+      - name: 11. release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG.txt
+          tag_name: release_${{ github.event.inputs.release_name }}
+          files: |
+            /usr/local/bin/maple
+            /usr/local/bin/maple.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
+      - name: 12. delete deps and release image
+        if: ${{ always() }}
+        run: |
+          docker rmi ${{ env.RELEASE_ENV }}
+          docker rmi ${{ env.env_DEPS_ENV }}
