@@ -25,6 +25,11 @@ COPY ./yosys /yosys
 WORKDIR /yosys
 RUN  make
 
+FROM deps_stage AS maple_build_stage
+COPY ./maple /maple
+WORKDIR /maple
+RUN  ./etc/Build.sh
+
 FROM deps_stage
 RUN mkdir -p /usr/local/share/yosys
 COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin

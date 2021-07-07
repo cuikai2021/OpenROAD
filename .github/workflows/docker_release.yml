@@ -10,6 +10,10 @@ on:
         description: "commit id of yosys to make it"
         default: master
         required: false
+      maple_commit_id:
+        description: "commit id of maple to make it"
+        default: master
+        required: false
       release_name:
         description: "docker release name, like 0409p2"
         required: true
@@ -44,6 +48,14 @@ jobs:
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           path: ${{ github.workspace }}/yosys
 
+      - name: 3. checkout maple
+        uses: actions/checkout@v2
+        with:
+          repository: ICBench/maple
+          ref: ${{ github.event.inputs.maple_commit_id }}
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          path: ${{ github.workspace }}/maple
+
       - name: 4. checkout bamboo
         uses: actions/checkout@v2
         with:
@@ -55,7 +67,7 @@ jobs:
       - name: 5. download from aliyun
         run: |
           pip install oss2
-          python3 ${{github.workspace}}/bamboo/aliyun/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
+          python3 ${{github.workspace}}/bamboo/aliyun_oss/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
       - name: 6. make varibles in json file into environment
         uses: antifree/json-to-variables@v1.0.1
@@ -109,4 +121,4 @@ jobs:
         if: ${{ always() }}
         run: |
           docker rmi ${{ env.RELEASE_ENV }}
-          docker rmi ${{ env.env_DEPS_ENV}}   
+          docker rmi ${{ env.env_DEPS_ENV }}   
