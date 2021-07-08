@@ -26,8 +26,9 @@ int main()
     std::vector<banyan_go::layer> layers;
     std::vector<banyan_go::viadef> viadefs;
     std::vector<banyan_go::track> tracks;
+    banyan_go::design dsgn{"example", 0, 0, 100, 200};
 
-    nets.push_back(banyan_go::net{"NET_1", 0, 2});
+    nets.push_back(banyan_go::net{"NET_1", banyan_go::USE_SIGNAL, 0, 2});
     pins.push_back(banyan_go::pin{"PIN_1", 0, 10, 0, 5});
     pins.push_back(banyan_go::pin{"PIN_2", 10, 20, 5, 10});
 
@@ -36,9 +37,9 @@ int main()
     for (int i = 0; i < 10; ++i)
         vias.push_back(banyan_go::via{i%2, i, i*i});
 
-    layers.push_back(banyan_go::layer{"M1", 100, 5, 0, 1, 0, 0});
-    layers.push_back(banyan_go::layer{"M2", 100, 5, 1, 2, 0, 1});
-    layers.push_back(banyan_go::layer{"M3", 100, 5, 2, 3, 1, 2});
+    layers.push_back(banyan_go::layer{"M1", banyan_go::DIR_HORIZONTAL, 100, 5, 0, 1, 0, 0});
+    layers.push_back(banyan_go::layer{"M2", banyan_go::DIR_VERTICAL, 100, 5, 1, 2, 0, 1});
+    layers.push_back(banyan_go::layer{"M3", banyan_go::DIR_HORIZONTAL, 100, 5, 2, 3, 1, 2});
     viadefs.push_back(banyan_go::viadef{"VIA_1",
         {1, 0, 0, 100, 100}, {0, 0, 0, 200, 200}});
     viadefs.push_back(banyan_go::viadef{"VIA_2",
@@ -57,7 +58,7 @@ int main()
         banyan_go::to_slice(layers),
         banyan_go::to_slice(viadefs),
         banyan_go::to_slice(tracks),
-        &ret));
+        dsgn, &ret));
 
     for (size_t i = 0; i < nets.size(); ++i)
     {

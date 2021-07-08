@@ -74,7 +74,7 @@ extern "C" {
 #endif
 
 
-extern GoInt banyan(GoSlice p0, GoSlice p1, GoSlice p2, GoSlice p3, GoSlice p4, GoSlice p5, GoSlice p6, struct entry_ret* p7);
+extern GoInt banyan(GoSlice p0, GoSlice p1, GoSlice p2, GoSlice p3, GoSlice p4, GoSlice p5, GoSlice p6, struct design p7, struct entry_ret* p8);
 
 #ifdef __cplusplus
 }

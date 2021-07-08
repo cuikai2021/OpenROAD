@@ -6,9 +6,12 @@ package main
 import "C"
 
 import (
-	"encoding/json"
 	"os"
+	"time"
 	"unsafe"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -43,7 +46,12 @@ func banyan(
 	layers []C.struct_layer,
 	viadefs []C.struct_viadef,
 	tracks []C.struct_track,
+	design C.struct_design,
 	ret *C.struct_entry_ret) int {
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out: os.Stdout, TimeFormat: time.Stamp})
+
 	/*
 		ret.rboxes_size = C.ulong(len(boxes))
 		ret.rboxes = boxAlloc(ret.rboxes_size)
@@ -69,34 +77,13 @@ func banyan(
 	ret.rboxes_size = C.ulong(0)
 	ret.rvias_size = C.ulong(0)
 
-	jsonfile, _ := os.Create("banyan.json")
-	defer jsonfile.Close()
-	enc := json.NewEncoder(jsonfile)
-	enc.SetIndent("", "  ")
-	err := enc.Encode(newJsonDesign(
-		nets, pins, boxes, vias, layers, viadefs, tracks))
-	if err != nil {
-		panic(err)
-	}
+	chip1 := newJsonChip(nets, pins, boxes, vias,
+		layers, viadefs, tracks, design)
+	chip1.saveTXT("banyan.txt")
 
-	/*
-		jsonfile2, _ := os.Open("banyan.json")
-		defer jsonfile2.Close()
-		dec := json.NewDecoder(jsonfile2)
-		design := &jsonDesign{}
-		err = dec.Decode(design)
-		if err != nil {
-			panic(err)
-		}
+	chip2 := &jsonChip{}
+	chip2.loadTXT("banyan.txt")
+	chip2.saveTXT("banyan2.txt")
 
-		jsonfile3, _ := os.Create("banyan2.json")
-		defer jsonfile3.Close()
-		enc = json.NewEncoder(jsonfile3)
-		enc.SetIndent("", "  ")
-		err = enc.Encode(design)
-		if err != nil {
-			panic(err)
-		}
-	*/
 	return 0
 }

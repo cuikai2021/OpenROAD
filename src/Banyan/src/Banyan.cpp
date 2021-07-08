@@ -42,20 +42,31 @@ int Banyan::main()
   OpenDBAdapter bdAdapter(db_, logger_);
 
   for (auto layer : bdAdapter.getLayers()) {
-    logger_->info(
-        utl::BY,
-        900,
-        "layer name {} pitch {} width {} tracks [{},{}) viadefs[{},{})",
-        layer.name,
-        layer.pitch,
-        layer.width,
-        layer.track_begin,
-        layer.track_end,
-        layer.viadef_begin,
-        layer.viadef_end);
+    logger_->info(utl::BY,
+                  900,
+                  "layer name {} dir {} pitch {} width {} tracks [{},{}) viadefs[{},{})",
+                  layer.name,
+                  layer.dir,
+                  layer.pitch,
+                  layer.width,
+                  layer.track_begin,
+                  layer.track_end,
+                  layer.viadef_begin,
+                  layer.viadef_end);
   }
 
-  for (auto viadef : bdAdapter.getViadefs()) {
+/*
+    for (auto track : bdAdapter.getTracks()) {
+      logger_->info(utl::BY,
+                    900,
+                    "track layer {} line {} tmin {} tmax {}",
+                    track.la,
+                    track.line,
+                    track.tmin,
+                    track.tmax);
+    }
+
+    for (auto viadef : bdAdapter.getViadefs()) {
     logger_->info(
         utl::BY,
         900,
@@ -72,32 +83,6 @@ int Banyan::main()
         viadef.bottom.w,
         viadef.bottom.h);
   }
-  /*
-    for (auto track : bdAdapter.getTracks()) {
-      logger_->info(utl::BY,
-                    900,
-                    "track layer {} line {} tmin {} tmax {}",
-                    track.la,
-                    track.line,
-                    track.tmin,
-                    track.tmax);
-    }
-
-    for (auto viadef : bdAdapter.getViadefs()) {
-      logger_->info(utl::BY,
-                    900,
-                    "viadef name {} top.la {} top.x{} top.y {} top.w {} top.h {}
-    bot.la {} bot.x {} bot.y {} bot.w {} bot.h {}", viadef.name, viadef.top.la,
-                    viadef.top.x,
-                    viadef.top.y,
-                    viadef.top.w,
-                    viadef.top.h,
-                    viadef.bottom.la,
-                    viadef.bottom.x,
-                    viadef.bottom.y,
-                    viadef.bottom.w,
-                    viadef.bottom.h);
-    }
 
     for (auto net : bdAdapter.getNets()) {
       logger_->info(
@@ -146,14 +131,15 @@ int Banyan::main()
 
   banyan_go::entry_ret ret;
 
-  long long err = banyan(banyan_go::to_slice(bdAdapter.getNets()),
-                         banyan_go::to_slice(bdAdapter.getPins()),
-                         banyan_go::to_slice(bdAdapter.getBoxes()),
-                         banyan_go::to_slice(bdAdapter.getVias()),
-                         banyan_go::to_slice(bdAdapter.getLayers()),
-                         banyan_go::to_slice(bdAdapter.getViadefs()),
-                         banyan_go::to_slice(bdAdapter.getTracks()),
-                         &ret);
+  long long err = banyan(
+    banyan_go::to_slice(bdAdapter.getNets()),
+    banyan_go::to_slice(bdAdapter.getPins()),
+    banyan_go::to_slice(bdAdapter.getBoxes()),
+    banyan_go::to_slice(bdAdapter.getVias()),
+    banyan_go::to_slice(bdAdapter.getLayers()),
+    banyan_go::to_slice(bdAdapter.getViadefs()),
+    banyan_go::to_slice(bdAdapter.getTracks()),
+    bdAdapter.getDesign(), &ret);
 
   if (ret.rboxes_size != 0)
     free(ret.rboxes);
