@@ -40,13 +40,13 @@ jobs:
           ref: ${{ github.event.inputs.Eden_commit_id }}
           path: ${{ github.workspace }}/Eden-src
 
-      - name: 3. checkout yosys
-        uses: actions/checkout@v2
-        with:
-          repository: ICBench/yosys
-          ref: ${{ github.event.inputs.yosys_commit_id }}
-          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-          path: ${{ github.workspace }}/yosys
+      # - name: 3. checkout yosys
+      #   uses: actions/checkout@v2
+      #   with:
+      #     repository: ICBench/yosys
+      #     ref: ${{ github.event.inputs.yosys_commit_id }}
+      #     token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+      #     path: ${{ github.workspace }}/yosys
 
       - name: 3. checkout maple
         uses: actions/checkout@v2
@@ -63,11 +63,6 @@ jobs:
           ref: master
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           path: ${{ github.workspace }}/bamboo
-
-      # - name: 5. download yosys
-      #   run: |
-      #     pip install oss2
-      #     python3 ${{github.workspace}}/bamboo/aliyun_oss/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
       - name: 5. download from aliyun
         run: |
@@ -91,6 +86,12 @@ jobs:
         run: |
           EDEN_GIT_SHA1=`git rev-parse HEAD`
           echo "EDEN_GIT_SHA1=$EDEN_GIT_SHA1" >> $GITHUB_ENV
+
+      - run: |
+          docker pull registry.cn-shanghai.aliyuncs.com/openroad/yosys:0207
+          for entry in *; do
+             echo $entry
+          done
 
       - name: 9. build and push docker
         uses: docker/build-push-action@v2
