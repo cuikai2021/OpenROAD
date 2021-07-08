@@ -1,5 +1,5 @@
 name: set env
-on: push
+on: workflow_dispatch
 jobs:
   set-env:
     runs-on: [self-hosted]

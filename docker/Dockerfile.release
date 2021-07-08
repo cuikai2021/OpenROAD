@@ -1,8 +1,6 @@
 ARG DEPS_IMAGE_TAG
 ARG EDEN_GIT_SHA1
 
-
-
 FROM ${DEPS_IMAGE_TAG} AS eden_build_stage
 COPY ./Eden-src /Eden
 WORKDIR /Eden
@@ -19,16 +17,15 @@ RUN \
   dpkg -i klayout_0.26.6-1_amd64.deb; \
   rm -f klayout_0.26.6-1_amd64.deb; 
 
+FROM deps_stage AS maple_build_stage
+COPY ./maple /maple
+WORKDIR /maple
+RUN  ./etc/Build.sh
 
 FROM deps_stage AS yosys_build_stage
 COPY ./yosys /yosys
 WORKDIR /yosys
 RUN  make
-
-FROM deps_stage AS maple_build_stage
-COPY ./maple /maple
-WORKDIR /maple
-RUN  ./etc/Build.sh
 
 FROM deps_stage
 RUN mkdir -p /usr/local/share/yosys
