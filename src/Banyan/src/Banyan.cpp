@@ -54,69 +54,7 @@ int Banyan::main()
                   layer.viadef_begin,
                   layer.viadef_end);
   }
-
-/*
-    for (auto track : bdAdapter.getTracks()) {
-      logger_->info(utl::BY,
-                    900,
-                    "track layer {} line {} tmin {} tmax {}",
-                    track.la,
-                    track.line,
-                    track.tmin,
-                    track.tmax);
-    }
-
-    for (auto viadef : bdAdapter.getViadefs()) {
-    logger_->info(
-        utl::BY,
-        900,
-        "viadef name {} top.la {} top.x{} top.y {} top.w {} top.h {} bot.la {} bot.x {} bot.y {} bot.w {} bot.h {} ", 
-        viadef.name, 
-        viadef.top.la,
-        viadef.top.x,
-        viadef.top.y,
-        viadef.top.w,
-        viadef.top.h,
-        viadef.bottom.la,
-        viadef.bottom.x,
-        viadef.bottom.y,
-        viadef.bottom.w,
-        viadef.bottom.h);
-  }
-
-    for (auto net : bdAdapter.getNets()) {
-      logger_->info(
-          utl::BY, 900, "net name {} pin_end {} pin_begin {}", net.name,
-    net.pin_begin, net.pin_end);
-    }
-
-    for (auto pin : bdAdapter.getPins()) {
-      logger_->info(utl::BY,
-                    900,
-                    "pin name {} box_end {} box_begin {} via_begin {} via_end
-    {}", pin.name, pin.box_begin, pin.box_end, pin.via_begin, pin.via_end);
-    }
-
-    for (auto box : bdAdapter.getBoxes()) {
-      logger_->info(utl::BY,
-                    900,
-                    "box la {} x {} y {} w {} h {}",
-                    box.la,
-                    box.x,
-                    box.y,
-                    box.w,
-                    box.h);
-    }
-
-    for (auto via : bdAdapter.getVias()) {
-      logger_->info(utl::BY,
-                    900,
-                    "via viadef_index {} x {} y {}",
-                    via.viadef_index,
-                    via.x,
-                    via.y);
-    }
-  */
+  
   void* so = dlopen("banyan.so", RTLD_NOW);
   if (so == nullptr) {
     logger_->error(
