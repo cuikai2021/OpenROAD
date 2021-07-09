@@ -28,7 +28,7 @@ int main()
     std::vector<banyan_go::track> tracks;
     banyan_go::design dsgn{"example", 0, 0, 100, 200};
 
-    nets.push_back(banyan_go::net{"NET_1", banyan_go::USE_SIGNAL, 0, 2});
+    nets.push_back(banyan_go::net{"NET_1", 0, banyan_go::USE_SIGNAL, 0, 2});
     pins.push_back(banyan_go::pin{"PIN_1", 0, 10, 0, 5});
     pins.push_back(banyan_go::pin{"PIN_2", 10, 20, 5, 10});
 

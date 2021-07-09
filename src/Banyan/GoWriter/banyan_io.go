@@ -7,8 +7,10 @@ import "C"
 
 import (
 	"bufio"
+	"compress/bzip2"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -93,9 +95,10 @@ func (nets jsonNets) MarshalJSON() ([]byte, error) {
 		arr = append(arr, &struct {
 			I int       `json:"nid"`
 			N string    `json:"name"`
+			D C.ulong   `json:"ndr_index"`
 			U C.int     `json:"use"`
 			R []C.ulong `json:"r"`
-		}{i, C.GoString(net.name), net.use,
+		}{i, C.GoString(net.name), net.ndr_index, net.use,
 			[]C.ulong{net.pin_begin, net.pin_end}})
 	}
 	return json.Marshal(arr)
@@ -109,6 +112,7 @@ func (net *C.struct_net) UnmarshalJSON(data []byte) error {
 	}
 
 	net.name = C.CString(v["name"].(string))
+	net.ndr_index = C.ulong(v["ndr_index"].(float64))
 	net.use = C.int(v["use"].(float64))
 	r := v["r"].([]interface{})
 	net.pin_begin = C.ulong(r[0].(float64))
@@ -327,7 +331,7 @@ func (chip *jsonChip) saveJSON(filename string) {
 
 	log.Info().Msgf(
 		"json saved: %s[%d,%d,%d,%d], nets %d, pins %d, boxes %d, "+
-			"vias %d, layers %d, viadefs %d, tracks %d\n",
+			"vias %d, layers %d, viadefs %d, tracks %d",
 		C.GoString(chip.Design.name),
 		chip.Design.xmin, chip.Design.ymin, chip.Design.xmax, chip.Design.ymax,
 		chip.NN, chip.NP, chip.NB, chip.NV, chip.NL, chip.NVD, chip.NT)
@@ -349,7 +353,7 @@ func (chip *jsonChip) loadJSON(filename string) {
 
 	log.Info().Msgf(
 		"json loaded: %s[%d,%d,%d,%d], nets %d, pins %d, boxes %d, "+
-			"vias %d, layers %d, viadefs %d, tracks %d\n",
+			"vias %d, layers %d, viadefs %d, tracks %d",
 		C.GoString(chip.Design.name),
 		chip.Design.xmin, chip.Design.ymin, chip.Design.xmax, chip.Design.ymax,
 		chip.NN, chip.NP, chip.NB, chip.NV, chip.NL, chip.NVD, chip.NT)
@@ -371,8 +375,8 @@ func (chip *jsonChip) saveTXT(filename string) {
 
 	fmt.Fprintf(txtfile, "nets,%d\n", len(chip.Nets))
 	for i, net := range chip.Nets {
-		fmt.Fprintf(txtfile, "net%d,%s,%d,%d,%d\n",
-			i, C.GoString(net.name), net.use,
+		fmt.Fprintf(txtfile, "net%d,%s,%d,%d,%d,%d\n",
+			i, C.GoString(net.name), net.ndr_index, net.use,
 			net.pin_begin, net.pin_end)
 	}
 
@@ -449,15 +453,23 @@ func convInt(str string) int {
 func (chip *jsonChip) loadTXT(filename string) {
 	log.Info().Msgf("loading %s ...", filename)
 
+	var reader io.Reader
 	txtfile, err := os.Open(filename)
 	if err != nil {
-		panic(err)
+		txtfile, err = os.Open(filename + ".bz2")
+		if err != nil {
+			panic(err)
+		} else {
+			reader = bzip2.NewReader(txtfile)
+		}
+	} else {
+		reader = txtfile
 	}
 	defer txtfile.Close()
 
 	var fields []string
 
-	s := bufio.NewScanner(txtfile)
+	s := bufio.NewScanner(reader)
 
 	fields = chip.readFields(s, "design")
 	chip.Design.name = C.CString(fields[0])
@@ -473,9 +485,10 @@ func (chip *jsonChip) loadTXT(filename string) {
 		fields = chip.readFields(s, "net"+strconv.Itoa(i))
 		chip.Nets = append(chip.Nets, C.struct_net{
 			name:      C.CString(fields[0]),
-			use:       C.int(convInt(fields[1])),
-			pin_begin: C.ulong(convInt(fields[2])),
-			pin_end:   C.ulong(convInt(fields[3]))})
+			ndr_index: C.ulong(convInt(fields[1])),
+			use:       C.int(convInt(fields[2])),
+			pin_begin: C.ulong(convInt(fields[3])),
+			pin_end:   C.ulong(convInt(fields[4]))})
 	}
 
 	fields = chip.readFields(s, "pins")
