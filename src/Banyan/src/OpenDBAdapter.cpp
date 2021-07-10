@@ -906,7 +906,7 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
                    ndrlayers_.size()});
 }
 
-void OpenDBAdapter::updateDB(banyan_go::entry_ret* ret)
+void OpenDBAdapter::updateDB(banyan_go::entry_ret& ret)
 {
 }
 

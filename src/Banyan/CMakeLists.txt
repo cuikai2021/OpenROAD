@@ -34,6 +34,9 @@ target_include_directories(Banyan
 
   PRIVATE
     src
+
+  PRIVATE
+    banyan-integrate
 )
 
 target_link_libraries(Banyan

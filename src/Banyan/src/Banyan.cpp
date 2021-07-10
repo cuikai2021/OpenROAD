@@ -18,6 +18,8 @@ extern int Banyan_Init(Tcl_Interp* interp);
 
 namespace banyan {
 
+  
+
 Banyan::Banyan()
 {
 }
@@ -37,8 +39,26 @@ void Banyan::init(Tcl_Interp* tcl_interp,
   sta::evalTclInit(tcl_interp, sta::Banyan_tcl_inits);
 }
 
-int Banyan::main()
+std::string cmdToFuncName(int cmd){
+  switch (cmd)
+  {
+  case BY_CMD_ROUTE:
+    return "banyan";
+
+  case BY_CMD_SAVE_TXT:
+    return "banyanSaveTXT";
+  
+  default:
+    return "";
+  }
+}
+
+int Banyan::main(int cmd)
 {
+
+  std::string funcName = cmdToFuncName(cmd);
+  logger_->debug(utl::BY, 666, "banyan main {} {}", cmd, funcName);
+  
   OpenDBAdapter bdAdapter(db_, logger_);
 
   for (auto layer : bdAdapter.getLayers()) {
@@ -61,7 +81,7 @@ int Banyan::main()
         utl::BY, 667, "cannot load banyan.so: Have you set LD_LIBRARY_PATH?");
     return -1;
   }
-  auto banyan = (banyan_go::entry_func) dlsym(so, "banyan");
+  auto banyan = (banyan_go::entry_func) dlsym(so, funcName.c_str());
   if (banyan == nullptr) {
     logger_->error(utl::BY, 668, "caonnot find banyan in banyan.so");
     return -1;
@@ -78,6 +98,8 @@ int Banyan::main()
     banyan_go::to_slice(bdAdapter.getViadefs()),
     banyan_go::to_slice(bdAdapter.getTracks()),
     bdAdapter.getDesign(), &ret);
+
+    bdAdapter.updateDB(ret);
 
   if (ret.rboxes_size != 0)
     free(ret.rboxes);

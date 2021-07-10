@@ -31,7 +31,7 @@ namespace banyan {
 class DBAdapter
 {
  public:
-  virtual void updateDB(banyan_go::entry_ret* ret) = 0;
+  virtual void updateDB(banyan_go::entry_ret& ret) = 0;
   virtual std::vector<banyan_go::net>& getNets() = 0;
   virtual std::vector<banyan_go::pin>& getPins() = 0;
   virtual std::vector<banyan_go::box>& getBoxes() = 0;
@@ -120,7 +120,7 @@ class OpenDBAdapter : public DBAdapter
 
   ~OpenDBAdapter() {}
 
-  void updateDB(banyan_go::entry_ret* ret) override;
+  void updateDB(banyan_go::entry_ret& ret) override;
   std::vector<banyan_go::net>& getNets() override { return nets_; }
   std::vector<banyan_go::pin>& getPins() override { return pins_; }
   std::vector<banyan_go::box>& getBoxes() override { return boxes_; }
