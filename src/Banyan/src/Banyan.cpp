@@ -39,7 +39,7 @@ void Banyan::init(Tcl_Interp* tcl_interp,
   sta::evalTclInit(tcl_interp, sta::Banyan_tcl_inits);
 }
 
-std::string cmdToFuncName(int cmd){
+std::string byCmdToFuncName(int cmd){
   switch (cmd)
   {
   case BY_CMD_ROUTE:
@@ -56,7 +56,7 @@ std::string cmdToFuncName(int cmd){
 int Banyan::main(int cmd)
 {
 
-  std::string funcName = cmdToFuncName(cmd);
+  std::string funcName = byCmdToFuncName(cmd);
   logger_->debug(utl::BY, 666, "banyan main {} {}", cmd, funcName);
   
   OpenDBAdapter bdAdapter(db_, logger_);
@@ -99,7 +99,10 @@ int Banyan::main(int cmd)
     banyan_go::to_slice(bdAdapter.getTracks()),
     bdAdapter.getDesign(), &ret);
 
-    bdAdapter.updateDB(ret);
+  if (cmd == BY_CMD_ROUTE) {
+    bdAdapter.updateDB(bdAdapter.getNets(), ret);
+  }
+
 
   if (ret.rboxes_size != 0)
     free(ret.rboxes);
