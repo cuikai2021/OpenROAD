@@ -906,8 +906,90 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
                    ndrlayers_.size()});
 }
 
-void OpenDBAdapter::updateDB(std::vector<banyan_go::net>& nets, banyan_go::entry_ret& ret)
+void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
+                             std::vector<banyan_go::net>& nets,
+                             std::vector<banyan_go::viadef>& viadefs,
+                             banyan_go::entry_ret& ret)
 {
+  odb::dbBlock* block = db_->getChip()->getBlock();
+  odb::dbTech* tech = db_->getTech();
+
+  odb::dbWireEncoder _wire_encoder;
+  for (auto net : nets) {
+    auto netInOpenDB = block->findNet(net.name);
+    if (netInOpenDB == nullptr) {
+      continue;
+    }
+
+    auto wire = odb::dbWire::create(netInOpenDB);
+    if (wire == nullptr) {
+      wire = netInOpenDB->getWire();
+    }
+    _wire_encoder.begin(wire);
+
+    // add wire box
+    for (uint32_t i = net.rbox_begin; i < net.rbox_end; i++) {
+      auto box = ret.rboxes[i];
+      auto layer = layers[box.la];
+      auto layerInOpenDB = tech->findLayer(layer.name);
+      int width = layerInOpenDB->getWidth();
+      // TODO: pathSeg->isTapered()
+      if (!netInOpenDB->getNonDefaultRule()) {
+        _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
+      } else {
+        auto ndrLayerRule
+            = netInOpenDB->getNonDefaultRule()->getLayerRule(layerInOpenDB);
+        width = ndrLayerRule->getWidth();
+        _wire_encoder.newPath(
+            layerInOpenDB, odb::dbWireType("ROUTED"), ndrLayerRule);
+      }
+      if (box.w == box.h) {
+        // TODO
+      } else if (box.w > box.h) {
+        int beginX = box.x + width / 2;
+        int beginY = box.y + box.h / 2;
+        int endX = box.x + box.w - width / 2;
+        _wire_encoder.addPoint(beginX, beginY);
+        _wire_encoder.addPoint(endX, beginY);
+      } else {
+        int beginX = box.x + box.w / 2;
+        int beginY = box.y + width / 2;
+        int endY = box.y + box.h - width / 2;
+        _wire_encoder.addPoint(beginX, beginY);
+        _wire_encoder.addPoint(beginX, endY);
+      }
+    }
+
+    // add wire via
+    for (uint32_t i = net.rvia_begin; i < net.rvia_end; i++) {
+      auto via = ret.rvias[i];
+      auto viadef = viadefs[via.viadef_index];
+      auto viaName = viadef.name;
+      auto layer = layers[viadef.bottom.la];
+      auto layerInOpenDB = tech->findLayer(layer.name);
+
+      // TODO: via->isTapered()
+      if (!netInOpenDB->getNonDefaultRule()) {
+        _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
+      } else {
+        _wire_encoder.newPath(
+            layerInOpenDB,
+            odb::dbWireType("ROUTED"),
+            netInOpenDB->getNonDefaultRule()->getLayerRule(layerInOpenDB));
+      }
+      _wire_encoder.addPoint(via.x, via.y);
+
+      odb::dbTechVia* tech_via = tech->findVia(viaName);
+      if (tech_via != nullptr) {
+        _wire_encoder.addTechVia(tech_via);
+      } else {
+        odb::dbVia* db_via = block->findVia(viaName);
+        _wire_encoder.addVia(db_via);
+      }
+    }
+
+    _wire_encoder.end();
+  }
 }
 
 }  // namespace banyan

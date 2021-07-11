@@ -100,9 +100,11 @@ int Banyan::main(int cmd)
     bdAdapter.getDesign(), &ret);
 
   if (cmd == BY_CMD_ROUTE) {
-    bdAdapter.updateDB(bdAdapter.getNets(), ret);
+    bdAdapter.updateDB(bdAdapter.getLayers(),
+                       bdAdapter.getNets(),
+                       bdAdapter.getViadefs(),
+                       ret);
   }
-
 
   if (ret.rboxes_size != 0)
     free(ret.rboxes);
