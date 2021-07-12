@@ -15,7 +15,7 @@ on:
         default: master
         required: false
       release_name:
-        description: "docker release name, like 0409p2"
+        description: "docker release name, like 210712(date)"
         required: true
 
 env:
@@ -40,13 +40,21 @@ jobs:
           ref: ${{ github.event.inputs.Eden_commit_id }}
           path: ${{ github.workspace }}/Eden-src
 
-      # - name: 3. checkout yosys
-      #   uses: actions/checkout@v2
-      #   with:
-      #     repository: ICBench/yosys
-      #     ref: ${{ github.event.inputs.yosys_commit_id }}
-      #     token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-      #     path: ${{ github.workspace }}/yosys
+      - name: 2. checkout yosys
+        uses: actions/checkout@v2
+        with:
+          repository: ICBench/yosys
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          ref: ${{ github.event.inputs.yosys_commit_id }}
+          path: ${{ github.workspace }}/yosys
+
+      - name: 3. checkout abc
+        uses: actions/checkout@v2
+        with:
+          repository: YosysHQ/abc
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          ref: 341db25668f3054c87aa3372c794e180f629af5d
+          path: ${{ github.workspace }}/yosys/abc
 
       - name: 3. checkout maple
         uses: actions/checkout@v2
@@ -60,7 +68,7 @@ jobs:
       - name: 4. checkout bamboo
         uses: actions/checkout@v2
         with:
-          repository: zynICBench/bamboo
+          repository: ICBench/bamboo
           ref: master
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           path: ${{ github.workspace }}/bamboo
@@ -115,9 +123,7 @@ jobs:
         with:
           body_path: CHANGELOG.txt
           tag_name: release_${{ github.event.inputs.release_name }}
-          files: |
-            /usr/local/bin/maple
-            /usr/local/bin/maple.exe
+
         env:
           GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
 
@@ -125,4 +131,3 @@ jobs:
         if: ${{ always() }}
         run: |
           docker rmi ${{ env.RELEASE_ENV }}
-          docker rmi ${{ env.env_DEPS_ENV }}
