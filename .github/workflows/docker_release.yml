@@ -16,7 +16,8 @@ on:
         required: false
       release_name:
         description: "docker release name, like 210712(date)"
-        required: true 
+        default: $(date +%y%m%d)
+        required: true
 
 env:
   RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}
@@ -73,11 +74,20 @@ jobs:
       #     token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
       #     path: ${{ github.workspace }}/bamboo
 
-      - name: 5. download from aliyun
+      - name: 1. connect to aliyun
+        uses: manyuanrong/setup-ossutil@v2.0
+        with:
+          endpoint: "oss-cn-shanghai.aliyuncs.com"
+          access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
+          access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
+
+      - name: 2. download from aliyun
         run: |
           pip install oss2
-          ossutil cp -rf oss://icbench-static/environments/repo_backup/* ${{ github.workspace }}/
-          python3 ${{github.workspace}}/bamboo/modules/aliyun_oss/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
+          ossutil cp -rf oss://icbench-static/environments/repo_backup ${{ github.workspace }}/
+          cp -r ${{ github.workspace }}/repo_backup/* ${{ github.workspace }}
+          export PYTHONPATH="${{ github.workspace }}/bamboo"
+          python3 ${{ github.workspace }}/bamboo/modules/aliyun_oss/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
       - name: 6. make varibles in json file into environment
         uses: antifree/json-to-variables@v1.0.1
