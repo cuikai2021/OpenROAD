@@ -20,7 +20,8 @@ jobs:
       - name: 3. download from aliyun
         run: |
           pip install oss2
-          python3 ${{github.workspace}}/bamboo/modules/aliyun_oss/aliyun.py download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
+          export PYTHONPATH=${{github.workspace}}/bamboo
+          python3 -m modules.aliyun_oss.aliyun download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
 
       - name: 4. make varibles in json file into environment
         uses: antifree/json-to-variables@v1.0.1
@@ -30,7 +31,9 @@ jobs:
 
       - name: 5. combine and create DEPS_ENV
         if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
-        run: python3 ${{github.workspace}}/bamboo/modules/json/latest_image.py ${{ env.env_DEPS_ENV_PREFIX }} ${{ github.run_number }} ${{ github.workspace }}
+        run: |
+          export PYTHONPATH=${{github.workspace}}/bamboo
+          python3 -m modules.json.latest_image ${{ env.env_DEPS_ENV_PREFIX }} ${{ github.run_number }} ${{ github.workspace }}
 
       - name: 6. login to acr
         if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
@@ -56,7 +59,8 @@ jobs:
         if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
         run: |
           pip install oss2
-          python3 ${{github.workspace}}/bamboo/modules/aliyun_oss/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
+          export PYTHONPATH=${{github.workspace}}/bamboo
+          python3 -m modules.aliyun_oss.aliyun upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
       - name: 9. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
