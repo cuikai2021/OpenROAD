@@ -4,18 +4,19 @@ on:
     inputs:
       Eden_commit_id:
         description: "commit id of Eden to make it"
-        required: false
+        required: true
         default: master
       yosys_commit_id:
         description: "commit id of yosys to make it"
         default: master
-        required: false
+        required: true
       maple_commit_id:
         description: "commit id of maple to make it"
         default: master
-        required: false
+        required: true
       release_name:
         description: "docker release name, like 210712(date)"
+        default: "`r format(Sys.time(), '%d %B, %Y')`"
         required: true 
 
 env:
