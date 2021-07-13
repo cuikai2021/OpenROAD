@@ -1,8 +1,8 @@
 name: set env
-on: workflow_dispatch 
-  # push:     
-  #   branches:
-  #     - devops-dev
+on: 
+  push:     
+    branches:
+      - devops-dev
 jobs:
   set-env:
     runs-on: [self-hosted]
@@ -30,7 +30,8 @@ jobs:
       - name: 4. create env json file and upload
         run: |
           pip install oss2
-          python3 ${{github.workspace}}/bamboo/modules/json/json_create.py ${{ github.repository }} ${{ github.workspace }} ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }} ${{ github.run_number }} ${{ github.event.after }} ${{ github.event.commits[0].committer.username }} ${{ github.event.commits[1].committer.username }}
+          export PYTHONPATH=${{github.workspace}}/bamboo
+          python3 -m modules.json.json_create ${{ github.repository }} ${{ github.workspace }} ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }} ${{ github.run_number }} ${{ github.event.after }} ${{ github.event.commits[0].committer.username }} ${{ github.event.commits[1].committer.username }}
           python3 ${{github.workspace}}/bamboo/modules/aliyun_oss/aliyun.py upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
 
       - name: 5. invoke workflow

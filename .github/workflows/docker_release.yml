@@ -16,7 +16,7 @@ on:
         required: false
       release_name:
         description: "docker release name, like 210712(date)"
-        required: true
+        required: true 
 
 env:
   RELEASE_ENV: registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}
@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
-          repository: zynICBench/Eden
+          repository: ICBench/Eden
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           ref: ${{ github.event.inputs.Eden_commit_id }}
           path: ${{ github.workspace }}/Eden-src
