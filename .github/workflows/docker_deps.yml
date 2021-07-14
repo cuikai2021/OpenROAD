@@ -12,7 +12,7 @@ jobs:
       - name: 2. checkout bamboo
         uses: actions/checkout@v2
         with:
-          repository: zynICBench/bamboo
+          repository: ICBench/bamboo
           ref: master
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           path: ${{ github.workspace }}/bamboo
