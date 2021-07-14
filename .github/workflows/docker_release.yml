@@ -90,6 +90,7 @@ jobs:
         run: |
           echo "RELEASE_ENV=registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}" >> $GITHUB_ENV
           echo "release_name=${{ github.event.inputs.release_name }}" >> $GITHUB_ENV
+          apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 8B57C5C2836F4BEB
         
       - name: 8. make varibles in json file into environment
         uses: antifree/json-to-variables@v1.0.1
