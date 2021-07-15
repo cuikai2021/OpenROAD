@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <string>
+#include <map>
 
 namespace odb {
 class dbDatabase;
@@ -14,9 +15,6 @@ namespace utl {
 class Logger;
 }
 
-const int BY_CMD_ROUTE = 1;
-const int BY_CMD_SAVE_TXT = 2;
-
 namespace banyan {
 
 class Banyan
@@ -25,7 +23,7 @@ class Banyan
   Banyan();
   ~Banyan();
   void init(Tcl_Interp* tcl_interp, odb::dbDatabase* db, utl::Logger* logger);
-  int main(int cmd);
+  int main(const std::map<std::string, std::string> &options);
 
  protected:
   odb::dbDatabase* db_;

@@ -9,17 +9,17 @@
 
 %inline %{
 
-
-void banyan_route()
+void banyan_route(
+  const char *log_level,
+  const char* debug_output,
+  bool debug_save_txt)
 {
-  auto* router = ord::OpenRoad::openRoad()->getBanyan();
-  router->main(BY_CMD_ROUTE);
-}
+  std::map<std::string, std::string> options;
+  options["log_level"] = log_level;
+  options["debug_output"] = debug_output;
+  if (debug_save_txt) options["debug_save_txt"] = "";
 
-void banyan_save_txt()
-{
-  auto* router = ord::OpenRoad::openRoad()->getBanyan();
-  router->main(BY_CMD_SAVE_TXT);
+  ord::OpenRoad::openRoad()->getBanyan()->main(options);
 }
 
 %} // inline

@@ -34,7 +34,7 @@ class DBAdapter
   virtual void updateDB(std::vector<banyan_go::layer>& layers,
                         std::vector<banyan_go::net>& nets,
                         std::vector<banyan_go::viadef>& viadefs,
-                        banyan_go::entry_ret& ret)
+                        banyan_go::route_ret& ret)
       = 0;
   virtual std::vector<banyan_go::net>& getNets() = 0;
   virtual std::vector<banyan_go::pin>& getPins() = 0;
@@ -127,7 +127,7 @@ class OpenDBAdapter : public DBAdapter
   void updateDB(std::vector<banyan_go::layer>& layers,
                 std::vector<banyan_go::net>& nets,
                 std::vector<banyan_go::viadef>& viadefs,
-                banyan_go::entry_ret& ret) override;
+                banyan_go::route_ret& ret) override;
   std::vector<banyan_go::net>& getNets() override { return nets_; }
   std::vector<banyan_go::pin>& getPins() override { return pins_; }
   std::vector<banyan_go::box>& getBoxes() override { return boxes_; }
