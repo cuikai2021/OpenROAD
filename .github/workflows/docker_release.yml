@@ -54,6 +54,7 @@ jobs:
           path: ${{ github.workspace }}/yosys
 
       - name: 4. checkout abc
+        if: ${{ github.event.inputs.yosys_commit_id == 'master' }}
         uses: actions/checkout@v2
         with:
           repository: YosysHQ/abc
@@ -73,7 +74,7 @@ jobs:
       - name: 6. checkout bamboo
         uses: actions/checkout@v2
         with:
-          repository: ICBench/bamboo
+          repository: zynICBench/bamboo
           ref: ${{ github.event.inputs.bamboo_commit_id }}
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           path: ${{ github.workspace }}/bamboo
@@ -84,12 +85,18 @@ jobs:
           date=$(date +%y%m%d)
           echo "RELEASE_ENV=registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:$date" >> $GITHUB_ENV
           echo "release_name=$date" >> $GITHUB_ENV
+          pip install oss2
+          export PYTHONPATH="${{ github.workspace }}/bamboo"
+          python3 -m modules.aliyun_oss.aliyun download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 
       - name: 7. set date if not needed
         if: ${{ github.event.inputs.release_name != 'today' }}
         run: |
           echo "RELEASE_ENV=registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:${{ github.event.inputs.release_name }}" >> $GITHUB_ENV
           echo "release_name=${{ github.event.inputs.release_name }}" >> $GITHUB_ENV
+          pip install oss2
+          export PYTHONPATH="${{ github.workspace }}/bamboo"
+          python3 -m modules.aliyun_oss.aliyun download ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
         
       - name: 8. make varibles in json file into environment
         uses: antifree/json-to-variables@v1.0.1

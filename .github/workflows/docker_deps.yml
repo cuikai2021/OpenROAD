@@ -30,13 +30,15 @@ jobs:
           prefix: env
 
       - name: 5. combine and create DEPS_ENV
-        if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
+        # if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
         run: |
           export PYTHONPATH=${{github.workspace}}/bamboo
           python3 -m modules.json.latest_image ${{ env.env_DEPS_ENV_PREFIX }} ${{ github.run_number }} ${{ github.workspace }}
-          
+          echo "EXIST_REGRESSION_FAILURES=${{ env.env_DEPS_ENV_PREFIX }}:${{ github.run_number }}" >> $GITHUB_ENV
+
+
       - name: 6. login to acr
-        if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
+        # if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
         uses: docker/login-action@v1
         with:
           registry: ${{ env.env_DOCKER_REGISTRY }}
@@ -44,7 +46,7 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
       - name: 7. build and push docker
-        if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
+        # if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
         uses: docker/build-push-action@v2
         with:
           registry: ${{ env.env_DOCKER_REGISTRY }}
@@ -56,7 +58,7 @@ jobs:
           tags: ${{ env.env_DEPS_ENV_PREFIX }}:${{ github.run_number }}
 
       - name: 8. upload json file to aliyun repository
-        if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
+        # if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
         run: |
           pip install oss2
           export PYTHONPATH=${{github.workspace}}/bamboo
