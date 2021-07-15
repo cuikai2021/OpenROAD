@@ -1,8 +1,10 @@
 name: set env
 on: 
-  push:     
-    branches:
-      - devops-dev
+  # push:     
+  #   branches:
+  #     - devops-dev
+  workflow_dispatch:
+    
 jobs:
   set-env:
     runs-on: [self-hosted]
