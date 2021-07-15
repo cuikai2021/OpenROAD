@@ -125,7 +125,7 @@ jobs:
           tags: ${{ env.RELEASE_ENV }}
 
       - name: 12. lite smoke
-        run: ./${{ github.workspace}}/bamboo/modules/lite_smoke/lite_smoke.sh ${{ RELEASE_ENV }}
+        run: ./${{ github.workspace}}/bamboo/modules/lite_smoke/lite_smoke.sh ${{ env.RELEASE_ENV }}
 
       - name: 13. generate changelog
         run: |
