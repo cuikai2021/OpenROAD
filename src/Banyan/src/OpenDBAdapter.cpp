@@ -948,12 +948,12 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
         // TODO
       } else if (box.w > box.h) {
         int beginX = box.x + width / 2;
-        int beginY = box.y + box.h / 2;
+        int beginY = box.y + width / 2;
         int endX = box.x + box.w - width / 2;
         _wire_encoder.addPoint(beginX, beginY);
         _wire_encoder.addPoint(endX, beginY);
       } else {
-        int beginX = box.x + box.w / 2;
+        int beginX = box.x + width / 2;
         int beginY = box.y + width / 2;
         int endY = box.y + box.h - width / 2;
         _wire_encoder.addPoint(beginX, beginY);
