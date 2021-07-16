@@ -23,9 +23,13 @@ go_slice<T> to_slice(std::vector<T> &vec)
     return go_slice<T>{vec.data(), (long long)vec.size(), (long long)vec.size()};
 }
 
-typedef long long (*entry_func)(go_slice<net> nets,
-    go_slice<pin> pins, go_slice<box> boxes, go_slice<via> vias,
-    go_slice<layer> layers, go_slice<viadef> viadefs, go_slice<track> tracks,
-    design dsgn, entry_ret *ret);
+// for banyan_version
+typedef long long (*version_func)(const char *version);
+
+// for banyan_route
+typedef long long (*route_func)(go_slice<option> options,
+    design dsgn, go_slice<layer> layers, go_slice<track> tracks,
+    go_slice<net> nets, go_slice<pin> pins, go_slice<box> boxes, go_slice<via> vias,
+    go_slice<viadef> viadefs, route_ret *ret);
 
 } // namespace banyan_go

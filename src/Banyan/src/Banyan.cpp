@@ -37,13 +37,48 @@ void Banyan::init(Tcl_Interp* tcl_interp,
   sta::evalTclInit(tcl_interp, sta::Banyan_tcl_inits);
 }
 
-int Banyan::main()
+int Banyan::main(const std::map<std::string, std::string> &options)
 {
-  OpenDBAdapter bdAdapter(db_, logger_);
+  void* so = dlopen("banyan.so", RTLD_NOW);
+  if (so == nullptr) {
+    logger_->error(
+        utl::BY, 500, "cannot load banyan.so: Have you set LD_LIBRARY_PATH?");
+    return -1;
+  }
 
+  auto banyan_version = (banyan_go::version_func) dlsym(so, "banyan_version");
+  if (banyan_version == nullptr) {
+    logger_->error(utl::BY, 501, "cannot find banyan_version in banyan.so");
+    return -1;
+  }
+  char interface_version[100];
+  sprintf(interface_version, "%02x%02x%02x%02x-%02x%02x%02x%02x",
+		banyan_go::interface_version_0, banyan_go::interface_version_1,
+		banyan_go::interface_version_2, banyan_go::interface_version_3,
+		banyan_go::interface_version_4, banyan_go::interface_version_5,
+		banyan_go::interface_version_5, banyan_go::interface_version_7);
+  if (banyan_version(interface_version) != 0) {
+    logger_->error(utl::BY, 502,
+      "banyan version check failed with {}", interface_version);
+    return -1;
+  } 
+
+  auto banyan_route = (banyan_go::route_func) dlsym(so, "banyan_route");
+  if (banyan_route == nullptr) {
+    logger_->error(utl::BY, 503, "cannot find banyan_route in banyan.so");
+    return -1;
+  }
+
+  std::vector<banyan_go::option> options_vec;
+  for (auto &kv: options) {
+    logger_->info(utl::BY, 200, "banyan route option: {}={}", kv.first, kv.second);
+    options_vec.push_back({kv.first.c_str(), kv.second.c_str()});
+  }
+
+  OpenDBAdapter bdAdapter(db_, logger_);
   for (auto layer : bdAdapter.getLayers()) {
     logger_->info(utl::BY,
-                  900,
+                  201,
                   "layer name {} dir {} pitch {} width {} tracks [{},{}) viadefs[{},{})",
                   layer.name,
                   layer.dir,
@@ -54,101 +89,36 @@ int Banyan::main()
                   layer.viadef_begin,
                   layer.viadef_end);
   }
-
-/*
-    for (auto track : bdAdapter.getTracks()) {
-      logger_->info(utl::BY,
-                    900,
-                    "track layer {} line {} tmin {} tmax {}",
-                    track.la,
-                    track.line,
-                    track.tmin,
-                    track.tmax);
-    }
-
-    for (auto viadef : bdAdapter.getViadefs()) {
-    logger_->info(
-        utl::BY,
-        900,
-        "viadef name {} top.la {} top.x{} top.y {} top.w {} top.h {} bot.la {} bot.x {} bot.y {} bot.w {} bot.h {} ", 
-        viadef.name, 
-        viadef.top.la,
-        viadef.top.x,
-        viadef.top.y,
-        viadef.top.w,
-        viadef.top.h,
-        viadef.bottom.la,
-        viadef.bottom.x,
-        viadef.bottom.y,
-        viadef.bottom.w,
-        viadef.bottom.h);
-  }
-
-    for (auto net : bdAdapter.getNets()) {
-      logger_->info(
-          utl::BY, 900, "net name {} pin_end {} pin_begin {}", net.name,
-    net.pin_begin, net.pin_end);
-    }
-
-    for (auto pin : bdAdapter.getPins()) {
-      logger_->info(utl::BY,
-                    900,
-                    "pin name {} box_end {} box_begin {} via_begin {} via_end
-    {}", pin.name, pin.box_begin, pin.box_end, pin.via_begin, pin.via_end);
-    }
-
-    for (auto box : bdAdapter.getBoxes()) {
-      logger_->info(utl::BY,
-                    900,
-                    "box la {} x {} y {} w {} h {}",
-                    box.la,
-                    box.x,
-                    box.y,
-                    box.w,
-                    box.h);
-    }
-
-    for (auto via : bdAdapter.getVias()) {
-      logger_->info(utl::BY,
-                    900,
-                    "via viadef_index {} x {} y {}",
-                    via.viadef_index,
-                    via.x,
-                    via.y);
-    }
-  */
-  void* so = dlopen("banyan.so", RTLD_NOW);
-  if (so == nullptr) {
-    logger_->error(
-        utl::BY, 667, "cannot load banyan.so: Have you set LD_LIBRARY_PATH?");
-    return -1;
-  }
-  auto banyan = (banyan_go::entry_func) dlsym(so, "banyan");
-  if (banyan == nullptr) {
-    logger_->error(utl::BY, 668, "caonnot find banyan in banyan.so");
-    return -1;
-  }
-
-  banyan_go::entry_ret ret;
-
-  long long err = banyan(
+  
+  banyan_go::route_ret ret;
+  long long err = banyan_route(
+    banyan_go::to_slice(options_vec),
+    bdAdapter.getDesign(),
+    banyan_go::to_slice(bdAdapter.getLayers()),
+    banyan_go::to_slice(bdAdapter.getTracks()),
     banyan_go::to_slice(bdAdapter.getNets()),
     banyan_go::to_slice(bdAdapter.getPins()),
     banyan_go::to_slice(bdAdapter.getBoxes()),
     banyan_go::to_slice(bdAdapter.getVias()),
-    banyan_go::to_slice(bdAdapter.getLayers()),
     banyan_go::to_slice(bdAdapter.getViadefs()),
-    banyan_go::to_slice(bdAdapter.getTracks()),
-    bdAdapter.getDesign(), &ret);
+    &ret);
 
-  if (ret.rboxes_size != 0)
-    free(ret.rboxes);
-  if (ret.rvias_size != 0)
-    free(ret.rvias);
+  if (err == 0) {
+    bdAdapter.updateDB(bdAdapter.getLayers(),
+                       bdAdapter.getNets(),
+                       bdAdapter.getViadefs(),
+                       ret);
+    if (ret.rboxes_size != 0)
+      free(ret.rboxes);
+    if (ret.rvias_size != 0)
+      free(ret.rvias);
+    logger_->info(utl::BY, 202, "banyan done");
+  }
+  else {
+    logger_->info(utl::BY, 504, "banyan error: {}", err);
+  }
 
-  logger_->info(utl::BY, 666, "banyan returns {}", err);
-
-  return 0;
+  return (int)err;
 }
 
 }  // namespace banyan

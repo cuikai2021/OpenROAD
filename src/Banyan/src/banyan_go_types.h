@@ -1,6 +1,27 @@
 #pragma once
 
+// interface version
+enum {
+    interface_version_0 = 0xaa,
+    interface_version_1 = 0xaa,
+    interface_version_2 = 0x00,
+    interface_version_3 = 0x00,
+    interface_version_4 = 0x20,
+    interface_version_5 = 0x21,
+    interface_version_6 = 0x07,
+    interface_version_7 = 0x15,
+};
+
 // POD types that can be consumed by go code
+
+typedef unsigned long long GoUint64;
+
+// option as key/value string pair
+struct option
+{
+    const char *key;
+    const char *value;
+};
 
 // a box located in a specific layer
 struct box
@@ -9,7 +30,7 @@ struct box
     // 0, 1, 2, ...: routing layers from the lowest
     int la;
 
-	int x, y, w, h;
+    int x, y, w, h;
 }; // struct box
 
 // a via connecting two layers
@@ -49,12 +70,12 @@ struct pin
     const char *name;
 
     // index into the box array
-    size_t box_begin;
-    size_t box_end;
+    GoUint64 box_begin;
+    GoUint64 box_end;
 
     // index into the via array
-    size_t via_begin;
-    size_t via_end;    
+    GoUint64 via_begin;
+    GoUint64 via_end;    
 }; // struct pin
 
 // a net of pins that need to be connected
@@ -64,21 +85,22 @@ struct net
 {
     // for diagnostics only
     const char *name;
-    size_t ndr_index;
+
+    int ndr_index;
 
     int use;
 
     // index into the pin array
-    size_t pin_begin;
-    size_t pin_end;
+    GoUint64 pin_begin;
+    GoUint64 pin_end;
 
     // returned boxes
-    size_t rbox_begin;
-    size_t rbox_end;
+    GoUint64 rbox_begin;
+    GoUint64 rbox_end;
 
     // returned vias
-    size_t rvia_begin;
-    size_t rvia_end;
+    GoUint64 rvia_begin;
+    GoUint64 rvia_end;
 }; // struct net
 
 struct viadef
@@ -100,13 +122,13 @@ struct layer
     int pitch;
 
     // index into the track array
-    size_t track_begin;
-    size_t track_end;
+    GoUint64 track_begin;
+    GoUint64 track_end;
 
     // index into the viadef array
     // viadef connect this and one layer below
-    size_t viadef_begin;
-    size_t viadef_end;
+    GoUint64 viadef_begin;
+    GoUint64 viadef_end;
 }; // struct layer
 
 struct track
@@ -119,9 +141,9 @@ struct track
 struct ndr_layer
 {
   int la;
-  size_t width;
-  size_t spacing;
-  size_t wire_ext;
+  int width;
+  int spacing;
+  unsigned int wire_ext;
 };
 
 struct ndr
@@ -131,11 +153,11 @@ struct ndr
 
     int hard_spacing;
 
-    size_t *viadefs; 
-    size_t viadefs_size;
+    GoUint64 ndr_via_begin;
+    GoUint64 ndr_via_end;
 
-    size_t ndr_layer_begin;
-    size_t ndr_layer_end;
+    GoUint64 ndr_layer_begin;
+    GoUint64 ndr_layer_end;
 };
 
 struct design
@@ -146,11 +168,11 @@ struct design
 }; // struct design
 
 // returned
-struct entry_ret
+struct route_ret
 {
     box *rboxes; // need free
-    size_t rboxes_size;
+    GoUint64 rboxes_size;
 
     via *rvias; // need free
-    size_t rvias_size;
+    GoUint64 rvias_size;
 }; // struct entry_ret

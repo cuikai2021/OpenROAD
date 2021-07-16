@@ -13,7 +13,7 @@ find_package(Boost 1.68.0)
 find_package(OpenMP REQUIRED)
 
 swig_lib(NAME      Banyan
-         NAMESPACE drt
+         NAMESPACE banyan
          I_FILE    src/Banyan.i
          SCRIPTS   src/Banyan.tcl
 )
