@@ -946,19 +946,21 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
         _wire_encoder.addPoint(box.x+box.w, box.y);
       } else if (box.w == box.h) {
         // TODO
-      } else if (box.w > box.h) {
-        int beginX = box.x + width / 2;
-        int beginY = box.y + width / 2;
-        int endX = box.x + box.w - width / 2;
-        _wire_encoder.addPoint(beginX, beginY);
-        _wire_encoder.addPoint(endX, beginY);
-      } else {
-        int beginX = box.x + width / 2;
-        int beginY = box.y + width / 2;
-        int endY = box.y + box.h - width / 2;
-        _wire_encoder.addPoint(beginX, beginY);
-        _wire_encoder.addPoint(beginX, endY);
-      }
+      } 
+      
+      // else if (box.w > box.h) {
+      //   int beginX = box.x + width / 2;
+      //   int beginY = box.y + width / 2;
+      //   int endX = box.x + box.w - width / 2;
+      //   _wire_encoder.addPoint(beginX, beginY);
+      //   _wire_encoder.addPoint(endX, beginY);
+      // } else {
+      //   int beginX = box.x + width / 2;
+      //   int beginY = box.y + width / 2;
+      //   int endY = box.y + box.h - width / 2;
+      //   _wire_encoder.addPoint(beginX, beginY);
+      //   _wire_encoder.addPoint(beginX, endY);
+      // }
     }
 
     // add wire via
