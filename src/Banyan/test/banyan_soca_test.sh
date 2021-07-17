@@ -7,4 +7,4 @@ else
     export LD_LIBRARY_PATH=$PROJ_PATH/src/Banyan/banyan-integrate:$LD_LIBRARY_PATH
 fi
 
-../../../build/src/eden -exit soca.tcl
+../../../build/src/eden -exit banyan.tcl

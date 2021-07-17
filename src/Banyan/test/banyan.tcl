@@ -6,6 +6,8 @@ read_lef $tapout_flow_dir/foundries/smic/40/lef/sram_sp_hde_x512y8d32_bw.lef
 read_def $tapout_flow_dir/results/smic40vhs_RVT/maychipA/4_cts.def
 banyan_route
 # banyan_save_txt
-write_def "banyan_route.def"
+write_def 5_route.def
+write_verilog 5_route.v
+write_sdc 5_route.sdc
 
 
