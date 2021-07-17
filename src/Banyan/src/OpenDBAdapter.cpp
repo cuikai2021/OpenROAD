@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include <utility>
+#include <iostream>
 
 #include "DBAdapter.h"
 #include "GroupedRange.hpp"
@@ -12,7 +13,22 @@
 #include "opendb/geom.h"
 #include "utl/Logger.h"
 
+#define AssertFind(mmap, key) assertFind(mmap, key, __FILE__, __LINE__, __func__)
+
+
 namespace banyan {
+
+template <typename TKEY, typename TVALUE>
+TVALUE assertFind(std::map<TKEY, TVALUE>& mmap, TKEY key, const char *fname, int lineno, const char *fxname)
+{
+  auto itr = mmap.find(key);
+  if (itr == mmap.end()) {
+    std::cout << "can not find map[" << key << "], call in " << fname << " "
+              << fxname << " " << lineno << std::endl;
+    assert(false);
+  }
+  return itr->second;
+}
 
 std::string getViaNameFromViaBox(odb::dbSBox* box)
 {
@@ -201,7 +217,7 @@ void getLayerNameToTechViasMap(
       groupedVias.push_back(via);
       layerNameToTechVias[lname] = groupedVias;
     } else {
-      layerNameToTechVias.find(lname)->second.push_back(via);
+      AssertFind(layerNameToTechVias, lname).push_back(via);
     }
   }
 }
@@ -217,7 +233,7 @@ void getLayerNameToViasMap(
       groupedVias.push_back(via);
       layerNameToDefVias[lname] = groupedVias;
     } else {
-      layerNameToDefVias.find(lname)->second.push_back(via);
+      AssertFind(layerNameToDefVias, lname).push_back(via);
     }
   }
 }
@@ -271,10 +287,8 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
     case odb::dbViaObj: {
       auto via = static_cast<odb::dbVia*>(viaObj);
       vname = via->getName();
-      botLayerIdx
-          = layerNameToIdxs_.find(via->getBottomLayer()->getName())->second;
-      topLayerIdx
-          = layerNameToIdxs_.find(via->getTopLayer()->getName())->second;
+      botLayerIdx = AssertFind(layerNameToIdxs_, via->getBottomLayer()->getName());
+      topLayerIdx= AssertFind(layerNameToIdxs_, via->getTopLayer()->getName());
       rule = via->getViaGenerateRule();
       viaHasParams = via->hasParams();
       if (viaHasParams && rule != nullptr) {
@@ -287,10 +301,8 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
     case odb::dbTechViaObj: {
       auto techVia = static_cast<odb::dbTechVia*>(viaObj);
       vname = techVia->getName();
-      botLayerIdx
-          = layerNameToIdxs_.find(techVia->getBottomLayer()->getName())->second;
-      topLayerIdx
-          = layerNameToIdxs_.find(techVia->getTopLayer()->getName())->second;
+      botLayerIdx = AssertFind(layerNameToIdxs_, techVia->getBottomLayer()->getName());
+      topLayerIdx = AssertFind(layerNameToIdxs_, techVia->getTopLayer()->getName());
       rule = techVia->getViaGenerateRule();
       viaHasParams = techVia->hasParams();
       if (viaHasParams && rule != nullptr) {
@@ -407,7 +419,7 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
 {
   int ndrIdx = -1;
   if (net->getNonDefaultRule() != nullptr) {
-    ndrIdx = ndrNameToIdxs_.find(net->getNonDefaultRule()->getName())->second;
+    ndrIdx = AssertFind(ndrNameToIdxs_, net->getNonDefaultRule()->getName());
   }
   auto it = netNameToIdxs_.insert(make_pair(net->getName(), nets_.size())).first;
   banyan_go::net_use use = banyan_go::USE_SIGNAL;
@@ -431,7 +443,7 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
 
 void OpenDBAdapter::addBox(odb::dbBox* box)
 {
-  int layerIdx = layerNameToIdxs_.find(box->getTechLayer()->getName())->second;
+  int layerIdx = AssertFind(layerNameToIdxs_, box->getTechLayer()->getName());
   if (layerIdx < 0) {
     // logger_->info(utl::BY,
     //        802,
@@ -448,7 +460,7 @@ void OpenDBAdapter::addBox(odb::dbBox* box)
 
 void OpenDBAdapter::addBox(std::string layerName, const odb::Rect& rect)
 {
-  int layerIdx = layerNameToIdxs_.find(layerName)->second;
+  int layerIdx = AssertFind(layerNameToIdxs_, layerName);
   if (layerIdx < 0) {
     // logger_->info(utl::BY,
     //        802,
@@ -469,7 +481,7 @@ void OpenDBAdapter::addBox(std::string layerName,
                            int right,
                            int top)
 {
-  int layerIdx = layerNameToIdxs_.find(layerName)->second;
+  int layerIdx = AssertFind(layerNameToIdxs_, layerName);
   if (layerIdx < 0) {
     // logger_->info(utl::BY,
     //        802,
@@ -482,19 +494,16 @@ void OpenDBAdapter::addBox(std::string layerName,
 
 void OpenDBAdapter::addVia(odb::dbSBox* box)
 {
-  assert(viaDefNameToIdxs_.find(getViaNameFromViaBox(box))
-         != viaDefNameToIdxs_.end());
   int x;
   int y;
   box->getViaXY(x, y);
-  int viaDefIdx = viaDefNameToIdxs_.find(getViaNameFromViaBox(box))->second;
+  int viaDefIdx = AssertFind(viaDefNameToIdxs_, getViaNameFromViaBox(box));
   vias_.push_back({viaDefIdx, defdist(x), defdist(y)});
 }
 
 void OpenDBAdapter::addVia(std::string viaName, int x, int y)
 {
-  assert(viaDefNameToIdxs_.find(viaName) != viaDefNameToIdxs_.end());
-  int viaDefIdx = viaDefNameToIdxs_.find(viaName)->second;
+  int viaDefIdx = AssertFind(viaDefNameToIdxs_, viaName);
   vias_.push_back({viaDefIdx, x, y});
 }
 
@@ -638,7 +647,7 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
         case odb::dbWireDecoder::SHORT:
         case odb::dbWireDecoder::VWIRE:
           layerName = decoder.getLayer()->getName();
-          assert(layerNameToIdxs_.find(layerName) != layerNameToIdxs_.end());
+          AssertFind(layerNameToIdxs_, layerName);
           break;
         case odb::dbWireDecoder::POINT:
           if (!hasBeginPoint) {
@@ -754,8 +763,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
   for (auto net : nets) {
     const auto nName = net->getName();
     size_t pinIndexBegin = pins_.size();
-    int netIdx = netNameToIdxs_.find(nName)->second;
-
+    int netIdx = AssertFind(netNameToIdxs_, nName);
     // netNameToBTerms.erase(nName);
     // netNameToITerms.erase(nName);
 
@@ -866,7 +874,7 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
   auto ndrLayerIdxBegin = ndrlayers_.size();
   for (auto& laNDR : laNDRs) {
     auto lname = laNDR->getLayer()->getName();
-    auto layerIdx = layerNameToIdxs_.find(lname)->second;
+    auto layerIdx = AssertFind(layerNameToIdxs_, lname);
     ndrlayers_.push_back({layerIdx,
                           laNDR->getWidth(),
                           laNDR->getSpacing(),
@@ -882,14 +890,14 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
   std::vector<odb::dbTechVia*> useVias;
   ndr->getUseVias(useVias);
   for (auto useVia : useVias) {
-    auto viadefIdx = viaDefNameToIdxs_.find(useVia->getName())->second;
+    auto viadefIdx = AssertFind(viaDefNameToIdxs_, useVia->getName()); 
     vias_.push_back({(int)viadefIdx});
   }
 
   std::vector<odb::dbTechViaGenerateRule*> useViaRules;
   ndr->getUseViaRules(useViaRules);
   for (auto viaRule : useViaRules) {
-    auto viadefIdx = viaDefNameToIdxs_.find(viaRule->getName())->second;
+    auto viadefIdx = AssertFind(viaDefNameToIdxs_, viaRule->getName());
     vias_.push_back({(int)viadefIdx});
   }
   ndrNameToIdxs_[ndr->getName()] = ndrs_.size();
