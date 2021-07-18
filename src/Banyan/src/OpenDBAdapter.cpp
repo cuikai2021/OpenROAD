@@ -217,7 +217,7 @@ void getLayerNameToTechViasMap(
       groupedVias.push_back(via);
       layerNameToTechVias[lname] = groupedVias;
     } else {
-      AssertFind(layerNameToTechVias, lname).push_back(via);
+      layerNameToTechVias.find(lname)->second.push_back(via);
     }
   }
 }
@@ -233,7 +233,7 @@ void getLayerNameToViasMap(
       groupedVias.push_back(via);
       layerNameToDefVias[lname] = groupedVias;
     } else {
-      AssertFind(layerNameToDefVias, lname).push_back(via);
+      layerNameToDefVias.find(lname)->second.push_back(via);
     }
   }
 }
