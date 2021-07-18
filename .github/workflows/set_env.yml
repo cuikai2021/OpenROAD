@@ -21,13 +21,13 @@ jobs:
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           path: ${{ github.workspace }}/bamboo
 
-      # - name: 3. monitor file change
-      #   id: change
-      #   uses: trilom/file-changes-action@v1.2.4
-      #   with:
-      #     githubToken: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-      #     pushBefore: ${{ github.event.before }}
-      #     pushAfter: ${{ github.event.after }}
+      - name: 3. monitor file change
+        id: change
+        uses: trilom/file-changes-action@v1.2.4
+        with:
+          githubToken: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          pushBefore: ${{ github.event.before }}
+          pushAfter: ${{ github.event.after }}
 
       - name: 4. create env json file and upload
         run: |
@@ -35,6 +35,7 @@ jobs:
           export PYTHONPATH=${{github.workspace}}/bamboo
           python3 -m modules.json.json_create ${{ github.repository }} ${{ github.workspace }} ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }} ${{ github.run_number }} ${{ github.event.after }} ${{ github.event.commits[0].committer.username }} ${{ github.event.commits[1].committer.username }}
           python3 -m modules.aliyun_oss.aliyun upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
+          apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 8B57C5C2836F4BEB
 
       - name: 5. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1

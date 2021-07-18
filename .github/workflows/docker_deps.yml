@@ -60,7 +60,6 @@ jobs:
       - name: 8. upload json file to aliyun repository
         # if: ${{ env.env_IS_FILES_MODIFIED_OR_ADDED == 'true' }}
         run: |
-          pip install oss2
           export PYTHONPATH=${{github.workspace}}/bamboo
           python3 -m modules.aliyun_oss.aliyun upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/latest_docker_deps_image.json latest_docker_deps_image.json
 

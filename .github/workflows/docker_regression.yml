@@ -142,28 +142,45 @@ jobs:
               echo "NO_RUNNING_ACTIONS=false" >> $GITHUB_ENV
           fi
 
+      # - name: 16. success pull request
+      #   if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'true' }}
+      #   uses: octokit/request-action@v2.x
+      #   id: pulls
+      #   with:
+      #     route: POST /repos/{repository}/pulls
+      #     repository: ${{ github.repository }}
+      #     head_sha: ${{ github.sha }}
+      #     title: regression succeed, run number is ${{ github.run_number }}
+      #     base: master
+      #     head: ${{ github.ref }}
+      #     labels: "CI"
+      #     body: |
+      #       The regression run success
+
+      #       The branch is ${{ github.ref }}
+
+      #       The action sha value is ${{ env.env_EVENT_AFTER }}
+
+      #       The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+      
       - name: 16. success pull request
-        if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'true' }}
-        uses: octokit/request-action@v2.x
-        id: pulls
-        with:
-          route: POST /repos/{repository}/pulls
-          repository: ${{ github.repository }}
-          head_sha: ${{ github.sha }}
-          title: regression succeed, run number is ${{ github.run_number }}
-          base: master
-          head: ${{ github.ref }}
-          labels: "CI"
-          body: |
-            The regression run success
-
-            The branch is ${{ github.ref }}
-
-            The action sha value is ${{ env.env_EVENT_AFTER }}
-
-            The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+        run: |
+          echo "The regression run success" >> body_file.txt
+          echo "The branch is ${{ github.ref }}" >> body_file.txt
+          echo "The action sha value is ${{ env.env_EVENT_AFTER }}" >> body_file.txt
+          echo "The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz" >> body_file.txt
+          cd ${{ github.workspace }}/bamboo
+          source ./modules/github_api/util.sh
+          github --create-pr \
+              --token ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }} \
+              --usr ${{ github.actor }} \
+              --repo "Eden" \
+              --head ${{ github.ref }} \
+              --base master \
+              --title regression succeed, run number is ${{ github.run_number }} \
+              --body-file ${body_file.txt}
 
       - name: 17. send email when there is running actions
         if: ${{ env.EXIST_REGRESSION_FAILURES == 'false' && env.NO_RUNNING_ACTIONS == 'false' }}
@@ -193,6 +210,22 @@ jobs:
             The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+
+      - name: 18. failure issue
+        run: |
+            echo "The regression run failure" >> body_file.txt
+            echo "The branch is ${{ github.ref }}" >> body_file.txt
+            echo "The action sha value is ${{ env.env_EVENT_AFTER }}" >> body_file.txt
+            echo "The regression failure info can be downloaded from https://icbench-devops.oss-cn-shanghai.aliyuncs.com/regression_results/${{ github.run_number }}/${{ env.REGRESSION_FAILURES_FILE }}" >> body_file.txt
+            echo "The coverage output can be downloaded from ${{ env.COVERAGE_DOWNLOAD_PATH }}/coverage-result-${{ github.run_number }}.tar.gz" >> body_file.txt
+            cd ${{ github.workspace }}/bamboo
+            source ./modules/github_api/util.sh
+            github --create-issue \
+                --token ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }} \
+                --usr ${{ github.actor }} \
+                --repo Eden \
+                --title regression failed, run number is ${{ github.run_number }} \
+                --body-file ${body_file.txt}
 
       - name: 19. delete used images
         if: ${{ always() }}
