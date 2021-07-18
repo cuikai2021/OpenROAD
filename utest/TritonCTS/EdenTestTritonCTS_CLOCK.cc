@@ -6,7 +6,7 @@
 using namespace cts;
 
 ///////// test for class "ClockInst" in "Clock.h"///////////////
-
+#if 0
 TEST(TritonCTS_clock_inst, constructor_and_basic_functions)
 {
   const std::string name = "name";
@@ -259,3 +259,4 @@ TEST_F(TritonCTS_clock, clock_sink_all_function__compute_region_and_iteration)
   EXPECT_EQ(pin[2], nullptr);
   EXPECT_EQ(pin[3], pinObj.get());
 }
+#endif 
