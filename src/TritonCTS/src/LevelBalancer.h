@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,7 @@ class LevelBalancer
 {
  public:
   LevelBalancer(TreeBuilder* root, CtsOptions* options, Logger* logger):
-                _root(root), _options(options), _logger(logger) { }
+                _root(root), _options(options), _logger(logger), levelBufCount_(0) { }
 
   void run();
   void addBufferLevels(TreeBuilder* builder, std::vector<ClockInst*> cluster,
@@ -103,5 +103,6 @@ class LevelBalancer
   Logger* _logger;
   CellLevelMap cgcLevelMap_;
   std::map<TreeBuilder*, std::set<unsigned> > _buildCache;
+  unsigned levelBufCount_;
 };
 }

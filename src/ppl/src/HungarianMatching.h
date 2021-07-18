@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -62,8 +62,8 @@ class HungarianMatching
  public:
   HungarianMatching(Section&, std::vector<Slot>&, Logger* logger);
   virtual ~HungarianMatching() = default;
-  void findAssignment(const std::vector<Constraint>& constraints);
-  void findAssignmentForGroups(const std::vector<Constraint>& constraints);
+  void findAssignment();
+  void findAssignmentForGroups();
   void getFinalAssignment(std::vector<IOPin>&) const;
   void getAssignmentForGroups(std::vector<IOPin>&);
 
@@ -85,8 +85,8 @@ class HungarianMatching
   const int hungarian_fail = std::numeric_limits<int>::max();
   Logger* logger_;
 
-  void createMatrix(const std::vector<Constraint>& constraints);
-  void createMatrixForGroups(const std::vector<Constraint>& constraints);
+  void createMatrix();
+  void createMatrixForGroups();
 };
 
 }  // namespace ppl

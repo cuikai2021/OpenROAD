@@ -61,8 +61,8 @@ class FastRouteCore
   void deleteComponents();
   void clear();
   void setGridsAndLayers(int x, int y, int nLayers);
-  void addVCapacity(int verticalCapacity, int layer);
-  void addHCapacity(int horizontalCapacity, int layer);
+  void addVCapacity(short verticalCapacity, int layer);
+  void addHCapacity(short horizontalCapacity, int layer);
   void addMinWidth(int width, int layer);
   void addMinSpacing(int spacing, int layer);
   void addViaSpacing(int spacing, int layer);
@@ -72,11 +72,12 @@ class FastRouteCore
   void setLayerOrientation(int x);
   void addPin(int netID, int x, int y, int layer);
   int addNet(odb::dbNet* db_net,
-             int nPins,
-             int validPins,
+             int num_pins,
              float alpha,
-             bool isClock,
-             int cost);
+             bool is_clock,
+             int driver_idx,
+             int cost,
+             std::vector<int> edge_cost_per_layer);
   void initEdges();
   void setNumAdjustments(int nAdjustements);
   void addAdjustment(long x1,
@@ -86,7 +87,7 @@ class FastRouteCore
                      long y2,
                      int l2,
                      int reducedCap,
-                     bool isReduce = true);
+                     bool isReduce);
   void initAuxVar();
   NetRouteMap run();
   void updateDbCongestion();
@@ -117,13 +118,25 @@ class FastRouteCore
   void setAlpha(float a);
   void setVerbose(int v);
   void setOverflowIterations(int iterations);
-  void setPDRevForHighFanout(int pdRevHihgFanout);
   void setAllowOverflow(bool allow);
+  void computeCongestionInformation();
+  std::vector<int> getOriginalResources();
+  std::vector<int> getTotalCapacityPerLayer() { return cap_per_layer; }
+  std::vector<int> getTotalUsagePerLayer() { return usage_per_layer; }
+  std::vector<int> getTotalOverflowPerLayer() { return overflow_per_layer; }
+  std::vector<int> getMaxHorizontalOverflows() { return max_h_overflow; }
+  std::vector<int> getMaxVerticalOverflows() { return max_v_overflow; }
 
  private:
   NetRouteMap getRoutes();
   int maxNetDegree;
+  std::vector<int> cap_per_layer;
+  std::vector<int> usage_per_layer;
+  std::vector<int> overflow_per_layer;
+  std::vector<int> max_h_overflow;
+  std::vector<int> max_v_overflow;
   odb::dbDatabase* db_;
+  bool allow_overflow_;
 };
 
 }  // namespace grt

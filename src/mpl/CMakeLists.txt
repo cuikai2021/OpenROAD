@@ -1,6 +1,6 @@
 #############################################################################
 ##
-## Copyright (c) 2019, OpenROAD
+## Copyright (c) 2019, The Regents of the University of California
 ## All rights reserved.
 ##
 ## BSD 3-Clause License
@@ -62,4 +62,8 @@ target_link_libraries(mpl
     opendb
     utl
     gui
+)
+
+messages(
+  TARGET mpl
 )

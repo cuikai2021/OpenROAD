@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // BSD 3-Clause License
@@ -46,7 +46,7 @@
 #include "db_sta/dbNetwork.hh"
 #include "opendb/db.h"
 
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 #include "utl/Logger.h"
 
 namespace ord {
@@ -254,7 +254,7 @@ Verilog2db::makeDbInsts()
     if (master)
       dbInst::create(block_, master, inst_name);
     else
-      logger_->warn(ORD, 1001, "instance {} LEF master {} not found.",
+      logger_->warn(ORD, 1013, "instance {} LEF master {} not found.",
                     inst_name,
                     network_->name(cell));
   }

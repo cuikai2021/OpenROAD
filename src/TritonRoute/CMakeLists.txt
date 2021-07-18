@@ -2,7 +2,7 @@
 ##
 ## BSD 3-Clause License
 ##
-## Copyright (c) 2021, University of California, San Diego.
+## Copyright (c) 2021, The Regents of the University of California
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -89,6 +89,7 @@ target_sources(TritonRoute
     src/gc/FlexGC_init.cpp
     src/gc/FlexGC_main.cpp
     src/gc/FlexGC_eol.cpp
+    src/gc/FlexGC_inf.cpp
     src/db/drObj/drShape.cpp
     src/db/drObj/drVia.cpp
     src/db/infra/frBox.cpp
@@ -133,13 +134,17 @@ target_link_libraries(TritonRoute
   PUBLIC
     gui
     opendb
-    flute
+    stt
     OpenSTA
     utl
     Threads::Threads
     OpenMP::OpenMP_CXX
     Boost::boost
     ZLIB::ZLIB
+)
+
+messages(
+  TARGET TritonRoute
 )
 
 ############################################################

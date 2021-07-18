@@ -26,8 +26,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "dr/FlexDR.h"
-
 #include <omp.h>
 
 #include <boost/io/ios_state.hpp>
@@ -36,8 +34,10 @@
 #include <sstream>
 
 #include "db/infra/frTime.h"
+#include "dr/FlexDR.h"
 #include "dr/FlexDR_graphics.h"
 #include "frProfileTask.h"
+#include "gc/FlexGC.h"
 
 using namespace std;
 using namespace fr;
@@ -60,8 +60,9 @@ void FlexDR::setDebug(frDebugSettings* settings)
             : nullptr;
 }
 
-int FlexDRWorker::main()
+int FlexDRWorker::main(frDesign* design)
 {
+  ProfileTask profile("DR:main");
   using namespace std::chrono;
   high_resolution_clock::time_point t0 = high_resolution_clock::now();
   if (VERBOSE > 1) {
@@ -76,52 +77,16 @@ int FlexDRWorker::main()
     cout << ss.str() << flush;
   }
 
-  init();
+  init(design);
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
-  route();
-  high_resolution_clock::time_point t2 = high_resolution_clock::now();
-  end();
-  high_resolution_clock::time_point t3 = high_resolution_clock::now();
+  if (!skipRouting_) {
+    FlexGCWorker gcWorker(design->getTech(), logger_, this);
+    gcWorker.setExtBox(getExtBox());
+    gcWorker.setDrcBox(getDrcBox());
+    gcWorker.init(design);
+    gcWorker.setEnableSurgicalFix(true);
 
-  duration<double> time_span0 = duration_cast<duration<double>>(t1 - t0);
-  duration<double> time_span1 = duration_cast<duration<double>>(t2 - t1);
-  duration<double> time_span2 = duration_cast<duration<double>>(t3 - t2);
-
-  if (VERBOSE > 1) {
-    stringstream ss;
-    ss << "time (INIT/ROUTE/POST) " << time_span0.count() << " "
-       << time_span1.count() << " " << time_span2.count() << " " << endl;
-    cout << ss.str() << flush;
-  }
-  return 0;
-}
-
-int FlexDRWorker::main_mt()
-{
-  ProfileTask profile("DR:main_mt");
-  using namespace std::chrono;
-  high_resolution_clock::time_point t0 = high_resolution_clock::now();
-  if (VERBOSE > 1) {
-    frBox scaledBox;
-    stringstream ss;
-    ss << endl
-       << "start DR worker (BOX) "
-       << "( " << routeBox_.left() * 1.0 / getTech()->getDBUPerUU() << " "
-       << routeBox_.bottom() * 1.0 / getTech()->getDBUPerUU() << " ) ( "
-       << routeBox_.right() * 1.0 / getTech()->getDBUPerUU() << " "
-       << routeBox_.top() * 1.0 / getTech()->getDBUPerUU() << " )" << endl;
-    cout << ss.str() << flush;
-  }
-  if (graphics_) {
-    graphics_->startWorker(this);
-  }
-
-  init();
-  high_resolution_clock::time_point t1 = high_resolution_clock::now();
-  if (getFixMode() != 9) {
-    route();
-  } else {
-    route_queue();
+    route_queue(gcWorker);
   }
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   cleanup();
@@ -163,14 +128,13 @@ void FlexDR::initFromTA()
       }
     }
   }
-
 }
 
 void FlexDR::initGCell2BoundaryPin()
 {
   // initiailize size
   frBox dieBox;
-  getDesign()->getTopBlock()->getBoundaryBBox(dieBox);
+  getDesign()->getTopBlock()->getDieBox(dieBox);
   auto gCellPatterns = getDesign()->getTopBlock()->getGCellPatterns();
   auto& xgp = gCellPatterns.at(0);
   auto& ygp = gCellPatterns.at(1);
@@ -284,7 +248,7 @@ frCoord FlexDR::init_via2viaMinLen_minimumcut1(frLayerNum lNum,
   frCoord sol = 0;
 
   // check min len in lNum assuming pre dir routing
-  bool isH = (getDesign()->getTech()->getLayer(lNum)->getDir()
+  bool isH = (getTech()->getLayer(lNum)->getDir()
               == frPrefRoutingDirEnum::frcHorzPrefRoutingDir);
 
   bool isVia1Above = false;
@@ -315,8 +279,7 @@ frCoord FlexDR::init_via2viaMinLen_minimumcut1(frLayerNum lNum,
   auto width2 = viaBox2.width();
   auto length2 = viaBox2.length();
 
-  for (auto& con :
-       getDesign()->getTech()->getLayer(lNum)->getMinimumcutConstraints()) {
+  for (auto& con : getTech()->getLayer(lNum)->getMinimumcutConstraints()) {
     if ((!con->hasLength() || (con->hasLength() && length1 > con->getLength()))
         && width1 > con->getWidth()) {
       bool checkVia2 = false;
@@ -421,8 +384,7 @@ bool FlexDR::init_via2viaMinLen_minimumcut2(frLayerNum lNum,
   via2.getCutBBox(cutBox2);
   auto width2 = viaBox2.width();
 
-  for (auto& con :
-       getDesign()->getTech()->getLayer(lNum)->getMinimumcutConstraints()) {
+  for (auto& con : getTech()->getLayer(lNum)->getMinimumcutConstraints()) {
     if (con->hasLength()) {
       continue;
     }
@@ -483,9 +445,9 @@ frCoord FlexDR::init_via2viaMinLen_minSpc(frLayerNum lNum,
   frCoord sol = 0;
 
   // check min len in lNum assuming pre dir routing
-  bool isH = (getDesign()->getTech()->getLayer(lNum)->getDir()
+  bool isH = (getTech()->getLayer(lNum)->getDir()
               == frPrefRoutingDirEnum::frcHorzPrefRoutingDir);
-  frCoord defaultWidth = getDesign()->getTech()->getLayer(lNum)->getWidth();
+  frCoord defaultWidth = getTech()->getLayer(lNum)->getWidth();
 
   frVia via1(viaDef1);
   frBox viaBox1;
@@ -515,7 +477,7 @@ frCoord FlexDR::init_via2viaMinLen_minSpc(frLayerNum lNum,
 
   frCoord reqDist = 0;
   if (isVia1Fat && isVia2Fat) {
-    auto con = getDesign()->getTech()->getLayer(lNum)->getMinSpacing();
+    auto con = getTech()->getLayer(lNum)->getMinSpacing();
     if (con) {
       if (con->typeId() == frConstraintTypeEnum::frcSpacingConstraint) {
         reqDist = static_cast<frSpacingConstraint*>(con)->getMinSpacing();
@@ -555,7 +517,7 @@ frCoord FlexDR::init_via2viaMinLen_minSpc(frLayerNum lNum,
   prl1 = isH ? (viaBox1.top() - viaBox1.bottom())
              : (viaBox1.right() - viaBox1.left());
   reqDist = 0;
-  auto con = getDesign()->getTech()->getLayer(lNum)->getMinSpacing();
+  auto con = getTech()->getLayer(lNum)->getMinSpacing();
   if (con) {
     if (con->typeId() == frConstraintTypeEnum::frcSpacingConstraint) {
       reqDist = static_cast<frSpacingConstraint*>(con)->getMinSpacing();
@@ -581,43 +543,42 @@ frCoord FlexDR::init_via2viaMinLen_minSpc(frLayerNum lNum,
 
 void FlexDR::init_via2viaMinLen()
 {
-  auto bottomLayerNum = getDesign()->getTech()->getBottomLayerNum();
-  auto topLayerNum = getDesign()->getTech()->getTopLayerNum();
+  auto bottomLayerNum = getTech()->getBottomLayerNum();
+  auto topLayerNum = getTech()->getTopLayerNum();
+  auto& via2viaMinLen = via_data_.via2viaMinLen;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     vector<frCoord> via2viaMinLenTmp(4, 0);
     vector<bool> via2viaZeroLen(4, true);
-    via2viaMinLen_.push_back(make_pair(via2viaMinLenTmp, via2viaZeroLen));
+    via2viaMinLen.push_back(make_pair(via2viaMinLenTmp, via2viaZeroLen));
   }
   // check prl
   int i = 0;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     frViaDef* downVia = nullptr;
     frViaDef* upVia = nullptr;
-    if (getDesign()->getTech()->getBottomLayerNum() <= lNum - 1) {
-      downVia = getDesign()->getTech()->getLayer(lNum - 1)->getDefaultViaDef();
+    if (getTech()->getBottomLayerNum() <= lNum - 1) {
+      downVia = getTech()->getLayer(lNum - 1)->getDefaultViaDef();
     }
-    if (getDesign()->getTech()->getTopLayerNum() >= lNum + 1) {
-      upVia = getDesign()->getTech()->getLayer(lNum + 1)->getDefaultViaDef();
+    if (getTech()->getTopLayerNum() >= lNum + 1) {
+      upVia = getTech()->getLayer(lNum + 1)->getDefaultViaDef();
     }
-    (via2viaMinLen_[i].first)[0]
-        = max((via2viaMinLen_[i].first)[0],
+    (via2viaMinLen[i].first)[0]
+        = max((via2viaMinLen[i].first)[0],
               init_via2viaMinLen_minSpc(lNum, downVia, downVia));
-    (via2viaMinLen_[i].first)[1]
-        = max((via2viaMinLen_[i].first)[1],
+    (via2viaMinLen[i].first)[1]
+        = max((via2viaMinLen[i].first)[1],
               init_via2viaMinLen_minSpc(lNum, downVia, upVia));
-    (via2viaMinLen_[i].first)[2]
-        = max((via2viaMinLen_[i].first)[2],
+    (via2viaMinLen[i].first)[2]
+        = max((via2viaMinLen[i].first)[2],
               init_via2viaMinLen_minSpc(lNum, upVia, downVia));
-    (via2viaMinLen_[i].first)[3]
-        = max((via2viaMinLen_[i].first)[3],
+    (via2viaMinLen[i].first)[3]
+        = max((via2viaMinLen[i].first)[3],
               init_via2viaMinLen_minSpc(lNum, upVia, upVia));
     i++;
   }
@@ -625,42 +586,41 @@ void FlexDR::init_via2viaMinLen()
   // check minimumcut
   i = 0;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     frViaDef* downVia = nullptr;
     frViaDef* upVia = nullptr;
-    if (getDesign()->getTech()->getBottomLayerNum() <= lNum - 1) {
-      downVia = getDesign()->getTech()->getLayer(lNum - 1)->getDefaultViaDef();
+    if (getTech()->getBottomLayerNum() <= lNum - 1) {
+      downVia = getTech()->getLayer(lNum - 1)->getDefaultViaDef();
     }
-    if (getDesign()->getTech()->getTopLayerNum() >= lNum + 1) {
-      upVia = getDesign()->getTech()->getLayer(lNum + 1)->getDefaultViaDef();
+    if (getTech()->getTopLayerNum() >= lNum + 1) {
+      upVia = getTech()->getLayer(lNum + 1)->getDefaultViaDef();
     }
     vector<frCoord> via2viaMinLenTmp(4, 0);
-    (via2viaMinLen_[i].first)[0]
-        = max((via2viaMinLen_[i].first)[0],
+    (via2viaMinLen[i].first)[0]
+        = max((via2viaMinLen[i].first)[0],
               init_via2viaMinLen_minimumcut1(lNum, downVia, downVia));
-    (via2viaMinLen_[i].first)[1]
-        = max((via2viaMinLen_[i].first)[1],
+    (via2viaMinLen[i].first)[1]
+        = max((via2viaMinLen[i].first)[1],
               init_via2viaMinLen_minimumcut1(lNum, downVia, upVia));
-    (via2viaMinLen_[i].first)[2]
-        = max((via2viaMinLen_[i].first)[2],
+    (via2viaMinLen[i].first)[2]
+        = max((via2viaMinLen[i].first)[2],
               init_via2viaMinLen_minimumcut1(lNum, upVia, downVia));
-    (via2viaMinLen_[i].first)[3]
-        = max((via2viaMinLen_[i].first)[3],
+    (via2viaMinLen[i].first)[3]
+        = max((via2viaMinLen[i].first)[3],
               init_via2viaMinLen_minimumcut1(lNum, upVia, upVia));
-    (via2viaMinLen_[i].second)[0]
-        = (via2viaMinLen_[i].second)[0]
+    (via2viaMinLen[i].second)[0]
+        = (via2viaMinLen[i].second)[0]
           && init_via2viaMinLen_minimumcut2(lNum, downVia, downVia);
-    (via2viaMinLen_[i].second)[1]
-        = (via2viaMinLen_[i].second)[1]
+    (via2viaMinLen[i].second)[1]
+        = (via2viaMinLen[i].second)[1]
           && init_via2viaMinLen_minimumcut2(lNum, downVia, upVia);
-    (via2viaMinLen_[i].second)[2]
-        = (via2viaMinLen_[i].second)[2]
+    (via2viaMinLen[i].second)[2]
+        = (via2viaMinLen[i].second)[2]
           && init_via2viaMinLen_minimumcut2(lNum, upVia, downVia);
-    (via2viaMinLen_[i].second)[3]
-        = (via2viaMinLen_[i].second)[3]
+    (via2viaMinLen[i].second)[3]
+        = (via2viaMinLen[i].second)[3]
           && init_via2viaMinLen_minimumcut2(lNum, upVia, upVia);
     i++;
   }
@@ -708,8 +668,7 @@ frCoord FlexDR::init_via2viaMinLenNew_minimumcut1(frLayerNum lNum,
   auto width2 = viaBox2.width();
   auto length2 = viaBox2.length();
 
-  for (auto& con :
-       getDesign()->getTech()->getLayer(lNum)->getMinimumcutConstraints()) {
+  for (auto& con : getTech()->getLayer(lNum)->getMinimumcutConstraints()) {
     // check via2cut to via1metal
     // no length OR metal1 shape satisfies --> check via2
     if ((!con->hasLength() || (con->hasLength() && length1 > con->getLength()))
@@ -789,7 +748,7 @@ frCoord FlexDR::init_via2viaMinLenNew_minSpc(frLayerNum lNum,
 
   // check min len in lNum assuming pre dir routing
   bool isCurrDirX = !isCurrDirY;
-  frCoord defaultWidth = getDesign()->getTech()->getLayer(lNum)->getWidth();
+  frCoord defaultWidth = getTech()->getLayer(lNum)->getWidth();
 
   frVia via1(viaDef1);
   frBox viaBox1;
@@ -821,7 +780,7 @@ frCoord FlexDR::init_via2viaMinLenNew_minSpc(frLayerNum lNum,
 
   frCoord reqDist = 0;
   if (isVia1Fat && isVia2Fat) {
-    auto con = getDesign()->getTech()->getLayer(lNum)->getMinSpacing();
+    auto con = getTech()->getLayer(lNum)->getMinSpacing();
     if (con) {
       if (con->typeId() == frConstraintTypeEnum::frcSpacingConstraint) {
         reqDist = static_cast<frSpacingConstraint*>(con)->getMinSpacing();
@@ -861,7 +820,7 @@ frCoord FlexDR::init_via2viaMinLenNew_minSpc(frLayerNum lNum,
   prl1 = isCurrDirX ? (viaBox1.top() - viaBox1.bottom())
                     : (viaBox1.right() - viaBox1.left());
   reqDist = 0;
-  auto con = getDesign()->getTech()->getLayer(lNum)->getMinSpacing();
+  auto con = getTech()->getLayer(lNum)->getMinSpacing();
   if (con) {
     if (con->typeId() == frConstraintTypeEnum::frcSpacingConstraint) {
       reqDist = static_cast<frSpacingConstraint*>(con)->getMinSpacing();
@@ -917,14 +876,10 @@ frCoord FlexDR::init_via2viaMinLenNew_cutSpc(frLayerNum lNum,
 
   // same layer (use samenet rule if exist, otherwise use diffnet rule)
   if (viaDef1->getCutLayerNum() == viaDef2->getCutLayerNum()) {
-    auto samenetCons = getDesign()
-                           ->getTech()
-                           ->getLayer(viaDef1->getCutLayerNum())
-                           ->getCutSpacing(true);
-    auto diffnetCons = getDesign()
-                           ->getTech()
-                           ->getLayer(viaDef1->getCutLayerNum())
-                           ->getCutSpacing(false);
+    auto samenetCons
+        = getTech()->getLayer(viaDef1->getCutLayerNum())->getCutSpacing(true);
+    auto diffnetCons
+        = getTech()->getLayer(viaDef1->getCutLayerNum())->getCutSpacing(false);
     if (!samenetCons.empty()) {
       // check samenet spacing rule if exists
       for (auto con : samenetCons) {
@@ -968,45 +923,37 @@ frCoord FlexDR::init_via2viaMinLenNew_cutSpc(frLayerNum lNum,
     auto layerNum1 = viaDef1->getCutLayerNum();
     auto layerNum2 = viaDef2->getCutLayerNum();
     frCutSpacingConstraint* samenetCon = nullptr;
-    if (getDesign()->getTech()->getLayer(layerNum1)->hasInterLayerCutSpacing(
-            layerNum2, true)) {
-      samenetCon = getDesign()
-                       ->getTech()
-                       ->getLayer(layerNum1)
-                       ->getInterLayerCutSpacing(layerNum2, true);
+    if (getTech()->getLayer(layerNum1)->hasInterLayerCutSpacing(layerNum2,
+                                                                true)) {
+      samenetCon = getTech()->getLayer(layerNum1)->getInterLayerCutSpacing(
+          layerNum2, true);
     }
-    if (getDesign()->getTech()->getLayer(layerNum2)->hasInterLayerCutSpacing(
-            layerNum1, true)) {
+    if (getTech()->getLayer(layerNum2)->hasInterLayerCutSpacing(layerNum1,
+                                                                true)) {
       if (samenetCon) {
         cout << "Warning: duplicate diff layer samenet cut spacing, skipping "
                 "cut spacing from "
              << layerNum2 << " to " << layerNum1 << endl;
       } else {
-        samenetCon = getDesign()
-                         ->getTech()
-                         ->getLayer(layerNum2)
-                         ->getInterLayerCutSpacing(layerNum1, true);
+        samenetCon = getTech()->getLayer(layerNum2)->getInterLayerCutSpacing(
+            layerNum1, true);
       }
     }
     if (samenetCon == nullptr) {
-      if (getDesign()->getTech()->getLayer(layerNum1)->hasInterLayerCutSpacing(
-              layerNum2, false)) {
-        samenetCon = getDesign()
-                         ->getTech()
-                         ->getLayer(layerNum1)
-                         ->getInterLayerCutSpacing(layerNum2, false);
+      if (getTech()->getLayer(layerNum1)->hasInterLayerCutSpacing(layerNum2,
+                                                                  false)) {
+        samenetCon = getTech()->getLayer(layerNum1)->getInterLayerCutSpacing(
+            layerNum2, false);
       }
-      if (getDesign()->getTech()->getLayer(layerNum2)->hasInterLayerCutSpacing(
-              layerNum1, false)) {
+      if (getTech()->getLayer(layerNum2)->hasInterLayerCutSpacing(layerNum1,
+                                                                  false)) {
         if (samenetCon) {
           cout << "Warning: duplicate diff layer diffnet cut spacing, skipping "
                   "cut spacing from "
                << layerNum2 << " to " << layerNum1 << endl;
         } else {
-          samenetCon = getDesign()
-                           ->getTech()
-                           ->getLayer(layerNum2)
-                           ->getInterLayerCutSpacing(layerNum1, false);
+          samenetCon = getTech()->getLayer(layerNum2)->getInterLayerCutSpacing(
+              layerNum1, false);
         }
       }
     }
@@ -1030,54 +977,53 @@ frCoord FlexDR::init_via2viaMinLenNew_cutSpc(frLayerNum lNum,
 
 void FlexDR::init_via2viaMinLenNew()
 {
-  auto bottomLayerNum = getDesign()->getTech()->getBottomLayerNum();
-  auto topLayerNum = getDesign()->getTech()->getTopLayerNum();
+  auto bottomLayerNum = getTech()->getBottomLayerNum();
+  auto topLayerNum = getTech()->getTopLayerNum();
+  auto& via2viaMinLenNew = via_data_.via2viaMinLenNew;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     vector<frCoord> via2viaMinLenTmp(8, 0);
-    via2viaMinLenNew_.push_back(via2viaMinLenTmp);
+    via2viaMinLenNew.push_back(via2viaMinLenTmp);
   }
   // check prl
   int i = 0;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     frViaDef* downVia = nullptr;
     frViaDef* upVia = nullptr;
-    if (getDesign()->getTech()->getBottomLayerNum() <= lNum - 1) {
-      downVia = getDesign()->getTech()->getLayer(lNum - 1)->getDefaultViaDef();
+    if (getTech()->getBottomLayerNum() <= lNum - 1) {
+      downVia = getTech()->getLayer(lNum - 1)->getDefaultViaDef();
     }
-    if (getDesign()->getTech()->getTopLayerNum() >= lNum + 1) {
-      upVia = getDesign()->getTech()->getLayer(lNum + 1)->getDefaultViaDef();
+    if (getTech()->getTopLayerNum() >= lNum + 1) {
+      upVia = getTech()->getLayer(lNum + 1)->getDefaultViaDef();
     }
-    via2viaMinLenNew_[i][0]
-        = max(via2viaMinLenNew_[i][0],
+    via2viaMinLenNew[i][0]
+        = max(via2viaMinLenNew[i][0],
               init_via2viaMinLenNew_minSpc(lNum, downVia, downVia, false));
-    via2viaMinLenNew_[i][1]
-        = max(via2viaMinLenNew_[i][1],
+    via2viaMinLenNew[i][1]
+        = max(via2viaMinLenNew[i][1],
               init_via2viaMinLenNew_minSpc(lNum, downVia, downVia, true));
-    via2viaMinLenNew_[i][2]
-        = max(via2viaMinLenNew_[i][2],
+    via2viaMinLenNew[i][2]
+        = max(via2viaMinLenNew[i][2],
               init_via2viaMinLenNew_minSpc(lNum, downVia, upVia, false));
-    via2viaMinLenNew_[i][3]
-        = max(via2viaMinLenNew_[i][3],
+    via2viaMinLenNew[i][3]
+        = max(via2viaMinLenNew[i][3],
               init_via2viaMinLenNew_minSpc(lNum, downVia, upVia, true));
-    via2viaMinLenNew_[i][4]
-        = max(via2viaMinLenNew_[i][4],
+    via2viaMinLenNew[i][4]
+        = max(via2viaMinLenNew[i][4],
               init_via2viaMinLenNew_minSpc(lNum, upVia, downVia, false));
-    via2viaMinLenNew_[i][5]
-        = max(via2viaMinLenNew_[i][5],
+    via2viaMinLenNew[i][5]
+        = max(via2viaMinLenNew[i][5],
               init_via2viaMinLenNew_minSpc(lNum, upVia, downVia, true));
-    via2viaMinLenNew_[i][6]
-        = max(via2viaMinLenNew_[i][6],
+    via2viaMinLenNew[i][6]
+        = max(via2viaMinLenNew[i][6],
               init_via2viaMinLenNew_minSpc(lNum, upVia, upVia, false));
-    via2viaMinLenNew_[i][7]
-        = max(via2viaMinLenNew_[i][7],
+    via2viaMinLenNew[i][7]
+        = max(via2viaMinLenNew[i][7],
               init_via2viaMinLenNew_minSpc(lNum, upVia, upVia, true));
     i++;
   }
@@ -1085,41 +1031,40 @@ void FlexDR::init_via2viaMinLenNew()
   // check minimumcut
   i = 0;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     frViaDef* downVia = nullptr;
     frViaDef* upVia = nullptr;
-    if (getDesign()->getTech()->getBottomLayerNum() <= lNum - 1) {
-      downVia = getDesign()->getTech()->getLayer(lNum - 1)->getDefaultViaDef();
+    if (getTech()->getBottomLayerNum() <= lNum - 1) {
+      downVia = getTech()->getLayer(lNum - 1)->getDefaultViaDef();
     }
-    if (getDesign()->getTech()->getTopLayerNum() >= lNum + 1) {
-      upVia = getDesign()->getTech()->getLayer(lNum + 1)->getDefaultViaDef();
+    if (getTech()->getTopLayerNum() >= lNum + 1) {
+      upVia = getTech()->getLayer(lNum + 1)->getDefaultViaDef();
     }
-    via2viaMinLenNew_[i][0]
-        = max(via2viaMinLenNew_[i][0],
+    via2viaMinLenNew[i][0]
+        = max(via2viaMinLenNew[i][0],
               init_via2viaMinLenNew_minimumcut1(lNum, downVia, downVia, false));
-    via2viaMinLenNew_[i][1]
-        = max(via2viaMinLenNew_[i][1],
+    via2viaMinLenNew[i][1]
+        = max(via2viaMinLenNew[i][1],
               init_via2viaMinLenNew_minimumcut1(lNum, downVia, downVia, true));
-    via2viaMinLenNew_[i][2]
-        = max(via2viaMinLenNew_[i][2],
+    via2viaMinLenNew[i][2]
+        = max(via2viaMinLenNew[i][2],
               init_via2viaMinLenNew_minimumcut1(lNum, downVia, upVia, false));
-    via2viaMinLenNew_[i][3]
-        = max(via2viaMinLenNew_[i][3],
+    via2viaMinLenNew[i][3]
+        = max(via2viaMinLenNew[i][3],
               init_via2viaMinLenNew_minimumcut1(lNum, downVia, upVia, true));
-    via2viaMinLenNew_[i][4]
-        = max(via2viaMinLenNew_[i][4],
+    via2viaMinLenNew[i][4]
+        = max(via2viaMinLenNew[i][4],
               init_via2viaMinLenNew_minimumcut1(lNum, upVia, downVia, false));
-    via2viaMinLenNew_[i][5]
-        = max(via2viaMinLenNew_[i][5],
+    via2viaMinLenNew[i][5]
+        = max(via2viaMinLenNew[i][5],
               init_via2viaMinLenNew_minimumcut1(lNum, upVia, downVia, true));
-    via2viaMinLenNew_[i][6]
-        = max(via2viaMinLenNew_[i][6],
+    via2viaMinLenNew[i][6]
+        = max(via2viaMinLenNew[i][6],
               init_via2viaMinLenNew_minimumcut1(lNum, upVia, upVia, false));
-    via2viaMinLenNew_[i][7]
-        = max(via2viaMinLenNew_[i][7],
+    via2viaMinLenNew[i][7]
+        = max(via2viaMinLenNew[i][7],
               init_via2viaMinLenNew_minimumcut1(lNum, upVia, upVia, true));
     i++;
   }
@@ -1127,41 +1072,40 @@ void FlexDR::init_via2viaMinLenNew()
   // check cut spacing
   i = 0;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     frViaDef* downVia = nullptr;
     frViaDef* upVia = nullptr;
-    if (getDesign()->getTech()->getBottomLayerNum() <= lNum - 1) {
-      downVia = getDesign()->getTech()->getLayer(lNum - 1)->getDefaultViaDef();
+    if (getTech()->getBottomLayerNum() <= lNum - 1) {
+      downVia = getTech()->getLayer(lNum - 1)->getDefaultViaDef();
     }
-    if (getDesign()->getTech()->getTopLayerNum() >= lNum + 1) {
-      upVia = getDesign()->getTech()->getLayer(lNum + 1)->getDefaultViaDef();
+    if (getTech()->getTopLayerNum() >= lNum + 1) {
+      upVia = getTech()->getLayer(lNum + 1)->getDefaultViaDef();
     }
-    via2viaMinLenNew_[i][0]
-        = max(via2viaMinLenNew_[i][0],
+    via2viaMinLenNew[i][0]
+        = max(via2viaMinLenNew[i][0],
               init_via2viaMinLenNew_cutSpc(lNum, downVia, downVia, false));
-    via2viaMinLenNew_[i][1]
-        = max(via2viaMinLenNew_[i][1],
+    via2viaMinLenNew[i][1]
+        = max(via2viaMinLenNew[i][1],
               init_via2viaMinLenNew_cutSpc(lNum, downVia, downVia, true));
-    via2viaMinLenNew_[i][2]
-        = max(via2viaMinLenNew_[i][2],
+    via2viaMinLenNew[i][2]
+        = max(via2viaMinLenNew[i][2],
               init_via2viaMinLenNew_cutSpc(lNum, downVia, upVia, false));
-    via2viaMinLenNew_[i][3]
-        = max(via2viaMinLenNew_[i][3],
+    via2viaMinLenNew[i][3]
+        = max(via2viaMinLenNew[i][3],
               init_via2viaMinLenNew_cutSpc(lNum, downVia, upVia, true));
-    via2viaMinLenNew_[i][4]
-        = max(via2viaMinLenNew_[i][4],
+    via2viaMinLenNew[i][4]
+        = max(via2viaMinLenNew[i][4],
               init_via2viaMinLenNew_cutSpc(lNum, upVia, downVia, false));
-    via2viaMinLenNew_[i][5]
-        = max(via2viaMinLenNew_[i][5],
+    via2viaMinLenNew[i][5]
+        = max(via2viaMinLenNew[i][5],
               init_via2viaMinLenNew_cutSpc(lNum, upVia, downVia, true));
-    via2viaMinLenNew_[i][6]
-        = max(via2viaMinLenNew_[i][6],
+    via2viaMinLenNew[i][6]
+        = max(via2viaMinLenNew[i][6],
               init_via2viaMinLenNew_cutSpc(lNum, upVia, upVia, false));
-    via2viaMinLenNew_[i][7]
-        = max(via2viaMinLenNew_[i][7],
+    via2viaMinLenNew[i][7]
+        = max(via2viaMinLenNew[i][7],
               init_via2viaMinLenNew_cutSpc(lNum, upVia, upVia, true));
     i++;
   }
@@ -1169,16 +1113,15 @@ void FlexDR::init_via2viaMinLenNew()
 
 void FlexDR::init_halfViaEncArea()
 {
-  auto bottomLayerNum = getDesign()->getTech()->getBottomLayerNum();
-  auto topLayerNum = getDesign()->getTech()->getTopLayerNum();
+  auto bottomLayerNum = getTech()->getBottomLayerNum();
+  auto topLayerNum = getTech()->getTopLayerNum();
+  auto& halfViaEncArea = via_data_.halfViaEncArea;
   for (int i = bottomLayerNum; i <= topLayerNum; i++) {
-    if (getDesign()->getTech()->getLayer(i)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(i)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     if (i + 1 <= topLayerNum
-        && getDesign()->getTech()->getLayer(i + 1)->getType()
-               == frLayerTypeEnum::CUT) {
+        && getTech()->getLayer(i + 1)->getType() == frLayerTypeEnum::CUT) {
       auto viaDef = getTech()->getLayer(i + 1)->getDefaultViaDef();
       frVia via(viaDef);
       frBox layer1Box;
@@ -1187,9 +1130,9 @@ void FlexDR::init_halfViaEncArea()
       via.getLayer2BBox(layer2Box);
       auto layer1HalfArea = layer1Box.width() * layer1Box.length() / 2;
       auto layer2HalfArea = layer2Box.width() * layer2Box.length() / 2;
-      halfViaEncArea_.push_back(make_pair(layer1HalfArea, layer2HalfArea));
+      halfViaEncArea.push_back(make_pair(layer1HalfArea, layer2HalfArea));
     } else {
-      halfViaEncArea_.push_back(make_pair(0, 0));
+      halfViaEncArea.push_back(make_pair(0, 0));
     }
   }
 }
@@ -1206,7 +1149,7 @@ frCoord FlexDR::init_via2turnMinLen_minSpc(frLayerNum lNum,
 
   // check min len in lNum assuming pre dir routing
   bool isCurrDirX = !isCurrDirY;
-  frCoord defaultWidth = getDesign()->getTech()->getLayer(lNum)->getWidth();
+  frCoord defaultWidth = getTech()->getLayer(lNum)->getWidth();
 
   frVia via1(viaDef);
   frBox viaBox1;
@@ -1224,7 +1167,7 @@ frCoord FlexDR::init_via2turnMinLen_minSpc(frLayerNum lNum,
 
   frCoord reqDist = 0;
   if (isVia1Fat) {
-    auto con = getDesign()->getTech()->getLayer(lNum)->getMinSpacing();
+    auto con = getTech()->getLayer(lNum)->getMinSpacing();
     if (con) {
       if (con->typeId() == frConstraintTypeEnum::frcSpacingConstraint) {
         reqDist = static_cast<frSpacingConstraint*>(con)->getMinSpacing();
@@ -1263,7 +1206,7 @@ frCoord FlexDR::init_via2turnMinLen_minStp(frLayerNum lNum,
 
   // check min len in lNum assuming pre dir routing
   bool isCurrDirX = !isCurrDirY;
-  frCoord defaultWidth = getDesign()->getTech()->getLayer(lNum)->getWidth();
+  frCoord defaultWidth = getTech()->getLayer(lNum)->getWidth();
 
   frVia via1(viaDef);
   frBox viaBox1;
@@ -1278,7 +1221,7 @@ frCoord FlexDR::init_via2turnMinLen_minStp(frLayerNum lNum,
 
   frCoord reqDist = 0;
   if (isVia1Fat) {
-    auto con = getDesign()->getTech()->getLayer(lNum)->getMinStepConstraint();
+    auto con = getTech()->getLayer(lNum)->getMinStepConstraint();
     if (con
         && con->hasMaxEdges()) {  // currently only consider maxedge violation
       reqDist = con->getMinStepLength();
@@ -1297,68 +1240,64 @@ frCoord FlexDR::init_via2turnMinLen_minStp(frLayerNum lNum,
 
 void FlexDR::init_via2turnMinLen()
 {
-  auto bottomLayerNum = getDesign()->getTech()->getBottomLayerNum();
-  auto topLayerNum = getDesign()->getTech()->getTopLayerNum();
+  auto bottomLayerNum = getTech()->getBottomLayerNum();
+  auto topLayerNum = getTech()->getTopLayerNum();
+  auto& via2turnMinLen = via_data_.via2turnMinLen;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     vector<frCoord> via2turnMinLenTmp(4, 0);
-    via2turnMinLen_.push_back(via2turnMinLenTmp);
+    via2turnMinLen.push_back(via2turnMinLenTmp);
   }
   // check prl
   int i = 0;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     frViaDef* downVia = nullptr;
     frViaDef* upVia = nullptr;
-    if (getDesign()->getTech()->getBottomLayerNum() <= lNum - 1) {
-      downVia = getDesign()->getTech()->getLayer(lNum - 1)->getDefaultViaDef();
+    if (getTech()->getBottomLayerNum() <= lNum - 1) {
+      downVia = getTech()->getLayer(lNum - 1)->getDefaultViaDef();
     }
-    if (getDesign()->getTech()->getTopLayerNum() >= lNum + 1) {
-      upVia = getDesign()->getTech()->getLayer(lNum + 1)->getDefaultViaDef();
+    if (getTech()->getTopLayerNum() >= lNum + 1) {
+      upVia = getTech()->getLayer(lNum + 1)->getDefaultViaDef();
     }
-    via2turnMinLen_[i][0]
-        = max(via2turnMinLen_[i][0],
-              init_via2turnMinLen_minSpc(lNum, downVia, false));
-    via2turnMinLen_[i][1] = max(
-        via2turnMinLen_[i][1], init_via2turnMinLen_minSpc(lNum, downVia, true));
-    via2turnMinLen_[i][2] = max(via2turnMinLen_[i][2],
-                                init_via2turnMinLen_minSpc(lNum, upVia, false));
-    via2turnMinLen_[i][3] = max(via2turnMinLen_[i][3],
-                                init_via2turnMinLen_minSpc(lNum, upVia, true));
+    via2turnMinLen[i][0] = max(
+        via2turnMinLen[i][0], init_via2turnMinLen_minSpc(lNum, downVia, false));
+    via2turnMinLen[i][1] = max(via2turnMinLen[i][1],
+                               init_via2turnMinLen_minSpc(lNum, downVia, true));
+    via2turnMinLen[i][2] = max(via2turnMinLen[i][2],
+                               init_via2turnMinLen_minSpc(lNum, upVia, false));
+    via2turnMinLen[i][3] = max(via2turnMinLen[i][3],
+                               init_via2turnMinLen_minSpc(lNum, upVia, true));
     i++;
   }
 
   // check minstep
   i = 0;
   for (auto lNum = bottomLayerNum; lNum <= topLayerNum; lNum++) {
-    if (getDesign()->getTech()->getLayer(lNum)->getType()
-        != frLayerTypeEnum::ROUTING) {
+    if (getTech()->getLayer(lNum)->getType() != frLayerTypeEnum::ROUTING) {
       continue;
     }
     frViaDef* downVia = nullptr;
     frViaDef* upVia = nullptr;
-    if (getDesign()->getTech()->getBottomLayerNum() <= lNum - 1) {
-      downVia = getDesign()->getTech()->getLayer(lNum - 1)->getDefaultViaDef();
+    if (getTech()->getBottomLayerNum() <= lNum - 1) {
+      downVia = getTech()->getLayer(lNum - 1)->getDefaultViaDef();
     }
-    if (getDesign()->getTech()->getTopLayerNum() >= lNum + 1) {
-      upVia = getDesign()->getTech()->getLayer(lNum + 1)->getDefaultViaDef();
+    if (getTech()->getTopLayerNum() >= lNum + 1) {
+      upVia = getTech()->getLayer(lNum + 1)->getDefaultViaDef();
     }
     vector<frCoord> via2turnMinLenTmp(4, 0);
-    via2turnMinLen_[i][0]
-        = max(via2turnMinLen_[i][0],
-              init_via2turnMinLen_minStp(lNum, downVia, false));
-    via2turnMinLen_[i][1] = max(
-        via2turnMinLen_[i][1], init_via2turnMinLen_minStp(lNum, downVia, true));
-    via2turnMinLen_[i][2] = max(via2turnMinLen_[i][2],
-                                init_via2turnMinLen_minStp(lNum, upVia, false));
-    via2turnMinLen_[i][3] = max(via2turnMinLen_[i][3],
-                                init_via2turnMinLen_minStp(lNum, upVia, true));
+    via2turnMinLen[i][0] = max(
+        via2turnMinLen[i][0], init_via2turnMinLen_minStp(lNum, downVia, false));
+    via2turnMinLen[i][1] = max(via2turnMinLen[i][1],
+                               init_via2turnMinLen_minStp(lNum, downVia, true));
+    via2turnMinLen[i][2] = max(via2turnMinLen[i][2],
+                               init_via2turnMinLen_minStp(lNum, upVia, false));
+    via2turnMinLen[i][3] = max(via2turnMinLen[i][3],
+                               init_via2turnMinLen_minStp(lNum, upVia, true));
     i++;
   }
 }
@@ -1371,8 +1310,7 @@ void FlexDR::init()
     logger_->info(DRT, 187, "start routing data preparation");
   }
   initGCell2BoundaryPin();
-  getRegionQuery()->initDRObj(
-      getTech()->getLayers().size());  // first init in postProcess
+  getRegionQuery()->initDRObj();  // first init in postProcess
 
   init_halfViaEncArea();
   init_via2viaMinLen();
@@ -1416,164 +1354,6 @@ FlexDR::initDR_mergeBoundaryPin(int startX,
   return bp;
 }
 
-void FlexDR::initDR(int size, bool enableDRC)
-{
-  frTime t;
-
-  if (VERBOSE > 0) {
-    cout << endl << "start initial detail routing ..." << endl;
-  }
-  frBox dieBox;
-  getDesign()->getTopBlock()->getBoundaryBBox(dieBox);
-
-  auto gCellPatterns = getDesign()->getTopBlock()->getGCellPatterns();
-  auto& xgp = gCellPatterns.at(0);
-  auto& ygp = gCellPatterns.at(1);
-
-  int cnt = 0;
-  int tot = (((int) xgp.getCount() - 1) / size + 1)
-            * (((int) ygp.getCount() - 1) / size + 1);
-  int prev_perc = 0;
-  bool isExceed = false;
-
-  int numQuickMarkers = 0;
-
-  vector<unique_ptr<FlexDRWorker>> uworkers;
-  int batchStepX, batchStepY;
-
-  getBatchInfo(batchStepX, batchStepY);
-
-  vector<vector<vector<unique_ptr<FlexDRWorker>>>> workers(batchStepX
-                                                           * batchStepY);
-
-  int xIdx = 0, yIdx = 0;
-  // sequential init
-  for (int i = 0; i < (int) xgp.getCount(); i += size) {
-    for (int j = 0; j < (int) ygp.getCount(); j += size) {
-      auto worker = make_unique<FlexDRWorker>(this, logger_);
-      frBox routeBox1;
-      getDesign()->getTopBlock()->getGCellBox(frPoint(i, j), routeBox1);
-      frBox routeBox2;
-      getDesign()->getTopBlock()->getGCellBox(
-          frPoint(min((int) xgp.getCount() - 1, i + size - 1),
-                  min((int) ygp.getCount(), j + size - 1)),
-          routeBox2);
-      // frBox routeBox;
-      frBox routeBox(routeBox1.left(),
-                     routeBox1.bottom(),
-                     routeBox2.right(),
-                     routeBox2.top());
-      frBox extBox;
-      routeBox.bloat(MTSAFEDIST, extBox);
-      frBox drcBox;
-      routeBox.bloat(DRCSAFEDIST, drcBox);
-      worker->setRouteBox(routeBox);
-      worker->setExtBox(extBox);
-      worker->setDrcBox(drcBox);
-
-      auto bp = initDR_mergeBoundaryPin(i, j, size, routeBox);
-      worker->setDRIter(0, bp);
-      // set boundary pin
-      worker->setEnableDRC(enableDRC);
-      worker->setFollowGuide(false);
-      // worker->setFollowGuide(true);
-      worker->setCost(DRCCOST, 0, 0, 0);
-      // int workerIdx = xIdx * batchSizeY + yIdx;
-      int batchIdx = (xIdx % batchStepX) * batchStepY + yIdx % batchStepY;
-      // workers[batchIdx][workerIdx] = worker;
-      if (workers[batchIdx].empty()
-          || (int) workers[batchIdx].back().size() >= BATCHSIZE) {
-        workers[batchIdx].push_back(vector<unique_ptr<FlexDRWorker>>());
-      }
-      workers[batchIdx].back().push_back(std::move(worker));
-
-      yIdx++;
-    }
-    yIdx = 0;
-    xIdx++;
-  }
-
-  omp_set_num_threads(MAX_THREADS);
-
-  // parallel execution
-  for (auto& workerBatch : workers) {
-    for (auto& workersInBatch : workerBatch) {
-// multi thread
-#pragma omp parallel for schedule(dynamic)
-      for (int i = 0; i < (int) workersInBatch.size(); i++) {
-        workersInBatch[i]->main_mt();
-#pragma omp critical
-        {
-          cnt++;
-          if (VERBOSE > 0) {
-            if (cnt * 1.0 / tot >= prev_perc / 100.0 + 0.1 && prev_perc < 90) {
-              if (prev_perc == 0 && t.isExceed(0)) {
-                isExceed = true;
-              }
-              prev_perc += 10;
-              // if (true) {
-              if (isExceed) {
-                if (enableDRC) {
-                  cout << "    completing " << prev_perc << "% with "
-                       << getDesign()->getTopBlock()->getNumMarkers()
-                       << " violations" << endl;
-                } else {
-                  cout << "    completing " << prev_perc << "% with "
-                       << numQuickMarkers << " quick violations" << endl;
-                }
-                cout << "    " << t << endl << flush;
-              }
-            }
-          }
-        }
-      }
-      // single thread
-      for (int i = 0; i < (int) workersInBatch.size(); i++) {
-        workersInBatch[i]->end();
-      }
-      workersInBatch.clear();
-    }
-  }
-  checkConnectivity();
-
-  if (VERBOSE > 0) {
-    if (cnt * 1.0 / tot >= prev_perc / 100.0 + 0.1 && prev_perc >= 90) {
-      if (prev_perc == 0 && t.isExceed(0)) {
-        isExceed = true;
-      }
-      prev_perc += 10;
-      // if (true) {
-      if (isExceed) {
-        if (enableDRC) {
-          cout << "    completing " << prev_perc << "% with "
-               << getDesign()->getTopBlock()->getNumMarkers() << " violations"
-               << endl;
-        } else {
-          cout << "    completing " << prev_perc << "% with " << numQuickMarkers
-               << " quick violations" << endl;
-        }
-        cout << "    " << t << endl << flush;
-      }
-    }
-  }
-
-  removeGCell2BoundaryPin();
-  numViols_.push_back(getDesign()->getTopBlock()->getNumMarkers());
-  if (VERBOSE > 0) {
-    if (enableDRC) {
-      logger_->info(DRT,
-                    196,
-                    "  number of violations = {}",
-                    getDesign()->getTopBlock()->getNumMarkers());
-    } else {
-      logger_->info(
-          DRT, 197, "  number of quick violations = {}", numQuickMarkers);
-    }
-    t.print(logger_);
-    cout << flush;
-  }
-}
-
 void FlexDR::getBatchInfo(int& batchStepX, int& batchStepY)
 {
   batchStepX = 2;
@@ -1586,12 +1366,8 @@ void FlexDR::searchRepair(int iter,
                           int mazeEndIter,
                           frUInt4 workerDRCCost,
                           frUInt4 workerMarkerCost,
-                          frUInt4 workerMarkerBloatWidth,
-                          frUInt4 workerMarkerBloatDepth,
-                          bool enableDRC,
                           int ripupMode,
-                          bool followGuide,
-                          int fixMode)
+                          bool followGuide)
 {
   std::string profile_name("DR:searchRepair");
   profile_name += std::to_string(iter);
@@ -1602,7 +1378,25 @@ void FlexDR::searchRepair(int iter,
   if (ripupMode != 1 && getDesign()->getTopBlock()->getMarkers().size() == 0) {
     return;
   }
+  if (iter < 3)
+    FIXEDSHAPECOST = ROUTESHAPECOST;
+  else if (iter < 10)
+    FIXEDSHAPECOST = 2 * ROUTESHAPECOST;
+  else if (iter < 15)
+    FIXEDSHAPECOST = 3 * ROUTESHAPECOST;
+  else if (iter < 20)
+    FIXEDSHAPECOST = 4 * ROUTESHAPECOST;
+  else if (iter < 30)
+    FIXEDSHAPECOST = 10 * ROUTESHAPECOST;
+  else if (iter < 40)
+    FIXEDSHAPECOST = 50 * ROUTESHAPECOST;
+  else
+    FIXEDSHAPECOST = 100 * ROUTESHAPECOST;
 
+  if (iter == 40)
+    MARKERDECAY = 0.99;
+  if (iter == 50)
+    MARKERDECAY = 0.999;
   frTime t;
   if (VERBOSE > 0) {
     string suffix;
@@ -1622,11 +1416,10 @@ void FlexDR::searchRepair(int iter,
     graphics_->startIter(iter);
   }
   frBox dieBox;
-  getDesign()->getTopBlock()->getBoundaryBBox(dieBox);
+  getDesign()->getTopBlock()->getDieBox(dieBox);
   auto gCellPatterns = getDesign()->getTopBlock()->getGCellPatterns();
   auto& xgp = gCellPatterns.at(0);
   auto& ygp = gCellPatterns.at(1);
-  int numQuickMarkers = 0;
   int clipSize = size;
   int cnt = 0;
   int tot = (((int) xgp.getCount() - 1 - offset) / clipSize + 1)
@@ -1645,7 +1438,7 @@ void FlexDR::searchRepair(int iter,
   int xIdx = 0, yIdx = 0;
   for (int i = offset; i < (int) xgp.getCount(); i += clipSize) {
     for (int j = offset; j < (int) ygp.getCount(); j += clipSize) {
-      auto worker = make_unique<FlexDRWorker>(this, logger_);
+      auto worker = make_unique<FlexDRWorker>(&via_data_, getTech(), logger_);
       frBox routeBox1;
       getDesign()->getTopBlock()->getGCellBox(frPoint(i, j), routeBox1);
       frBox routeBox2;
@@ -1674,16 +1467,11 @@ void FlexDR::searchRepair(int iter,
         auto bp = initDR_mergeBoundaryPin(i, j, size, routeBox);
         worker->setDRIter(0, bp);
       }
-      worker->setEnableDRC(enableDRC);
       worker->setRipupMode(ripupMode);
       worker->setFollowGuide(followGuide);
-      worker->setFixMode(fixMode);
       // TODO: only pass to relevant workers
       worker->setGraphics(graphics_.get());
-      worker->setCost(workerDRCCost,
-                      workerMarkerCost,
-                      workerMarkerBloatWidth,
-                      workerMarkerBloatDepth);
+      worker->setCost(workerDRCCost, workerMarkerCost);
 
       int batchIdx = (xIdx % batchStepX) * batchStepY + yIdx % batchStepY;
       if (workers[batchIdx].empty()
@@ -1709,7 +1497,7 @@ void FlexDR::searchRepair(int iter,
 // multi thread
 #pragma omp parallel for schedule(dynamic)
         for (int i = 0; i < (int) workersInBatch.size(); i++) {
-          workersInBatch[i]->main_mt();
+          workersInBatch[i]->main(getDesign());
 #pragma omp critical
           {
             cnt++;
@@ -1722,17 +1510,9 @@ void FlexDR::searchRepair(int iter,
                 prev_perc += 10;
                 // if (true) {
                 if (isExceed) {
-                  if (enableDRC) {
-                    logger_->report(
-                        "    completing {}% with {} violations",
-                        prev_perc,
-                        getDesign()->getTopBlock()->getNumMarkers());
-                  } else {
-                    logger_->report(
-                        "    completing {}% with {} quick violations",
-                        prev_perc,
-                        numQuickMarkers);
-                  }
+                  logger_->report("    completing {}% with {} violations",
+                                  prev_perc,
+                                  getDesign()->getTopBlock()->getNumMarkers());
                   logger_->report("    {}", t);
                 }
               }
@@ -1744,7 +1524,7 @@ void FlexDR::searchRepair(int iter,
         ProfileTask profile("DR:end_batch");
         // single thread
         for (int i = 0; i < (int) workersInBatch.size(); i++) {
-          workersInBatch[i]->end();
+          workersInBatch[i]->end(getDesign());
         }
         workersInBatch.clear();
       }
@@ -1762,15 +1542,9 @@ void FlexDR::searchRepair(int iter,
       prev_perc += 10;
       // if (true) {
       if (isExceed) {
-        if (enableDRC) {
-          logger_->report("    completing {}% with {} violations",
-                          prev_perc,
-                          getDesign()->getTopBlock()->getNumMarkers());
-        } else {
-          logger_->report("    completing {}% with {} quick violations",
-                          prev_perc,
-                          numQuickMarkers);
-        }
+        logger_->report("    completing {}% with {} violations",
+                        prev_perc,
+                        getDesign()->getTopBlock()->getNumMarkers());
         logger_->report("    {}", t);
       }
     }
@@ -1778,15 +1552,10 @@ void FlexDR::searchRepair(int iter,
   checkConnectivity(iter);
   numViols_.push_back(getDesign()->getTopBlock()->getNumMarkers());
   if (VERBOSE > 0) {
-    if (enableDRC) {
-      logger_->info(DRT,
-                    199,
-                    "  number of violations = {}",
-                    getDesign()->getTopBlock()->getNumMarkers());
-    } else {
-      logger_->info(
-          DRT, 200, "  number of quick violations = {}", numQuickMarkers);
-    }
+    logger_->info(DRT,
+                  199,
+                  "  number of violations = {}",
+                  getDesign()->getTopBlock()->getNumMarkers());
     t.print(logger_);
     cout << flush;
   }
@@ -1826,10 +1595,9 @@ void FlexDR::end(bool writeMetrics)
   }
 
   if (writeMetrics) {
-    logger_->metric(DRT,
-                    "wire length::total",
+    logger_->metric("drt::wire length::total",
                     totWlen / getDesign()->getTopBlock()->getDBUPerUU());
-    logger_->metric(DRT, "vias::total", totSCut + totMCut);
+    logger_->metric("drt::vias::total", totSCut + totMCut);
   }
 
   if (VERBOSE > 0) {
@@ -1932,7 +1700,7 @@ void FlexDR::end(bool writeMetrics)
 
 void FlexDR::reportDRC()
 {
-  double dbu = design_->getTech()->getDBUPerUU();
+  double dbu = getTech()->getDBUPerUU();
 
   if (DRC_RPT_FILE == string("")) {
     if (VERBOSE > 0) {
@@ -1941,71 +1709,159 @@ void FlexDR::reportDRC()
     }
     return;
   }
-  // cout << DRC_RPT_FILE << "\n";
+
   ofstream drcRpt(DRC_RPT_FILE.c_str());
   if (drcRpt.is_open()) {
     for (auto& marker : getDesign()->getTopBlock()->getMarkers()) {
       auto con = marker->getConstraint();
       drcRpt << "  violation type: ";
       if (con) {
-        if (con->typeId() == frConstraintTypeEnum::frcShortConstraint) {
-          if (getTech()->getLayer(marker->getLayerNum())->getType()
-              == frLayerTypeEnum::ROUTING) {
-            drcRpt << "Short";
-          } else if (getTech()->getLayer(marker->getLayerNum())->getType()
-                     == frLayerTypeEnum::CUT) {
-            drcRpt << "CShort";
+        switch (con->typeId()) {
+          case frConstraintTypeEnum::frcShortConstraint: {
+            if (getTech()->getLayer(marker->getLayerNum())->getType()
+                == frLayerTypeEnum::ROUTING) {
+              drcRpt << "Short";
+            } else if (getTech()->getLayer(marker->getLayerNum())->getType()
+                       == frLayerTypeEnum::CUT) {
+              drcRpt << "CShort";
+            }
+            break;
           }
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcMinWidthConstraint) {
-          drcRpt << "MinWid";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcSpacingConstraint) {
-          drcRpt << "MetSpc";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcSpacingEndOfLineConstraint) {
-          drcRpt << "EOLSpc";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcSpacingTablePrlConstraint) {
-          drcRpt << "MetSpc";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcCutSpacingConstraint) {
-          drcRpt << "CutSpc";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcMinStepConstraint) {
-          drcRpt << "MinStp";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcNonSufficientMetalConstraint) {
-          drcRpt << "NSMet";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcSpacingSamenetConstraint) {
-          drcRpt << "MetSpc";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcOffGridConstraint) {
-          drcRpt << "OffGrid";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcMinEnclosedAreaConstraint) {
-          drcRpt << "MinHole";
-        } else if (con->typeId() == frConstraintTypeEnum::frcAreaConstraint) {
-          drcRpt << "MinArea";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcLef58CornerSpacingConstraint) {
-          drcRpt << "CornerSpc";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcLef58CutSpacingConstraint) {
-          drcRpt << "CutSpc";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcLef58RectOnlyConstraint) {
-          drcRpt << "RectOnly";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::
-                       frcLef58RightWayOnGridOnlyConstraint) {
-          drcRpt << "RightWayOnGridOnly";
-        } else if (con->typeId()
-                   == frConstraintTypeEnum::frcLef58MinStepConstraint) {
-          drcRpt << "MinStp";
-        } else {
-          drcRpt << "unknown";
+          case frConstraintTypeEnum::frcMinWidthConstraint:
+            drcRpt << "MinWid";
+            break;
+          case frConstraintTypeEnum::frcSpacingConstraint:
+            drcRpt << "MetSpc";
+            break;
+          case frConstraintTypeEnum::frcSpacingEndOfLineConstraint:
+            drcRpt << "EOLSpc";
+            break;
+          case frConstraintTypeEnum::frcSpacingTablePrlConstraint:
+            drcRpt << "MetSpc";
+            break;
+          case frConstraintTypeEnum::frcCutSpacingConstraint:
+            drcRpt << "CutSpc";
+            break;
+          case frConstraintTypeEnum::frcMinStepConstraint:
+            drcRpt << "MinStp";
+            break;
+          case frConstraintTypeEnum::frcNonSufficientMetalConstraint:
+            drcRpt << "NSMet";
+            break;
+          case frConstraintTypeEnum::frcSpacingSamenetConstraint:
+            drcRpt << "MetSpc";
+            break;
+          case frConstraintTypeEnum::frcOffGridConstraint:
+            drcRpt << "OffGrid";
+            break;
+          case frConstraintTypeEnum::frcMinEnclosedAreaConstraint:
+            drcRpt << "MinHole";
+            break;
+          case frConstraintTypeEnum::frcAreaConstraint:
+            drcRpt << "MinArea";
+            break;
+          case frConstraintTypeEnum::frcLef58CornerSpacingConstraint:
+            drcRpt << "CornerSpc";
+            break;
+          case frConstraintTypeEnum::frcLef58CutSpacingConstraint:
+            drcRpt << "CutSpc";
+            break;
+          case frConstraintTypeEnum::frcLef58RectOnlyConstraint:
+            drcRpt << "RectOnly";
+            break;
+          case frConstraintTypeEnum::frcLef58RightWayOnGridOnlyConstraint:
+            drcRpt << "RightWayOnGridOnly";
+            break;
+          case frConstraintTypeEnum::frcLef58MinStepConstraint:
+            drcRpt << "MinStp";
+            break;
+          case frConstraintTypeEnum::frcSpacingTableInfluenceConstraint:
+            drcRpt << "MetSpcInf";
+            break;
+          case frConstraintTypeEnum::frcSpacingEndOfLineParallelEdgeConstraint:
+            drcRpt << "SpacingEndOfLineParallelEdge";
+            break;
+          case frConstraintTypeEnum::frcSpacingTableConstraint:
+            drcRpt << "SpacingTable";
+            break;
+          case frConstraintTypeEnum::frcSpacingTableTwConstraint:
+            drcRpt << "SpacingTableTw";
+            break;
+          case frConstraintTypeEnum::frcLef58SpacingTableConstraint:
+            drcRpt << "Lef58SpacingTable";
+            break;
+          case frConstraintTypeEnum::frcLef58CutSpacingTableConstraint:
+            drcRpt << "Lef58CutSpacingTable";
+            break;
+          case frConstraintTypeEnum::frcLef58CutSpacingTablePrlConstraint:
+            drcRpt << "Lef58CutSpacingTablePrl";
+            break;
+          case frConstraintTypeEnum::frcLef58CutSpacingTableLayerConstraint:
+            drcRpt << "Lef58CutSpacingTableLayer";
+            break;
+          case frConstraintTypeEnum::frcLef58CutSpacingParallelWithinConstraint:
+            drcRpt << "Lef58CutSpacingParallelWithin";
+            break;
+          case frConstraintTypeEnum::frcLef58CutSpacingAdjacentCutsConstraint:
+            drcRpt << "Lef58CutSpacingAdjacentCuts";
+            break;
+          case frConstraintTypeEnum::frcLef58CutSpacingLayerConstraint:
+            drcRpt << "Lef58CutSpacingLayer";
+            break;
+          case frConstraintTypeEnum::frcMinimumcutConstraint:
+            drcRpt << "Minimumcut";
+            break;
+          case frConstraintTypeEnum::
+              frcLef58CornerSpacingConcaveCornerConstraint:
+            drcRpt << "Lef58CornerSpacingConcaveCorner";
+            break;
+          case frConstraintTypeEnum::
+              frcLef58CornerSpacingConvexCornerConstraint:
+            drcRpt << "Lef58CornerSpacingConvexCorner";
+            break;
+          case frConstraintTypeEnum::frcLef58CornerSpacingSpacingConstraint:
+            drcRpt << "Lef58CornerSpacingSpacing";
+            break;
+          case frConstraintTypeEnum::frcLef58CornerSpacingSpacing1DConstraint:
+            drcRpt << "Lef58CornerSpacingSpacing1D";
+            break;
+          case frConstraintTypeEnum::frcLef58CornerSpacingSpacing2DConstraint:
+            drcRpt << "Lef58CornerSpacingSpacing2D";
+            break;
+          case frConstraintTypeEnum::frcLef58SpacingEndOfLineConstraint:
+            drcRpt << "Lef58SpacingEndOfLine";
+            break;
+          case frConstraintTypeEnum::frcLef58SpacingEndOfLineWithinConstraint:
+            drcRpt << "Lef58SpacingEndOfLineWithin";
+            break;
+          case frConstraintTypeEnum::
+              frcLef58SpacingEndOfLineWithinEndToEndConstraint:
+            drcRpt << "Lef58SpacingEndOfLineWithinEndToEnd";
+            break;
+          case frConstraintTypeEnum::
+              frcLef58SpacingEndOfLineWithinEncloseCutConstraint:
+            drcRpt << "Lef58SpacingEndOfLineWithinEncloseCut";
+            break;
+          case frConstraintTypeEnum::
+              frcLef58SpacingEndOfLineWithinParallelEdgeConstraint:
+            drcRpt << "Lef58SpacingEndOfLineWithinParallelEdge";
+            break;
+          case frConstraintTypeEnum::
+              frcLef58SpacingEndOfLineWithinMaxMinLengthConstraint:
+            drcRpt << "Lef58SpacingEndOfLineWithinMaxMinLength";
+            break;
+          case frConstraintTypeEnum::frcLef58CutClassConstraint:
+            drcRpt << "Lef58CutClass";
+            break;
+          case frConstraintTypeEnum::frcRecheckConstraint:
+            drcRpt << "Recheck";
+            break;
+          case frConstraintTypeEnum::frcLef58EolExtensionConstraint:
+            drcRpt << "Lef58EolExtension";
+            break;
+          case frConstraintTypeEnum::frcLef58EolKeepOutConstraint:
+            drcRpt << "Lef58EolKeepOut";
+            break;
         }
       } else {
         drcRpt << "nullptr";
@@ -2076,807 +1932,360 @@ int FlexDR::main()
   if (VERBOSE > 0) {
     logger_->info(DRT, 194, "start detail routing ...");
   }
-  // search and repair: iter, size, offset, mazeEndIter, workerDRCCost,
-  // workerMarkerCost,
-  //                    markerBloatWidth, markerBloatDepth, enableDRC,
-  //                    ripupMode, followGuide, fixMode, TEST
-  // fixMode:
-  //   0 - general fix
-  //   1 - fat via short, spc to wire fix (keep via net), no permutation,
-  //   increasing DRCCOST 2 - fat via short, spc to wire fix (ripup via net), no
-  //   permutation, increasing DRCCOST 3 - general fix, ripup everything (bloat)
-  //   4 - general fix, ripup left/bottom net (touching), currently DISABLED
-  //   5 - general fix, ripup right/top net (touching), currently DISABLED
-  //   6 - two-net viol
-  //   9 - search-and-repair queue
-  // assume only mazeEndIter > 1 if enableDRC and ripupMode == 0 (partial ripup)
-  // end();
-  // searchRepair(1,  7, -4,  1, DRCCOST, 0,          0, 0, true, 1, false, 0,
-  // true); // test mode
-
-  // need three different offsets to resolve boundary corner issues
 
   int iterNum = 0;
-  searchRepair(iterNum++ /*  0 */,
-               7,
-               0,
-               3,
-               DRCCOST,
-               0 /*MAARKERCOST*/,
-               0,
-               0,
-               true,
-               1,
-               true,
-               9);  // true search and repair
+  searchRepair(
+      iterNum++ /*  0 */, 7, 0, 3, ROUTESHAPECOST, 0 /*MAARKERCOST*/, 1, true);
   searchRepair(iterNum++ /*  1 */,
                7,
                -2,
                3,
-               DRCCOST,
-               DRCCOST /*MAARKERCOST*/,
-               0,
-               0,
-               true,
+               ROUTESHAPECOST,
+               ROUTESHAPECOST /*MAARKERCOST*/,
                1,
-               true,
-               9);  // true search and repair
+               true);
   searchRepair(iterNum++ /*  2 */,
                7,
                -5,
                3,
-               DRCCOST,
-               DRCCOST /*MAARKERCOST*/,
-               0,
-               0,
-               true,
+               ROUTESHAPECOST,
+               ROUTESHAPECOST /*MAARKERCOST*/,
                1,
-               true,
-               9);  // true search and repair
-  searchRepair(iterNum++ /*  3 */,
-               7,
-               0,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /*  4 */,
-               7,
-               -1,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /*  5 */,
-               7,
-               -2,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /*  6 */,
-               7,
-               -3,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /*  7 */,
-               7,
-               -4,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /*  8 */,
-               7,
-               -5,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /*  9 */,
-               7,
-               -6,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 10 */,
-               7,
-               0,
-               8,
-               DRCCOST * 2,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 11 */,
-               7,
-               -1,
-               8,
-               DRCCOST * 2,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 12 */,
-               7,
-               -2,
-               8,
-               DRCCOST * 2,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 13 */,
-               7,
-               -3,
-               8,
-               DRCCOST * 2,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 14 */,
-               7,
-               -4,
-               8,
-               DRCCOST * 2,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 15 */,
-               7,
-               -5,
-               8,
-               DRCCOST * 2,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 16 */,
-               7,
-               -6,
-               8,
-               DRCCOST * 2,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* ra'*/,
-               7,
-               -3,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               1,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 17 */,
-               7,
-               0,
-               8,
-               DRCCOST * 4,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 18 */,
-               7,
-               -1,
-               8,
-               DRCCOST * 4,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 19 */,
-               7,
-               -2,
-               8,
-               DRCCOST * 4,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 20 */,
-               7,
-               -3,
-               8,
-               DRCCOST * 4,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 21 */,
-               7,
-               -4,
-               8,
-               DRCCOST * 4,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 22 */,
-               7,
-               -5,
-               8,
-               DRCCOST * 4,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 23 */,
-               7,
-               -6,
-               8,
-               DRCCOST * 4,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* ra'*/,
-               5,
-               -2,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               1,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 24 */,
-               7,
-               0,
-               8,
-               DRCCOST * 8,
-               MARKERCOST * 2,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 25 */,
-               7,
-               -1,
-               8,
-               DRCCOST * 8,
-               MARKERCOST * 2,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               true);
+  searchRepair(
+      iterNum++ /*  3 */, 7, 0, 8, ROUTESHAPECOST, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /*  4 */, 7, -1, 8, ROUTESHAPECOST, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /*  5 */, 7, -2, 8, ROUTESHAPECOST, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /*  6 */, 7, -3, 8, ROUTESHAPECOST, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /*  7 */, 7, -4, 8, ROUTESHAPECOST, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /*  8 */, 7, -5, 8, ROUTESHAPECOST, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /*  9 */, 7, -6, 8, ROUTESHAPECOST, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 10 */, 7, 0, 8, ROUTESHAPECOST * 2, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 11 */, 7, -1, 8, ROUTESHAPECOST * 2, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 12 */, 7, -2, 8, ROUTESHAPECOST * 2, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 13 */, 7, -3, 8, ROUTESHAPECOST * 2, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 14 */, 7, -4, 8, ROUTESHAPECOST * 2, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 15 */, 7, -5, 8, ROUTESHAPECOST * 2, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 16 */, 7, -6, 8, ROUTESHAPECOST * 2, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 17 - ra'*/, 7, -3, 8, ROUTESHAPECOST, MARKERCOST, 1, false);
+  searchRepair(
+      iterNum++ /* 18 */, 7, 0, 8, ROUTESHAPECOST * 4, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 19 */, 7, -1, 8, ROUTESHAPECOST * 4, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 20 */, 7, -2, 8, ROUTESHAPECOST * 4, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 21 */, 7, -3, 8, ROUTESHAPECOST * 4, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 22 */, 7, -4, 8, ROUTESHAPECOST * 4, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 23 */, 7, -5, 8, ROUTESHAPECOST * 4, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 24 */, 7, -6, 8, ROUTESHAPECOST * 4, MARKERCOST, 0, false);
+  searchRepair(
+      iterNum++ /* 25 - ra'*/, 5, -2, 8, ROUTESHAPECOST, MARKERCOST, 1, false);
   searchRepair(iterNum++ /* 26 */,
                7,
-               -2,
+               0,
                8,
-               DRCCOST * 8,
+               ROUTESHAPECOST * 8,
                MARKERCOST * 2,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 27 */,
                7,
-               -3,
+               -1,
                8,
-               DRCCOST * 8,
+               ROUTESHAPECOST * 8,
                MARKERCOST * 2,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 28 */,
                7,
-               -4,
+               -2,
                8,
-               DRCCOST * 8,
+               ROUTESHAPECOST * 8,
                MARKERCOST * 2,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 29 */,
                7,
-               -5,
+               -3,
                8,
-               DRCCOST * 8,
+               ROUTESHAPECOST * 8,
                MARKERCOST * 2,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 30 */,
                7,
-               -6,
+               -4,
                8,
-               DRCCOST * 8,
+               ROUTESHAPECOST * 8,
                MARKERCOST * 2,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* ra'*/,
-               3,
-               -1,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               1,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 31 */,
                7,
-               0,
+               -5,
                8,
-               DRCCOST * 16,
-               MARKERCOST * 4,
+               ROUTESHAPECOST * 8,
+               MARKERCOST * 2,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 32 */,
                7,
-               -1,
+               -6,
                8,
-               DRCCOST * 16,
-               MARKERCOST * 4,
+               ROUTESHAPECOST * 8,
+               MARKERCOST * 2,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 33 */,
-               7,
-               -2,
-               8,
-               DRCCOST * 16,
-               MARKERCOST * 4,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
+  searchRepair(
+      iterNum++ /* 33 - ra'*/, 3, -1, 8, ROUTESHAPECOST, MARKERCOST, 1, false);
   searchRepair(iterNum++ /* 34 */,
                7,
-               -3,
+               0,
                8,
-               DRCCOST * 16,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 35 */,
                7,
-               -4,
+               -1,
                8,
-               DRCCOST * 16,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 36 */,
                7,
-               -5,
+               -2,
                8,
-               DRCCOST * 16,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 37 */,
                7,
-               -6,
+               -3,
                8,
-               DRCCOST * 16,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* ra'*/,
-               3,
-               -2,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               1,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 38 */,
                7,
-               0,
-               16,
-               DRCCOST * 16,
+               -4,
+               8,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 39 */,
                7,
-               -1,
-               16,
-               DRCCOST * 16,
+               -5,
+               8,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 40 */,
                7,
-               -2,
-               16,
-               DRCCOST * 16,
+               -6,
+               8,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 41 */,
-               7,
-               -3,
-               16,
-               DRCCOST * 16,
-               MARKERCOST * 4,
-               0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
+  searchRepair(
+      iterNum++ /* 41 - ra'*/, 3, -2, 8, ROUTESHAPECOST, MARKERCOST, 1, false);
   searchRepair(iterNum++ /* 42 */,
                7,
-               -4,
+               0,
                16,
-               DRCCOST * 16,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 43 */,
                7,
-               -5,
+               -1,
                16,
-               DRCCOST * 16,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 44 */,
+               7,
+               -2,
+               16,
+               ROUTESHAPECOST * 16,
+               MARKERCOST * 4,
+               0,
+               false);
+  searchRepair(iterNum++ /* 45 */,
+               7,
+               -3,
+               16,
+               ROUTESHAPECOST * 16,
+               MARKERCOST * 4,
+               0,
+               false);
+  searchRepair(iterNum++ /* 46 */,
+               7,
+               -4,
+               16,
+               ROUTESHAPECOST * 16,
+               MARKERCOST * 4,
+               0,
+               false);
+  searchRepair(iterNum++ /* 47 */,
+               7,
+               -5,
+               16,
+               ROUTESHAPECOST * 16,
+               MARKERCOST * 4,
+               0,
+               false);
+  searchRepair(iterNum++ /* 48 */,
                7,
                -6,
                16,
-               DRCCOST * 16,
+               ROUTESHAPECOST * 16,
                MARKERCOST * 4,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* ra'*/,
-               3,
-               -0,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               1,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 45 */,
+               false);
+  searchRepair(
+      iterNum++ /* 49 - ra'*/, 3, -0, 8, ROUTESHAPECOST, MARKERCOST, 1, false);
+  searchRepair(iterNum++ /* 50 */,
                7,
                0,
                32,
-               DRCCOST * 32,
+               ROUTESHAPECOST * 32,
                MARKERCOST * 8,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 46 */,
+               false);
+  searchRepair(iterNum++ /* 51 */,
                7,
                -1,
                32,
-               DRCCOST * 32,
+               ROUTESHAPECOST * 32,
                MARKERCOST * 8,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 47 */,
+               false);
+  searchRepair(iterNum++ /* 52 */,
                7,
                -2,
                32,
-               DRCCOST * 32,
+               ROUTESHAPECOST * 32,
                MARKERCOST * 8,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 48 */,
+               false);
+  searchRepair(iterNum++ /* 53 */,
                7,
                -3,
                32,
-               DRCCOST * 32,
+               ROUTESHAPECOST * 32,
                MARKERCOST * 8,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 49 */,
+               false);
+  searchRepair(iterNum++ /* 54 */,
                7,
                -4,
                32,
-               DRCCOST * 32,
+               ROUTESHAPECOST * 32,
                MARKERCOST * 8,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 50 */,
+               false);
+  searchRepair(iterNum++ /* 55 */,
                7,
                -5,
                32,
-               DRCCOST * 32,
+               ROUTESHAPECOST * 32,
                MARKERCOST * 8,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 51 */,
+               false);
+  searchRepair(iterNum++ /* 56 */,
                7,
                -6,
                32,
-               DRCCOST * 32,
+               ROUTESHAPECOST * 32,
                MARKERCOST * 8,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* ra'*/,
-               3,
-               -1,
-               8,
-               DRCCOST,
-               MARKERCOST,
-               0,
-               0,
-               true,
-               1,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 52 */,
+               false);
+  searchRepair(
+      iterNum++ /* 57 - ra'*/, 3, -1, 8, ROUTESHAPECOST, MARKERCOST, 1, false);
+  searchRepair(iterNum++ /* 58 */,
                7,
                0,
                64,
-               DRCCOST * 64,
+               ROUTESHAPECOST * 64,
                MARKERCOST * 16,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 53 */,
+               false);
+  searchRepair(iterNum++ /* 59 */,
                7,
                -1,
                64,
-               DRCCOST * 64,
+               ROUTESHAPECOST * 64,
                MARKERCOST * 16,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 54 */,
+               false);
+  searchRepair(iterNum++ /* 60 */,
                7,
                -2,
                64,
-               DRCCOST * 64,
+               ROUTESHAPECOST * 64,
                MARKERCOST * 16,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 55 */,
+               false);
+  searchRepair(iterNum++ /* 61 */,
                7,
                -3,
                64,
-               DRCCOST * 64,
+               ROUTESHAPECOST * 64,
                MARKERCOST * 16,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
   searchRepair(iterNum++ /* 56 */,
                7,
                -4,
                64,
-               DRCCOST * 64,
+               ROUTESHAPECOST * 64,
                MARKERCOST * 16,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 57 */,
+               false);
+  searchRepair(iterNum++ /* 62 */,
                7,
                -5,
                64,
-               DRCCOST * 64,
+               ROUTESHAPECOST * 64,
                MARKERCOST * 16,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
-  searchRepair(iterNum++ /* 58 */,
+               false);
+  searchRepair(iterNum++ /* 63 */,
                7,
                -6,
                64,
-               DRCCOST * 64,
+               ROUTESHAPECOST * 64,
                MARKERCOST * 16,
                0,
-               0,
-               true,
-               0,
-               false,
-               9);  // true search and repair
+               false);
 
   if (DRC_RPT_FILE != string("")) {
     reportDRC();

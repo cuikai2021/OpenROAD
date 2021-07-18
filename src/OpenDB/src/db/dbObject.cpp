@@ -330,6 +330,8 @@ void dbObject::getDbName(char name[max_name_length]) const
       case dbTechLayerCutSpacingTableDefRuleObj:
       case dbTechLayerCutSpacingTableOrthRuleObj:
       case dbTechLayerCutEnclosureRuleObj:
+      case dbTechLayerEolKeepOutRuleObj:
+      case dbTechLayerEolExtensionRuleObj:
         *cptr++ = 'J';
         id = impl->getOID();
         break;
@@ -388,7 +390,7 @@ dbObject* dbObject::resolveDbName(dbDatabase* db_, const char* name)
 
       case 'D':  // Database
         oid = getOid(name);
-        ZASSERT(oid == (uint) ((_dbDatabase*) db_)->_unique_id);
+        ZASSERT(oid == (uint)((_dbDatabase*) db_)->_unique_id);
         obj = db_;
         break;
 
@@ -684,11 +686,13 @@ static const char* name_tbl[] = {"dbDatabase",
                                  "dbTechLayerMinStepRule",
                                  "dbTechLayerCornerSpacingRule",
                                  "dbTechLayerSpacingTablePrlRule",
+                                 "dbTechLayerEolKeepOutRule",
                                  "dbTechLayerCutClassRule",
                                  "dbTechLayerCutSpacingRule",
                                  "dbTechLayerCutSpacingTableOrthRule",
                                  "dbTechLayerCutSpacingTableDefRule",
                                  "dbTechLayerCutEnclosureRule",
+                                 "dbTechLayerEolExtensionRule",
                                  "dbModule",
                                  "dbModInst",
                                  "dbGroup",

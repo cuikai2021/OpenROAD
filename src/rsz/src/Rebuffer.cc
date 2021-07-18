@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // BSD 3-Clause License
@@ -86,11 +86,13 @@ Resizer::rebuffer(const Pin *drvr_pin)
       // Verilog connects by net name, so there is no way to distinguish the
       // net from the port.
       && !hasTopLevelOutputPort(net)) {
-    SteinerTree *tree = makeSteinerTree(net, true, db_network_, logger_);
+    SteinerTree *tree = makeSteinerTree(drvr_pin, routingAlpha(), true,
+                                        db_network_, logger_);
     if (tree) {
       SteinerPt drvr_pt = tree->drvrPt(network_);
       debugPrint(logger_, RSZ, "rebuffer", 2, "driver {}",
                  sdc_network_->pathName(drvr_pin));
+      sta_->findRequireds();
       BufferedNetSeq Z = rebufferBottomUp(tree, tree->left(drvr_pt),
                                           drvr_pt, 1);
       Required best_slack = -INF;
@@ -175,28 +177,32 @@ Resizer::rebufferBottomUp(SteinerTree *tree,
                           int level)
 {
   if (k != SteinerTree::null_pt) {
-    Pin *pin = tree->pin(k);
-    if (pin && network_->isLoad(pin)) {
-      Vertex *vertex = graph_->pinLoadVertex(pin);
-      PathRef req_path = sta_->vertexWorstRequiredPath(vertex, max_);
-      const DcalcAnalysisPt *dcalc_ap = req_path.isNull()
-        ? tgt_slew_dcalc_ap_
-        : req_path.dcalcAnalysisPt(sta_);
-      BufferedNet *z = makeBufferedNet(BufferedNetType::load,
-                                       tree->location(k),
-                                       pinCapacitance(pin, dcalc_ap),
-                                       pin,
-                                       req_path,
-                                       0.0,
-                                       nullptr,
-                                       nullptr, nullptr);
-      if (logger_->debugCheck(RSZ, "rebuffer", 4))
-        z->report(level, this);
-      BufferedNetSeq Z;
-      Z.push_back(z);
-      return addWireAndBuffer(Z, tree, k, prev, level);
+    const PinSeq *pins = tree->pins(k);
+    if (pins) {
+      for (Pin *pin : *pins) {
+        if (network_->isLoad(pin)) {
+          Vertex *vertex = graph_->pinLoadVertex(pin);
+          PathRef req_path = sta_->vertexWorstRequiredPath(vertex, max_);
+          const DcalcAnalysisPt *dcalc_ap = req_path.isNull()
+            ? tgt_slew_dcalc_ap_
+            : req_path.dcalcAnalysisPt(sta_);
+          BufferedNet *z = makeBufferedNet(BufferedNetType::load,
+                                           tree->location(k),
+                                           pinCapacitance(pin, dcalc_ap),
+                                           pin,
+                                           req_path,
+                                           0.0,
+                                           nullptr,
+                                           nullptr, nullptr);
+          if (logger_->debugCheck(RSZ, "rebuffer", 4))
+            z->report(level, this);
+          BufferedNetSeq Z;
+          Z.push_back(z);
+          return addWireAndBuffer(Z, tree, k, prev, level);
+        }
+      }
     }
-    else if (pin == nullptr) {
+    else if (pins == nullptr) {
       // Steiner pt.
       BufferedNetSeq Zl = rebufferBottomUp(tree, tree->left(k), k, level + 1);
       BufferedNetSeq Zr = rebufferBottomUp(tree, tree->right(k), k, level + 1);
@@ -274,17 +280,21 @@ Resizer::addWireAndBuffer(BufferedNetSeq Z,
   Point prev_loc = tree->location(prev);
   int wire_length_dbu = abs(k_loc.x() - prev_loc.x())
     + abs(k_loc.y() - prev_loc.y());
-  float wire_length = dbuToMeters(wire_length_dbu);
-  float wire_cap = wire_length * wire_cap_;
-  float wire_res = wire_length * wire_res_;
-  float wire_delay = wire_res * wire_cap;
+  double wire_length = dbuToMeters(wire_length_dbu);
   for (BufferedNet *p : Z) {
+    const PathRef &req_path = p->requiredPath();
+    const Corner *corner = req_path.isNull()
+      ? sta_->cmdCorner()
+      : req_path.dcalcAnalysisPt(sta_)->corner();
+    double wire_cap = wire_length * wireSignalCapacitance(corner);
+    double wire_res = wire_length * wireSignalResistance(corner);
+    double wire_delay = wire_res * wire_cap;
     BufferedNet *z = makeBufferedNet(BufferedNetType::wire,
                                      prev_loc,
                                      // account for wire load
                                      p->cap() + wire_cap,
                                      nullptr,
-                                     p->requiredPath(),
+                                     req_path,
                                      // account for wire delay
                                      p->requiredDelay() + wire_delay,
                                      nullptr,
@@ -492,7 +502,8 @@ Resizer::makeBufferedNetSteiner(const Pin *drvr_pin)
       // Verilog connects by net name, so there is no way to distinguish the
       // net from the port.
       && !hasTopLevelOutputPort(net)) {
-    SteinerTree *tree = makeSteinerTree(net, true, db_network_, logger_);
+    SteinerTree *tree = makeSteinerTree(drvr_pin, routingAlpha(), true,
+                                        db_network_, logger_);
     if (tree) {
       SteinerPt drvr_pt = tree->drvrPt(network_);
       BufferedNet *bnet = makeBufferedNetWire(tree, drvr_pt, tree->left(drvr_pt), 0);
@@ -510,17 +521,21 @@ Resizer::makeBufferedNet(SteinerTree *tree,
                          int level)
 {
   if (k != SteinerTree::null_pt) {
-    Pin *pin = tree->pin(k);
-    if (pin && network_->isLoad(pin)) {
-      return new BufferedNet(BufferedNetType::load,
-                             tree->location(k),
-                             // should wait unil req path is known to find
-                             // dcalc_ap
-                             pinCapacitance(pin, tgt_slew_dcalc_ap_),
-                             pin,
-                             nullptr, nullptr);
-    }
-    else if (pin == nullptr) {
+    const PinSeq *pins = tree->pins(k);
+    if (pins) {
+      for (Pin *pin : *pins) {
+        if (network_->isLoad(pin)) {
+          return new BufferedNet(BufferedNetType::load,
+                                 tree->location(k),
+                                 // should wait unil req path is known to find
+                                 // dcalc_ap
+                                 pinCapacitance(pin, tgt_slew_dcalc_ap_),
+                                 pin,
+                                 nullptr, nullptr);
+        }
+      }
+    }  
+    else if (pins == nullptr) {
       // Steiner pt.
       BufferedNet *bnet1 = makeBufferedNetWire(tree, k, tree->left(k), level + 1);
       BufferedNet *bnet2 = makeBufferedNetWire(tree, k, tree->right(k), level + 1);
@@ -548,9 +563,10 @@ Resizer::makeBufferedNetWire(SteinerTree *tree,
     Point to_loc = tree->location(to);
     int wire_length_dbu = abs(from_loc.x() - to_loc.x())
       + abs(from_loc.y() - to_loc.y());
-    float wire_length = dbuToMeters(wire_length_dbu);
-    float wire_cap = wire_length * wire_cap_;
-    float wire_res = wire_length * wire_res_;
+    const Corner *corner = end->ref()->requiredPath().dcalcAnalysisPt(sta_)->corner();
+    double wire_length = dbuToMeters(wire_length_dbu);
+    double wire_cap = wire_length * wireSignalCapacitance(corner);
+    double wire_res = wire_length * wireSignalResistance(corner);
 
     return new BufferedNet(BufferedNetType::wire,
                            from_loc,

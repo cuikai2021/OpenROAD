@@ -59,6 +59,8 @@ class _dbTechLayerSpacingTablePrlRule;
 class _dbTechLayerCutSpacingTableOrthRule;
 class _dbTechLayerCutSpacingTableDefRule;
 class _dbTechLayerCutEnclosureRule;
+class _dbTechLayerEolExtensionRule;
+class _dbTechLayerEolKeepOutRule;
 // User Code Begin Classes
 class _dbTechLayerSpacingRule;
 class _dbTechMinCutRule;
@@ -69,6 +71,7 @@ class _dbTechLayerAntennaRule;
 
 struct dbTechLayerFlags
 {
+  uint num_masks_ : 2;
   dbTechLayerType::Value type_ : 4;
   dbTechLayerDir::Value direction_ : 4;
   dbTechLayerMinStepType::Value minstep_type_ : 2;
@@ -84,7 +87,7 @@ struct dbTechLayerFlags
   bool right_way_on_grid_only_check_mask_ : 1;
   bool rect_only_except_non_core_pins_ : 1;
   uint lef58_type_ : 3;
-  uint spare_bits_ : 8;
+  uint spare_bits_ : 6;
 };
 // User Code Begin Structs
 // User Code End Structs
@@ -115,6 +118,10 @@ class _dbTechLayer : public _dbObject
   dbTable<_dbTechLayerCutSpacingTableDefRule>* cut_spacing_table_def_tbl_;
 
   dbTable<_dbTechLayerCutEnclosureRule>* cut_enc_rules_tbl_;
+
+  dbTable<_dbTechLayerEolExtensionRule>* eol_ext_rules_tbl_;
+
+  dbTable<_dbTechLayerEolKeepOutRule>* eol_keep_out_rules_tbl_;
 
   // User Code Begin Fields
 
@@ -176,6 +183,9 @@ class _dbTechLayer : public _dbObject
   void out(dbDiff& diff, char side, const char* field) const;
   dbObjectTable* getObjectTable(dbObjectType type);
   // User Code Begin Methods
+  uint getV55RowIdx(const int& rowVal) const;
+  uint getV55ColIdx(const int& colVal) const;
+  uint getTwIdx(const int width, const int prl) const;
   // User Code End Methods
 };
 dbIStream& operator>>(dbIStream& stream, _dbTechLayer& obj);

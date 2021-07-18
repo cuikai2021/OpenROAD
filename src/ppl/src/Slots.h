@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,7 @@ std::vector<size_t> sortIndexes(const std::vector<T>& v)
   std::vector<size_t> idx(v.size());
   std::iota(idx.begin(), idx.end(), 0);
   // sort indexes based on comparing values in v
-  std::sort(idx.begin(), idx.end(), [&v](size_t i1, size_t i2) {
+  std::stable_sort(idx.begin(), idx.end(), [&v](size_t i1, size_t i2) {
     return v[i1] < v[i2];
   });
   return idx;

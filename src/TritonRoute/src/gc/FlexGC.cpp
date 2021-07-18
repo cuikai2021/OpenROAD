@@ -33,20 +33,20 @@
 using namespace std;
 using namespace fr;
 
-FlexGCWorker::FlexGCWorker(frDesign* designIn,
+FlexGCWorker::FlexGCWorker(frTechObject* techIn,
                            Logger* logger,
                            FlexDRWorker* drWorkerIn)
-    : impl_(std::make_unique<Impl>(designIn, logger, drWorkerIn, this))
+    : impl_(std::make_unique<Impl>(techIn, logger, drWorkerIn, this))
 {
 }
 
 FlexGCWorker::~FlexGCWorker() = default;
 
-FlexGCWorker::Impl::Impl(frDesign* designIn,
+FlexGCWorker::Impl::Impl(frTechObject* techIn,
                          Logger* logger,
                          FlexDRWorker* drWorkerIn,
                          FlexGCWorker* gcWorkerIn)
-    : design_(designIn),
+    : tech_(techIn),
       logger_(logger),
       drWorker_(drWorkerIn),
       extBox_(),
@@ -69,7 +69,7 @@ FlexGCWorker::Impl::Impl(frDesign* designIn,
 {
 }
 
-bool FlexGCWorker::Impl::addMarker(std::unique_ptr<frMarker> in)
+void FlexGCWorker::Impl::addMarker(std::unique_ptr<frMarker> in)
 {
   frBox bbox;
   in->getBBox(bbox);
@@ -83,16 +83,15 @@ bool FlexGCWorker::Impl::addMarker(std::unique_ptr<frMarker> in)
   }
   if (mapMarkers_.find(std::make_tuple(bbox, layerNum, con, srcs[0], srcs[1]))
       != mapMarkers_.end()) {
-    return false;
+    return;
   }
   if (mapMarkers_.find(std::make_tuple(bbox, layerNum, con, srcs[1], srcs[0]))
       != mapMarkers_.end()) {
-    return false;
+    return;
   }
   mapMarkers_[std::make_tuple(bbox, layerNum, con, srcs[0], srcs[1])]
       = in.get();
   markers_.push_back(std::move(in));
-  return true;
 }
 
 void FlexGCWorker::addPAObj(frConnFig* obj, frBlockObject* owner)
@@ -100,9 +99,9 @@ void FlexGCWorker::addPAObj(frConnFig* obj, frBlockObject* owner)
   impl_->addPAObj(obj, owner);
 }
 
-void FlexGCWorker::init()
+void FlexGCWorker::init(const frDesign* design)
 {
-  impl_->init();
+  impl_->init(design);
 }
 
 int FlexGCWorker::main()
@@ -115,9 +114,9 @@ void FlexGCWorker::end()
   impl_->end();
 }
 
-void FlexGCWorker::initPA0()
+void FlexGCWorker::initPA0(const frDesign* design)
 {
-  impl_->initPA0();
+  impl_->initPA0(design);
 }
 
 void FlexGCWorker::initPA1()
@@ -133,11 +132,6 @@ void FlexGCWorker::setExtBox(const frBox& in)
 void FlexGCWorker::setDrcBox(const frBox& in)
 {
   impl_->drcBox_.set(in);
-}
-
-frDesign* FlexGCWorker::getDesign() const
-{
-  return impl_->getDesign();
 }
 
 const std::vector<std::unique_ptr<frMarker>>& FlexGCWorker::getMarkers() const

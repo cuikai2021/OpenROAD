@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -136,12 +136,21 @@ class Clock
       _mapInstToIdx[newSink] = idx;
     }
 
-    void removeSinks()
+    void removeSinks(std::set<ClockInst*> sinksToRemove)
     {
       ClockInst* driver = getDriver();
+      std::vector<ClockInst*> instsToPreserve;
+      forEachSink([&](ClockInst* inst){
+        if (sinksToRemove.find(inst) == sinksToRemove.end()) {
+          instsToPreserve.emplace_back(inst);
+        }
+      });
       _instances.clear();
       _mapInstToIdx.clear();
       addInst(*driver);
+      for (auto inst : instsToPreserve) {
+        addInst(*inst);
+      }
     }
 
     std::string getName() const { return _name; }

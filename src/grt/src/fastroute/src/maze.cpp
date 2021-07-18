@@ -46,7 +46,7 @@
 #include "RSMT.h"
 #include "RipUp.h"
 #include "flute.h"
-#include "pdrev/pdrev.h"
+#include "pdr/pdrev.h"
 #include "route.h"
 #include "utility.h"
 #include "utl/Logger.h"
@@ -81,6 +81,7 @@ void convertToMazerouteNet(int netID)
     y2 = treenodes[n2].y;
     treeedge->route.gridsX = (short*) calloc((edgelength + 1), sizeof(short));
     treeedge->route.gridsY = (short*) calloc((edgelength + 1), sizeof(short));
+    treeedge->route.gridsL = nullptr;
     gridsX = treeedge->route.gridsX;
     gridsY = treeedge->route.gridsY;
     treeedge->len = ADIFF(x1, x2) + ADIFF(y1, y2);
@@ -227,6 +228,9 @@ void convertToMazeroute()
       v_edges[grid].usage = v_edges[grid].est_usage;
     }
   }
+
+  // check 2D edges for invalid usage values
+  check2DEdgesUsage();
 }
 
 // non recursive version of heapify
@@ -599,7 +603,7 @@ void setupHeap(int netID,
                     }
                   }  // if MAZEROUTE
                   else {
-                    logger->error(GRT, 125, "Setup Heap: not maze routing.");
+                    logger->error(GRT, 125, "Setup heap: not maze routing.");
                   }
                 }  // if not a degraded edge (len>0)
 
@@ -685,7 +689,7 @@ void setupHeap(int netID,
                     }
                   }  // if MAZEROUTE
                   else {
-                    logger->error(GRT, 201, "Setup Heap: not maze routing.");
+                    logger->error(GRT, 201, "Setup heap: not maze routing.");
                   }
                 }  // if the edge is not degraded (len>0)
 
@@ -1044,7 +1048,6 @@ void reInitTree(int netID)
     if (treeedge->len > 0) {
       delete[] treeedge->route.gridsX;
       delete[] treeedge->route.gridsY;
-      delete[] treeedge->route.gridsL;
     }
   }
   delete[] sttrees[netID].nodes;
@@ -1086,7 +1089,7 @@ void mazeRouteMSMD(int iter,
   int i, j, deg, edgeID, n1, n2, n1x, n1y, n2x, n2y, ymin, ymax, xmin, xmax,
       curX, curY, crossX, crossY, tmpX, tmpY, tmpi, min_x, min_y, num_edges;
   int regionX1, regionX2, regionY1, regionY2;
-  int heapLen1, heapLen2, ind, ind1, tmpind;
+  int heapLen1, heapLen2, ind, ind1;
   int endpt1, endpt2, A1, A2, B1, B2, C1, C2, D1, D2, cnt, cnt_n1n2;
   int edge_n1n2, edge_n1A1, edge_n1A2, edge_n1C1, edge_n1C2, edge_A1A2,
       edge_C1C2;
@@ -1100,10 +1103,10 @@ void mazeRouteMSMD(int iter,
   TreeNode* treenodes;
 
   // allocate memory for distance and parent and pop_heap
-  h_costTable = new float[40 * hCapacity];
-  v_costTable = new float[40 * vCapacity];
+  h_costTable = new float[max_usage_multiplier * hCapacity];
+  v_costTable = new float[max_usage_multiplier * vCapacity];
 
-  forange = 40 * hCapacity;
+  forange = max_usage_multiplier * hCapacity;
 
   if (cost_type == 2) {
     for (i = 0; i < forange; i++) {
@@ -1116,7 +1119,7 @@ void mazeRouteMSMD(int iter,
             = costHeight / (exp((float) (hCapacity - i - 1) * LOGIS_COF) + 1)
               + 1 + costHeight / slope * (i - hCapacity);
     }
-    forange = 40 * vCapacity;
+    forange = max_usage_multiplier * vCapacity;
     for (i = 0; i < forange; i++) {
       if (i < vCapacity - 1)
         v_costTable[i]
@@ -1137,7 +1140,7 @@ void mazeRouteMSMD(int iter,
             = costHeight / (exp((float) (hCapacity - i) * LOGIS_COF) + 1) + 1
               + costHeight / slope * (i - hCapacity);
     }
-    forange = 40 * vCapacity;
+    forange = max_usage_multiplier * vCapacity;
     for (i = 0; i < forange; i++) {
       if (i < vCapacity)
         v_costTable[i]
@@ -1859,6 +1862,9 @@ int getOverflow2Dmaze(int* maxOverflow, int* tUsage)
   int total_cap = 0;
   int total_usage = 0;
 
+  // check 2D edges for invalid usage values
+  check2DEdgesUsage();
+
   total_usage = 0;
   total_cap = 0;
 
@@ -1895,15 +1901,15 @@ int getOverflow2Dmaze(int* maxOverflow, int* tUsage)
   *maxOverflow = max_overflow;
 
   if (verbose > 1) {
-    logger->info(GRT, 126, "Overflow Report:");
-    logger->info(GRT, 127, "total Usage   : {}", total_usage);
-    logger->info(GRT, 128, "Max H Overflow: {}", max_H_overflow);
-    logger->info(GRT, 129, "Max V Overflow: {}", max_V_overflow);
-    logger->info(GRT, 130, "Max Overflow  : {}", max_overflow);
-    logger->info(GRT, 131, "Num Overflow e: {}", numedges);
-    logger->info(GRT, 132, "H   Overflow  : {}", H_overflow);
-    logger->info(GRT, 133, "V   Overflow  : {}", V_overflow);
-    logger->info(GRT, 134, "Final Overflow: {}\n", totalOverflow);
+    logger->info(GRT, 126, "Overflow report:");
+    logger->info(GRT, 127, "Total usage          : {}", total_usage);
+    logger->info(GRT, 128, "Max H overflow       : {}", max_H_overflow);
+    logger->info(GRT, 129, "Max V overflow       : {}", max_V_overflow);
+    logger->info(GRT, 130, "Max overflow         : {}", max_overflow);
+    logger->info(GRT, 131, "Number overflow edges: {}", numedges);
+    logger->info(GRT, 132, "H   overflow         : {}", H_overflow);
+    logger->info(GRT, 133, "V   overflow         : {}", V_overflow);
+    logger->info(GRT, 134, "Final overflow       : {}\n", totalOverflow);
   }
 
   *tUsage = total_usage;
@@ -1922,6 +1928,9 @@ int getOverflow2D(int* maxOverflow)
   int i, j, grid, overflow, max_overflow, H_overflow, max_H_overflow,
       V_overflow, max_V_overflow, numedges;
   int total_usage, total_cap, hCap, vCap;
+
+  // check 2D edges for invalid usage values
+  check2DEdgesUsage();
 
   // get overflow
   overflow = max_overflow = H_overflow = max_H_overflow = V_overflow
@@ -1973,16 +1982,16 @@ int getOverflow2D(int* maxOverflow)
 
   if (verbose > 1) {
     logger->info(GRT, 135, "Overflow Report:");
-    logger->info(GRT, 136, "Total hCap    : {}", hCap);
-    logger->info(GRT, 137, "Total vCap    : {}", vCap);
-    logger->info(GRT, 138, "Total Usage   : {}", total_usage);
-    logger->info(GRT, 139, "Max H Overflow: {}", max_H_overflow);
-    logger->info(GRT, 140, "Max V Overflow: {}", max_V_overflow);
-    logger->info(GRT, 141, "Max Overflow  : {}", max_overflow);
-    logger->info(GRT, 142, "Num Overflow e: {}", numedges);
-    logger->info(GRT, 143, "H   Overflow  : {}", H_overflow);
-    logger->info(GRT, 144, "V   Overflow  : {}", V_overflow);
-    logger->info(GRT, 145, "Final Overflow: {}\n", totalOverflow);
+    logger->info(GRT, 136, "Total hCap        : {}", hCap);
+    logger->info(GRT, 137, "Total vCap        : {}", vCap);
+    logger->info(GRT, 138, "Total usage       : {}", total_usage);
+    logger->info(GRT, 139, "Max H overflow    : {}", max_H_overflow);
+    logger->info(GRT, 140, "Max V overflow    : {}", max_V_overflow);
+    logger->info(GRT, 141, "Max overflow      : {}", max_overflow);
+    logger->info(GRT, 142, "Num overflow edges: {}", numedges);
+    logger->info(GRT, 143, "H   overflow      : {}", H_overflow);
+    logger->info(GRT, 144, "V   overflow      : {}", V_overflow);
+    logger->info(GRT, 145, "Final overflow    : {}\n", totalOverflow);
   }
 
   return (totalOverflow);
@@ -2002,18 +2011,7 @@ int getOverflow3D(void)
   total_usage = 0;
   cap = 0;
 
-  int* cap_per_layer;
-  int* usage_per_layer;
-  int* overflow_per_layer;
-
-  cap_per_layer = new int[numLayers];
-  usage_per_layer = new int[numLayers];
-  overflow_per_layer = new int[numLayers];
-
   for (k = 0; k < numLayers; k++) {
-    cap_per_layer[k] = 0;
-    usage_per_layer[k] = 0;
-    overflow_per_layer[k] = 0;
     for (i = 0; i < yGrid; i++) {
       for (j = 0; j < xGrid - 1; j++) {
         grid = i * (xGrid - 1) + j + k * (xGrid - 1) * yGrid;
@@ -2021,11 +2019,7 @@ int getOverflow3D(void)
         overflow = h_edges3D[grid].usage - h_edges3D[grid].cap;
         cap += h_edges3D[grid].cap;
 
-        cap_per_layer[k] += h_edges3D[grid].cap;
-        usage_per_layer[k] += h_edges3D[grid].usage;
-
         if (overflow > 0) {
-          overflow_per_layer[k] += overflow;
           H_overflow += overflow;
           max_H_overflow = std::max(max_H_overflow, overflow);
         }
@@ -2038,11 +2032,7 @@ int getOverflow3D(void)
         overflow = v_edges3D[grid].usage - v_edges3D[grid].cap;
         cap += v_edges3D[grid].cap;
 
-        cap_per_layer[k] += v_edges3D[grid].cap;
-        usage_per_layer[k] += v_edges3D[grid].usage;
-
         if (overflow > 0) {
-          overflow_per_layer[k] += overflow;
           V_overflow += overflow;
           max_V_overflow = std::max(max_V_overflow, overflow);
         }
@@ -2052,56 +2042,6 @@ int getOverflow3D(void)
 
   max_overflow = std::max(max_H_overflow, max_V_overflow);
   totalOverflow = H_overflow + V_overflow;
-
-  logger->info(GRT, 146, "Final usage/overflow report:");
-
-  if (verbose > 0) {
-    logger->info(GRT, 147, "Usage per layer:");
-
-    for (int l = 0; l < numLayers; l++) {
-      logger->info(GRT, 148, "Layer {} usage: {}", (l+1), usage_per_layer[l]);
-    }
-
-    logger->info(GRT, 149, "Capacity per layer:");
-
-    for (int l = 0; l < numLayers; l++) {
-      logger->info(GRT, 150, "Layer {} capacity: {}", (l+1), cap_per_layer[l]);
-    }
-
-    logger->info(GRT, 151, "Usage percentage per layer:");
-
-    for (int l = 0; l < numLayers; l++) {
-      float use_percentage;
-      if (cap_per_layer[l] == 0) {
-        use_percentage = 0.0;
-      } else {
-        use_percentage
-            = (float) usage_per_layer[l] / (float) cap_per_layer[l];
-        use_percentage *= 100;
-      }
-      logger->info(GRT, 152, "Layer {} usage percentage: {:.2f}%", (l+1), use_percentage);
-    }
-
-    logger->info(GRT, 153, "Overflow per layer:");
-
-    for (int l = 0; l < numLayers; l++) {
-      logger->info(GRT, 154, "Layer {} overflow: {}", (l+1), overflow_per_layer[l]);
-    }
-  }
-
-  logger->info(GRT, 155, "Overflow Report:");
-  logger->info(GRT, 156, "Total Usage   : {}", total_usage);
-  logger->info(GRT, 157, "Total Capacity: {}", cap);
-  logger->info(GRT, 158, "Max H Overflow: {}", max_H_overflow);
-  logger->info(GRT, 159, "Max V Overflow: {}", max_V_overflow);
-  logger->info(GRT, 160, "Max Overflow  : {}", max_overflow);
-  logger->info(GRT, 161, "H   Overflow  : {}", H_overflow);
-  logger->info(GRT, 162, "V   Overflow  : {}", V_overflow);
-  logger->info(GRT, 163, "Final Overflow: {}\n", totalOverflow);
-
-  delete[] cap_per_layer;
-  delete[] usage_per_layer;
-  delete[] overflow_per_layer;
 
   return (total_usage);
 }

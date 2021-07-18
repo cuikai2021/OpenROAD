@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // BSD 3-Clause License
@@ -186,6 +186,7 @@ public:
   virtual NetPinIterator *pinIterator(const Net *net) const;
   virtual NetTermIterator *termIterator(const Net *net) const;
   virtual Net *highestConnectedNet(Net *net) const;
+  bool isSpecial(Net *net);
 
   ////////////////////////////////////////////////////////////////
   // Edit functions

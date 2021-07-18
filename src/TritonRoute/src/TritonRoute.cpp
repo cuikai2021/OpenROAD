@@ -33,12 +33,14 @@
 
 #include "db/tech/frTechObject.h"
 #include "dr/FlexDR.h"
+#include "dr/FlexDR_graphics.h"
 #include "frDesign.h"
 #include "gc/FlexGC.h"
 #include "global.h"
 #include "gr/FlexGR.h"
 #include "gui/gui.h"
 #include "io/io.h"
+#include "ord/OpenRoad.hh"
 #include "pa/FlexPA.h"
 #include "rp/FlexRP.h"
 #include "sta/StaMain.hh"
@@ -127,6 +129,7 @@ void TritonRoute::init(Tcl_Interp* tcl_interp,
   // Define swig TCL commands.
   Tritonroute_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::TritonRoute_tcl_inits);
+  FlexDRGraphics::init();
 }
 
 void TritonRoute::init()
@@ -142,6 +145,32 @@ void TritonRoute::init()
 
   io::Parser parser(getDesign(), logger_);
   parser.readDb(db_);
+
+  auto tech = getDesign()->getTech();
+  if (!BOTTOM_ROUTING_LAYER_NAME.empty()) {
+    frLayer* layer = tech->getLayer(BOTTOM_ROUTING_LAYER_NAME);
+    if (layer) {
+      BOTTOM_ROUTING_LAYER = layer->getLayerNum();
+    } else {
+      logger_->warn(utl::DRT,
+                    272,
+                    "bottomRoutingLayer {} not found",
+                    BOTTOM_ROUTING_LAYER_NAME);
+    }
+  }
+
+  if (!TOP_ROUTING_LAYER_NAME.empty()) {
+    frLayer* layer = tech->getLayer(TOP_ROUTING_LAYER_NAME);
+    if (layer) {
+      TOP_ROUTING_LAYER = layer->getLayerNum();
+    } else {
+      logger_->warn(utl::DRT,
+                    273,
+                    "topRoutingLayer {} not found",
+                    TOP_ROUTING_LAYER_NAME);
+    }
+  }
+
   if (GUIDE_FILE != string("")) {
     parser.readGuide();
   } else {
@@ -197,6 +226,7 @@ void TritonRoute::reportConstraints()
 
 int TritonRoute::main()
 {
+  MAX_THREADS = ord::OpenRoad::openRoad()->getThreadCount();
   init();
   if (GUIDE_FILE == string("")) {
     gr();
@@ -219,6 +249,8 @@ int TritonRoute::main()
 
 void TritonRoute::readParams(const string& fileName)
 {
+  logger_->warn(utl::DRT, 252, "params file is deprecated. Use tcl arguments.");
+
   int readParamCnt = 0;
   ifstream fin(fileName.c_str());
   string line;
@@ -240,7 +272,7 @@ void TritonRoute::readParams(const string& fileName)
           ++readParamCnt;
         } else if (field == "outputTA") {
           logger_->warn(
-              utl::DRT, 171, "deprecated outputTA param in params file");
+              utl::DRT, 266, "deprecated outputTA param in params file");
         } else if (field == "output") {
           logger_->warn(
               utl::DRT, 205, "deprecated output param in params file");
@@ -257,30 +289,15 @@ void TritonRoute::readParams(const string& fileName)
           CMAP_FILE = value;
           ++readParamCnt;
         } else if (field == "threads") {
-          MAX_THREADS = atoi(value.c_str());
+          logger_->warn(utl::DRT,
+                        274,
+                        "deprecated threads param in params file."
+                        " Use 'set_thread_count'");
           ++readParamCnt;
         } else if (field == "verbose")
           VERBOSE = atoi(value.c_str());
         else if (field == "dbProcessNode") {
           DBPROCESSNODE = value;
-          ++readParamCnt;
-        } else if (field == "drouteOnGridOnlyPrefWireBottomLayerNum") {
-          ONGRIDONLY_WIRE_PREF_BOTTOMLAYERNUM = atoi(value.c_str());
-          ++readParamCnt;
-        } else if (field == "drouteOnGridOnlyPrefWireTopLayerNum") {
-          ONGRIDONLY_WIRE_PREF_TOPLAYERNUM = atoi(value.c_str());
-          ++readParamCnt;
-        } else if (field == "drouteOnGridOnlyNonPrefWireBottomLayerNum") {
-          ONGRIDONLY_WIRE_NONPREF_BOTTOMLAYERNUM = atoi(value.c_str());
-          ++readParamCnt;
-        } else if (field == "drouteOnGridOnlyNonPrefWireTopLayerNum") {
-          ONGRIDONLY_WIRE_NONPREF_TOPLAYERNUM = atoi(value.c_str());
-          ++readParamCnt;
-        } else if (field == "drouteOnGridOnlyViaBottomLayerNum") {
-          ONGRIDONLY_VIA_BOTTOMLAYERNUM = atoi(value.c_str());
-          ++readParamCnt;
-        } else if (field == "drouteOnGridOnlyViaTopLayerNum") {
-          ONGRIDONLY_VIA_TOPLAYERNUM = atoi(value.c_str());
           ++readParamCnt;
         } else if (field == "drouteViaInPinBottomLayerNum") {
           VIAINPIN_BOTTOMLAYERNUM = atoi(value.c_str());
@@ -298,10 +315,13 @@ void TritonRoute::readParams(const string& fileName)
           OR_K = atof(value.c_str());
           ++readParamCnt;
         } else if (field == "bottomRoutingLayer") {
-          BOTTOM_ROUTING_LAYER = atoi(value.c_str());
+          BOTTOM_ROUTING_LAYER_NAME = value;
           ++readParamCnt;
         } else if (field == "topRoutingLayer") {
-          TOP_ROUTING_LAYER = atoi(value.c_str());
+          TOP_ROUTING_LAYER_NAME = value;
+          ++readParamCnt;
+        } else if (field == "initRouteShapeCost") {
+          ROUTESHAPECOST = atoi(value.c_str());
           ++readParamCnt;
         }
       }
@@ -311,6 +331,34 @@ void TritonRoute::readParams(const string& fileName)
 
   if (readParamCnt < 2) {
     logger_->error(DRT, 1, "Error reading param file: {}", fileName);
+  }
+}
+
+void TritonRoute::setParams(const ParamStruct& params)
+{
+  GUIDE_FILE = params.guideFile;
+  OUTGUIDE_FILE = params.outputGuideFile;
+  OUT_MAZE_FILE = params.outputMazeFile;
+  DRC_RPT_FILE = params.outputDrcFile;
+  CMAP_FILE = params.outputCmapFile;
+  VERBOSE = params.verbose;
+  DBPROCESSNODE = params.dbProcessNode;
+  if (params.drouteViaInPinBottomLayerNum > 0) {
+    VIAINPIN_BOTTOMLAYERNUM = params.drouteViaInPinBottomLayerNum;
+  }
+  if (params.drouteViaInPinTopLayerNum > 0) {
+    VIAINPIN_TOPLAYERNUM = params.drouteViaInPinTopLayerNum;
+  }
+  if (params.drouteEndIter > 0) {
+    END_ITERATION = params.drouteEndIter;
+  }
+  OR_SEED = params.orSeed;
+  OR_K = params.orK;
+  if (!params.bottomRoutingLayer.empty()) {
+    BOTTOM_ROUTING_LAYER_NAME = params.bottomRoutingLayer;
+  }
+  if (!params.topRoutingLayer.empty()) {
+    TOP_ROUTING_LAYER_NAME = params.topRoutingLayer;
   }
 }
 

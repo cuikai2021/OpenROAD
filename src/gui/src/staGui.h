@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2020, OpenROAD
+// Copyright (c) 2020, The Regents of the University of California
 // All rights reserved.
 //
 // BSD 3-Clause License
@@ -127,7 +127,7 @@ struct TimingPathNode
   {
   }
 
-  std::string getNodeName() const;
+  std::string getNodeName(bool include_master = false) const;
   std::string getNetName() const;
 
   odb::dbObject* pin_;

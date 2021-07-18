@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@
 
 #include "db.h"
 #include "displayControls.h"
-#include "openroad/InitOpenRoad.hh"
+#include "ord/InitOpenRoad.hh"
 
 Q_DECLARE_METATYPE(odb::dbTechLayer*);
 
@@ -374,14 +374,15 @@ void DisplayControls::setDb(odb::dbDatabase* db)
   for (dbTechLayer* layer : tech->getLayers()) {
     dbTechLayerType type = layer->getType();
     if (type == dbTechLayerType::ROUTING || type == dbTechLayerType::CUT) {
-      makeItem(layer_controls_[layer],
-               QString::fromStdString(layer->getName()),
-               layers_group_.name,
-               Qt::Checked,
-               std::function<void(bool)>(),
-               [this](bool selectable) {}, // non-null to create checkbox
-               color(layer),
-               type == dbTechLayerType::CUT ? NULL : layer);
+      makeItem(
+          layer_controls_[layer],
+          QString::fromStdString(layer->getName()),
+          layers_group_.name,
+          Qt::Checked,
+          std::function<void(bool)>(),
+          [this](bool selectable) {},  // non-null to create checkbox
+          color(layer),
+          type == dbTechLayerType::CUT ? NULL : layer);
     }
   }
 
@@ -421,7 +422,6 @@ QStandardItem* DisplayControls::makeItem(
   row.visible->setCheckState(checked);
   row.visible->setData(QVariant::fromValue(Callback({visibility_action})));
 
-  QStandardItem* select_item = nullptr;
   if (select_action) {
     row.selectable = new QStandardItem("");
     row.selectable->setCheckable(true);
@@ -513,14 +513,14 @@ void DisplayControls::addCustomVisibilityControl(const std::string& name,
 {
   auto q_name = QString::fromStdString(name);
   auto checked = initially_visible ? Qt::Checked : Qt::Unchecked;
-  auto item = makeItem(custom_controls_[name],
-                       q_name,
-                       model_,
-                       checked,
-                       [this, name](bool visible) {
-                         custom_controls_[name].visible->setCheckState(
-                             visible ? Qt::Checked : Qt::Unchecked);
-                       });
+  makeItem(custom_controls_[name],
+           q_name,
+           model_,
+           checked,
+           [this, name](bool visible) {
+             custom_controls_[name].visible->setCheckState(
+                 visible ? Qt::Checked : Qt::Unchecked);
+           });
 }
 
 bool DisplayControls::checkCustomVisibilityControl(const std::string& name)

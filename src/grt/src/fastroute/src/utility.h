@@ -59,6 +59,7 @@ extern void netedgeOrderDec(int netID);
 extern void printTree2D(int netID);
 extern void finalSumCheck();
 extern void ACE();
+extern void check2DEdgesUsage();
 
 extern void newLA();
 extern void iniBDE();
@@ -67,7 +68,6 @@ extern void copyRS(void);
 extern void freeRR(void);
 extern Tree fluteToTree(stt::Tree fluteTree);
 extern stt::Tree treeToFlute(Tree tree);
-extern Tree pdToTree(PD::Tree pdTree);
 
 }  // namespace grt
 

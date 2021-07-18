@@ -52,9 +52,11 @@ class frLayer
         pitch(0),
         width(0),
         minWidth(0),
+        numMasks(1),
         defaultViaDef(nullptr),
         minSpc(nullptr),
         spacingSamenet(nullptr),
+        spacingInfluence(nullptr),
         eols(),
         cutConstraints(),
         cutSpacingSamenetConstraints(),
@@ -85,9 +87,11 @@ class frLayer
         pitch(0),
         width(0),
         minWidth(-1),
+        numMasks(1),
         defaultViaDef(nullptr),
         minSpc(nullptr),
         spacingSamenet(nullptr),
+        spacingInfluence(nullptr),
         eols(),
         cutConstraints(),
         cutSpacingSamenetConstraints(),
@@ -111,6 +115,7 @@ class frLayer
   {
   }
   // setters
+  void setNumMasks(frUInt4 numMasksIn) { numMasks = numMasksIn; }
   void setLayerNum(frLayerNum layerNumIn) { layerNum = layerNumIn; }
   void setName(const frString& nameIn) { name = nameIn; }
   void setPitch(frUInt4 in) { pitch = in; }
@@ -126,6 +131,7 @@ class frLayer
   void addViaDef(frViaDef* viaDefIn) { viaDefs.insert(viaDefIn); }
 
   // getters
+  frUInt4 getNumMasks() const { return numMasks; }
   frLayerNum getLayerNum() const { return layerNum; }
   void getName(frString& nameIn) const { nameIn = name; }
   frString getName() const { return name; }
@@ -133,6 +139,14 @@ class frLayer
   frUInt4 getWidth() const { return width; }
   frUInt4 getMinWidth() const { return minWidth; }
   frPrefRoutingDir getDir() const { return dir; }
+  bool isUnidirectional() const
+  {
+    // We don't handle coloring so any double/triple patterned
+    // layer is treated as unidirectional.
+    // RectOnly could allow for a purely wrong-way rect but
+    // we ignore that rare case and treat it as unidirectional.
+    return getNumMasks() > 1 || getLef58RectOnlyConstraint();
+  }
   frSegStyle getDefaultSegStyle() const
   {
     frSegStyle style;
@@ -282,6 +296,15 @@ class frLayer
   {
     spacingSamenet = in;
   }
+  bool hasSpacingTableInfluence() const { return (spacingInfluence); }
+  frSpacingTableInfluenceConstraint* getSpacingTableInfluence() const
+  {
+    return spacingInfluence;
+  }
+  void setSpacingTableInfluence(frSpacingTableInfluenceConstraint* in)
+  {
+    spacingInfluence = in;
+  }
   bool hasEolSpacing() const { return (eols.empty() ? false : true); }
   void addEolSpacing(frSpacingEndOfLineConstraint* in) { eols.push_back(in); }
   const std::vector<frSpacingEndOfLineConstraint*>& getEolSpacing() const
@@ -314,6 +337,16 @@ class frLayer
       const
   {
     return lef58MinStepConstraints;
+  }
+
+  void addLef58EolExtConstraint(frLef58EolExtensionConstraint* in)
+  {
+    lef58EolExtConstraints.push_back(in);
+  }
+  const std::vector<frLef58EolExtensionConstraint*>& getLef58EolExtConstraints()
+      const
+  {
+    return lef58EolExtConstraints;
   }
 
   void addCutSpacingConstraint(frCutSpacingConstraint* in)
@@ -479,7 +512,7 @@ class frLayer
   {
     lef58RectOnlyConstraint = in;
   }
-  frLef58RectOnlyConstraint* getLef58RectOnlyConstraint()
+  frLef58RectOnlyConstraint* getLef58RectOnlyConstraint() const
   {
     return lef58RectOnlyConstraint;
   }
@@ -510,6 +543,22 @@ class frLayer
     return (!lef58CornerSpacingConstraints.empty());
   }
 
+  void addLef58EolKeepOutConstraint(frLef58EolKeepOutConstraint* in)
+  {
+    lef58EolKeepOutConstraints.push_back(in);
+  }
+
+  const std::vector<frLef58EolKeepOutConstraint*>&
+  getLef58EolKeepOutConstraints() const
+  {
+    return lef58EolKeepOutConstraints;
+  }
+
+  bool hasLef58EolKeepOutConstraint() const
+  {
+    return (!lef58EolKeepOutConstraints.empty());
+  }
+
   void printAllConstraints(utl::Logger* logger);
 
  protected:
@@ -519,6 +568,7 @@ class frLayer
   frUInt4 pitch;
   frUInt4 width;
   frUInt4 minWidth;
+  frUInt4 numMasks;
   frPrefRoutingDir dir;
   frViaDef* defaultViaDef;
   std::set<frViaDef*> viaDefs;
@@ -532,6 +582,7 @@ class frLayer
 
   frConstraint* minSpc;
   frSpacingSamenetConstraint* spacingSamenet;
+  frSpacingTableInfluenceConstraint* spacingInfluence;
   std::vector<frSpacingEndOfLineConstraint*> eols;
   std::vector<frCutSpacingConstraint*> cutConstraints;
   std::vector<frCutSpacingConstraint*> cutSpacingSamenetConstraints;
@@ -557,11 +608,13 @@ class frLayer
   frAreaConstraint* areaConstraint;
   frMinStepConstraint* minStepConstraint;
   std::vector<frLef58MinStepConstraint*> lef58MinStepConstraints;
+  std::vector<frLef58EolExtensionConstraint*> lef58EolExtConstraints;
   frMinWidthConstraint* minWidthConstraint;
   std::vector<frMinimumcutConstraint*> minimumcutConstraints;
   frLef58RectOnlyConstraint* lef58RectOnlyConstraint;
   frLef58RightWayOnGridOnlyConstraint* lef58RightWayOnGridOnlyConstraint;
   std::vector<frLef58CornerSpacingConstraint*> lef58CornerSpacingConstraints;
+  std::vector<frLef58EolKeepOutConstraint*> lef58EolKeepOutConstraints;
 };
 }  // namespace fr
 
