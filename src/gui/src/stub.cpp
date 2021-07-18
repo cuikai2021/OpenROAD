@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -84,9 +84,18 @@ Renderer::~Renderer()
 {
 }
 
-OpenDbDescriptor* OpenDbDescriptor::get()
+Selected Gui::makeSelected(std::any /* object */, void* /* additional_data */)
 {
-  return nullptr;
+  return Selected();
+}
+
+void Gui::setSelected(Selected selection)
+{
+}
+
+void Gui::registerDescriptor(const std::type_info& type,
+                        const Descriptor* descriptor)
+{
 }
 
 // using namespace odb;

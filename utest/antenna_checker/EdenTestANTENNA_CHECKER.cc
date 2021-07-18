@@ -1,5 +1,5 @@
 #include <itest.h>
-#include "antennachecker/AntennaChecker.hh"
+#include "ant/AntennaChecker.hh"
 
 using namespace ant;
 

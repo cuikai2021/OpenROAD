@@ -4,7 +4,7 @@
 //          (respective Ph.D. advisors: Seokhyeong Kang, Andrew B. Kahng)
 // Rewrite by James Cherry, Parallax Software, Inc.
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // Copyright (c) 2018, SangGi Do and Mingyu Woo
 // All rights reserved.
 //
@@ -44,7 +44,7 @@
 #include <cstdlib>
 
 #include "utl/Logger.h"
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 
 //#define ODP_DEBUG
 
@@ -69,7 +69,7 @@ Opendp::detailedPlacement()
 {
   initGrid();
   // Paint fixed cells.
-  assignFixedCells();
+  setFixedGridCells();
   // group mapping & x_axis dummycell insertion
   groupInitPixels2();
   // y axis dummycell insertion

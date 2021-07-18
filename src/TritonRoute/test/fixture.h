@@ -45,6 +45,30 @@ class Fixture
 
   void makeDesign();
 
+  frBlock* makeMacro(const char* name,
+                     frCoord originX = 0,
+                     frCoord originY = 0,
+                     frCoord sizeX = 0,
+                     frCoord sizeY = 0);
+
+  frBlockage* makeMacroObs(frBlock* refBlock,
+                           frCoord xl,
+                           frCoord yl,
+                           frCoord xh,
+                           frCoord yh,
+                           frLayerNum lNum = 2,
+                           frCoord designRuleWidth = -1);
+
+  frTerm* makeMacroPin(frBlock* refBlock,
+                       std::string name,
+                       frCoord xl,
+                       frCoord yl,
+                       frCoord xh,
+                       frCoord yh,
+                       frLayerNum lNum = 2);
+
+  frInst* makeInst(const char* name, frBlock* refBlock, frCoord x, frCoord y);
+
   void makeCornerConstraint(frLayerNum layer_num,
                             frCoord eolWidth = -1,
                             frCornerTypeEnum type = frCornerTypeEnum::CONVEX);
@@ -63,6 +87,13 @@ class Fixture
                                       frCoord par_space = -1,
                                       frCoord par_within = -1,
                                       bool two_edges = false);
+
+  void makeLef58EolKeepOutConstraint(frLayerNum layer_num,
+                                     bool cornerOnly = false,
+                                     frCoord forward = 200,
+                                     frCoord side = 50,
+                                     frCoord backward = 0,
+                                     frCoord width = 200);
 
   std::shared_ptr<frLef58SpacingEndOfLineConstraint>
   makeLef58SpacingEolConstraint(frLayerNum layer_num,
@@ -125,11 +156,29 @@ class Fixture
                 frcExtendEndStyle);
   }
 
+  frSpacingTableInfluenceConstraint* makeSpacingTableInfluenceConstraint(
+      frLayerNum layer_num,
+      std::vector<frCoord> widthTbl,
+      std::vector<std::pair<frCoord, frCoord>> valTbl);
+
+  frLef58EolExtensionConstraint* makeEolExtensionConstraint(
+      frLayerNum layer_num,
+      frCoord spacing,
+      std::vector<frCoord> eol,
+      std::vector<frCoord> ext,
+      bool parallelOnly = false);
+
+  frSpacingTableTwConstraint* makeSpacingTableTwConstraint(
+      frLayerNum layer_num,
+      std::vector<frCoord> widthTbl,
+      std::vector<frCoord> prlTbl,
+      std::vector<std::vector<frCoord>> spacingTbl);
   void initRegionQuery();
 
   // Public data members are accessible from inside the test function
   std::unique_ptr<fr::Logger> logger;
   std::unique_ptr<frDesign> design;
+  frUInt4 numBlockages, numTerms, numRefBlocks, numInsts;
 };
 
 // BOOST_TEST wants an operator<< for any type it compares.  We

@@ -36,8 +36,6 @@
 #include <string>
 #include <vector>
 
-#define MAXDEMAND 500   // MAX # Segments over an edge
-#define FILESTRLEN 100  // MAX length of file name
 #define BIG_INT 1e7     // big integer used as infinity
 
 #define TRUE 1
@@ -89,8 +87,10 @@ typedef struct
   std::vector<int> pinY;  // array of Y coordinates of pins
   std::vector<int> pinL;  // array of L coordinates of pins
   float alpha;              // alpha for pdrev when routing clock nets
-  bool isClock;             // flag that indicates if net is a clock net
+  bool is_clock;             // flag that indicates if net is a clock net
+  int driver_idx;
   int edgeCost;
+  std::vector<int> edge_cost_per_layer;
 } FrNet;                    // A Net is a set of connected MazePoints
 
 const char* netName(FrNet* net);

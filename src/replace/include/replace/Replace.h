@@ -78,7 +78,7 @@ class Replace
     void setDb(odb::dbDatabase* odb);
     void setSta(sta::dbSta* dbSta);
     void setResizer(rsz::Resizer* resizer);
-    void setFastRoute(grt::GlobalRouter* fr);
+    void setGlobalRouter(grt::GlobalRouter* fr);
     void setLogger(utl::Logger* log);
 
     void doInitialPlace();
@@ -106,6 +106,8 @@ class Replace
     void setMinPhiCoef(float minPhiCoef);
     void setMaxPhiCoef(float maxPhiCoef);
 
+    float getUniformTargetDensity();
+
     // HPWL: half-parameter wire length.
     void setReferenceHpwl(float deltaHpwl);
 
@@ -127,7 +129,6 @@ class Replace
 
     void setRoutabilityTargetRcMetric(float rc);
     void setRoutabilityInflationRatioCoef(float ratio);
-    void setRoutabilityPitchScale(float scale);
     void setRoutabilityMaxInflationRatio(float ratio);
 
     void setRoutabilityRcCoefficients(float k1, float k2, float k3, float k4);
@@ -174,7 +175,6 @@ class Replace
     float routabilityMaxDensity_;
     float routabilityTargetRcMetric_;
     float routabilityInflationRatioCoef_;
-    float routabilityPitchScale_;
     float routabilityMaxInflationRatio_;
 
     // routability RC metric coefficients

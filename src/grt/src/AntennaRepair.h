@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -40,13 +40,13 @@
 #include <boost/geometry/index/rtree.hpp>
 #include <string>
 
-#include "antennachecker/AntennaChecker.hh"
+#include "ant/AntennaChecker.hh"
+#include "dpl/Opendp.h"
 #include "grt/GRoute.h"
 #include "opendb/db.h"
 #include "opendb/dbBlockCallBackObj.h"
 #include "opendb/dbShape.h"
 #include "opendb/wOrder.h"
-#include "dpl/Opendp.h"
 #include "sta/Liberty.hh"
 
 // Forward declaration protects FastRoute code from any
@@ -59,7 +59,7 @@ class dbTech;
 
 namespace utl {
 class Logger;
-} // namespace utl
+}  // namespace utl
 
 namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
@@ -87,12 +87,12 @@ class AntennaRepair
                 ant::AntennaChecker* arc,
                 dpl::Opendp* opendp,
                 odb::dbDatabase* db,
-                utl::Logger *logger);
+                utl::Logger* logger);
 
   int checkAntennaViolations(NetRouteMap& routing,
                              int maxRoutingLayer,
                              odb::dbMTerm* diodeMTerm);
-  void fixAntennas(odb::dbMTerm* diodeMTerm);
+  void repairAntennas(odb::dbMTerm* diodeMTerm);
   void legalizePlacedCells();
   AntennaViolations getAntennaViolations() { return _antennaViolations; }
   void setAntennaViolations(AntennaViolations antennaViolations)
@@ -100,6 +100,7 @@ class AntennaRepair
     _antennaViolations = antennaViolations;
   }
   int getDiodesCount() { return _diodeInsts.size(); }
+  void clearViolations() { _antennaViolations.clear(); }
 
  private:
   typedef int coord_type;
@@ -119,12 +120,13 @@ class AntennaRepair
                    r_tree& fixedInsts);
   void getFixedInstances(r_tree& fixedInsts);
   void setInstsPlacementStatus(odb::dbPlacementStatus placementStatus);
+  odb::Rect getInstRect(odb::dbInst* inst, odb::dbITerm* iterm);
 
   GlobalRouter* _grouter;
   ant::AntennaChecker* _arc;
   dpl::Opendp* _opendp;
   odb::dbDatabase* _db;
-  utl::Logger *_logger;
+  utl::Logger* _logger;
   odb::dbBlock* _block;
   std::vector<odb::dbInst*> _diodeInsts;
   AntennaViolations _antennaViolations;

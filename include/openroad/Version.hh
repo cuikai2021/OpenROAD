@@ -1,0 +1,5 @@
+#define EDEN_VERSION "1"
+
+#define EDEN_GIT_SHA1 "880a2b6096ac73c9fa93fa1aab9530eb5003a368"
+
+/* #undef BUILD_OPENPHYSYN */

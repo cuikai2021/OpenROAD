@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2020, OpenROAD
+// Copyright (c) 2020, The Regents of the University of California
 // All rights reserved.
 //
 // BSD 3-Clause License
@@ -103,6 +103,21 @@ critical(utl::ToolId tool,
 {
   Logger *logger = getLogger();
   logger->critical(tool, id, msg);
+}
+
+void
+open_metrics(const char *metrics_filename)
+{
+  Logger *logger = getLogger();
+  logger->addMetricsSink(metrics_filename);
+}
+
+void
+metric(const char *metric,
+       const char *value)
+{
+  Logger *logger = getLogger();
+  logger->metric(metric, value);
 }
 
 } // namespace

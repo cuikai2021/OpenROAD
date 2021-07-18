@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -94,7 +94,7 @@ class MakeWireParasitics
   // Variables common to all nets.
   GlobalRouter* _grouter;
   odb::dbTech* _tech;
-  utl::Logger *_logger;
+  utl::Logger* _logger;
   sta::dbSta* _sta;
   sta::dbNetwork* _network;
   sta::Parasitics* _parasitics;

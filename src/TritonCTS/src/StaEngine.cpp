@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@
 #include "StaEngine.h"
 
 #include "db_sta/dbSta.hh"
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 #include "utl/Logger.h"
 #include "sta/Liberty.hh"
 #include "sta/Network.hh"
@@ -79,7 +79,6 @@ float StaEngine::getInputPinCap(odb::dbITerm* iterm)
     return 0.0;
   }
 
-  sta::LibertyLibrary* staLib = libertyCell->libertyLibrary();
   sta::LibertyPort *inputPort = libertyCell->findLibertyPort(iterm->getMTerm()->getConstName());
   if (inputPort) {
     return inputPort->capacitance();
@@ -98,7 +97,6 @@ bool StaEngine::isSink(odb::dbITerm* iterm)
     return false;
   }
 
-  sta::LibertyLibrary* staLib = libertyCell->libertyLibrary();
   sta::LibertyPort *inputPort = libertyCell->findLibertyPort(iterm->getMTerm()->getConstName());
   if (inputPort) {
     return inputPort->isRegClk();

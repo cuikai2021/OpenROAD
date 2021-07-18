@@ -43,7 +43,7 @@
 #include "EdgeShift.h"
 #include "RipUp.h"
 #include "flute.h"
-#include "pdrev/pdrev.h"
+#include "pdr/pdrev.h"
 #include "route.h"
 #include "utility.h"
 #include "utl/Logger.h"
@@ -66,70 +66,6 @@ struct wire
   int x1, y1, x2, y2;
   int netID;
 };
-
-// global variable
-// ** V_table;
-// int ** H_table;
-
-static int ordery1(const void* a, const void* b)
-{
-  struct wire *pa, *pb;
-
-  pa = *(struct wire**) a;
-  pb = *(struct wire**) b;
-
-  if (pa->y1 < pb->y1)
-    return -1;
-  if (pa->y1 > pb->y1)
-    return 1;
-  return 0;
-  // return ((struct Segment*)a->x1-(struct Segment*)b->x1);
-}
-
-static int ordery2(const void* a, const void* b)
-{
-  struct wire *pa, *pb;
-
-  pa = *(struct wire**) a;
-  pb = *(struct wire**) b;
-
-  if (pa->y2 < pb->y2)
-    return -1;
-  if (pa->y2 > pb->y2)
-    return 1;
-  return 0;
-  // return ((struct Segment*)a->x1-(struct Segment*)b->x1);
-}
-
-static int orderx1(const void* a, const void* b)
-{
-  struct wire *pa, *pb;
-
-  pa = *(struct wire**) a;
-  pb = *(struct wire**) b;
-
-  if (pa->x1 < pb->x1)
-    return -1;
-  if (pa->x1 > pb->x1)
-    return 1;
-  return 0;
-  // return ((struct Segment*)a->x1-(struct Segment*)b->x1);
-}
-
-static int orderx2(const void* a, const void* b)
-{
-  struct wire *pa, *pb;
-
-  pa = *(struct wire**) a;
-  pb = *(struct wire**) b;
-
-  if (pa->x2 < pb->x2)
-    return -1;
-  if (pa->x2 > pb->x2)
-    return 1;
-  return 0;
-  // return ((struct Segment*)a->x1-(struct Segment*)b->x1);
-}
 
 int orderx(const struct pnt* a, const struct pnt* b)
 {
@@ -216,6 +152,9 @@ void copyStTree(int ind, Tree rsmt)
         treeedges[edgecnt].n1 = n;
         treeedges[edgecnt].n2 = i;
       }
+      treeedges[edgecnt].route.gridsX = nullptr;
+      treeedges[edgecnt].route.gridsY = nullptr;
+      treeedges[edgecnt].route.gridsL = nullptr;
       treenodes[i].nbr[nbrcnt[i]] = n;
       treenodes[i].edge[nbrcnt[i]] = edgecnt;
       treenodes[n].nbr[nbrcnt[n]] = i;
@@ -226,10 +165,10 @@ void copyStTree(int ind, Tree rsmt)
       edgecnt++;
     }
     if (nbrcnt[i] > 3 || nbrcnt[n] > 3)
-      logger->error(GRT, 188, "Invalid number of node neighbours.");
+      logger->error(GRT, 188, "Invalid number of node neighbors.");
   }
   if (edgecnt != numnodes - 1) {
-    logger->error(GRT, 189, "Fail in copy tree. Num edges: {}, num nodes: {}, edgecnt, numnodes.");
+    logger->error(GRT, 189, "Failure in copy tree. Num edges: {}, num nodes: {}.", edgecnt, numnodes);
   }
 }
 
@@ -244,7 +183,7 @@ void fluteNormal(int netID,
   DTYPE *xs, *ys, minval, x_max, x_min, x_mid, y_max, y_min, y_mid, *tmp_xs,
       *tmp_ys;
   int* s;
-  int i, j, k, minidx;
+  int i, j, minidx;
   struct pnt *pt, *tmpp;
 
   if (d == 2) {
@@ -420,10 +359,10 @@ void fluteCongest(int netID,
                   float coeffV,
                   Tree* t)
 {
-  DTYPE *xs, *ys, *nxs, *nys, *x_seg, *y_seg, minval, x_max, x_min, x_mid,
+  DTYPE *xs, *ys, *nxs, *nys, *x_seg, *y_seg, x_max, x_min, x_mid,
       y_max, y_min, y_mid;
   int* s;
-  int i, j, k, minidx, grid;
+  int i, j, k, grid;
   DTYPE height, width;
   int usageH, usageV;
   float coeffH = 1;
@@ -580,11 +519,8 @@ void fluteCongest(int netID,
 
 Bool netCongestion(int netID)
 {
-  int i, j, edgeID, edgelength, *gridsX, *gridsY;
-  int n1, n2, x1, y1, x2, y2, distance, grid, ymin, ymax;
-  int cnt, Zpoint;
-  TreeEdge* treeedge;
-  TreeNode* treenodes;
+  int i, j;
+  int grid, ymin, ymax;
   //  Bool Congested;
   Segment* seg;
 
@@ -787,8 +723,9 @@ void gen_brk_RSMT(Bool congestionDriven,
   totalNumSeg = 0;
 
   for (i = 0; i < numValidNets; i++) {
+    FrNet* net = nets[i];
     coeffV = 1.36;
-    int sizeV = nets[i]->numPins;
+    int sizeV = net->numPins;
     int x[sizeV];
     int y[sizeV];
 
@@ -802,10 +739,10 @@ void gen_brk_RSMT(Bool congestionDriven,
       }
     }
 
-    d = nets[i]->deg;
+    d = net->deg;
     for (j = 0; j < d; j++) {
-      x[j] = nets[i]->pinX[j];
-      y[j] = nets[i]->pinY[j];
+      x[j] = net->pinX[j];
+      y[j] = net->pinY[j];
     }
 
     if (reRoute) {
@@ -837,17 +774,9 @@ void gen_brk_RSMT(Bool congestionDriven,
     if (noADJ) {
       coeffV = 1.2;
     }
-    if (pdRevForHighFanout > 0 && nets[i]->deg >= pdRevForHighFanout
-        && nets[i]->isClock) {
-      PD::PdRev* pd = new PD::PdRev(logger);
-      std::vector<unsigned> vecX(x, x + d);
-      std::vector<unsigned> vecY(y, y + d);
-      pd->setAlphaPDII(nets[i]->alpha);
-      pd->addNet(d, vecX, vecY);
-      pd->runPDII();
-      PD::Tree pdTree = pd->translateTree(0);
-      rsmt = pdToTree(pdTree);
-      delete pd;
+    if (net->alpha > 0) {
+      stt::Tree tree = pdr::primDijkstra(net->pinX, net->pinY, net->driver_idx, net->alpha, logger);
+      rsmt = fluteToTree(tree);
     } else {
       if (congestionDriven) {
         // call congestion driven flute to generate RSMT
@@ -869,8 +798,7 @@ void gen_brk_RSMT(Bool congestionDriven,
       copyStTree(i, rsmt);
     }
 
-    if (nets[i]->deg != rsmt.deg) {
-      logger->warn(GRT, 190, "Net degree differs from rsmt degree.");
+    if (net->deg != rsmt.deg) {
       d = rsmt.deg;
     }
 
@@ -923,9 +851,9 @@ void gen_brk_RSMT(Bool congestionDriven,
   }  // loop i
 
   if (verbose > 1) {
-    logger->info(GRT, 191, "WIRELEN : {}, WIRELEN1 : {}", wl, wl1);
-    logger->info(GRT, 192, "NumSeg  : {}", totalNumSeg);
-    logger->info(GRT, 193, "NumShift: {}", numShift);
+    logger->info(GRT, 191, "Wirelength: {}, Wirelength1: {}", wl, wl1);
+    logger->info(GRT, 192, "Number of segments: {}", totalNumSeg);
+    logger->info(GRT, 193, "Number of shifts: {}", numShift);
   }
 }
 

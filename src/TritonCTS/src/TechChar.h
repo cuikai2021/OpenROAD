@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
 
 #include "CtsOptions.h"
 #include "db_sta/dbNetwork.hh"
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 #include "sta/Corner.hh"
 
 #include <algorithm>
@@ -181,7 +181,7 @@ class TechChar
   };
 
  public:
-  TechChar(CtsOptions* options, Logger* logger) : _options(options), _logger(logger) {}
+  TechChar(CtsOptions* options, Logger* logger) : _logger(logger), _options(options) {}
 
   void create();
   void compileLut(std::vector<ResultData> lutSols);

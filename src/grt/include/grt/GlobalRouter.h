@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -127,36 +127,6 @@ bool operator<(const RoutePt& p1, const RoutePt& p2);
 class GlobalRouter
 {
  public:
-  struct ADJUSTMENT_
-  {
-    int firstX;
-    int firstY;
-    int firstLayer;
-    int finalX;
-    int finalY;
-    int finalLayer;
-    int edgeCapacity;
-  };
-
-  struct ROUTE_
-  {
-    int gridCountX;
-    int gridCountY;
-    int numLayers;
-    std::vector<int> verticalEdgesCapacities;
-    std::vector<int> horizontalEdgesCapacities;
-    std::vector<int> minWireWidths;
-    std::vector<int> minWireSpacings;
-    std::vector<int> viaSpacings;
-    long gridOriginX;
-    long gridOriginY;
-    long tileWidth;
-    long tileHeight;
-    int blockPorosity;
-    int numAdjustments;
-    std::vector<ADJUSTMENT_> adjustments;
-  };
-
   GlobalRouter() = default;
   ~GlobalRouter();
   void init(ord::OpenRoad* openroad);
@@ -169,6 +139,7 @@ class GlobalRouter
   void setMinLayerForClock(const int minLayer);
   void setMaxLayerForClock(const int maxLayer);
   void setAlpha(const float alpha);
+  float getAlpha() const { return _alpha; }
   unsigned getDbId();
   void addLayerAdjustment(int layer, float reductionPercentage);
   void addRegionAdjustment(int minX,
@@ -177,13 +148,11 @@ class GlobalRouter
                            int maxY,
                            int layer,
                            float reductionPercentage);
-  void setLayerPitch(int layer, float pitch);
   void addAlphaForNet(char* netName, float alpha);
   void setVerbose(const int v);
   void setOverflowIterations(int iterations);
   void setGridOrigin(long x, long y);
-  void setPDRevForHighFanout(int pdRevForHighFanout);
-  void setAllowOverflow(bool allowOverflow);
+  void setAllowCongestion(bool allowCongestion);
   void setMacroExtension(int macroExtension);
   void printGrid();
 
@@ -198,17 +167,19 @@ class GlobalRouter
   bool haveRoutes() const { return !_routes.empty(); }
 
   // repair antenna public functions
-  void repairAntennas(sta::LibertyPort* diodePort);
+  void repairAntennas(sta::LibertyPort* diodePort, int iterations);
   void addDirtyNet(odb::dbNet* net);
-
-  // congestion drive replace functions
-  ROUTE_ getRoute();
 
   double dbuToMicrons(int64_t dbu);
 
   // route clock nets public functions
-  void setClockCost(int cost);
   void routeClockNets();
+
+  // functions for random grt
+  void setSeed(int seed) { seed_ = seed; }
+  void setCapacitiesPerturbationPercentage(float percentage);
+  void setPerturbationAmount(int perturbation) { perturbation_amount_ = perturbation; };
+  void perturbCapacities();
 
   // Highlight route in the gui.
   void highlightRoute(const odb::dbNet *net);
@@ -231,6 +202,7 @@ class GlobalRouter
   // main functions
   void initCoreGrid(int maxRoutingLayer);
   void initRoutingLayers();
+  std::vector<std::pair<int, int>> calcLayerPitches(int maxLayer);
   void initRoutingTracks(int maxRoutingLayer);
   void setCapacities(int minRoutingLayer, int maxRoutingLayer);
   void setSpacingsAndMinWidths();
@@ -245,10 +217,11 @@ class GlobalRouter
   void computeObstructionsAdjustments();
   void computeWirelength();
   std::vector<Pin*> getAllPorts();
+  int computeTrackConsumption(const Net* net, std::vector<int>& edgeCostsPerLayer);
 
   // aux functions
   void findPins(Net* net);
-  void findPins(Net* net, std::vector<RoutePt>& pinsOnGrid);
+  void findPins(Net* net, std::vector<RoutePt>& pinsOnGrid, int& root_idx);
   RoutingLayer getRoutingLayerByIndex(int index);
   RoutingTracks getRoutingTracksByIndex(int layer);
   void addGuidesForLocalNets(odb::dbNet* db_net, GRoute& route,
@@ -268,10 +241,12 @@ class GlobalRouter
   GSegment createFakePin(Pin pin, odb::Point& pinPosition, RoutingLayer layer);
   odb::Point findFakePinPosition(Pin& pin, odb::dbNet* db_net);
   void initAdjustments();
-  void initPitches();
   odb::Point getRectMiddle(const odb::Rect& rect);
   NetRouteMap findRouting(std::vector<Net*>& nets, int minRoutingLayer, int maxRoutingLayer);
   void print(GRoute& route);
+  void reportLayerSettings(int minRoutingLayer, int maxRoutingLayer);
+  void reportResources();
+  void reportCongestion();
 
   // check functions
   void checkPinPlacement();
@@ -290,9 +265,8 @@ class GlobalRouter
   void initGrid(int maxLayer);
   void initRoutingLayers(std::vector<RoutingLayer>& routingLayers);
   void initRoutingTracks(std::vector<RoutingTracks>& allRoutingTracks,
-                         int maxLayer,
-                         const std::vector<float>& layerPitches);
-  void computeCapacities(int maxLayer, const std::vector<float>& layerPitches);
+                         int maxLayer);
+  void computeCapacities(int maxLayer);
   void computeSpacingsAndMinWidth(int maxLayer);
   void initNetlist();
   void addNets(std::set<odb::dbNet*, cmpById>& db_nets);
@@ -335,8 +309,7 @@ class GlobalRouter
   const int _selectedMetal = 3;
   const int _gcellsOffset = 2;
   int _overflowIterations;
-  int _pdRevForHighFanout;
-  bool _allowOverflow;
+  bool _allowCongestion;
   std::vector<int> _vCapacities;
   std::vector<int> _hCapacities;
   int _macroExtension;
@@ -347,20 +320,16 @@ class GlobalRouter
   // Region adjustment variables
   std::vector<RegionAdjustment> _regionAdjustments;
 
-  // Pitches variables
-  std::vector<float> _layerPitches;
-
-  // Clock net routing variables
-  bool _pdRev;
   float _alpha;
   int _verbose;
-  std::map<std::string, float> _netsAlpha;
+  std::map<std::string, float> _net_alpha_map;
   int _minLayerForClock = -1;
   int _maxLayerForClock = -2;
-  int _clockCost;
 
-  // temporary for congestion driven replace
-  int _numAdjusts = 0;
+  // variables for random grt
+  int seed_;
+  float caps_perturbation_percentage_;
+  int perturbation_amount_;
 
   // Variables for PADs obstructions handling
   std::map<odb::dbNet*, std::vector<GSegment>> _padPinsConnections;
@@ -375,6 +344,5 @@ class GlobalRouter
 };
 
 std::string getITermName(odb::dbITerm* iterm);
-std::ostream& operator<<(std::ostream& os, const GlobalRouter::ROUTE_& route);
 
 }  // namespace grt

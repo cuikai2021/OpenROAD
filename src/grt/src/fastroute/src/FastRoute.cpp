@@ -56,7 +56,6 @@
 #include "maze.h"
 #include "maze3D.h"
 #include "utl/Logger.h"
-#include "pdrev/pdrev.h"
 #include "opendb/db.h"
 
 #include "route.h"
@@ -393,8 +392,8 @@ void FastRouteCore::setGridsAndLayers(int x, int y, int nLayers)
     YRANGE = 1000;
   }
 
-  vCapacity3D = new int[numLayers];
-  hCapacity3D = new int[numLayers];
+  vCapacity3D = new short[numLayers];
+  hCapacity3D = new short[numLayers];
 
   for (int i = 0; i < numLayers; i++) {
     vCapacity3D[i] = 0;
@@ -465,13 +464,13 @@ void FastRouteCore::setGridsAndLayers(int x, int y, int nLayers)
   costTBtest = new float[XRANGE];   // Top and bottom boundary cost
 }
 
-void FastRouteCore::addVCapacity(int verticalCapacity, int layer)
+void FastRouteCore::addVCapacity(short verticalCapacity, int layer)
 {
   vCapacity3D[layer - 1] = verticalCapacity;
   vCapacity += vCapacity3D[layer - 1];
 }
 
-void FastRouteCore::addHCapacity(int horizontalCapacity, int layer)
+void FastRouteCore::addHCapacity(short horizontalCapacity, int layer)
 {
   hCapacity3D[layer - 1] = horizontalCapacity;
   hCapacity += hCapacity3D[layer - 1];
@@ -520,31 +519,36 @@ void FastRouteCore::setLayerOrientation(int x)
 
 void FastRouteCore::addPin(int netID, int x, int y, int layer)
 {
-  nets[netID]->pinX.push_back(x);
-  nets[netID]->pinY.push_back(y);
-  nets[netID]->pinL.push_back(layer);
+  FrNet* net = nets[netID];
+  net->pinX.push_back(x);
+  net->pinY.push_back(y);
+  net->pinL.push_back(layer);
 }
 
 int FastRouteCore::addNet(odb::dbNet* db_net,
-                          int nPins,
-                          int validPins,
+                          int num_pins,
                           float alpha,
-                          bool isClock,
-                          int cost)
+                          bool is_clock,
+                          int driver_idx,
+                          int cost,
+                          std::vector<int> edge_cost_per_layer)
 {
   int netID = newnetID;
-  pinInd = validPins;
+  FrNet* net = nets[newnetID];
+  pinInd = num_pins;
   MD = std::max(MD, pinInd);
-  nets[newnetID]->db_net = db_net;
-  nets[newnetID]->numPins = nPins;
-  nets[newnetID]->deg = pinInd;
-  nets[newnetID]->alpha = alpha;
-  nets[newnetID]->isClock = isClock;
-  nets[newnetID]->edgeCost = cost;
+  net->db_net = db_net;
+  net->numPins = num_pins;
+  net->deg = pinInd;
+  net->alpha = alpha;
+  net->is_clock = is_clock;
+  net->driver_idx = driver_idx;
+  net->edgeCost = cost;
+  net->edge_cost_per_layer = edge_cost_per_layer;
 
   seglistIndex[newnetID] = segcount;
   newnetID++;
-  // at most (2*nPins-2) nodes -> (2*nPins-3) segs for a net
+  // at most (2*num_pins-2) nodes -> (2*num_pins-3) segs for a net
   segcount += 2 * pinInd - 3;
   return netID;
 }
@@ -817,7 +821,6 @@ void FastRouteCore::setEdgeUsage(long x1,
 {
   const int k = l1 - 1;
   int grid;
-  int reduce;
 
   if (y1 == y2)  // horizontal edge
   {
@@ -883,7 +886,6 @@ NetRouteMap FastRouteCore::getRoutes()
     TreeEdge* treeedges = sttrees[netID].edges;
     int deg = sttrees[netID].deg;
 
-    TreeNode* nodes = sttrees[netID].nodes;
     for (int edgeID = 0; edgeID < 2 * deg - 3; edgeID++) {
       TreeEdge* treeedge = &(treeedges[edgeID]);
       if (treeedge->len > 0) {
@@ -931,19 +933,32 @@ void FastRouteCore::updateDbCongestion()
       logger->warn(utl::GRT, 215, "skipping layer {} not found in db", k+1);
       continue;
     }
+
     for (int y = 0; y < yGrid; y++) {
       for (int x = 0; x < xGrid - 1; x++) {
         int gridH = y * (xGrid - 1) + x + k * (xGrid - 1) * yGrid;
+
+        unsigned short capH = hCapacity3D[k];
+        unsigned short blockageH = (hCapacity3D[k] - h_edges3D[gridH].cap);
+        unsigned short usageH = h_edges3D[gridH].usage + blockageH;
+
+        db_gcell->setHorizontalCapacity(layer, x, y, (uint) capH);
+        db_gcell->setHorizontalUsage(layer, x, y, (uint) usageH);
+        db_gcell->setHorizontalBlockage(layer, x, y, (uint) blockageH);
+      }
+    }
+
+    for (int y = 0; y < yGrid - 1; y++) {
+      for (int x = 0; x < xGrid; x++) {
         int gridV = y * xGrid + x + k * xGrid * (yGrid - 1);
 
-        unsigned short capH = h_edges3D[gridH].cap;
-        unsigned short usageH = h_edges3D[gridH].usage;
+        unsigned short capV = vCapacity3D[k];
+        unsigned short blockageV = (vCapacity3D[k] - v_edges3D[gridV].cap);
+        unsigned short usageV = v_edges3D[gridV].usage + blockageV;
 
-        unsigned short capV = v_edges3D[gridV].cap;
-        unsigned short usageV = v_edges3D[gridV].usage;
-
-        db_gcell->setCapacity(layer, x, y, (uint) capH, (uint) capV, 0);
-        db_gcell->setUsage(layer, x, y, (uint) usageH, (uint) usageV, 0);
+        db_gcell->setVerticalCapacity(layer, x, y, (uint) capV);
+        db_gcell->setVerticalUsage(layer, x, y, (uint) usageV);
+        db_gcell->setVerticalBlockage(layer, x, y, (uint) blockageV);
       }
     }
   }
@@ -965,9 +980,6 @@ NetRouteMap FastRouteCore::run()
   dcor = new int[maxPin];
   netEO.reserve(maxPin);
 
-  Bool input, WriteOut;
-  input = WriteOut = 0;
-
   LB = 0.9;
   UB = 1.3;
 
@@ -980,21 +992,16 @@ NetRouteMap FastRouteCore::run()
   int CSTEP1 = 2;   // 5
   int CSTEP2 = 2;   // 3
   int CSTEP3 = 5;   // 15
-  int CSTEP4 = 1000;
   COSHEIGHT = 4;
   L = 0;
   VIA = 2;
-  int L_afterSTOP = 1;
   int Ripvalue = -1;
   int ripupTH3D = 10;
   Bool goingLV = TRUE;
   Bool noADJ = FALSE;
   int thStep1 = 10;
   int thStep2 = 4;
-  Bool healingNeed = FALSE;
-  int updateType = 0;
   int LVIter = 3;
-  Bool extremeNeeded = FALSE;
   int mazeRound = 500;
   int bmfl = BIG_INT;
   int minofl = BIG_INT;
@@ -1074,11 +1081,18 @@ NetRouteMap FastRouteCore::run()
   int cost_type = 1;
 
   InitLastUsage(upType);
-  if (totalOverflow > 0) {
+  if (totalOverflow > 0 && overflowIterations > 0) {
     logger->info(GRT, 101, "Running extra iterations to remove overflow.");
   }
 
-  while (totalOverflow > 0 && i <= overflowIterations) {
+  static const int max_overflow_increases_ = 15;
+
+  // set overflow_increases as -1 since the first iteration always sum 1
+  int overflow_increases = -1;
+  int last_total_overflow = 0;
+  while (totalOverflow > 0 &&
+         i <= overflowIterations &&
+         overflow_increases <= max_overflow_increases_) {
     if (THRESH_M > 15) {
       THRESH_M -= thStep1;
     } else if (THRESH_M >= 2) {
@@ -1157,7 +1171,7 @@ NetRouteMap FastRouteCore::run()
 
     logger->info(GRT, 102, "iteration {}, enlarge {}, costheight {},"
                   " threshold {} via cost {}. \n"
-                  "log_coef {}, healingTrigger {} cost_step {} L {} cost_type"
+                  "log_coef {:.2f}, healingTrigger {} cost_step {} L {} cost_type"
                   " {} updatetype {}.",
         i,
         enlarge,
@@ -1292,20 +1306,24 @@ NetRouteMap FastRouteCore::run()
       getOverflow2Dmaze(&maxOverflow, &tUsage);
       break;
     }
-  }
 
-  if (totalOverflow > 0 && !allowOverflow) {
-    updateDbCongestion();
-    logger->error(GRT, 118, "Routing congestion too high.");
-  }
+    if (totalOverflow > last_total_overflow) {
+      overflow_increases++;
+    }
+    last_total_overflow = totalOverflow;
+  } // end overflow iterations
 
-  if (allowOverflow && totalOverflow > 0) {
-    logger->warn(GRT, 115, "Global routing finished with overflow.");
-  }
+  bool has_2D_overflow = totalOverflow > 0;
 
   if (minofl > 0) {
-    logger->info(GRT, 104, "minimal ofl {}, occuring at round {}.", minofl, minoflrnd);
+    logger->info(GRT, 104, "Minimal overflow {} occurring at round {}.", minofl, minoflrnd);
     copyBR();
+  }
+
+  if (overflow_increases > max_overflow_increases_) {
+    logger->warn(GRT,
+                 230,
+                 "Congestion iterations reached the maximum number of total overflow increases.");
   }
 
   freeRR();
@@ -1315,16 +1333,13 @@ NetRouteMap FastRouteCore::run()
   if (verbose > 1)
     logger->info(GRT, 105, "Maze routing finished.");
 
-  clock_t t4 = clock();
-  float maze_Time = (float) (t4 - t3) / CLOCKS_PER_SEC;
-
   if (verbose > 1) {
     logger->report("Final 2D results:");
   }
   getOverflow2Dmaze(&maxOverflow, &tUsage);
 
   if (verbose > 1)
-    logger->info(GRT, 106, "Layer Assignment Begins.");
+    logger->info(GRT, 106, "Layer assignment begins.");
   newLA();
   if (verbose > 1)
     logger->info(GRT, 107, "Layer assignment finished.");
@@ -1345,7 +1360,7 @@ NetRouteMap FastRouteCore::run()
 
   if (goingLV && past_cong == 0) {
     if (verbose > 1)
-      logger->info(GRT, 108, "Post Processing Begins.");
+      logger->info(GRT, 108, "Post-processing begins.");
     mazeRouteMSMDOrder3D(enlarge, 0, ripupTH3D);
 
     //  mazeRouteMSMDOrder3D(enlarge, 0, 10 );
@@ -1353,7 +1368,7 @@ NetRouteMap FastRouteCore::run()
       mazeRouteMSMDOrder3D(enlarge, 0, 12);
     }
     if (verbose > 1)
-      logger->info(GRT, 109, "Post Processsing finished.\n Starting via filling.");
+      logger->info(GRT, 109, "Post-processing finished.\n Starting via filling.");
   }
 
   fillVIA();
@@ -1361,9 +1376,6 @@ NetRouteMap FastRouteCore::run()
   int numVia = threeDVIA();
   checkRoute3D();
 
-  clock_t t5 = clock();
-  maze_Time = (float) (t5 - t1) / CLOCKS_PER_SEC;
-  logger->info(GRT, 110, "Final usage: {}", finallength);
   logger->info(GRT, 111, "Final number of vias: {}", numVia);
   logger->info(GRT, 112, "Final usage 3D: {}", (finallength + 3 * numVia));
 
@@ -1372,6 +1384,14 @@ NetRouteMap FastRouteCore::run()
   netEO.clear();
 
   updateDbCongestion();
+
+  if (has_2D_overflow && !allow_overflow_) {
+    logger->error(GRT, 118, "Routing congestion too high.");
+  }
+
+  if (totalOverflow > 0) {
+    logger->warn(GRT, 115, "Global routing finished with overflow.");
+  }
 
   return routes;
 }
@@ -1391,14 +1411,64 @@ void FastRouteCore::setOverflowIterations(int iterations)
   overflowIterations = iterations;
 }
 
-void FastRouteCore::setPDRevForHighFanout(int pdRevHihgFanout)
-{
-  pdRevForHighFanout = pdRevHihgFanout;
-}
-
 void FastRouteCore::setAllowOverflow(bool allow)
 {
-  allowOverflow = allow;
+  allow_overflow_ = allow;
+}
+
+std::vector<int> FastRouteCore::getOriginalResources()
+{
+  std::vector<int> original_resources;
+  original_resources.resize(numLayers);
+  for (int l = 0; l < numLayers; l++) {
+    original_resources[l] += (vCapacity3D[l]+hCapacity3D[l])*yGrid*xGrid;
+  }
+
+  return original_resources;
+}
+
+void FastRouteCore::computeCongestionInformation()
+{
+  cap_per_layer.resize(numLayers);
+  usage_per_layer.resize(numLayers);
+  overflow_per_layer.resize(numLayers);
+  max_h_overflow.resize(numLayers);
+  max_v_overflow.resize(numLayers);
+
+  for (int l = 0; l < numLayers; l++) {
+    cap_per_layer[l] = 0;
+    usage_per_layer[l] = 0;
+    overflow_per_layer[l] = 0;
+    max_h_overflow[l] = 0;
+    max_v_overflow[l] = 0;
+
+    for (int i = 0; i < yGrid; i++) {
+      for (int j = 0; j < xGrid - 1; j++) {
+        int grid = i * (xGrid - 1) + j + l * (xGrid - 1) * yGrid;
+        cap_per_layer[l] += h_edges3D[grid].cap;
+        usage_per_layer[l] += h_edges3D[grid].usage;
+
+        int overflow = h_edges3D[grid].usage - h_edges3D[grid].cap;
+        if (overflow > 0) {
+          overflow_per_layer[l] += overflow;
+          max_h_overflow[l] = std::max(max_h_overflow[l], overflow);
+        }
+      }
+    }
+    for (int i = 0; i < yGrid - 1; i++) {
+      for (int j = 0; j < xGrid; j++) {
+        int grid = i * xGrid + j + l * xGrid * (yGrid - 1);
+        cap_per_layer[l] += v_edges3D[grid].cap;
+        usage_per_layer[l] += v_edges3D[grid].usage;
+
+        int overflow = v_edges3D[grid].usage - v_edges3D[grid].cap;
+        if (overflow > 0) {
+          overflow_per_layer[l] += overflow;
+          max_v_overflow[l] = std::max(max_v_overflow[l], overflow);
+        }
+      }
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////

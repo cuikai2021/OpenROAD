@@ -1,0 +1,38 @@
+
+
+*********************************************************************
+*                     Report Characterization                       *
+*********************************************************************
+     Idx  Len  Load      Out slew    Power   Delay   In cap  In slew Buf     Buf Locs
+     0    0    0         0           1.0     0       0       0       false     
+     1    1    1         1           1.0     1       1       1       false     
+     2    0    0         0           1.0     2       2       2       false     
+     3    1    1         1           1.0     3       3       3       false     
+     4    0    0         0           1.0     4       4       4       false     
+     5    1    1         1           1.0     5       5       5       false     
+     6    0    0         0           1.0     6       6       6       false     
+     7    1    1         1           1.0     7       7       7       false     
+     8    0    0         0           1.0     8       8       8       false     
+     9    1    1         1           1.0     9       9       9       false     
+*************************************************************
+    Key: 0 outSlew: 0 load: 0 length: 0 isBuffered: false
+
+
+*********************************************************************
+*                     Report Characterization                       *
+*********************************************************************
+ Reporting wire segments with length: 0 load: 0 out slew: 0
+     Idx  Len  Load      Out slew    Power   Delay   In cap  In slew Buf     Buf Locs
+     0    0    0         0           1.0     0       0       0       false     
+     2    0    0         0           1.0     2       2       2       false     
+     4    0    0         0           1.0     4       4       4       false     
+     6    0    0         0           1.0     6       6       6       false     
+     8    0    0         0           1.0     8       8       8       false     
+[INFO CTS-0084] Compiling LUT
+Min. len    Max. len    Min. cap    Max. cap    Min. slew   Max. slew
+0           0           0           0           0           0           
+[WARNING CTS-0043] 5 wires are pure wire and no slew degration.
+TritonCTS forced slew degradation on these wires.
+[INFO CTS-0046]     Number of wire segments: 10
+[INFO CTS-0047]     Number of keys in characterization LUT: 10
+[INFO CTS-0048]     Actual min input cap: 0

@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -119,9 +119,9 @@ void TechChar::compileLut(std::vector<TechChar::ResultData> lutSols)
                   noSlewDegradationCount);
   }
 
-  _logger->info(CTS, 46, "    Num wire segments: {}",
+  _logger->info(CTS, 46, "    Number of wire segments: {}",
                 _wireSegments.size());
-  _logger->info(CTS, 47, "    Num keys in characterization LUT: {}",
+  _logger->info(CTS, 47, "    Number of keys in characterization LUT: {}",
                 _keyToWireSegments.size());
 
   _logger->info(CTS, 48, "    Actual min input cap: {}",
@@ -427,9 +427,10 @@ void TechChar::getClockLayerResCap(double &cap, double &res)
 {
   /* Clock layer should be set with set_wire_rc -clock */
   rsz::Resizer *sizer = ord::OpenRoad::openRoad()->getResizer();
-  
-  cap   = sizer->wireClkCapacitance()*1e-6; //convert from per micron to per meter
-  res   = sizer->wireClkResistance()*1e-6; //convert from per micron to per meter
+  sta::Corner *corner = _openSta->cmdCorner();
+
+  cap = sizer->wireClkCapacitance(corner)*1e-6; //convert from per meter to per micron
+  res = sizer->wireClkResistance(corner)*1e-6; //convert from per meter to per micron
 
 }
 // Characterization Methods
@@ -571,12 +572,12 @@ void TechChar::initCharacterization()
     bool maxCapExist = false;
 
     if (!libertyCell) {
-      _logger->error(CTS, 76, "No Liberty cell found for {}.", bufMasterName);
+      _logger->error(CTS, 96, "No Liberty cell found for {}.", bufMasterName);
     } else {
       sta::LibertyLibrary* staLib = libertyCell->libertyLibrary();
       getBufferMaxSlewMaxCap(staLib, libertyCell, maxSlew, maxSlewExist, maxCap, maxCapExist);
       if (!maxSlewExist || !maxCapExist) { //In case buffer does not have tables
-        _logger->warn(CTS, 66,
+        _logger->warn(CTS, 67,
               "Could not get maxSlew/maxCap values from buffer {}. Using library values", bufMasterName);
         staLib->defaultMaxSlew(maxSlew, maxSlewExist);
         staLib->defaultMaxCapacitance(maxCap, maxCapExist);

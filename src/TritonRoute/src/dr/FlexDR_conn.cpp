@@ -41,7 +41,8 @@ void FlexDR::checkConnectivity_pin2epMap_helper(
     const frPoint& bp,
     frLayerNum lNum,
     map<frBlockObject*, set<pair<frPoint, frLayerNum>>, frBlockObjectComp>&
-        pin2epMap)
+        pin2epMap,
+    bool isWire)
 {
   bool enableOutput = false;
   // bool enableOutput = true;
@@ -58,18 +59,15 @@ void FlexDR::checkConnectivity_pin2epMap_helper(
                   bp.y() + half_min_width);
   regionQuery->query(query_box, lNum, result);
   for (auto& [bx, rqObj] : result) {
+    if (isWire && !bx.contains(bp))
+      continue;
     if (rqObj->typeId() == frcInstTerm) {
       auto instTerm = static_cast<frInstTerm*>(rqObj);
       if (instTerm->getNet() == net) {
         if (enableOutput) {
-          cout << "    found " << instTerm->getInst()->getName() << "/"
-               << instTerm->getTerm()->getName() << endl;
+          cout << "    found " << instTerm->getName() << "\n";
         }
         pin2epMap[rqObj].insert(make_pair(bp, lNum));
-      } else {
-        // if (enableOutput) {
-        //   cout <<"    found other instTerm" <<endl;
-        // }
       }
     } else if (rqObj->typeId() == frcTerm) {
       auto term = static_cast<frTerm*>(rqObj);
@@ -78,10 +76,6 @@ void FlexDR::checkConnectivity_pin2epMap_helper(
           cout << "    found PIN/" << term->getName() << endl;
         }
         pin2epMap[rqObj].insert(make_pair(bp, lNum));
-      } else {
-        // if (enableOutput) {
-        //   cout <<"    found other term" <<endl;
-        // }
       }
     }
   }
@@ -95,6 +89,8 @@ void FlexDR::checkConnectivity_pin2epMap(
 {
   bool enableOutput = false;
   // bool enableOutput = true;
+  if (enableOutput)
+    cout << "pin2epMap\n\n";
   frPoint bp, ep;
   set<pair<frPoint, frLayerNum>>
       extEndPoints;  // to avoid delooping fake planar ep in pin
@@ -106,15 +102,12 @@ void FlexDR::checkConnectivity_pin2epMap(
       obj->getStyle(style);
       auto lNum = obj->getLayerNum();
       if (enableOutput) {
-        cout << "(bp, ep) (" << bp.x() / 2000.0 << " ," << bp.y() / 2000.0
-             << ") (" << ep.x() / 2000.0 << " ," << ep.y() / 2000.0 << ") "
-             << getTech()->getLayer(lNum)->getName() << endl;
-      }
-      if (enableOutput) {
+        cout << *obj << " layer " << getTech()->getLayer(lNum)->getName()
+             << endl;
         cout << "  query bp" << endl;
       }
       if (style.getBeginStyle() == frEndStyle(frcTruncateEndStyle)) {
-        checkConnectivity_pin2epMap_helper(net, bp, lNum, pin2epMap);
+        checkConnectivity_pin2epMap_helper(net, bp, lNum, pin2epMap, true);
       } else {
         extEndPoints.insert(make_pair(bp, lNum));
       }
@@ -122,7 +115,7 @@ void FlexDR::checkConnectivity_pin2epMap(
         cout << "  query ep" << endl;
       }
       if (style.getEndStyle() == frEndStyle(frcTruncateEndStyle)) {
-        checkConnectivity_pin2epMap_helper(net, ep, lNum, pin2epMap);
+        checkConnectivity_pin2epMap_helper(net, ep, lNum, pin2epMap, true);
       } else {
         extEndPoints.insert(make_pair(ep, lNum));
       }
@@ -135,20 +128,19 @@ void FlexDR::checkConnectivity_pin2epMap(
       auto l1Num = obj->getViaDef()->getLayer1Num();
       auto l2Num = obj->getViaDef()->getLayer2Num();
       if (enableOutput) {
-        cout << "pt (" << bp.x() / 2000.0 << " ," << bp.y() / 2000.0 << ") "
-             << obj->getViaDef()->getName() << endl;
+        cout << *obj;
       }
       if (enableOutput) {
         cout << "  query pt l1" << endl;
       }
       if (extEndPoints.find(make_pair(bp, l1Num)) == extEndPoints.end()) {
-        checkConnectivity_pin2epMap_helper(net, bp, l1Num, pin2epMap);
+        checkConnectivity_pin2epMap_helper(net, bp, l1Num, pin2epMap, false);
       }
       if (enableOutput) {
         cout << "  query pt l2" << endl;
       }
       if (extEndPoints.find(make_pair(bp, l2Num)) == extEndPoints.end()) {
-        checkConnectivity_pin2epMap_helper(net, bp, l2Num, pin2epMap);
+        checkConnectivity_pin2epMap_helper(net, bp, l2Num, pin2epMap, false);
       }
       //} else if (connFig->typeId() == frcPatchWire) {
       //  ;
@@ -161,6 +153,8 @@ void FlexDR::checkConnectivity_initDRObjs(const frNet* net,
 {
   bool enableOutput = false;
   // bool enableOutput = true;
+  if (enableOutput)
+    cout << "initDRObjs\n\n";
   for (auto& uPtr : net->getShapes()) {
     auto connFig = uPtr.get();
     if (connFig->typeId() == frcPathSeg) {
@@ -170,12 +164,8 @@ void FlexDR::checkConnectivity_initDRObjs(const frNet* net,
         frPoint bp, ep;
         auto lNum = obj->getLayerNum();
         obj->getPoints(bp, ep);
-        cout << " (" << bp.x() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-             << ", " << bp.y() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-             << ") ("
-             << ep.x() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU() << ", "
-             << ep.y() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU() << ") "
-             << getTech()->getLayer(lNum)->getName() << endl;
+        cout << *obj << " layer " << getTech()->getLayer(lNum)->getName()
+             << endl;
       }
     } else {
       cout << "Error: checkConnectivity_initDRObjs unsupported type" << endl;
@@ -189,9 +179,7 @@ void FlexDR::checkConnectivity_initDRObjs(const frNet* net,
         auto obj = static_cast<frVia*>(connFig);
         frPoint bp;
         obj->getOrigin(bp);
-        cout << " (" << bp.x() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-             << ", " << bp.y() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-             << ") " << obj->getViaDef()->getName() << endl;
+        cout << *obj << " layer " << obj->getViaDef()->getName() << endl;
       }
     } else {
       cout << "Error: checkConnectivity_initDRObjs unsupported type" << endl;
@@ -403,21 +391,13 @@ void FlexDR::checkConnectivity_nodeMap(
         frPoint bp, ep;
         auto lNum = obj->getLayerNum();
         obj->getPoints(bp, ep);
-        cout << "#" << idx << " ("
-             << bp.x() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU() << ", "
-             << bp.y() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-             << ") ("
-             << ep.x() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU() << ", "
-             << ep.y() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU() << ") "
-             << getTech()->getLayer(lNum)->getName() << endl;
+        cout << "#" << idx << *obj << getTech()->getLayer(lNum)->getName()
+             << endl;
       } else if (connFig->typeId() == frcVia) {
         auto obj = static_cast<frVia*>(connFig);
         frPoint bp;
         obj->getOrigin(bp);
-        cout << "#" << idx << " ("
-             << bp.x() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU() << ", "
-             << bp.y() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU() << ") "
-             << obj->getViaDef()->getName() << endl;
+        cout << "#" << idx << *obj << obj->getViaDef()->getName() << endl;
       } else {
         cout << "Error: checkConnectivity_nodeMap unsupported type" << endl;
       }
@@ -426,8 +406,7 @@ void FlexDR::checkConnectivity_nodeMap(
     for (auto obj : netPins) {
       if (obj->typeId() == frcInstTerm) {
         auto instTerm = static_cast<frInstTerm*>(obj);
-        cout << "#" << idx << " " << instTerm->getInst()->getName() << "/"
-             << instTerm->getTerm()->getName() << endl;
+        cout << "#" << idx << " " << instTerm->getName() << "\n";
       } else if (obj->typeId() == frcTerm) {
         auto term = static_cast<frTerm*>(obj);
         cout << "#" << idx << " PIN/" << term->getName() << endl;
@@ -442,20 +421,21 @@ bool FlexDR::checkConnectivity_astar(
     vector<bool>& adjVisited,
     vector<int>& adjPrevIdx,
     const map<pair<frPoint, frLayerNum>, set<int>>& nodeMap,
-    const int& gCnt,
-    const int& nCnt)
+    const int& nNetRouteObjs,
+    const int& nNetObjs)
 {
   // bool enableOutput = true;
   bool enableOutput = false;
   // a star search
-
+  if (enableOutput)
+    cout << "checkConnectivity_astar\n\n";
   // node index, node visited
-  vector<vector<int>> adjVec(nCnt, vector<int>());
-  vector<bool> onPathIdx(nCnt, false);
+  vector<vector<int>> adjVec(nNetObjs, vector<int>());
+  vector<bool> onPathIdx(nNetObjs, false);
   adjVisited.clear();
   adjPrevIdx.clear();
-  adjVisited.resize(nCnt, false);
-  adjPrevIdx.resize(nCnt, -1);
+  adjVisited.resize(nNetObjs, false);
+  adjPrevIdx.resize(nNetObjs, -1);
   for (auto& [pr, idxS] : nodeMap) {
     // auto &[pt, lNum] = pr;
     for (auto it1 = idxS.begin(); it1 != idxS.end(); it1++) {
@@ -466,7 +446,8 @@ bool FlexDR::checkConnectivity_astar(
         auto idx2 = *it2;
         adjVec[idx1].push_back(idx2);
         adjVec[idx2].push_back(idx1);
-        // cout <<"add edge #" <<idx1 <<" -- #" <<idx2 <<endl;
+        if (enableOutput)
+          cout << "add edge #" << idx1 << " -- #" << idx2 << endl;
         //  one pin, one gcell
       }
     }
@@ -486,23 +467,23 @@ bool FlexDR::checkConnectivity_astar(
       }
     }
   };
-  for (int findNode = gCnt; findNode < nCnt - 1; findNode++) {
+  for (int findNode = nNetRouteObjs; findNode < nNetObjs - 1; findNode++) {
     // adjVisited = onPathIdx;
     // cout <<"finished " <<findNode <<" nodes" <<endl;
     priority_queue<wf> pq;
     if (enableOutput) {
       // cout <<"visit";
     }
-    if (findNode == gCnt) {
+    if (findNode == nNetRouteObjs) {
       // push only first pin into pq
-      pq.push({gCnt, -1, 0});
+      pq.push({nNetRouteObjs, -1, 0});
     } else {
       // push every visited node into pq
-      for (int i = 0; i < nCnt; i++) {
+      for (int i = 0; i < nNetObjs; i++) {
         // if (adjVisited[i]) {
         if (onPathIdx[i]) {
           // penalize feedthrough in normal mode
-          if (i >= gCnt) {
+          if (i >= nNetRouteObjs) {
             pq.push({i, adjPrevIdx[i], 5});
           } else {
             pq.push({i, adjPrevIdx[i], 0});
@@ -517,13 +498,11 @@ bool FlexDR::checkConnectivity_astar(
       if (!onPathIdx[wfront.nodeIdx] && adjVisited[wfront.nodeIdx]) {
         continue;
       }
-      if (wfront.nodeIdx > gCnt && wfront.nodeIdx < nCnt
+      if (wfront.nodeIdx > nNetRouteObjs && wfront.nodeIdx < nNetObjs
           && adjVisited[wfront.nodeIdx] == false) {
         adjVisited[wfront.nodeIdx] = true;
         adjPrevIdx[wfront.nodeIdx] = wfront.prevIdx;
         if (enableOutput) {
-          // cout <<" " <<wfront.nodeIdx <<" (" <<wfront.cost <<","
-          // <<wfront.prevIdx <<")" <<" exit" <<endl;
           cout << "visit " << wfront.nodeIdx << " (" << wfront.cost << ","
                << wfront.prevIdx << ")"
                << " exit" << endl;
@@ -534,8 +513,6 @@ bool FlexDR::checkConnectivity_astar(
       adjVisited[wfront.nodeIdx] = true;
       adjPrevIdx[wfront.nodeIdx] = wfront.prevIdx;
       if (enableOutput) {
-        // cout <<" " <<wfront.nodeIdx <<" (" <<wfront.cost <<","
-        // <<wfront.prevIdx <<")";
         cout << "visit " << wfront.nodeIdx << " (" << wfront.cost << ","
              << wfront.prevIdx << ")" << endl;
       }
@@ -566,24 +543,28 @@ bool FlexDR::checkConnectivity_astar(
     adjVisited = onPathIdx;
   }
   if (enableOutput) {
-    cout << "stat: " << net->getName() << " #guide/#pin/#unused = " << gCnt
-         << "/" << nCnt - gCnt << "/"
-         << nCnt - count(adjVisited.begin(), adjVisited.end(), true) << endl;
+    cout << "stat: " << net->getName()
+         << " #guide/#pin/#unused = " << nNetRouteObjs << "/"
+         << nNetObjs - nNetRouteObjs << "/"
+         << nNetObjs - count(adjVisited.begin(), adjVisited.end(), true)
+         << endl;
   }
-  int pinVisited = count(adjVisited.begin() + gCnt, adjVisited.end(), true);
+  int pinVisited
+      = count(adjVisited.begin() + nNetRouteObjs, adjVisited.end(), true);
   // true error when allowing feedthrough
-  if (pinVisited != nCnt - gCnt) {
-    cout << "Error: " << net->getName() << " " << nCnt - gCnt - pinVisited
-         << " pin not visited #guides = " << gCnt << endl;
+  if (pinVisited != nNetObjs - nNetRouteObjs) {
+    cout << "Error: " << net->getName() << " "
+         << nNetObjs - nNetRouteObjs - pinVisited
+         << " pin not visited #guides = " << nNetRouteObjs << endl;
     if (enableOutput) {
-      for (int i = gCnt; i < nCnt; i++) {
+      for (int i = nNetRouteObjs; i < nNetObjs; i++) {
         if (!adjVisited[i]) {
           cout << "  pin id = " << i << endl;
         }
       }
     }
   }
-  if (pinVisited == nCnt - gCnt) {
+  if (pinVisited == nNetObjs - nNetRouteObjs) {
     return true;
   } else {
     return false;
@@ -1234,7 +1215,6 @@ void FlexDR::checkConnectivity(int iter)
       auto& vertVictims = aVertVictims[i];
       auto& horzNewSegSpans = aHorzNewSegSpans[i];
       auto& vertNewSegSpans = aVertNewSegSpans[i];
-
       checkConnectivity_merge3(net,
                                initNetDRObjs,
                                horzPathSegs,
@@ -1255,16 +1235,15 @@ void FlexDR::checkConnectivity(int iter)
       auto& nodeMap = aNodeMap[i];
       auto& adjVisited = aAdjVisited[i];
       auto& adjPrevIdx = aAdjPrevIdx[i];
-
       netDRObjs.clear();
       checkConnectivity_initDRObjs(net, netDRObjs);
       checkConnectivity_pin2epMap(net, netDRObjs, pin2epMap);
       checkConnectivity_nodeMap(net, netDRObjs, netPins, pin2epMap, nodeMap);
 
-      int gCnt = (int) netDRObjs.size();
-      int nCnt = (int) netDRObjs.size() + (int) netPins.size();
+      int nNetRouteObjs = (int) netDRObjs.size();
+      int nNetObjs = (int) netDRObjs.size() + (int) netPins.size();
       status[i] = checkConnectivity_astar(
-          net, adjVisited, adjPrevIdx, nodeMap, gCnt, nCnt);
+          net, adjVisited, adjPrevIdx, nodeMap, nNetRouteObjs, nNetObjs);
     }
 
     // sequential
@@ -1279,8 +1258,16 @@ void FlexDR::checkConnectivity(int iter)
       int nCnt = (int) netDRObjs.size() + (int) netPins.size();
 
       if (!status[i]) {
-        cout << "Error: checkConnectivity break, net " << net->getName()
-             << endl;
+        cout << "Error: checkConnectivity break, net " << net->getName() << endl
+             << "Objs not visited:\n";
+        for (int idx = 0; idx < (int)adjVisited.size(); idx++) {
+          if (!adjVisited[idx]) {
+            if (idx < (int)netDRObjs.size())
+              cout << *(netDRObjs[idx]) << "\n";
+            else
+              cout << *(netPins[idx - netDRObjs.size()]) << "\n";
+          }
+        }
         isWrong = true;
       } else {
         // get lock
@@ -1295,6 +1282,9 @@ void FlexDR::checkConnectivity(int iter)
   if (isWrong) {
     auto writer = io::Writer(getDesign(), logger_);
     writer.updateDb(db_);
+    if (graphics_.get()) {
+      graphics_->debugWholeDesign();
+    }
     logger_->error(utl::DRT, 206, "checkConnectivity error");
   }
 }

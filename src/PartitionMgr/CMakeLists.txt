@@ -2,7 +2,7 @@
 ##
 ## BSD 3-Clause License
 ##
-## Copyright (c) 2021, The OpenRoad Project
+## Copyright (c) 2021, The Regents of the University of California
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,12 @@ target_sources(PartitionMgr
     src/MakePartitionMgr.cpp
     src/PartitionMgr.cpp
     src/HypergraphDecomposition.cpp
+    src/PartitionNetwork.cpp
+    src/PartOptions.cpp
+)
+
+messages(
+  TARGET PartitionMgr
 )
 
 if (LOAD_PARTITIONERS)
@@ -114,6 +120,7 @@ target_link_libraries(PartitionMgr
     opendb
     OpenSTA
     utl
+    dbSta
 )
 
 unset(LOAD_PARTITIONERS)

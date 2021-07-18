@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, University of California, San Diego.
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -99,7 +99,6 @@ Box<double> Clock::computeSinkRegionClustered(
   std::sort(allPositionsX.begin(), allPositionsX.end());
   std::sort(allPositionsY.begin(), allPositionsY.end());
 
-  unsigned numSinks = allPositionsX.size();
   double xMin = allPositionsX[0];
   double xMax = allPositionsX[(allPositionsX.size() - 1)];
   double yMin = allPositionsY[0];
