@@ -1,36 +1,23 @@
 name: set env
 on: 
-  push:
+  push:     
     branches:
       - devops-dev
 jobs:
   set-env:
     runs-on: [self-hosted]
-    env:
-      DOCKER_REGISTRY: registry.cn-shanghai.aliyuncs.com
-      DOCKER_NAMESPACE: ieden
-      DOCKER_DEPS_IMAGENAME: eden_deps_ubuntu
-      DOCKER_DEPS_IMAGENAME_TEST: eden_deps_ubuntu_test
-      DOCKER_REGRESSION_IMAGENAME: eden_regression_ubuntu
-      DOCKER_REGRESSION_IMAGENAME_TEST: eden_regression_test
-       
+
     steps:
-      - name: 1. checkout
+      - name: 1. checkout eden
         uses: actions/checkout@v2
 
-      - name: 2. ICBench image version
-        if: ${{ github.repository == 'ICBench/Eden' }}
-        uses: allenevans/set-env@v2.0.1
+      - name: 2. checkout bamboo
+        uses: actions/checkout@v2
         with:
-          DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME }}
-          DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME }}
-
-      - name: 2. test image version
-        if: ${{ github.repository != 'ICBench/Eden' }}
-        uses: allenevans/set-env@v2.0.1
-        with:
-          DOCKER_DEPS_IMAGENAME: ${{ env.DOCKER_DEPS_IMAGENAME_TEST }}
-          DOCKER_REGRESSION_IMAGENAME: ${{ env.DOCKER_REGRESSION_IMAGENAME_TEST }}
+          repository: ICBench/bamboo
+          ref: v0.1
+          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          path: ${{ github.workspace }}/bamboo
 
       - name: 3. monitor file change
         id: change
@@ -40,43 +27,14 @@ jobs:
           pushBefore: ${{ github.event.before }}
           pushAfter: ${{ github.event.after }}
 
-      - name: 4. decide committer name
+      - name: 4. create env json file and upload
         run: |
-            name1=${{ github.event.commits[0].committer.username }}
-            name2=${{ github.event.commits[1].committer.username }}
-            if [ $name1 == 'GitHub' || $name1 == 'web-flow']
-            then 
-                echo "COMMIT_COMMITER_NAME=$name2" >> $GITHUB_ENV
-            else 
-                echo "COMMIT_COMMITER_NAME=$name1" >> $GITHUB_ENV
-            fi
+          pip install oss2
+          export PYTHONPATH=${{github.workspace}}/bamboo
+          python3 -m modules.json.json_create ${{ github.repository }} ${{ github.workspace }} ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }} ${{ github.run_number }} ${{ github.event.after }} ${{ github.event.commits[0].committer.username }} ${{ github.event.commits[1].committer.username }}
+          python3 -m modules.aliyun_oss.aliyun upload ${{ secrets.ALI_OSS_ACCESS_KEY_ID }} ${{ secrets.ALI_OSS_ACCESS_KEY_SK }} oss://icbench-static/environments/${{ github.repository }}/${{ github.ref }}/env.json env.json
 
-      - name: 5. create json file to store environment variables
-        uses: zynICBench/json-creator@v2.1
-        with:
-          file-name: 'env.json'
-          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
-          DOCKER_DEPS_FILEPATH: docker/Dockerfile.deps
-          DOCKER_REGRESSION_FILEPATH: docker/Dockerfile.regression
-          DOCKER_RESULT_PATH: ${{ github.workspace }}/devops_results
-          CODE_COVERAGE_PATH: ${{ github.workspace }}/coverage_results
-          IS_FILES_MODIFIED_OR_ADDED: ${{ contains(steps.change.outputs.files, '.github/workflows/docker_deps.yml') || contains(steps.change.outputs.files, 'docker/Dockerfile.dev') || contains(steps.change.outputs.files, 'etc/DependencyInstaller.sh') }}  
-          DEPS_ENV_PREFIX: ${{ format('{0}/{1}/{2}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_DEPS_IMAGENAME) }}
-          REGRESSION_ENV: ${{ format('{0}/{1}/{2}:{3}', env.DOCKER_REGISTRY, env.DOCKER_NAMESPACE, env.DOCKER_REGRESSION_IMAGENAME, github.run_number) }}
-          COMMIT_COMMITER_NAME: ${{ env.COMMIT_COMMITER_NAME }}
-          EVENT_AFTER: ${{ github.event.after }}
-          
-      - name: 6. connect to aliyun
-        uses: manyuanrong/setup-ossutil@v2.0
-        with:
-          endpoint: "oss-cn-shanghai.aliyuncs.com"
-          access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
-          access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
-
-      - name: 7. upload to aliyun
-        run: ossutil cp -rf env.json oss://icbench-static/environments/${{ github.repository }}/${{ github.event.ref }}/
-
-      - name: 8. invoke workflow
+      - name: 5. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           workflow: release eden deps docker
