@@ -335,7 +335,7 @@ if(GTEST STREQUAL ON)
   target_include_directories(utEden
     PUBLIC
     ../include
-    TritonCTS/src
+    cts/src
   )
 
   target_link_libraries(utEden
@@ -352,15 +352,17 @@ if(GTEST STREQUAL ON)
     opendb
     opendbtcl
     rcx
-    TritonCTS
+    rmp
+    cts
     grt
     tap
     gui
     TritonRoute
     mpl
+    mpl2
     psm
     ant
-    PartitionMgr
+    par
     utl
     pdn
     pdr
