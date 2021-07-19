@@ -1,6 +1,6 @@
 #include "banyan/MakeBanyan.h"
 
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 #include "banyan/Banyan.h"
 
 namespace ord {
