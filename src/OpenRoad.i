@@ -167,6 +167,13 @@ getTritonRoute()
   return openroad->getTritonRoute();
 }
 
+banyan::Banyan *
+getBanyan()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getBanyan();
+}
+
 psm::PDNSim*
 getPDNSim()
 {
