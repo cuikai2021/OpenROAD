@@ -1,6 +1,6 @@
 ############################################################################
 ##
-## Copyright (c) 2019, OpenROAD
+## Copyright (c) 2019, The Regents of the University of California
 ## All rights reserved.
 ##
 ## BSD 3-Clause License
@@ -110,7 +110,6 @@ proc write_def { args } {
   ord::write_def_cmd $filename $version
 }
 
-
 sta::define_cmd_args "write_cdl" {[-include_fillers] filename}
 
 proc write_cdl { args } {
@@ -209,7 +208,7 @@ namespace eval ord {
   proc clear {} {
     sta::clear_network
     sta::clear_sta
-    grt::clear_fastroute
+    grt::clear
     [get_db] clear
   }
   

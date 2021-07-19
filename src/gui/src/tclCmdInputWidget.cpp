@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,8 +31,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #include "tclCmdInputWidget.h"
-
-#include <tcl.h>
 
 #include <QMimeData>
 #include <QTextStream>

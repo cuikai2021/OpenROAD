@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2020, OpenROAD
+// Copyright (c) 2020, The Regents of the University of California
 // All rights reserved.
 //
 // BSD 3-Clause License
@@ -70,6 +70,7 @@ namespace utl {
     X(PSM) \
     X(PSN) \
     X(RCX) \
+    X(RMP) \
     X(RSZ) \
     X(STA) \
     X(STT) \
