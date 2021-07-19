@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // BSD 3-Clause License
@@ -245,8 +245,7 @@ main(int argc,
 static int
 tclReadlineInit(Tcl_Interp *interp)
 {
-  std::array<const char *, 8> readline_cmds = {
-    "history",
+  std::array<const char *, 7> readline_cmds = {
     "history event",
     "eval $auto_index(::tclreadline::ScriptCompleter)",
     "::tclreadline::readline builtincompleter true",

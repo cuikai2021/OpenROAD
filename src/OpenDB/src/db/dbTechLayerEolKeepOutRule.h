@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (c) 2020, OpenRoad Project
+// Copyright (c) 2020, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,8 @@ struct dbTechLayerEolKeepOutRuleFlags
 {
   bool class_valid_ : 1;
   bool corner_only_ : 1;
-  uint spare_bits_ : 30;
+  bool except_within_ : 1;
+  uint spare_bits_ : 29;
 };
 // User Code Begin Structs
 // User Code End Structs
@@ -69,6 +70,8 @@ class _dbTechLayerEolKeepOutRule : public _dbObject
   int backward_ext_;
   int forward_ext_;
   int side_ext_;
+  int within_low_;
+  int within_high_;
   std::string class_name_;
 
   // User Code Begin Fields

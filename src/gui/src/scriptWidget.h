@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -100,10 +100,13 @@ class ScriptWidget : public QDockWidget
 
  private:
   void setupTcl();
+
   void addToOutput(const QString& text, const QColor& color);
   void addCommandToOutput(const QString& cmd);
   void addTclResultToOutput(int return_code);
-  void addBufferToOutput();
+  void addReportToOutput(const QString& text);
+  void addLogToOutput(const QString& text, const QColor& color);
+
   static int channelOutput(ClientData instanceData,
                            const char* buf,
                            int toWrite,
@@ -117,7 +120,6 @@ class ScriptWidget : public QDockWidget
   TclCmdInputWidget* input_;
   QPushButton* pauser_;
   Tcl_Interp* interp_;
-  QStringList outputBuffer_;
   QStringList history_;
   QString history_buffer_last_;
   int historyPosition_;

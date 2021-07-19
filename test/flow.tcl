@@ -1,6 +1,6 @@
 ############################################################################
 ##
-## Copyright (c) 2019, OpenROAD
+## Copyright (c) 2019, The Regents of the University of California
 ## All rights reserved.
 ##
 ## BSD 3-Clause License
@@ -39,6 +39,7 @@ read_verilog $synth_verilog
 link_design $top_module
 read_sdc $sdc_file
 
+utl::metric "ord_sha1" [ord::openroad_git_sha1]
 # Note that sta::network_instance_count is not valid after tapcells are added.
 utl::metric "instance_count" [sta::network_instance_count]
 
@@ -73,16 +74,15 @@ pdngen -verbose $pdn_cfg
 ################################################################
 # Global placement
 
-# Used by resizer for timing driven placement.
-source $layer_rc_file
-set_wire_rc -signal -layer $wire_rc_layer
-set_wire_rc -clock  -layer $wire_rc_layer_clk
-set_dont_use $dont_use
+foreach layer_adjustment $global_routing_layer_adjustments {
+  lassign $layer_adjustment layer adjustment
+  set_global_routing_layer_adjustment $layer $adjustment
+}
+set_routing_layers -signal $global_routing_layers \
+  -clock $global_routing_clock_layers
+set_macro_extension 2
 
-# If/when this enables routing driven also the layer adjustments have to
-# move to here.
-global_placement -timing_driven -density $global_place_density \
-  -init_density_penalty $global_place_density_penalty \
+global_placement -routability_driven -density $global_place_density \
   -pad_left $global_place_pad -pad_right $global_place_pad
 
 # IO Placement
@@ -95,9 +95,14 @@ write_def $global_place_def
 ################################################################
 # Repair max slew/cap/fanout violations and normalize slews
 
+source $layer_rc_file
+set_wire_rc -signal -layer $wire_rc_layer
+set_wire_rc -clock  -layer $wire_rc_layer_clk
+set_dont_use $dont_use
+
 estimate_parasitics -placement
 
-repair_design
+repair_design -max_slew_margin $max_slew_margin -max_cap_margin $max_cap_margin
 
 repair_tie_fanout -separation $tie_separation $tielo_port
 repair_tie_fanout -separation $tie_separation $tiehi_port
@@ -150,18 +155,13 @@ utl::metric "DPL::errors" $dpl_errors
 
 ################################################################
 # Global routing
+
 set route_guide [make_result_file ${design}_${platform}.route_guide]
-foreach layer_adjustment $global_routing_layer_adjustments {
-  lassign $layer_adjustment layer adjustment
-  set_global_routing_layer_adjustment $layer $adjustment
-}
-set_routing_layers -signal $global_routing_layers \
-  -clock $global_routing_clock_layers
 global_route -guide_file $route_guide \
-  -overflow_iterations 100
+  -congestion_iterations 100
 
 set antenna_report [make_result_file ${design}_${platform}_ant.log]
-set antenna_errors [check_antennas -simple_report -report_file $antenna_report]
+set antenna_errors [check_antennas -report_violating_nets -report_file $antenna_report]
 
 utl::metric "ANT::errors" $antenna_errors
 

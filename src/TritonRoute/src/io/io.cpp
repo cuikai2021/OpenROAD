@@ -413,9 +413,11 @@ void io::Parser::setNDRs(odb::dbDatabase* db)
     createNDR(ndr);
   }
   for (auto& layer : design->getTech()->getLayers()) {
-      if (layer->getType() != frLayerTypeEnum::ROUTING)
-          continue;
-      MTSAFEDIST = max(MTSAFEDIST, design->getTech()->getMaxNondefaultSpacing(layer->getLayerNum()/2 -1));
+    if (layer->getType() != frLayerTypeEnum::ROUTING)
+      continue;
+    MTSAFEDIST = max(MTSAFEDIST,
+                     design->getTech()->getMaxNondefaultSpacing(
+                         layer->getLayerNum() / 2 - 1));
   }
 }
 void io::Parser::getSBoxCoords(odb::dbSBox* box,
@@ -506,6 +508,7 @@ void io::Parser::getSBoxCoords(odb::dbSBox* box,
 void io::Parser::setNets(odb::dbBlock* block)
 {
   for (auto net : block->getNets()) {
+    bool is_special = net->isSpecial();
     unique_ptr<frNet> uNetIn = make_unique<frNet>(net->getName());
     auto netIn = uNetIn.get();
     if (net->getNonDefaultRule())
@@ -520,11 +523,13 @@ void io::Parser::setNets(odb::dbBlock* block)
       auto frterm = tmpBlock->name2term_[term->getName()];  // frTerm*
       frterm->addToNet(netIn);
       netIn->addTerm(frterm);
-      // graph enablement
-      auto termNode = make_unique<frNode>();
-      termNode->setPin(frterm);
-      termNode->setType(frNodeTypeEnum::frcPin);
-      netIn->addNode(termNode);
+      if (!is_special) {
+        // graph enablement
+        auto termNode = make_unique<frNode>();
+        termNode->setPin(frterm);
+        termNode->setType(frNodeTypeEnum::frcPin);
+        netIn->addNode(termNode);
+      }
     }
     for (auto term : net->getITerms()) {
       if (tmpBlock->name2inst_.find(term->getInst()->getName())
@@ -547,11 +552,13 @@ void io::Parser::setNets(odb::dbBlock* block)
 
       instTerm->addToNet(netIn);
       netIn->addInstTerm(instTerm);
-      // graph enablement
-      auto instTermNode = make_unique<frNode>();
-      instTermNode->setPin(instTerm);
-      instTermNode->setType(frNodeTypeEnum::frcPin);
-      netIn->addNode(instTermNode);
+      if (!is_special) {
+        // graph enablement
+        auto instTermNode = make_unique<frNode>();
+        instTermNode->setPin(instTerm);
+        instTermNode->setType(frNodeTypeEnum::frcPin);
+        netIn->addNode(instTermNode);
+      }
     }
     // initialize
     string layerName = "";
@@ -811,7 +818,7 @@ void io::Parser::setNets(odb::dbBlock* block)
         break;
     }
     netIn->setType(netType);
-    if (net->isSpecial())
+    if (is_special)
       tmpBlock->addSNet(std::move(uNetIn));
     else
       tmpBlock->addNet(std::move(uNetIn));
@@ -1697,6 +1704,9 @@ void io::Parser::addRoutingLayer(odb::dbTechLayer* layer)
     rptr->setForwardExt(rule->getForwardExt());
     rptr->setSideExt(rule->getSideExt());
     rptr->setCornerOnly(rule->isCornerOnly());
+    rptr->setExceptWithin(rule->isExceptWithin());
+    rptr->setWithinLow(rule->getWithinLow());
+    rptr->setWithinHigh(rule->getWithinHigh());
     tech->addUConstraint(std::move(uCon));
     tmpLayer->addLef58EolKeepOutConstraint(rptr);
   }

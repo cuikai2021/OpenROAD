@@ -2,7 +2,7 @@
 #include <itest.h>
 
 #include "CtsOptions.h"
-#include "tritoncts/TritonCTS.h"
+#include "cts/TritonCTS.h"
 #include "utl/Logger.h"
 
 #define TEST_OK_FILES_PATH "utest/TritonCTS/test"
