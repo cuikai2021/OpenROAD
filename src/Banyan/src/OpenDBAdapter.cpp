@@ -416,9 +416,9 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
       cnt++;
     }
   }
-  auto it
-      = viaDefNameToIdxs_.insert(make_pair(vname, (int) viadefs_.size())).first;
-  viadefs_.push_back({it->first.c_str(), botBox, topBox});
+  auto it = viaDefNameToIdxs_.insert(make_pair(
+    vname, (int)viadefs_.size())).first;
+  viadefs_.push_back({it->first.c_str(), topBox, botBox});
 }
 
 void OpenDBAdapter::getNetsFromOpenDB()
