@@ -507,10 +507,6 @@ void OpenDBAdapter::addBox(std::string layerName,
   boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom});
 }
 
-void OpenDBAdapter::addBox(banyan_go::box box)
-{
-  boxes_.push_back(box);
-}
 
 void OpenDBAdapter::addVia(odb::dbSBox* box)
 {
@@ -941,8 +937,8 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
 
 void OpenDBAdapter::getInstsFromOpenDB()
 {
-  std::map<std::string, std::vector<banyan_go::box>> mnameToBoxes;
-  for (auto lib : db->getLibs()) {
+  std::map<std::string, std::vector<std::pair<std::string,odb::Rect>>> mnameToBoxes;
+  for (auto lib : db_->getLibs()) {
     for (odb::dbMaster* master : lib->getMasters()) {
       // for (auto term : master->getMTerms()) {
       //   for (auto mpin : term->getMPins()) {
@@ -951,27 +947,30 @@ void OpenDBAdapter::getInstsFromOpenDB()
       //     }
       //   }
       // }
-      std::vector<banyan_go::box> boxes;
+      std::vector<std::pair<std::string,odb::Rect>> boxes;
       for (auto obs : master->getObstructions()) {
-        string layerName = obs->getTechLayer()->getName();
+        std::string layerName = obs->getTechLayer()->getName();
         int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-        int xl = defdist(obs->xMin());
-        int yl = defdist(obs->yMin());
-        int xh = defdist(obs->xMax());
-        int yh = defdist(obs->yMax());
-        boxes.push_back({layerIdx, xl, yl, xh - xl, yh - yl});
+        //m2 or above layer
+        if (layerIdx < 2) {
+          continue;
+        }
+        odb::Rect rect(obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
+        boxes.push_back(std::make_pair(layerName, rect));
       }
-      mnameToBoxes[master.getName()] = boxes;
+      mnameToBoxes[master->getName()] = boxes;
     }
   }
+  auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
     size_t boxIndexBegin = boxes_.size();
     size_t viaIndexBegin = vias_.size();
-    auto obstructions = AssertFind(mnameToBoxes, inst->getMaster()->getName);
+    auto obstructions = AssertFind(mnameToBoxes, inst->getMaster()->getName());
     for (auto box : obstructions) {
-      addBox(box);
+      addBox(box.first, box.second);
     }
-    pins_.push_back({inst.getName() + "/instobs",
+    strs_.emplace_back(inst->getName() + "/instobs");
+    pins_.push_back({strs_.back().c_str(),
                      boxIndexBegin,
                      boxes_.size(),
                      viaIndexBegin,

@@ -99,7 +99,6 @@ class OpenDBAdapter : public DBAdapter
   void addBox(odb::dbBox* box);
   void addBox(std::string layerName, const odb::Rect& rect);
   void addBox(std::string layerName, int left, int bottom, int right, int top);
-  void addBox(banyan_go::box box);
 
   void addNet(odb::dbNet* net);
   void addWire(odb::dbWire* wire);
