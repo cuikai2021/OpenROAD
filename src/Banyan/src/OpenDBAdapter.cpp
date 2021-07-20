@@ -935,9 +935,10 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
                                  ndrlayers_.size()});
 }
 
-void OpenDBAdapter::getInstsFromOpenDB()
+void OpenDBAdapter::getInstsObsFromOpenDB()
 {
-  std::map<std::string, std::vector<std::pair<std::string,odb::Rect>>> mnameToBoxes;
+  std::map<std::string, std::vector<std::pair<std::string, odb::Rect>>>
+      mnameToBoxes;
   for (auto lib : db_->getLibs()) {
     for (odb::dbMaster* master : lib->getMasters()) {
       // for (auto term : master->getMTerms()) {
@@ -947,34 +948,38 @@ void OpenDBAdapter::getInstsFromOpenDB()
       //     }
       //   }
       // }
-      std::vector<std::pair<std::string,odb::Rect>> boxes;
+      std::vector<std::pair<std::string, odb::Rect>> boxes;
       for (auto obs : master->getObstructions()) {
         std::string layerName = obs->getTechLayer()->getName();
         int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-        //m2 or above layer
+        // m2 or above layer
         if (layerIdx < 2) {
           continue;
         }
         odb::Rect rect(obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
         boxes.push_back(std::make_pair(layerName, rect));
       }
-      mnameToBoxes[master->getName()] = boxes;
+      if (boxes.size() > 0) {
+        mnameToBoxes[master->getName()] = boxes;
+      }
     }
   }
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
     size_t boxIndexBegin = boxes_.size();
     size_t viaIndexBegin = vias_.size();
-    auto obstructions = AssertFind(mnameToBoxes, inst->getMaster()->getName());
-    for (auto box : obstructions) {
-      addBox(box.first, box.second);
+    auto iter = mnameToBoxes.find(inst->getMaster()->getName());
+    if (iter != mnameToBoxes.end()) {
+      for (auto box : iter->second) {
+        addBox(box.first, box.second);
+      }
+      strs_.emplace_back(inst->getName() + "/instobs");
+      pins_.push_back({strs_.back().c_str(),
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
-    strs_.emplace_back(inst->getName() + "/instobs");
-    pins_.push_back({strs_.back().c_str(),
-                     boxIndexBegin,
-                     boxes_.size(),
-                     viaIndexBegin,
-                     vias_.size()});
   }
 }
 

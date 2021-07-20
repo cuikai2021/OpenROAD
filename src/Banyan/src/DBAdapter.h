@@ -108,7 +108,7 @@ class OpenDBAdapter : public DBAdapter
 
   void getNetsFromOpenDB();
   void getPinsFromOpenDB();
-  void getInstsFromOpenDB();
+  void getInstsObsFromOpenDB();
 
 
  public:
@@ -122,7 +122,7 @@ class OpenDBAdapter : public DBAdapter
     getNDRsFromOpenDB();
     getNetsFromOpenDB();
     getPinsFromOpenDB();
-    getInstsFromOpenDB();
+    getInstsObsFromOpenDB();
   }
 
   ~OpenDBAdapter() {}
