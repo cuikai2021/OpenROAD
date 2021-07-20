@@ -1,8 +1,8 @@
 
 #include <assert.h>
 
-#include <utility>
 #include <iostream>
+#include <utility>
 
 #include "DBAdapter.h"
 #include "GroupedRange.hpp"
@@ -13,13 +13,17 @@
 #include "opendb/geom.h"
 #include "utl/Logger.h"
 
-#define AssertFind(mmap, key) assertFind(mmap, key, __FILE__, __LINE__, __func__)
-
+#define AssertFind(mmap, key) \
+  assertFind(mmap, key, __FILE__, __LINE__, __func__)
 
 namespace banyan {
 
 template <typename TKEY, typename TVALUE>
-TVALUE assertFind(std::map<TKEY, TVALUE>& mmap, TKEY key, const char *fname, int lineno, const char *fxname)
+TVALUE assertFind(std::map<TKEY, TVALUE>& mmap,
+                  TKEY key,
+                  const char* fname,
+                  int lineno,
+                  const char* fxname)
 {
   auto itr = mmap.find(key);
   if (itr == mmap.end()) {
@@ -88,10 +92,10 @@ int OpenDBAdapter::defdist(int x)
 void OpenDBAdapter::getDesignFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
-  
+
   strs_.emplace_back(block->getName());
   design_.name = strs_.back().c_str();
-  
+
   odb::Rect box;
   block->getDieArea(box);
   design_.xmin = defdist(box.xMin());
@@ -125,10 +129,17 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
 {
   assert(layers_.size() > 0);
   assert(hasAddedMasterSliceLayer_ && hasAddedCutLayer_);
-  auto it = layerNameToIdxs_.insert(make_pair(
-      layer->getName(), (int)layers_.size())).first;
-  layers_.push_back({it->first.c_str(), banyan_go::DIR_NONE,
-      (int) layer->getWidth(), calLayerPitch(layer), 0, 0, 0, 0});
+  auto it = layerNameToIdxs_
+                .insert(make_pair(layer->getName(), (int) layers_.size()))
+                .first;
+  layers_.push_back({it->first.c_str(),
+                     banyan_go::DIR_NONE,
+                     (int) layer->getWidth(),
+                     calLayerPitch(layer),
+                     0,
+                     0,
+                     0,
+                     0});
 }
 
 void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
@@ -136,7 +147,7 @@ void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
   assert(layers_.size() > 0);
   assert(hasAddedMasterSliceLayer_);
 
-  layerNameToIdxs_.insert(make_pair(layer->getName(), -(int)layers_.size()));
+  layerNameToIdxs_.insert(make_pair(layer->getName(), -(int) layers_.size()));
   hasAddedCutLayer_ = true;
 }
 
@@ -162,10 +173,8 @@ void OpenDBAdapter::getTracksFromOpenDB()
        utl::group_by(tracks.begin(), tracks.end(), TrackLayerName())) {
     int layerIdx = layerNameToIdxs_.find(group.value)->second;
     if (layerIdx < 0) {
-      logger_->info(utl::BY,
-              800,
-              "ignore tracks on layer[{}] {}",
-              layerIdx, group.value);
+      logger_->info(
+          utl::BY, 800, "ignore tracks on layer[{}] {}", layerIdx, group.value);
       continue;
     }
 
@@ -173,14 +182,15 @@ void OpenDBAdapter::getTracksFromOpenDB()
     std::vector<int> grid;
     int dir = banyan_go::DIR_NONE, tmin = 0, tmax = 0;
     for (auto track : group.range) {
-      if (track->getTechLayer()->getDirection() == odb::dbTechLayerDir::HORIZONTAL) {
+      if (track->getTechLayer()->getDirection()
+          == odb::dbTechLayerDir::HORIZONTAL) {
         track->getGridY(grid);
         dir = banyan_go::DIR_HORIZONTAL;
         tmin = design_.xmin;
         tmax = design_.xmax;
         break;
-      }
-      else if (track->getTechLayer()->getDirection() == odb::dbTechLayerDir::VERTICAL) {
+      } else if (track->getTechLayer()->getDirection()
+                 == odb::dbTechLayerDir::VERTICAL) {
         track->getGridY(grid);
         dir = banyan_go::DIR_VERTICAL;
         tmin = design_.ymin;
@@ -191,12 +201,13 @@ void OpenDBAdapter::getTracksFromOpenDB()
 
     if (dir == banyan_go::DIR_NONE) {
       logger_->info(utl::BY,
-              805,
-              "ignore tracks on layer[{}] {} with dir NONE",
-              layerIdx, group.value);
+                    805,
+                    "ignore tracks on layer[{}] {} with dir NONE",
+                    layerIdx,
+                    group.value);
     }
 
-    for (auto line: grid) {
+    for (auto line : grid) {
       tracks_.push_back({layerIdx, line, tmin, tmax});
     }
 
@@ -287,8 +298,9 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
     case odb::dbViaObj: {
       auto via = static_cast<odb::dbVia*>(viaObj);
       vname = via->getName();
-      botLayerIdx = AssertFind(layerNameToIdxs_, via->getBottomLayer()->getName());
-      topLayerIdx= AssertFind(layerNameToIdxs_, via->getTopLayer()->getName());
+      botLayerIdx
+          = AssertFind(layerNameToIdxs_, via->getBottomLayer()->getName());
+      topLayerIdx = AssertFind(layerNameToIdxs_, via->getTopLayer()->getName());
       rule = via->getViaGenerateRule();
       viaHasParams = via->hasParams();
       if (viaHasParams && rule != nullptr) {
@@ -301,8 +313,10 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
     case odb::dbTechViaObj: {
       auto techVia = static_cast<odb::dbTechVia*>(viaObj);
       vname = techVia->getName();
-      botLayerIdx = AssertFind(layerNameToIdxs_, techVia->getBottomLayer()->getName());
-      topLayerIdx = AssertFind(layerNameToIdxs_, techVia->getTopLayer()->getName());
+      botLayerIdx
+          = AssertFind(layerNameToIdxs_, techVia->getBottomLayer()->getName());
+      topLayerIdx
+          = AssertFind(layerNameToIdxs_, techVia->getTopLayer()->getName());
       rule = techVia->getViaGenerateRule();
       viaHasParams = techVia->hasParams();
       if (viaHasParams && rule != nullptr) {
@@ -402,8 +416,8 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
       cnt++;
     }
   }
-  auto it = viaDefNameToIdxs_.insert(make_pair(
-    vname, (int)viadefs_.size())).first;
+  auto it
+      = viaDefNameToIdxs_.insert(make_pair(vname, (int) viadefs_.size())).first;
   viadefs_.push_back({it->first.c_str(), botBox, topBox});
 }
 
@@ -421,7 +435,8 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
   if (net->getNonDefaultRule() != nullptr) {
     ndrIdx = AssertFind(ndrNameToIdxs_, net->getNonDefaultRule()->getName());
   }
-  auto it = netNameToIdxs_.insert(make_pair(net->getName(), nets_.size())).first;
+  auto it
+      = netNameToIdxs_.insert(make_pair(net->getName(), nets_.size())).first;
   banyan_go::net_use use = banyan_go::USE_SIGNAL;
   switch (net->getSigType()) {
     case odb::dbSigType::SIGNAL:
@@ -490,6 +505,11 @@ void OpenDBAdapter::addBox(std::string layerName,
   }
 
   boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom});
+}
+
+void OpenDBAdapter::addBox(banyan_go::box box)
+{
+  boxes_.push_back(box);
 }
 
 void OpenDBAdapter::addVia(odb::dbSBox* box)
@@ -756,8 +776,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
     addBox(layerName, xl, yl, xh, yh);
   }
   pins_.push_back({"obstructions",
-                   boxIndexBegin, boxes_.size(),
-                   viaIndexBegin, vias_.size()});
+                   boxIndexBegin,
+                   boxes_.size(),
+                   viaIndexBegin,
+                   vias_.size()});
 
   auto nets = block->getNets();
   for (auto net : nets) {
@@ -785,8 +807,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
       }
       strs_.emplace_back(bTerm->getName());
       pins_.push_back({strs_.back().c_str(),
-                       boxIndexBegin, boxes_.size(),
-                       viaIndexBegin, vias_.size()});
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
 
     const auto netITerms = net->getITerms();
@@ -818,8 +842,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
       }
       strs_.emplace_back(inst->getName() + "/" + mTerm->getName());
       pins_.push_back({strs_.back().c_str(),
-                       boxIndexBegin, boxes_.size(),
-                       viaIndexBegin, vias_.size()});
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
@@ -829,8 +855,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
       strs_.emplace_back(nName + "/wire");
       pins_.push_back({strs_.back().c_str(),
-                       boxIndexBegin, boxes_.size(),
-                       viaIndexBegin, vias_.size()});
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
 
     if (net->isSpecial()) {
@@ -847,8 +875,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
       }
       strs_.emplace_back(nName + "/specialwire");
       pins_.push_back({strs_.back().c_str(),
-                       boxIndexBegin, boxes_.size(),
-                       viaIndexBegin, vias_.size()});
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
     }
 
     nets_.at(netIdx).pin_begin = pinIndexBegin;
@@ -883,30 +913,70 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
   std::vector<odb::dbTechVia*> vias;
   ndr->getVias(vias);
   for (auto via : vias) {
-    vias_.push_back({(int)viadefs_.size()});
+    vias_.push_back({(int) viadefs_.size()});
     addViaDef(via);
   }
 
   std::vector<odb::dbTechVia*> useVias;
   ndr->getUseVias(useVias);
   for (auto useVia : useVias) {
-    auto viadefIdx = AssertFind(viaDefNameToIdxs_, useVia->getName()); 
-    vias_.push_back({(int)viadefIdx});
+    auto viadefIdx = AssertFind(viaDefNameToIdxs_, useVia->getName());
+    vias_.push_back({(int) viadefIdx});
   }
 
   std::vector<odb::dbTechViaGenerateRule*> useViaRules;
   ndr->getUseViaRules(useViaRules);
   for (auto viaRule : useViaRules) {
     auto viadefIdx = AssertFind(viaDefNameToIdxs_, viaRule->getName());
-    vias_.push_back({(int)viadefIdx});
+    vias_.push_back({(int) viadefIdx});
   }
   ndrNameToIdxs_[ndr->getName()] = ndrs_.size();
   ndrs_.push_back(banyan_go::ndr{ndr->getName().c_str(),
-                   ndr->getHardSpacing(),
-                   ndrViaIdxBegin,
-                   vias.size(),
-                   ndrLayerIdxBegin,
-                   ndrlayers_.size()});
+                                 ndr->getHardSpacing(),
+                                 ndrViaIdxBegin,
+                                 vias.size(),
+                                 ndrLayerIdxBegin,
+                                 ndrlayers_.size()});
+}
+
+void OpenDBAdapter::getInstsFromOpenDB()
+{
+  std::map<std::string, std::vector<banyan_go::box>> mnameToBoxes;
+  for (auto lib : db->getLibs()) {
+    for (odb::dbMaster* master : lib->getMasters()) {
+      // for (auto term : master->getMTerms()) {
+      //   for (auto mpin : term->getMPins()) {
+      //     for (auto box : mpin->getGeometry()) {
+
+      //     }
+      //   }
+      // }
+      std::vector<banyan_go::box> boxes;
+      for (auto obs : master->getObstructions()) {
+        string layerName = obs->getTechLayer()->getName();
+        int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+        int xl = defdist(obs->xMin());
+        int yl = defdist(obs->yMin());
+        int xh = defdist(obs->xMax());
+        int yh = defdist(obs->yMax());
+        boxes.push_back({layerIdx, xl, yl, xh - xl, yh - yl});
+      }
+      mnameToBoxes[master.getName()] = boxes;
+    }
+  }
+  for (auto inst : block->getInsts()) {
+    size_t boxIndexBegin = boxes_.size();
+    size_t viaIndexBegin = vias_.size();
+    auto obstructions = AssertFind(mnameToBoxes, inst->getMaster()->getName);
+    for (auto box : obstructions) {
+      addBox(box);
+    }
+    pins_.push_back({inst.getName() + "/instobs",
+                     boxIndexBegin,
+                     boxes_.size(),
+                     viaIndexBegin,
+                     vias_.size()});
+  }
 }
 
 void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
@@ -948,14 +1018,14 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
       }
       if (box.w == 0) {
         _wire_encoder.addPoint(box.x, box.y);
-        _wire_encoder.addPoint(box.x, box.y+box.h);
+        _wire_encoder.addPoint(box.x, box.y + box.h);
       } else if (box.h == 0) {
         _wire_encoder.addPoint(box.x, box.y);
-        _wire_encoder.addPoint(box.x+box.w, box.y);
+        _wire_encoder.addPoint(box.x + box.w, box.y);
       } else if (box.w == box.h) {
         // TODO
-      } 
-      
+      }
+
       // else if (box.w > box.h) {
       //   int beginX = box.x + width / 2;
       //   int beginY = box.y + width / 2;
@@ -975,7 +1045,7 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
     for (size_t i = net.rvia_begin; i < net.rvia_end; i++) {
       auto via = ret.rvias[i];
       if (via.viadef_index < 0) {
-        continue; // TODO: banyan does not assign viadef now
+        continue;  // TODO: banyan does not assign viadef now
       }
       auto viadef = viadefs[via.viadef_index];
       auto viaName = viadef.name;
