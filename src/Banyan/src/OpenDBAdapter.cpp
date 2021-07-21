@@ -378,16 +378,20 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
     botBox = {botLayerIdx,
               botTranformX - xBotEnc,
               botTranformY - yBotEnc,
-              currX + botTranformX + xBotEnc,
-              currY + botTranformY + yBotEnc};
+              currX + xBotEnc*2,
+              currY + yBotEnc*2};
+              //currX + botTranformX + xBotEnc,
+              //currY + botTranformY + yBotEnc};
 
     int topTranformX = -currX / 2 + xOrigin + xTopOffset;
     int topTranformY = -currY / 2 + yOrigin + yTopOffset;
     topBox = {topLayerIdx,
               topTranformX - xTopEnc,
               topTranformY - yTopEnc,
-              currX + topTranformX + xTopEnc,
-              currY + topTranformY + yTopEnc};
+              currX + xTopEnc*2,
+              currY + yTopEnc*2};
+              //currX + topTranformX + xTopEnc,
+              //currY + topTranformY + yTopEnc};
   } else {
     int cnt = 0;
     for (auto group :
@@ -536,6 +540,8 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
 
   switch (box->getDirection()) {
     case odb::dbSBox::UNDEFINED: {
+      throw odb::ZException("UNDEFINED special path box not supported");
+
       bool dx_even = ((dx & 1) == 0);
       bool dy_even = ((dy & 1) == 0);
 
@@ -573,23 +579,25 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
     }
 
     case odb::dbSBox::HORIZONTAL: {
-      w = dy;
-      uint dw = dy >> 1;
-      y1 += dw;
-      y2 -= dw;
-      assert(y1 == y2);
+      //w = dy;
+      //uint dw = dy >> 1;
+      //y1 += dw;
+      //y2 -= dw;
+      //assert(y1 == y2);
       break;
     }
 
     case odb::dbSBox::VERTICAL: {
-      w = dx;
-      uint dw = dx >> 1;
-      x1 += dw;
-      x2 -= dw;
-      assert(x1 == x2);
+      //w = dx;
+      //uint dw = dx >> 1;
+      //x1 += dw;
+      //x2 -= dw;
+      //assert(x1 == x2);
       break;
     }
     case odb::dbSBox::OCTILINEAR: {
+      throw odb::ZException("OCTILINEAR special path box not supported");
+      
       odb::Oct oct = box->getOct();
       x1 = oct.getCenterLow().getX();
       y1 = oct.getCenterLow().getY();
@@ -763,19 +771,6 @@ void OpenDBAdapter::getPinsFromOpenDB()
   odb::dbBlock* block = db_->getChip()->getBlock();
   size_t boxIndexBegin = boxes_.size();
   size_t viaIndexBegin = vias_.size();
-  for (auto blockage : block->getObstructions()) {
-    auto layerName = blockage->getBBox()->getTechLayer()->getName();
-    int xl = blockage->getBBox()->xMin();
-    int yl = blockage->getBBox()->yMin();
-    int xh = blockage->getBBox()->xMax();
-    int yh = blockage->getBBox()->yMax();
-    addBox(layerName, xl, yl, xh, yh);
-  }
-  pins_.push_back({"obstructions",
-                   boxIndexBegin,
-                   boxes_.size(),
-                   viaIndexBegin,
-                   vias_.size()});
 
   auto nets = block->getNets();
   for (auto net : nets) {
@@ -935,6 +930,30 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
                                  ndrlayers_.size()});
 }
 
+void OpenDBAdapter::getObsFromOpenDB()
+{
+  odb::dbBlock* block = db_->getChip()->getBlock();
+  size_t boxIndexBegin = boxes_.size();
+  size_t viaIndexBegin = vias_.size();
+  for (auto blockage : block->getObstructions()) {
+    auto layerName = blockage->getBBox()->getTechLayer()->getName();
+    int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+    if (layerIdx < obs_layers_) {
+      continue;
+    }
+    int xl = blockage->getBBox()->xMin();
+    int yl = blockage->getBBox()->yMin();
+    int xh = blockage->getBBox()->xMax();
+    int yh = blockage->getBBox()->yMax();
+    addBox(layerName, xl, yl, xh, yh);
+  }
+  pins_.push_back({"obstructions",
+                   boxIndexBegin,
+                   boxes_.size(),
+                   viaIndexBegin,
+                   vias_.size()});
+}
+
 void OpenDBAdapter::getInstsObsFromOpenDB()
 {
   std::map<std::string, std::vector<std::pair<std::string, odb::Rect>>>
@@ -952,8 +971,7 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       for (auto obs : master->getObstructions()) {
         std::string layerName = obs->getTechLayer()->getName();
         int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-        // m2 or above layer
-        if (layerIdx < 2) {
+        if (layerIdx < obs_layers_) {
           continue;
         }
         odb::Rect rect(obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
@@ -1049,7 +1067,7 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
     for (size_t i = net.rvia_begin; i < net.rvia_end; i++) {
       auto via = ret.rvias[i];
       if (via.viadef_index < 0) {
-        continue;  // TODO: banyan does not assign viadef now
+        throw odb::ZException("invalid viadef index");
       }
       auto viadef = viadefs[via.viadef_index];
       auto viaName = viadef.name;

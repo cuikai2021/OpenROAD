@@ -68,6 +68,8 @@ class OpenDBAdapter : public DBAdapter
   odb::dbDatabase* db_;
   utl::Logger* logger_;
 
+  const int obs_layers_ = 2; // M2 and above
+
   bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
   std::map<std::string, int> layerNameToIdxs_;
@@ -106,10 +108,11 @@ class OpenDBAdapter : public DBAdapter
   void addVia(odb::dbSBox* box);
   void addVia(std::string viaName, int x, int y);
 
-  void getNetsFromOpenDB();
-  void getPinsFromOpenDB();
+  void getObsFromOpenDB();
   void getInstsObsFromOpenDB();
 
+  void getNetsFromOpenDB();
+  void getPinsFromOpenDB();
 
  public:
   OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger)
@@ -119,10 +122,11 @@ class OpenDBAdapter : public DBAdapter
     getLayersFromOpenDB();
     getTracksFromOpenDB();
     getViaDefsFromOpenDB();
+    getObsFromOpenDB();
+    getInstsObsFromOpenDB();
     getNDRsFromOpenDB();
     getNetsFromOpenDB();
     getPinsFromOpenDB();
-    getInstsObsFromOpenDB();
   }
 
   ~OpenDBAdapter() {}
