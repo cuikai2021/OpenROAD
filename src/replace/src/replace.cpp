@@ -70,9 +70,8 @@ Replace::Replace()
   routabilityMaxDensity_(0.99),
   routabilityMaxBloatIter_(1),
   routabilityMaxInflationIter_(4),
-  routabilityTargetRcMetric_(1.01),
+  routabilityTargetRcMetric_(1.25),
   routabilityInflationRatioCoef_(2.5),
-  routabilityPitchScale_(1.08),
   routabilityMaxInflationRatio_(2.5),
   routabilityRcK1_(1.0),
   routabilityRcK2_(1.0),
@@ -111,6 +110,7 @@ void Replace::reset() {
   pb_.reset();
   nb_.reset();
   tb_.reset();
+  rb_.reset();
 
   initialPlaceMaxIter_ = 20;
   initialPlaceMinDiffLength_ = 1500;
@@ -131,9 +131,8 @@ void Replace::reset() {
   routabilityMaxDensity_ = 0.99;
   routabilityMaxBloatIter_ = 1;
   routabilityMaxInflationIter_ = 4;
-  routabilityTargetRcMetric_ = 1.01;
+  routabilityTargetRcMetric_ = 1.03;
   routabilityInflationRatioCoef_ = 2.5;
-  routabilityPitchScale_ = 1.08;
   routabilityMaxInflationRatio_ = 2.5;
 
   timingDrivenMode_ = true;
@@ -156,7 +155,7 @@ void Replace::reset() {
 void Replace::setDb(odb::dbDatabase* db) {
   db_ = db;
 }
-void Replace::setFastRoute(grt::GlobalRouter* fr) {
+void Replace::setGlobalRouter(grt::GlobalRouter* fr) {
   fr_ = fr;
 }
 void Replace::setResizer(rsz::Resizer* rs) {
@@ -226,7 +225,6 @@ void Replace::initNesterovPlace() {
     rbVars.maxInflationIter = routabilityMaxInflationIter_;
     rbVars.targetRC = routabilityTargetRcMetric_;
     rbVars.inflationRatioCoef = routabilityInflationRatioCoef_;
-    rbVars.gRoutePitchScale = routabilityPitchScale_;
     rbVars.maxInflationRatio = routabilityMaxInflationRatio_;
     rbVars.rcK1 = routabilityRcK1_;
     rbVars.rcK2 = routabilityRcK2_;
@@ -325,6 +323,12 @@ Replace::setUniformTargetDensityMode(bool mode) {
   uniformTargetDensityMode_ = mode;
 }
 
+float
+Replace::getUniformTargetDensity() {
+  initNesterovPlace();
+  return nb_->uniformTargetDensity(); 
+}
+
 void
 Replace::setInitDensityPenalityFactor(float penaltyFactor) {
   initDensityPenalityFactor_ = penaltyFactor;
@@ -410,11 +414,6 @@ Replace::setRoutabilityTargetRcMetric(float rc) {
 void
 Replace::setRoutabilityInflationRatioCoef(float coef) {
   routabilityInflationRatioCoef_ = coef;
-}
-
-void
-Replace::setRoutabilityPitchScale(float scale) {
-  routabilityPitchScale_ = scale;
 }
 
 void

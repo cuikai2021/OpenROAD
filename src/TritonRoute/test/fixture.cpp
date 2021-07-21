@@ -34,7 +34,11 @@ using namespace fr;
 
 Fixture::Fixture()
     : logger(std::make_unique<Logger>()),
-      design(std::make_unique<frDesign>(logger.get()))
+      design(std::make_unique<frDesign>(logger.get())),
+      numBlockages(0),
+      numTerms(0),
+      numRefBlocks(0),
+      numInsts(0)
 {
   makeDesign();
 }
@@ -88,6 +92,116 @@ void Fixture::setupTech(frTechObject* tech)
   addLayer(tech, "m1", frLayerTypeEnum::ROUTING);
 }
 
+frBlock* Fixture::makeMacro(const char* name,
+                            frCoord originX,
+                            frCoord originY,
+                            frCoord sizeX,
+                            frCoord sizeY)
+{
+  auto block = make_unique<frBlock>(name);
+  vector<frBoundary> bounds;
+  frBoundary bound;
+  vector<frPoint> points;
+  points.push_back(frPoint(originX, originY));
+  points.push_back(frPoint(sizeX, originY));
+  points.push_back(frPoint(sizeX, sizeY));
+  points.push_back(frPoint(originX, sizeY));
+  bound.setPoints(points);
+  bounds.push_back(bound);
+  block->setBoundaries(bounds);
+  block->setMacroClass(MacroClassEnum::CORE);
+  block->setId(++numRefBlocks);
+  auto blkPtr = block.get();
+  design->addRefBlock(std::move(block));
+  return blkPtr;
+}
+
+frBlockage* Fixture::makeMacroObs(frBlock* refBlock,
+                                  frCoord xl,
+                                  frCoord yl,
+                                  frCoord xh,
+                                  frCoord yh,
+                                  frLayerNum lNum,
+                                  frCoord designRuleWidth)
+{
+  int id = refBlock->getBlockages().size();
+  auto blkIn = make_unique<frBlockage>();
+  blkIn->setId(id);
+  blkIn->setDesignRuleWidth(designRuleWidth);
+  auto pinIn = make_unique<frPin>();
+  pinIn->setId(0);
+  // pinFig
+  unique_ptr<frRect> pinFig = make_unique<frRect>();
+  pinFig->setBBox(frBox(xl, yl, xh, yh));
+  pinFig->addToPin(pinIn.get());
+  pinFig->setLayerNum(lNum);
+  unique_ptr<frPinFig> uptr(std::move(pinFig));
+  pinIn->addPinFig(std::move(uptr));
+  blkIn->setPin(std::move(pinIn));
+  auto blk = blkIn.get();
+  refBlock->addBlockage(std::move(blkIn));
+  return blk;
+}
+
+frTerm* Fixture::makeMacroPin(frBlock* refBlock,
+                              std::string name,
+                              frCoord xl,
+                              frCoord yl,
+                              frCoord xh,
+                              frCoord yh,
+                              frLayerNum lNum)
+{
+  int id = refBlock->getTerms().size();
+  unique_ptr<frTerm> uTerm = make_unique<frTerm>(name);
+  auto term = uTerm.get();
+  term->setId(id);
+  refBlock->addTerm(std::move(uTerm));
+  frTermEnum termType = frTermEnum::frcNormalTerm;
+  term->setType(termType);
+  frTermDirectionEnum termDirection = frTermDirectionEnum::INPUT;
+  term->setDirection(termDirection);
+  auto pinIn = make_unique<frPin>();
+  pinIn->setId(0);
+  unique_ptr<frRect> pinFig = make_unique<frRect>();
+  pinFig->setBBox(frBox(xl, yl, xh, yh));
+  pinFig->addToPin(pinIn.get());
+  pinFig->setLayerNum(lNum);
+  unique_ptr<frPinFig> uptr(std::move(pinFig));
+  pinIn->addPinFig(std::move(uptr));
+  term->addPin(std::move(pinIn));
+  return term;
+}
+
+frInst* Fixture::makeInst(const char* name,
+                          frBlock* refBlock,
+                          frCoord x,
+                          frCoord y)
+{
+  auto uInst = make_unique<frInst>(name, refBlock);
+  auto tmpInst = uInst.get();
+  tmpInst->setId(numInsts++);
+  tmpInst->setOrigin(frPoint(x, y));
+  tmpInst->setOrient(frOrientEnum::frcR0);
+  for (auto& uTerm : tmpInst->getRefBlock()->getTerms()) {
+    auto term = uTerm.get();
+    unique_ptr<frInstTerm> instTerm = make_unique<frInstTerm>(tmpInst, term);
+    instTerm->setId(numTerms++);
+    int pinCnt = term->getPins().size();
+    instTerm->setAPSize(pinCnt);
+    tmpInst->addInstTerm(std::move(instTerm));
+  }
+  for (auto& uBlk : tmpInst->getRefBlock()->getBlockages()) {
+    auto blk = uBlk.get();
+    unique_ptr<frInstBlockage> instBlk
+        = make_unique<frInstBlockage>(tmpInst, blk);
+    instBlk->setId(numBlockages);
+    numBlockages++;
+    tmpInst->addInstBlockage(std::move(instBlk));
+  }
+  design->getTopBlock()->addInst(std::move(uInst));
+  return tmpInst;
+}
+
 void Fixture::makeDesign()
 {
   setupTech(design->getTech());
@@ -106,6 +220,7 @@ void Fixture::makeDesign()
   block->addFakeSNet(std::move(vddFakeNet));
 
   design->setTopBlock(std::move(block));
+  USEMINSPACING_OBS = false;
 }
 
 void Fixture::makeCornerConstraint(frLayerNum layer_num,
@@ -213,6 +328,89 @@ void Fixture::makeSpacingEndOfLineConstraint(frLayerNum layer_num,
   frTechObject* tech = design->getTech();
   frLayer* layer = tech->getLayer(layer_num);
   layer->addEolSpacing(con.get());
+  tech->addUConstraint(std::move(con));
+}
+
+frSpacingTableInfluenceConstraint* Fixture::makeSpacingTableInfluenceConstraint(
+    frLayerNum layer_num,
+    std::vector<frCoord> widthTbl,
+    std::vector<std::pair<frCoord, frCoord>> valTbl)
+{
+  frTechObject* tech = design->getTech();
+  frLayer* layer = tech->getLayer(layer_num);
+  fr1DLookupTbl<frCoord, std::pair<frCoord, frCoord>> tbl(
+      "WIDTH", widthTbl, valTbl);
+  unique_ptr<frConstraint> uCon
+      = make_unique<frSpacingTableInfluenceConstraint>(tbl);
+  auto rptr = static_cast<frSpacingTableInfluenceConstraint*>(uCon.get());
+  tech->addUConstraint(std::move(uCon));
+  layer->setSpacingTableInfluence(rptr);
+  return rptr;
+}
+
+frLef58EolExtensionConstraint* Fixture::makeEolExtensionConstraint(
+    frLayerNum layer_num,
+    frCoord spacing,
+    std::vector<frCoord> eol,
+    std::vector<frCoord> ext,
+    bool parallelOnly)
+{
+  frTechObject* tech = design->getTech();
+  frLayer* layer = tech->getLayer(layer_num);
+  fr1DLookupTbl<frCoord, frCoord> tbl("WIDTH", eol, ext, false);
+  unique_ptr<frLef58EolExtensionConstraint> uCon
+      = make_unique<frLef58EolExtensionConstraint>(tbl);
+  uCon->setMinSpacing(spacing);
+  uCon->setParallelOnly(parallelOnly);
+  auto rptr = uCon.get();
+  tech->addUConstraint(std::move(uCon));
+  layer->addLef58EolExtConstraint(rptr);
+  return rptr;
+}
+
+frSpacingTableTwConstraint* Fixture::makeSpacingTableTwConstraint(
+    frLayerNum layer_num,
+    std::vector<frCoord> widthTbl,
+    std::vector<frCoord> prlTbl,
+    std::vector<std::vector<frCoord>> spacingTbl)
+{
+  frTechObject* tech = design->getTech();
+  frLayer* layer = tech->getLayer(layer_num);
+  frCollection<frSpacingTableTwRowType> rows;
+  for (size_t i = 0; i < widthTbl.size(); i++) {
+    rows.push_back(frSpacingTableTwRowType(widthTbl[i], prlTbl[i]));
+  }
+  unique_ptr<frConstraint> uCon
+      = make_unique<frSpacingTableTwConstraint>(rows, spacingTbl);
+  auto rptr = static_cast<frSpacingTableTwConstraint*>(uCon.get());
+  tech->addUConstraint(std::move(uCon));
+  layer->setMinSpacing(rptr);
+  return rptr;
+}
+
+void Fixture::makeLef58EolKeepOutConstraint(frLayerNum layer_num,
+                                            bool cornerOnly,
+                                            bool exceptWithin,
+                                            frCoord withinLow,
+                                            frCoord withinHigh,
+                                            frCoord forward,
+                                            frCoord side,
+                                            frCoord backward,
+                                            frCoord width)
+{
+  frTechObject* tech = design->getTech();
+  frLayer* layer = tech->getLayer(layer_num);
+  auto con = std::make_unique<frLef58EolKeepOutConstraint>();
+  auto rptr = con.get();
+  rptr->setEolWidth(width);
+  rptr->setForwardExt(forward);
+  rptr->setBackwardExt(backward);
+  rptr->setSideExt(side);
+  rptr->setCornerOnly(cornerOnly);
+  rptr->setExceptWithin(exceptWithin);
+  rptr->setWithinLow(withinLow);
+  rptr->setWithinHigh(withinHigh);
+  layer->addLef58EolKeepOutConstraint(rptr);
   tech->addUConstraint(std::move(con));
 }
 
@@ -360,9 +558,7 @@ void Fixture::makePathseg(frNet* net,
 
 void Fixture::initRegionQuery()
 {
-  int num_layers = design->getTech()->getLayers().size();
-
   frRegionQuery* query = design->getRegionQuery();
-  query->init(num_layers);
-  query->initDRObj(num_layers);
+  query->init();
+  query->initDRObj();
 }

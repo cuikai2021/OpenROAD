@@ -1,6 +1,6 @@
 ############################################################################
 ##
-## Copyright (c) 2019, OpenROAD
+## Copyright (c) 2019, The Regents of the University of California
 ## All rights reserved.
 ##
 ## BSD 3-Clause License
@@ -58,10 +58,13 @@ proc read_lef { args } {
   ord::read_lef_cmd $filename $lib_name $make_tech $make_lib
 }
 
-sta::define_cmd_args "read_def" {[-floorplan_initialize|-incremental] [-order_wires] [-continue_on_errors] filename}
+sta::define_cmd_args "read_def" {[-floorplan_initialize|-incremental]\
+                                   [-continue_on_errors]\
+                                   filename}
 
 proc read_def { args } {
-  sta::parse_key_args "read_def" args keys {} flags {-floorplan_initialize -incremental -order_wires -continue_on_errors}
+  sta::parse_key_args "read_def" args keys {} flags {-floorplan_initialize -incremental\
+                                                       -order_wires -continue_on_errors}
   sta::check_argc_eq1 "read_def" $args
   set filename [file nativename [lindex $args 0]]
   if { ![file exists $filename] } {
@@ -73,14 +76,16 @@ proc read_def { args } {
   if { ![ord::db_has_tech] } {
     utl::error "ORD" 5 "no technology has been read."
   }
-  set order_wires [info exists flags(-order_wires)]
+  if { [info exists flags(-order_wires)] } {
+    utl::warn "ORD" 33 "-order_wires is deprecated."
+  }
   set continue_on_errors [info exists flags(-continue_on_errors)]
   set floorplan_init [info exists flags(-floorplan_initialize)]
   set incremental [info exists flags(-incremental)]
   if { $floorplan_init && $incremental } {
     utl::error ORD 16 "incremental and floorplan_initialization options are both set. At most one should be used."
   }
-  ord::read_def_cmd $filename $order_wires $continue_on_errors $floorplan_init $incremental
+  ord::read_def_cmd $filename $continue_on_errors $floorplan_init $incremental
 }
 
 sta::define_cmd_args "write_def" {[-version version] filename}
@@ -104,7 +109,6 @@ proc write_def { args } {
   set filename [file nativename [lindex $args 0]]
   ord::write_def_cmd $filename $version
 }
-
 
 sta::define_cmd_args "write_cdl" {[-include_fillers] filename}
 
@@ -140,82 +144,33 @@ proc write_db { args } {
   ord::write_db_cmd $filename
 }
 
-# Units are from OpenSTA (ie Liberty file or set_cmd_units).
-sta::define_cmd_args "set_layer_rc" { [-layer layer] \
-					[-via via_layer] \
-					[-capacitance cap] \
-					[-resistance res] }
-proc set_layer_rc {args} {
-  sta::parse_key_args "set_layer_rc" args \
-    keys {-layer -via -capacitance -resistance}\
-    flags {}
+sta::define_cmd_args "assign_ndr" { -ndr name (-net name | -all_clocks) }
 
-  if { [info exists keys(-layer)] && [info exists keys(-via)] } {
-    utl::error "ORD" 10 "Use -layer or -via but not both."
+proc assign_ndr { args } {
+  sta::parse_key_args "assign_ndr" args keys {-ndr -net} flags {-all_clocks}
+  if { ![info exists keys(-ndr)] } {
+    utl::error ORD 1009 "-name is missing"
   }
-
-  set tech [ord::get_db_tech]
-  if { [info exists keys(-layer)] } {
-    set layer_name $keys(-layer)
-    set layer [$tech findLayer $layer_name]
-    if { $layer == "NULL" } {
-      utl::error "ORD" 19 "layer $layer_name not found."
+  if { ! ([info exists keys(-net)] ^ [info exists flags(-all_clocks)]) } {
+    utl::error ORD 1010 "Either -net or -all_clocks need to be defined"
+  }
+  set block [[[ord::get_db] getChip] getBlock]
+  set ndrName $keys(-ndr)
+  set ndr [$block findNonDefaultRule $ndrName]
+  if { $ndr == "NULL" } {
+    utl::error ORD 1011 "No NDR named ${ndrName} found"
+  }
+  if { [info exists keys(-net)] } {
+    set netName $keys(-net)
+    set net [$block findNet $netName]
+    if { $net == "NULL" } {
+      utl::error ORD 1012 "No net named ${netName} found"
     }
-
-    if { $layer == "NULL" } {
-      utl::error "ORD" 20 "layer not found."
-    }
-
-    if { [$layer getRoutingLevel] == 0 } {
-      utl::error "ORD" 18 "$layer_name is not a routing layer."
-    }
-
-    if { [info exists keys(-capacitance)] } {
-      # Zero the edge cap and just use the user given value
-      $layer setEdgeCapacitance 0
-      # Convert wire capacitance/wire_length to capacitance/area.
-      set wire_width [ord::dbu_to_microns [$layer getWidth]]
-      # F/m
-      set wire_cap [expr [sta::capacitance_ui_sta $keys(-capacitance)] \
-                      / [sta::distance_ui_sta 1.0]]
-      # Convert to pF/um.
-      set cap_per_square [expr $wire_cap * 1e+6 / $wire_width]
-      $layer setCapacitance $cap_per_square
-    }
-    
-    if { [info exists keys(-resistance)] } {
-      # Convert resistance/wire_length to resistance/square.
-      set wire_width [ord::dbu_to_microns [$layer getWidth]]
-      # ohm/m
-      set wire_res [expr [sta::resistance_ui_sta $keys(-resistance)] \
-                      / [sta::distance_ui_sta 1.0]]
-      # convert to ohms/square
-      set res_per_square [expr $wire_width * 1e-6 * $wire_res]
-      $layer setResistance $res_per_square
-    }
-    
-    if { ![info exists keys(-capacitance)] && ![info exists keys(-resistance)] } {
-      utl::error "ORD" 12 "missing -capacitance or -resistance argument."
-    }
-  } elseif { [info exists keys(-via)] } {
-    set layer_name $keys(-via)
-    set layer [$tech findLayer $layer_name]
-    if { $layer == "NULL" } {
-      utl::error "ORD" 21 "via $layer_name not found."
-    }
-
-    if { [info exists keys(-capacitance)] } {
-      utl::warn "ORD" 22 "-capacitance not supported for vias."
-    }
-
-    if { [info exists keys(-resistance)] } {
-      set via_res [sta::resistance_ui_sta $keys(-resistance)]
-      $layer setResistance $via_res
-    } else {
-      utl::error "ORD" 17 "no -resistance specified for via."
-    }
+    $net setNonDefaultRule $ndr
   } else {
-    utl::error "ORD" 9 "missing -layer or -via argument."
+    foreach net [sta::find_all_clk_nets] {
+      $net setNonDefaultRule $ndr
+    }
   }
 }
 
@@ -232,6 +187,14 @@ proc python {args} {
   ord::python_cmd $args
 }
 
+proc set_thread_count { count } {
+  ord::set_thread_count $count
+}
+
+proc thread_count { } {
+  return [ord::thread_count]
+}
+
 ################################################################
 
 namespace eval ord {
@@ -245,7 +208,7 @@ namespace eval ord {
   proc clear {} {
     sta::clear_network
     sta::clear_sta
-    grt::clear_fastroute
+    grt::clear
     [get_db] clear
   }
   
@@ -260,5 +223,25 @@ namespace eval ord {
     profrep profarray cpu $filename
   }
   
-  # namespace ord
+  proc get_die_area { } {
+    set area {}
+    set rect [[ord::get_db_block] getDieArea]
+    lappend area [ord::dbu_to_microns [$rect xMin]]
+    lappend area [ord::dbu_to_microns [$rect yMin]]
+    lappend area [ord::dbu_to_microns [$rect xMax]]
+    lappend area [ord::dbu_to_microns [$rect yMax]]
+    return $area
+  }
+  
+  proc get_core_area { } {
+    set area {}
+    set rect [[ord::get_db_block] getCoreArea]
+    lappend area [ord::dbu_to_microns [$rect xMin]]
+    lappend area [ord::dbu_to_microns [$rect yMin]]
+    lappend area [ord::dbu_to_microns [$rect xMax]]
+    lappend area [ord::dbu_to_microns [$rect yMax]]
+    return $area
+  }
+  
+    # namespace ord
 }

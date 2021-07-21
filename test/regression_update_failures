@@ -1,0 +1,139 @@
+#!/bin/sh
+# The next line is executed by /bin/sh, but not Tcl \
+exec tclsh $0 ${1+"$@"}
+
+set test_dir [file dirname [file normalize [info script]]]
+
+source "$test_dir/json.tcl"
+
+set openroad_dir [file dirname $test_dir]
+set curtime [clock clicks -milliseconds]
+set regression_name "regression-$curtime"
+set regression_dir "$openroad_dir/$regression_name"
+set failures_count 0
+set gtest_output "gtest_output.json"
+set devops_results_dir "$openroad_dir/devops_results"
+
+
+array set all_test_dirs { ifp "src/ifp/test" dbSta "src/dbSta/test" ppl "src/ppl/test" \
+pdngen "src/pdngen/test" ICeWall "src/ICeWall/test" mpl "src/mpl/test" rsz "src/rsz/test" replace "src/replace/test" \
+TritonCTS "src/TritonCTS/test" dpl "src/dpl/test" psm "src/psm/test" grt "src/grt/test" tap "src/tap/test" \
+ant "src/ant/test" OpenDB "src/OpenDB/test" rcx "src/rcx/test" PartitionMgr "src/PartitionMgr/test" \
+TritonRoute "src/TritonRoute/test" }
+
+
+proc read_failures_item { failures_file } {
+    set items [list];
+    if { [catch {set fp [open $failures_file r]} result] } {
+        printf "open file '$failures_file' error.";
+        exit -1;
+    }
+    while {1} {
+        set line [gets $fp];
+        lappend items $line;
+        if {[eof $fp]} {
+            close $fp;
+            break;
+        }
+    }
+    return $items;
+}
+
+proc read_file {file_path} {
+    set fd [open "$file_path" r]
+    set contents [read $fd]
+    close $fd
+    return $contents
+}
+
+proc update_failure_item { project test_dir failure_item} {
+    global openroad_dir;
+    global regression_dir;
+    set result_dir "$regression_dir/$project/results/";
+    set expectation_dir "$regression_dir/$project/expectation/";
+
+    exec mkdir -p $result_dir;
+    exec mkdir -p $expectation_dir;
+
+    set test_results_dir "$openroad_dir/$test_dir/results";
+
+    set ok_file "$test_dir/$failure_item.ok";
+    set defok_file "$test_dir/$failure_item.defok";
+    set result_ok_file "$test_dir/results/$failure_item.log";
+    set result_defok_file "$test_dir/results/$failure_item.def";
+
+    if { [file exists $ok_file] == 1} { 
+        exec cp $ok_file $expectation_dir;
+    }
+
+    if { [file exists $defok_file] == 1} { 
+        exec cp $defok_file $expectation_dir;
+    }
+
+    if { [file exists $result_ok_file] == 1} { 
+        exec cp $result_ok_file $result_dir;
+    }
+
+    if { [file exists $result_defok_file] == 1} { 
+        exec cp $result_defok_file $result_dir;
+    }
+}
+
+proc update_failures { project test_dir } {
+    global openroad_dir;
+    global regression_dir;
+    global failures_count;
+    set project_dir "$regression_dir/$project/";
+    set failures_file "$openroad_dir/$test_dir/results/failures";
+    if { [file exists $failures_file] == 1} {               
+        puts "$project run regression failures";
+        set failure_items [read_failures_item $failures_file];
+        if { [llength failure_items] > 0 } {
+            set failures_count [expr {$failures_count + 1}];
+            exec mkdir -p $project_dir;
+            exec cp $failures_file $project_dir;
+            foreach item $failure_items {
+                update_failure_item $project $test_dir $item;
+            }
+        }
+    } else {
+        puts "$project run regression success";
+    }
+}
+
+
+proc main {} {
+    global all_test_dirs;
+    global regression_dir;
+    global regression_name;
+    global failures_count;
+    global gtest_output;
+    global devops_results_dir;
+
+    exec mkdir -p $regression_dir;
+
+    foreach { name dir } [array get all_test_dirs] {
+        update_failures $name $dir;
+    }
+
+    set gtest_failure_items 0
+
+    if { [file exists $gtest_output] == 1 } {
+        set gtest [read_file $gtest_output];
+        set gtest_body [json::parse $gtest];
+        set gtest_failures [dict get $gtest_body "failures"];
+        set gtest_disabled [dict get $gtest_body "disabled"];
+        set gtest_errors [dict get $gtest_body "errors"];
+        set gtest_failure_items [expr {$gtest_failures + $gtest_disabled + $gtest_errors}];
+        exec mv "$gtest_output" $regression_name;
+    }
+
+    puts $gtest_failure_items;
+
+    if { $gtest_failure_items > 0 || $failures_count > 0 } {
+        exec tar -Pzcvf "$regression_name.tar.gz" $regression_name;
+        exec mv "$regression_name.tar.gz" $devops_results_dir;
+    } 
+}
+
+main

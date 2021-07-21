@@ -1,0 +1,82 @@
+[INFO CTS-0027]  Generating H-Tree topology for net clk
+[INFO CTS-0028]     Total number of sinks: 151
+[INFO CTS-0029]     Sinks will be clustered in groups of up to 10 and with maximum cluster diameter of 60.0 um
+[INFO CTS-0030]     Number of static layers: 1
+[INFO CTS-0020]  Wire segment unit: 14000  dbu (7 um)
+[INFO CTS-0021]  Distance between buffers: 7 units (100 um)
+[INFO CTS-0023]  Original sink region: [(8785, 6785), (197672, 95673)]
+[INFO CTS-0024]  Normalized sink region: [(0.6275, 0.484643), (14.1194, 6.83379)]
+[INFO CTS-0025]     Width:  13.4919
+[INFO CTS-0026]     Height: 6.3491
+ Level 1
+    Direction: Horizontal
+    # sinks per sub-region: 76
+    Sub-region size: 6.7460 X 6.3491
+[INFO CTS-0034]     Segment length (rounded): 4
+ Level 2
+    Direction: Vertical
+    # sinks per sub-region: 38
+    Sub-region size: 6.7460 X 3.1746
+[INFO CTS-0034]     Segment length (rounded): 1
+ Level 3
+    Direction: Horizontal
+    # sinks per sub-region: 19
+    Sub-region size: 3.3730 X 3.1746
+[INFO CTS-0034]     Segment length (rounded): 1
+ Level 4
+    Direction: Vertical
+    # sinks per sub-region: 10
+    Sub-region size: 3.3730 X 1.5873
+[INFO CTS-0034]     Segment length (rounded): 1
+ Out of 16 sinks, 1 sinks closer to other cluster
+ Out of 20 sinks, 1 sinks closer to other cluster
+ Out of 20 sinks, 1 sinks closer to other cluster
+ Out of 20 sinks, 1 sinks closer to other cluster
+ Out of 16 sinks, 1 sinks closer to other cluster
+ Out of 20 sinks, 1 sinks closer to other cluster
+ Out of 16 sinks, 1 sinks closer to other cluster
+[INFO CTS-0032]  Stop criterion found. Max number of sinks is (15)
+ Building clock sub nets...
+[INFO CTS-0035]  Number of sinks covered: 151
+[INFO CTS-0033]  Clock topology of net "clk" done.
+[INFO CTS-0027]  Generating H-Tree topology for net clk2
+[INFO CTS-0028]     Total number of sinks: 150
+[INFO CTS-0029]     Sinks will be clustered in groups of up to 10 and with maximum cluster diameter of 60.0 um
+[INFO CTS-0030]     Number of static layers: 1
+[INFO CTS-0020]  Wire segment unit: 14000  dbu (7 um)
+[INFO CTS-0021]  Distance between buffers: 7 units (100 um)
+[INFO CTS-0023]  Original sink region: [(8785, 95673), (197672, 184561)]
+[INFO CTS-0024]  Normalized sink region: [(0.6275, 6.83379), (14.1194, 13.1829)]
+[INFO CTS-0025]     Width:  13.4919
+[INFO CTS-0026]     Height: 6.3491
+ Level 1
+    Direction: Horizontal
+    # sinks per sub-region: 75
+    Sub-region size: 6.7460 X 6.3491
+[INFO CTS-0034]     Segment length (rounded): 4
+ Level 2
+    Direction: Vertical
+    # sinks per sub-region: 38
+    Sub-region size: 6.7460 X 3.1746
+[INFO CTS-0034]     Segment length (rounded): 1
+ Level 3
+    Direction: Horizontal
+    # sinks per sub-region: 19
+    Sub-region size: 3.3730 X 3.1746
+[INFO CTS-0034]     Segment length (rounded): 1
+ Level 4
+    Direction: Vertical
+    # sinks per sub-region: 10
+    Sub-region size: 3.3730 X 1.5873
+[INFO CTS-0034]     Segment length (rounded): 1
+ Out of 14 sinks, 1 sinks closer to other cluster
+ Out of 20 sinks, 1 sinks closer to other cluster
+ Out of 20 sinks, 1 sinks closer to other cluster
+ Out of 16 sinks, 1 sinks closer to other cluster
+ Out of 16 sinks, 1 sinks closer to other cluster
+[INFO CTS-0032]  Stop criterion found. Max number of sinks is (15)
+ Building clock sub nets...
+[INFO CTS-0035]  Number of sinks covered: 150
+[INFO CTS-0033]  Clock topology of net "clk2" done.
+[INFO CTS-0093] Fixing tree levels for max depth 5
+Fixing from level 2 (parent=0 + current=2) to max 5 for driver clk

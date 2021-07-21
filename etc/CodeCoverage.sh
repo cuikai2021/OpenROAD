@@ -16,7 +16,7 @@ EOF
 _lcov() {
     ./test/regression
 
-    mkdir -p coverage-output
+    mkdir -p coverage_results
     lcov \
         --capture \
         --directory ./build \
@@ -25,10 +25,10 @@ _lcov() {
         --exclude "/usr/lib/*" \
         --exclude "/usr/local/*" \
         --exclude "*build*" \
-        --output-file ./coverage-output/main_coverage.info
+        --output-file ./coverage_results/main_coverage.info
 
-    genhtml ./coverage-output/main_coverage.info \
-        --output-directory ./coverage-output \
+    genhtml ./coverage_results/main_coverage.info \
+        --output-directory ./coverage_results \
         --ignore-errors source
 
 }

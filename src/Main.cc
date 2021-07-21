@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // All rights reserved.
 //
 // BSD 3-Clause License
@@ -65,9 +65,9 @@
 
 #include "sta/StringUtil.hh"
 #include "sta/StaMain.hh"
-#include "openroad/Version.hh"
-#include "openroad/InitOpenRoad.hh"
-#include "openroad/OpenRoad.hh"
+#include "ord/Version.hh"
+#include "ord/InitOpenRoad.hh"
+#include "ord/OpenRoad.hh"
 #include "utl/Logger.h" 
 #include "gui/gui.h"
 
@@ -245,8 +245,7 @@ main(int argc,
 static int
 tclReadlineInit(Tcl_Interp *interp)
 {
-  std::array<const char *, 8> readline_cmds = {
-    "history",
+  std::array<const char *, 7> readline_cmds = {
     "history event",
     "eval $auto_index(::tclreadline::ScriptCompleter)",
     "::tclreadline::readline builtincompleter true",
@@ -296,6 +295,14 @@ tclAppInit(int argc,
 
   if (!findCmdLineFlag(argc, argv, "-no_splash"))
     showSplash();
+
+  const char* threads = findCmdLineKey(argc, argv, "-threads");
+  if (threads) {
+    ord::OpenRoad::openRoad()->setThreadCount(threads);
+  } else {
+    // set to default number of threads
+    ord::OpenRoad::openRoad()->setThreadCount(ord::OpenRoad::openRoad()->getThreadCount(), false);
+  }
 
   bool exit_after_cmd_file = findCmdLineFlag(argc, argv, "-exit");
 
@@ -349,7 +356,7 @@ static void
 showUsage(const char *prog,
 	  const char *init_filename)
 {
-  printf("Usage: %s [-help] [-version] [-no_init] [-exit] [-gui] [-log file_name] cmd_file\n", prog);
+  printf("Usage: %s [-help] [-version] [-no_init] [-exit] [-gui] [-threads count|max] [-log file_name] cmd_file\n", prog);
   printf("  -help              show help and exit\n");
   printf("  -version           show version and exit\n");
   printf("  -no_init           do not read %s init file\n", init_filename);

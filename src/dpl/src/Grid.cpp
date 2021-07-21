@@ -4,7 +4,7 @@
 //          (respective Ph.D. advisors: Seokhyeong Kang, Andrew B. Kahng)
 // Rewrite by James Cherry, Parallax Software, Inc.
 //
-// Copyright (c) 2019, OpenROAD
+// Copyright (c) 2019, The Regents of the University of California
 // Copyright (c) 2018, SangGi Do and Mingyu Woo
 // All rights reserved.
 //
@@ -42,6 +42,7 @@
 #include <cmath>
 #include <limits>
 
+#include "opendb/dbTransform.h"
 #include "utl/Logger.h"
 
 namespace dpl {
@@ -50,6 +51,9 @@ using std::max;
 using std::min;
 
 using utl::DPL;
+
+using odb::dbBox;
+using odb::dbTransform;
 
 void
 Opendp::initGrid()
@@ -78,15 +82,11 @@ Opendp::initGrid()
     db_row->getOrigin(orig_x, orig_y);
 
     int x_start = (orig_x - core_.xMin()) / site_width_;
-    int y_start = (orig_y - core_.yMin()) / row_height_;
-
     int x_end = x_start + db_row->getSiteCount();
-    int y_end = y_start + 1;
+    int y = (orig_y - core_.yMin()) / row_height_;
 
     for (int x = x_start; x < x_end; x++) {
-      for (int y = y_start; y < y_end; y++) {
-        grid_[y][x].is_valid = true;
-      }
+      grid_[y][x].is_valid = true;
     }
   }
 }
@@ -117,25 +117,67 @@ Opendp::gridPixel(int grid_x,
 ////////////////////////////////////////////////////////////////
 
 void
-Opendp::assignFixedCells()
+Opendp::visitCellPixels(Cell &cell,
+                        bool padded,
+                        const std::function <void (Pixel *pixel)>& visitor) const
 {
-  for (Cell &cell : cells_) {
-    if (isFixed(&cell)) {
-      int y_start = gridY(&cell);
-      int y_end = gridEndY(&cell);
-      int x_start = gridPaddedX(&cell);
-      int x_end = gridPaddedEndX(&cell);
+  dbInst *inst = cell.db_inst_;
+  dbMaster *master = inst->getMaster();
+  auto obstructions = master->getObstructions();
+  bool have_obstructions = false;
+  for (dbBox *obs : obstructions) {
+    if (obs->getTechLayer()->getType() == odb::dbTechLayerType::Value::OVERLAP) {
+      have_obstructions = true;
+
+      Rect rect;
+      obs->getBox(rect);
+      dbTransform transform;
+      inst->getTransform(transform);
+      transform.apply(rect);
+      int x_start = gridX(rect.xMin() - core_.xMin());
+      int x_end = gridEndX(rect.xMax() - core_.xMin());
+      int y_start = gridY(rect.yMin() - core_.yMin());
+      int y_end = gridEndY(rect.yMax() - core_.yMin());
       for (int x = x_start; x < x_end; x++) {
         for (int y = y_start; y < y_end; y++) {
           Pixel *pixel = gridPixel(x, y);
-          if (pixel) {
-            pixel->cell = &cell;
-            pixel->util = 1.0;
-          }
+          if (pixel)
+            visitor(pixel);
         }
       }
     }
   }
+  if (!have_obstructions) {
+    int x_start = padded ? gridPaddedX(&cell) : gridX(&cell);
+    int x_end = padded ? gridPaddedEndX(&cell) : gridEndX(&cell);
+    int y_start = gridY(&cell);
+    int y_end = gridEndY(&cell);
+    for (int x = x_start; x < x_end; x++) {
+      for (int y = y_start; y < y_end; y++) {
+        Pixel *pixel = gridPixel(x, y);
+        if (pixel)
+          visitor(pixel);
+      }
+    }
+  }
+}
+
+void
+Opendp::setFixedGridCells()
+{
+  for (Cell &cell : cells_) {
+    if (isFixed(&cell))
+      visitCellPixels(cell, true,
+                      [&] (Pixel *pixel) { setGridCell(cell, pixel); } );
+  }
+}
+
+void
+Opendp::setGridCell(Cell &cell,
+                    Pixel *pixel)
+{
+  pixel->cell = &cell;
+  pixel->util = 1.0;
 }
 
 void

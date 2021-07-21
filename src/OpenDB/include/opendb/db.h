@@ -130,11 +130,13 @@ class dbTechLayerSpacingEolRule;
 class dbTechLayerMinStepRule;
 class dbTechLayerCornerSpacingRule;
 class dbTechLayerSpacingTablePrlRule;
+class dbTechLayerEolKeepOutRule;
 class dbTechLayerCutClassRule;
 class dbTechLayerCutSpacingRule;
 class dbTechLayerCutSpacingTableOrthRule;
 class dbTechLayerCutSpacingTableDefRule;
 class dbTechLayerCutEnclosureRule;
+class dbTechLayerEolExtensionRule;
 class dbModule;
 class dbModInst;
 class dbGroup;
@@ -522,6 +524,10 @@ class dbBox : public dbObject
   /// Get the width (xMax-xMin) of the box.
   ///
   uint getDX();
+
+  int getDesignRuleWidth() const;
+
+  void setDesignRuleWidth(int);
 
   ///
   /// Get the height (yMax-yMin) of the box.
@@ -1581,6 +1587,11 @@ class dbBTerm : public dbObject
   /// Returns false if a bterm with the same name already exists.
   ///
   bool rename(const char* name);
+
+  ///
+  /// Get bbox of this term (ie the bbox of the bpins)
+  ///
+  Rect getBBox();
 
   ///
   /// Set the signal type of this block-terminal.
@@ -3184,8 +3195,6 @@ class dbInst : public dbObject
 class dbITerm : public dbObject
 {
  public:
-  void print(FILE* fp = NULL, const char* trail = "");
-
   ///
   /// Get the instance of this instance-terminal.
   ///
@@ -3202,6 +3211,11 @@ class dbITerm : public dbObject
   /// Get the master-terminal that this instance-terminal is representing.
   ///
   dbMTerm* getMTerm();
+
+  ///
+  /// Get bbox of this iterm (ie the transfromed bbox of the mterm)
+  ///
+  Rect getBBox();
 
   ///
   /// Get the block this instance-terminal belongs too.
@@ -5239,7 +5253,7 @@ class dbMaster : public dbObject
   ///
   /// Get the width of this master cell.
   ///
-  uint getWidth();
+  uint getWidth() const;
 
   ///
   /// Set the width of this master cell.
@@ -5249,7 +5263,7 @@ class dbMaster : public dbObject
   ///
   /// Get the height of this master cell.
   ///
-  uint getHeight();
+  uint getHeight() const;
 
   ///
   /// Set the height of this master cell.
@@ -5520,6 +5534,11 @@ class dbMTerm : public dbObject
   dbSet<dbMPin> getMPins();
 
   ///
+  /// Get bbox of this term (ie the bbox of the getMPins())
+  ///
+  Rect getBBox();
+
+  ///
   /// Get the target points of this terminal.
   ///
   dbSet<dbTarget> getTargets();
@@ -5597,6 +5616,11 @@ class dbMPin : public dbObject
   /// Get the geometry of this pin.
   ///
   dbSet<dbBox> getGeometry();
+
+  ///
+  /// Get bbox of this pin (ie the bbox of getGeometry())
+  ///
+  Rect getBBox();
 
   ///
   /// Create a new physical pin.
@@ -6849,7 +6873,8 @@ class dbTechLayer : public dbObject
     ABOVEDIEEDGE,
     BELOWDIEEDGE,
     DIFFUSION,
-    TRIMPOLY
+    TRIMPOLY,
+    MIMCAP
   };
   // User Code Begin dbTechLayerEnums
   // User Code End dbTechLayerEnums
@@ -6877,6 +6902,10 @@ class dbTechLayer : public dbObject
 
   dbSet<dbTechLayerCutEnclosureRule> getTechLayerCutEnclosureRules() const;
 
+  dbSet<dbTechLayerEolExtensionRule> getTechLayerEolExtensionRules() const;
+
+  dbSet<dbTechLayerEolKeepOutRule> getTechLayerEolKeepOutRules() const;
+
   void setRectOnly(bool rect_only);
 
   bool isRectOnly() const;
@@ -6894,6 +6923,9 @@ class dbTechLayer : public dbObject
   bool isRectOnlyExceptNonCorePins() const;
 
   // User Code Begin dbTechLayer
+  int findV55Spacing(const int width, const int prl) const;
+
+  int findTwSpacing(const int width1, const int width2, const int prl) const;
 
   void setLef58Type(LEF58_TYPE type);
 
@@ -6940,6 +6972,13 @@ class dbTechLayer : public dbObject
   /// Get the minimum spacing to a wide line.
   ///
   int getSpacing(int width, int length = 0);
+
+  ///
+  /// The number of masks for this layer (aka double/triple patterning).
+  /// Allowable values are in [1, 3].
+  ///
+  uint getNumMasks() const;
+  void setNumMasks(uint number);
 
   ///
   /// Get the low end of the uppermost range for wide wire design rules.
@@ -7706,6 +7745,62 @@ class dbTechLayerSpacingTablePrlRule : public dbObject
   // User Code End dbTechLayerSpacingTablePrlRule
 };
 
+class dbTechLayerEolKeepOutRule : public dbObject
+{
+ public:
+  // User Code Begin dbTechLayerEolKeepOutRuleEnums
+  // User Code End dbTechLayerEolKeepOutRuleEnums
+
+  void setEolWidth(int eol_width);
+
+  int getEolWidth() const;
+
+  void setBackwardExt(int backward_ext);
+
+  int getBackwardExt() const;
+
+  void setForwardExt(int forward_ext);
+
+  int getForwardExt() const;
+
+  void setSideExt(int side_ext);
+
+  int getSideExt() const;
+
+  void setWithinLow(int within_low);
+
+  int getWithinLow() const;
+
+  void setWithinHigh(int within_high);
+
+  int getWithinHigh() const;
+
+  void setClassName(std::string class_name);
+
+  std::string getClassName() const;
+
+  void setClassValid(bool class_valid);
+
+  bool isClassValid() const;
+
+  void setCornerOnly(bool corner_only);
+
+  bool isCornerOnly() const;
+
+  void setExceptWithin(bool except_within);
+
+  bool isExceptWithin() const;
+
+  // User Code Begin dbTechLayerEolKeepOutRule
+  static dbTechLayerEolKeepOutRule* create(dbTechLayer* layer);
+
+  static dbTechLayerEolKeepOutRule* getTechLayerEolKeepOutRule(
+      dbTechLayer* inly,
+      uint dbid);
+  static void destroy(dbTechLayerEolKeepOutRule* rule);
+  // User Code End dbTechLayerEolKeepOutRule
+};
+
 class dbTechLayerCutClassRule : public dbObject
 {
  public:
@@ -8436,6 +8531,36 @@ class dbTechLayerCutEnclosureRule : public dbObject
   // User Code End dbTechLayerCutEnclosureRule
 };
 
+class dbTechLayerEolExtensionRule : public dbObject
+{
+ public:
+  // User Code Begin dbTechLayerEolExtensionRuleEnums
+  // User Code End dbTechLayerEolExtensionRuleEnums
+
+  void setSpacing(int spacing);
+
+  int getSpacing() const;
+
+  void getExtensionTable(std::vector<std::pair<int, int>>& tbl) const;
+
+  void setParallelOnly(bool parallel_only);
+
+  bool isParallelOnly() const;
+
+  // User Code Begin dbTechLayerEolExtensionRule
+
+  void addEntry(int eol, int ext);
+
+  static dbTechLayerEolExtensionRule* create(dbTechLayer* layer);
+
+  static dbTechLayerEolExtensionRule* getTechLayerEolExtensionRule(
+      dbTechLayer* inly,
+      uint dbid);
+
+  static void destroy(dbTechLayerEolExtensionRule* rule);
+  // User Code End dbTechLayerEolExtensionRule
+};
+
 class dbModule : public dbObject
 {
  public:
@@ -8580,6 +8705,9 @@ class dbGCellGrid : public dbObject
     uint horizontal_capacity = 0;
     uint vertical_capacity = 0;
     uint up_capacity = 0;
+    uint horizontal_blockage = 0;
+    uint vertical_blockage = 0;
+    uint up_blockage = 0;
   };
   // User Code Begin dbGCellGridEnums
   // User Code End dbGCellGridEnums
@@ -8657,6 +8785,12 @@ class dbGCellGrid : public dbObject
 
   uint getUpUsage(dbTechLayer* layer, uint x_idx, uint y_idx) const;
 
+  uint getHorizontalBlockage(dbTechLayer* layer, uint x_idx, uint y_idx) const;
+
+  uint getVerticalBlockage(dbTechLayer* layer, uint x_idx, uint y_idx) const;
+
+  uint getUpBlockage(dbTechLayer* layer, uint x_idx, uint y_idx) const;
+
   void setHorizontalCapacity(dbTechLayer* layer,
                              uint x_idx,
                              uint y_idx,
@@ -8675,6 +8809,18 @@ class dbGCellGrid : public dbObject
 
   void setUpUsage(dbTechLayer* layer, uint x_idx, uint y_idx, uint use);
 
+  void setHorizontalBlockage(dbTechLayer* layer,
+                             uint x_idx,
+                             uint y_idx,
+                             uint blockage);
+
+  void setVerticalBlockage(dbTechLayer* layer,
+                           uint x_idx,
+                           uint y_idx,
+                           uint blockage);
+
+  void setUpBlockage(dbTechLayer* layer, uint x_idx, uint y_idx, uint blockage);
+
   void setCapacity(dbTechLayer* layer,
                    uint x_idx,
                    uint y_idx,
@@ -8689,6 +8835,13 @@ class dbGCellGrid : public dbObject
                 uint vertical,
                 uint up);
 
+  void setBlockage(dbTechLayer* layer,
+                   uint x_idx,
+                   uint y_idx,
+                   uint horizontal,
+                   uint vertical,
+                   uint up);
+
   void getCapacity(dbTechLayer* layer,
                    uint x_idx,
                    uint y_idx,
@@ -8702,6 +8855,13 @@ class dbGCellGrid : public dbObject
                 uint& horizontal,
                 uint& vertical,
                 uint& up) const;
+
+  void getBlockage(dbTechLayer* layer,
+                   uint x_idx,
+                   uint y_idx,
+                   uint& horizontal,
+                   uint& vertical,
+                   uint& up) const;
 
   void resetCongestionMap();
 

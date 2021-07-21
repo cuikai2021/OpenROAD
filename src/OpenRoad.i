@@ -44,9 +44,9 @@
 #include "db_sta/dbSta.hh"
 #include "db_sta/dbNetwork.hh"
 #include "db_sta/dbReadVerilog.hh"
-#include "openroad/Version.hh"
+#include "ord/Version.hh"
 #include "utl/Logger.h"
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 
 ////////////////////////////////////////////////////////////////
 //
@@ -118,6 +118,13 @@ getResizer()
   return openroad->getResizer();
 }
 
+rmp::Restructure *
+getRestructure()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getRestructure();
+}
+
 cts::TritonCTS *
 getTritonCts()
 {
@@ -130,6 +137,13 @@ getMacroPlacer()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getMacroPlacer();
+}
+
+mpl::MacroPlacer2 *
+getMacroPlacer2()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getMacroPlacer2();
 }
 
 gpl::Replace*
@@ -168,10 +182,10 @@ getPDNSim()
 }
 
 grt::GlobalRouter*
-getFastRoute()
+getGlobalRouter()
 {
   OpenRoad *openroad = getOpenRoad();
-  return openroad->getFastRoute();
+  return openroad->getGlobalRouter();
 }
 
 ppl::IOPlacer*
@@ -186,6 +200,13 @@ getPartitionMgr()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getPartitionMgr();
+}
+
+pdn::PdnGen*
+getPdnGen()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getPdnGen();
 }
 
 } // namespace ord
@@ -260,10 +281,13 @@ read_lef_cmd(const char *filename,
 }
 
 void
-read_def_cmd(const char *filename, bool order_wires, bool continue_on_errors, bool floorplan_init, bool incremental)
+read_def_cmd(const char *filename,
+             bool continue_on_errors,
+             bool floorplan_init,
+             bool incremental)
 {
   OpenRoad *ord = getOpenRoad();
-  ord->readDef(filename, order_wires, continue_on_errors, floorplan_init, incremental);
+  ord->readDef(filename, continue_on_errors, floorplan_init, incremental);
 }
 
 void
@@ -469,6 +493,27 @@ python_cmd(const char* py_command)
 #endif
 
 namespace ord {
+
+void
+set_thread_count(int threads)
+{
+  OpenRoad *ord = getOpenRoad();
+  ord->setThreadCount(threads);
+}
+
+void
+set_thread_count(const char* threads)
+{
+  OpenRoad *ord = getOpenRoad();
+  ord->setThreadCount(threads);
+}
+
+int
+thread_count()
+{
+  OpenRoad *ord = getOpenRoad();
+  return ord->getThreadCount();
+}
 
 void
 delete_all_memory()

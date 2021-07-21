@@ -942,6 +942,70 @@ class frLef58SpacingEndOfLineConstraint : public frConstraint
   std::shared_ptr<frLef58SpacingEndOfLineWithinConstraint> withinConstraint;
 };
 
+class frLef58EolKeepOutConstraint : public frConstraint
+{
+ public:
+  // constructors
+  frLef58EolKeepOutConstraint()
+      : backwardExt(0),
+        sideExt(0),
+        forwardExt(0),
+        eolWidth(0),
+        cornerOnly(false),
+        exceptWithin(false),
+        withinLow(0),
+        withinHigh(0)
+  {
+  }
+  // getters
+  frCoord getBackwardExt() const { return backwardExt; }
+  frCoord getForwardExt() const { return forwardExt; }
+  frCoord getSideExt() const { return sideExt; }
+  frCoord getEolWidth() const { return eolWidth; }
+  bool isCornerOnly() const { return cornerOnly; }
+  bool isExceptWithin() const { return exceptWithin; }
+  frCoord getWithinLow() const { return withinLow; }
+  frCoord getWithinHigh() const { return withinHigh; }
+  // setters
+  void setBackwardExt(frCoord value) { backwardExt = value; }
+  void setForwardExt(frCoord value) { forwardExt = value; }
+  void setSideExt(frCoord value) { sideExt = value; }
+  void setEolWidth(frCoord value) { eolWidth = value; }
+  void setCornerOnly(bool value) { cornerOnly = value; }
+  void setExceptWithin(bool value) { exceptWithin = value; }
+  void setWithinLow(frCoord value) { withinLow = value; }
+  void setWithinHigh(frCoord value) { withinHigh = value; }
+  // others
+  frConstraintTypeEnum typeId() const override
+  {
+    return frConstraintTypeEnum::frcLef58EolKeepOutConstraint;
+  }
+  void report(utl::Logger* logger) const override
+  {
+    logger->report(
+        "EOLKEEPOUT backwardExt {} sideExt {} forwardExt {} eolWidth {} "
+        "cornerOnly {}",
+        "exceptWithin {} withinLow {} withinHigh {}",
+        backwardExt,
+        sideExt,
+        forwardExt,
+        eolWidth,
+        cornerOnly,
+        exceptWithin,
+        withinLow,
+        withinHigh);
+  }
+
+ private:
+  frCoord backwardExt;
+  frCoord sideExt;
+  frCoord forwardExt;
+  frCoord eolWidth;
+  bool cornerOnly;
+  bool exceptWithin;
+  frCoord withinLow, withinHigh;
+};
+
 class frLef58CornerSpacingSpacingConstraint;
 
 // SPACING Constraints
@@ -993,6 +1057,45 @@ class frSpacingSamenetConstraint : public frSpacingConstraint
 
  protected:
   bool pgonly;
+};
+
+class frSpacingTableInfluenceConstraint : public frConstraint
+{
+ public:
+  frSpacingTableInfluenceConstraint(
+      const fr1DLookupTbl<frCoord, std::pair<frCoord, frCoord>>& in)
+      : tbl(in)
+  {
+  }
+  // getter
+  const fr1DLookupTbl<frCoord, std::pair<frCoord, frCoord>>& getLookupTbl()
+      const
+  {
+    return tbl;
+  }
+  std::pair<frCoord, frCoord> find(frCoord width) const
+  {
+    return tbl.find(width);
+  }
+  frCoord getMinWidth() const { return tbl.getMinRow(); }
+  // setter
+  void setLookupTbl(
+      const fr1DLookupTbl<frCoord, std::pair<frCoord, frCoord>>& in)
+  {
+    tbl = in;
+  }
+
+  frConstraintTypeEnum typeId() const override
+  {
+    return frConstraintTypeEnum::frcSpacingTableInfluenceConstraint;
+  }
+  void report(utl::Logger* logger) const override
+  {
+    logger->report("Spacing table influence");
+  }
+
+ private:
+  fr1DLookupTbl<frCoord, std::pair<frCoord, frCoord>> tbl;
 };
 
 // EOL spacing
@@ -1111,6 +1214,46 @@ class frLef58CutSpacingTablePrlConstraint : public frConstraint
   bool horizontal;
   bool vertical;
   bool maxXY;
+};
+
+class frLef58EolExtensionConstraint : public frSpacingConstraint
+{
+ public:
+  // constructors
+  frLef58EolExtensionConstraint(const fr1DLookupTbl<frCoord, frCoord>& tbl)
+      : frSpacingConstraint(), parallelOnly(false), extensionTbl(tbl)
+  {
+  }
+  // setters
+
+  void setParallelOnly(bool value) { parallelOnly = value; }
+
+  // getters
+
+  bool isParallelOnly() const { return parallelOnly; }
+
+  fr1DLookupTbl<frCoord, frCoord> getExtensionTable() const
+  {
+    return extensionTbl;
+  }
+
+  // others
+
+  frConstraintTypeEnum typeId() const override
+  {
+    return frConstraintTypeEnum::frcLef58EolExtensionConstraint;
+  }
+
+  void report(utl::Logger* logger) const override
+  {
+    logger->report("EOLEXTENSIONSPACING spacing {} parallelonly {} ",
+                   minSpacing,
+                   parallelOnly);
+  }
+
+ private:
+  bool parallelOnly;
+  fr1DLookupTbl<frCoord, frCoord> extensionTbl;
 };
 
 // LEF58 cut spacing table
@@ -1249,44 +1392,37 @@ struct frSpacingTableTwRowType
   frSpacingTableTwRowType(frCoord in1, frCoord in2) : width(in1), prl(in2) {}
   frCoord width;
   frCoord prl;
-  bool operator<(const frSpacingTableTwRowType& b) const
-  {
-    return width < b.width || prl < b.prl;
-  }
 };
 // new SPACINGTABLE Constraints
 class frSpacingTableTwConstraint : public frConstraint
 {
  public:
   // constructor
-  frSpacingTableTwConstraint(const fr2DLookupTbl<frSpacingTableTwRowType,
-                                                 frSpacingTableTwRowType,
-                                                 frCoord>& in)
-      : tbl(in)
+  frSpacingTableTwConstraint(
+      const frCollection<frSpacingTableTwRowType>& rowsIn,
+      const frCollection<frCollection<frCoord>>& spacingIn)
+      : rows(rowsIn), spacingTbl(spacingIn)
   {
   }
   // getter
-  const fr2DLookupTbl<frSpacingTableTwRowType,
-                      frSpacingTableTwRowType,
-                      frCoord>&
-  getLookupTbl() const
-  {
-    return tbl;
-  }
   frCoord find(frCoord width1, frCoord width2, frCoord prl) const
   {
-    return tbl.find(frSpacingTableTwRowType(width1, prl),
-                    frSpacingTableTwRowType(width2, prl));
+    if (rows.empty())
+      return 0;
+    auto rowIdx = getIdx(width1, prl);
+    auto colIdx = getIdx(width2, prl);
+    return spacingTbl[rowIdx][colIdx];
   }
-  frCoord findMin() const { return tbl.findMin(); }
-  frCoord findMax() const { return tbl.findMax(); }
+  frCoord findMin() const { return spacingTbl.front().front(); }
+  frCoord findMax() const { return spacingTbl.back().back(); }
   // setter
-  void setLookupTbl(const fr2DLookupTbl<frSpacingTableTwRowType,
-                                        frSpacingTableTwRowType,
-                                        frCoord>& in)
+  void setSpacingTable(const frCollection<frSpacingTableTwRowType>& rowsIn,
+                       const frCollection<frCollection<frCoord>>& spacingIn)
   {
-    tbl = in;
+    rows = rowsIn;
+    spacingTbl = spacingIn;
   }
+
   frConstraintTypeEnum typeId() const override
   {
     return frConstraintTypeEnum::frcSpacingTableTwConstraint;
@@ -1296,8 +1432,20 @@ class frSpacingTableTwConstraint : public frConstraint
     logger->report("Spacing table tw");
   }
 
- protected:
-  fr2DLookupTbl<frSpacingTableTwRowType, frSpacingTableTwRowType, frCoord> tbl;
+ private:
+  frCollection<frSpacingTableTwRowType> rows;
+  frCollection<frCollection<frCoord>> spacingTbl;
+  frUInt4 getIdx(frCoord width, frCoord prl) const
+  {
+    int sz = rows.size();
+    for (int i = 0; i < sz; i++) {
+      if (width <= rows[i].width)
+        return std::max(0, i - 1);
+      if (rows[i].prl != -1 && prl <= rows[i].prl)
+        return std::max(0, i - 1);
+    }
+    return sz - 1;
+  }
 };
 
 // original SPACINGTABLE Constraints

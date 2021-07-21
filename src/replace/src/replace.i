@@ -1,5 +1,5 @@
 %{
-#include "openroad/OpenRoad.hh"
+#include "ord/OpenRoad.hh"
 #include "replace/Replace.h"
 
 namespace ord {
@@ -28,7 +28,7 @@ replace_reset_cmd()
   replace->reset();
   replace->setDb(getOpenRoad()->getDb());
   replace->setLogger(getOpenRoad()->getLogger());
-  replace->setFastRoute(getOpenRoad()->getFastRoute());
+  replace->setGlobalRouter(getOpenRoad()->getGlobalRouter());
   replace->setResizer(getOpenRoad()->getResizer());
 }
 
@@ -201,13 +201,6 @@ set_routability_inflation_ratio_coef_cmd(float coef)
 }
 
 void
-set_routability_pitch_scale_cmd(float scale) 
-{
-  Replace* replace = getReplace();
-  replace->setRoutabilityPitchScale(scale);
-}
-
-void
 set_routability_max_inflation_ratio_cmd(float ratio) 
 {
   Replace* replace = getReplace();
@@ -237,6 +230,13 @@ set_pad_right_cmd(int pad)
 {
   Replace* replace = getReplace();
   replace->setPadRight(pad);
+}
+
+float
+get_global_placement_uniform_density_cmd() 
+{
+  Replace* replace = getReplace();
+  return replace->getUniformTargetDensity();
 }
 
 void

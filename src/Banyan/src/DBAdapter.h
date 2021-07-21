@@ -108,6 +108,8 @@ class OpenDBAdapter : public DBAdapter
 
   void getNetsFromOpenDB();
   void getPinsFromOpenDB();
+  void getInstsObsFromOpenDB();
+
 
  public:
   OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger)
@@ -120,6 +122,7 @@ class OpenDBAdapter : public DBAdapter
     getNDRsFromOpenDB();
     getNetsFromOpenDB();
     getPinsFromOpenDB();
+    getInstsObsFromOpenDB();
   }
 
   ~OpenDBAdapter() {}

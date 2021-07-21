@@ -2,7 +2,7 @@
 ##
 ## BSD 3-Clause License
 ##
-## Copyright (c) 2021, University of California, San Diego.
+## Copyright (c) 2021, The Regents of the University of California
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -67,7 +67,9 @@ target_sources(replace
     src/timingBase.cpp
     src/graphics.cpp
 )
- 
+
+messages(TARGET replace)
+
 target_include_directories(replace
   PUBLIC
     include
@@ -80,7 +82,7 @@ target_link_libraries(replace
     gui
     opendb
     OpenSTA
-    flute
+    stt
     rsz
     grt
 )

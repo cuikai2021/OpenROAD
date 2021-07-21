@@ -56,7 +56,7 @@ void FlexGR::main(odb::dbDatabase* db)
   // gen topology + pattern route for 2D connectivty
   initGR();
   // populate region query for 2D
-  getRegionQuery()->initGRObj(getTech()->getLayers().size());
+  getRegionQuery()->initGRObj();
 
   getRegionQuery()->printGRObj();
 
@@ -113,7 +113,7 @@ void FlexGR::main(odb::dbDatabase* db)
   layerAssign();
 
   // populate region query for 3D
-  getRegionQuery()->initGRObj(getTech()->getLayers().size());
+  getRegionQuery()->initGRObj();
 
   // reportCong3D();
 
@@ -163,7 +163,7 @@ void FlexGR::searchRepairMacro(int iter,
   }
 
   frBox dieBox;
-  getDesign()->getTopBlock()->getBoundaryBBox(dieBox);
+  getDesign()->getTopBlock()->getDieBox(dieBox);
 
   auto gCellPatterns = getDesign()->getTopBlock()->getGCellPatterns();
   auto& xgp = gCellPatterns.at(0);
@@ -273,7 +273,7 @@ void FlexGR::searchRepair(int iter,
   }
 
   frBox dieBox;
-  getDesign()->getTopBlock()->getBoundaryBBox(dieBox);
+  getDesign()->getTopBlock()->getDieBox(dieBox);
 
   auto gCellPatterns = getDesign()->getTopBlock()->getGCellPatterns();
   auto& xgp = gCellPatterns.at(0);
@@ -654,7 +654,7 @@ void FlexGR::updateDbCongestion(odb::dbDatabase* db, FlexGRCMap* cmap)
   gcell->addGridPatternY(
       ygp->getStartCoord(), ygp->getCount(), ygp->getSpacing());
   frBox dieBox;
-  design_->getTopBlock()->getBoundaryBBox(dieBox);
+  design_->getTopBlock()->getDieBox(dieBox);
   gcell->addGridPatternX(dieBox.right(), 1, 0);
   gcell->addGridPatternY(dieBox.top(), 1, 0);
   unsigned cmapLayerIdx = 0;
@@ -689,7 +689,6 @@ void FlexGR::updateDbCongestion(odb::dbDatabase* db, FlexGRCMap* cmap)
 
 void FlexGR::reportCong3D(FlexGRCMap* cmap)
 {
-
   if (VERBOSE > 0) {
     cout << endl << "start reporting 3D congestion ...\n\n";
   }
@@ -763,7 +762,6 @@ void FlexGR::reportCong3D(FlexGRCMap* cmap)
 
 void FlexGR::reportCong3D()
 {
-
   if (VERBOSE > 0) {
     cout << endl << "start reporting 3D congestion ...\n\n";
   }
@@ -1440,7 +1438,11 @@ void FlexGR::initGR_initObj_net(frNet* net)
 {
   deque<frNode*> nodeQ;
 
-  nodeQ.push_back(net->getRoot());
+  frNode* root = net->getRoot();
+  if (root == nullptr) {
+    return; // dangling net with no connections
+  }
+  nodeQ.push_back(root);
 
   while (!nodeQ.empty()) {
     auto node = nodeQ.front();
@@ -1528,7 +1530,6 @@ void FlexGR::initGR_genTopology()
 // to be followed by layer assignment
 void FlexGR::initGR_genTopology_net(frNet* net)
 {
-
   if (net->getNodes().size() == 0) {
     return;
   }
@@ -1826,9 +1827,10 @@ void FlexGR::initGR_genTopology_net(frNet* net)
   }
 
   // sanity check
-  for (frNode* node : nodes) {
-    if (node->getParent() == nullptr) {
-      cout << "Error: non-root node does not have parent\n";
+  for (size_t i = 1; i < nodes.size(); i++) {
+    if (nodes[i]->getParent() == nullptr) {
+      cout << "Error: non-root node does not have parent in "
+           << net->getName() << '\n';
     }
   }
   if (nodes.size() > 1 && nodes[0]->getChildren().size() == 0) {
@@ -2547,8 +2549,6 @@ void FlexGR::getBatchInfo(int& batchStepX, int& batchStepY)
 // GRWorker related
 void FlexGRWorker::main_mt()
 {
-
-
   init();
   route();
 }

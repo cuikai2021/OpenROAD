@@ -22,6 +22,9 @@ OPTIONS:
                                                   -cmake= and double quotes if
                                                   <key> has muliple <values>
                                                   e.g.: -cmake='-DFLAGS="-a -b"'
+        to build Eden with gtest:
+            ./etc/Build.sh -cmake=-DGTEST=ON
+
   -compiler=COMPILER_NAME                       Compiler name: gcc or clang
                                                   Default: gcc
   -dir=PATH                                     Path to store build files.
@@ -29,8 +32,7 @@ OPTIONS:
   -coverage                                     Enable cmake coverage options
   -clean                                        Remove build dir before compile
   -no-gui                                       Disable GUI support
-  -threads=NUM_THREADS                          Number of threads to use during
-                                                  compile. Default: \`nproc\`
+  -threads=NUM_THREADS                          Number of threads to use during compile. Default: \`nproc\`
   -keep-log                                     Keep a compile log in build dir
   -help                                         Shows this message
 

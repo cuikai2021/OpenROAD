@@ -438,7 +438,7 @@ void dbMaster::staSetCell(void* cell)
   master->_sta_cell = cell;
 }
 
-uint dbMaster::getWidth()
+uint dbMaster::getWidth() const
 {
   _dbMaster* master = (_dbMaster*) this;
   return master->_width;
@@ -450,7 +450,7 @@ void dbMaster::setWidth(uint w)
   master->_width = w;
 }
 
-uint dbMaster::getHeight()
+uint dbMaster::getHeight() const
 {
   _dbMaster* master = (_dbMaster*) this;
   return master->_height;
@@ -705,7 +705,7 @@ void dbMaster::getPlacementBoundary(Rect& r)
 {
   _dbMaster* master = (_dbMaster*) this;
   r = Rect(0, 0, master->_width, master->_height);
-  dbTransform t(Point(master->_x, master->_y));
+  dbTransform t(Point(-master->_x, -master->_y));
   t.apply(r);
 }
 

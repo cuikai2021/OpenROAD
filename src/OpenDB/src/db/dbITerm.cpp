@@ -616,6 +616,16 @@ dbITerm* dbITerm::getITerm(dbBlock* block_, uint dbid)
   return (dbITerm*) block->_iterm_tbl->getPtr(dbid);
 }
 
+Rect dbITerm::getBBox()
+{
+  dbMTerm* term = getMTerm();
+  Rect bbox = term->getBBox();
+  odb::dbTransform inst_xfm;
+  getInst()->getTransform(inst_xfm);
+  inst_xfm.apply(bbox);
+  return bbox;
+}
+
 bool dbITerm::getAvgXY(int* x, int* y)
 {
   dbMTerm* mterm = getMTerm();
@@ -660,27 +670,6 @@ bool dbITerm::getAvgXY(int* x, int* y)
   *x = int(xx);
   *y = int(yy);
   return true;
-}
-void dbITerm::print(FILE* fp, const char* trail)
-{
-  if (fp == NULL) {
-    getImpl()->getLogger()->info(utl::ODB,
-                                 35,
-                                 "{} {} {} {}{}",
-                                 getId(),
-                                 getMTerm()->getConstName(),
-                                 getMTerm()->getMaster()->getConstName(),
-                                 getInst()->getConstName(),
-                                 trail);
-  } else {
-    fprintf(fp,
-            "%d %s %s %s%s",
-            getId(),
-            getMTerm()->getConstName(),
-            getMTerm()->getMaster()->getConstName(),
-            getInst()->getConstName(),
-            trail);
-  }
 }
 
 uint32_t dbITerm::staVertexId()

@@ -1,15 +1,15 @@
 # Copyright (c) 2019, Parallax Software, Inc.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -21,7 +21,6 @@ set(OPENSTA_HOME ${PROJECT_SOURCE_DIR}/src/sta)
 set(OPENDB_HOME ${PROJECT_SOURCE_DIR}/src/OpenDB)
 set(DBSTA_HOME ${PROJECT_SOURCE_DIR}/src/dbSta)
 set(RESIZER_HOME ${PROJECT_SOURCE_DIR}/src/rsz)
-set(PDNGEN_HOME ${OPENROAD_HOME}/src/pdngen)
 set(ICEWALL_HOME ${OPENROAD_HOME}/src/ICeWall)
 
 set(OPENROAD_SOURCE
@@ -80,7 +79,6 @@ swig_lib(NAME      openroad_swig
          SCRIPTS   ${OPENSTA_HOME}/tcl/Util.tcl
                    OpenRoad.tcl
                    ${ICEWALL_HOME}/src/ICeWall.tcl
-                   ${PDNGEN_HOME}/src/PdnGen.tcl
                    ${OPENDB_HOME}/src/db/OpenDB.tcl
 )
 
@@ -120,24 +118,27 @@ add_subdirectory(OpenDB)
 add_subdirectory(sta)
 add_subdirectory(dbSta)
 add_subdirectory(rsz)
-add_subdirectory(flute3)
+add_subdirectory(stt)
 add_subdirectory(replace)
 add_subdirectory(dpl)
 add_subdirectory(fin)
 add_subdirectory(ppl)
-add_subdirectory(TritonCTS)
+add_subdirectory(rmp)
+add_subdirectory(cts)
 add_subdirectory(grt)
 add_subdirectory(tap)
 add_subdirectory(mpl)
-add_subdirectory(OpenRCX)
+add_subdirectory(mpl2)
+add_subdirectory(rcx)
 add_subdirectory(psm)
-add_subdirectory(PartitionMgr)
-add_subdirectory(antenna_checker)
+add_subdirectory(par)
+add_subdirectory(ant)
 add_subdirectory(gui)
 add_subdirectory(TritonRoute)
 add_subdirectory(Banyan)
 add_subdirectory(utl)
-add_subdirectory(pdrev)
+add_subdirectory(pdr)
+add_subdirectory(pdn)
 
 ################################################################
 
@@ -169,23 +170,27 @@ target_link_libraries(eden
   fin
   rsz
   ppl
-  flute
+  stt
   dbSta
   OpenSTA
   opendb
   opendbtcl
-  OpenRCX
-  TritonCTS
+  rcx
+  rmp
+  cts
   grt
   tap
   gui
   TritonRoute
   Banyan
   mpl
+  mpl2
   psm
-  antennachecker
-  PartitionMgr
+  ant
+  par
   utl
+  pdn
+  pdr
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
@@ -243,6 +248,20 @@ else()
   message(STATUS "Python3 disabled")
 endif()
 
+messages(
+  TARGET eden
+  SOURCE_DIR .
+  OUTPUT_DIR ..
+  LOCAL
+)
+
+# ICeWall isn't a proper module with its own CMakeLists.txt so it
+# is handled here (just like the tcl encoding).
+messages(
+  TARGET eden
+  OUTPUT_DIR ICeWall
+)
+
 # Ancient versions of glibc found on CentOS required librt.
 # OSX has an empty version of librt that causes a link error,
 # so this is protected from linking there.
@@ -258,12 +277,13 @@ endif()
 
 # executable
 install(TARGETS eden DESTINATION bin)
+execute_process( COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_CURRENT_BINARY_DIR}/eden" "${CMAKE_CURRENT_BINARY_DIR}/openroad")
 
 ################################################################
 
 add_custom_target(openroad_tags etags -o TAGS
   ${OPENROAD_SOURCE}
-  ${OPENROAD_HOME}/include/openroad/*.hh
+  ${OPENROAD_HOME}/include/ord/*.hh
   ${OPENROAD_HOME}/src/dbSta/src/*.hh
   ${DBSTA_HOME}/include/db_sta/*.hh
   ${OPENROAD_HOME}/src/dbSta/src/*.cc
@@ -296,6 +316,8 @@ if(GTEST STREQUAL ON)
 
   add_subdirectory(../utest utest)
 
+  file(GLOB_RECURSE UTEST_SRC ../utest/*.cc)
+
   add_executable(utEden
     ../utest/utt/EdenTestUTT.cc
     ../utest/utl/EdenTestUTL.cc
@@ -324,6 +346,7 @@ if(GTEST STREQUAL ON)
     ../utest/antenna_checker/EdenTestANTENNA_CHECKER.cc
     ../utest/mpl/EdenTestMPL.cc
     ../utest/ppl/EdenTestPPL.cc
+    ${UTEST_SRC}
     ${OPENROAD_SOURCE}
   )
 
@@ -341,6 +364,7 @@ if(GTEST STREQUAL ON)
   target_include_directories(utEden
     PUBLIC
     ../include
+    cts/src
   )
 
   target_link_libraries(utEden
@@ -351,23 +375,27 @@ if(GTEST STREQUAL ON)
     fin
     rsz
     ppl
-    flute
+    stt
     dbSta
     OpenSTA
     opendb
     opendbtcl
-    OpenRCX
-    TritonCTS
+    rcx
+    rmp
+    cts
     grt
     tap
     gui
     TritonRoute
     Banyan
     mpl
+    mpl2
     psm
-    antennachecker
-    PartitionMgr
+    ant
+    par
     utl
+    pdn
+    pdr
     utt
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}

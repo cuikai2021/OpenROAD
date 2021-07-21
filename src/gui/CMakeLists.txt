@@ -28,10 +28,14 @@ if (Qt5_FOUND AND BUILD_GUI)
     src/layoutViewer.cpp
     src/mainWindow.cpp
     src/scriptWidget.cpp
+    src/tclCmdInputWidget.cpp
+    src/tclCmdHighlighter.cpp
     src/displayControls.cpp
     src/gui.cpp
     src/search.cpp 
     src/findDialog.cpp
+    src/inspector.cpp
+    src/dbDescriptors.cpp
     src/congestionSetupDialog.cpp
     src/highlightGroupDialog.cpp
     src/selectHighlightWindow.cpp
@@ -49,6 +53,11 @@ if (Qt5_FOUND AND BUILD_GUI)
       utl
       Boost::boost
   )
+
+messages(
+  TARGET gui
+)
+
 else()
   message(STATUS "GUI is not enabled")
   add_library(gui src/stub.cpp)

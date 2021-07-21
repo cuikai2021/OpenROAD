@@ -1,0 +1,16 @@
+{
+  "instance_count" : "441.6"
+ ,"design_area" : "7110.0"
+ ,"utilization" : "9.24"
+ ,"worst_slack_min" : "0.15391428323055814"
+ ,"worst_slack_max" : "-0.15555928341318984"
+ ,"tns_max" : "-6.550400000000001"
+ ,"clock_skew" : "0.13"
+ ,"max_slew_violations" : "0"
+ ,"max_capacitance_violations" : "0"
+ ,"max_fanout_violations" : "0"
+ ,"DPL::errors" : "0"
+ ,"ANT::errors" : "0"
+ ,"DRT::drv" : "0"
+ ,"clock_period" : "1.78"
+}
