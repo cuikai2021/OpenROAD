@@ -17,6 +17,6 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           repo: ICBench/bamboo
-          ref: v0.2
+          ref: v0.2.2
           workflow: release eden deps docker
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
