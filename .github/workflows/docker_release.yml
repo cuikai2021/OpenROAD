@@ -14,10 +14,6 @@ on:
         description: "commit id of maple to make it"
         default: master
         required: true
-      bamboo_commit_id:
-        description: "commit id of bamboo to make it"
-        default: master
-        required: true
       release_name:
         description: "docker release name, like 210712(date)"
         default: today
