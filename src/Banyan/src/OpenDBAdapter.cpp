@@ -966,12 +966,19 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
   }
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
-    size_t boxIndexBegin = boxes_.size();
-    size_t viaIndexBegin = vias_.size();
+    int pX, pY;
+    inst->getOrigin(pX, pY);
+    odb::Point origin = odb::Point(pX, pY);
+    odb::dbTransform transform(inst->getOrient(), origin);
+
     auto iter = mnameToBoxes.find(inst->getMaster()->getName());
     if (iter != mnameToBoxes.end()) {
+      size_t boxIndexBegin = boxes_.size();
+      size_t viaIndexBegin = vias_.size();
       for (auto box : iter->second) {
-        addBox(box.first, box.second);
+        auto instObsRect = box.second;
+        transform.apply(instObsRect);
+        addBox(box.first, instObsRect);
       }
       strs_.emplace_back(inst->getName() + "/instobs");
       pins_.push_back({strs_.back().c_str(),
