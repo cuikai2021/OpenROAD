@@ -24,7 +24,7 @@ ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
 RUN apt-get install -y time libreadline-dev pkg-config 
 RUN \
   set -eu; \
-  apt-get install -y klayout; \
+  apt-get update && apt-get install -y klayout; \
   wget https://www.klayout.org/downloads/Ubuntu-20/klayout_0.26.6-1_amd64.deb; \
   dpkg -i klayout_0.26.6-1_amd64.deb; \
   rm -f klayout_0.26.6-1_amd64.deb; 
