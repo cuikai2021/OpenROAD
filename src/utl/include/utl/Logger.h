@@ -70,11 +70,13 @@ namespace utl {
     X(PSM) \
     X(PSN) \
     X(RCX) \
+    X(RMP) \
     X(RSZ) \
     X(STA) \
     X(STT) \
     X(TAP) \
     X(UKN) \
+    X(BY) \
 
 #define GENERATE_ENUM(ENUM) ENUM,
 #define GENERATE_STRING(STRING) #STRING,

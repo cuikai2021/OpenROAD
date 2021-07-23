@@ -19,6 +19,8 @@ RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 
 
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS deps_stage
+ADD ./Eden-src/src/Banyan/banyan-integrate/banyan.so /Eden-flow/flow/libs/banyan.so
+ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
 RUN apt-get install -y time libreadline-dev pkg-config 
 RUN \
   set -eu; \

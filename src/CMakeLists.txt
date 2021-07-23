@@ -1,15 +1,15 @@
 # Copyright (c) 2019, Parallax Software, Inc.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -123,19 +123,22 @@ add_subdirectory(replace)
 add_subdirectory(dpl)
 add_subdirectory(fin)
 add_subdirectory(ppl)
-add_subdirectory(TritonCTS)
+add_subdirectory(rmp)
+add_subdirectory(cts)
 add_subdirectory(grt)
 add_subdirectory(tap)
 add_subdirectory(mpl)
+add_subdirectory(mpl2)
 add_subdirectory(rcx)
 add_subdirectory(psm)
-add_subdirectory(PartitionMgr)
+add_subdirectory(par)
 add_subdirectory(ant)
 add_subdirectory(gui)
 add_subdirectory(TritonRoute)
+add_subdirectory(Banyan)
 add_subdirectory(utl)
 add_subdirectory(pdr)
-add_subdirectory(pdngen)
+add_subdirectory(pdn)
 
 ################################################################
 
@@ -173,15 +176,18 @@ target_link_libraries(eden
   opendb
   opendbtcl
   rcx
-  TritonCTS
+  rmp
+  cts
   grt
   tap
   gui
   TritonRoute
+  Banyan
   mpl
+  mpl2
   psm
   ant
-  PartitionMgr
+  par
   utl
   pdn
   pdr
@@ -313,6 +319,33 @@ if(GTEST STREQUAL ON)
   file(GLOB_RECURSE UTEST_SRC ../utest/*.cc)
 
   add_executable(utEden
+    ../utest/utt/EdenTestUTT.cc
+    ../utest/utl/EdenTestUTL.cc
+    ../utest/TritonRoute/EdenTestTRITONROUTE.cc
+    ../utest/Banyan/EdenTestBANYAN.cc
+    ../utest/TritonCTS/EdenTestTRITONCTS.cc
+    ../utest/tap/EdenTestTAP.cc
+    ../utest/sta/EdenTestSTA.cc
+    ../utest/rsz/EdenTestRSZ.cc
+    ../utest/replace/EdenTestREPLACE.cc
+    ../utest/psm/EdenTestPSM.cc
+    ../utest/pdrev/EdenTestPDREV.cc
+    ../utest/PDNSim/EdenTestPDNSIM.cc
+    ../utest/pdngen/EdenTestPDNGEN.cc
+    ../utest/PartitionMgr/EdenTestPARTITIONMGR.cc
+    ../utest/OpenRCX/EdenTestOPENRCX.cc
+    ../utest/OpenDB/EdenTestOPENDB.cc
+    ../utest/ifp/EdenTestIFP.cc
+    ../utest/ICeWall/EdenTestICEWALL.cc
+    ../utest/gui/EdenTestGUI.cc
+    ../utest/grt/EdenTestGRT.cc
+    ../utest/flute3/EdenTestFLUTE3.cc
+    ../utest/fin/EdenTestFIN.cc
+    ../utest/dpl/EdenTestDPL.cc
+    ../utest/dbSta/EdenTestDBSTA.cc
+    ../utest/antenna_checker/EdenTestANTENNA_CHECKER.cc
+    ../utest/mpl/EdenTestMPL.cc
+    ../utest/ppl/EdenTestPPL.cc
     ${UTEST_SRC}
     ${OPENROAD_SOURCE}
   )
@@ -331,7 +364,7 @@ if(GTEST STREQUAL ON)
   target_include_directories(utEden
     PUBLIC
     ../include
-    TritonCTS/src
+    cts/src
   )
 
   target_link_libraries(utEden
@@ -348,15 +381,18 @@ if(GTEST STREQUAL ON)
     opendb
     opendbtcl
     rcx
-    TritonCTS
+    rmp
+    cts
     grt
     tap
     gui
     TritonRoute
+    Banyan
     mpl
+    mpl2
     psm
     ant
-    PartitionMgr
+    par
     utl
     pdn
     pdr

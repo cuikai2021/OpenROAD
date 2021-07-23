@@ -118,6 +118,13 @@ getResizer()
   return openroad->getResizer();
 }
 
+rmp::Restructure *
+getRestructure()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getRestructure();
+}
+
 cts::TritonCTS *
 getTritonCts()
 {
@@ -130,6 +137,13 @@ getMacroPlacer()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getMacroPlacer();
+}
+
+mpl::MacroPlacer2 *
+getMacroPlacer2()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getMacroPlacer2();
 }
 
 gpl::Replace*
@@ -151,6 +165,13 @@ getTritonRoute()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getTritonRoute();
+}
+
+banyan::Banyan *
+getBanyan()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getBanyan();
 }
 
 psm::PDNSim*

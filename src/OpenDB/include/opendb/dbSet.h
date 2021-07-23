@@ -59,8 +59,8 @@ class dbSetIterator
   dbSetIterator();
   dbSetIterator(const dbSetIterator& it) = default;
 
-  bool operator==(const dbSetIterator<T>& it);
-  bool operator!=(const dbSetIterator<T>& it);
+  bool operator==(const dbSetIterator<T>& it) const;
+  bool operator!=(const dbSetIterator<T>& it) const;
 
   T* operator*();
   T* operator->();
@@ -125,12 +125,12 @@ class dbSet
   ///
   /// Return a begin() iterator.
   ///
-  iterator begin() { return iterator(_itr, _itr->begin(_parent)); }
+  iterator begin() const { return iterator(_itr, _itr->begin(_parent)); }
 
   ///
   /// Return an end() iterator.
   ///
-  iterator end() { return iterator(_itr, _itr->end(_parent)); }
+  iterator end() const { return iterator(_itr, _itr->end(_parent)); }
 
   ///
   /// If this set is sequential, this function will return the database
@@ -180,13 +180,13 @@ inline dbSetIterator<T>::dbSetIterator(dbIterator* itr, uint id)
 }
 
 template <class T>
-inline bool dbSetIterator<T>::operator==(const dbSetIterator& it)
+inline bool dbSetIterator<T>::operator==(const dbSetIterator& it) const
 {
   return (_itr == it._itr) && (_cur == it._cur);
 }
 
 template <class T>
-inline bool dbSetIterator<T>::operator!=(const dbSetIterator& it)
+inline bool dbSetIterator<T>::operator!=(const dbSetIterator& it) const
 {
   return (_itr != it._itr) || (_cur != it._cur);
 }
