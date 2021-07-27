@@ -23,9 +23,14 @@ build*
 test/results
 flow
 
+.idea/
+cmake-build-debug/
+
 coverage-output
 
 devops_results
 
 utest/*/test/results
 messages.txt
+
+_build
