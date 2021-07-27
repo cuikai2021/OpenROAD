@@ -366,7 +366,6 @@ if(GTEST STREQUAL ON)
     par
     utl
     pdn
-    pdr
     utt
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
