@@ -137,7 +137,6 @@ add_subdirectory(gui)
 add_subdirectory(TritonRoute)
 add_subdirectory(Banyan)
 add_subdirectory(utl)
-add_subdirectory(pdr)
 add_subdirectory(pdn)
 
 ################################################################
@@ -190,7 +189,6 @@ target_link_libraries(eden
   par
   utl
   pdn
-  pdr
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
@@ -368,7 +366,6 @@ if(GTEST STREQUAL ON)
     par
     utl
     pdn
-    pdr
     utt
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
