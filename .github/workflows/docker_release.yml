@@ -14,10 +14,6 @@ on:
         description: "commit id of maple to make it"
         default: master
         required: true
-      bamboo_commit_id:
-        description: "commit id of bamboo to make it"
-        default: master
-        required: true
       release_name:
         description: "docker release name, like 210712(date)"
         default: today
@@ -27,14 +23,11 @@ jobs:
   release:
     runs-on: [self-hosted]
     steps:
-      - name: 1. checkout deps
-        uses: actions/checkout@v2
-
-      - name: 2. invoke workflow
+      - name: invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           repo: ICBench/bamboo
-          ref: v0.2.3
+          ref: v0.2.4
           workflow: release
           inputs: '{ "Eden_commit_id": "${{ github.event.inputs.Eden_commit_id }}", "yosys_commit_id": "${{ github.event.inputs.yosys_commit_id }}", "maple_commit_id": "${{ github.event.inputs.maple_commit_id }}", "release_name": "${{ github.event.inputs.release_name }}"}'

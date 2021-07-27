@@ -10,13 +10,10 @@ jobs:
     runs-on: [self-hosted]
 
     steps:
-      - name: 1. checkout eden
-        uses: actions/checkout@v2
-
-      - name: 2. invoke workflow
+      - name: 1. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           repo: ICBench/bamboo
-          ref: v0.2.2
+          ref: v0.2.4
           workflow: release eden deps docker
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}

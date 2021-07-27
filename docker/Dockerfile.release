@@ -36,7 +36,8 @@ RUN  make
 
 FROM deps_stage
 RUN mkdir -p /usr/local/share/yosys
-
+ADD ./ossutil64 /usr/local/bin/ossutil64
+ADD ./modules/release/start_logtail.sh /Eden-flow/start_logtail.sh
 COPY --from=maple_build_stage /maple/build/src/maple /usr/local/bin
 COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin
 COPY --from=yosys_build_stage /yosys/share/* /usr/local/share/yosys
