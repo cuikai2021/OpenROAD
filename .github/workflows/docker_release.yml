@@ -23,19 +23,11 @@ jobs:
   release:
     runs-on: [self-hosted]
     steps:
-      - name: 1.checkout bamboo 
-        uses: actions/checkout@v2
-        with:
-          repository: ICBench/bamboo
-          ref: v0.2.4
-          token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-          path: ${{ github.workspace }}/bamboo
-
-      - name: 2. invoke workflow
+      - name: invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           repo: ICBench/bamboo
           ref: v0.2.4
-          workflow: eden release
+          workflow: release
           inputs: '{ "Eden_commit_id": "${{ github.event.inputs.Eden_commit_id }}", "yosys_commit_id": "${{ github.event.inputs.yosys_commit_id }}", "maple_commit_id": "${{ github.event.inputs.maple_commit_id }}", "release_name": "${{ github.event.inputs.release_name }}"}'

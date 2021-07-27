@@ -10,21 +10,10 @@ jobs:
     runs-on: [self-hosted]
 
     steps:
-      - name: 1.checkout bamboo 
-        uses: actions/checkout@v2
+      - name: 1. invoke workflow
+        uses: benc-uk/workflow-dispatch@v1.1
         with:
-          repository: ICBench/bamboo
+          repo: ICBench/bamboo
           ref: v0.2.4
+          workflow: release eden deps docker
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-          path: ${{ github.workspace }}/bamboo
-       
-      - name: 2. invoke workflow
-        run: |
-          cd ${{ github.workspace }}/bamboo
-          source ./modules/github_api/util.sh
-          github trigger \
-              --token ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }} \
-              --usr "zynICBench" \
-              --repo "bamboo" \
-              --workflow "eden_deps.yml" \
-              --ref pass_release
