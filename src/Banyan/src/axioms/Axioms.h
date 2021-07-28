@@ -50,6 +50,9 @@ class Axioms
   odb::dbBox* getLayerBoxFromVia(odb::dbTechLayer* layer, odb::dbTechVia* via);
   odb::dbBox* getCutBoxInBorderFromVia(odb::dbTechVia* via, POSITION position);
   uint32_t getCutNumsFromVia(odb::dbTechVia* via);
+  uint64_t getCutSpacingForTrunkMinLengthFromVia(odb::dbTechVia* viaX, odb::dbTechVia* viaY);
+
+  odb::dbTechLayer* getCutLayerFromVia(odb::dbTechVia* via);
 
   void initLayerToTrunkDistSameTable();
   void initLayerToTrunkDistDiffTable();
