@@ -182,7 +182,8 @@ struct axioms_triple
 {
     // the bottom left corner of box of via_x and wire are aligned
     int via_x;
-    // the bottom right corner of box of via_y and wire are aligned
+    // horizontal: the bottom right corner of box of via_y and wire are aligned
+    // vertical: the top left corner of box of via_y and wire are aligned
     int via_y;
     GoUint64 len;
 };
