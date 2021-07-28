@@ -1,7 +1,6 @@
 
 #include <assert.h>
 
-#include <iostream>
 #include <utility>
 
 #include "DBAdapter.h"
@@ -13,26 +12,9 @@
 #include "opendb/geom.h"
 #include "utl/Logger.h"
 
-#define AssertFind(mmap, key) \
-  assertFind(mmap, key, __FILE__, __LINE__, __func__)
+
 
 namespace banyan {
-
-template <typename TKEY, typename TVALUE>
-TVALUE assertFind(std::map<TKEY, TVALUE>& mmap,
-                  TKEY key,
-                  const char* fname,
-                  int lineno,
-                  const char* fxname)
-{
-  auto itr = mmap.find(key);
-  if (itr == mmap.end()) {
-    std::cout << "can not find map[" << key << "], call in " << fname << " "
-              << fxname << " " << lineno << std::endl;
-    assert(false);
-  }
-  return itr->second;
-}
 
 std::string getViaNameFromViaBox(odb::dbSBox* box)
 {
@@ -87,6 +69,14 @@ int OpenDBAdapter::defdist(int x)
 
   return x * (double) block->getDefUnits()
          / (double) block->getDbUnitsPerMicron();
+}
+
+int64_t OpenDBAdapter::defArea(double area)
+{
+  odb::dbTech* tech = db_->getTech();
+  int database_unit = tech->getLefUnits();
+  int64_t defArea = area * database_unit * database_unit;
+  return defArea;
 }
 
 void OpenDBAdapter::getDesignFromOpenDB()

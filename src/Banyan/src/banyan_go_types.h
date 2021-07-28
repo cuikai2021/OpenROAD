@@ -176,3 +176,21 @@ struct route_ret
     via *rvias; // need free
     GoUint64 rvias_size;
 }; // struct entry_ret
+
+
+struct axioms_triple
+{
+    // the bottom left corner of box of via_x and wire are aligned
+    int via_x;
+    // the bottom right corner of box of via_y and wire are aligned
+    int via_y;
+    GoUint64 len;
+};
+
+
+struct trunk_min_len_table
+{
+    int la;
+    GoUint64 axioms_triple_begin;
+    GoUint64 axioms_triple_end;
+};
