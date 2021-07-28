@@ -54,8 +54,6 @@ class Axioms
   void initLayerToTrunkDistSameTable();
   void initLayerToTrunkDistDiffTable();
 
-
-
  public:
  const std::string VIA_NULL = "null";
   Axioms(OpenDBAdapter& dbAdapter) : dbAdapter_(dbAdapter), db_(dbAdapter.db_), logger_(dbAdapter.logger_)
@@ -69,10 +67,14 @@ class Axioms
 
   };
 
-  std::vector<banyan_go::trunk_min_len_table> getLayerToTrunkMinLengthTable(){
-      return layerToTrunkMinLengthTable;
+  std::vector<banyan_go::trunk_min_len_table> getLayerToTrunkMinLengthTable()
+  {
+    return layerToTrunkMinLengthTable;
   };
-
+  std::vector<banyan_go::axioms_triple> getAxiomsTriples()
+  {
+    return axiomsTriples;
+  }
 };
 
 }  // namespace banyan
