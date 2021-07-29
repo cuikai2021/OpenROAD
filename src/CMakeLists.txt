@@ -137,7 +137,6 @@ add_subdirectory(gui)
 add_subdirectory(TritonRoute)
 add_subdirectory(Banyan)
 add_subdirectory(utl)
-add_subdirectory(pdr)
 add_subdirectory(pdn)
 
 ################################################################
@@ -190,7 +189,6 @@ target_link_libraries(eden
   par
   utl
   pdn
-  pdr
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
@@ -319,33 +317,6 @@ if(GTEST STREQUAL ON)
   file(GLOB_RECURSE UTEST_SRC ../utest/*.cc)
 
   add_executable(utEden
-    ../utest/utt/EdenTestUTT.cc
-    ../utest/utl/EdenTestUTL.cc
-    ../utest/TritonRoute/EdenTestTRITONROUTE.cc
-    ../utest/Banyan/EdenTestBANYAN.cc
-    ../utest/TritonCTS/EdenTestTRITONCTS.cc
-    ../utest/tap/EdenTestTAP.cc
-    ../utest/sta/EdenTestSTA.cc
-    ../utest/rsz/EdenTestRSZ.cc
-    ../utest/replace/EdenTestREPLACE.cc
-    ../utest/psm/EdenTestPSM.cc
-    ../utest/pdrev/EdenTestPDREV.cc
-    ../utest/PDNSim/EdenTestPDNSIM.cc
-    ../utest/pdngen/EdenTestPDNGEN.cc
-    ../utest/PartitionMgr/EdenTestPARTITIONMGR.cc
-    ../utest/OpenRCX/EdenTestOPENRCX.cc
-    ../utest/OpenDB/EdenTestOPENDB.cc
-    ../utest/ifp/EdenTestIFP.cc
-    ../utest/ICeWall/EdenTestICEWALL.cc
-    ../utest/gui/EdenTestGUI.cc
-    ../utest/grt/EdenTestGRT.cc
-    ../utest/flute3/EdenTestFLUTE3.cc
-    ../utest/fin/EdenTestFIN.cc
-    ../utest/dpl/EdenTestDPL.cc
-    ../utest/dbSta/EdenTestDBSTA.cc
-    ../utest/antenna_checker/EdenTestANTENNA_CHECKER.cc
-    ../utest/mpl/EdenTestMPL.cc
-    ../utest/ppl/EdenTestPPL.cc
     ${UTEST_SRC}
     ${OPENROAD_SOURCE}
   )
@@ -395,7 +366,6 @@ if(GTEST STREQUAL ON)
     par
     utl
     pdn
-    pdr
     utt
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}

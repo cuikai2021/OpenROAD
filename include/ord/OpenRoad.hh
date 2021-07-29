@@ -133,6 +133,10 @@ namespace utl {
 class Logger;
 }
 
+namespace stt {
+class SteinerTreeBuilder;
+}
+
 namespace ord {
 
 using std::string;
@@ -174,6 +178,7 @@ public:
   ant::AntennaChecker *getAntennaChecker() { return antenna_checker_; }
   ppl::IOPlacer *getIOPlacer() { return ioPlacer_; }
   pdn::PdnGen *getPdnGen() { return pdngen_; }
+  stt::SteinerTreeBuilder *getSteinerTreeBuilder() { return stt_builder_; }
 
   // Return the bounding box of the db rows.
   odb::Rect getCore();
@@ -264,6 +269,7 @@ private:
   psm::PDNSim *pdnsim_; 
   par::PartitionMgr *partitionMgr_;
   pdn::PdnGen *pdngen_;
+  stt::SteinerTreeBuilder *stt_builder_;
 
   std::set<Observer *> observers_;
 
