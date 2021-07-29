@@ -120,26 +120,52 @@ uint64_t Axioms::getCutSpacingForTrunkMinLengthFromVia(odb::dbTechVia* viaX,
   }
   odb::dbTechLayer* cutLayerForViaX = getCutLayerFromVia(viaX);
   odb::dbTechLayer* cutLayerForViaY = getCutLayerFromVia(viaY);
+  if (cutLayerForViaX->getName() != cutLayerForViaY->getName()) {
+    return 0;
+  }
   int cutSpacing = 0;
-  for (auto cutSpacingRule : cutLayerForViaX->getTechLayerCutSpacingRules()) {
-    if (cutSpacingRule->isExceptSameNet() || cutSpacingRule->isExceptSameMetal()
-        || cutSpacingRule->isSameVia()) {
-      continue;
-    }
-    if (cutSpacingRule->getCutSpacing() > cutSpacing) {
-      cutSpacing = cutSpacingRule->getCutSpacing();
+
+  odb::dbSet<odb::dbTechLayerSpacingRule> spcingRules;
+  cutLayerForViaX->getV54SpacingRules(spcingRules);
+
+  for (auto cutSpacingRule : spcingRules) {
+    if (cutSpacingRule->getCutSameNet()) {
+      if (cutSpacingRule->getSpacing() > cutSpacing) {
+        cutSpacing = cutSpacingRule->getSpacing();
+      }
     }
   }
 
-  for (auto cutSpacingRule : cutLayerForViaY->getTechLayerCutSpacingRules()) {
-    if (cutSpacingRule->isExceptSameNet() || cutSpacingRule->isExceptSameMetal()
-        || cutSpacingRule->isSameVia()) {
-      continue;
-    }
-    if (cutSpacingRule->getCutSpacing() > cutSpacing) {
-      cutSpacing = cutSpacingRule->getCutSpacing();
-    }
+  if (cutSpacing <= 0) {
+    cutSpacing = cutLayerForViaX->getSpacing();
   }
+
+  // for (auto cutSpacingRule : cutLayerForViaX->getTechLayerCutSpacingRules()) {
+  //   if (cutSpacingRule->isExceptSameNet() || cutSpacingRule->isExceptSameMetal()
+  //       || cutSpacingRule->isSameVia()) {
+  //     continue;
+  //   }
+  //   if (cutSpacingRule->getCutSpacing() > cutSpacing) {
+  //     cutSpacing = cutSpacingRule->getCutSpacing();
+  //   }
+  // }
+
+  // for (auto cutSpacingRule : cutLayerForViaY->getTechLayerCutSpacingRules()) {
+  //   if (cutSpacingRule->isExceptSameNet() || cutSpacingRule->isExceptSameMetal()
+  //       || cutSpacingRule->isSameVia()) {
+  //     continue;
+  //   }
+  //   if (cutSpacingRule->getCutSpacing() > cutSpacing) {
+  //     cutSpacing = cutSpacingRule->getCutSpacing();
+  //   }
+  // }
+
+  logger_->info(utl::BY,
+                891,
+                "spacing {} {} {}",
+                cutLayerForViaX->getName(),
+                cutLayerForViaY->getName(),
+                cutSpacing);
 
   return (uint64_t) cutSpacing;
 }
