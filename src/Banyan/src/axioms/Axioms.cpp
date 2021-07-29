@@ -160,13 +160,6 @@ uint64_t Axioms::getCutSpacingForTrunkMinLengthFromVia(odb::dbTechVia* viaX,
   //   }
   // }
 
-  logger_->info(utl::BY,
-                891,
-                "spacing {} {} {}",
-                cutLayerForViaX->getName(),
-                cutLayerForViaY->getName(),
-                cutSpacing);
-
   return (uint64_t) cutSpacing;
 }
 
@@ -180,11 +173,11 @@ uint64_t Axioms::calcTrunkMinLength(odb::dbTechLayer* techLayer,
   auto area = dbAdapter_.defArea(techLayer->getArea());
   uint64_t cutSpacing = getCutSpacingForTrunkMinLengthFromVia(viaX, viaY);
 
-  auto boxOfViaX = getLayerBoxFromVia(techLayer, viaX);
-  auto boxOfViaY = getLayerBoxFromVia(techLayer, viaY);
+  auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
+  auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
 
-  odb::dbBox* borderBoxOfViaX;
-  odb::dbBox* borderBoxOfViaY;
+  odb::dbBox* borderCutBoxOfViaX;
+  odb::dbBox* borderCutBoxOfViaY;
 
   uint64_t borderBoxOfViaXToEdge = 0;
   uint64_t borderBoxOfViaYToEdge = 0;
@@ -195,47 +188,64 @@ uint64_t Axioms::calcTrunkMinLength(odb::dbTechLayer* techLayer,
   // uint32_t cutNumsOfViaX = getCutNumsFromVia(viaX);
   // uint32_t cutNumsOfViaY = getCutNumsFromVia(viaY);
 
+  uint32_t borderCutBoxOfViaXToMetalBoxEdge = 0;
+  uint32_t borderCutBoxOfViaYToMetalBoxEdge = 0;
+
   if (layerDir == odb::dbTechLayerDir::HORIZONTAL) {
-    borderBoxOfViaX = getCutBoxInBorderFromVia(viaX, POSITION::RIGHT);
-    if (boxOfViaX != nullptr && borderBoxOfViaX != nullptr) {
+    borderCutBoxOfViaX = getCutBoxInBorderFromVia(viaX, POSITION::RIGHT);
+    if (metalBoxOfViaX != nullptr && borderCutBoxOfViaX != nullptr) {
       borderBoxOfViaXToEdge = dbAdapter_.defdist(
-          abs(borderBoxOfViaX->xMax() - boxOfViaX->xMin()));
-      if (dbAdapter_.defdist(boxOfViaX->getDY()) > width) {
-        diffAreaOfBoxOfViaX = (dbAdapter_.defdist(boxOfViaX->getDY()) - width)
-                              * dbAdapter_.defdist(boxOfViaX->getDX());
+          abs(borderCutBoxOfViaX->xMax() - metalBoxOfViaX->xMin()));
+      borderCutBoxOfViaXToMetalBoxEdge = dbAdapter_.defdist(
+          abs(metalBoxOfViaX->xMax() - borderCutBoxOfViaX->xMax()));
+      if (dbAdapter_.defdist(metalBoxOfViaX->getDY()) > width) {
+        diffAreaOfBoxOfViaX = (dbAdapter_.defdist(metalBoxOfViaX->getDY()) - width)
+                              * dbAdapter_.defdist(metalBoxOfViaX->getDX());
       }
     }
 
-    borderBoxOfViaY = getCutBoxInBorderFromVia(viaY, POSITION::LEFT);
-    if (boxOfViaY != nullptr && borderBoxOfViaY != nullptr) {
+    borderCutBoxOfViaY = getCutBoxInBorderFromVia(viaY, POSITION::LEFT);
+    if (metalBoxOfViaY != nullptr && borderCutBoxOfViaY != nullptr) {
       borderBoxOfViaYToEdge = dbAdapter_.defdist(
-          abs(borderBoxOfViaY->xMin() - boxOfViaY->xMax()));
-      if (dbAdapter_.defdist(boxOfViaY->getDY()) > width) {
-        diffAreaOfBoxOfViaY = (dbAdapter_.defdist(boxOfViaY->getDY()) - width)
-                              * dbAdapter_.defdist(boxOfViaY->getDX());
+          abs(borderCutBoxOfViaY->xMin() - metalBoxOfViaY->xMax()));
+      borderCutBoxOfViaYToMetalBoxEdge = dbAdapter_.defdist(
+          abs(metalBoxOfViaY->xMin() - borderCutBoxOfViaY->xMin()));
+      if (dbAdapter_.defdist(metalBoxOfViaY->getDY()) > width) {
+        diffAreaOfBoxOfViaY = (dbAdapter_.defdist(metalBoxOfViaY->getDY()) - width)
+                              * dbAdapter_.defdist(metalBoxOfViaY->getDX());
       }
     }
 
   } else {
-    borderBoxOfViaX = getCutBoxInBorderFromVia(viaX, POSITION::TOP);
-    if (boxOfViaX != nullptr && borderBoxOfViaX != nullptr) {
+    borderCutBoxOfViaX = getCutBoxInBorderFromVia(viaX, POSITION::TOP);
+    if (metalBoxOfViaX != nullptr && borderCutBoxOfViaX != nullptr) {
       borderBoxOfViaXToEdge = dbAdapter_.defdist(
-          abs(borderBoxOfViaX->yMax() - boxOfViaX->yMin()));
-      if (dbAdapter_.defdist(boxOfViaX->getDX()) > width) {
-        diffAreaOfBoxOfViaX = (dbAdapter_.defdist(boxOfViaX->getDX()) - width)
-                              * dbAdapter_.defdist(boxOfViaX->getDY());
+          abs(borderCutBoxOfViaX->yMax() - metalBoxOfViaX->yMin()));
+      borderCutBoxOfViaXToMetalBoxEdge = dbAdapter_.defdist(
+          abs(metalBoxOfViaX->yMax() - borderCutBoxOfViaX->yMax()));
+      if (dbAdapter_.defdist(metalBoxOfViaX->getDX()) > width) {
+        diffAreaOfBoxOfViaX = (dbAdapter_.defdist(metalBoxOfViaX->getDX()) - width)
+                              * dbAdapter_.defdist(metalBoxOfViaX->getDY());
       }
     }
 
-    borderBoxOfViaY = getCutBoxInBorderFromVia(viaY, POSITION::BOTTOM);
-    if (boxOfViaY != nullptr && borderBoxOfViaY != nullptr) {
+    borderCutBoxOfViaY = getCutBoxInBorderFromVia(viaY, POSITION::BOTTOM);
+    if (metalBoxOfViaY != nullptr && borderCutBoxOfViaY != nullptr) {
       borderBoxOfViaYToEdge = dbAdapter_.defdist(
-          abs(borderBoxOfViaY->yMin() - boxOfViaY->yMax()));
-      if (dbAdapter_.defdist(boxOfViaY->getDX()) > width) {
-        diffAreaOfBoxOfViaY = (dbAdapter_.defdist(boxOfViaY->getDX()) - width)
-                              * dbAdapter_.defdist(boxOfViaY->getDY());
+          abs(borderCutBoxOfViaY->yMin() - metalBoxOfViaY->yMax()));
+      borderCutBoxOfViaYToMetalBoxEdge = dbAdapter_.defdist(
+          abs(metalBoxOfViaY->yMin() - borderCutBoxOfViaY->yMin()));
+      if (dbAdapter_.defdist(metalBoxOfViaY->getDX()) > width) {
+        diffAreaOfBoxOfViaY = (dbAdapter_.defdist(metalBoxOfViaY->getDX()) - width)
+                              * dbAdapter_.defdist(metalBoxOfViaY->getDY());
       }
     }
+  }
+
+  auto minStep = techLayer->getMinStep();
+  if (minStep > 0 && diffAreaOfBoxOfViaX > 0 && diffAreaOfBoxOfViaY > 0
+      && (cutSpacing - borderCutBoxOfViaXToMetalBoxEdge - borderCutBoxOfViaYToMetalBoxEdge) < minStep) {
+    cutSpacing += minStep + borderCutBoxOfViaXToMetalBoxEdge + borderCutBoxOfViaYToMetalBoxEdge - cutSpacing;
   }
 
   minLen = borderBoxOfViaXToEdge + borderBoxOfViaYToEdge + cutSpacing;
@@ -269,6 +279,7 @@ void Axioms::initLayerToTrunkMinLengthTable()
                      || via->getBottomLayer()->getName()
                             == techLayer->getName();
             });
+
 
     uint64_t triplesBegin = axiomsTriples.size();
 
