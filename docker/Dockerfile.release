@@ -21,11 +21,11 @@ ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS deps_stage
 ADD ./Eden-src/src/Banyan/banyan-integrate/banyan.so /Eden-flow/flow/libs/banyan.so
 ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
+ADD ./klayout_0.26.6-1_amd64.deb .
 RUN apt-get install -y time libreadline-dev pkg-config 
 RUN \
   set -eu; \
   apt-get update && apt-get install -y klayout; \
-  wget https://www.klayout.org/downloads/Ubuntu-20/klayout_0.26.6-1_amd64.deb; \
   dpkg -i klayout_0.26.6-1_amd64.deb; \
   rm -f klayout_0.26.6-1_amd64.deb; 
 
