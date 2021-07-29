@@ -189,7 +189,7 @@ struct axioms_triple
 };
 
 
-struct trunk_min_len_table
+struct axioms_layer_table
 {
     int la;
     GoUint64 axioms_triple_begin;

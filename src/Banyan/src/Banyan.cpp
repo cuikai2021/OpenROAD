@@ -96,7 +96,23 @@ int Banyan::main(const std::map<std::string, std::string> &options)
   for (auto layerToTable : axioms.getLayerToTrunkMinLengthTable()) {
     logger_->info(utl::BY,
                   222,
-                  "item {} [{},{})",
+                  "TrunkMinLengthItem {} [{},{})",
+                  layerToTable.la,
+                  layerToTable.axioms_triple_begin,
+                  layerToTable.axioms_triple_end);
+  }
+  for (auto layerToTable : axioms.getLayerToTrunkDistSameTable()) {
+    logger_->info(utl::BY,
+                  222,
+                  "TrunkDistSameItem {} [{},{})",
+                  layerToTable.la,
+                  layerToTable.axioms_triple_begin,
+                  layerToTable.axioms_triple_end);
+  }
+  for (auto layerToTable : axioms.getLayerToTrunkDistDiffTable()) {
+    logger_->info(utl::BY,
+                  222,
+                  "TrunkDistDiffItem {} [{},{})",
                   layerToTable.la,
                   layerToTable.axioms_triple_begin,
                   layerToTable.axioms_triple_end);
