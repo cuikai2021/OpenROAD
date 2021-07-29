@@ -126,12 +126,25 @@ uint64_t Axioms::getRoutingSpacing(odb::dbTechLayer* layer,
   layer->getV54SpacingRules(spacingRules);
 
   for (auto spacingRule : spacingRules) {
-    if (isSameNet && spacingRule->getCutSameNet() && !spacingRule->getSameNetPgOnly()) {
-      if (spacingRule->getSpacing() > spacing) {
-        spacing = spacingRule->getSpacing();
-      }
-    } else if (!isSameNet && !spacingRule->getCutSameNet()) {
-      if (spacingRule->getSpacing() > spacing) {
+    if ((isSameNet && spacingRule->getCutSameNet()
+         && !spacingRule->getSameNetPgOnly())
+        || (!isSameNet && !spacingRule->getCutSameNet())) {
+      uint width = 0;
+      uint within = 0;
+      bool parallelEdge = false;
+      uint parallelSpace = 0;
+      uint parallelWithin = 0;
+      bool twoEdges = false;
+      if (spacingRule->getEol(width,
+                              within,
+                              parallelEdge,
+                              parallelSpace,
+                              parallelWithin,
+                              twoEdges)) {
+        if (width > layer->getWidth()) {
+          spacing = spacingRule->getSpacing();
+        }
+      } else if (spacingRule->getSpacing() > spacing) {
         spacing = spacingRule->getSpacing();
       }
     }
@@ -160,11 +173,9 @@ uint64_t Axioms::getCutSpacingFromVia(odb::dbTechVia* viaX, odb::dbTechVia* viaY
   cutLayerForViaX->getV54SpacingRules(spacingRules);
 
   for (auto spacingRule : spacingRules) {
-    if (isSameNet && spacingRule->getCutSameNet() && !spacingRule->getSameNetPgOnly()) {
-      if (spacingRule->getSpacing() > cutSpacing) {
-        cutSpacing = spacingRule->getSpacing();
-      }
-    } else if (!isSameNet && !spacingRule->getCutSameNet()) {
+    if ((isSameNet && spacingRule->getCutSameNet()
+         && !spacingRule->getSameNetPgOnly())
+        || (!isSameNet && !spacingRule->getCutSameNet())) {
       if (spacingRule->getSpacing() > cutSpacing) {
         cutSpacing = spacingRule->getSpacing();
       }
