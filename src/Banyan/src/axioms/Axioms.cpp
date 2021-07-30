@@ -173,8 +173,7 @@ uint64_t Axioms::getCutSpacingFromVia(odb::dbTechVia* viaX, odb::dbTechVia* viaY
   cutLayerForViaX->getV54SpacingRules(spacingRules);
 
   for (auto spacingRule : spacingRules) {
-    if ((isSameNet && spacingRule->getCutSameNet()
-         && !spacingRule->getSameNetPgOnly())
+    if ((isSameNet && spacingRule->getCutSameNet() && !spacingRule->getSameNetPgOnly())
         || (!isSameNet && !spacingRule->getCutSameNet())) {
       if (spacingRule->getSpacing() > cutSpacing) {
         cutSpacing = spacingRule->getSpacing();
@@ -290,13 +289,17 @@ uint64_t Axioms::calcTrunkMinLength(odb::dbTechLayer* techLayer,
   }
 
   auto minStep = techLayer->getMinStep();
+  // if (minStep > 0 && diffLenOfBoxOfViaX > 0 && diffLenOfBoxOfViaY > 0
+  //     && diffLenOfBoxOfViaX < minStep && diffLenOfBoxOfViaY < minStep
+  //     && (cutSpacing - borderCutBoxOfViaXToMetalBoxEdge
+  //         - borderCutBoxOfViaYToMetalBoxEdge)
+  //            < minStep) {
+  //   cutSpacing += minStep + borderCutBoxOfViaXToMetalBoxEdge
+  //                 + borderCutBoxOfViaYToMetalBoxEdge - cutSpacing;
+  // }
   if (minStep > 0 && diffLenOfBoxOfViaX > 0 && diffLenOfBoxOfViaY > 0
-      && diffLenOfBoxOfViaX < minStep && diffLenOfBoxOfViaY < minStep
-      && (cutSpacing - borderCutBoxOfViaXToMetalBoxEdge
-          - borderCutBoxOfViaYToMetalBoxEdge)
-             < minStep) {
-    cutSpacing += minStep + borderCutBoxOfViaXToMetalBoxEdge
-                  + borderCutBoxOfViaYToMetalBoxEdge - cutSpacing;
+      && (cutSpacing - borderCutBoxOfViaXToMetalBoxEdge - borderCutBoxOfViaYToMetalBoxEdge) < minStep) {
+    cutSpacing = minStep + borderCutBoxOfViaXToMetalBoxEdge + borderCutBoxOfViaYToMetalBoxEdge;
   }
 
   minLen = borderBoxOfViaXToEdge + borderBoxOfViaYToEdge + cutSpacing;
