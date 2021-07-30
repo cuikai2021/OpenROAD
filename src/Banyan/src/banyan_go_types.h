@@ -193,6 +193,7 @@ struct axioms_triple
 struct axioms_layer_table
 {
     int la;
+    
     GoUint64 axioms_triple_begin;
     GoUint64 axioms_triple_end;
 };
