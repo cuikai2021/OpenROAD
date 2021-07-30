@@ -180,10 +180,11 @@ struct route_ret
 
 struct axioms_triple
 {
-    // the bottom left corner of box of via_x and wire are aligned
+    // horizontal: Align the left side of via and wire
+    // vertical: Align the bottom side of via and wire
     int via_x;
-    // horizontal: the bottom right corner of box of via_y and wire are aligned
-    // vertical: the top left corner of box of via_y and wire are aligned
+    // horizontal: Align the right side of via and wire
+    // vertical: Align the top side of via and wire
     int via_y;
     GoUint64 len;
 };
