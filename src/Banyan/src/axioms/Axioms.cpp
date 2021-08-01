@@ -555,21 +555,22 @@ uint64_t Axioms::calcViaTrunkLength(odb::dbTechLayer* techLayer,
 uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
                                     odb::dbTechVia* via)
 {
-  auto layerDir = techLayer->getDirection();
-  uint64_t spacing = getCutSpacingFromVia(via, via, false);
-  auto metalBoxOfVia = getLayerBoxFromVia(techLayer, via);
-  odb::Rect* boundaryBoxOfVia = new odb::Rect();
-  getBoundaryBoxOfCutBoxesFromVia(via, boundaryBoxOfVia);
+  // auto layerDir = techLayer->getDirection();
+  // uint64_t spacing = getCutSpacingFromVia(via, via, false);
+  // auto metalBoxOfVia = getLayerBoxFromVia(techLayer, via);
+  // odb::Rect* boundaryBoxOfVia = new odb::Rect();
+  // getBoundaryBoxOfCutBoxesFromVia(via, boundaryBoxOfVia);
 
-  if (layerDir == odb::dbTechLayerDir::HORIZONTAL) {
-     spacing -= getMarginBetweenCutAndMetalBox(metalBoxOfVia, boundaryBoxOfVia, POSITION::TOP);
-  } else {
-     spacing -= getMarginBetweenCutAndMetalBox(metalBoxOfVia, boundaryBoxOfVia, POSITION::RIGHT);
-  }
+  // if (layerDir == odb::dbTechLayerDir::HORIZONTAL) {
+  //    spacing -= getMarginBetweenCutAndMetalBox(metalBoxOfVia, boundaryBoxOfVia, POSITION::TOP);
+  // } else {
+  //    spacing -= getMarginBetweenCutAndMetalBox(metalBoxOfVia, boundaryBoxOfVia, POSITION::RIGHT);
+  // }
 
-  delete boundaryBoxOfVia;
+  // delete boundaryBoxOfVia;
 
-  return std::max(spacing, getRoutingPRLSpacing(techLayer, false));
+  // return std::max(spacing, getRoutingPRLSpacing(techLayer, false));
+    return getRoutingPRLSpacing(techLayer, false);
 }
 
 uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
