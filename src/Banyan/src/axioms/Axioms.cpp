@@ -650,7 +650,7 @@ void Axioms::initAxiomsTables()
     //===============================================================================================
     triplesBegin = axiomsTriples.size();
     addAxiomsTriples(
-        techLayer, defaultViasInLayer, &Axioms::calcViaTrackLength, false, true);
+        techLayer, defaultViasInLayer, &Axioms::calcViaTrackLength, true, true);
     layerToViaTrackDoubleViaSameTable.push_back(
         {layerIdx, triplesBegin, axiomsTriples.size()});
     //===============================================================================================
