@@ -1,0 +1,111 @@
+# modified files
+
+# Conflicts
+
+	no conflicts
+
+# fix bugs after merge
+
+	Revert "remove assert which forget to be removed"
+
+# merge details
+
+Auto-merging src/ppl/src/IOPlacer.cpp
+Auto-merging src/cts/src/HTreeBuilder.cpp
+Auto-merging src/ICeWall/src/ICeWall.tcl
+Merge made by the 'recursive' strategy.
+ src/ICeWall/src/ICeWall.tcl              |    8 +-
+ src/ICeWall/test/caravel_sky130.defok    | 3797 +++++++++++++++---------------
+ src/ICeWall/test/caravel_sky130.ok       |    2 +-
+ src/OpenDB/src/swig/python/parserenums.i |    4 +
+ src/OpenDB/test/cpp/TestCallBacks.cpp    |   25 +-
+ src/OpenDB/test/cpp/TestJournal.cpp      |    4 +-
+ src/OpenDB/test/cpp/helper.cpp           |   13 +-
+ src/TritonRoute/src/TritonRoute.tcl      |    7 +-
+ src/TritonRoute/test/gcTest.cpp          |    8 +-
+ src/cts/src/HTreeBuilder.cpp             |    3 +
+ src/gui/include/gui/gui.h                |    4 +
+ src/gui/src/dbDescriptors.cpp            |   15 +-
+ src/gui/src/dbDescriptors.h              |    3 +
+ src/gui/src/displayControls.cpp          |    2 +
+ src/gui/src/gui.cpp                      |   21 +
+ src/gui/src/gui.i                        |  161 +-
+ src/gui/src/inspector.cpp                |    2 +
+ src/gui/src/layoutViewer.cpp             |  209 +-
+ src/gui/src/layoutViewer.h               |   29 +-
+ src/gui/src/mainWindow.cpp               |    4 +-
+ src/gui/src/mainWindow.h                 |    1 +
+ src/gui/src/selectHighlightWindow.cpp    |   14 +-
+ src/ifp/src/InitFloorplan.cc             |    2 +-
+ src/ifp/test/init_floorplan9.defok       |   83 +-
+ src/ifp/test/init_floorplan9.ok          |    2 +-
+ src/ifp/test/make_tracks4.ok             |    2 +-
+ src/mpl2/src/block_placement.cpp         |    2 -
+ src/mpl2/src/shape_engine.cpp            |    2 +-
+ src/par/src/PartitionMgr.cpp             |    3 -
+ src/par/src/autocluster.cpp              |    3 +-
+ src/ppl/src/IOPlacer.cpp                 |    1 -
+ src/psm/src/get_voltage.cpp              |    1 -
+ src/psm/src/gmat.cpp                     |    2 -
+ src/psm/src/ir_solver.cpp                |   15 -
+ src/psm/src/pdnsim.cpp                   |   10 +-
+ src/rcx/include/rcx/extRCap.h            |    2 +-
+ src/rcx/src/ext.cpp                      |    3 +-
+ src/rcx/src/extBench.cpp                 |    6 +-
+ src/rcx/src/extBenchDB.cpp               |  142 +-
+ src/rcx/src/extDebugPrint.cpp            |    1 -
+ src/rcx/src/extFlow.cpp                  |   96 +-
+ src/rcx/src/extRCap.cpp                  |  352 +--
+ src/rcx/src/extRCmodel.cpp               |   34 +-
+ src/rcx/src/extSpef.cpp                  |    5 -
+ src/rcx/src/extSpefIn.cpp                |   11 +-
+ src/rcx/src/extmain.cpp                  |   26 +-
+ src/rcx/src/extmeasure.cpp               |   44 +-
+ src/rcx/src/extmeasure_res.cpp           |   13 +-
+ src/rcx/src/extplanes.cpp                |    5 +-
+ src/rcx/src/extprocess.cpp               |    4 -
+ src/rcx/src/extstats.cpp                 |   20 +-
+ src/rcx/src/exttree.cpp                  |    2 +-
+ src/rcx/src/hierSpef.cpp                 |    6 -
+ src/rcx/src/netRC.cpp                    |  103 +-
+ src/rcx/src/powerConn.cpp                |  197 +-
+ src/rmp/src/Restructure.cpp              |   38 +-
+ src/rmp/test/const_cell_removal.ok       |   10 +-
+ src/rmp/test/gcd_restructure.ok          |   18 +-
+ src/rsz/src/Resizer.cc                   |   10 +-
+ src/sta                                  |    2 +-
+ 60 files changed, 2543 insertions(+), 3071 deletions(-)
+Submodule path 'src/sta': checked out '866a434021af716e414db67d3526cca5daf51117'
+removing .github/workflows
+moving docker_deps.yml
+moving docker_regression.yml
+moving docker_release.yml
+moving set_env.yml
+restore docker_deps.yml
+restore docker_regression.yml
+restore docker_release.yml
+restore set_env.yml
+On branch tmp
+Your branch and 'upstream/devops-dev' have diverged,
+and have 35 and 2 different commits each, respectively.
+  (use "git pull" to merge the remote branch into yours)
+
+nothing to commit, working tree clean
+
+# commits
+
+repair_clock_net ignore special nets
+gui: resize highlight and select views to content
+gui: correct columns in inspector
+gui: correct columns in displayControls
+[DRT] Cap droute_end_iter at 64
+gui: make iterm limit static + clang
+gui: limit iterms to keep gui responsive
+cts: fix compiler error in debug mode
+rcx: cleanup many compiler warnings
+Fix typos for command names Fix typo to use timing instead of delay in option "target"
+Fix undefined behavior with sprintf.
+use std::round instead of adding 0.5
+misc compiler warning cleanup
+ifp: fix double to int rounding in meterToDbu
+pad: correcting calls to logger
