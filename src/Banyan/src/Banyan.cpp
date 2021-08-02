@@ -6,6 +6,7 @@
 #include "banyan_go.h"
 #include "sta/StaMain.hh"
 #include "utl/Logger.h"
+#include "axioms/Axioms.h"
 
 namespace sta {
 // Tcl files encoded into strings.
@@ -89,7 +90,66 @@ int Banyan::main(const std::map<std::string, std::string> &options)
                   layer.viadef_begin,
                   layer.viadef_end);
   }
-  
+
+  // Axioms axioms(bdAdapter);
+
+  // for (auto layerToTable : axioms.getLayerToTrunkMinLengthTable()) {
+  //   logger_->info(utl::BY,
+  //                 222,
+  //                 "TrunkMinLengthItem {} [{},{})",
+  //                 layerToTable.la,
+  //                 layerToTable.axioms_triple_begin,
+  //                 layerToTable.axioms_triple_end);
+  // }
+  // for (auto layerToTable : axioms.getLayerToTrunkDistSameTable()) {
+  //   logger_->info(utl::BY,
+  //                 222,
+  //                 "TrunkDistSameItem {} [{},{})",
+  //                 layerToTable.la,
+  //                 layerToTable.axioms_triple_begin,
+  //                 layerToTable.axioms_triple_end);
+  // }
+  // for (auto layerToTable : axioms.getLayerToTrunkDistDiffTable()) {
+  //   logger_->info(utl::BY,
+  //                 222,
+  //                 "TrunkDistDiffItem {} [{},{})",
+  //                 layerToTable.la,
+  //                 layerToTable.axioms_triple_begin,
+  //                 layerToTable.axioms_triple_end);
+  // }
+  // for (auto layerToTable : axioms.getLayerToTrunkViaTable()) {
+  //   logger_->info(utl::BY,
+  //                 222,
+  //                 "TrunkViaItem {} [{},{})",
+  //                 layerToTable.la,
+  //                 layerToTable.axioms_triple_begin,
+  //                 layerToTable.axioms_triple_end);
+  // }
+  // for (auto layerToTable : axioms.getLayerToViaTrackDoubleViaSameTable()) {
+  //   logger_->info(utl::BY,
+  //                 222,
+  //                 "ViaTrackDoubleViaSameItem {} [{},{})",
+  //                 layerToTable.la,
+  //                 layerToTable.axioms_triple_begin,
+  //                 layerToTable.axioms_triple_end);
+  // }
+  // for (auto layerToTable : axioms.getLayerToViaTrackDoubleViaDiffTable()) {
+  //   logger_->info(utl::BY,
+  //                 222,
+  //                 "ViaTrackDoubleViaDiffItem {} [{},{})",
+  //                 layerToTable.la,
+  //                 layerToTable.axioms_triple_begin,
+  //                 layerToTable.axioms_triple_end);
+  // }
+  // for (auto layerToTable : axioms.getLayerToViaTrackTable()) {
+  //   logger_->info(utl::BY,
+  //                 222,
+  //                 "ViaTrackItem {} [{},{})",
+  //                 layerToTable.la,
+  //                 layerToTable.axioms_triple_begin,
+  //                 layerToTable.axioms_triple_end);
+  // }
+
   banyan_go::route_ret ret;
   long long err = banyan_route(
     banyan_go::to_slice(options_vec),
@@ -118,7 +178,7 @@ int Banyan::main(const std::map<std::string, std::string> &options)
     logger_->info(utl::BY, 504, "banyan error: {}", err);
   }
 
-  return (int)err;
+  return err;
 }
 
 }  // namespace banyan
