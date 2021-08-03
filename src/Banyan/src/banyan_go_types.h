@@ -121,6 +121,25 @@ struct layer
     int width;
     int pitch;
 
+    GoUint64 min_steps;
+    /*
+    Specifies that up to maxEdges consecutive edges that are less
+    than minStepLength in length are allowed, but more than
+    maxEdges in a row is a violation. Typically, most tools only
+    allow a maxEdges value of 0, 1, or 2. A maxEdges value of 0
+    means that no edge can be less than minStepLength.
+    */
+    GoUint64 max_edges;
+    /*
+    Specifies the maximum total length of consecutive short edges
+    (edges that are less than minStepLength) that OPC can
+    correct without causing new DRC violations.
+    If the total length of the edges is greater than maxLength, a
+    violation occurs. No violation occurs if the total length is less
+    than or equal to maxLength.
+    */
+    GoUint64 max_length;
+
     // index into the track array
     GoUint64 track_begin;
     GoUint64 track_end;

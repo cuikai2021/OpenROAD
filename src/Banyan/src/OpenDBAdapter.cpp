@@ -122,10 +122,17 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
   auto it = layerNameToIdxs_
                 .insert(make_pair(layer->getName(), (int) layers_.size()))
                 .first;
+
+  auto minStep = layer->getMinStep();
+  auto minStepMaxEdges = layer->getMinStepMaxEdges();
+  auto minStepMaxLength = layer->getMinStepMaxLength();
   layers_.push_back({it->first.c_str(),
                      banyan_go::DIR_NONE,
                      (int) layer->getWidth(),
                      calLayerPitch(layer),
+                     minStep,
+                     minStepMaxEdges,
+                     minStepMaxLength,
                      0,
                      0,
                      0,
@@ -150,7 +157,7 @@ void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::PWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::DIFFUSION) {
     auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
-    layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0});
+    layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0});
     hasAddedMasterSliceLayer_ = true;
   }
 }
