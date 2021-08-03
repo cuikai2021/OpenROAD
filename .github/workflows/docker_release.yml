@@ -23,23 +23,11 @@ jobs:
   release:
     runs-on: [self-hosted]
     steps:
-      - name: 1. login ossutil
-        uses: manyuanrong/setup-ossutil@v2.0
-        with:
-          endpoint: "http://oss-cn-shanghai.aliyuncs.com"
-          access-key-id: "${{ secrets.ALI_OSS_ACCESS_KEY_ID }}"
-          access-key-secret: "${{ secrets.ALI_OSS_ACCESS_KEY_SK }}"
-
-      - name: 2. download env.json and put into github.env
-        run: |
-          ossutil cp oss://icbench-static/environments/${{ github.actor }}/env.json env.json
-          cat env.json | python3 -c "import sys, json; ver=json.load(sys.stdin)['key']"
-          echo "ver=$ver" >> github.env
-      - name: 3. invoke workflow
+      - name: invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           repo: ICBench/bamboo
-          ref: v0.3
+          ref: v0.3.1
           workflow: release
           inputs: '{ "Eden_commit_id": "${{ github.event.inputs.Eden_commit_id }}", "yosys_commit_id": "${{ github.event.inputs.yosys_commit_id }}", "maple_commit_id": "${{ github.event.inputs.maple_commit_id }}", "release_name": "${{ github.event.inputs.release_name }}"}'
