@@ -18,7 +18,10 @@ namespace utl {
 class Logger;
 }
 
+
 namespace banyan {
+
+const int NULL_VIA_IDX = -1;
 
 enum POSITION
 {

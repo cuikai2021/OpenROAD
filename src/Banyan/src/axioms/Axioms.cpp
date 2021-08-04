@@ -367,19 +367,19 @@ void Axioms::addAxiomsTriples(
 {
   if (!excludedNullVia) {
     axiomsTriples.push_back(
-        {0, 0, (this->*calcFunc)(techLayer, nullptr, nullptr, isSameNet)});
+        {NULL_VIA_IDX, NULL_VIA_IDX, (this->*calcFunc)(techLayer, nullptr, nullptr, isSameNet)});
 
     for (const auto& nameToViaX : defaultViasInLayer) {
       auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
       auto viaX = nameToViaX.second;
       axiomsTriples.push_back(
-          {viaXIdx, 0, (this->*calcFunc)(techLayer, viaX, nullptr, isSameNet)});
+          {viaXIdx, NULL_VIA_IDX, (this->*calcFunc)(techLayer, viaX, nullptr, isSameNet)});
     }
     for (const auto& nameToViaY : defaultViasInLayer) {
       auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
       auto viaY = nameToViaY.second;
       axiomsTriples.push_back(
-          {0, viaYIdx, (this->*calcFunc)(techLayer, nullptr, viaY, isSameNet)});
+          {NULL_VIA_IDX, viaYIdx, (this->*calcFunc)(techLayer, nullptr, viaY, isSameNet)});
     }
   }
 
@@ -668,7 +668,7 @@ void Axioms::initAxiomsTables()
     for (auto viaIter : defaultViasInLayer) {
       auto viaIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, viaIter.first);
       auto via = viaIter.second;
-      axiomsTriples.push_back({viaIdx, 0, calcViaTrackLength(techLayer, via)});
+      axiomsTriples.push_back({viaIdx, NULL_VIA_IDX, calcViaTrackLength(techLayer, via)});
     }
     layerToViaTrackTable.push_back({layerIdx, triplesBegin, axiomsTriples.size()});
   }
