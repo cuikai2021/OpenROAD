@@ -127,35 +127,35 @@ class Axioms
   ~Axioms(){
 
   };
-  std::vector<banyan_go::axioms_layer_table> getLayerToViaTrackTable()
+  std::vector<banyan_go::axioms_layer_table>& getLayerToViaTrackTable()
   {
     return layerToViaTrackTable;
   }
-  std::vector<banyan_go::axioms_layer_table> getLayerToViaTrackDoubleViaDiffTable()
+  std::vector<banyan_go::axioms_layer_table>& getLayerToViaTrackDoubleViaDiffTable()
   {
     return layerToViaTrackDoubleViaDiffTable;
   }
-  std::vector<banyan_go::axioms_layer_table> getLayerToViaTrackDoubleViaSameTable()
+  std::vector<banyan_go::axioms_layer_table>& getLayerToViaTrackDoubleViaSameTable()
   {
     return layerToViaTrackDoubleViaSameTable;
   }
-  std::vector<banyan_go::axioms_layer_table> getLayerToTrunkViaTable()
+  std::vector<banyan_go::axioms_layer_table>& getLayerToTrunkViaTable()
   {
     return layerToTrunkViaTable;
   }
-  std::vector<banyan_go::axioms_layer_table> getLayerToTrunkMinLengthTable()
+  std::vector<banyan_go::axioms_layer_table>& getLayerToTrunkMinLengthTable()
   {
     return layerToTrunkMinLengthTable;
   };
-  std::vector<banyan_go::axioms_layer_table> getLayerToTrunkDistSameTable()
+  std::vector<banyan_go::axioms_layer_table>& getLayerToTrunkDistSameTable()
   {
     return layerToTrunkDistSameTable;
   };
-  std::vector<banyan_go::axioms_layer_table> getLayerToTrunkDistDiffTable()
+  std::vector<banyan_go::axioms_layer_table>& getLayerToTrunkDistDiffTable()
   {
     return layerToTrunkDistDiffTable;
   };
-  std::vector<banyan_go::axioms_triple> getAxiomsTriples()
+  std::vector<banyan_go::axioms_triple>& getAxiomsTriples()
   {
     return axiomsTriples;
   }

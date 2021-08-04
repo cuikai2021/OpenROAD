@@ -32,4 +32,18 @@ typedef long long (*route_func)(go_slice<option> options,
     go_slice<net> nets, go_slice<pin> pins, go_slice<box> boxes, go_slice<via> vias,
     go_slice<viadef> viadefs, route_ret *ret);
 
+// for banyan_route_with_axioms
+typedef long long (*route_with_axioms_func)(go_slice<option> options,
+    design dsgn, go_slice<layer> layers, go_slice<track> tracks,
+    go_slice<net> nets, go_slice<pin> pins, go_slice<box> boxes, go_slice<via> vias,
+    go_slice<viadef> viadefs, go_slice<axioms_triple> axioms_triples,
+    go_slice<axioms_layer_table> axioms_via_track_tables,
+    go_slice<axioms_layer_table> axioms_via_track_diff_tables,
+    go_slice<axioms_layer_table> axioms_via_track_same_tables,
+    go_slice<axioms_layer_table> axioms_trunk_via_tables,
+    go_slice<axioms_layer_table> axioms_trunk_min_len_tables,
+    go_slice<axioms_layer_table> axioms_trunk_dist_same_tables,
+    go_slice<axioms_layer_table> axioms_trunk_dist_diff_tables,
+    route_ret *ret);
+
 } // namespace banyan_go
