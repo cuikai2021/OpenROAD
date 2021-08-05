@@ -28,6 +28,6 @@ jobs:
         with:
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           repo: ICBench/bamboo
-          ref: v0.3
+          ref: v0.3.1
           workflow: release
           inputs: '{ "Eden_commit_id": "${{ github.event.inputs.Eden_commit_id }}", "yosys_commit_id": "${{ github.event.inputs.yosys_commit_id }}", "maple_commit_id": "${{ github.event.inputs.maple_commit_id }}", "release_name": "${{ github.event.inputs.release_name }}"}'
