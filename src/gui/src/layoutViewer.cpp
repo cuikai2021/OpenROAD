@@ -34,9 +34,11 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QFileDialog>
 #include <QFont>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QImageWriter>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPaintEvent>
@@ -99,13 +101,13 @@ class GuiPainter : public Painter
   GuiPainter(QPainter* painter,
              Options* options,
              const QTransform& base_transform,
-             int dbu_height,
+             const QPoint& centering_shift,
              qreal pixels_per_dbu,
              int dbu_per_micron)
       : painter_(painter),
         options_(options),
         base_transform_(base_transform),
-        dbu_height_(dbu_height),
+        centering_shift_(centering_shift),
         pixels_per_dbu_(pixels_per_dbu),
         dbu_per_micron_(dbu_per_micron)
   {
@@ -198,8 +200,8 @@ class GuiPainter : public Painter
   {
     painter_->save();
     painter_->setTransform(base_transform_);
-    int sx = x * pixels_per_dbu_;
-    int sy = (dbu_height_ - y) * pixels_per_dbu_;
+    int sx = centering_shift_.x() + x * pixels_per_dbu_;
+    int sy = centering_shift_.y() - y * pixels_per_dbu_;
     painter_->setPen(QPen(Qt::white, 0));
     painter_->setBrush(QBrush());
     painter_->drawText(sx, sy, QString::fromStdString(s));
@@ -231,7 +233,7 @@ class GuiPainter : public Painter
   QPainter* painter_;
   Options* options_;
   const QTransform base_transform_;
-  int dbu_height_;
+  const QPoint centering_shift_;
   qreal pixels_per_dbu_;
   int dbu_per_micron_;
 };
@@ -295,41 +297,105 @@ dbBlock* LayoutViewer::getBlock()
   return block;
 }
 
-void LayoutViewer::setPixelsPerDBU(qreal pixels_per_dbu)
+Rect LayoutViewer::getPaddedRect(const Rect& rect, double factor)
 {
-  pixels_per_dbu_ = pixels_per_dbu;
+  const int margin = factor * std::max(rect.dx(), rect.dy());
+  return Rect(
+      rect.xMin() - margin,
+      rect.yMin() - margin,
+      rect.xMax() + margin,
+      rect.yMax() + margin
+      );
+}
+
+qreal LayoutViewer::computePixelsPerDBU(const QSize& size, const Rect& dbu_rect)
+{
+  return std::min(
+      size.width()  / (double) dbu_rect.dx(),
+      size.height() / (double) dbu_rect.dy());
+}
+
+void LayoutViewer::setPixelsPerDBU(qreal pixels_per_dbu, bool do_resize)
+{
   dbBlock* block = getBlock();
   if (!block) {
     return;
   }
 
-  Rect bbox = getBounds(block);
+  const Rect fitted_bb = getPaddedRect(getBounds(block));
+  // ensure max size is not exceeded
+  qreal maximum_pixels_per_dbu_ = 0.98*computePixelsPerDBU(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX), fitted_bb);
+  pixels_per_dbu_ = std::min(pixels_per_dbu, maximum_pixels_per_dbu_);
 
-  QSize size(ceil(bbox.xMax() * pixels_per_dbu),
-             ceil(bbox.yMax() * pixels_per_dbu));
-  resize(size);
-  setMinimumSize(size);  // needed by scroll area
+  if (do_resize) {
+    const QSize new_size(
+        ceil(fitted_bb.dx() * pixels_per_dbu_),
+        ceil(fitted_bb.dy() * pixels_per_dbu_));
+    resize(new_size);
+    setMinimumSize(new_size);  // needed by scroll area
+  }
   update();
+}
+
+void LayoutViewer::computeCenteringOffset()
+{
+  dbBlock* block = getBlock();
+  if (block != nullptr) {
+    const Rect block_bb = getBounds(block);
+    const QSize actual_size = size();
+
+    centering_shift_ = QPoint(
+        (actual_size.width()  - block_bb.dx()*pixels_per_dbu_)/2,
+        (actual_size.height() + block_bb.dy()*pixels_per_dbu_)/2);
+  }
 }
 
 void LayoutViewer::zoomIn()
 {
-  setPixelsPerDBU(pixels_per_dbu_ * 1.2);
+  zoomIn(screenToDBU(visibleRegion().boundingRect().center()), false);
+}
+
+void LayoutViewer::zoomIn(const odb::Point& focus, bool do_delta_focus)
+{
+  zoom(focus, 1 * zoom_scale_factor_, do_delta_focus);
 }
 
 void LayoutViewer::zoomOut()
 {
-  setPixelsPerDBU(pixels_per_dbu_ / 1.2);
+  zoomOut(screenToDBU(visibleRegion().boundingRect().center()), false);
+}
+
+void LayoutViewer::zoomOut(const odb::Point& focus, bool do_delta_focus)
+{
+  zoom(focus, 1 / zoom_scale_factor_, do_delta_focus);
+}
+
+void LayoutViewer::zoom(const odb::Point& focus, qreal factor, bool do_delta_focus)
+{
+  qreal old_pixels_per_dbu = getPixelsPerDBU();
+  int scrollbar_x = scroller_->horizontalScrollBar()->value();
+  int scrollbar_y = scroller_->verticalScrollBar()->value();
+  QPointF old_pos_in_widget = dbuToScreen(focus);
+
+  setPixelsPerDBU(pixels_per_dbu_ * factor);
+
+  if (do_delta_focus) {
+    qreal new_pixels_per_dbu = getPixelsPerDBU();
+    QPointF delta = (new_pixels_per_dbu / old_pixels_per_dbu - 1) * old_pos_in_widget;
+    scroller_->horizontalScrollBar()->setValue(scrollbar_x + delta.x());
+    scroller_->verticalScrollBar()->setValue(scrollbar_y + delta.y());
+  } else {
+    QPointF new_pos_in_widget = dbuToScreen(focus);
+    scroller_->horizontalScrollBar()->setValue(new_pos_in_widget.x() - scroller_->horizontalScrollBar()->pageStep()/2);
+    scroller_->verticalScrollBar()->setValue(new_pos_in_widget.y() - scroller_->verticalScrollBar()->pageStep()/2);
+  }
 }
 
 void LayoutViewer::zoomTo(const Rect& rect_dbu)
 {
-  QSize viewport = scroller_->maximumViewportSize();
-  qreal pixels_per_dbu = std::min(viewport.width() / (double) rect_dbu.dx(),
-                                  viewport.height() / (double) rect_dbu.dy());
-  setPixelsPerDBU(pixels_per_dbu);
-
-  QRectF screen_rect = dbuToScreen(rect_dbu);
+  const Rect padded_rect = getPaddedRect(rect_dbu);
+  setPixelsPerDBU(computePixelsPerDBU(scroller_->maximumViewportSize(), padded_rect));
+  QRectF screen_rect = dbuToScreen(padded_rect);
 
   // Center the region
   int w = (scroller_->width() - screen_rect.width()) / 2;
@@ -355,6 +421,14 @@ Selected LayoutViewer::selectAtPoint(odb::Point pt_dbu)
   auto& renderers = Gui::get()->renderers();
   dbTech* tech = getBlock()->getDataBase()->getTech();
   std::vector<Selected> selections;
+
+  if (options_->areBlockagesVisible() && options_->areBlockagesSelectable()) {
+    auto blockages = search_.searchBlockages(pt_dbu.x(), pt_dbu.y(), pt_dbu.x(), pt_dbu.y());
+    for (auto iter : blockages) {
+      selections.push_back(makeSelected_(std::get<2>(iter)));
+    }
+  }
+
   // dbSet doesn't provide a reverse iterator so we have to copy it.
   std::deque<dbTechLayer*> rev_layers;
   for (auto layer : tech->getLayers()) {
@@ -370,6 +444,14 @@ Selected LayoutViewer::selectAtPoint(odb::Point pt_dbu)
       Selected selected = renderer->select(layer, pt_dbu);
       if (selected) {
         selections.push_back(selected);
+      }
+    }
+
+    if (options_->areObstructionsVisible() && options_->areObstructionsSelectable()) {
+      auto obs = search_.searchObstructions(
+          layer, pt_dbu.x(), pt_dbu.y(), pt_dbu.x(), pt_dbu.y());
+      for (auto iter : obs) {
+        selections.push_back(makeSelected_(std::get<2>(iter)));
       }
     }
 
@@ -506,9 +588,11 @@ void LayoutViewer::mouseReleaseEvent(QMouseEvent* event)
       return;  // ignore clicks not intended to be drags
     }
 
+    const Rect block_bounds = getBounds(block);
+
     Rect rubber_band_dbu = screenToDBU(rect);
     // Clip to the block bounds
-    Rect bbox = getBounds(block);
+    Rect bbox = getPaddedRect(block_bounds);
 
     rubber_band_dbu.set_xlo(qMax(rubber_band_dbu.xMin(), bbox.xMin()));
     rubber_band_dbu.set_ylo(qMax(rubber_band_dbu.yMin(), bbox.yMin()));
@@ -548,10 +632,9 @@ void LayoutViewer::mouseReleaseEvent(QMouseEvent* event)
 void LayoutViewer::resizeEvent(QResizeEvent* event)
 {
   dbBlock* block = getBlock();
-  if (block) {
-    Rect bbox = getBounds(block);
-    pixels_per_dbu_ = std::min(event->size().width() / (double) bbox.xMax(),
-                               event->size().height() / (double) bbox.yMax());
+  if (block != nullptr) {
+    setPixelsPerDBU(computePixelsPerDBU(event->size(), getPaddedRect(getBounds(block))), false);
+    computeCenteringOffset();
   }
 }
 
@@ -586,15 +669,15 @@ void LayoutViewer::addInstTransform(QTransform& xfm,
       xfm.scale(-1, 1);
       break;
     case dbOrientType::MYR90:
-      xfm.scale(-1, 1);
       xfm.rotate(90);
+      xfm.scale(-1, 1);
       break;
     case dbOrientType::MX:
       xfm.scale(1, -1);
       break;
     case dbOrientType::MXR90:
-      xfm.scale(1, -1);
       xfm.rotate(90);
+      xfm.scale(1, -1);
       break;
     default:
       break;  // error
@@ -825,27 +908,32 @@ void LayoutViewer::drawRulers(Painter& painter)
 
 void LayoutViewer::drawCongestionMap(Painter& painter, const odb::Rect& bounds)
 {
+  if (!options_->isCongestionVisible()) {
+    return;
+  }
+
   auto block = getBlock();
   if (block == nullptr)
     return;
   auto grid = block->getGCellGrid();
   if (grid == nullptr)
     return;
+
+  auto gcell_congestion_data = grid->getCongestionMap();
+  if (gcell_congestion_data.empty()) {
+    return;
+  }
+
   std::vector<int> x_grid, y_grid;
   uint x_grid_sz, y_grid_sz;
   grid->getGridX(x_grid);
   x_grid_sz = x_grid.size();
   grid->getGridY(y_grid);
   y_grid_sz = y_grid.size();
-  auto gcell_congestion_data = grid->getCongestionMap();
-
-  if (!options_->isCongestionVisible() || gcell_congestion_data.empty())
-    return;
 
   bool show_hor_congestion = options_->showHorizontalCongestion();
   bool show_ver_congestion = options_->showVerticalCongestion();
   auto min_congestion_to_show = options_->getMinCongestionToShow();
-
   auto max_congestion_to_show = options_->getMaxCongestionToShow();
 
   for (auto& [key, cong_data] : gcell_congestion_data) {
@@ -896,6 +984,217 @@ void LayoutViewer::drawCongestionMap(Painter& painter, const odb::Rect& bounds)
   }
 }
 
+// Draw the instances bounds
+void LayoutViewer::drawInstanceOutlines(QPainter* painter,
+                                        const std::vector<odb::dbInst*>& insts)
+{
+  int minimum_height_for_tag = 5 * minimumViewableResolution();
+  const QTransform initial_xfm = painter->transform();
+
+  painter->setPen(QPen(Qt::gray, 0));
+  painter->setBrush(QBrush());
+  for (auto inst : insts) {
+    dbMaster* master = inst->getMaster();
+    // setup the instance's transform
+    QTransform xfm = initial_xfm;
+    dbTransform inst_xfm;
+    inst->getTransform(inst_xfm);
+    addInstTransform(xfm, inst_xfm);
+    painter->setTransform(xfm);
+
+    // draw bbox
+    Rect master_box;
+    master->getPlacementBoundary(master_box);
+    painter->drawRect(
+        master_box.xMin(), master_box.yMin(), master_box.dx(), master_box.dy());
+
+    // Draw an orientation tag in corner if useful in size
+    int master_h = master->getHeight();
+    if (master_h >= minimum_height_for_tag) {
+      qreal master_w = master->getWidth();
+      qreal tag_size = 0.1 * master_h;
+      qreal tag_x = master_box.xMin() + std::min(tag_size / 2, master_w);
+      qreal tag_y = master_box.yMin() + tag_size;
+      painter->drawLine(QPointF(tag_x, master_box.yMin()),
+                        QPointF(master_box.xMin(), tag_y));
+    }
+  }
+  painter->setTransform(initial_xfm);
+}
+
+// Draw the instances' shapes
+void LayoutViewer::drawInstanceShapes(dbTechLayer* layer,
+                                      QPainter* painter,
+                                      const std::vector<odb::dbInst*>& insts)
+{
+  int minimum_height = 5 * minimumViewableResolution();
+  const QTransform initial_xfm = painter->transform();
+  // Draw the instances' shapes
+  for (auto inst : insts) {
+    dbMaster* master = inst->getMaster();
+    if (master->getHeight() < minimum_height) {
+      continue;
+    }
+
+    const Boxes* boxes = boxesByLayer(master, layer);
+
+    if (boxes == nullptr) {
+      continue;  // no shapes on this layer
+    }
+
+    // setup the instance's transform
+    QTransform xfm = initial_xfm;
+    dbTransform inst_xfm;
+    inst->getTransform(inst_xfm);
+    addInstTransform(xfm, inst_xfm);
+    painter->setTransform(xfm);
+
+    // Only draw the pins/obs if they are big enough to be useful
+    painter->setPen(Qt::NoPen);
+    QColor color = getColor(layer);
+    Qt::BrushStyle brush_pattern = getPattern(layer);
+    painter->setBrush(QBrush(color, brush_pattern));
+
+    painter->setBrush(color.lighter());
+    for (auto& box : boxes->obs) {
+      painter->drawRect(box);
+    }
+
+    painter->setBrush(QBrush(color, brush_pattern));
+    for (auto& box : boxes->mterms) {
+      painter->drawRect(box);
+    }
+  }
+
+  painter->setTransform(initial_xfm);
+}
+
+// Draw the instances' names
+void LayoutViewer::drawInstanceNames(QPainter* painter,
+                                     int font_size,
+                                     const std::vector<odb::dbInst*>& insts)
+{
+  if (!options_->areInstanceNamesVisible()) {
+    return;
+  }
+  int minimum_height = 5 * minimumViewableResolution();
+  const QTransform initial_xfm = painter->transform();
+
+  const QColor text_color = options_->instanceNameColor();
+  painter->setPen(QPen(text_color, 0));
+  painter->setBrush(QBrush(text_color));
+
+  const QFont initial_font = painter->font();
+
+  // aim for 1/4 the width of master, 1/20 the height of master,
+  // but no more than 50x bigger than all other text
+  static const int width_scalar = 4;
+  static const int height_scalar = 20;
+  static const int max_scalar = 50;
+  // text should not fill more than 90% of the instance width
+  static const double width_limit = 0.9;
+
+  painter->setTransform(QTransform());
+  for (auto inst : insts) {
+    dbMaster* master = inst->getMaster();
+    if (master->getHeight() < minimum_height) {
+      continue;
+    }
+
+    // setup the instance's transform
+    dbTransform inst_xfm;
+    inst->getTransform(inst_xfm);
+
+    // get bbox
+    Rect master_box;
+    master->getPlacementBoundary(master_box);
+    inst_xfm.apply(master_box);
+
+    // draw text
+    QString name = inst->getName().c_str();
+
+    QFont inst_font = initial_font;
+    inst_font.setPixelSize(font_size);
+    QRect text_bbox = QFontMetrics(inst_font).boundingRect(name);
+    int inst_width = master_box.dx();
+    int inst_height = master_box.dy();
+    int text_bbox_width = width_scalar*text_bbox.width();
+    int text_bbox_height = height_scalar*text_bbox.height();
+    if (text_bbox_width < inst_width || text_bbox_height < inst_height) {
+      // text will be tiny, so update pixel size
+      int scale_font_width = std::floor(static_cast<double>(inst_width) / text_bbox_width);
+      int scale_font_height = std::floor(static_cast<double>(inst_height) / text_bbox_height);
+      int scale_font = std::min(max_scalar, std::max(scale_font_width, scale_font_height));
+
+      inst_font.setPixelSize(scale_font * font_size);
+      text_bbox = QFontMetrics(inst_font).boundingRect(name);
+    }
+    double inst_width_limit = width_limit * inst_width;
+    if (text_bbox.width() > inst_width_limit) {
+      // make 10% smaller than width of instance
+      double scale_font = inst_width_limit / text_bbox.width();
+      inst_font.setPixelSize(inst_font.pixelSize() * scale_font);
+    }
+    int final_size = inst_font.pixelSize() * pixels_per_dbu_;
+    if (final_size == 0) {
+      continue;
+    }
+    inst_font.setPixelSize(final_size);
+    painter->setFont(inst_font);
+
+    QRectF text_draw_box = dbuToScreen(master_box);
+    QPointF text_draw_box_center = text_draw_box.center();
+    text_draw_box.setLeft(text_draw_box_center.x() - text_bbox.width() * pixels_per_dbu_/2);
+    text_draw_box.setWidth(text_bbox.width() * pixels_per_dbu_);
+    painter->drawText(text_draw_box, Qt::AlignCenter, name);
+  }
+
+  painter->setTransform(initial_xfm);
+  painter->setFont(initial_font);
+}
+
+void LayoutViewer::drawBlockages(QPainter* painter,
+                                 const Rect& bounds)
+{
+  if (!options_->areBlockagesVisible()) {
+    return;
+  }
+  painter->setPen(Qt::NoPen);
+  painter->setBrush(QBrush(options_->placementBlockageColor(), options_->placementBlockagePattern()));
+
+  auto blockage_range = search_.searchBlockages(
+      bounds.xMin(), bounds.yMin(), bounds.xMax(), bounds.yMax(), minimumViewableResolution());
+
+  for (auto& [box, poly, blockage] : blockage_range) {
+    Rect bbox;
+    blockage->getBBox()->getBox(bbox);
+    painter->drawRect(bbox.xMin(), bbox.yMin(), bbox.dx(), bbox.dy());
+  }
+}
+
+void LayoutViewer::drawObstructions(dbTechLayer* layer,
+                                    QPainter* painter,
+                                    const Rect& bounds)
+{
+  if (!options_->areObstructionsVisible() || !options_->isVisible(layer)) {
+    return;
+  }
+
+  painter->setPen(Qt::NoPen);
+  QColor color = getColor(layer).darker();
+  Qt::BrushStyle brush_pattern = getPattern(layer);
+  painter->setBrush(QBrush(color, brush_pattern));
+
+  auto obstructions_range = search_.searchObstructions(
+      layer, bounds.xMin(), bounds.yMin(), bounds.xMax(), bounds.yMax(), minimumViewableResolution());
+
+  for (auto& [box, poly, obs] : obstructions_range) {
+    Rect bbox;
+    obs->getBBox()->getBox(bbox);
+    painter->drawRect(bbox.xMin(), bbox.yMin(), bbox.dx(), bbox.dy());
+  }
+}
+
 // Draw the region of the block.  Depth is not yet used but
 // is there for hierarchical design support.
 void LayoutViewer::drawBlock(QPainter* painter,
@@ -912,7 +1211,7 @@ void LayoutViewer::drawBlock(QPainter* painter,
   GuiPainter gui_painter(painter,
                          options_,
                          base_tx,
-                         getBounds(block).yMax(),
+                         centering_shift_,
                          pixels_per_dbu_,
                          block->getDbUnitsPerMicron());
 
@@ -938,36 +1237,10 @@ void LayoutViewer::drawBlock(QPainter* painter,
     }
   }
 
-  // Draw the instances bounds
-  for (auto inst : insts) {
-    dbMaster* master = inst->getMaster();
-    // setup the instance's transform
-    QTransform xfm = painter->transform();
-    dbTransform inst_xfm;
-    inst->getTransform(inst_xfm);
-    addInstTransform(xfm, inst_xfm);
-    painter->setTransform(xfm);
+  drawInstanceOutlines(painter, insts);
 
-    // draw bbox
-    painter->setPen(QPen(Qt::gray, 0));
-    painter->setBrush(QBrush());
-    Rect master_box;
-    master->getPlacementBoundary(master_box);
-    painter->drawRect(
-        master_box.xMin(), master_box.yMin(), master_box.dx(), master_box.dy());
-
-    // Draw an orientation tag in corner if useful in size
-    int master_h = master->getHeight();
-    if (master_h >= 5 * pixel) {
-      qreal master_w = master->getWidth();
-      qreal tag_size = 0.1 * master_h;
-      qreal tag_x = master_box.xMin() + std::min(tag_size / 2, master_w);
-      qreal tag_y = master_box.yMin() + tag_size;
-      painter->drawLine(QPointF(tag_x, master_box.yMin()),
-                        QPointF(master_box.xMin(), tag_y));
-    }
-    painter->setTransform(initial_xfm);
-  }
+  // draw blockages
+  drawBlockages(painter, bounds);
 
   dbTech* tech = block->getDataBase()->getTech();
   for (dbTechLayer* layer : tech->getLayers()) {
@@ -981,63 +1254,9 @@ void LayoutViewer::drawBlock(QPainter* painter,
       continue;
     }
 
-    // Draw the instances' shapes
-    for (auto inst : insts) {
-      dbMaster* master = inst->getMaster();
-      if (master->getHeight() < 5 * pixel) {
-        continue;
-      }
+    drawInstanceShapes(layer, painter, insts);
 
-      const Boxes* boxes = boxesByLayer(master, layer);
-
-      if (boxes == nullptr) {
-        continue;  // no shapes on this layer
-      }
-
-      // setup the instance's transform
-      QTransform xfm = painter->transform();
-      dbTransform inst_xfm;
-      inst->getTransform(inst_xfm);
-      addInstTransform(xfm, inst_xfm);
-      painter->setTransform(xfm);
-
-      // Only draw the pins/obs if they are big enough to be useful
-      painter->setPen(Qt::NoPen);
-      QColor color = getColor(layer);
-      Qt::BrushStyle brush_pattern = getPattern(layer);
-      painter->setBrush(QBrush(color, brush_pattern));
-
-      painter->setBrush(color.lighter());
-      for (auto& box : boxes->obs) {
-        painter->drawRect(box);
-      }
-
-      painter->setBrush(QBrush(color, brush_pattern));
-      for (auto& box : boxes->mterms) {
-        painter->drawRect(box);
-      }
-
-#if 0
-        // TODO
-        // draw text
-        painter->setPen(QPen(Qt::yellow, 0));
-        painter->setBrush(QBrush(Qt::yellow));
-        auto name = master->getName();
-        qreal font_scale = master_w
-            / painter->fontMetrics().horizontalAdvance(name.c_str());
-
-        font_scale = std::min(font_scale, 5000.0);
-        QFont f = painter->font();
-        f.setPointSizeF(f.pointSize() * pixels_per_dbu_);
-        painter->setFont(f);
-
-        painter->scale(1, -1);
-        painter->drawText(0, -master_h, master_w, master_h,
-                          Qt::AlignCenter, name.c_str());
-#endif
-
-      painter->setTransform(initial_xfm);
-    }
+    drawObstructions(layer, painter, bounds);
 
     // Now draw the shapes
     QColor color = getColor(layer);
@@ -1097,6 +1316,9 @@ void LayoutViewer::drawBlock(QPainter* painter,
       renderer->drawLayer(layer, gui_painter);
     }
   }
+
+  // draw instance names ~ 200nm tall
+  drawInstanceNames(painter, 0.2*block->getDbUnitsPerMicron(), insts);
 
   drawRows(block, painter, bounds);
   for (auto* renderer : renderers) {
@@ -1193,36 +1415,38 @@ void LayoutViewer::drawPinMarkers(QPainter* painter,
 
 odb::Point LayoutViewer::screenToDBU(const QPoint& point)
 {
-  return Point(point.x() / pixels_per_dbu_,
-               (height() - point.y()) / pixels_per_dbu_);
+  // Flip the y-coordinate (see file level comments)
+  return Point((point.x()-centering_shift_.x()) / pixels_per_dbu_,
+               (centering_shift_.y()-point.y()) / pixels_per_dbu_);
 }
 
 Rect LayoutViewer::screenToDBU(const QRect& screen_rect)
 {
-  int dbu_left = (int) floor(screen_rect.left() / pixels_per_dbu_);
-  int dbu_right = (int) ceil(screen_rect.right() / pixels_per_dbu_);
-  int dbu_top = (int) floor(screen_rect.top() / pixels_per_dbu_);
-  int dbu_bottom = (int) ceil(screen_rect.bottom() / pixels_per_dbu_);
-
+  int dbu_left = (int) floor((screen_rect.left()-centering_shift_.x()) / pixels_per_dbu_);
+  int dbu_right = (int) ceil((screen_rect.right()-centering_shift_.x()) / pixels_per_dbu_);
   // Flip the y-coordinate (see file level comments)
-  dbBlock* block = getBlock();
-  int dbu_height = getBounds(block).yMax();
-  dbu_top = dbu_height - dbu_top;
-  dbu_bottom = dbu_height - dbu_bottom;
+  int dbu_top = (int) floor((centering_shift_.y()-screen_rect.top()) / pixels_per_dbu_);
+  int dbu_bottom = (int) ceil((centering_shift_.y()-screen_rect.bottom()) / pixels_per_dbu_);
 
   return Rect(dbu_left, dbu_bottom, dbu_right, dbu_top);
 }
 
+QPointF LayoutViewer::dbuToScreen(const Point& dbu_point)
+{
+  // Flip the y-coordinate (see file level comments)
+  qreal x = centering_shift_.x() + dbu_point.x() * pixels_per_dbu_;
+  qreal y = centering_shift_.y() - dbu_point.y() * pixels_per_dbu_;
+
+  return QPointF(x, y);
+}
+
 QRectF LayoutViewer::dbuToScreen(const Rect& dbu_rect)
 {
-  dbBlock* block = getBlock();
-  int dbu_height = getBounds(block).yMax();
-
   // Flip the y-coordinate (see file level comments)
-  qreal screen_left = dbu_rect.xMin() * pixels_per_dbu_;
-  qreal screen_right = dbu_rect.xMax() * pixels_per_dbu_;
-  qreal screen_top = (dbu_height - dbu_rect.yMax()) * pixels_per_dbu_;
-  qreal screen_bottom = (dbu_height - dbu_rect.yMin()) * pixels_per_dbu_;
+  qreal screen_left   = centering_shift_.x() + dbu_rect.xMin() * pixels_per_dbu_;
+  qreal screen_right  = centering_shift_.x() + dbu_rect.xMax() * pixels_per_dbu_;
+  qreal screen_top    = centering_shift_.y() - dbu_rect.yMax() * pixels_per_dbu_;
+  qreal screen_bottom = centering_shift_.y() - dbu_rect.yMin() * pixels_per_dbu_;
 
   return QRectF(QPointF(screen_left, screen_top),
                 QPointF(screen_right, screen_bottom));
@@ -1239,8 +1463,8 @@ void LayoutViewer::paintEvent(QPaintEvent* event)
   painter.setRenderHints(QPainter::Antialiasing);
 
   // Fill draw region with black
-  painter.setPen(QPen(Qt::black, 0));
-  painter.setBrush(Qt::black);
+  painter.setPen(QPen(background_, 0));
+  painter.setBrush(background_);
   painter.drawRect(event->rect());
 
   if (!design_loaded_) {
@@ -1255,7 +1479,7 @@ void LayoutViewer::paintEvent(QPaintEvent* event)
   // Coordinate system setup (see file level comments)
   const QTransform base_transform = painter.transform();
   painter.save();
-  painter.translate(0, height());
+  painter.translate(centering_shift_);
   painter.scale(pixels_per_dbu_, -pixels_per_dbu_);
 
   Rect dbu_bounds = screenToDBU(event->rect());
@@ -1311,16 +1535,12 @@ void LayoutViewer::fit()
   }
 
   Rect bbox = getBounds(block);
-  if (bbox.xMax() == 0 || bbox.yMax() == 0) {
+  if (bbox.dx() == 0 || bbox.dy() == 0) {
     return;
   }
 
-  QSize viewport = scroller_->maximumViewportSize();
-  qreal pixels_per_dbu
-      = std::min((viewport.width() * 0.98) / (double) bbox.xMax(),
-                 (viewport.height() * 0.98) / (double) bbox.yMax());
-  setPixelsPerDBU(pixels_per_dbu);
-  fit_pixels_per_dbu_ = pixels_per_dbu;
+  zoomTo(bbox);
+  fit_pixels_per_dbu_ = pixels_per_dbu_;
 }
 
 void LayoutViewer::selectHighlightConnectedInst(bool select_flag)
@@ -1400,12 +1620,78 @@ void LayoutViewer::setScroller(LayoutScroll* scroller)
   scroller_ = scroller;
 }
 
+void LayoutViewer::saveImage(const QString& filepath, const Rect& region)
+{
+  dbBlock* block = getBlock();
+  if (block == nullptr) {
+    return;
+  }
+
+  QList<QByteArray> valid_extensions = QImageWriter::supportedImageFormats();
+
+  QString save_filepath;
+  if (filepath.isEmpty()) {
+    QString images_filter = "Images (";
+    for (const QString& ext : valid_extensions) {
+      images_filter += "*." + ext + " ";
+    }
+    images_filter += ")";
+
+    save_filepath = QFileDialog::getSaveFileName(
+        this,
+        tr("Save Layout"),
+        "",
+        images_filter);
+  } else {
+    save_filepath = filepath;
+  }
+
+  if (save_filepath.isEmpty()) {
+    return;
+  }
+
+  // check for a valid extension, if not found add .png
+  if (!std::any_of(
+      valid_extensions.begin(),
+      valid_extensions.end(),
+      [save_filepath](const QString& ext) {
+        return save_filepath.endsWith("."+ext);
+      })) {
+    save_filepath += ".png";
+    logger_->warn(utl::GUI, 10, "File path does not end with a valid extension, new path is: {}", save_filepath.toStdString());
+  }
+
+  QRegion save_region;
+  if (region.dx() == 0 || region.dy() == 0) {
+    // default to just that is currently visible
+    save_region = visibleRegion();
+  } else {
+    const QRectF screen_region = dbuToScreen(region);
+    save_region = QRegion(
+        screen_region.left(),  screen_region.top(),
+        screen_region.width(), screen_region.height());
+  }
+
+  const QRect bounding_rect = save_region.boundingRect();
+  QImage img(bounding_rect.width(), bounding_rect.height(), QImage::Format_ARGB32_Premultiplied);
+  if (!img.isNull()) {
+    img.fill(background_);
+    render(&img, {0, 0}, save_region);
+    if (!img.save(save_filepath)) {
+      logger_->warn(utl::GUI, 11, "Failed to write image: {}", save_filepath.toStdString());
+    }
+  } else {
+    logger_->warn(utl::GUI, 12, "Image is too big to be generated: {}px x {}px", bounding_rect.width(), bounding_rect.height());
+  }
+}
+
 void LayoutViewer::addMenuAndActions()
 {
   // Create Top Level Menu for the context Menu
   auto select_menu = layout_context_menu_->addMenu(tr("Select"));
   auto highlight_menu = layout_context_menu_->addMenu(tr("Highlight"));
   auto view_menu = layout_context_menu_->addMenu(tr("View"));
+  auto save_menu = layout_context_menu_->addMenu(tr("Save"));
   auto clear_menu = layout_context_menu_->addMenu(tr("Clear"));
   // Create Actions
 
@@ -1432,6 +1718,10 @@ void LayoutViewer::addMenuAndActions()
   menu_actions_[VIEW_ZOOMIN_ACT] = view_menu->addAction(tr("Zoom In"));
   menu_actions_[VIEW_ZOOMOUT_ACT] = view_menu->addAction(tr("Zoom Out"));
   menu_actions_[VIEW_ZOOMFIT_ACT] = view_menu->addAction(tr("Fit"));
+
+  // Save actions
+  menu_actions_[SAVE_VISIBLE_IMAGE_ACT] = save_menu->addAction(tr("Visible layout"));
+  menu_actions_[SAVE_WHOLE_IMAGE_ACT] = save_menu->addAction(tr("Entire layout"));
 
   // Clear Actions
   menu_actions_[CLEAR_SELECTIONS_ACT] = clear_menu->addAction(tr("Selections"));
@@ -1484,6 +1774,14 @@ void LayoutViewer::addMenuAndActions()
     this->fit();
   });
 
+  connect(menu_actions_[SAVE_VISIBLE_IMAGE_ACT], &QAction::triggered, this, [this]() {
+    saveImage("");
+  });
+  connect(menu_actions_[SAVE_WHOLE_IMAGE_ACT], &QAction::triggered, this, [this]() {
+    const QSize whole_size = size();
+    saveImage("", screenToDBU({0, 0, whole_size.width(), whole_size.height()}));
+  });
+
   connect(
       menu_actions_[CLEAR_SELECTIONS_ACT], &QAction::triggered, this, [this]() {
         Gui::get()->clearSelections();
@@ -1519,45 +1817,15 @@ void LayoutScroll::wheelEvent(QWheelEvent* event)
     return;
   }
 
+  const odb::Point mouse_pos = viewer_->screenToDBU(viewer_->mapFromGlobal(QCursor::pos()));
   if (event->angleDelta().y() > 0) {
-    zoomIn();
+    viewer_->zoomIn(mouse_pos, true);
   } else {
-    zoomOut();
+    viewer_->zoomOut(mouse_pos, true);
   }
-}
-
-void LayoutScroll::zoomIn()
-{
-  qreal old_pixels_per_dbu = viewer_->getPixelsPerDBU();
-
-  int scrollbar_x = horizontalScrollBar()->value();
-  int scrollbar_y = verticalScrollBar()->value();
-  QPointF pos_in_widget = mapFromGlobal(QCursor::pos()) - widget()->pos();
-
-  viewer_->zoomIn();
-
-  qreal new_pixels_per_dbu = viewer_->getPixelsPerDBU();
-  QPointF delta = (new_pixels_per_dbu / old_pixels_per_dbu - 1) * pos_in_widget;
-
-  horizontalScrollBar()->setValue(scrollbar_x + delta.x());
-  verticalScrollBar()->setValue(scrollbar_y + delta.y());
-}
-
-void LayoutScroll::zoomOut()
-{
-  qreal old_pixels_per_dbu = viewer_->getPixelsPerDBU();
-
-  int scrollbar_x = horizontalScrollBar()->value();
-  int scrollbar_y = verticalScrollBar()->value();
-  QPointF pos_in_widget = mapFromGlobal(QCursor::pos()) - widget()->pos();
-
-  viewer_->zoomOut();
-
-  qreal new_pixels_per_dbu = viewer_->getPixelsPerDBU();
-  QPointF delta = (new_pixels_per_dbu / old_pixels_per_dbu - 1) * pos_in_widget;
-
-  horizontalScrollBar()->setValue(scrollbar_x + delta.x());
-  verticalScrollBar()->setValue(scrollbar_y + delta.y());
+  // ensure changes are processed before the next wheel event to prevent zoomIn and Out
+  // from jumping around on the ScrollBars
+  QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 }
 
 void LayoutViewer::inDbNetDestroy(dbNet* net)
@@ -1621,6 +1889,21 @@ void LayoutViewer::inDbSWireCreate(dbSWire* wire)
 }
 
 void LayoutViewer::inDbSWireDestroy(dbSWire* wire)
+{
+  updateShapes();
+}
+
+void LayoutViewer::inDbBlockageCreate(odb::dbBlockage* blockage)
+{
+  updateShapes();
+}
+
+void LayoutViewer::inDbObstructionCreate(odb::dbObstruction* obs)
+{
+  updateShapes();
+}
+
+void LayoutViewer::inDbObstructionDestroy(odb::dbObstruction* obs)
 {
   updateShapes();
 }

@@ -2,6 +2,7 @@
 
 #include <map>
 #include <list>
+#include <iostream>
 
 #include "banyan_go.h"
 #include "string.h"
@@ -24,6 +25,25 @@ class Rect;
 
 namespace utl {
 class Logger;
+}
+
+#define AssertFind(mmap, key) \
+  assertFind(mmap, key, __FILE__, __LINE__, __func__)
+
+template <typename TKEY, typename TVALUE>
+TVALUE assertFind(std::map<TKEY, TVALUE>& mmap,
+                  TKEY key,
+                  const char* fname,
+                  int lineno,
+                  const char* fxname)
+{
+  auto itr = mmap.find(key);
+  if (itr == mmap.end()) {
+    std::cout << "can not find map[" << key << "], call in " << fname << " "
+              << fxname << " " << lineno << std::endl;
+    assert(false);
+  }
+  return itr->second;
 }
 
 namespace banyan {
@@ -50,6 +70,7 @@ class DBAdapter
   virtual ~DBAdapter() {}
 };
 
+class Axioms; 
 class OpenDBAdapter : public DBAdapter
 {
  private:
@@ -68,6 +89,8 @@ class OpenDBAdapter : public DBAdapter
   odb::dbDatabase* db_;
   utl::Logger* logger_;
 
+  const int obs_layers_ = 2; // M2 and above
+
   bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
   std::map<std::string, int> layerNameToIdxs_;
@@ -80,6 +103,8 @@ class OpenDBAdapter : public DBAdapter
   std::list<std::string> strs_;
 
   int defdist(int x);
+  int64_t defArea(double area);
+
   int calLayerPitch(odb::dbTechLayer* layer);
 
   void getDesignFromOpenDB();
@@ -106,10 +131,14 @@ class OpenDBAdapter : public DBAdapter
   void addVia(odb::dbSBox* box);
   void addVia(std::string viaName, int x, int y);
 
+  void getObsFromOpenDB();
+  void getInstsObsFromOpenDB();
+
   void getNetsFromOpenDB();
   void getPinsFromOpenDB();
 
  public:
+  friend class Axioms;
   OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger)
       : db_(db), logger_(logger)
   {
@@ -117,6 +146,8 @@ class OpenDBAdapter : public DBAdapter
     getLayersFromOpenDB();
     getTracksFromOpenDB();
     getViaDefsFromOpenDB();
+    getObsFromOpenDB();
+    getInstsObsFromOpenDB();
     getNDRsFromOpenDB();
     getNetsFromOpenDB();
     getPinsFromOpenDB();

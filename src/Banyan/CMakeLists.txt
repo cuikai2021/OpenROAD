@@ -26,6 +26,7 @@ target_sources(Banyan
     src/MakeBanyan.cpp
     src/OpenDBAdapter.cpp
     src/GroupedRange.hpp
+    src/axioms/Axioms.cpp
 )
 
 target_include_directories(Banyan
