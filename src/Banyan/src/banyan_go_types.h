@@ -121,6 +121,25 @@ struct layer
     int width;
     int pitch;
 
+    GoUint64 min_steps;
+    /*
+    Specifies that up to maxEdges consecutive edges that are less
+    than minStepLength in length are allowed, but more than
+    maxEdges in a row is a violation. Typically, most tools only
+    allow a maxEdges value of 0, 1, or 2. A maxEdges value of 0
+    means that no edge can be less than minStepLength.
+    */
+    GoUint64 max_edges;
+    /*
+    Specifies the maximum total length of consecutive short edges
+    (edges that are less than minStepLength) that OPC can
+    correct without causing new DRC violations.
+    If the total length of the edges is greater than maxLength, a
+    violation occurs. No violation occurs if the total length is less
+    than or equal to maxLength.
+    */
+    GoUint64 max_length;
+
     // index into the track array
     GoUint64 track_begin;
     GoUint64 track_end;
@@ -176,3 +195,24 @@ struct route_ret
     via *rvias; // need free
     GoUint64 rvias_size;
 }; // struct entry_ret
+
+
+struct axioms_triple
+{
+    // horizontal: Align the left side of via and wire
+    // vertical: Align the bottom side of via and wire
+    int via_x;
+    // horizontal: Align the right side of via and wire
+    // vertical: Align the top side of via and wire
+    int via_y;
+    GoUint64 len;
+};
+
+
+struct axioms_layer_table
+{
+    int la;
+    
+    GoUint64 axioms_triple_begin;
+    GoUint64 axioms_triple_end;
+};

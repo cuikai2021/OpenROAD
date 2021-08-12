@@ -1,7 +1,6 @@
 
 #include <assert.h>
 
-#include <iostream>
 #include <utility>
 
 #include "DBAdapter.h"
@@ -13,26 +12,9 @@
 #include "opendb/geom.h"
 #include "utl/Logger.h"
 
-#define AssertFind(mmap, key) \
-  assertFind(mmap, key, __FILE__, __LINE__, __func__)
+
 
 namespace banyan {
-
-template <typename TKEY, typename TVALUE>
-TVALUE assertFind(std::map<TKEY, TVALUE>& mmap,
-                  TKEY key,
-                  const char* fname,
-                  int lineno,
-                  const char* fxname)
-{
-  auto itr = mmap.find(key);
-  if (itr == mmap.end()) {
-    std::cout << "can not find map[" << key << "], call in " << fname << " "
-              << fxname << " " << lineno << std::endl;
-    assert(false);
-  }
-  return itr->second;
-}
 
 std::string getViaNameFromViaBox(odb::dbSBox* box)
 {
@@ -89,6 +71,14 @@ int OpenDBAdapter::defdist(int x)
          / (double) block->getDbUnitsPerMicron();
 }
 
+int64_t OpenDBAdapter::defArea(double area)
+{
+  odb::dbTech* tech = db_->getTech();
+  int database_unit = tech->getLefUnits();
+  int64_t defArea = area * database_unit * database_unit;
+  return defArea;
+}
+
 void OpenDBAdapter::getDesignFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
@@ -132,10 +122,17 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
   auto it = layerNameToIdxs_
                 .insert(make_pair(layer->getName(), (int) layers_.size()))
                 .first;
+
+  auto minStep = layer->getMinStep();
+  auto minStepMaxEdges = layer->getMinStepMaxEdges();
+  auto minStepMaxLength = layer->getMinStepMaxLength();
   layers_.push_back({it->first.c_str(),
                      banyan_go::DIR_NONE,
                      (int) layer->getWidth(),
                      calLayerPitch(layer),
+                     minStep,
+                     minStepMaxEdges,
+                     minStepMaxLength,
                      0,
                      0,
                      0,
@@ -160,7 +157,7 @@ void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::PWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::DIFFUSION) {
     auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
-    layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0});
+    layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0});
     hasAddedMasterSliceLayer_ = true;
   }
 }
