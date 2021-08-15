@@ -341,7 +341,7 @@ if(GTEST STREQUAL ON)
   target_link_libraries(utEden
     ifp
     openroad_swig
-    replace
+    gpl
     dpl
     fin
     rsz
@@ -349,8 +349,8 @@ if(GTEST STREQUAL ON)
     stt
     dbSta
     OpenSTA
-    opendb
-    opendbtcl
+    odb
+    odbtcl
     rcx
     rmp
     cts
