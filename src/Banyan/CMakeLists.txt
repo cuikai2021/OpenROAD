@@ -40,7 +40,7 @@ target_include_directories(Banyan
 target_link_libraries(Banyan
   PUBLIC
     dl
-    opendb
+    odb
     utl
     OpenSTA
     Threads::Threads

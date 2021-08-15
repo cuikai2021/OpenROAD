@@ -5,11 +5,11 @@
 
 #include "DBAdapter.h"
 #include "GroupedRange.hpp"
-#include "opendb/ZException.h"
-#include "opendb/db.h"
-#include "opendb/dbTransform.h"
-#include "opendb/dbWireCodec.h"
-#include "opendb/geom.h"
+#include "odb/ZException.h"
+#include "odb/db.h"
+#include "odb/dbTransform.h"
+#include "odb/dbWireCodec.h"
+#include "odb/geom.h"
 #include "utl/Logger.h"
 
 
