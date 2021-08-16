@@ -42,13 +42,6 @@ class Axioms
  private:
   std::map<std::string, odb::dbTechVia*> defaultViaMap;
   std::vector<banyan_go::axioms_triple> axiomsTriples;
-  std::vector<banyan_go::axioms_layer_table> layerToTrunkMinLengthTable;
-  std::vector<banyan_go::axioms_layer_table> layerToTrunkDistSameTable;
-  std::vector<banyan_go::axioms_layer_table> layerToTrunkDistDiffTable;
-  std::vector<banyan_go::axioms_layer_table> layerToTrunkViaTable;
-  std::vector<banyan_go::axioms_layer_table> layerToViaTrackDoubleViaSameTable;
-  std::vector<banyan_go::axioms_layer_table> layerToViaTrackDoubleViaDiffTable;
-  std::vector<banyan_go::axioms_layer_table> layerToViaTrackTable;
 
  protected:
   OpenDBAdapter& dbAdapter_;
@@ -126,34 +119,6 @@ class Axioms
   };
   ~Axioms(){
 
-  };
-  std::vector<banyan_go::axioms_layer_table>& getLayerToViaTrackTable()
-  {
-    return layerToViaTrackTable;
-  }
-  std::vector<banyan_go::axioms_layer_table>& getLayerToViaTrackDoubleViaDiffTable()
-  {
-    return layerToViaTrackDoubleViaDiffTable;
-  }
-  std::vector<banyan_go::axioms_layer_table>& getLayerToViaTrackDoubleViaSameTable()
-  {
-    return layerToViaTrackDoubleViaSameTable;
-  }
-  std::vector<banyan_go::axioms_layer_table>& getLayerToTrunkViaTable()
-  {
-    return layerToTrunkViaTable;
-  }
-  std::vector<banyan_go::axioms_layer_table>& getLayerToTrunkMinLengthTable()
-  {
-    return layerToTrunkMinLengthTable;
-  };
-  std::vector<banyan_go::axioms_layer_table>& getLayerToTrunkDistSameTable()
-  {
-    return layerToTrunkDistSameTable;
-  };
-  std::vector<banyan_go::axioms_layer_table>& getLayerToTrunkDistDiffTable()
-  {
-    return layerToTrunkDistDiffTable;
   };
   std::vector<banyan_go::axioms_triple>& getAxiomsTriples()
   {

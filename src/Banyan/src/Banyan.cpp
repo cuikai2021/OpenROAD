@@ -64,7 +64,7 @@ int Banyan::main(const std::map<std::string, std::string> &options)
     return -1;
   } 
 
-  auto banyan_route = (banyan_go::route_with_axioms_func) dlsym(so, "banyan_route_with_axioms");
+  auto banyan_route = (banyan_go::route_func) dlsym(so, "banyan_route");
   if (banyan_route == nullptr) {
     logger_->error(utl::BY, 503, "cannot find banyan_route in banyan.so");
     return -1;
@@ -162,13 +162,6 @@ int Banyan::main(const std::map<std::string, std::string> &options)
     banyan_go::to_slice(bdAdapter.getVias()),
     banyan_go::to_slice(bdAdapter.getViadefs()),
     banyan_go::to_slice(axioms.getAxiomsTriples()),
-    banyan_go::to_slice(axioms.getLayerToViaTrackTable()),
-    banyan_go::to_slice(axioms.getLayerToViaTrackDoubleViaDiffTable()),
-    banyan_go::to_slice(axioms.getLayerToViaTrackDoubleViaSameTable()),
-    banyan_go::to_slice(axioms.getLayerToTrunkViaTable()),
-    banyan_go::to_slice(axioms.getLayerToTrunkMinLengthTable()),
-    banyan_go::to_slice(axioms.getLayerToTrunkDistSameTable()),
-    banyan_go::to_slice(axioms.getLayerToTrunkDistDiffTable()),
     &ret);
 
   if (err == 0) {

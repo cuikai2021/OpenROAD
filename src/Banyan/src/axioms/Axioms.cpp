@@ -28,6 +28,29 @@ void Axioms::getDefaultViasInLayer(
     odb::dbTechLayer* layer,
     std::vector<std::pair<std::string, odb::dbTechVia*>>& defaultViasInLayer)
 {
+  /* def vias seem missing
+  auto la = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
+  if (la < 0)
+    throw odb::ZException("invalid viadef layers");
+
+  for (auto i = dbAdapter_.layers_[la].viadef_begin;
+    i != dbAdapter_.layers_[la].viadef_end; ++i) {
+      const auto &viadef = dbAdapter_.viadefs_[i];
+      std::string name(viadef.name);
+      auto via = AssertFind(defaultViaMap, name);
+      defaultViasInLayer.emplace_back(name, via);
+  }
+  if (size_t(la+1) < dbAdapter_.layers_.size()) {
+    for (auto i = dbAdapter_.layers_[la+1].viadef_begin;
+      i != dbAdapter_.layers_[la+1].viadef_end; ++i) {
+        const auto &viadef = dbAdapter_.viadefs_[i];
+        std::string name(viadef.name);
+        auto via = AssertFind(defaultViaMap, name);
+        defaultViasInLayer.emplace_back(name, via);
+    }
+  }
+  //*/
+  //*
   copy_if(defaultViaMap.begin(),
           defaultViaMap.end(),
           std::inserter(defaultViasInLayer, defaultViasInLayer.end()),
@@ -36,6 +59,7 @@ void Axioms::getDefaultViasInLayer(
             return via->getTopLayer()->getName() == layer->getName()
                    || via->getBottomLayer()->getName() == layer->getName();
           });
+  //*/
 }
 
 uint32_t Axioms::getCutNumsFromVia(odb::dbTechVia* via)
@@ -368,13 +392,6 @@ void Axioms::addAxiomsTriples(
   if (!excludedNullVia) {
     axiomsTriples.push_back(
         {NULL_VIA_IDX, NULL_VIA_IDX, (this->*calcFunc)(techLayer, nullptr, nullptr, isSameNet)});
-
-    for (const auto& nameToViaX : defaultViasInLayer) {
-      auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
-      auto viaX = nameToViaX.second;
-      axiomsTriples.push_back(
-          {viaXIdx, NULL_VIA_IDX, (this->*calcFunc)(techLayer, viaX, nullptr, isSameNet)});
-    }
     for (const auto& nameToViaY : defaultViasInLayer) {
       auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
       auto viaY = nameToViaY.second;
@@ -386,13 +403,15 @@ void Axioms::addAxiomsTriples(
   for (const auto& nameToViaX : defaultViasInLayer) {
     auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
     auto viaX = nameToViaX.second;
+    if (!excludedNullVia) {
+      axiomsTriples.push_back(
+          {viaXIdx, NULL_VIA_IDX, (this->*calcFunc)(techLayer, viaX, nullptr, isSameNet)});
+    }
     for (const auto& nameToViaY : defaultViasInLayer) {
       auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
       auto viaY = nameToViaY.second;
       axiomsTriples.push_back(
-          {viaXIdx,
-           viaYIdx,
-           (this->*calcFunc)(techLayer, viaX, viaY, isSameNet)});
+          {viaXIdx, viaYIdx, (this->*calcFunc)(techLayer, viaX, viaY, isSameNet)});
     }
   }
 }
@@ -628,49 +647,43 @@ void Axioms::initAxiomsTables()
     std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer;
     getDefaultViasInLayer(techLayer, defaultViasInLayer);
     //===============================================================================================
-    uint64_t triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].trunk_min_len_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcTrunkMinLength, false);
-    layerToTrunkMinLengthTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].trunk_min_len_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].trunk_dist_same_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcTrunkDistLength, true);
-    layerToTrunkDistSameTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].trunk_dist_same_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].trunk_dist_diff_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcTrunkDistLength, false);
-    layerToTrunkDistDiffTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].trunk_dist_diff_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].trunk_via_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcViaTrunkLength, false);
-    layerToTrunkViaTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].trunk_via_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].via_track_same_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcViaTrackLength, true, true);
-    layerToViaTrackDoubleViaSameTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].via_track_same_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].via_track_diff_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcViaTrackLength, false, true);
-    layerToViaTrackDoubleViaDiffTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});    
+    dbAdapter_.layers_[layerIdx].via_track_diff_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].via_track_begin = axiomsTriples.size();
     for (auto viaIter : defaultViasInLayer) {
       auto viaIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, viaIter.first);
       auto via = viaIter.second;
       axiomsTriples.push_back({viaIdx, NULL_VIA_IDX, calcViaTrackLength(techLayer, via)});
     }
-    layerToViaTrackTable.push_back({layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].via_track_end = axiomsTriples.size();
   }
 }
 
