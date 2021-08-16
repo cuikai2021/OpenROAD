@@ -1,0 +1,300 @@
+# modified files
+
+# Conflicts
+
+	no conflicts
+
+# fix bugs after merge
+
+	no bugs need to be fixed
+
+# merge details
+
+Auto-merging src/pdn/src/PdnGen.tcl
+Auto-merging src/TritonRoute/src/dr/FlexDR_maze.cpp
+Auto-merging src/TritonRoute/src/dr/FlexDR.h
+Auto-merging src/ICeWall/src/ICeWall.tcl
+Merge made by the 'recursive' strategy.
+ README.md                                          |   45 +
+ docker/Dockerfile.binary                           |   17 +
+ docker/Dockerfile.builder                          |    8 +-
+ docker/Dockerfile.dev                              |    3 +
+ docker/Dockerfile.runtime                          |    9 +-
+ etc/DockerHelper.sh                                |    8 +
+ src/ICeWall/doc/set_bump_options.md                |    4 +-
+ src/ICeWall/src/ICeWall.tcl                        |   77 +-
+ src/ICeWall/test/flipchip_test.defok               | 1994 +++++++++---------
+ src/ICeWall/test/flipchip_test.m9.defok            | 1994 +++++++++---------
+ src/ICeWall/test/flipchip_test.m9.tcl              |    7 +-
+ src/ICeWall/test/flipchip_test.tcl                 |    7 +-
+ .../soc_bsg_black_parrot_nangate45.flipchip.defok  | 1576 ++++++++------
+ .../soc_bsg_black_parrot_nangate45.flipchip.tcl    |    5 +-
+ src/ICeWall/test/tcl_interface.flipchip.defok      | 1580 ++++++++------
+ src/ICeWall/test/tcl_interface.flipchip.tcl        |    4 +-
+ src/OpenDB/src/db/dbInst.cpp                       |    3 +
+ src/TritonRoute/src/dr/FlexDR.h                    |    6 +-
+ src/TritonRoute/src/dr/FlexDR_maze.cpp             |  320 +--
+ src/cts/test/max_cap.tcl                           |    2 +-
+ src/grt/include/grt/GRoute.h                       |   17 +-
+ src/grt/include/grt/GlobalRouter.h                 |   63 +-
+ src/grt/src/AntennaRepair.cpp                      |   18 +-
+ src/grt/src/AntennaRepair.h                        |    2 +-
+ src/grt/src/GlobalRouter.cpp                       |  501 +++--
+ src/grt/src/GlobalRouter.tcl                       |    4 +-
+ src/grt/src/Grid.cpp                               |   14 +-
+ src/grt/src/MakeWireParasitics.cpp                 |    4 +-
+ src/grt/src/Pin.cpp                                |    2 +-
+ src/grt/src/Pin.h                                  |    5 +-
+ src/grt/src/RoutingTracks.h                        |    3 +-
+ src/grt/src/fastroute/include/DataType.h           |   95 +-
+ src/grt/src/fastroute/include/FastRoute.h          |  265 +--
+ src/grt/src/fastroute/src/FastRoute.cpp            |  378 ++--
+ src/grt/src/fastroute/src/RSMT.cpp                 |  541 +++--
+ src/grt/src/fastroute/src/RipUp.cpp                |  487 ++---
+ src/grt/src/fastroute/src/maze.cpp                 | 2227 ++++++++++----------
+ src/grt/src/fastroute/src/maze3D.cpp               |  312 ++-
+ src/grt/src/fastroute/src/route.cpp                |  410 ++--
+ src/grt/src/fastroute/src/utility.cpp              |  495 ++---
+ src/grt/test/no_tracks.ok                          |    2 +-
+ src/gui/CMakeLists.txt                             |    1 +
+ src/gui/include/gui/gui.h                          |   17 +
+ src/gui/src/dbDescriptors.cpp                      |  145 ++
+ src/gui/src/dbDescriptors.h                        |   32 +
+ src/gui/src/displayControls.cpp                    |  458 ++--
+ src/gui/src/displayControls.h                      |   47 +-
+ src/gui/src/gui.cpp                                |   45 +
+ src/gui/src/gui.i                                  |   97 +
+ src/gui/src/gui.tcl                                |   62 +
+ src/gui/src/layoutViewer.cpp                       |  438 +++-
+ src/gui/src/layoutViewer.h                         |   23 +
+ src/gui/src/mainWindow.cpp                         |   55 +
+ src/gui/src/mainWindow.h                           |   14 +
+ src/gui/src/options.h                              |    8 +
+ src/gui/src/scriptWidget.cpp                       |   17 +-
+ src/gui/src/scriptWidget.h                         |    5 +-
+ src/gui/src/search.cpp                             |   75 +
+ src/gui/src/search.h                               |   22 +
+ src/gui/src/tclCmdInputWidget.cpp                  |    2 +-
+ src/gui/src/tclCmdInputWidget.h                    |    2 +-
+ src/pdn/doc/TCL_Interface.md                       |   17 +
+ src/pdn/doc/add_global_connection.md               |   38 +
+ src/pdn/doc/add_pdn_connect.md                     |   46 +
+ src/pdn/doc/add_pdn_ring.md                        |   45 +
+ src/pdn/doc/add_pdn_stripe.md                      |   50 +
+ src/pdn/doc/define_pdn_grid.md                     |   84 +
+ src/pdn/doc/pdngen.md                              |   11 +
+ src/pdn/doc/set_voltage_domain.md                  |   37 +
+ src/pdn/src/PdnGen.cc                              |    2 +-
+ src/pdn/src/PdnGen.i                               |    4 +-
+ src/pdn/src/PdnGen.tcl                             | 2128 +++++++++++++++----
+ src/pdn/test/asap7_vias.api.ok                     |   30 +
+ src/pdn/test/asap7_vias.api.tcl                    |   26 +
+ src/pdn/test/asap7_vias.noviarules.api.ok          |   30 +
+ src/pdn/test/asap7_vias.noviarules.api.tcl         |   26 +
+ src/pdn/test/asap7_vias.noviarules.defok           |  727 +++++++
+ src/pdn/test/asap7_vias.noviarules.ok              |    2 +-
+ src/pdn/test/asap7_vias/grid_strategy-M2-M4-M7.cfg |    3 -
+ .../grid_strategy-M2-M4-M7.noviarules.cfg          |    5 +-
+ src/pdn/test/extend_to_core_ring.api.ok            |   29 +
+ src/pdn/test/extend_to_core_ring.api.tcl           |   29 +
+ src/pdn/test/extend_to_core_ring/pdn.cfg           |    3 -
+ src/pdn/test/fail_quick.ok                         |    6 +-
+ src/pdn/test/fail_quick/PDN.cfg                    |    3 -
+ src/pdn/test/gcd/PDN.cfg                           |    3 -
+ src/pdn/test/gcd_M7_pin/PDN.cfg                    |    3 -
+ src/pdn/test/gcd_dual_rails/PDN.cfg                |    3 -
+ src/pdn/test/regression_test.noapi.tcl             |   15 +
+ src/pdn/test/regression_tests.tcl                  |   22 +-
+ src/pdn/test/soc_bsg_black_parrot_nangate45.api.ok |   52 +
+ .../test/soc_bsg_black_parrot_nangate45.api.tcl    |   46 +
+ src/pdn/test/soc_bsg_black_parrot_nangate45.defok  |    4 +-
+ src/pdn/test/soc_bsg_black_parrot_nangate45.ok     |    7 +-
+ ...oc_bsg_black_parrot_nangate45.pad_offset.api.ok |   51 +
+ ...c_bsg_black_parrot_nangate45.pad_offset.api.tcl |   46 +
+ ...soc_bsg_black_parrot_nangate45.pad_offset.defok |    4 +-
+ .../soc_bsg_black_parrot_nangate45.pad_offset.ok   |    7 +-
+ .../test/soc_bsg_black_parrot_nangate45/PDN.cfg    |    5 +-
+ .../PDN.pad_offset.cfg                             |    5 +-
+ src/pdn/test/tempSensor.api.defok                  | 1541 ++++++++++++++
+ src/pdn/test/tempSensor.api.ok                     |   42 +
+ src/pdn/test/tempSensor.api.tcl                    |   47 +
+ src/pdn/test/tempSensor.defok                      |    2 +-
+ src/pdn/test/tempSensor.ok                         |    4 +-
+ src/pdn/test/tempSensor/pdn.cfg                    |    3 -
+ src/pdn/test/test_gcd.api.ok                       |   37 +
+ src/pdn/test/test_gcd.api.tcl                      |   33 +
+ src/pdn/test/test_gcd.invert_viarule.api.ok        |   37 +
+ src/pdn/test/test_gcd.invert_viarule.api.tcl       |   33 +
+ src/pdn/test/test_gcd.invert_viarule.ok            |    4 +-
+ src/pdn/test/test_gcd.ok                           |    4 +-
+ src/pdn/test/test_gcd_M7_pin.api.example.tcl       |   46 +
+ src/pdn/test/test_gcd_M7_pin.api.ok                |   27 +
+ src/pdn/test/test_gcd_M7_pin.api.tcl               |   31 +
+ src/pdn/test/test_gcd_M7_pin.ok                    |    4 +-
+ src/pdn/test/test_gcd_dual_rails.api.ok            |   27 +
+ src/pdn/test/test_gcd_dual_rails.api.tcl           |   32 +
+ src/pdn/test/test_gcd_dual_rails.ok                |    4 +-
+ src/pdn/test/tinyRocket.api.ok                     |   45 +
+ src/pdn/test/tinyRocket.api.tcl                    |   39 +
+ src/pdn/test/tinyRocket.ok                         |   10 +-
+ src/pdn/test/tinyRocket/PDN.cfg                    |    3 -
+ src/rmp/src/Restructure.cpp                        |  156 +-
+ src/rmp/test/gcd_restructure.ok                    |   17 +-
+ src/rmp/test/gcd_restructure.tcl                   |    1 +
+ src/rsz/include/rsz/Resizer.hh                     |    7 +-
+ src/rsz/include/rsz/SteinerTree.hh                 |   10 +-
+ src/rsz/src/EstimateWireParasitics.cc              |   11 +-
+ src/rsz/src/Rebuffer.cc                            |    8 +-
+ src/rsz/src/Resizer.cc                             |  269 +--
+ src/rsz/src/Resizer.i                              |    4 +-
+ src/rsz/src/SteinerTree.cc                         |   23 +-
+ src/rsz/test/repair_clk_nets1.ok                   |   26 +-
+ src/rsz/test/repair_fanout2.def                    |    9 +-
+ src/rsz/test/repair_fanout2.ok                     |   25 +-
+ src/rsz/test/repair_fanout2.tcl                    |    1 +
+ src/rsz/test/repair_wire6.ok                       |   48 +-
+ src/rsz/test/repair_wire6.tcl                      |    5 +-
+ src/rsz/test/repair_wire9.def                      |   34 +
+ src/rsz/test/repair_wire9.tcl                      |    8 +
+ src/sta                                            |    2 +-
+ src/stt/src/SteinerTreeBuilder.cpp                 |   32 +-
+ src/stt/src/SteinerTreeBuilder.i                   |    8 +
+ src/stt/src/flt/flute.cpp                          |   53 +-
+ src/stt/src/pdr/src/node.cpp                       |    3 -
+ src/stt/test/flute1.ok                             |   34 +
+ src/stt/test/flute1.tcl                            |   19 +
+ src/stt/test/flute2.ok                             |   82 +
+ src/stt/test/flute2.tcl                            |   57 +
+ src/stt/test/flute3.ok                             |  500 +++++
+ src/stt/test/flute3.tcl                            |  257 +++
+ src/stt/test/flute_gcd.ok                          | 1432 +++++++++++++
+ src/stt/test/flute_gcd.tcl                         |    5 +
+ src/stt/test/pdrev_helpers.tcl                     |   20 +
+ src/stt/test/regression_tests.tcl                  |    4 +
+ test/flow.tcl                                      |    2 +-
+ 157 files changed, 16196 insertions(+), 7764 deletions(-)
+ create mode 100644 docker/Dockerfile.binary
+ create mode 100644 src/gui/src/gui.tcl
+ create mode 100644 src/pdn/doc/TCL_Interface.md
+ create mode 100644 src/pdn/doc/add_global_connection.md
+ create mode 100644 src/pdn/doc/add_pdn_connect.md
+ create mode 100644 src/pdn/doc/add_pdn_ring.md
+ create mode 100644 src/pdn/doc/add_pdn_stripe.md
+ create mode 100644 src/pdn/doc/define_pdn_grid.md
+ create mode 100644 src/pdn/doc/pdngen.md
+ create mode 100644 src/pdn/doc/set_voltage_domain.md
+ create mode 100644 src/pdn/test/asap7_vias.api.ok
+ create mode 100644 src/pdn/test/asap7_vias.api.tcl
+ create mode 100644 src/pdn/test/asap7_vias.noviarules.api.ok
+ create mode 100644 src/pdn/test/asap7_vias.noviarules.api.tcl
+ create mode 100644 src/pdn/test/extend_to_core_ring.api.ok
+ create mode 100644 src/pdn/test/extend_to_core_ring.api.tcl
+ create mode 100644 src/pdn/test/regression_test.noapi.tcl
+ create mode 100644 src/pdn/test/soc_bsg_black_parrot_nangate45.api.ok
+ create mode 100644 src/pdn/test/soc_bsg_black_parrot_nangate45.api.tcl
+ create mode 100644 src/pdn/test/soc_bsg_black_parrot_nangate45.pad_offset.api.ok
+ create mode 100644 src/pdn/test/soc_bsg_black_parrot_nangate45.pad_offset.api.tcl
+ create mode 100644 src/pdn/test/tempSensor.api.defok
+ create mode 100644 src/pdn/test/tempSensor.api.ok
+ create mode 100644 src/pdn/test/tempSensor.api.tcl
+ create mode 100644 src/pdn/test/test_gcd.api.ok
+ create mode 100644 src/pdn/test/test_gcd.api.tcl
+ create mode 100644 src/pdn/test/test_gcd.invert_viarule.api.ok
+ create mode 100644 src/pdn/test/test_gcd.invert_viarule.api.tcl
+ create mode 100644 src/pdn/test/test_gcd_M7_pin.api.example.tcl
+ create mode 100644 src/pdn/test/test_gcd_M7_pin.api.ok
+ create mode 100644 src/pdn/test/test_gcd_M7_pin.api.tcl
+ create mode 100644 src/pdn/test/test_gcd_dual_rails.api.ok
+ create mode 100644 src/pdn/test/test_gcd_dual_rails.api.tcl
+ create mode 100644 src/pdn/test/tinyRocket.api.ok
+ create mode 100644 src/pdn/test/tinyRocket.api.tcl
+ create mode 100644 src/rsz/test/repair_wire9.def
+ create mode 100644 src/rsz/test/repair_wire9.tcl
+ create mode 100644 src/stt/test/flute1.ok
+ create mode 100644 src/stt/test/flute1.tcl
+ create mode 100644 src/stt/test/flute2.ok
+ create mode 100644 src/stt/test/flute2.tcl
+ create mode 100644 src/stt/test/flute3.ok
+ create mode 100644 src/stt/test/flute3.tcl
+ create mode 100644 src/stt/test/flute_gcd.ok
+ create mode 100644 src/stt/test/flute_gcd.tcl
+Submodule path 'src/sta': checked out '598842f4a783f0c4c5f3e28a8a64a1458cb4b81a'
+removing .github/workflows
+moving docker_regression.yml
+moving docker_release.yml
+restore docker_regression.yml
+restore docker_release.yml
+On branch tmp
+Your branch is ahead of 'upstream/devops-dev' by 146 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+
+# commits
+
+set_propagated_clock before estimate_parasitics
+rsz 100k max pin limit
+pdr::node rm pointless array inits
+rsz estimate_parasitics not on ideal clock nets
+gui: fix clang warnings about return values
+stt: add flute unit tests
+stt: add helpers to report flute tree
+stt: fix flute for 1 pin net
+stt: refactor and fix computeHPWL check
+Remove unused, incorrect files
+Clean regression
+Use correct mapping of LEF orientations, plus some documentation updates
+gui: check if congestion map is empty before getting x and y vectors
+gui: check if congestion map is on before processing anything
+stt: fix return type
+stt: default min_hpwl and min_fanout is 0
+stt: restore pt and ptp sizes, fix stable_sort call
+stt: fix checks
+Check for LEF orientations, converting them to geometric orientations to check against instance orientation
+Reinstate PR#834 by reverting "Revert "Merge pull request #834 from The-OpenROAD-Project-staging/pdngen-tcl_api""
+stt: check min_fanout and min_hpwl before compute it for each net
+stt: fix pt and ptp sizes
+stt: fix comp function for stable_sort
+gui: only modify button name if not specified, report error if duplicate name is used
+gui: limit instance names to width of cell
+gui: obstruction adding effective width and min spacing properties
+gui: clang format brush selection button
+grt: more cleanups
+Revert "Merge pull request #834 from The-OpenROAD-Project-staging/pdngen-tcl_api"
+rsz repair_design handle 2 overlapping pin net
+gui: adding tcl commands to gui
+gui: adding ability to request user input via gui
+gui: support for creating + removing new buttons
+gui: modifying script widget to pass command for execution + control for echo of command
+gui: adding support to change and save instance name colors
+gui: adding blockage and obstructions
+gui: draw instance names on instance + separate function for drawing instance outlines
+gui: display controls saving and reading simplified
+gui: seperate making swatch icon
+gui: correct behavior of parent toggling
+gui: remove fixed size from color dialog + size radio button to ensure non-overlap of brush style
+Update required to testcase data to work with PR#806
+grt: add layer name in error message
+pdn: temporarily make error into warning until a proper fix is available
+rsz repair_design to output port
+grt: use reference instead of pointer
+grt: fix uninitialized vars
+grt: DTYPE -> int
+grt: update struct definitions
+grt: use enum class
+grt: use stt::Tree
+grt: remove deprecated functions
+grt: remove redundant Tree and Branch structures
+Write RDL routes directly to the database
+grt: more cleanups
+odb: ensure bbox is set on inst when swapping masters
+gui: adding tcl commands for clear selection, rules, highlights, and modifying display controls
+gui: adding ability to save to image from layout viewer and support tcl commands to access from commandline
+grt: minor code cleanups in maze.cpp
+grt: add comment for resizing check
+updated rmp message
+grt: add check for negative resize
+gui: fix addInstTransform on MX90 and MY90
+grt: clang-format
+grt: resize initializing with zero
+Correct typo
