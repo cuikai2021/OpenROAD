@@ -1,5 +1,3 @@
-#include "axioms/Axioms.h"
-
 #include <assert.h>
 #include <limits.h>
 
@@ -9,7 +7,9 @@
 #include <map>
 #include <utility>
 
+
 #include "opendb/db.h"
+#include "axioms/Axioms.h"
 
 namespace banyan {
 
@@ -343,7 +343,6 @@ uint64_t Axioms::calcTrunkMinLength(odb::dbTechLayer* techLayer,
     minLen += extLen;
   }
 
-
   // std::string viaXName = viaX == nullptr ? "null" : viaX->getName();
   // std::string viaYName = viaY == nullptr ? "null" : viaY->getName();
 
@@ -546,7 +545,6 @@ uint64_t Axioms::calcViaTrunkLength(odb::dbTechLayer* techLayer,
 
   minLen = borderBoxOfViaXToEdge + borderBoxOfViaYToEdge + cutSpacing;
 
-  
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
 

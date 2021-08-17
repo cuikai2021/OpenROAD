@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include <utility>
+#include <cmath>
 
 #include "DBAdapter.h"
 #include "GroupedRange.hpp"
@@ -75,7 +76,7 @@ int64_t OpenDBAdapter::defArea(double area)
 {
   odb::dbTech* tech = db_->getTech();
   int database_unit = tech->getLefUnits();
-  int64_t defArea = area * database_unit * database_unit;
+  int64_t defArea = std::roundl(area * database_unit * database_unit);
   return defArea;
 }
 
