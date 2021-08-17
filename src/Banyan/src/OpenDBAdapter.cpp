@@ -445,6 +445,7 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
       use = banyan_go::USE_GROUND;
       break;
     default:
+      logger_->error(utl::BY, 700, "unsupported NET USE {}", net->getSigType());
       throw odb::ZException("unsupported NET USE");
   }
   nets_.push_back({it->first.c_str(), ndrIdx, use, 0, 0, 0, 0, 0, 0});
@@ -530,8 +531,6 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
 
   switch (box->getDirection()) {
     case odb::dbSBox::UNDEFINED: {
-      throw odb::ZException("UNDEFINED special path box not supported");
-
       bool dx_even = ((dx & 1) == 0);
       bool dy_even = ((dy & 1) == 0);
 
@@ -562,6 +561,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
         y2 -= dw;
         assert(y1 == y2);
       } else {
+        logger_->error(utl::BY, 702, "odd dimension in both directions");
         throw odb::ZException("odd dimension in both directions");
       }
 
@@ -586,6 +586,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
       break;
     }
     case odb::dbSBox::OCTILINEAR: {
+      logger_->error(utl::BY, 703, "OCTILINEAR[{}] special path box not supported", box->getDirection());
       throw odb::ZException("OCTILINEAR special path box not supported");
       
       odb::Oct oct = box->getOct();
@@ -597,6 +598,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
       break;
     }
     default:
+      logger_->error(utl::BY, 704, "unknown direction");
       throw odb::ZException("unknown direction");
       break;
   }
@@ -1064,6 +1066,7 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
     for (size_t i = net.rvia_begin; i < net.rvia_end; i++) {
       auto via = ret.rvias[i];
       if (via.viadef_index < 0) {
+        logger_->error(utl::BY, 705, "invalid viadef index[{}]", via.viadef_index);
         throw odb::ZException("invalid viadef index");
       }
       auto viadef = viadefs[via.viadef_index];
