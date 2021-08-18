@@ -976,21 +976,20 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
     }
   }
 
-  
+
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
     int pX, pY;
     inst->getOrigin(pX, pY);
     odb::Point origin = odb::Point(pX, pY);
     odb::dbTransform transform(inst->getOrient(), origin);
-
+    size_t boxIndexBegin = boxes_.size();
+    size_t viaIndexBegin = vias_.size();
     for (auto iTerm : inst->getITerms()) {
       auto mTerm = iTerm->getMTerm();
       auto pinNameInBanyan = inst->getName() + "/" + mTerm->getName();
       auto iter = instPinNameToIdxs_.find(pinNameInBanyan);
       if (iter == instPinNameToIdxs_.end()) {
-        size_t boxIndexBegin = boxes_.size();
-        size_t viaIndexBegin = vias_.size();
 
         for (auto mPin : mTerm->getMPins()) {
           for (auto box : mPin->getGeometry()) {
