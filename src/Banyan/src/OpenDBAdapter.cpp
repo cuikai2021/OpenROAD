@@ -975,6 +975,8 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       }
     }
   }
+
+  
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
     int pX, pY;
@@ -1005,13 +1007,6 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
             addBox(techLayer->getName(), rect);
           }
         }
-
-        strs_.emplace_back(pinNameInBanyan + "/instobs");
-        pins_.push_back({strs_.back().c_str(),
-                         boxIndexBegin,
-                         boxes_.size(),
-                         viaIndexBegin,
-                         vias_.size()});
       }
     }
 
@@ -1024,13 +1019,15 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
         transform.apply(instObsRect);
         addBox(box.first, instObsRect);
       }
-      strs_.emplace_back(inst->getName() + "/instobs");
-      pins_.push_back({strs_.back().c_str(),
-                       boxIndexBegin,
-                       boxes_.size(),
-                       viaIndexBegin,
-                       vias_.size()});
     }
+
+
+    strs_.emplace_back(inst->getName() + "/instobs");
+    pins_.push_back({strs_.back().c_str(),
+                     boxIndexBegin,
+                     boxes_.size(),
+                     viaIndexBegin,
+                     vias_.size()});
   }
 }
 
