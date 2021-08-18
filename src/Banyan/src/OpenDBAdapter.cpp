@@ -977,6 +977,11 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
   }
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
+    int pX, pY;
+    inst->getOrigin(pX, pY);
+    odb::Point origin = odb::Point(pX, pY);
+    odb::dbTransform transform(inst->getOrient(), origin);
+
     for (auto iTerm : inst->getITerms()) {
       auto mTerm = iTerm->getMTerm();
       auto pinNameInBanyan = inst->getName() + "/" + mTerm->getName();
@@ -984,11 +989,6 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       if (iter == instPinNameToIdxs_.end()) {
         size_t boxIndexBegin = boxes_.size();
         size_t viaIndexBegin = vias_.size();
-
-        int pX, pY;
-        inst->getOrigin(pX, pY);
-        odb::Point origin = odb::Point(pX, pY);
-        odb::dbTransform transform(inst->getOrient(), origin);
 
         for (auto mPin : mTerm->getMPins()) {
           for (auto box : mPin->getGeometry()) {
@@ -1017,11 +1017,6 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
 
     auto iter = mnameToBoxes.find(inst->getMaster()->getName());
     if (iter != mnameToBoxes.end()) {
-      int pX, pY;
-      inst->getOrigin(pX, pY);
-      odb::Point origin = odb::Point(pX, pY);
-      odb::dbTransform transform(inst->getOrient(), origin);
-
       size_t boxIndexBegin = boxes_.size();
       size_t viaIndexBegin = vias_.size();
       for (auto box : iter->second) {
