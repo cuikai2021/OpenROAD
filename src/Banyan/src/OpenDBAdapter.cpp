@@ -837,7 +837,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
                        boxes_.size(),
                        viaIndexBegin,
                        vias_.size()});
-      instPinNameToIdxs_[strs_.back()] = pins_.size();
+      instPinNameToIdxs_[strs_.back()] = pins_.size() - 1;
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
