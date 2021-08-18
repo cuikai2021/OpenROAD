@@ -93,6 +93,7 @@ class OpenDBAdapter : public DBAdapter
 
   bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
+
   std::map<std::string, int> layerNameToIdxs_;
 
   std::map<std::string, int> viaDefNameToIdxs_;
@@ -100,6 +101,9 @@ class OpenDBAdapter : public DBAdapter
   std::map<std::string, size_t> netNameToIdxs_;
 
   std::map<std::string, size_t> ndrNameToIdxs_;
+
+  std::map<std::string, size_t> instPinNameToIdxs_;
+
   std::list<std::string> strs_;
 
   int defdist(int x);
@@ -146,11 +150,11 @@ class OpenDBAdapter : public DBAdapter
     getLayersFromOpenDB();
     getTracksFromOpenDB();
     getViaDefsFromOpenDB();
-    getObsFromOpenDB();
-    getInstsObsFromOpenDB();
     getNDRsFromOpenDB();
     getNetsFromOpenDB();
     getPinsFromOpenDB();
+    getObsFromOpenDB();
+    getInstsObsFromOpenDB();
   }
 
   ~OpenDBAdapter() {}

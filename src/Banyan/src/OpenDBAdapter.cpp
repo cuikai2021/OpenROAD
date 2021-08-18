@@ -829,6 +829,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
                        boxes_.size(),
                        viaIndexBegin,
                        vias_.size()});
+      instPinNameToIdxs_[strs_.back()] = pins_.size();
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
@@ -976,13 +977,51 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
   }
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
-    int pX, pY;
-    inst->getOrigin(pX, pY);
-    odb::Point origin = odb::Point(pX, pY);
-    odb::dbTransform transform(inst->getOrient(), origin);
+    for (auto iTerm : inst->getITerms()) {
+      auto mTerm = iTerm->getMTerm();
+      auto pinNameInBanyan = inst->getName() + "/" + mTerm->getName();
+      auto iter = instPinNameToIdxs_.find(pinNameInBanyan);
+      if (iter == instPinNameToIdxs_.end()) {
+        size_t boxIndexBegin = boxes_.size();
+        size_t viaIndexBegin = vias_.size();
+
+        int pX, pY;
+        inst->getOrigin(pX, pY);
+        odb::Point origin = odb::Point(pX, pY);
+        odb::dbTransform transform(inst->getOrient(), origin);
+
+        for (auto mPin : mTerm->getMPins()) {
+          for (auto box : mPin->getGeometry()) {
+            odb::dbTechLayer* techLayer = box->getTechLayer();
+            // if (techLayer->getType().getValue()
+            //     != odb::dbTechLayerType::ROUTING) {
+            //   continue;
+            // }
+
+            odb::Rect rect;
+            box->getBox(rect);
+            transform.apply(rect);
+            assert(!box->isVia());
+            addBox(techLayer->getName(), rect);
+          }
+        }
+
+        strs_.emplace_back(inst->getName() + "/instobs");
+        pins_.push_back({strs_.back().c_str(),
+                         boxIndexBegin,
+                         boxes_.size(),
+                         viaIndexBegin,
+                         vias_.size()});
+      }
+    }
 
     auto iter = mnameToBoxes.find(inst->getMaster()->getName());
     if (iter != mnameToBoxes.end()) {
+      int pX, pY;
+      inst->getOrigin(pX, pY);
+      odb::Point origin = odb::Point(pX, pY);
+      odb::dbTransform transform(inst->getOrient(), origin);
+
       size_t boxIndexBegin = boxes_.size();
       size_t viaIndexBegin = vias_.size();
       for (auto box : iter->second) {
