@@ -9,7 +9,7 @@
 #include <map>
 #include <utility>
 
-#include "opendb/db.h"
+#include "odb/db.h"
 
 namespace banyan {
 
