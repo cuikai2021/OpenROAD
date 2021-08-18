@@ -1006,7 +1006,7 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
           }
         }
 
-        strs_.emplace_back(inst->getName() + "/instobs");
+        strs_.emplace_back(pinNameInBanyan + "/instobs");
         pins_.push_back({strs_.back().c_str(),
                          boxIndexBegin,
                          boxes_.size(),
