@@ -998,7 +998,6 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       auto pinNameInBanyan = inst->getName() + "/" + mTerm->getName();
       auto iter = instPinNameToIdxs_.find(pinNameInBanyan);
       if (iter == instPinNameToIdxs_.end()) {
-
         for (auto mPin : mTerm->getMPins()) {
           for (auto box : mPin->getGeometry()) {
             odb::dbTechLayer* techLayer = box->getTechLayer();
@@ -1019,8 +1018,6 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
 
     auto iter = mnameToBoxes.find(inst->getMaster()->getName());
     if (iter != mnameToBoxes.end()) {
-      size_t boxIndexBegin = boxes_.size();
-      size_t viaIndexBegin = vias_.size();
       for (auto box : iter->second) {
         auto instObsRect = box.second;
         transform.apply(instObsRect);
@@ -1028,13 +1025,14 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       }
     }
 
-
-    strs_.emplace_back(inst->getName() + "/instobs");
-    pins_.push_back({strs_.back().c_str(),
-                     boxIndexBegin,
-                     boxes_.size(),
-                     viaIndexBegin,
-                     vias_.size()});
+    if (boxes_.size() > boxIndexBegin) {
+      strs_.emplace_back(inst->getName() + "/instobs");
+      pins_.push_back({strs_.back().c_str(),
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
+    }
   }
 }
 
