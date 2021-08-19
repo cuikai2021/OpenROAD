@@ -21,11 +21,11 @@ ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS deps_stage
 ADD ./Eden-src/src/Banyan/banyan-integrate/banyan.so /Eden-flow/flow/libs/banyan.so
 ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
+ADD ./klayout_0.26.6-1_amd64.deb .
 RUN apt-get install -y time libreadline-dev pkg-config 
 RUN \
   set -eu; \
   apt-get update && apt-get install -y klayout; \
-  wget https://www.klayout.org/downloads/Ubuntu-20/klayout_0.26.6-1_amd64.deb; \
   dpkg -i klayout_0.26.6-1_amd64.deb; \
   rm -f klayout_0.26.6-1_amd64.deb; 
 
@@ -37,7 +37,8 @@ RUN  make
 FROM deps_stage
 RUN mkdir -p /usr/local/share/yosys
 ADD ./ossutil64 /usr/local/bin/ossutil64
-ADD ./modules/release/start_logtail.sh /Eden-flow/start_logtail.sh
+RUN chmod +x /usr/local/bin/ossutil64
+ADD modules/release/start_logtail.sh /Eden-flow/start_logtail.sh
 COPY --from=maple_build_stage /maple/build/src/maple /usr/local/bin
 COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin
 COPY --from=yosys_build_stage /yosys/share/* /usr/local/share/yosys

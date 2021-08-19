@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include <utility>
+#include <cmath>
 
 #include "DBAdapter.h"
 #include "GroupedRange.hpp"
@@ -75,7 +76,7 @@ int64_t OpenDBAdapter::defArea(double area)
 {
   odb::dbTech* tech = db_->getTech();
   int database_unit = tech->getLefUnits();
-  int64_t defArea = area * database_unit * database_unit;
+  int64_t defArea = std::roundl(area * database_unit * database_unit);
   return defArea;
 }
 
@@ -452,6 +453,7 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
       use = banyan_go::USE_GROUND;
       break;
     default:
+      logger_->error(utl::BY, 700, "unsupported NET USE {}", net->getSigType());
       throw odb::ZException("unsupported NET USE");
   }
   nets_.push_back({it->first.c_str(), ndrIdx, use, 0, 0, 0, 0, 0, 0});
@@ -537,8 +539,6 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
 
   switch (box->getDirection()) {
     case odb::dbSBox::UNDEFINED: {
-      throw odb::ZException("UNDEFINED special path box not supported");
-
       bool dx_even = ((dx & 1) == 0);
       bool dy_even = ((dy & 1) == 0);
 
@@ -569,6 +569,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
         y2 -= dw;
         assert(y1 == y2);
       } else {
+        logger_->error(utl::BY, 702, "odd dimension in both directions");
         throw odb::ZException("odd dimension in both directions");
       }
 
@@ -593,6 +594,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
       break;
     }
     case odb::dbSBox::OCTILINEAR: {
+      logger_->error(utl::BY, 703, "OCTILINEAR[{}] special path box not supported", box->getDirection());
       throw odb::ZException("OCTILINEAR special path box not supported");
       
       odb::Oct oct = box->getOct();
@@ -604,6 +606,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
       break;
     }
     default:
+      logger_->error(utl::BY, 704, "unknown direction");
       throw odb::ZException("unknown direction");
       break;
   }
@@ -834,6 +837,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
                        boxes_.size(),
                        viaIndexBegin,
                        vias_.size()});
+      instPinNameToIdxs_[strs_.back()] = pins_.size() - 1;
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
@@ -979,22 +983,49 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       }
     }
   }
+
+
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
     int pX, pY;
     inst->getOrigin(pX, pY);
     odb::Point origin = odb::Point(pX, pY);
     odb::dbTransform transform(inst->getOrient(), origin);
+    size_t boxIndexBegin = boxes_.size();
+    size_t viaIndexBegin = vias_.size();
+    for (auto iTerm : inst->getITerms()) {
+      auto mTerm = iTerm->getMTerm();
+      auto pinNameInBanyan = inst->getName() + "/" + mTerm->getName();
+      auto iter = instPinNameToIdxs_.find(pinNameInBanyan);
+      if (iter == instPinNameToIdxs_.end()) {
+        for (auto mPin : mTerm->getMPins()) {
+          for (auto box : mPin->getGeometry()) {
+            odb::dbTechLayer* techLayer = box->getTechLayer();
+            // if (techLayer->getType().getValue()
+            //     != odb::dbTechLayerType::ROUTING) {
+            //   continue;
+            // }
+
+            odb::Rect rect;
+            box->getBox(rect);
+            transform.apply(rect);
+            assert(!box->isVia());
+            addBox(techLayer->getName(), rect);
+          }
+        }
+      }
+    }
 
     auto iter = mnameToBoxes.find(inst->getMaster()->getName());
     if (iter != mnameToBoxes.end()) {
-      size_t boxIndexBegin = boxes_.size();
-      size_t viaIndexBegin = vias_.size();
       for (auto box : iter->second) {
         auto instObsRect = box.second;
         transform.apply(instObsRect);
         addBox(box.first, instObsRect);
       }
+    }
+
+    if (boxes_.size() > boxIndexBegin) {
       strs_.emplace_back(inst->getName() + "/instobs");
       pins_.push_back({strs_.back().c_str(),
                        boxIndexBegin,
@@ -1071,6 +1102,7 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
     for (size_t i = net.rvia_begin; i < net.rvia_end; i++) {
       auto via = ret.rvias[i];
       if (via.viadef_index < 0) {
+        logger_->error(utl::BY, 705, "invalid viadef index[{}]", via.viadef_index);
         throw odb::ZException("invalid viadef index");
       }
       auto viadef = viadefs[via.viadef_index];
