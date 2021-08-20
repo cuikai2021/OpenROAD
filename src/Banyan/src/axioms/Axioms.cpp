@@ -518,8 +518,8 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
   uint64_t width = techLayer->getWidth();
   auto metalBoxOfVia = getLayerBoxFromVia(techLayer, via);
   auto prlSpacing = getRoutingPRLSpacing(techLayer, false);
-  uint64_t boxWidth = dbAdapter_.defdist(isHorizontal ? metalBoxOfVia->getDX()
-                                                  : metalBoxOfVia->getDY());
+  uint64_t boxWidth = dbAdapter_.defdist(
+    isHorizontal ? metalBoxOfVia->getDY() : metalBoxOfVia->getDX());
 
   return std::max(boxWidth, width) / 2 + width / 2 + prlSpacing;
 }
@@ -576,8 +576,7 @@ uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* techLayer,
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
 
-  return spacing + std::max(metalBoxWidthOfViaX, width) / 2
-         + std::max(metalBoxWidthOfViaY, width) / 2;
+  return spacing + std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
 }
 
 uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
