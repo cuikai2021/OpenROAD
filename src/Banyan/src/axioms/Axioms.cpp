@@ -629,13 +629,13 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
     return std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
   }
 
-  double horizontalSpacing = std::sqrt(std::pow(spacing, 2) - std::pow(width, 2));
+  double horizontalSpacing
+      = std::sqrt(std::pow(spacing, 2) - std::pow(width, 2));
+  horizontalSpacing = std::ceil(horizontalSpacing / 10) * 10;
 
-
-
-  return horizontalSpacing + std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
+  return horizontalSpacing + std::max(metalBoxWidthOfViaX, width) / 2
+         + std::max(metalBoxWidthOfViaY, width) / 2;
 }
-
 
 void Axioms::addAxiomsTriples(
     odb::dbTechLayer* techLayer,
