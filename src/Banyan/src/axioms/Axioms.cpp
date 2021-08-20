@@ -521,7 +521,7 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
   uint64_t boxWidth = dbAdapter_.defdist(isHorizontal ? metalBoxOfVia->getDX()
                                                   : metalBoxOfVia->getDY());
 
-  return std::max(boxWidth, width) / 2 + prlSpacing;
+  return std::max(boxWidth, width) / 2 + width / 2 + prlSpacing;
 }
 
 uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* techLayer,
@@ -621,12 +621,18 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
   int routingSpacing = getRoutingPRLSpacing(techLayer, isSameNet);
   uint64_t spacing = std::max(routingSpacing, cutSpacing);
 
+  if (spacing <= width) {
+    return std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
+  }
+
+  double horizontalSpacing = std::sqrt(std::pow(spacing, 2) - std::pow(width, 2));
+
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
 
-  return spacing + std::max(metalBoxWidthOfViaX, width) / 2
-         + std::max(metalBoxWidthOfViaY, width) / 2;
+  return horizontalSpacing + std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
 }
+
 
 void Axioms::addAxiomsTriples(
     odb::dbTechLayer* techLayer,
@@ -666,8 +672,6 @@ void Axioms::addAxiomsTriples(
     }
   }
 }
-
-
 
 void Axioms::initAxiomsTables()
 {
