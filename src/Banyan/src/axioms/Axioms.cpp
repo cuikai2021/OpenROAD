@@ -618,6 +618,10 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
     cutSpacing -= getMarginBetweenCutAndMetalBox(
         metalBoxOfViaY, boundaryBoxOfViaY, POSITION::LEFT);
   }
+
+  delete boundaryBoxOfViaX;
+  delete boundaryBoxOfViaY;
+
   int routingSpacing = getRoutingPRLSpacing(techLayer, isSameNet);
   uint64_t spacing = std::max(routingSpacing, cutSpacing);
 
@@ -627,8 +631,7 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
 
   double horizontalSpacing = std::sqrt(std::pow(spacing, 2) - std::pow(width, 2));
 
-  delete boundaryBoxOfViaX;
-  delete boundaryBoxOfViaY;
+
 
   return horizontalSpacing + std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
 }
