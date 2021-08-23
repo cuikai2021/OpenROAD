@@ -7,8 +7,7 @@
 #include <map>
 #include <utility>
 
-
-#include "opendb/db.h"
+#include "odb/db.h"
 #include "axioms/Axioms.h"
 
 namespace banyan {
