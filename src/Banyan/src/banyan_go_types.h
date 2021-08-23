@@ -8,8 +8,8 @@ enum {
     interface_version_3 = 0x00,
     interface_version_4 = 0x20,
     interface_version_5 = 0x21,
-    interface_version_6 = 0x07,
-    interface_version_7 = 0x15,
+    interface_version_6 = 0x08,
+    interface_version_7 = 0x12,
 };
 
 // POD types that can be consumed by go code
@@ -121,6 +121,25 @@ struct layer
     int width;
     int pitch;
 
+    GoUint64 min_steps;
+    /*
+    Specifies that up to maxEdges consecutive edges that are less
+    than minStepLength in length are allowed, but more than
+    maxEdges in a row is a violation. Typically, most tools only
+    allow a maxEdges value of 0, 1, or 2. A maxEdges value of 0
+    means that no edge can be less than minStepLength.
+    */
+    GoUint64 max_edges;
+    /*
+    Specifies the maximum total length of consecutive short edges
+    (edges that are less than minStepLength) that OPC can
+    correct without causing new DRC violations.
+    If the total length of the edges is greater than maxLength, a
+    violation occurs. No violation occurs if the total length is less
+    than or equal to maxLength.
+    */
+    GoUint64 max_length;
+
     // index into the track array
     GoUint64 track_begin;
     GoUint64 track_end;
@@ -129,6 +148,15 @@ struct layer
     // viadef connect this and one layer below
     GoUint64 viadef_begin;
     GoUint64 viadef_end;
+
+    // index into the axioms array
+    GoUint64 via_track_begin, via_track_end;
+    GoUint64 trunk_min_len_begin, trunk_min_len_end;
+    GoUint64 trunk_dist_same_begin, trunk_dist_same_end;
+    GoUint64 trunk_dist_diff_begin, trunk_dist_diff_end;
+    GoUint64 trunk_via_begin, trunk_via_end;
+    GoUint64 via_track_diff_begin, via_track_diff_end;
+    GoUint64 via_track_same_begin, via_track_same_end;
 }; // struct layer
 
 struct track
@@ -140,10 +168,10 @@ struct track
 
 struct ndr_layer
 {
-  int la;
-  int width;
-  int spacing;
-  unsigned int wire_ext;
+    int la;
+    int width;
+    int spacing;
+    unsigned int wire_ext;
 };
 
 struct ndr
@@ -177,7 +205,6 @@ struct route_ret
     GoUint64 rvias_size;
 }; // struct entry_ret
 
-
 struct axioms_triple
 {
     // horizontal: Align the left side of via and wire
@@ -187,13 +214,4 @@ struct axioms_triple
     // vertical: Align the top side of via and wire
     int via_y;
     GoUint64 len;
-};
-
-
-struct axioms_layer_table
-{
-    int la;
-    
-    GoUint64 axioms_triple_begin;
-    GoUint64 axioms_triple_end;
 };
