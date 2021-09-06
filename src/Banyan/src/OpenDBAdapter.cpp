@@ -31,6 +31,7 @@ std::string getViaNameFromViaBox(odb::dbSBox* box)
   assert(false);
 }
 
+
 struct TrackLayerName
 {
   typedef std::string value_type;
@@ -796,8 +797,12 @@ void OpenDBAdapter::getPinsFromOpenDB()
           addBox(box);
         }
       }
+      banyan_go::pin_use use = bTerm->getIoType() == odb::dbIoType::OUTPUT
+                                   ? banyan_go::PIN_SINK
+                                   : banyan_go::PIN_SOURCE;
       strs_.emplace_back(bTerm->getName());
       pins_.push_back({strs_.back().c_str(),
+                       use,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -831,8 +836,13 @@ void OpenDBAdapter::getPinsFromOpenDB()
           addBox(techLayer->getName(), rect);
         }
       }
+
+      banyan_go::pin_use use = iTerm->getIoType() == odb::dbIoType::INPUT
+                                   ? banyan_go::PIN_SINK
+                                   : banyan_go::PIN_SOURCE;
       strs_.emplace_back(inst->getName() + "/" + mTerm->getName());
       pins_.push_back({strs_.back().c_str(),
+                       use,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -847,6 +857,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
       strs_.emplace_back(nName + "/wire");
       pins_.push_back({strs_.back().c_str(),
+                       banyan_go::PIN_OBS,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -867,6 +878,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
       }
       strs_.emplace_back(nName + "/specialwire");
       pins_.push_back({strs_.back().c_str(),
+                       banyan_go::PIN_OBS,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -949,6 +961,7 @@ void OpenDBAdapter::getObsFromOpenDB()
     addBox(layerName, xl, yl, xh, yh);
   }
   pins_.push_back({"obstructions",
+                   banyan_go::PIN_OBS,
                    boxIndexBegin,
                    boxes_.size(),
                    viaIndexBegin,
@@ -1028,6 +1041,7 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
     if (boxes_.size() > boxIndexBegin) {
       strs_.emplace_back(inst->getName() + "/instobs");
       pins_.push_back({strs_.back().c_str(),
+                       banyan_go::PIN_OBS,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,

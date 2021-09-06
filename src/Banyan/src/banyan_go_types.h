@@ -55,6 +55,12 @@ enum layer_dir {
     DIR_VERTICAL,
 };
 
+enum pin_use {
+    PIN_SOURCE = 0,
+    PIN_SINK,
+    PIN_OBS,
+};
+
 #ifndef __cplusplus
 typedef struct box box;
 typedef struct via via;
@@ -68,6 +74,8 @@ struct pin
 {
     // for diagnostics only
     const char *name;
+    
+    int use;
 
     // index into the box array
     GoUint64 box_begin;
