@@ -1,5 +1,3 @@
-#include "axioms/Axioms.h"
-
 #include <assert.h>
 #include <limits.h>
 
@@ -10,6 +8,7 @@
 #include <utility>
 
 #include "odb/db.h"
+#include "axioms/Axioms.h"
 
 namespace banyan {
 
@@ -28,6 +27,29 @@ void Axioms::getDefaultViasInLayer(
     odb::dbTechLayer* layer,
     std::vector<std::pair<std::string, odb::dbTechVia*>>& defaultViasInLayer)
 {
+  /* def vias seem missing
+  auto la = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
+  if (la < 0)
+    throw odb::ZException("invalid viadef layers");
+
+  for (auto i = dbAdapter_.layers_[la].viadef_begin;
+    i != dbAdapter_.layers_[la].viadef_end; ++i) {
+      const auto &viadef = dbAdapter_.viadefs_[i];
+      std::string name(viadef.name);
+      auto via = AssertFind(defaultViaMap, name);
+      defaultViasInLayer.emplace_back(name, via);
+  }
+  if (size_t(la+1) < dbAdapter_.layers_.size()) {
+    for (auto i = dbAdapter_.layers_[la+1].viadef_begin;
+      i != dbAdapter_.layers_[la+1].viadef_end; ++i) {
+        const auto &viadef = dbAdapter_.viadefs_[i];
+        std::string name(viadef.name);
+        auto via = AssertFind(defaultViaMap, name);
+        defaultViasInLayer.emplace_back(name, via);
+    }
+  }
+  //*/
+  //*
   copy_if(defaultViaMap.begin(),
           defaultViaMap.end(),
           std::inserter(defaultViasInLayer, defaultViasInLayer.end()),
@@ -36,6 +58,7 @@ void Axioms::getDefaultViasInLayer(
             return via->getTopLayer()->getName() == layer->getName()
                    || via->getBottomLayer()->getName() == layer->getName();
           });
+  //*/
 }
 
 uint32_t Axioms::getCutNumsFromVia(odb::dbTechVia* via)
@@ -211,7 +234,7 @@ uint64_t Axioms::getCutSpacingFromVia(odb::dbTechVia* viaX,
   if (cutLayerForViaX->getName() != cutLayerForViaY->getName()) {
     return 0;
   }
-  int cutSpacing = 0;
+  uint cutSpacing = 0;
 
   odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
   cutLayerForViaX->getV54SpacingRules(spacingRules);
@@ -249,7 +272,7 @@ uint64_t Axioms::getCutSpacingFromVia(odb::dbTechVia* viaX,
   //     cutSpacing = cutSpacingRule->getCutSpacing();
   //   }
   // }
-  if (cutSpacing <= 0) {
+  if (cutSpacing == 0) {
     cutSpacing = cutLayerForViaX->getSpacing();
   }
 
@@ -264,15 +287,17 @@ uint64_t Axioms::getDiffAreaBetweenViaAndWire(odb::dbBox* metalBoxOfVia, uint64_
   }
   uint64_t diffArea = 0;
   uint64_t diffLenOfBoxOfVia = 0;
+  uint64_t metalBoxOfViaWidth = (uint64_t)(dbAdapter_.defdist(metalBoxOfVia->getDX()));
+  uint64_t metalBoxOfViaHeight= (uint64_t)(dbAdapter_.defdist(metalBoxOfVia->getDY()));
   if (isHorizontal) {
-    if (dbAdapter_.defdist(metalBoxOfVia->getDY()) > width) {
-      diffLenOfBoxOfVia = dbAdapter_.defdist(metalBoxOfVia->getDY()) - width;
-      diffArea = diffLenOfBoxOfVia * dbAdapter_.defdist(metalBoxOfVia->getDX());
+    if (metalBoxOfViaHeight > width) {
+      diffLenOfBoxOfVia = metalBoxOfViaHeight - width;
+      diffArea = diffLenOfBoxOfVia * metalBoxOfViaWidth;
     }
   } else {
-    if (dbAdapter_.defdist(metalBoxOfVia->getDX()) > width) {
-      diffLenOfBoxOfVia = dbAdapter_.defdist(metalBoxOfVia->getDX()) - width;
-      diffArea = diffLenOfBoxOfVia * dbAdapter_.defdist(metalBoxOfVia->getDY());
+    if (metalBoxOfViaWidth > width) {
+      diffLenOfBoxOfVia = metalBoxOfViaWidth - width;
+      diffArea = diffLenOfBoxOfVia * metalBoxOfViaHeight;
     }
   }
   return diffArea;
@@ -306,150 +331,6 @@ uint64_t Axioms::getMarginBetweenCutAndMetalBox(odb::dbBox* metalBox,
   return dbAdapter_.defdist(margin);
 }
 
-uint64_t Axioms::calcTrunkMinLength(odb::dbTechLayer* techLayer,
-                                    odb::dbTechVia* viaX,
-                                    odb::dbTechVia* viaY,
-                                    bool isSameNet)
-{
-  auto width = techLayer->getWidth();
-  auto layerDir = techLayer->getDirection();
-  auto area = dbAdapter_.defArea(techLayer->getArea());
-
-  uint64_t minLen = calcViaTrunkLength(techLayer, viaX, viaY, isSameNet);
-
-  uint64_t diffAreaOfBoxOfViaX = 0;
-  uint64_t diffAreaOfBoxOfViaY = 0;
-
-  // uint32_t cutNumsOfViaX = getCutNumsFromVia(viaX);
-  // uint32_t cutNumsOfViaY = getCutNumsFromVia(viaY);
-
-  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
-  if (viaX != nullptr) {
-    auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
-    diffAreaOfBoxOfViaX
-        = getDiffAreaBetweenViaAndWire(metalBoxOfViaX, width, isHorizontal);
-  }
-  if (viaY != nullptr) {
-    auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
-    diffAreaOfBoxOfViaY
-        = getDiffAreaBetweenViaAndWire(metalBoxOfViaY, width, isHorizontal);
-  }
-
-  int64_t remainArea = area - diffAreaOfBoxOfViaX - diffAreaOfBoxOfViaY;
-  if (remainArea > 0 && minLen * width < remainArea) {
-    uint64_t extLen = (remainArea - minLen * width) / width;
-    minLen += extLen;
-  }
-
-
-  // std::string viaXName = viaX == nullptr ? "null" : viaX->getName();
-  // std::string viaYName = viaY == nullptr ? "null" : viaY->getName();
-
-  // logger_->info(utl::BY,
-  //               901,
-  //               "min_len_isSame_{} {} {} {}",
-  //               isSameNet,
-  //               viaXName,
-  //               viaYName,
-  //               minLen);
-
-  return minLen;
-}
-
-void Axioms::addAxiomsTriples(
-    odb::dbTechLayer* techLayer,
-    std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer,
-    CalcLength calcFunc,
-    bool isSameNet,
-    bool excludedNullVia)
-{
-  if (!excludedNullVia) {
-    axiomsTriples.push_back(
-        {0, 0, (this->*calcFunc)(techLayer, nullptr, nullptr, isSameNet)});
-
-    for (const auto& nameToViaX : defaultViasInLayer) {
-      auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
-      auto viaX = nameToViaX.second;
-      axiomsTriples.push_back(
-          {viaXIdx, 0, (this->*calcFunc)(techLayer, viaX, nullptr, isSameNet)});
-    }
-    for (const auto& nameToViaY : defaultViasInLayer) {
-      auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
-      auto viaY = nameToViaY.second;
-      axiomsTriples.push_back(
-          {0, viaYIdx, (this->*calcFunc)(techLayer, nullptr, viaY, isSameNet)});
-    }
-  }
-
-  for (const auto& nameToViaX : defaultViasInLayer) {
-    auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
-    auto viaX = nameToViaX.second;
-    for (const auto& nameToViaY : defaultViasInLayer) {
-      auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
-      auto viaY = nameToViaY.second;
-      axiomsTriples.push_back(
-          {viaXIdx,
-           viaYIdx,
-           (this->*calcFunc)(techLayer, viaX, viaY, isSameNet)});
-    }
-  }
-}
-
-uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* techLayer,
-                                     odb::dbTechVia* viaX,
-                                     odb::dbTechVia* viaY,
-                                     bool isSameNet)
-{
-  auto layerDir = techLayer->getDirection();
-
-  uint64_t length = 0;
-
-  auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
-  auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
-
-  odb::Rect* boundaryBoxOfViaX = new odb::Rect();
-  odb::Rect* boundaryBoxOfViaY = new odb::Rect();
-  getBoundaryBoxOfCutBoxesFromVia(viaX, boundaryBoxOfViaX);
-  getBoundaryBoxOfCutBoxesFromVia(viaY, boundaryBoxOfViaY);
-
-  int cutSpacing = 0;
-  if (viaX != nullptr && viaY != nullptr) {
-    cutSpacing = getCutSpacingFromVia(viaX, viaY, isSameNet);
-    if (layerDir == odb::dbTechLayerDir::HORIZONTAL) {
-      cutSpacing -= dbAdapter_.defdist(
-          abs(metalBoxOfViaX->xMax() - boundaryBoxOfViaX->xMax()));
-      cutSpacing -= dbAdapter_.defdist(
-          abs(metalBoxOfViaY->xMin() - boundaryBoxOfViaY->xMin()));
-    } else {
-      cutSpacing -= dbAdapter_.defdist(
-          abs(metalBoxOfViaX->yMax() - boundaryBoxOfViaX->yMax()));
-      cutSpacing -= dbAdapter_.defdist(
-          abs(metalBoxOfViaY->yMin() - boundaryBoxOfViaY->yMin()));
-    }
-  }
-
-  auto routingSpacing = dbAdapter_.defdist(getRoutingEOLSpacing(techLayer, isSameNet));
-  length = std::max(cutSpacing, routingSpacing);
-
-  // std::string viaXName = viaX == nullptr ? "null" : viaX->getName();
-  // std::string viaYName = viaY == nullptr ? "null" : viaY->getName();
-
-  // logger_->info(utl::BY,
-  //               901,
-  //               "dist_len_isSame_{} {} {} {} {} {}",
-  //               isSameNet,
-  //               viaXName,
-  //               viaYName,
-  //               cutSpacing,
-  //               routingSpacing,
-  //               length);
-
-  delete boundaryBoxOfViaX;
-  delete boundaryBoxOfViaY;
-
-  return (uint64_t) length;
-}
-
 uint64_t Axioms::calcViaTrunkLength(odb::dbTechLayer* techLayer,
                                     odb::dbTechVia* viaX,
                                     odb::dbTechVia* viaY,
@@ -466,8 +347,9 @@ uint64_t Axioms::calcViaTrunkLength(odb::dbTechLayer* techLayer,
   auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
   auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
 
-  uint64_t borderBoxOfViaXToEdge = 0;
-  uint64_t borderBoxOfViaYToEdge = 0;
+
+  uint64_t borderBoxOfViaXCenterToEdge = 0;
+  uint64_t borderBoxOfViaYCenterToEdge = 0;
 
   uint64_t diffLenOfBoxOfViaX = 0;
   uint64_t diffLenOfBoxOfViaY = 0;
@@ -487,41 +369,51 @@ uint64_t Axioms::calcViaTrunkLength(odb::dbTechLayer* techLayer,
 
   if (layerDir == odb::dbTechLayerDir::HORIZONTAL) {
     if (viaX != nullptr) {
-      borderBoxOfViaXToEdge = dbAdapter_.defdist(abs(boundaryBoxOfViaX->xMax() - metalBoxOfViaX->xMin()));
-      borderCutBoxOfViaXToMetalBoxEdge = getMarginBetweenCutAndMetalBox(metalBoxOfViaX, boundaryBoxOfViaX, POSITION::RIGHT);
-
-      if (dbAdapter_.defdist(metalBoxOfViaX->getDY()) > width) {
-        diffLenOfBoxOfViaX
-            = dbAdapter_.defdist(metalBoxOfViaX->getDY()) - width;
+      borderBoxOfViaXCenterToEdge
+          = dbAdapter_.defdist(boundaryBoxOfViaX->dx() / 2);
+      borderCutBoxOfViaXToMetalBoxEdge = getMarginBetweenCutAndMetalBox(
+          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::RIGHT);
+      uint64_t metalBoxOfViaXHeight
+          = (uint64_t) (dbAdapter_.defdist(metalBoxOfViaX->getDY()));
+      if (metalBoxOfViaXHeight > width) {
+        diffLenOfBoxOfViaX = metalBoxOfViaXHeight - width;
       }
     }
 
     if (viaY != nullptr) {
-      borderBoxOfViaYToEdge = dbAdapter_.defdist(
-          abs(boundaryBoxOfViaY->xMin() - metalBoxOfViaY->xMax()));
-      borderCutBoxOfViaYToMetalBoxEdge = getMarginBetweenCutAndMetalBox(metalBoxOfViaX, boundaryBoxOfViaX, POSITION::LEFT);
-      if (dbAdapter_.defdist(metalBoxOfViaY->getDY()) > width) {
-        diffLenOfBoxOfViaY
-            = dbAdapter_.defdist(metalBoxOfViaY->getDY()) - width;
+      borderBoxOfViaYCenterToEdge
+          = dbAdapter_.defdist(boundaryBoxOfViaY->dx() / 2);
+      borderCutBoxOfViaYToMetalBoxEdge = getMarginBetweenCutAndMetalBox(
+          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::LEFT);
+      uint64_t metalBoxOfViaYHeight
+          = (uint64_t) (dbAdapter_.defdist(metalBoxOfViaY->getDY()));
+      if (metalBoxOfViaYHeight > width) {
+        diffLenOfBoxOfViaY = metalBoxOfViaYHeight - width;
       }
     }
 
   } else {
     if (viaX != nullptr) {
-      borderBoxOfViaXToEdge = dbAdapter_.defdist(abs(boundaryBoxOfViaX->yMax() - metalBoxOfViaX->yMin()));
-      borderCutBoxOfViaXToMetalBoxEdge = getMarginBetweenCutAndMetalBox(metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP);
-      if (dbAdapter_.defdist(metalBoxOfViaX->getDX()) > width) {
-        diffLenOfBoxOfViaX
-            = dbAdapter_.defdist(metalBoxOfViaX->getDX()) - width;
+      borderBoxOfViaXCenterToEdge
+          = dbAdapter_.defdist(boundaryBoxOfViaX->dy() / 2);
+      borderCutBoxOfViaXToMetalBoxEdge = getMarginBetweenCutAndMetalBox(
+          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP);
+      uint64_t metalBoxOfViaXWidth
+          = (uint64_t) (dbAdapter_.defdist(metalBoxOfViaX->getDX()));
+      if (metalBoxOfViaXWidth > width) {
+        diffLenOfBoxOfViaX = metalBoxOfViaXWidth - width;
       }
     }
 
     if (viaY != nullptr) {
-      borderBoxOfViaYToEdge = dbAdapter_.defdist(abs(boundaryBoxOfViaY->yMin() - metalBoxOfViaY->yMax()));
-      borderCutBoxOfViaYToMetalBoxEdge = getMarginBetweenCutAndMetalBox(metalBoxOfViaX, boundaryBoxOfViaX, POSITION::BOTTOM);
-      if (dbAdapter_.defdist(metalBoxOfViaY->getDX()) > width) {
-        diffLenOfBoxOfViaY
-            = dbAdapter_.defdist(metalBoxOfViaY->getDX()) - width;
+      borderBoxOfViaYCenterToEdge
+          = dbAdapter_.defdist(boundaryBoxOfViaY->dy() / 2);
+      borderCutBoxOfViaYToMetalBoxEdge = getMarginBetweenCutAndMetalBox(
+          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::BOTTOM);
+      uint64_t metalBoxOfViaYWidth
+          = (uint64_t) (dbAdapter_.defdist(metalBoxOfViaY->getDX()));
+      if (metalBoxOfViaYWidth > width) {
+        diffLenOfBoxOfViaY = metalBoxOfViaYWidth - width;
       }
     }
   }
@@ -543,11 +435,59 @@ uint64_t Axioms::calcViaTrunkLength(odb::dbTechLayer* techLayer,
     cutSpacing = minStep + borderCutBoxOfViaXToMetalBoxEdge + borderCutBoxOfViaYToMetalBoxEdge;
   }
 
-  minLen = borderBoxOfViaXToEdge + borderBoxOfViaYToEdge + cutSpacing;
+  minLen = borderBoxOfViaXCenterToEdge + borderBoxOfViaYCenterToEdge + cutSpacing;
 
-  
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
+
+  return minLen;
+}
+
+uint64_t Axioms::calcTrunkMinLength(odb::dbTechLayer* techLayer,
+                                    odb::dbTechVia* viaX,
+                                    odb::dbTechVia* viaY,
+                                    bool isSameNet)
+{
+  uint64_t width = techLayer->getWidth();
+  auto layerDir = techLayer->getDirection();
+  auto area = dbAdapter_.defArea(techLayer->getArea());
+
+  uint64_t minLen = calcViaTrunkLength(techLayer, viaX, viaY, isSameNet);
+
+  uint64_t diffAreaOfBoxOfViaX = 0;
+  uint64_t diffAreaOfBoxOfViaY = 0;
+
+  uint64_t metalBoxWidthOfViaX = 0;
+  uint64_t metalBoxWidthOfViaY = 0;
+
+  // uint32_t cutNumsOfViaX = getCutNumsFromVia(viaX);
+  // uint32_t cutNumsOfViaY = getCutNumsFromVia(viaY);
+
+  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
+  if (viaX != nullptr) {
+    auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
+    diffAreaOfBoxOfViaX
+        = getDiffAreaBetweenViaAndWire(metalBoxOfViaX, width, isHorizontal);
+    metalBoxWidthOfViaX
+        = dbAdapter_.defdist(isHorizontal ? metalBoxOfViaX->getDX() : metalBoxOfViaX->getDY());
+  }
+
+  if (viaY != nullptr) {
+    auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
+    diffAreaOfBoxOfViaY
+        = getDiffAreaBetweenViaAndWire(metalBoxOfViaY, width, isHorizontal);
+    metalBoxWidthOfViaY 
+        = dbAdapter_.defdist(isHorizontal ? metalBoxOfViaY->getDX() : metalBoxOfViaY->getDY());
+  }
+
+  int64_t remainArea = area - diffAreaOfBoxOfViaX - diffAreaOfBoxOfViaY;
+  uint64_t realLength = minLen + std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
+  uint64_t realArea = realLength * width;
+
+  if (remainArea > 0 && remainArea > (int64_t) realArea) {
+    uint64_t extLen = (remainArea - realArea) / width;
+    minLen += extLen;
+  }
 
   return minLen;
 }
@@ -555,22 +495,87 @@ uint64_t Axioms::calcViaTrunkLength(odb::dbTechLayer* techLayer,
 uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
                                     odb::dbTechVia* via)
 {
-  // auto layerDir = techLayer->getDirection();
+  auto layerDir = techLayer->getDirection();
+  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
+
   // uint64_t spacing = getCutSpacingFromVia(via, via, false);
   // auto metalBoxOfVia = getLayerBoxFromVia(techLayer, via);
   // odb::Rect* boundaryBoxOfVia = new odb::Rect();
   // getBoundaryBoxOfCutBoxesFromVia(via, boundaryBoxOfVia);
 
   // if (layerDir == odb::dbTechLayerDir::HORIZONTAL) {
-  //    spacing -= getMarginBetweenCutAndMetalBox(metalBoxOfVia, boundaryBoxOfVia, POSITION::TOP);
+  //    spacing -= getMarginBetweenCutAndMetalBox(metalBoxOfVia,
+  //    boundaryBoxOfVia, POSITION::TOP);
   // } else {
-  //    spacing -= getMarginBetweenCutAndMetalBox(metalBoxOfVia, boundaryBoxOfVia, POSITION::RIGHT);
+  //    spacing -= getMarginBetweenCutAndMetalBox(metalBoxOfVia,
+  //    boundaryBoxOfVia, POSITION::RIGHT);
   // }
 
   // delete boundaryBoxOfVia;
 
   // return std::max(spacing, getRoutingPRLSpacing(techLayer, false));
-    return getRoutingPRLSpacing(techLayer, false);
+  uint64_t width = techLayer->getWidth();
+  auto metalBoxOfVia = getLayerBoxFromVia(techLayer, via);
+  auto prlSpacing = getRoutingPRLSpacing(techLayer, false);
+  uint64_t boxWidth = dbAdapter_.defdist(
+    isHorizontal ? metalBoxOfVia->getDY() : metalBoxOfVia->getDX());
+
+  return std::max(boxWidth, width) / 2 + width / 2 + prlSpacing;
+}
+
+uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* techLayer,
+                                     odb::dbTechVia* viaX,
+                                     odb::dbTechVia* viaY,
+                                     bool isSameNet)
+{
+  auto layerDir = techLayer->getDirection();
+  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
+  uint64_t width = techLayer->getWidth();
+
+  auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
+  auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
+
+  uint64_t metalBoxWidthOfViaX = 0;
+  uint64_t metalBoxWidthOfViaY = 0;
+
+  odb::Rect* boundaryBoxOfViaX = new odb::Rect();
+  odb::Rect* boundaryBoxOfViaY = new odb::Rect();
+  getBoundaryBoxOfCutBoxesFromVia(viaX, boundaryBoxOfViaX);
+  getBoundaryBoxOfCutBoxesFromVia(viaY, boundaryBoxOfViaY);
+  
+  int cutSpacing = 0;
+  if (viaX != nullptr && viaY != nullptr) {
+    cutSpacing = getCutSpacingFromVia(viaX, viaY, isSameNet);
+    if (isHorizontal) {
+      cutSpacing -= getMarginBetweenCutAndMetalBox(
+          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::RIGHT);
+      cutSpacing -= getMarginBetweenCutAndMetalBox(
+          metalBoxOfViaY, boundaryBoxOfViaY, POSITION::LEFT);
+    } else {
+      cutSpacing -= getMarginBetweenCutAndMetalBox(
+          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP);
+      cutSpacing -= getMarginBetweenCutAndMetalBox(
+          metalBoxOfViaY, boundaryBoxOfViaY, POSITION::BOTTOM);
+    }
+  }
+
+  if (metalBoxOfViaX != nullptr) {
+    metalBoxWidthOfViaX = dbAdapter_.defdist(
+        isHorizontal ? metalBoxOfViaX->getDX() : metalBoxOfViaX->getDY());
+  }
+
+  if (metalBoxOfViaY != nullptr) {
+    metalBoxWidthOfViaY = dbAdapter_.defdist(
+        isHorizontal ? metalBoxOfViaY->getDX() : metalBoxOfViaY->getDY());
+  }
+
+  auto routingSpacing = dbAdapter_.defdist(getRoutingEOLSpacing(techLayer, isSameNet));
+  uint64_t spacing = std::max(routingSpacing, cutSpacing);
+
+  delete boundaryBoxOfViaX;
+  delete boundaryBoxOfViaY;
+
+  return spacing + std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
 }
 
 uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
@@ -582,18 +587,25 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
     return 0;
   }
   auto layerDir = techLayer->getDirection();
+  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
+  uint64_t width = techLayer->getWidth();
 
   auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
   auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
+
+  uint64_t metalBoxWidthOfViaX = dbAdapter_.defdist(
+      isHorizontal ? metalBoxOfViaX->getDX() : metalBoxOfViaX->getDY());
+  uint64_t metalBoxWidthOfViaY = dbAdapter_.defdist(
+      isHorizontal ? metalBoxOfViaY->getDX() : metalBoxOfViaY->getDY());
 
   odb::Rect* boundaryBoxOfViaX = new odb::Rect();
   odb::Rect* boundaryBoxOfViaY = new odb::Rect();
 
   getBoundaryBoxOfCutBoxesFromVia(viaX, boundaryBoxOfViaX);
   getBoundaryBoxOfCutBoxesFromVia(viaY, boundaryBoxOfViaY);
-  
+
   int cutSpacing = getCutSpacingFromVia(viaX, viaY, isSameNet);
-  if (layerDir == odb::dbTechLayerDir::HORIZONTAL) {
+  if (isHorizontal) {
     cutSpacing -= getMarginBetweenCutAndMetalBox(
         metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP);
     cutSpacing -= getMarginBetweenCutAndMetalBox(
@@ -604,13 +616,62 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
     cutSpacing -= getMarginBetweenCutAndMetalBox(
         metalBoxOfViaY, boundaryBoxOfViaY, POSITION::LEFT);
   }
-  uint64_t routingSpacing = getRoutingPRLSpacing(techLayer, isSameNet);
-  uint64_t spacing = routingSpacing > cutSpacing ? routingSpacing : cutSpacing ;
 
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
 
-  return spacing;
+  int routingSpacing = getRoutingPRLSpacing(techLayer, isSameNet);
+  uint64_t spacing = std::max(routingSpacing, cutSpacing);
+
+  if (spacing <= width) {
+    return std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
+  }
+
+  double horizontalSpacing
+      = std::sqrt(std::pow(spacing, 2) - std::pow(width, 2));
+  horizontalSpacing = std::ceil(horizontalSpacing / 10) * 10;
+
+  return horizontalSpacing + std::max(metalBoxWidthOfViaX, width) / 2
+         + std::max(metalBoxWidthOfViaY, width) / 2;
+}
+
+void Axioms::addAxiomsTriples(
+    odb::dbTechLayer* techLayer,
+    std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer,
+    CalcLength calcFunc,
+    bool isSameNet,
+    bool excludedNullVia)
+{
+  if (!excludedNullVia) {
+    axiomsTriples.push_back(
+        {NULL_VIA_IDX, NULL_VIA_IDX, (this->*calcFunc)(techLayer, nullptr, nullptr, isSameNet)});
+
+    for (const auto& nameToViaX : defaultViasInLayer) {
+      auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
+      auto viaX = nameToViaX.second;
+      axiomsTriples.push_back(
+          {viaXIdx, NULL_VIA_IDX, (this->*calcFunc)(techLayer, viaX, nullptr, isSameNet)});
+    }
+    for (const auto& nameToViaY : defaultViasInLayer) {
+      auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
+      auto viaY = nameToViaY.second;
+      axiomsTriples.push_back(
+          {NULL_VIA_IDX, viaYIdx, (this->*calcFunc)(techLayer, nullptr, viaY, isSameNet)});
+    }
+  }
+
+  for (const auto& nameToViaX : defaultViasInLayer) {
+    auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
+    auto viaX = nameToViaX.second;
+    for (const auto& nameToViaY : defaultViasInLayer) {
+      auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
+      auto viaY = nameToViaY.second;
+      axiomsTriples.push_back(
+          {viaXIdx,
+           viaYIdx,
+           (this->*calcFunc)(techLayer, viaX, viaY, isSameNet)});
+    }
+  }
 }
 
 void Axioms::initAxiomsTables()
@@ -625,49 +686,43 @@ void Axioms::initAxiomsTables()
     std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer;
     getDefaultViasInLayer(techLayer, defaultViasInLayer);
     //===============================================================================================
-    uint64_t triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].trunk_min_len_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcTrunkMinLength, false);
-    layerToTrunkMinLengthTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].trunk_min_len_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].trunk_dist_same_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcTrunkDistLength, true);
-    layerToTrunkDistSameTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].trunk_dist_same_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].trunk_dist_diff_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcTrunkDistLength, false);
-    layerToTrunkDistDiffTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].trunk_dist_diff_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].trunk_via_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcViaTrunkLength, false);
-    layerToTrunkViaTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].trunk_via_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].via_track_same_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcViaTrackLength, true, true);
-    layerToViaTrackDoubleViaSameTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].via_track_same_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].via_track_diff_begin = axiomsTriples.size();
     addAxiomsTriples(
         techLayer, defaultViasInLayer, &Axioms::calcViaTrackLength, false, true);
-    layerToViaTrackDoubleViaDiffTable.push_back(
-        {layerIdx, triplesBegin, axiomsTriples.size()});    
+    dbAdapter_.layers_[layerIdx].via_track_diff_end = axiomsTriples.size();
     //===============================================================================================
-    triplesBegin = axiomsTriples.size();
+    dbAdapter_.layers_[layerIdx].via_track_begin = axiomsTriples.size();
     for (auto viaIter : defaultViasInLayer) {
       auto viaIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, viaIter.first);
       auto via = viaIter.second;
-      axiomsTriples.push_back({viaIdx, 0, calcViaTrackLength(techLayer, via)});
+      axiomsTriples.push_back({viaIdx, NULL_VIA_IDX, calcViaTrackLength(techLayer, via)});
     }
-    layerToViaTrackTable.push_back({layerIdx, triplesBegin, axiomsTriples.size()});
+    dbAdapter_.layers_[layerIdx].via_track_end = axiomsTriples.size();
   }
 }
 

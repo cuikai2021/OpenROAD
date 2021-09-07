@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include <utility>
+#include <cmath>
 
 #include "DBAdapter.h"
 #include "GroupedRange.hpp"
@@ -75,7 +76,7 @@ int64_t OpenDBAdapter::defArea(double area)
 {
   odb::dbTech* tech = db_->getTech();
   int database_unit = tech->getLefUnits();
-  int64_t defArea = area * database_unit * database_unit;
+  int64_t defArea = std::roundl(area * database_unit * database_unit);
   return defArea;
 }
 
@@ -122,10 +123,17 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
   auto it = layerNameToIdxs_
                 .insert(make_pair(layer->getName(), (int) layers_.size()))
                 .first;
+
+  auto minStep = layer->getMinStep();
+  auto minStepMaxEdges = layer->getMinStepMaxEdges();
+  auto minStepMaxLength = layer->getMinStepMaxLength();
   layers_.push_back({it->first.c_str(),
                      banyan_go::DIR_NONE,
                      (int) layer->getWidth(),
                      calLayerPitch(layer),
+                     minStep,
+                     minStepMaxEdges,
+                     minStepMaxLength,
                      0,
                      0,
                      0,
@@ -150,7 +158,7 @@ void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::PWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::DIFFUSION) {
     auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
-    layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0});
+    layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0});
     hasAddedMasterSliceLayer_ = true;
   }
 }
@@ -829,7 +837,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
                        boxes_.size(),
                        viaIndexBegin,
                        vias_.size()});
-      instPinNameToIdxs_[strs_.back()] = pins_.size();
+      instPinNameToIdxs_[strs_.back()] = pins_.size() - 1;
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
@@ -975,21 +983,21 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       }
     }
   }
+
+
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
     int pX, pY;
     inst->getOrigin(pX, pY);
     odb::Point origin = odb::Point(pX, pY);
     odb::dbTransform transform(inst->getOrient(), origin);
-
+    size_t boxIndexBegin = boxes_.size();
+    size_t viaIndexBegin = vias_.size();
     for (auto iTerm : inst->getITerms()) {
       auto mTerm = iTerm->getMTerm();
       auto pinNameInBanyan = inst->getName() + "/" + mTerm->getName();
       auto iter = instPinNameToIdxs_.find(pinNameInBanyan);
       if (iter == instPinNameToIdxs_.end()) {
-        size_t boxIndexBegin = boxes_.size();
-        size_t viaIndexBegin = vias_.size();
-
         for (auto mPin : mTerm->getMPins()) {
           for (auto box : mPin->getGeometry()) {
             odb::dbTechLayer* techLayer = box->getTechLayer();
@@ -1005,25 +1013,19 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
             addBox(techLayer->getName(), rect);
           }
         }
-
-        strs_.emplace_back(pinNameInBanyan + "/instobs");
-        pins_.push_back({strs_.back().c_str(),
-                         boxIndexBegin,
-                         boxes_.size(),
-                         viaIndexBegin,
-                         vias_.size()});
       }
     }
 
     auto iter = mnameToBoxes.find(inst->getMaster()->getName());
     if (iter != mnameToBoxes.end()) {
-      size_t boxIndexBegin = boxes_.size();
-      size_t viaIndexBegin = vias_.size();
       for (auto box : iter->second) {
         auto instObsRect = box.second;
         transform.apply(instObsRect);
         addBox(box.first, instObsRect);
       }
+    }
+
+    if (boxes_.size() > boxIndexBegin) {
       strs_.emplace_back(inst->getName() + "/instobs");
       pins_.push_back({strs_.back().c_str(),
                        boxIndexBegin,

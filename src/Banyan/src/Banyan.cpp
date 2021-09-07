@@ -91,64 +91,7 @@ int Banyan::main(const std::map<std::string, std::string> &options)
                   layer.viadef_end);
   }
 
-  // Axioms axioms(bdAdapter);
-
-  // for (auto layerToTable : axioms.getLayerToTrunkMinLengthTable()) {
-  //   logger_->info(utl::BY,
-  //                 222,
-  //                 "TrunkMinLengthItem {} [{},{})",
-  //                 layerToTable.la,
-  //                 layerToTable.axioms_triple_begin,
-  //                 layerToTable.axioms_triple_end);
-  // }
-  // for (auto layerToTable : axioms.getLayerToTrunkDistSameTable()) {
-  //   logger_->info(utl::BY,
-  //                 222,
-  //                 "TrunkDistSameItem {} [{},{})",
-  //                 layerToTable.la,
-  //                 layerToTable.axioms_triple_begin,
-  //                 layerToTable.axioms_triple_end);
-  // }
-  // for (auto layerToTable : axioms.getLayerToTrunkDistDiffTable()) {
-  //   logger_->info(utl::BY,
-  //                 222,
-  //                 "TrunkDistDiffItem {} [{},{})",
-  //                 layerToTable.la,
-  //                 layerToTable.axioms_triple_begin,
-  //                 layerToTable.axioms_triple_end);
-  // }
-  // for (auto layerToTable : axioms.getLayerToTrunkViaTable()) {
-  //   logger_->info(utl::BY,
-  //                 222,
-  //                 "TrunkViaItem {} [{},{})",
-  //                 layerToTable.la,
-  //                 layerToTable.axioms_triple_begin,
-  //                 layerToTable.axioms_triple_end);
-  // }
-  // for (auto layerToTable : axioms.getLayerToViaTrackDoubleViaSameTable()) {
-  //   logger_->info(utl::BY,
-  //                 222,
-  //                 "ViaTrackDoubleViaSameItem {} [{},{})",
-  //                 layerToTable.la,
-  //                 layerToTable.axioms_triple_begin,
-  //                 layerToTable.axioms_triple_end);
-  // }
-  // for (auto layerToTable : axioms.getLayerToViaTrackDoubleViaDiffTable()) {
-  //   logger_->info(utl::BY,
-  //                 222,
-  //                 "ViaTrackDoubleViaDiffItem {} [{},{})",
-  //                 layerToTable.la,
-  //                 layerToTable.axioms_triple_begin,
-  //                 layerToTable.axioms_triple_end);
-  // }
-  // for (auto layerToTable : axioms.getLayerToViaTrackTable()) {
-  //   logger_->info(utl::BY,
-  //                 222,
-  //                 "ViaTrackItem {} [{},{})",
-  //                 layerToTable.la,
-  //                 layerToTable.axioms_triple_begin,
-  //                 layerToTable.axioms_triple_end);
-  // }
+  Axioms axioms(bdAdapter);
 
   banyan_go::route_ret ret;
   long long err = banyan_route(
@@ -161,6 +104,7 @@ int Banyan::main(const std::map<std::string, std::string> &options)
     banyan_go::to_slice(bdAdapter.getBoxes()),
     banyan_go::to_slice(bdAdapter.getVias()),
     banyan_go::to_slice(bdAdapter.getViadefs()),
+    banyan_go::to_slice(axioms.getAxiomsTriples()),
     &ret);
 
   if (err == 0) {
