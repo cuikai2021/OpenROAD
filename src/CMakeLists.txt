@@ -357,7 +357,7 @@ if(GTEST STREQUAL ON)
     grt
     tap
     gui
-    TritonRoute
+    drt
     Banyan
     mpl
     mpl2
