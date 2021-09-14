@@ -225,8 +225,15 @@ DisplayControls::DisplayControls(QWidget* parent)
   makeLeafItem(blockages_.obstructions, "Routing", blockages, Qt::Checked, true);
   toggleParent(blockage_group_);
 
+  // Rulers
+  ruler_font_ = QFont(); // use default font
+  ruler_font_.setPointSize(12);
+  ruler_color_ = Qt::cyan;
+  makeParentItem(rulers_, "Rulers", model_, Qt::Checked, true, row_color_);
+
   // Rows
-  makeParentItem(rows_, "Rows", model_, Qt::Unchecked);
+  row_color_ = QColor(0, 0xff, 0, 0x70);
+  makeParentItem(rows_, "Rows", model_, Qt::Unchecked, false, row_color_);
 
   // Rows
   makeParentItem(congestion_map_, "Congestion Map", model_, Qt::Unchecked);
@@ -244,12 +251,12 @@ DisplayControls::DisplayControls(QWidget* parent)
   auto misc = makeParentItem(
       misc_group_, "Misc", model_, Qt::Unchecked);
 
+  instance_name_font_ = QFont(); // use default font
+  instance_name_font_.setPointSize(12);
   instance_name_color_ = Qt::yellow;
 
   makeLeafItem(misc_.instance_names, "Instance names", misc, Qt::Checked, false, instance_name_color_);
-  instance_name_font_ = QFont(); // use default font
-  instance_name_font_.setPointSize(12);
-
+  makeLeafItem(misc_.scale_bar, "Scale bar", misc, Qt::Checked);
   makeLeafItem(misc_.fills, "Fills", misc, Qt::Unchecked);
   toggleParent(misc_group_);
 
@@ -259,6 +266,10 @@ DisplayControls::DisplayControls(QWidget* parent)
           this,
           SLOT(itemChanged(QStandardItem*)));
 
+  connect(view_,
+          SIGNAL(clicked(const QModelIndex&)),
+          this,
+          SLOT(displayItemClicked(const QModelIndex&)));
   connect(view_,
           SIGNAL(doubleClicked(const QModelIndex&)),
           this,
@@ -305,6 +316,10 @@ void DisplayControls::readSettingsForRow(QSettings* settings, const ModelRow& ro
 
 void DisplayControls::readSettings(QSettings* settings)
 {
+  auto getColor = [this, settings](QStandardItem* item, QColor& color, const char* key) {
+    color = settings->value(key, color).value<QColor>();
+    item->setIcon(makeSwatchIcon(color));
+  };
   settings->beginGroup("display_controls");
 
   settings->beginGroup("nets");
@@ -328,20 +343,25 @@ void DisplayControls::readSettings(QSettings* settings)
   settings->beginGroup("blockages");
   readSettingsForRow(settings, blockages_.blockages);
   readSettingsForRow(settings, blockages_.obstructions);
-  placement_blockage_color_ = settings->value("placement_color", placement_blockage_color_).value<QColor>();
+  getColor(blockages_.blockages.swatch, placement_blockage_color_, "placement_color");
   // pattern saved as int
   placement_blockage_pattern_ =
       static_cast<Qt::BrushStyle>(settings->value("placement_pattern",
                                   static_cast<int>(placement_blockage_pattern_)).toInt());
-  blockages_.blockages.swatch->setIcon(makeSwatchIcon(placement_blockage_color_));
   settings->endGroup();
 
   // rows
   readSettingsForRow(settings, rows_);
+  getColor(rows_.swatch, row_color_, "row_color");
   // congestion map
   readSettingsForRow(settings, congestion_map_);
   // pin markers
   readSettingsForRow(settings, pin_markers_);
+
+  // rulers
+  readSettingsForRow(settings, rulers_);
+  getColor(rulers_.swatch, ruler_color_, "ruler_color");
+  ruler_font_ = settings->value("ruler_font", ruler_font_).value<QFont>();
 
   // tracks
   settings->beginGroup("tracks");
@@ -352,10 +372,10 @@ void DisplayControls::readSettings(QSettings* settings)
   // misc
   settings->beginGroup("misc");
   readSettingsForRow(settings, misc_.instance_names);
+  readSettingsForRow(settings, misc_.scale_bar);
   readSettingsForRow(settings, misc_.fills);
-  instance_name_color_ = settings->value("instance_name_color", instance_name_color_).value<QColor>();
+  getColor(misc_.instance_names.swatch, instance_name_color_, "instance_name_color");
   instance_name_font_ = settings->value("instance_name_font", instance_name_font_).value<QFont>();
-  misc_.instance_names.swatch->setIcon(makeSwatchIcon(instance_name_color_));
   settings->endGroup();
 
   settings->endGroup();
@@ -394,10 +414,16 @@ void DisplayControls::writeSettings(QSettings* settings)
 
   // rows
   writeSettingsForRow(settings, rows_);
+  settings->setValue("row_color", row_color_);
   // congestion map
   writeSettingsForRow(settings, congestion_map_);
   // pin markers
   writeSettingsForRow(settings, pin_markers_);
+
+  // rulers
+  writeSettingsForRow(settings, rulers_);
+  settings->setValue("ruler_color", ruler_color_);
+  settings->setValue("ruler_font", ruler_font_);
 
   // tracks
   settings->beginGroup("tracks");
@@ -408,6 +434,7 @@ void DisplayControls::writeSettings(QSettings* settings)
   // misc
   settings->beginGroup("misc");
   writeSettingsForRow(settings, misc_.instance_names);
+  writeSettingsForRow(settings, misc_.scale_bar);
   writeSettingsForRow(settings, misc_.fills);
   settings->setValue("instance_name_color", instance_name_color_);
   settings->setValue("instance_name_font", instance_name_font_);
@@ -504,6 +531,23 @@ void DisplayControls::itemChanged(QStandardItem* item)
   emit changed();
 }
 
+void DisplayControls::displayItemClicked(const QModelIndex& index)
+{
+  if (index.column() == 0 && index.parent().isValid()) {
+    auto parent_item = model_->itemFromIndex(index.parent());
+    if (parent_item == layers_group_.name) {
+      auto item = model_->itemFromIndex(index);
+      auto layer_find = std::find_if(layer_controls_.begin(), layer_controls_.end(), [item](const auto& o) {
+        return o.second.name == item;
+      });
+      if (layer_find != layer_controls_.end()) {
+        // need non-const object
+        emit selected(Gui::get()->makeSelected(const_cast<odb::dbTechLayer*>(layer_find->first)));
+      }
+    }
+  }
+}
+
 void DisplayControls::displayItemDblClicked(const QModelIndex& index)
 {
   if (index.column() == 0) {
@@ -512,6 +556,9 @@ void DisplayControls::displayItemDblClicked(const QModelIndex& index)
     if (name_item == misc_.instance_names.name) {
       // handle font change
       instance_name_font_ = QFontDialog::getFont(nullptr, instance_name_font_, this, "Instance name font");
+    } else if (name_item == rulers_.name) {
+      // handle font change
+      ruler_font_ = QFontDialog::getFont(nullptr, ruler_font_, this, "Ruler font");
     }
   }
   else if (index.column() == 1) { // handle color changes
@@ -527,6 +574,10 @@ void DisplayControls::displayItemDblClicked(const QModelIndex& index)
       item_pattern = &placement_blockage_pattern_;
     } else if (color_item == misc_.instance_names.swatch) {
       item_color = &instance_name_color_;
+    } else if (color_item == rows_.swatch) {
+      item_color = &row_color_;
+    } else if (color_item == rulers_.swatch) {
+      item_color = &ruler_color_;
     } else {
       QVariant tech_layer_data = color_item->data(Qt::UserRole);
       if (!tech_layer_data.isValid()) {
@@ -630,17 +681,81 @@ void DisplayControls::setDb(odb::dbDatabase* db)
 
   techInit();
 
+  double dbu_to_microns = tech->getDbUnitsPerMicron();
+
   for (dbTechLayer* layer : tech->getLayers()) {
     dbTechLayerType type = layer->getType();
     if (type == dbTechLayerType::ROUTING || type == dbTechLayerType::CUT) {
+      auto& row = layer_controls_[layer];
       makeLeafItem(
-          layer_controls_[layer],
+          row,
           QString::fromStdString(layer->getName()),
           layers_group_.name,
           Qt::Checked,
           true,
           color(layer),
           type == dbTechLayerType::CUT ? QVariant() : QVariant::fromValue(static_cast<void*>(layer)));
+      if (type == dbTechLayerType::ROUTING) {
+        auto selected = Gui::get()->makeSelected(layer);
+        if (!selected) {
+          continue;
+        }
+        auto props = selected.getProperties();
+
+        const QString micron = "\u03BC";
+
+        // provide tooltip with layer information
+        QString information;
+
+        auto add_prop = [props](const std::string& prop, QString& info) -> bool {
+          auto prop_find = std::find_if(props.begin(), props.end(), [prop](const auto& p) {
+            return p.name == prop;
+          });
+          if (prop_find == props.end()) {
+            return false;
+          }
+          info += "\n" + QString::fromStdString(prop) + ": ";
+          if (auto v = std::any_cast<const char*>(&(*prop_find).value)) {
+            info += QString(*v);
+          } else if (auto v = std::any_cast<const std::string>(&(*prop_find).value)) {
+            info += QString::fromStdString(*v);
+          } else if (auto v = std::any_cast<int>(&(*prop_find).value)) {
+            info += QString::number(*v);
+          } else if (auto v = std::any_cast<unsigned int>(&(*prop_find).value)) {
+            info += QString::number(*v);
+          } else if (auto v = std::any_cast<double>(&(*prop_find).value)) {
+            info += QString::number(*v);
+          } else if (auto v = std::any_cast<float>(&(*prop_find).value)) {
+            info += QString::number(*v);
+          } else {
+            info += "<unknown>";
+          }
+          return true;
+        };
+
+        // direction
+        add_prop("Direction", information);
+
+        // min width
+        if (add_prop("Minimum width", information)) {
+          information += micron + "m";
+        }
+
+        // min spacing
+        if (add_prop("Minimum spacing", information)) {
+          information += micron + "m";
+        }
+
+        // resistance
+        add_prop("Resistance", information);
+
+        // capacitance
+        add_prop("Capacitance", information);
+
+        if (!information.isEmpty()) {
+          row.name->setToolTip(information.remove(0, 1));
+        }
+      }
     }
   }
 
@@ -661,9 +776,10 @@ QStandardItem* DisplayControls::makeParentItem(
     const QString& text,
     QStandardItemModel* parent,
     Qt::CheckState checked,
-    bool add_selectable)
+    bool add_selectable,
+    const QColor& color)
 {
-  makeLeafItem(row, text, parent->invisibleRootItem(), checked, add_selectable);
+  makeLeafItem(row, text, parent->invisibleRootItem(), checked, add_selectable, color);
 
   row.visible->setData(QVariant::fromValue(Callback({
     [this, row](bool visible) {
@@ -853,6 +969,26 @@ bool DisplayControls::areFillsVisible()
   return misc_.fills.visible->checkState() == Qt::Checked;
 }
 
+bool DisplayControls::areRulersVisible()
+{
+  return rulers_.visible->checkState() == Qt::Checked;
+}
+
+bool DisplayControls::areRulersSelectable()
+{
+  return rulers_.selectable->checkState() == Qt::Checked;
+}
+
+QColor DisplayControls::rulerColor()
+{
+  return ruler_color_;
+}
+
+QFont DisplayControls::rulerFont()
+{
+  return ruler_font_;
+}
+
 bool DisplayControls::areBlockagesVisible()
 {
   return blockages_.blockages.visible->checkState() == Qt::Checked;
@@ -878,6 +1014,11 @@ bool DisplayControls::areRowsVisible()
   return rows_.visible->checkState() == Qt::Checked;
 }
 
+QColor DisplayControls::rowColor()
+{
+  return row_color_;
+}
+
 bool DisplayControls::arePrefTracksVisible()
 {
   return tracks_.pref.visible->checkState() == Qt::Checked;
@@ -886,6 +1027,11 @@ bool DisplayControls::arePrefTracksVisible()
 bool DisplayControls::areNonPrefTracksVisible()
 {
   return tracks_.non_pref.visible->checkState() == Qt::Checked;
+}
+
+bool DisplayControls::isScaleBarVisible() const
+{
+  return misc_.scale_bar.visible->checkState() == Qt::Checked;
 }
 
 bool DisplayControls::isCongestionVisible() const

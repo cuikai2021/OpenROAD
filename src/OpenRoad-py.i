@@ -46,7 +46,7 @@ const char *
 eden_version();
 
 const char *
-eden_git_sha1();
+eden_git_describe();
 
 odb::dbDatabase *
 get_db();
@@ -66,7 +66,7 @@ const char *
 eden_version();
 
 const char *
-eden_git_sha1();
+eden_git_describe();
 
 odb::dbDatabase *
 get_db();

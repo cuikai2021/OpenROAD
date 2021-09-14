@@ -67,10 +67,6 @@ proc tapcell { args } {
               -incnrcap_nwout_master -tbtie_cpp -tap_prefix -endcap_prefix} \
     flags {-no_cell_at_top_bottom -add_boundary_cell -force -channel}
 
-  if { [info exists keys(-tapcell_master)] } {
-    set tapcell_master $keys(-tapcell_master)
-  }
-
   if { [info exists keys(-endcap_cpp)] } {
     utl::warn TAP 14 "endcap_cpp option is deprecated."
   }
@@ -165,11 +161,11 @@ proc tapcell { args } {
       set tap_prefix $keys(-tap_prefix)
   }
 
-  set endcap_prefix $tap::default_endcap_prefix
+  set endcap_prefix "PHY_"
   if { [info exists keys(-endcap_prefix)] } {
       set endcap_prefix $keys(-endcap_prefix)
   }
-
+  
   set add_boundary_cell 0
   if {$tap_nwintie_master != "INVALID" &&
       $tap_nwin2_master != "INVALID" &&
@@ -188,12 +184,22 @@ proc tapcell { args } {
   set halo_y [ord::microns_to_dbu $halo_y]
   set halo_x [ord::microns_to_dbu $halo_x]
 
+  set tapcell_master "NULL"
+    if { [info exists keys(-tapcell_master)] } {
+     set tapcell_master_name $keys(-tapcell_master)
+     set tapcell_master [$db findMaster $tapcell_master_name]
+     if { $tapcell_master == "NULL" } {
+       utl::error TAP 10 "Master $tapcell_master_name not found."
+     }
+   }
+
+
   set endcap_master "NULL"
   if { [info exists keys(-endcap_master)] } {
     set endcap_master_name $keys(-endcap_master)
     set endcap_master [$db findMaster $endcap_master_name]
     if { $endcap_master == "NULL" } {
-      utl::error TAP 10 "Master $endcap_master_name not found."
+      utl::error TAP 11 "Master $endcap_master_name not found."
     }
   }
 
@@ -241,35 +247,23 @@ proc tapcell_ripup { args } {
     keys {-tap_prefix -endcap_prefix} \
     flags {}
 
-  set tap_prefix $tap::default_tapcell_prefix
+  set tap_prefix "TAP_"
   if { [info exists keys(-tap_prefix)] } {
     set tap_prefix $keys(-tap_prefix)
   }
 
-  set endcap_prefix $tap::default_endcap_prefix
+  set endcap_prefix "PHY_"
   if { [info exists keys(-endcap_prefix)] } {
     set endcap_prefix $keys(-endcap_prefix)
   }
 
+  tap::set_tap_prefix $tap_prefix
+  tap::set_endcap_prefix $endcap_prefix
+
   set taps_removed [tap::remove_cells $tap_prefix]
-  utl::info TAP 100 "Tapcells removed: $taps_removed"
+  utl::info TAP 100 "Removed $taps_removed tapcells."
   set endcaps_removed [tap::remove_cells $endcap_prefix]
-  utl::info TAP 101 "Endcaps removed: $endcaps_removed"
-
-  # Reset global parameters
-  set tap::phy_idx 0
-  set tap::filled_sites []
-}
-
-namespace eval tap {
-variable phy_idx
-variable filled_sites
-variable default_tapcell_prefix "TAP_"
-variable default_endcap_prefix "PHY_"
-
-proc clear { tap_prefix endcap_prefix } {
-  set taps_removed [tap::remove_cells $tap_prefix]
-  set endcaps_removed [tap::remove_cells $endcap_prefix]
+  utl::info TAP 101 "Removed $endcaps_removed endcaps."
 
   # Reset global parameters
   set tap::phy_idx 0
