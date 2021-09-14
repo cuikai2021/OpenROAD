@@ -2859,7 +2859,7 @@ bool FlexDRWorker::routeNet_postPatchOverlappedPath(drNet* net,
   if ((reqArea == 0) || (end-begin != 4) || (begin == 0))
     return false;
 
-  bool preferH = layer->getDir() == frPrefRoutingDirEnum::frcHorzPrefRoutingDir;
+  bool preferH = layer->getDir() == dbTechLayerDir::HORIZONTAL;
   auto width = layer->getWidth();
   bool patchStyle = true; // not really used
 
