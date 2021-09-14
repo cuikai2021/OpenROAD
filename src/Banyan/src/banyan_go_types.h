@@ -2,14 +2,14 @@
 
 // interface version
 enum {
-    interface_version_0 = 0xaa,
-    interface_version_1 = 0xaa,
-    interface_version_2 = 0x00,
-    interface_version_3 = 0x00,
-    interface_version_4 = 0x20,
-    interface_version_5 = 0x21,
-    interface_version_6 = 0x08,
-    interface_version_7 = 0x12,
+    interface_version_0 = 0x00,
+    interface_version_1 = 0x38,
+    interface_version_2 = 0xb8,
+    interface_version_3 = 0x8e,
+    interface_version_4 = 0x92,
+    interface_version_5 = 0x9a,
+    interface_version_6 = 0xa4,
+    interface_version_7 = 0x16,
 };
 
 // POD types that can be consumed by go code
