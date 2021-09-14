@@ -281,7 +281,7 @@ eden_version()
 const char *
 eden_git_describe()
 {
-  return OPENROAD_GIT_DESCRIBE;
+  return EDEN_GIT_DESCRIBE;
 }
 
 void
