@@ -142,38 +142,31 @@ uint64_t Axioms::getRoutingPRLSpacing(odb::dbTechLayer* layer, bool isSameNet)
   if (layer == nullptr) {
     return 0;
   }
-  uint64_t spacing = 0;
+  uint spacing = layer->getSpacing();
+
   if (layer->hasV55SpacingRules()) {
-    spacing = layer->findV55Spacing(layer->getWidth(), INT_MAX);
-  } else {
-    odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
-    layer->getV54SpacingRules(spacingRules);
-
-    for (auto spacingRule : spacingRules) {
-      if ((isSameNet && spacingRule->getCutSameNet() && !spacingRule->getSameNetPgOnly()) || (!isSameNet && !spacingRule->getCutSameNet())) {
-
-        uint width = 0;
-        uint within = 0;
-        bool parallelEdge = false;
-        uint parallelSpace = 0;
-        uint parallelWithin = 0;
-        bool twoEdges = false;
-        if (spacingRule->getEol(width,
-                                within,
-                                parallelEdge,
-                                parallelSpace,
-                                parallelWithin,
-                                twoEdges)) {
-          continue;
-        } else if (spacingRule->getSpacing() > spacing) {
-          spacing = spacingRule->getSpacing();
-        }
-      }
-    }
+    spacing = std::max(layer->findV55Spacing((int)layer->getWidth(), INT_MAX), layer->getSpacing());
   }
 
-  if (spacing <= 0) {
-    spacing = layer->getSpacing();
+  odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
+  layer->getV54SpacingRules(spacingRules);
+  for (auto spacingRule : spacingRules) {
+    uint width = 0;
+    uint within = 0;
+    bool parallelEdge = false;
+    uint parallelSpace = 0;
+    uint parallelWithin = 0;
+    bool twoEdges = false;
+    if (spacingRule->getEol(width,
+                            within,
+                            parallelEdge,
+                            parallelSpace,
+                            parallelWithin,
+                            twoEdges)) {
+      continue;
+    } else if (spacingRule->getSpacing() > spacing) {
+      spacing = spacingRule->getSpacing();
+    }
   }
 
   return spacing;
@@ -184,38 +177,44 @@ uint64_t Axioms::getRoutingEOLSpacing(odb::dbTechLayer* layer, bool isSameNet)
   if (layer == nullptr) {
     return 0;
   }
-  uint64_t spacing = 0;
+  uint spacing = layer->getSpacing();
 
+  auto prlSpacing = getRoutingPRLSpacing(layer, isSameNet);
+  
   odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
   layer->getV54SpacingRules(spacingRules);
 
   for (auto spacingRule : spacingRules) {
-    if ((isSameNet && spacingRule->getCutSameNet()
-         && !spacingRule->getSameNetPgOnly())
-        || (!isSameNet && !spacingRule->getCutSameNet())) {
-      uint width = 0;
-      uint within = 0;
-      bool parallelEdge = false;
-      uint parallelSpace = 0;
-      uint parallelWithin = 0;
-      bool twoEdges = false;
-      if (spacingRule->getEol(width,
-                              within,
-                              parallelEdge,
-                              parallelSpace,
-                              parallelWithin,
-                              twoEdges)) {
-        if (width > layer->getWidth()) {
-          spacing = spacingRule->getSpacing();
-        }
-      } else if (spacingRule->getSpacing() > spacing) {
-        spacing = spacingRule->getSpacing();
+    uint eolWidth = 0;
+    uint eolWithin = 0;
+    bool parallelEdge = false;
+    uint parallelSpace = 0;
+    uint parallelWithin = 0;
+    bool twoEdges = false;
+    if (spacingRule->getEol(eolWidth,
+                            eolWithin,
+                            parallelEdge,
+                            parallelSpace,
+                            parallelWithin,
+                            twoEdges)) {
+      if (layer->getWidth() > eolWidth) {
+        continue;
       }
+      if (parallelSpace == 0 || parallelWithin == 0) {
+        if (prlSpacing < eolWithin) {
+          spacing = spacingRule->getSpacing();
+          break;
+        }
+      } else {
+        if (prlSpacing < parallelWithin
+            || (uint) layer->getSpacing() < eolWithin) {
+          spacing = spacingRule->getSpacing();
+          break;
+        }
+      }
+    } else if (spacingRule->getSpacing() > spacing) {
+      spacing = spacingRule->getSpacing();
     }
-  }
-
-  if (spacing <= 0) {
-    spacing = layer->getSpacing();
   }
 
   return spacing;
