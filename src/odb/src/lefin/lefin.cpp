@@ -687,6 +687,9 @@ void lefin::layer(lefiLayer* layer)
                     layer->propValue(iii));
   }
 
+  //parse LEF57 rule
+  layer->parse65nmRules();
+
   if (layer->hasWidth())
     l->setWidth(dbdist(layer->width()));
 
@@ -1033,6 +1036,8 @@ void lefin::layer(lefiLayer* layer)
 
   if (layer->hasWireExtension())
     l->setWireExtension(dbdist(layer->wireExtension()));
+
+
 
   dbSet<dbProperty> props = dbProperty::getProperties(l);
   if (!props.empty() && props.orderReversed())
