@@ -1,0 +1,155 @@
+[INFO ODB-0222] Reading LEF file: icb_mode/NangateOpenCellLibrary.tech.lef
+[WARNING ODB-0220] WARNING (LEFPARS-2077): A SPACING SAMENET section is defined but it is not legal in a LEF 5.7 version file.
+It will be ignored which will probably cause real DRC violations to be ignored, and may
+cause false DRC violations to occur.
+
+To avoid this warning, and correctly handle these DRC rules, you should modify your
+LEF to use the appropriate SAMENET keywords as described in the LEF/DEF 5.7
+manual under the SPACING statements in the LAYER (Routing) and LAYER (Cut)
+sections listed in the LEF Table of Contents. See file icb_mode/NangateOpenCellLibrary.tech.lef at line 909.
+
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0226] Finished LEF file:  icb_mode/NangateOpenCellLibrary.tech.lef
+[INFO ODB-0222] Reading LEF file: icb_mode/NangateOpenCellLibrary.macro.mod.lef
+[INFO ODB-0225]     Created 134 library cells
+[INFO ODB-0226] Finished LEF file:  icb_mode/NangateOpenCellLibrary.macro.mod.lef
+[INFO ODB-0222] Reading LEF file: icb_mode/pad.lef
+[WARNING ODB-0220] WARNING (LEFPARS-2007): NAMESCASESENSITIVE statement is obsolete in version 5.6 and later.
+The LEF parser will ignore this statement.
+To avoid this warning in the future, remove this statement from the LEF file with version 5.6 or later. See file icb_mode/pad.lef at line 1.
+
+[WARNING ODB-0220] WARNING (LEFPARS-2001): No VERSION statement found, using the default value 5.8. See file icb_mode/pad.lef at line 3795.
+
+[INFO ODB-0225]     Created 4 library cells
+[INFO ODB-0226] Finished LEF file:  icb_mode/pad.lef
+[INFO ODB-0127] Reading DEF file: icb_mode/floorplan.def
+[INFO ODB-0128] Design: pulpino_top_with_pads
+[INFO ODB-0130]     Created 4 pins.
+[INFO ODB-0131]     Created 6 components and 20 component-terminals.
+[INFO ODB-0132]     Created 2 special nets and 0 connections.
+[INFO ODB-0133]     Created 11 nets and 18 connections.
+[INFO ODB-0134] Finished DEF file: icb_mode/floorplan.def
+[INFO PDN-0016] Power Delivery Network Generator: Generating PDN
+  config: icb_mode/pdn.cfg
+[INFO PDN-0008] Design name is pulpino_top_with_pads.
+[INFO PDN-0009] Reading technology data.
+[WARNING PDN-0018] No macro grid specifications found - no straps added.
+[INFO PDN-0011] ****** INFO ******
+Type: stdcell, grid
+    Core Rings
+      Layer: metal1  -  width: 3.000  spacing: 3.000  core_offset: 5.000 
+      Layer: metal2  -  width: 3.000  spacing: 3.000  core_offset: 5.000 
+      Layer: metal3  -  width: 3.000  spacing: 3.000  core_offset: 5.000 
+      Layer: metal4  -  width: 3.000  spacing: 3.000  core_offset: 5.000 
+      Layer: metal5  -  width: 3.000  spacing: 3.000  core_offset: 5.000 
+      Layer: metal6  -  width: 3.000  spacing: 3.000  core_offset: 5.000 
+      Layer: metal7  -  width: 3.000  spacing: 3.000  core_offset: 5.000 
+      Layer: metal8  -  width: 3.000  spacing: 3.000  core_offset: 5.000 
+    Connect: 
+        {metal1 metal2} {metal2 metal3} {metal3 metal4} {metal4 metal5} {metal5 metal6} {metal6 metal7} {metal7 metal8}
+    
+[INFO PDN-0012] **** END INFO ****
+[INFO PDN-0013] Inserting stdcell grid - grid.
+[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_5 pref_layer=metal1 non_pref_layer=metal2
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_5 #pins=1 side=r layer=metal1
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=17 bbox=1549640 711800 1707180 798200
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=140 min_width=140 max_width=9000 min_spacing=130 min_density=66.6 max_density=75.0 grid=10
+[DEBUG] ::pdngen::try_spacing:3: density=20.833333333333332
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=6840 i=1 arena=7740
+[DEBUG] ::pdngen::try_spacing:3: density=37.735849056603776
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=2970 i=2 arena=7740
+[DEBUG] ::pdngen::try_spacing:3: density=51.724137931034484
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1680 i=3 arena=7740
+[DEBUG] ::pdngen::try_spacing:3: density=63.492063492063494
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1035 i=4 arena=7740
+[DEBUG] ::pdngen::try_spacing:3: density=73.52941176470588
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=648 i=5 arena=7740
+[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=648
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=6480
+[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_5 pref_layer=metal3 non_pref_layer=metal4
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_5 #pins=1 side=r layer=metal3
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=17 bbox=1549640 711800 1709640 798200
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=140 min_width=140 max_width=9000 min_spacing=140 min_density=66.6 max_density=75.0 grid=10
+[DEBUG] ::pdngen::try_spacing:3: density=20.833333333333332
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=6840 i=1 arena=7740
+[DEBUG] ::pdngen::try_spacing:3: density=37.735849056603776
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=2970 i=2 arena=7740
+[DEBUG] ::pdngen::try_spacing:3: density=51.724137931034484
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1680 i=3 arena=7740
+[DEBUG] ::pdngen::try_spacing:3: density=63.492063492063494
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1035 i=4 arena=7740
+[DEBUG] ::pdngen::try_spacing:3: density=73.52941176470588
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=648 i=5 arena=7740
+[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=648
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=6480
+[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_5 pref_layer=metal5 non_pref_layer=metal6
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_5 #pins=1 side=r layer=metal5
+[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_5 pref_layer=metal7 non_pref_layer=metal8
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_5 #pins=1 side=r layer=metal7
+[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_4 pref_layer=metal1 non_pref_layer=metal2
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_4 #pins=1 side=l layer=metal1
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=19 bbox=151270 708530 160000 803440
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=140 min_width=140 max_width=9000 min_spacing=130 min_density=66.6 max_density=75.0 grid=10
+[DEBUG] ::pdngen::try_spacing:3: density=18.96533558107681
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=7691 i=1 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=34.64870067372473
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=3395 i=2 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=47.83417486048366
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1963 i=3 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=59.0744995077125
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1247 i=4 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=68.75477463712758
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=818 i=5 arena=8591
+[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=818
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=8180
+[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_4 pref_layer=metal3 non_pref_layer=metal4
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_4 #pins=1 side=l layer=metal3
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=20 bbox=0 708530 160000 803440
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=140 min_width=140 max_width=9000 min_spacing=140 min_density=66.6 max_density=75.0 grid=10
+[DEBUG] ::pdngen::try_spacing:3: density=18.96533558107681
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=7691 i=1 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=34.64870067372473
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=3395 i=2 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=47.83417486048366
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1963 i=3 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=59.0744995077125
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1247 i=4 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=68.75477463712758
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=818 i=5 arena=8591
+[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=818
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=8180
+[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_4 pref_layer=metal5 non_pref_layer=metal6
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_4 #pins=1 side=l layer=metal5
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=1 bbox=148440 708530 160000 803440
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=280 min_width=280 max_width=9000 min_spacing=280 min_density=66.6 max_density=75.0 grid=10
+[DEBUG] ::pdngen::try_spacing:3: density=18.96533558107681
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=7691 i=1 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=34.64870067372473
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=3395 i=2 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=47.83417486048366
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1963 i=3 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=59.0744995077125
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1247 i=4 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=68.75477463712758
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=818 i=5 arena=8591
+[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=818
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=8180
+[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_4 pref_layer=metal7 non_pref_layer=metal8
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_4 #pins=1 side=l layer=metal7
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=1 bbox=148440 708530 160000 803440
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=800 min_width=800 max_width=9000 min_spacing=800 min_density=66.6 max_density=75.0 grid=10
+[DEBUG] ::pdngen::try_spacing:3: density=18.96533558107681
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=7691 i=1 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=34.64870067372473
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=3395 i=2 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=47.83417486048366
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1963 i=3 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=59.0744995077125
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1247 i=4 arena=8591
+[DEBUG] ::pdngen::try_spacing:3: density=68.75477463712758
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=818 i=5 arena=8591
+[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=818
+[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=8180
+[INFO PDN-0015] Writing to database.
+No differences found.

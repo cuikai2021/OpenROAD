@@ -390,6 +390,45 @@ variable voltage_domains {
     primary_power VDD primary_ground VSS
   }
 }
+variable icb_mode false
+variable icb_min_density 66.6
+variable icb_max_density 75.0
+variable icb_default_maxwidth 10
+
+proc get_max_width {layer} {
+  set max_width [$layer getMaxWidth]
+  if {$max_width < 2147483647} {
+    # OpenDB hides the fact that the layer has no MAXWIDTH field 
+    # and returns the biggest value of int32_t.
+    return $max_width
+  }
+
+  # For some unknown reason, it is possible for a layer to has no MAXWIDTH field.
+  # In this case, we will try MAXWIDTH in other layers.
+  # If there is no MAXWIDTH in any layer, a default value will be used.
+  variable tech
+  set layers [$tech getLayers]
+  foreach layer $layers {
+    set max_width [$layer getMaxWidth]
+    if {$max_width < 2147483647} {
+      return $max_width
+    }
+  }
+
+  variable icb_default_maxwidth
+  return $icb_default_maxwidth
+}
+
+proc get_min_width {layer} {
+  set min_width [$layer getMinWidth]
+  if {$min_width > 0} {
+    # OpenDB hides the fact that the layer has no MINWIDTH field and returns 0.
+    return $min_width
+  }
+
+  # According to the LEF standard, MINWIDTH by default equals to WIDTH.
+  return [$layer getWidth]
+}
 
 proc check_design_state {} {
   if {[ord::get_db_block] == "NULL"} {
@@ -4649,10 +4688,12 @@ proc init {args} {
   variable default_global_connections
   variable power_nets
   variable ground_nets
+  variable icb_default_maxwidth
 
   # debug "start" 
   init_tech 
 
+  set icb_default_maxwidth [ord::microns_to_dbu $icb_default_maxwidth]
   set design_name [$block getName]
 
   set physical_viarules {}
@@ -4819,8 +4860,226 @@ proc get_design_quadrant {x y} {
   return [get_quadrant $die_area $x $y]
 }
 
+proc get_min_density {} {
+  variable icb_min_density
+  return $icb_min_density
+}
+
+proc get_max_density {} {
+  variable icb_max_density
+  return $icb_max_density
+}
+
+proc get_manufacturing_grid {layer} {
+  set tech [$layer getTech]
+  set grid [$tech getManufacturingGrid]
+  return $grid
+}
+
+proc try_spacing {width spacing min_density max_density} {
+  set density [expr 200.0 * $width / ($width * 2 + $spacing)]
+  debug "density=$density"
+  if {$density < $min_density} {
+    return "large"
+  }
+  if {$density > $max_density} {
+    return "small"
+  }
+  return "modest"
+}
+
+proc try_width {width arena min_spacing min_density max_density} {
+  if {$arena <= $width} {
+    return 0
+  }
+  incr arena [expr -$width]
+  set num [expr $arena / $width]
+  for {set i 1} {$i <= $num} {incr i} {
+    set spacing [expr ($arena - $width * $i) / $i]
+    set hint [try_spacing $width $spacing $min_density $max_density]
+    debug "hint=$hint width=$width spacing=$spacing i=$i arena=$arena"
+    switch -exact $hint {
+      "modest" {
+        return $spacing
+      }
+      "small" {
+        return {}
+      }
+      "large" {
+        continue
+      }
+      default {
+        utl::error "PDN" 201 "unexpected result from try_spacing"
+      }
+    }
+  }
+}
+
+proc geoms_on_layer {pins layer_name} {
+  set geoms {}
+  foreach pin $pins {
+    foreach geom [$pin getGeometry] {
+      if {[[$geom getTechLayer] getName] != $layer_name} {
+        continue
+      }
+      lappend geoms $geom
+    }
+  }
+  return $geoms
+}
+
+proc geoms_to_pinboxes {geoms origin orient} {
+  set pins {}
+  foreach geom $geoms {
+    set ipin [transform_box [$geom xMin] [$geom yMin] [$geom xMax] [$geom yMax] $origin $orient]
+    lappend pins $ipin
+  }
+  return $pins
+}
+
+proc filter_connected_pinboxes {pinboxes side inst} {
+  set res {}
+  foreach pin $pinboxes {
+    switch -exact $side {
+      "t" {
+        if {[lindex $pin 1] == [[$inst getBBox] yMin]} {
+          lappend res $pin
+        }
+      }
+      "b" {
+        if {[lindex $pin 3] == [[$inst getBBox] yMax]} {
+          lappend res $pin
+        }
+      }
+      "l" {
+        if {[lindex $pin 2] == [[$inst getBBox] xMax]} {
+          lappend res $pin
+        }
+      }
+      "r" {
+        if {[lindex $pin 0] == [[$inst getBBox] xMin]} {
+          lappend res $pin
+        }
+      }
+    }
+  }
+  return $res
+}
+
+proc bbox_for_pinboxes {pinboxes} {
+  set min_x {}
+  set max_x {}
+  set min_y {}
+  set max_y {}
+  foreach pin $pinboxes {
+    # debug "pin=$pin"
+    if {$min_x == "" || [lindex $pin 0] < $min_x} {
+      set min_x [lindex $pin 0]
+    }
+    if {$max_x == "" || [lindex $pin 2] > $max_x} {
+      set max_x [lindex $pin 2]
+    }
+    if {$min_y == "" || [lindex $pin 1] < $min_y} {
+      set min_y [lindex $pin 1]
+    }
+    if {$max_y == "" || [lindex $pin 3] > $max_y} {
+      set max_y [lindex $pin 3]
+    }
+  }
+  return [list $min_x $min_y $max_x $max_y]
+}
+
+proc putdown {width spacing from to} {
+  if {[expr $to - $from] <= $width} {
+    return [list [list \
+      centre [expr ($from + $to) / 2] \
+      width $width \
+    ]]
+  }
+
+  set res {}
+  for {set start $from} {$start < $to} {incr start [expr $width + $spacing]} {
+    lappend res [list \
+      centre [expr $start + $width / 2] \
+      width $width \
+    ]
+  }
+  return $res
+}
+
+proc search_for_width_spacing \
+{grid arena min_width max_width min_spacing min_density max_density} \
+{
+  set arena [expr $arena / $grid]
+  set min_width [expr $min_width / $grid]
+  set max_width [expr $max_width / $grid]
+  set min_spacing [expr $min_spacing / $grid]
+  for {set width $max_width} \
+      {$min_width <= $width} \
+      {set width [expr ($width + $min_width) / 2]} \
+  {
+    set spacing [try_width $width $arena $min_spacing $min_density $max_density]
+    debug "width=$width spacing=$spacing"
+    if {$spacing != ""} {
+      return [list [expr $width * $grid] [expr $spacing * $grid]]
+    }
+  }
+  utl::error "PDN" 202 "cannot work out width and spacing to fit density requirement."
+}
+
+proc icbmode_get_core_facing_pins {inst pins side layer_name} {
+  debug "enter icbmode: inst=[$inst getName] #pins=[llength $pins] side=$side layer=$layer_name"
+  set layer [find_layer $layer_name]
+
+  set geoms [geoms_on_layer $pins $layer_name]
+  if {$geoms == ""} {
+    return {}
+  }
+  set pinboxes [geoms_to_pinboxes $geoms [$inst getOrigin] [$inst getOrient]]
+  set pinboxes [filter_connected_pinboxes $pinboxes $side $inst]
+  set bbox [bbox_for_pinboxes $pinboxes]
+  debug "#pinboxes=[llength $pinboxes] bbox=$bbox"
+  switch -exact $side {
+    "l" -
+    "r" {
+      set from [lindex $bbox 1]
+      set to [lindex $bbox 3]
+    }
+    "t" -
+    "b" {
+      set from [lindex $bbox 0]
+      set to [lindex $bbox 2]
+    }
+    default {
+      utl::error "PDN" 203 "unexpected side=$side"
+    }
+  }
+
+  set grid [get_manufacturing_grid $layer]
+  set width [$layer getWidth]
+  set min_spacing [$layer getSpacing]
+  set max_width [get_max_width $layer]
+  set min_width [get_min_width $layer]
+  set min_density [get_min_density ]
+  set max_density [get_max_density ]
+  debug "width=$width min_width=$min_width max_width=$max_width min_spacing=$min_spacing min_density=$min_density max_density=$max_density grid=$grid"
+  set width_spacing [search_for_width_spacing \
+    $grid \
+    [expr $to - $from] \
+    $min_width $max_width \
+    $min_spacing \
+    $min_density $max_density]
+  set width [lindex $width_spacing 0]
+  set spacing [lindex $width_spacing 1]
+  debug "width=$width spacing=$spacing"
+
+  return [putdown $width $spacing $from $to]
+}
+
 proc get_core_facing_pins {instance pin_name side layer} {
   variable block
+  variable icb_mode
+
   set geoms {}
   set core_pins {}
   set inst [$block findInst [dict get $instance name]]
@@ -4833,6 +5092,10 @@ proc get_core_facing_pins {instance pin_name side layer} {
     return {}
   }
   set pins [$mterm getMPins]
+
+  if {$icb_mode} {
+    return [icbmode_get_core_facing_pins $inst $pins $side $layer]
+  }
 
   # debug "start"
   foreach pin $pins {
@@ -4886,6 +5149,26 @@ proc get_core_facing_pins {instance pin_name side layer} {
   return $core_pins
 }
 
+proc zip_layer {direction} {
+  variable grid_data
+
+  set prefs {}
+  set nonprefs {}
+  foreach layer [dict keys [dict get $grid_data core_ring]] {
+    if {[get_dir $layer] == $direction} {
+      lappend prefs $layer
+    } else {
+      lappend nonprefs $layer
+    }
+  }
+  
+  set res {}
+  for {set i 0} {$i < [llength $prefs] && $i < [llength $nonprefs]} {incr i} {
+    lappend res [list [lindex $prefs $i] [lindex $nonprefs $i]]
+  }
+  return $res
+}
+
 proc connect_pads_to_core_ring {type pin_name pads} {
   variable grid_data
   variable pad_cell_blockages
@@ -4906,6 +5189,83 @@ proc connect_pads_to_core_ring {type pin_name pads} {
         set required_direction "hor"
       }
     }
+    set coupled_layers [zip_layer $required_direction]
+    foreach couple $coupled_layers {
+      lassign $couple pref_layer non_pref_layer
+      set non_pref_layer_info [dict get $grid_data core_ring $non_pref_layer]
+      debug "inst=$inst_name pref_layer=$pref_layer non_pref_layer=$non_pref_layer"
+      switch $side {
+        "t" {
+          set y_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
+          set y_min_blk [expr $y_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
+          set y_max [dict get $instance ymin]
+          #debug "t: [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]"
+          add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]]
+        }
+        "b" {
+          #debug "[get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2"
+          set y_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
+          set y_max_blk [expr $y_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
+          set y_min [dict get $instance ymax]
+          #debug "b: [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max"
+          add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max_blk]
+          #debug "end b"
+        }
+        "l" {
+          set x_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
+          set x_max_blk [expr $x_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
+          set x_min [dict get $instance xmax]
+          #debug "l: [dict get $instance xmin] [dict get $instance ymin] $x_max [dict get $instance ymax]"
+          add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] [dict get $instance ymin] $x_max_blk [dict get $instance ymax]]
+        }
+        "r" {
+          set x_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
+          set x_min_blk [expr $x_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
+          set x_max [dict get $instance xmin]
+          #debug "r: $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]"
+          add_padcell_blockage $pref_layer [odb::newSetFromRect $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]]
+        }
+      }
+
+      set min_width [get_min_width [find_layer $pref_layer]]
+      foreach pin_geometry [get_core_facing_pins $instance $pin_name $side $pref_layer] {
+        set centre [dict get $pin_geometry centre]
+        set width  [dict get $pin_geometry width]
+
+        variable tech
+        if {$width > [set max_width [get_max_width [$tech findLayer $pref_layer]]]} {
+          set width $max_width
+        }
+        switch -exact $side {
+          "t" {
+            set xmin [expr $centre - $width / 2]
+            set ymin [expr $y_min - $min_width]
+            set xmax [expr $centre + $width / 2]
+            set ymax $y_max
+          }
+          "b" {
+            set xmin [expr $centre - $width / 2]
+            set ymin $y_min
+            set xmax [expr $centre + $width / 2]
+            set ymax [expr $y_max + $min_width]
+          }
+          "l" {
+            set xmin [expr $x_min - $min_width]
+            set ymin [expr $centre - $width / 2]
+            set xmax $x_max
+            set ymax [expr $centre + $width / 2]
+          }
+          "r" {
+            set xmin $x_min
+            set ymin [expr $centre - $width / 2]
+            set xmax [expr $x_max + $min_width]
+            set ymax [expr $centre + $width / 2]
+          }
+        }
+        set rect [odb::newSetFromRect $xmin $ymin $xmax $ymax]
+        add_stripe $pref_layer "PAD_$type" $rect
+      }
+    }
     foreach non_pref_layer [dict keys [dict get $grid_data core_ring]] {
       if {[get_dir $non_pref_layer] != $required_direction} {
         set non_pref_layer_info [dict get $grid_data core_ring $non_pref_layer]
@@ -4916,56 +5276,6 @@ proc connect_pads_to_core_ring {type pin_name pads} {
     foreach pref_layer [dict keys [dict get $grid_data core_ring]] {
       if {[get_dir $pref_layer] == $required_direction} {
         break
-      }
-    }
-    switch $side {
-      "t" {
-        set y_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
-        set y_min_blk [expr $y_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
-        set y_max [dict get $instance ymin]
-         #debug "t: [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]"
-        add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]]
-      }
-      "b" {
-         #debug "[get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2"
-        set y_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
-        set y_max_blk [expr $y_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
-        set y_min [dict get $instance ymax]
-         #debug "b: [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max"
-        add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max_blk]
-         #debug "end b"
-      }
-      "l" {
-        set x_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
-        set x_max_blk [expr $x_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
-        set x_min [dict get $instance xmax]
-         #debug "l: [dict get $instance xmin] [dict get $instance ymin] $x_max [dict get $instance ymax]"
-        add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] [dict get $instance ymin] $x_max_blk [dict get $instance ymax]]
-      }
-      "r" {
-        set x_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
-        set x_min_blk [expr $x_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
-        set x_max [dict get $instance xmin]
-         #debug "r: $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]"
-        add_padcell_blockage $pref_layer [odb::newSetFromRect $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]]
-      }
-    }
-
-     #debug "$pref_layer"
-    foreach pin_geometry [get_core_facing_pins $instance $pin_name $side $pref_layer] {
-      set centre [dict get $pin_geometry centre]
-      set width  [dict get $pin_geometry width]
-
-      variable tech
-      if {[[set layer [$tech findLayer $pref_layer]] getMaxWidth] != "NULL" && $width > [$layer getMaxWidth]} {
-        set width [$layer getMaxWidth]
-      }
-      if {$required_direction == "hor"} {
-         #debug "added_strap $pref_layer $type $x_min [expr $centre - $width / 2] $x_max [expr $centre + $width / 2]"
-        add_stripe $pref_layer "PAD_$type" [odb::newSetFromRect $x_min [expr $centre - $width / 2] $x_max [expr $centre + $width / 2]]
-      } else {
-         #debug "added_strap $pref_layer $type [expr $centre - $width / 2] $y_min [expr $centre + $width / 2] $y_max"
-        add_stripe $pref_layer "PAD_$type" [odb::newSetFromRect [expr $centre - $width / 2] $y_min [expr $centre + $width / 2] $y_max]
       }
     }
   }
