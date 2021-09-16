@@ -30,7 +30,7 @@ typedef long long (*version_func)(const char *version);
 typedef long long (*route_func)(go_slice<option> options,
     design dsgn, go_slice<layer> layers, go_slice<track> tracks,
     go_slice<net> nets, go_slice<pin> pins, go_slice<box> boxes, go_slice<via> vias,
-    go_slice<viadef> viadefs, go_slice<axioms_triple> axioms_triples,
+    go_slice<viadef> viadefs, go_slice<table_triple> table_tripes,
     route_ret *ret);
 
 } // namespace banyan_go

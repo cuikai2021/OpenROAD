@@ -2,13 +2,13 @@
 
 // interface version
 enum {
-    interface_version_0 = 0x00,
-    interface_version_1 = 0x38,
-    interface_version_2 = 0xb8,
-    interface_version_3 = 0x8e,
-    interface_version_4 = 0x92,
-    interface_version_5 = 0x9a,
-    interface_version_6 = 0xa4,
+    interface_version_0 = 0xaa,
+    interface_version_1 = 0xaa,
+    interface_version_2 = 0x00,
+    interface_version_3 = 0x00,
+    interface_version_4 = 0x20,
+    interface_version_5 = 0x21,
+    interface_version_6 = 0x09,
     interface_version_7 = 0x16,
 };
 
@@ -117,6 +117,8 @@ struct viadef
     const char *name;
 
     box top, bottom;
+
+    int cuts;
 }; // struct viadef
 
 struct layer
@@ -158,13 +160,21 @@ struct layer
     GoUint64 viadef_end;
 
     // index into the axioms array
+
+    // col = via, row = not used
     GoUint64 via_track_begin, via_track_end;
+    // col/row = via or -1, symmetric
     GoUint64 trunk_min_len_begin, trunk_min_len_end;
     GoUint64 trunk_dist_same_begin, trunk_dist_same_end;
     GoUint64 trunk_dist_diff_begin, trunk_dist_diff_end;
-    GoUint64 trunk_via_begin, trunk_via_end;
-    GoUint64 via_track_diff_begin, via_track_diff_end;
-    GoUint64 via_track_same_begin, via_track_same_end;
+    // col/row = via, symmetric
+    GoUint64 viavia_trunk_begin, viavia_trunk_end;
+    GoUint64 viavia_track_diff_begin, viavia_track_diff_end;
+    GoUint64 viavia_track_same_begin, viavia_track_same_end;
+    // col = prl, row = width
+    GoUint64 spacing_begin, spacing_end;
+    // col = width, row = not used
+    GoUint64 mincut_begin, mincut_end;
 }; // struct layer
 
 struct track
@@ -201,6 +211,11 @@ struct design
     const char *name;
 
 	int xmin, ymin, xmax, ymax;
+
+    int manufacturing_grid;
+    int database_microns;
+
+    int max_via_stack;
 }; // struct design
 
 // returned
@@ -213,13 +228,9 @@ struct route_ret
     GoUint64 rvias_size;
 }; // struct entry_ret
 
-struct axioms_triple
+struct table_triple
 {
-    // horizontal: Align the left side of via and wire
-    // vertical: Align the bottom side of via and wire
-    int via_x;
-    // horizontal: Align the right side of via and wire
-    // vertical: Align the top side of via and wire
-    int via_y;
-    GoUint64 len;
+    int col;
+    int row;
+    GoUint64 val;
 };

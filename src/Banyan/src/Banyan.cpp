@@ -57,7 +57,7 @@ int Banyan::main(const std::map<std::string, std::string> &options)
 		banyan_go::interface_version_0, banyan_go::interface_version_1,
 		banyan_go::interface_version_2, banyan_go::interface_version_3,
 		banyan_go::interface_version_4, banyan_go::interface_version_5,
-		banyan_go::interface_version_5, banyan_go::interface_version_7);
+		banyan_go::interface_version_6, banyan_go::interface_version_7);
   if (banyan_version(interface_version) != 0) {
     logger_->error(utl::BY, 502,
       "banyan version check failed with {}", interface_version);
@@ -104,7 +104,7 @@ int Banyan::main(const std::map<std::string, std::string> &options)
     banyan_go::to_slice(bdAdapter.getBoxes()),
     banyan_go::to_slice(bdAdapter.getVias()),
     banyan_go::to_slice(bdAdapter.getViadefs()),
-    banyan_go::to_slice(axioms.getAxiomsTriples()),
+    banyan_go::to_slice(axioms.getTableTriples()),
     &ret);
 
   if (err == 0) {

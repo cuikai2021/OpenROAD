@@ -94,6 +94,11 @@ void OpenDBAdapter::getDesignFromOpenDB()
   design_.ymin = defdist(box.yMin());
   design_.xmax = defdist(box.xMax());
   design_.ymax = defdist(box.yMax());
+
+  design_.manufacturing_grid = 0;
+  design_.database_microns = 0;
+
+  design_.max_via_stack = 0;
 }
 
 void OpenDBAdapter::getLayersFromOpenDB()
@@ -421,7 +426,7 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
   }
   auto it = viaDefNameToIdxs_.insert(make_pair(
     vname, (int)viadefs_.size())).first;
-  viadefs_.push_back({it->first.c_str(), topBox, botBox});
+  viadefs_.push_back({it->first.c_str(), topBox, botBox, 0});
 }
 
 void OpenDBAdapter::getNetsFromOpenDB()
@@ -1093,10 +1098,10 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
       } else if (box.h == 0) {
         _wire_encoder.addPoint(box.x, box.y);
         _wire_encoder.addPoint(box.x + box.w, box.y);
-      } else if (box.w == box.h) {
-        // TODO
       }
-
+      // TODO
+      // else if (box.w == box.h) {
+      // }
       // else if (box.w > box.h) {
       //   int beginX = box.x + width / 2;
       //   int beginY = box.y + width / 2;
