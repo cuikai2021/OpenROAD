@@ -7,8 +7,7 @@
 #include <map>
 #include <utility>
 
-
-#include "opendb/db.h"
+#include "odb/db.h"
 #include "axioms/Axioms.h"
 
 namespace banyan {
@@ -143,38 +142,31 @@ uint64_t Axioms::getRoutingPRLSpacing(odb::dbTechLayer* layer, bool isSameNet)
   if (layer == nullptr) {
     return 0;
   }
-  uint64_t spacing = 0;
+  uint spacing = layer->getSpacing();
+
   if (layer->hasV55SpacingRules()) {
-    spacing = layer->findV55Spacing(layer->getWidth(), INT_MAX);
-  } else {
-    odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
-    layer->getV54SpacingRules(spacingRules);
-
-    for (auto spacingRule : spacingRules) {
-      if ((isSameNet && spacingRule->getCutSameNet() && !spacingRule->getSameNetPgOnly()) || (!isSameNet && !spacingRule->getCutSameNet())) {
-
-        uint width = 0;
-        uint within = 0;
-        bool parallelEdge = false;
-        uint parallelSpace = 0;
-        uint parallelWithin = 0;
-        bool twoEdges = false;
-        if (spacingRule->getEol(width,
-                                within,
-                                parallelEdge,
-                                parallelSpace,
-                                parallelWithin,
-                                twoEdges)) {
-          continue;
-        } else if (spacingRule->getSpacing() > spacing) {
-          spacing = spacingRule->getSpacing();
-        }
-      }
-    }
+    spacing = std::max(layer->findV55Spacing((int)layer->getWidth(), INT_MAX), layer->getSpacing());
   }
 
-  if (spacing <= 0) {
-    spacing = layer->getSpacing();
+  odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
+  layer->getV54SpacingRules(spacingRules);
+  for (auto spacingRule : spacingRules) {
+    uint width = 0;
+    uint within = 0;
+    bool parallelEdge = false;
+    uint parallelSpace = 0;
+    uint parallelWithin = 0;
+    bool twoEdges = false;
+    if (spacingRule->getEol(width,
+                            within,
+                            parallelEdge,
+                            parallelSpace,
+                            parallelWithin,
+                            twoEdges)) {
+      continue;
+    } else if (spacingRule->getSpacing() > spacing) {
+      spacing = spacingRule->getSpacing();
+    }
   }
 
   return spacing;
@@ -185,38 +177,44 @@ uint64_t Axioms::getRoutingEOLSpacing(odb::dbTechLayer* layer, bool isSameNet)
   if (layer == nullptr) {
     return 0;
   }
-  uint64_t spacing = 0;
+  uint spacing = layer->getSpacing();
 
+  auto prlSpacing = getRoutingPRLSpacing(layer, isSameNet);
+  
   odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
   layer->getV54SpacingRules(spacingRules);
 
   for (auto spacingRule : spacingRules) {
-    if ((isSameNet && spacingRule->getCutSameNet()
-         && !spacingRule->getSameNetPgOnly())
-        || (!isSameNet && !spacingRule->getCutSameNet())) {
-      uint width = 0;
-      uint within = 0;
-      bool parallelEdge = false;
-      uint parallelSpace = 0;
-      uint parallelWithin = 0;
-      bool twoEdges = false;
-      if (spacingRule->getEol(width,
-                              within,
-                              parallelEdge,
-                              parallelSpace,
-                              parallelWithin,
-                              twoEdges)) {
-        if (width > layer->getWidth()) {
-          spacing = spacingRule->getSpacing();
-        }
-      } else if (spacingRule->getSpacing() > spacing) {
-        spacing = spacingRule->getSpacing();
+    uint eolWidth = 0;
+    uint eolWithin = 0;
+    bool parallelEdge = false;
+    uint parallelSpace = 0;
+    uint parallelWithin = 0;
+    bool twoEdges = false;
+    if (spacingRule->getEol(eolWidth,
+                            eolWithin,
+                            parallelEdge,
+                            parallelSpace,
+                            parallelWithin,
+                            twoEdges)) {
+      if (layer->getWidth() > eolWidth) {
+        continue;
       }
+      if (parallelSpace == 0 || parallelWithin == 0) {
+        if (prlSpacing < eolWithin) {
+          spacing = spacingRule->getSpacing();
+          break;
+        }
+      } else {
+        if (prlSpacing < parallelWithin
+            || (uint) layer->getSpacing() < eolWithin) {
+          spacing = spacingRule->getSpacing();
+          break;
+        }
+      }
+    } else if (spacingRule->getSpacing() > spacing) {
+      spacing = spacingRule->getSpacing();
     }
-  }
-
-  if (spacing <= 0) {
-    spacing = layer->getSpacing();
   }
 
   return spacing;
@@ -518,10 +516,10 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
   uint64_t width = techLayer->getWidth();
   auto metalBoxOfVia = getLayerBoxFromVia(techLayer, via);
   auto prlSpacing = getRoutingPRLSpacing(techLayer, false);
-  uint64_t boxWidth = dbAdapter_.defdist(isHorizontal ? metalBoxOfVia->getDX()
-                                                  : metalBoxOfVia->getDY());
+  uint64_t boxWidth = dbAdapter_.defdist(
+    isHorizontal ? metalBoxOfVia->getDY() : metalBoxOfVia->getDX());
 
-  return std::max(boxWidth, width) / 2 + prlSpacing;
+  return std::max(boxWidth, width) / 2 + width / 2 + prlSpacing;
 }
 
 uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* techLayer,
@@ -576,8 +574,7 @@ uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* techLayer,
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
 
-  return spacing + std::max(metalBoxWidthOfViaX, width) / 2
-         + std::max(metalBoxWidthOfViaY, width) / 2;
+  return spacing + std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
 }
 
 uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
@@ -618,13 +615,22 @@ uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
     cutSpacing -= getMarginBetweenCutAndMetalBox(
         metalBoxOfViaY, boundaryBoxOfViaY, POSITION::LEFT);
   }
-  int routingSpacing = getRoutingPRLSpacing(techLayer, isSameNet);
-  uint64_t spacing = std::max(routingSpacing, cutSpacing);
 
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
 
-  return spacing + std::max(metalBoxWidthOfViaX, width) / 2
+  int routingSpacing = getRoutingPRLSpacing(techLayer, isSameNet);
+  uint64_t spacing = std::max(routingSpacing, cutSpacing);
+
+  if (spacing <= width) {
+    return std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
+  }
+
+  double horizontalSpacing
+      = std::sqrt(std::pow(spacing, 2) - std::pow(width, 2));
+  horizontalSpacing = std::ceil(horizontalSpacing / 10) * 10;
+
+  return horizontalSpacing + std::max(metalBoxWidthOfViaX, width) / 2
          + std::max(metalBoxWidthOfViaY, width) / 2;
 }
 
@@ -666,8 +672,6 @@ void Axioms::addAxiomsTriples(
     }
   }
 }
-
-
 
 void Axioms::initAxiomsTables()
 {
