@@ -4876,8 +4876,11 @@ proc get_manufacturing_grid {layer} {
   return $grid
 }
 
-proc try_spacing {width spacing min_density max_density} {
-  set density [expr 200.0 * $width / ($width * 2 + $spacing)]
+proc try_spacing {width spacing min_density max_density min_spacing} {
+  if {$spacing < $min_spacing} {
+    return "small"
+  }
+  set density [expr 100.0 * $width / ($width + $spacing)]
   debug "density=$density"
   if {$density < $min_density} {
     return "large"
@@ -4896,7 +4899,7 @@ proc try_width {width arena min_spacing min_density max_density} {
   set num [expr $arena / $width]
   for {set i 1} {$i <= $num} {incr i} {
     set spacing [expr ($arena - $width * $i) / $i]
-    set hint [try_spacing $width $spacing $min_density $max_density]
+    set hint [try_spacing $width $spacing $min_density $max_density $min_spacing]
     debug "hint=$hint width=$width spacing=$spacing i=$i arena=$arena"
     switch -exact $hint {
       "modest" {
@@ -5007,6 +5010,20 @@ proc putdown {width spacing from to} {
   return $res
 }
 
+# Let us take away the grid constraint for a while.
+# It is easy to see, if there are solutions, there is a specific width, 
+# every circuit narrower than that width has suitable spacing to satisfy
+# the density constraints and the min-spacing constraint.
+# We cannot say, a circuit wider than that width must not satisfy these constraints.
+# However, any suitable width wider than or equivalent to that width is good enough.
+# This is what a binary searching between $min_width and $max_width can deal with.
+# But, I don't know how to do unit testing in Tcl.
+# So I decide to simply try a width starting from $max_width, halve it and try again.
+#
+# The grid constraint will bring us a bad news.
+# The always-good-until-a-bad property does not hold under the grid constraint.
+# But in practice, grids are very small.
+# So let us just forget it in applying the algorithm.
 proc search_for_width_spacing \
 {grid arena min_width max_width min_spacing min_density max_density} \
 {
@@ -5016,7 +5033,7 @@ proc search_for_width_spacing \
   set min_spacing [expr $min_spacing / $grid]
   for {set width $max_width} \
       {$min_width <= $width} \
-      {set width [expr ($width + $min_width) / 2]} \
+      {set width [expr $width / 2]} \
   {
     set spacing [try_width $width $arena $min_spacing $min_density $max_density]
     debug "width=$width spacing=$spacing"
@@ -5055,6 +5072,16 @@ proc icbmode_get_core_facing_pins {inst pins side layer_name} {
     }
   }
 
+  # This is an optimal problem: to maximize circuit width under the following constraints:
+  # 1. Each grid is either entirely filled or entirely empty.
+  # 2. Both $from and $to are covered by circuits.
+  # 3. Spacing is not smaller than $min_spacing.
+  # 4. Density (width/(width+spacing)) is between $min_density and $max_density.
+  #
+  # The maximization of circuit width has some physical and economic benefits.
+  # Wider circuits implies lower resistance and crosstalk.
+  # And every PDN circuit will drill some vias to the neighbour layer, which is costly.
+  # Wider circuits means less circuits to cover the same arena, and thus less vias is required.
   set grid [get_manufacturing_grid $layer]
   set width [$layer getWidth]
   set min_spacing [$layer getSpacing]
