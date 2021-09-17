@@ -718,6 +718,16 @@ void Axioms::initTable()
     dbAdapter_.layers_[layerIdx].via_track_end = tableTriples.size();
     //================================================================================================
     dbAdapter_.layers_[layerIdx].spacing_begin = tableTriples.size();
+    std::vector<uint> width_idx;
+    std::vector<uint> length_idx;
+    if (techLayer->hasV55SpacingRules() && techLayer->getV55SpacingWidthsAndLengths(width_idx, length_idx)) {
+      for(auto width : width_idx){
+        for(auto prl: length_idx){
+          auto spacing = techLayer->findV55Spacing(width, prl);
+          tableTriples.push_back({prl, width, spacing});
+        }
+      }
+    }
     dbAdapter_.layers_[layerIdx].spacing_end = tableTriples.size();
     //================================================================================================
     dbAdapter_.layers_[layerIdx].mincut_begin = tableTriples.size();
