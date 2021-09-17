@@ -351,6 +351,8 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
   struct banyan_go::box botBox;
   struct banyan_go::box topBox;
 
+  int cutNums = 0;
+
   if (viaHasParams && (rule != nullptr)) {
     int xSize = defdist(viaParams.getXCutSize());
     int ySize = defdist(viaParams.getYCutSize());
@@ -373,6 +375,7 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
       currX = 0;
       for (int j = 0; j < viaParams.getNumCutCols(); j++) {
         currX += xSize + xCutSpacing;
+        cutNums++;
       }
       currY += ySize + yCutSpacing;
     }
@@ -412,6 +415,9 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
                       defdist(box->getDX()),
                       defdist(box->getDY())};
             break;
+          case 1:
+            cutNums++;
+            break;
           case 2:
             topBox = {topLayerIdx,
                       defdist(box->xMin()),
@@ -429,7 +435,7 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
   }
   auto it = viaDefNameToIdxs_.insert(make_pair(
     vname, (int)viadefs_.size())).first;
-  viadefs_.push_back({it->first.c_str(), topBox, botBox, 0});
+  viadefs_.push_back({it->first.c_str(), topBox, botBox, cutNums});
 }
 
 void OpenDBAdapter::getNetsFromOpenDB()
