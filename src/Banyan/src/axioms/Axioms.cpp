@@ -239,39 +239,33 @@ uint64_t Axioms::getCutSpacingFromVia(odb::dbTechVia* viaX,
   cutLayerForViaX->getV54SpacingRules(spacingRules);
 
   for (auto spacingRule : spacingRules) {
-    if ((isSameNet && spacingRule->getCutSameNet()
-         && !spacingRule->getSameNetPgOnly())
-        || (!isSameNet && !spacingRule->getCutSameNet())) {
+    // skip parallelOverlap cut spacing rule
+    if (spacingRule->getCutParallelOverlap()) {
+      continue;
+    }
+    uint numcuts = 0;
+    uint within = 0;
+    uint spacing = 0;
+    bool except_same_pgnet = false;
+    // skip adjacent cut spacing rule
+    if (spacingRule->getAdjacentCuts(
+            numcuts, within, spacing, except_same_pgnet)) {
+      continue;
+    }
+
+    if (!isSameNet && !spacingRule->getCutSameNet()) {
       if (spacingRule->getSpacing() > cutSpacing) {
         cutSpacing = spacingRule->getSpacing();
       }
+    } else if (isSameNet && spacingRule->getCutSameNet()) {
+      cutSpacing = spacingRule->getSpacing();
+      break;
+    } else if (isSameNet) {
+      cutSpacing = spacingRule->getSpacing();
     }
   }
 
-  // for (auto cutSpacingRule : cutLayerForViaX->getTechLayerCutSpacingRules())
-  // {
-  //   if (cutSpacingRule->isExceptSameNet() ||
-  //   cutSpacingRule->isExceptSameMetal()
-  //       || cutSpacingRule->isSameVia()) {
-  //     continue;
-  //   }
-  //   if (cutSpacingRule->getCutSpacing() > cutSpacing) {
-  //     cutSpacing = cutSpacingRule->getCutSpacing();
-  //   }
-  // }
-
-  // for (auto cutSpacingRule : cutLayerForViaY->getTechLayerCutSpacingRules())
-  // {
-  //   if (cutSpacingRule->isExceptSameNet() ||
-  //   cutSpacingRule->isExceptSameMetal()
-  //       || cutSpacingRule->isSameVia()) {
-  //     continue;
-  //   }
-  //   if (cutSpacingRule->getCutSpacing() > cutSpacing) {
-  //     cutSpacing = cutSpacingRule->getCutSpacing();
-  //   }
-  // }
-  if (cutSpacing == 0) {
+  if (cutSpacing <= 0) {
     cutSpacing = cutLayerForViaX->getSpacing();
   }
 
@@ -592,46 +586,46 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* techLayer,
   auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
   auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
 
-  uint64_t metalBoxWidthOfViaX = dbAdapter_.defdist(
-      isHorizontal ? metalBoxOfViaX->getDX() : metalBoxOfViaX->getDY());
-  uint64_t metalBoxWidthOfViaY = dbAdapter_.defdist(
-      isHorizontal ? metalBoxOfViaY->getDX() : metalBoxOfViaY->getDY());
-
   odb::Rect* boundaryBoxOfViaX = new odb::Rect();
   odb::Rect* boundaryBoxOfViaY = new odb::Rect();
 
   getBoundaryBoxOfCutBoxesFromVia(viaX, boundaryBoxOfViaX);
   getBoundaryBoxOfCutBoxesFromVia(viaY, boundaryBoxOfViaY);
 
-  int cutSpacing = getCutSpacingFromVia(viaX, viaY, isSameNet);
+  uint cutSpacing = getCutSpacingFromVia(viaX, viaY, isSameNet);
+  uint marginBetweenCutsAndMetalBox = 0 ;
+  uint cutsCenterToCenter = 0;
   if (isHorizontal) {
-    cutSpacing -= getMarginBetweenCutAndMetalBox(
-        metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP);
-    cutSpacing -= getMarginBetweenCutAndMetalBox(
-        metalBoxOfViaY, boundaryBoxOfViaY, POSITION::BOTTOM);
+    cutsCenterToCenter
+        = boundaryBoxOfViaX->dx() / 2 + boundaryBoxOfViaY->dx() / 2;
+    marginBetweenCutsAndMetalBox
+        = getMarginBetweenCutAndMetalBox(
+              metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP)
+          + getMarginBetweenCutAndMetalBox(
+              metalBoxOfViaY, boundaryBoxOfViaY, POSITION::BOTTOM);
   } else {
-    cutSpacing -= getMarginBetweenCutAndMetalBox(
-        metalBoxOfViaX, boundaryBoxOfViaX, POSITION::RIGHT);
-    cutSpacing -= getMarginBetweenCutAndMetalBox(
-        metalBoxOfViaY, boundaryBoxOfViaY, POSITION::LEFT);
+    cutsCenterToCenter
+        = boundaryBoxOfViaX->dy() / 2 + boundaryBoxOfViaY->dy() / 2;
+    marginBetweenCutsAndMetalBox
+        = getMarginBetweenCutAndMetalBox(
+              metalBoxOfViaX, boundaryBoxOfViaX, POSITION::RIGHT)
+          + getMarginBetweenCutAndMetalBox(
+              metalBoxOfViaY, boundaryBoxOfViaY, POSITION::LEFT);
   }
 
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
 
-  int routingSpacing = getRoutingPRLSpacing(techLayer, isSameNet);
-  uint64_t spacing = std::max(routingSpacing, cutSpacing);
-
-  if (spacing <= width) {
-    return std::max(metalBoxWidthOfViaX, width) / 2 + std::max(metalBoxWidthOfViaY, width) / 2;
+  if (cutSpacing <= width+marginBetweenCutsAndMetalBox) {
+    return cutsCenterToCenter;
   }
 
   double horizontalSpacing
-      = std::sqrt(std::pow(spacing, 2) - std::pow(width, 2));
+      = std::sqrt(std::pow(cutSpacing, 2) - std::pow(width + marginBetweenCutsAndMetalBox, 2));
+
   horizontalSpacing = std::ceil(horizontalSpacing / 10) * 10;
 
-  return horizontalSpacing + std::max(metalBoxWidthOfViaX, width) / 2
-         + std::max(metalBoxWidthOfViaY, width) / 2;
+  return horizontalSpacing + cutsCenterToCenter;
 }
 
 void Axioms::addTableTriples(
