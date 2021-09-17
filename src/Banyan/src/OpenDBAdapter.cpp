@@ -95,8 +95,11 @@ void OpenDBAdapter::getDesignFromOpenDB()
   design_.xmax = defdist(box.xMax());
   design_.ymax = defdist(box.yMax());
 
-  design_.manufacturing_grid = 0;
-  design_.database_microns = 0;
+
+  auto tech = db_->getTech();
+
+  design_.manufacturing_grid = tech->getManufacturingGrid();
+  design_.database_microns = tech->getDbUnitsPerMicron();
 
   design_.max_via_stack = 0;
 }
