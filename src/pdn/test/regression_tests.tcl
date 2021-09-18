@@ -13,4 +13,5 @@ record_tests {
   asap7_vias.api
   asap7_vias.noviarules.api
   icbmode
+  icbmode2
 }
