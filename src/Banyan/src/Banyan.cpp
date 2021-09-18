@@ -27,6 +27,7 @@ Banyan::~Banyan()
 {
 }
 
+
 void Banyan::init(Tcl_Interp* tcl_interp,
                   odb::dbDatabase* db,
                   utl::Logger* logger)
@@ -70,27 +71,18 @@ int Banyan::main(const std::map<std::string, std::string> &options)
     return -1;
   }
 
+  int maxViaStack = 100000;
   std::vector<banyan_go::option> options_vec;
-  for (auto &kv: options) {
-    logger_->info(utl::BY, 200, "banyan route option: {}={}", kv.first, kv.second);
+  for (auto& kv : options) {
+    logger_->info(
+        utl::BY, 200, "banyan route option: {}={}", kv.first, kv.second);
     options_vec.push_back({kv.first.c_str(), kv.second.c_str()});
-  }
 
-  OpenDBAdapter bdAdapter(db_, logger_);
-  for (auto layer : bdAdapter.getLayers()) {
-    logger_->info(utl::BY,
-                  201,
-                  "layer name {} dir {} pitch {} width {} tracks [{},{}) viadefs[{},{})",
-                  layer.name,
-                  layer.dir,
-                  layer.pitch,
-                  layer.width,
-                  layer.track_begin,
-                  layer.track_end,
-                  layer.viadef_begin,
-                  layer.viadef_end);
+    if (kv.first == "max_via_stack" && !kv.second.empty()) {
+      maxViaStack = atoi(kv.second.c_str());
+    }
   }
-
+  OpenDBAdapter bdAdapter(db_, logger_, maxViaStack);
   Axioms axioms(bdAdapter);
 
   banyan_go::route_ret ret;

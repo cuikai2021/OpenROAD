@@ -101,7 +101,7 @@ void OpenDBAdapter::getDesignFromOpenDB()
   design_.manufacturing_grid = tech->getManufacturingGrid();
   design_.database_microns = tech->getDbUnitsPerMicron();
 
-  design_.max_via_stack = 0;
+  design_.max_via_stack = maxViaStack_;
 }
 
 void OpenDBAdapter::getLayersFromOpenDB()
