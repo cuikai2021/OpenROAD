@@ -88,6 +88,7 @@ class OpenDBAdapter : public DBAdapter
  protected:
   odb::dbDatabase* db_;
   utl::Logger* logger_;
+  int maxViaStack_;
 
   const int obs_layers_ = 2; // M2 and above
 
@@ -143,8 +144,8 @@ class OpenDBAdapter : public DBAdapter
 
  public:
   friend class Axioms;
-  OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger)
-      : db_(db), logger_(logger)
+  OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger, int maxViaStack)
+      : db_(db), logger_(logger), maxViaStack_(maxViaStack)
   {
     getDesignFromOpenDB();
     getLayersFromOpenDB();
