@@ -90,8 +90,6 @@ class OpenDBAdapter : public DBAdapter
   utl::Logger* logger_;
   int maxViaStack_;
 
-  const int obs_layers_ = 2; // M2 and above
-
   bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
 

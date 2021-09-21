@@ -9,7 +9,7 @@ enum {
     interface_version_4 = 0x20,
     interface_version_5 = 0x21,
     interface_version_6 = 0x09,
-    interface_version_7 = 0x16,
+    interface_version_7 = 0x19,
 };
 
 // POD types that can be consumed by go code
@@ -58,7 +58,10 @@ enum layer_dir {
 enum pin_use {
     PIN_SOURCE = 0,
     PIN_SINK,
+    PIN_WIRE,
+    PIN_INST_UNUSED,
     PIN_OBS,
+    PIN_INST_OBS,
 };
 
 #ifndef __cplusplus

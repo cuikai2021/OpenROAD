@@ -871,7 +871,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
       strs_.emplace_back(nName + "/wire");
       pins_.push_back({strs_.back().c_str(),
-                       banyan_go::PIN_OBS,
+                       banyan_go::PIN_WIRE,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -892,7 +892,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
       }
       strs_.emplace_back(nName + "/specialwire");
       pins_.push_back({strs_.back().c_str(),
-                       banyan_go::PIN_OBS,
+                       banyan_go::PIN_WIRE,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -964,17 +964,17 @@ void OpenDBAdapter::getObsFromOpenDB()
   size_t viaIndexBegin = vias_.size();
   for (auto blockage : block->getObstructions()) {
     auto layerName = blockage->getBBox()->getTechLayer()->getName();
-    int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-    if (layerIdx < obs_layers_) {
-      continue;
-    }
+    //int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+    //if (layerIdx < obs_layers_) {
+    //  continue;
+    //}
     int xl = blockage->getBBox()->xMin();
     int yl = blockage->getBBox()->yMin();
     int xh = blockage->getBBox()->xMax();
     int yh = blockage->getBBox()->yMax();
     addBox(layerName, xl, yl, xh, yh);
   }
-  pins_.push_back({"obstructions",
+  pins_.push_back({"obs",
                    banyan_go::PIN_OBS,
                    boxIndexBegin,
                    boxes_.size(),
@@ -998,10 +998,10 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       std::vector<std::pair<std::string, odb::Rect>> boxes;
       for (auto obs : master->getObstructions()) {
         std::string layerName = obs->getTechLayer()->getName();
-        int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-        if (layerIdx < obs_layers_) {
-          continue;
-        }
+        //int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+        //if (layerIdx < obs_layers_) {
+        //  continue;
+        //}
         odb::Rect rect(obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
         boxes.push_back(std::make_pair(layerName, rect));
       }
@@ -1011,7 +1011,6 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
     }
   }
 
-
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
     int pX, pY;
@@ -1020,6 +1019,7 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
     odb::dbTransform transform(inst->getOrient(), origin);
     size_t boxIndexBegin = boxes_.size();
     size_t viaIndexBegin = vias_.size();
+
     for (auto iTerm : inst->getITerms()) {
       auto mTerm = iTerm->getMTerm();
       auto pinNameInBanyan = inst->getName() + "/" + mTerm->getName();
@@ -1042,6 +1042,17 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
         }
       }
     }
+    if (boxes_.size() > boxIndexBegin) {
+      strs_.emplace_back(inst->getName() + "/inst_unused");
+      pins_.push_back({strs_.back().c_str(),
+                       banyan_go::PIN_INST_UNUSED,
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
+      boxIndexBegin = boxes_.size();
+      viaIndexBegin = vias_.size();
+    }
 
     auto iter = mnameToBoxes.find(inst->getMaster()->getName());
     if (iter != mnameToBoxes.end()) {
@@ -1051,11 +1062,10 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
         addBox(box.first, instObsRect);
       }
     }
-
     if (boxes_.size() > boxIndexBegin) {
-      strs_.emplace_back(inst->getName() + "/instobs");
+      strs_.emplace_back(inst->getName() + "/inst_obs");
       pins_.push_back({strs_.back().c_str(),
-                       banyan_go::PIN_OBS,
+                       banyan_go::PIN_INST_OBS,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,

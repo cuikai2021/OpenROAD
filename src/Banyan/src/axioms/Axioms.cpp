@@ -734,8 +734,9 @@ void Axioms::initTable()
         && techLayer->getV55SpacingWidthsAndLengths(width_idx, length_idx)) {
       for (auto width : width_idx) {
         for (auto prl : length_idx) {
-          auto spacing = techLayer->findV55Spacing(width, prl);
-          tableTriples.push_back({(int) prl, (int) width, (int) spacing});
+          // for width and prl 'greater than'
+          auto spacing = techLayer->findV55Spacing(width+1, prl+1);
+          tableTriples.push_back({(int) prl, (int) width, (uint64) spacing});
         }
       }
     }
@@ -749,12 +750,13 @@ void Axioms::initTable()
       uint length;
       uint distance;
       for (auto mincut_rule : cut_rules) {
-        // skip mincuts rule with length and within
-        if (mincut_rule->getLengthForCuts(length, distance)) {
-          continue;
-        }
         if (mincut_rule->getMinimumCuts(numcuts, width)) {
-          tableTriples.push_back({(int) width, -1, (int) numcuts});
+          if (mincut_rule->getLengthForCuts(length, distance)) {
+            tableTriples.push_back({(int) width, (int)distance, (uint64) numcuts});
+          }
+          else {
+            tableTriples.push_back({(int) width, 0, (uint64) numcuts});
+          }
         }
       }
     }
