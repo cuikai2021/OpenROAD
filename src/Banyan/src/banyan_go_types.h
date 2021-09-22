@@ -9,7 +9,7 @@ enum {
     interface_version_4 = 0x20,
     interface_version_5 = 0x21,
     interface_version_6 = 0x09,
-    interface_version_7 = 0x19,
+    interface_version_7 = 0x21,
 };
 
 // POD types that can be consumed by go code
@@ -47,6 +47,7 @@ enum net_use {
     USE_POWER,
     USE_CLOCK,
     USE_SIGNAL,
+    NET_SPECIAL = 64,
 };
 
 enum layer_dir {

@@ -471,6 +471,9 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
       logger_->error(utl::BY, 700, "unsupported NET USE {}", net->getSigType());
       throw odb::ZException("unsupported NET USE");
   }
+  if (net->isSpecial()) {
+    use = banyan_go::net_use(use+banyan_go::NET_SPECIAL);
+  }
   nets_.push_back({it->first.c_str(), ndrIdx, use, 0, 0, 0, 0, 0, 0});
 }
 
@@ -890,13 +893,16 @@ void OpenDBAdapter::getPinsFromOpenDB()
           }
         }
       }
-      strs_.emplace_back(nName + "/specialwire");
-      pins_.push_back({strs_.back().c_str(),
-                       banyan_go::PIN_WIRE,
-                       boxIndexBegin,
-                       boxes_.size(),
-                       viaIndexBegin,
-                       vias_.size()});
+      if ((boxIndexBegin != boxes_.size())
+        || (viaIndexBegin != vias_.size())) {
+        strs_.emplace_back(nName + "/specialwire");
+        pins_.push_back({strs_.back().c_str(),
+                        banyan_go::PIN_WIRE,
+                        boxIndexBegin,
+                        boxes_.size(),
+                        viaIndexBegin,
+                        vias_.size()});
+      }
     }
 
     nets_.at(netIdx).pin_begin = pinIndexBegin;
