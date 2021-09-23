@@ -51,105 +51,85 @@ Type: stdcell, grid
     
 [INFO PDN-0012] **** END INFO ****
 [INFO PDN-0013] Inserting stdcell grid - grid.
-[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_5 pref_layer=metal1 non_pref_layer=metal2
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_5 #pins=1 side=r layer=metal1
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=17 bbox=1549640 711800 1707180 798200
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=140 min_width=140 max_width=9000 min_spacing=130 min_density=66.6 max_density=75.0 grid=10
-[DEBUG] ::pdngen::try_spacing:3: density=20.833333333333332
+[DEBUG] ::pdngen::try_spacing:6: density=11.627906976744185
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=6840 i=1 arena=7740
-[DEBUG] ::pdngen::try_spacing:3: density=37.735849056603776
+[DEBUG] ::pdngen::try_spacing:6: density=23.25581395348837
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=2970 i=2 arena=7740
-[DEBUG] ::pdngen::try_spacing:3: density=51.724137931034484
+[DEBUG] ::pdngen::try_spacing:6: density=34.883720930232556
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1680 i=3 arena=7740
-[DEBUG] ::pdngen::try_spacing:3: density=63.492063492063494
+[DEBUG] ::pdngen::try_spacing:6: density=46.51162790697674
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1035 i=4 arena=7740
-[DEBUG] ::pdngen::try_spacing:3: density=73.52941176470588
-[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=648 i=5 arena=7740
-[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=648
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=6480
-[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_5 pref_layer=metal3 non_pref_layer=metal4
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_5 #pins=1 side=r layer=metal3
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=17 bbox=1549640 711800 1709640 798200
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=140 min_width=140 max_width=9000 min_spacing=140 min_density=66.6 max_density=75.0 grid=10
-[DEBUG] ::pdngen::try_spacing:3: density=20.833333333333332
+[DEBUG] ::pdngen::try_spacing:6: density=58.13953488372093
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=648 i=5 arena=7740
+[DEBUG] ::pdngen::try_spacing:6: density=69.76744186046511
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=390 i=6 arena=7740
+[DEBUG] ::pdngen::try_spacing:6: density=11.627906976744185
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=6840 i=1 arena=7740
-[DEBUG] ::pdngen::try_spacing:3: density=37.735849056603776
+[DEBUG] ::pdngen::try_spacing:6: density=23.25581395348837
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=2970 i=2 arena=7740
-[DEBUG] ::pdngen::try_spacing:3: density=51.724137931034484
+[DEBUG] ::pdngen::try_spacing:6: density=34.883720930232556
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1680 i=3 arena=7740
-[DEBUG] ::pdngen::try_spacing:3: density=63.492063492063494
+[DEBUG] ::pdngen::try_spacing:6: density=46.51162790697674
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1035 i=4 arena=7740
-[DEBUG] ::pdngen::try_spacing:3: density=73.52941176470588
-[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=648 i=5 arena=7740
-[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=648
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=6480
-[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_5 pref_layer=metal5 non_pref_layer=metal6
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_5 #pins=1 side=r layer=metal5
-[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_5 pref_layer=metal7 non_pref_layer=metal8
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_5 #pins=1 side=r layer=metal7
-[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_4 pref_layer=metal1 non_pref_layer=metal2
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_4 #pins=1 side=l layer=metal1
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=19 bbox=151270 708530 160000 803440
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=140 min_width=140 max_width=9000 min_spacing=130 min_density=66.6 max_density=75.0 grid=10
-[DEBUG] ::pdngen::try_spacing:3: density=18.96533558107681
+[DEBUG] ::pdngen::try_spacing:6: density=58.13953488372093
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=648 i=5 arena=7740
+[DEBUG] ::pdngen::try_spacing:6: density=69.76744186046511
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=390 i=6 arena=7740
+[DEBUG] ::pdngen::try_spacing:6: density=10.476079618205098
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=7691 i=1 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=34.64870067372473
+[DEBUG] ::pdngen::try_spacing:6: density=20.954598370197903
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=3395 i=2 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=47.83417486048366
+[DEBUG] ::pdngen::try_spacing:6: density=31.435557107928744
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1963 i=3 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=59.0744995077125
+[DEBUG] ::pdngen::try_spacing:6: density=41.91895668374476
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1247 i=4 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=68.75477463712758
-[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=818 i=5 arena=8591
-[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=818
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=8180
-[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_4 pref_layer=metal3 non_pref_layer=metal4
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_4 #pins=1 side=l layer=metal3
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=20 bbox=0 708530 160000 803440
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=140 min_width=140 max_width=9000 min_spacing=140 min_density=66.6 max_density=75.0 grid=10
-[DEBUG] ::pdngen::try_spacing:3: density=18.96533558107681
+[DEBUG] ::pdngen::try_spacing:6: density=52.38649592549476
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=818 i=5 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=62.893081761006286
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=531 i=6 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=73.34963325183374
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=327 i=7 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=10.476079618205098
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=7691 i=1 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=34.64870067372473
+[DEBUG] ::pdngen::try_spacing:6: density=20.954598370197903
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=3395 i=2 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=47.83417486048366
+[DEBUG] ::pdngen::try_spacing:6: density=31.435557107928744
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1963 i=3 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=59.0744995077125
+[DEBUG] ::pdngen::try_spacing:6: density=41.91895668374476
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1247 i=4 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=68.75477463712758
-[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=818 i=5 arena=8591
-[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=818
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=8180
-[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_4 pref_layer=metal5 non_pref_layer=metal6
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_4 #pins=1 side=l layer=metal5
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=1 bbox=148440 708530 160000 803440
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=280 min_width=280 max_width=9000 min_spacing=280 min_density=66.6 max_density=75.0 grid=10
-[DEBUG] ::pdngen::try_spacing:3: density=18.96533558107681
+[DEBUG] ::pdngen::try_spacing:6: density=52.38649592549476
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=818 i=5 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=62.893081761006286
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=531 i=6 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=73.34963325183374
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=327 i=7 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=10.476079618205098
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=7691 i=1 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=34.64870067372473
+[DEBUG] ::pdngen::try_spacing:6: density=20.954598370197903
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=3395 i=2 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=47.83417486048366
+[DEBUG] ::pdngen::try_spacing:6: density=31.435557107928744
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1963 i=3 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=59.0744995077125
+[DEBUG] ::pdngen::try_spacing:6: density=41.91895668374476
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1247 i=4 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=68.75477463712758
-[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=818 i=5 arena=8591
-[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=818
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=8180
-[DEBUG] ::pdngen::connect_pads_to_core_ring:25: inst=pad_4 pref_layer=metal7 non_pref_layer=metal8
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:2: enter icbmode: inst=pad_4 #pins=1 side=l layer=metal7
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:12: #pinboxes=1 bbox=148440 708530 160000 803440
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:36: width=800 min_width=800 max_width=9000 min_spacing=800 min_density=66.6 max_density=75.0 grid=10
-[DEBUG] ::pdngen::try_spacing:3: density=18.96533558107681
+[DEBUG] ::pdngen::try_spacing:6: density=52.38649592549476
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=818 i=5 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=62.893081761006286
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=531 i=6 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=73.34963325183374
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=327 i=7 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=10.476079618205098
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=7691 i=1 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=34.64870067372473
+[DEBUG] ::pdngen::try_spacing:6: density=20.954598370197903
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=3395 i=2 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=47.83417486048366
+[DEBUG] ::pdngen::try_spacing:6: density=31.435557107928744
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1963 i=3 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=59.0744995077125
+[DEBUG] ::pdngen::try_spacing:6: density=41.91895668374476
 [DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=1247 i=4 arena=8591
-[DEBUG] ::pdngen::try_spacing:3: density=68.75477463712758
-[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=818 i=5 arena=8591
-[DEBUG] ::pdngen::search_for_width_spacing:11: width=900 spacing=818
-[DEBUG] ::pdngen::icbmode_get_core_facing_pins:45: width=9000 spacing=8180
+[DEBUG] ::pdngen::try_spacing:6: density=52.38649592549476
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=818 i=5 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=62.893081761006286
+[DEBUG] ::pdngen::try_width:10: hint=large width=900 spacing=531 i=6 arena=8591
+[DEBUG] ::pdngen::try_spacing:6: density=73.34963325183374
+[DEBUG] ::pdngen::try_width:10: hint=modest width=900 spacing=327 i=7 arena=8591
 [INFO PDN-0015] Writing to database.
 No differences found.
