@@ -41,7 +41,7 @@ class Axioms
 {
  private:
   std::map<std::string, odb::dbTechVia*> defaultViaMap;
-  std::vector<banyan_go::axioms_triple> axiomsTriples;
+  std::vector<banyan_go::table_triple> tableTriples;
 
  protected:
   OpenDBAdapter& dbAdapter_;
@@ -50,13 +50,13 @@ class Axioms
 
   void initDefaultViaMap();
 
-  void initAxiomsTables();
+  void initTable();
 
   void getDefaultViasInLayer(
       odb::dbTechLayer* layer,
       std::vector<std::pair<std::string, odb::dbTechVia*>>& defaultViasInLayer);
 
-  void addAxiomsTriples(
+  void addTableTriples(
       odb::dbTechLayer* layer,
       std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer,
       CalcLength calcFunc,
@@ -97,12 +97,12 @@ class Axioms
                                odb::dbTechVia* viaY,
                                bool isSameNet);
 
-  uint64_t calcViaTrunkLength(odb::dbTechLayer* layer,
+  uint64_t calcViaViaTrunkLength(odb::dbTechLayer* layer,
                               odb::dbTechVia* viaX,
                               odb::dbTechVia* viaY,
                               bool isSameNet);
 
-  uint64_t calcViaTrackLength(odb::dbTechLayer* layer,
+  uint64_t calcViaViaTrackLength(odb::dbTechLayer* layer,
                               odb::dbTechVia* viaX,
                               odb::dbTechVia* viaY,
                               bool isSameNet);
@@ -115,14 +115,14 @@ class Axioms
       : dbAdapter_(dbAdapter), db_(dbAdapter.db_), logger_(dbAdapter.logger_)
   {
     initDefaultViaMap();
-    initAxiomsTables();
+    initTable();
   };
   ~Axioms(){
 
   };
-  std::vector<banyan_go::axioms_triple>& getAxiomsTriples()
+  std::vector<banyan_go::table_triple>& getTableTriples()
   {
-    return axiomsTriples;
+    return tableTriples;
   }
 };
 

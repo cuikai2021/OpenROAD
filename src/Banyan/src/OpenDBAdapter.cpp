@@ -31,6 +31,7 @@ std::string getViaNameFromViaBox(odb::dbSBox* box)
   assert(false);
 }
 
+
 struct TrackLayerName
 {
   typedef std::string value_type;
@@ -93,6 +94,14 @@ void OpenDBAdapter::getDesignFromOpenDB()
   design_.ymin = defdist(box.yMin());
   design_.xmax = defdist(box.xMax());
   design_.ymax = defdist(box.yMax());
+
+
+  auto tech = db_->getTech();
+
+  design_.manufacturing_grid = tech->getManufacturingGrid();
+  design_.database_microns = tech->getDbUnitsPerMicron();
+
+  design_.max_via_stack = maxViaStack_;
 }
 
 void OpenDBAdapter::getLayersFromOpenDB()
@@ -342,6 +351,8 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
   struct banyan_go::box botBox;
   struct banyan_go::box topBox;
 
+  int cutNums = 0;
+
   if (viaHasParams && (rule != nullptr)) {
     int xSize = defdist(viaParams.getXCutSize());
     int ySize = defdist(viaParams.getYCutSize());
@@ -364,6 +375,7 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
       currX = 0;
       for (int j = 0; j < viaParams.getNumCutCols(); j++) {
         currX += xSize + xCutSpacing;
+        cutNums++;
       }
       currY += ySize + yCutSpacing;
     }
@@ -403,6 +415,9 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
                       defdist(box->getDX()),
                       defdist(box->getDY())};
             break;
+          case 1:
+            cutNums++;
+            break;
           case 2:
             topBox = {topLayerIdx,
                       defdist(box->xMin()),
@@ -420,7 +435,7 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
   }
   auto it = viaDefNameToIdxs_.insert(make_pair(
     vname, (int)viadefs_.size())).first;
-  viadefs_.push_back({it->first.c_str(), topBox, botBox});
+  viadefs_.push_back({it->first.c_str(), topBox, botBox, cutNums});
 }
 
 void OpenDBAdapter::getNetsFromOpenDB()
@@ -455,6 +470,9 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
     default:
       logger_->error(utl::BY, 700, "unsupported NET USE {}", net->getSigType());
       throw odb::ZException("unsupported NET USE");
+  }
+  if (net->isSpecial()) {
+    use = banyan_go::net_use(use+banyan_go::NET_SPECIAL);
   }
   nets_.push_back({it->first.c_str(), ndrIdx, use, 0, 0, 0, 0, 0, 0});
 }
@@ -796,8 +814,12 @@ void OpenDBAdapter::getPinsFromOpenDB()
           addBox(box);
         }
       }
+      banyan_go::pin_use use = bTerm->getIoType() == odb::dbIoType::OUTPUT
+                                   ? banyan_go::PIN_SINK
+                                   : banyan_go::PIN_SOURCE;
       strs_.emplace_back(bTerm->getName());
       pins_.push_back({strs_.back().c_str(),
+                       use,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -831,8 +853,13 @@ void OpenDBAdapter::getPinsFromOpenDB()
           addBox(techLayer->getName(), rect);
         }
       }
+
+      banyan_go::pin_use use = iTerm->getIoType() == odb::dbIoType::INPUT
+                                   ? banyan_go::PIN_SINK
+                                   : banyan_go::PIN_SOURCE;
       strs_.emplace_back(inst->getName() + "/" + mTerm->getName());
       pins_.push_back({strs_.back().c_str(),
+                       use,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -847,6 +874,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
       strs_.emplace_back(nName + "/wire");
       pins_.push_back({strs_.back().c_str(),
+                       banyan_go::PIN_WIRE,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -865,12 +893,16 @@ void OpenDBAdapter::getPinsFromOpenDB()
           }
         }
       }
-      strs_.emplace_back(nName + "/specialwire");
-      pins_.push_back({strs_.back().c_str(),
-                       boxIndexBegin,
-                       boxes_.size(),
-                       viaIndexBegin,
-                       vias_.size()});
+      if ((boxIndexBegin != boxes_.size())
+        || (viaIndexBegin != vias_.size())) {
+        strs_.emplace_back(nName + "/specialwire");
+        pins_.push_back({strs_.back().c_str(),
+                        banyan_go::PIN_WIRE,
+                        boxIndexBegin,
+                        boxes_.size(),
+                        viaIndexBegin,
+                        vias_.size()});
+      }
     }
 
     nets_.at(netIdx).pin_begin = pinIndexBegin;
@@ -938,17 +970,18 @@ void OpenDBAdapter::getObsFromOpenDB()
   size_t viaIndexBegin = vias_.size();
   for (auto blockage : block->getObstructions()) {
     auto layerName = blockage->getBBox()->getTechLayer()->getName();
-    int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-    if (layerIdx < obs_layers_) {
-      continue;
-    }
+    //int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+    //if (layerIdx < obs_layers_) {
+    //  continue;
+    //}
     int xl = blockage->getBBox()->xMin();
     int yl = blockage->getBBox()->yMin();
     int xh = blockage->getBBox()->xMax();
     int yh = blockage->getBBox()->yMax();
     addBox(layerName, xl, yl, xh, yh);
   }
-  pins_.push_back({"obstructions",
+  pins_.push_back({"obs",
+                   banyan_go::PIN_OBS,
                    boxIndexBegin,
                    boxes_.size(),
                    viaIndexBegin,
@@ -971,10 +1004,10 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       std::vector<std::pair<std::string, odb::Rect>> boxes;
       for (auto obs : master->getObstructions()) {
         std::string layerName = obs->getTechLayer()->getName();
-        int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-        if (layerIdx < obs_layers_) {
-          continue;
-        }
+        //int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+        //if (layerIdx < obs_layers_) {
+        //  continue;
+        //}
         odb::Rect rect(obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
         boxes.push_back(std::make_pair(layerName, rect));
       }
@@ -984,7 +1017,6 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
     }
   }
 
-
   auto block = db_->getChip()->getBlock();
   for (auto inst : block->getInsts()) {
     int pX, pY;
@@ -993,6 +1025,7 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
     odb::dbTransform transform(inst->getOrient(), origin);
     size_t boxIndexBegin = boxes_.size();
     size_t viaIndexBegin = vias_.size();
+
     for (auto iTerm : inst->getITerms()) {
       auto mTerm = iTerm->getMTerm();
       auto pinNameInBanyan = inst->getName() + "/" + mTerm->getName();
@@ -1015,6 +1048,17 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
         }
       }
     }
+    if (boxes_.size() > boxIndexBegin) {
+      strs_.emplace_back(inst->getName() + "/inst_unused");
+      pins_.push_back({strs_.back().c_str(),
+                       banyan_go::PIN_INST_UNUSED,
+                       boxIndexBegin,
+                       boxes_.size(),
+                       viaIndexBegin,
+                       vias_.size()});
+      boxIndexBegin = boxes_.size();
+      viaIndexBegin = vias_.size();
+    }
 
     auto iter = mnameToBoxes.find(inst->getMaster()->getName());
     if (iter != mnameToBoxes.end()) {
@@ -1024,10 +1068,10 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
         addBox(box.first, instObsRect);
       }
     }
-
     if (boxes_.size() > boxIndexBegin) {
-      strs_.emplace_back(inst->getName() + "/instobs");
+      strs_.emplace_back(inst->getName() + "/inst_obs");
       pins_.push_back({strs_.back().c_str(),
+                       banyan_go::PIN_INST_OBS,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -1079,10 +1123,10 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
       } else if (box.h == 0) {
         _wire_encoder.addPoint(box.x, box.y);
         _wire_encoder.addPoint(box.x + box.w, box.y);
-      } else if (box.w == box.h) {
-        // TODO
       }
-
+      // TODO
+      // else if (box.w == box.h) {
+      // }
       // else if (box.w > box.h) {
       //   int beginX = box.x + width / 2;
       //   int beginY = box.y + width / 2;
