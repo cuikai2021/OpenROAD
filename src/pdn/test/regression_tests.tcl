@@ -12,6 +12,4 @@ record_tests {
   extend_to_core_ring.api
   asap7_vias.api
   asap7_vias.noviarules.api
-  icbmode
-  icbmode2
 }
