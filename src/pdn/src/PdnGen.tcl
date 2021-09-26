@@ -3075,8 +3075,10 @@ proc get_grid_channel_layers {} {
   if {[dict exists $grid_data rails]} {
     lappend channel_layers [lindex [dict keys [dict get $grid_data rails]] end]
   }
-  foreach layer_name [dict keys [dict get $grid_data straps]] {
-    lappend channel_layers $layer_name
+  if {[dict exists $grid_data straps]} {
+    foreach layer_name [dict keys [dict get $grid_data straps]] {
+      lappend channel_layers $layer_name
+    }
   }
 
   return $channel_layers
