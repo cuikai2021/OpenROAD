@@ -55,6 +55,7 @@ class Options
   virtual Qt::BrushStyle placementBlockagePattern() = 0;
   virtual QColor instanceNameColor() = 0;
   virtual QFont instanceNameFont() = 0;
+  virtual QColor rowColor() = 0;
   virtual bool isVisible(const odb::dbTechLayer* layer) = 0;
   virtual bool isSelectable(const odb::dbTechLayer* layer) = 0;
   virtual bool isNetVisible(odb::dbNet* net) = 0;
@@ -71,6 +72,12 @@ class Options
   virtual bool arePrefTracksVisible() = 0;
   virtual bool areNonPrefTracksVisible() = 0;
 
+  virtual QColor rulerColor() = 0;
+  virtual QFont rulerFont() = 0;
+  virtual bool areRulersVisible() = 0;
+  virtual bool areRulersSelectable() = 0;
+
+  virtual bool isScaleBarVisible() const = 0;
   virtual bool isCongestionVisible() const = 0;
   virtual bool arePinMarkersVisible() const = 0;
   virtual bool showHorizontalCongestion() const = 0;

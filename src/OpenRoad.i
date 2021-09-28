@@ -188,6 +188,13 @@ getGlobalRouter()
   return openroad->getGlobalRouter();
 }
 
+tap::Tapcell* 
+getTapcell()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getTapcell();
+}
+
 ppl::IOPlacer*
 getIOPlacer()
 {
@@ -272,9 +279,9 @@ eden_version()
 }
 
 const char *
-eden_git_sha1()
+eden_git_describe()
 {
-  return EDEN_GIT_SHA1;
+  return EDEN_GIT_DESCRIBE;
 }
 
 void
@@ -307,11 +314,12 @@ write_def_cmd(const char *filename,
 
 
 void 
-write_cdl_cmd(const char *filename,
+write_cdl_cmd(const char *outFilename,
+              const char *mastersFilename,
               bool includeFillers)
 {
   OpenRoad *ord = getOpenRoad();
-  ord->writeCdl(filename, includeFillers);
+  ord->writeCdl(outFilename, mastersFilename, includeFillers);
 }
 
 void

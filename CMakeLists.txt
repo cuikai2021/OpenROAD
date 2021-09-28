@@ -58,15 +58,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Disable compiler specific extensions like gnu++11.
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(EDEN_VERSION ${PROJECT_VERSION})
-message(STATUS "Eden version: ${EDEN_VERSION}")
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Get version string in EDEN_VERSION
 include(GetGitRevisionDescription)
-if (NOT EDEN_GIT_SHA1)
-  get_git_head_revision(GIT_REFSPEC EDEN_GIT_SHA1)
+git_describe(EDEN_VERSION)
+string(FIND ${EDEN_VERSION} "NOTFOUND" GIT_DESCRIBE_NOTFOUND)
+if(${GIT_DESCRIBE_NOTFOUND} GREATER -1)
+  message(WARNING "Eden git describe failed, using sha1 instead")
+  get_git_head_revision(GIT_REFSPEC EDEN_VERSION)
 endif()
-message(STATUS "OpenROAD git sha: ${EDEN_GIT_SHA1}")
+message(STATUS "Eden version: ${EDEN_VERSION}")
 
 # Default to bulding optimnized/release executable.
 if(NOT CMAKE_BUILD_TYPE)
