@@ -1,0 +1,869 @@
+# modified files
+
+# Conflicts
+
+	etc/DependencyInstaller 
+		<line 35~108, add $SUDO and $PROXYCHAINS, accept incomming> 
+		<line 208~300, accept current>
+	CMakeLists.txt 
+		<line 69, accept incomming> 
+		<line 64~71, OPENROAD=>EDEN, accept incomming>
+	include/ord/Version.hh.cmake
+		<line 3, OPENROAD=>EDEN, accept incomming>
+	src/CMakeLists.txt
+		<line 137~138, add Banyan, accept incomming>
+		<line 183~184, add Banyan, accept incomming>
+	src/Main.cc
+		<line 180, OPENROAD=>EDEN, accept incomming>
+		<line 252, accept incomming>
+		<line 376~379, OPENRAOD=>EDEN,accept incomming>
+	src/OpenRoad-py.i
+		<line 49, openroad=>eden, accept incomming>
+		<line 69, openroad=>eden, accept incomming>
+	src/OpenRoad.i
+		<line 282~285, openroad=>eden, accept incomming>
+	src/tap/src/tapcell.tcl
+		<accept all current, backup their tapcell.tcl as tapcell.tcl.bk>
+
+# fix bugs after merge
+
+	[SyncUp] change warning number, add 200 to avoid log conflicts
+	[SyncUp] typo mistake OPENROAD_GIT_DESCRIBE to EDEN_GIT_DESCRIBE
+	[SyncUp] update prof.WJ's modification to adpat new enum value
+	[SyncUp] update utest dependency to adapt drt rename
+	[SyncUp] use openroad tapcell.tcl to avoid tcl crash
+	Merge remote-tracking branch 'upstream/devops-dev' into tmp
+	Merge remote-tracking branch 'upstream/master' into tmp
+	[SyncUp] patch to relove failed testcase icbmode
+	Merge remote-tracking branch 'upstream/master' to disable icbmode regressions
+	remove unused `include/openroad/Version.hh`
+	[SyncUp] use EDEN_GIT_DESCRIBE to replace EDEN_GIT_SHA1 incase cannot show eden version
+
+# merge details
+
+Auto-merging src/tap/src/tapcell.tcl
+CONFLICT (content): Merge conflict in src/tap/src/tapcell.tcl
+Removing src/stt/src/pdr/README
+Removing src/rcx/jenkins/test.sh
+Removing src/rcx/jenkins/install.sh
+Removing src/rcx/jenkins/build.sh
+Removing src/rcx/doc/calibration.txt
+Removing src/rcx/Jenkinsfile
+Auto-merging src/pdn/src/PdnGen.tcl
+Removing src/odb/jenkins/test-unittests.sh
+Removing src/odb/jenkins/test-tcl.sh
+Removing src/odb/jenkins/test-py.sh
+Removing src/odb/jenkins/test-cpp.sh
+Removing src/odb/jenkins/install.sh
+Removing src/odb/jenkins/build.sh
+Removing src/odb/doc/OpenDB-AddFieldsInDbObjects.xlsx
+Removing src/odb/Jenkinsfile
+Removing src/gui/ui/timingDebug.ui
+Removing src/gui/ui/reportTiming.ui
+Removing src/gui/src/timingReportDialog.cpp
+Removing src/gui/src/timingDebugDialog.cpp
+Removing src/gpl/AUTHORS.md
+Removing src/fin/README
+Auto-merging src/drt/src/io/io.cpp
+Auto-merging src/drt/src/dr/FlexDR_maze.cpp
+Auto-merging src/drt/src/dr/FlexDR.h
+Removing src/dpl/AUTHORS.md
+Removing src/TritonRoute/src/db/infra/frPrefRoutingDir.h
+Removing src/TritonRoute/src/db/infra/frOrient.h
+Removing src/TritonRoute/README.md
+Removing src/TritonRoute/Orientations to Use NDRs 1.2.pdf
+Auto-merging src/OpenRoad.i
+CONFLICT (content): Merge conflict in src/OpenRoad.i
+Auto-merging src/OpenRoad.cc
+Auto-merging src/OpenRoad-py.i
+CONFLICT (content): Merge conflict in src/OpenRoad-py.i
+Auto-merging src/Main.cc
+CONFLICT (content): Merge conflict in src/Main.cc
+Auto-merging src/CMakeLists.txt
+CONFLICT (content): Merge conflict in src/CMakeLists.txt
+Auto-merging include/ord/Version.hh.cmake
+CONFLICT (content): Merge conflict in include/ord/Version.hh.cmake
+Auto-merging include/ord/OpenRoad.hh
+Auto-merging etc/DependencyInstaller.sh
+CONFLICT (content): Merge conflict in etc/DependencyInstaller.sh
+Removing docs/user/UserGuide.rst
+Removing docs/user/ToolLimitations.rst
+Removing docs/user/GettingStarted.rst
+Removing docs/user/FAQS.rst
+Removing docs/releases/PostAlpha2.1BranchMethodology.rst
+Removing docs/releases/Alpha2Process.rst
+Removing docs/misc/CTS_LUT_Discussion.rst
+Removing docs/index.rst
+Removing docs/contrib/Metrics.rst
+Removing docs/contrib/Logger.rst
+Removing docs/contrib/GettingInvolved.rst
+Removing docs/contrib/DeveloperGuide.rst
+Removing docs/contrib/DatabaseMath.rst
+Removing docs/contrib/CodingPractices.rst
+Auto-merging CMakeLists.txt
+CONFLICT (content): Merge conflict in CMakeLists.txt
+Auto-merging .gitignore
+Automatic merge failed; fix conflicts and then commit the result.
+On branch tmp
+Your branch is up to date with 'upstream/master'.
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	modified:   .gitignore
+	modified:   CODE_OF_CONDUCT.md
+	modified:   LICENSE
+	modified:   README.md
+	modified:   docs/Makefile
+	modified:   docs/README.md
+	modified:   docs/conf.py
+	new file:   docs/contrib/CodingPractices.md
+	deleted:    docs/contrib/CodingPractices.rst
+	new file:   docs/contrib/DatabaseMath.md
+	deleted:    docs/contrib/DatabaseMath.rst
+	new file:   docs/contrib/DeveloperGuide.md
+	deleted:    docs/contrib/DeveloperGuide.rst
+	new file:   docs/contrib/GettingInvolved.md
+	deleted:    docs/contrib/GettingInvolved.rst
+	new file:   docs/contrib/Logger.md
+	deleted:    docs/contrib/Logger.rst
+	new file:   docs/contrib/Metrics.md
+	deleted:    docs/contrib/Metrics.rst
+	new file:   docs/index.md
+	deleted:    docs/index.rst
+	modified:   docs/misc/AddTool.patch
+	deleted:    docs/misc/CTS_LUT_Discussion.rst
+	new file:   docs/misc/NewToolDocExample.md
+	deleted:    docs/releases/Alpha2Process.rst
+	deleted:    docs/releases/PostAlpha2.1BranchMethodology.rst
+	modified:   docs/requirements.txt
+	new file:   docs/revert-links.py
+	new file:   docs/toc.yml
+	new file:   docs/user/BuildLocally.md
+	new file:   docs/user/BuildWithDocker.md
+	new file:   docs/user/FAQS.md
+	deleted:    docs/user/FAQS.rst
+	new file:   docs/user/GettingStarted.md
+	deleted:    docs/user/GettingStarted.rst
+	deleted:    docs/user/ToolLimitations.rst
+	new file:   docs/user/UserGuide.md
+	deleted:    docs/user/UserGuide.rst
+	modified:   include/ord/OpenRoad.hh
+	modified:   jenkins/Jenkinsfile.nightly
+	modified:   src/ICeWall/README.md
+	modified:   src/ICeWall/doc/README.md
+	modified:   src/ICeWall/doc/TCL_Interface.md
+	modified:   src/ICeWall/doc/add_pad.md
+	modified:   src/ICeWall/doc/define_pad_cell.md
+	modified:   src/ICeWall/doc/initialize_padring.md
+	modified:   src/ICeWall/doc/place_cell.md
+	modified:   src/ICeWall/doc/set_bump.md
+	modified:   src/ICeWall/doc/set_bump_options.md
+	modified:   src/ICeWall/doc/set_padring_options.md
+	modified:   src/OpenRoad.cc
+	modified:   src/OpenRoad.tcl
+	new file:   src/README.md
+	deleted:    src/TritonRoute/Orientations to Use NDRs 1.2.pdf
+	deleted:    src/TritonRoute/README.md
+	deleted:    src/TritonRoute/src/db/infra/frOrient.h
+	deleted:    src/TritonRoute/src/db/infra/frPrefRoutingDir.h
+	modified:   src/ant/README.md
+	renamed:    src/cts/LICENSE.md -> src/cts/LICENSE
+	modified:   src/cts/README.md
+	modified:   src/cts/doc/cts_lut_characterization.md
+	modified:   src/cts/test/max_cap.ok
+	deleted:    src/dpl/AUTHORS.md
+	modified:   src/dpl/LICENSE
+	modified:   src/dpl/README.md
+	renamed:    src/TritonRoute/.gitignore -> src/drt/.gitignore
+	renamed:    src/TritonRoute/CMakeLists.txt -> src/drt/CMakeLists.txt
+	renamed:    docs/user/Orientations to Use NDRs 1.2.pdf -> src/drt/Orientations to Use NDRs 1.2.pdf
+	new file:   src/drt/README.md
+	renamed:    src/TritonRoute/cmake/FindVTune.cmake -> src/drt/cmake/FindVTune.cmake
+	renamed:    src/TritonRoute/include/triton_route/MakeTritonRoute.h -> src/drt/include/triton_route/MakeTritonRoute.h
+	renamed:    src/TritonRoute/include/triton_route/TritonRoute.h -> src/drt/include/triton_route/TritonRoute.h
+	renamed:    src/TritonRoute/src/MakeTritonRoute.cpp -> src/drt/src/MakeTritonRoute.cpp
+	renamed:    src/TritonRoute/src/TritonRoute.cpp -> src/drt/src/TritonRoute.cpp
+	renamed:    src/TritonRoute/src/TritonRoute.i -> src/drt/src/TritonRoute.i
+	renamed:    src/TritonRoute/src/TritonRoute.tcl -> src/drt/src/TritonRoute.tcl
+	renamed:    src/TritonRoute/src/db/drObj/drAccessPattern.h -> src/drt/src/db/drObj/drAccessPattern.h
+	renamed:    src/TritonRoute/src/db/drObj/drBlockObject.h -> src/drt/src/db/drObj/drBlockObject.h
+	renamed:    src/TritonRoute/src/db/drObj/drFig.h -> src/drt/src/db/drObj/drFig.h
+	renamed:    src/TritonRoute/src/db/drObj/drMarker.h -> src/drt/src/db/drObj/drMarker.h
+	renamed:    src/TritonRoute/src/db/drObj/drNet.cpp -> src/drt/src/db/drObj/drNet.cpp
+	renamed:    src/TritonRoute/src/db/drObj/drNet.h -> src/drt/src/db/drObj/drNet.h
+	renamed:    src/TritonRoute/src/db/drObj/drPin.h -> src/drt/src/db/drObj/drPin.h
+	renamed:    src/TritonRoute/src/db/drObj/drRef.h -> src/drt/src/db/drObj/drRef.h
+	renamed:    src/TritonRoute/src/db/drObj/drShape.cpp -> src/drt/src/db/drObj/drShape.cpp
+	renamed:    src/TritonRoute/src/db/drObj/drShape.h -> src/drt/src/db/drObj/drShape.h
+	renamed:    src/TritonRoute/src/db/drObj/drVia.cpp -> src/drt/src/db/drObj/drVia.cpp
+	renamed:    src/TritonRoute/src/db/drObj/drVia.h -> src/drt/src/db/drObj/drVia.h
+	renamed:    src/TritonRoute/src/db/gcObj/gcBlockObject.h -> src/drt/src/db/gcObj/gcBlockObject.h
+	renamed:    src/TritonRoute/src/db/gcObj/gcFig.h -> src/drt/src/db/gcObj/gcFig.h
+	renamed:    src/TritonRoute/src/db/gcObj/gcNet.h -> src/drt/src/db/gcObj/gcNet.h
+	renamed:    src/TritonRoute/src/db/gcObj/gcPin.h -> src/drt/src/db/gcObj/gcPin.h
+	renamed:    src/TritonRoute/src/db/gcObj/gcShape.h -> src/drt/src/db/gcObj/gcShape.h
+	renamed:    src/TritonRoute/src/db/grObj/grAccessPattern.h -> src/drt/src/db/grObj/grAccessPattern.h
+	renamed:    src/TritonRoute/src/db/grObj/grBlockObject.h -> src/drt/src/db/grObj/grBlockObject.h
+	renamed:    src/TritonRoute/src/db/grObj/grFig.h -> src/drt/src/db/grObj/grFig.h
+	renamed:    src/TritonRoute/src/db/grObj/grNet.h -> src/drt/src/db/grObj/grNet.h
+	renamed:    src/TritonRoute/src/db/grObj/grNode.h -> src/drt/src/db/grObj/grNode.h
+	renamed:    src/TritonRoute/src/db/grObj/grPin.h -> src/drt/src/db/grObj/grPin.h
+	renamed:    src/TritonRoute/src/db/grObj/grRef.h -> src/drt/src/db/grObj/grRef.h
+	renamed:    src/TritonRoute/src/db/grObj/grShape.h -> src/drt/src/db/grObj/grShape.h
+	renamed:    src/TritonRoute/src/db/grObj/grVia.h -> src/drt/src/db/grObj/grVia.h
+	renamed:    src/TritonRoute/src/db/infra/frBox.cpp -> src/drt/src/db/infra/frBox.cpp
+	renamed:    src/TritonRoute/src/db/infra/frBox.h -> src/drt/src/db/infra/frBox.h
+	renamed:    src/TritonRoute/src/db/infra/frPoint.cpp -> src/drt/src/db/infra/frPoint.cpp
+	renamed:    src/TritonRoute/src/db/infra/frPoint.h -> src/drt/src/db/infra/frPoint.h
+	renamed:    src/TritonRoute/src/db/infra/frSegStyle.h -> src/drt/src/db/infra/frSegStyle.h
+	renamed:    src/TritonRoute/src/db/infra/frTime.cpp -> src/drt/src/db/infra/frTime.cpp
+	renamed:    src/TritonRoute/src/db/infra/frTime.h -> src/drt/src/db/infra/frTime.h
+	renamed:    src/TritonRoute/src/db/infra/frTime_helper.cpp -> src/drt/src/db/infra/frTime_helper.cpp
+	renamed:    src/TritonRoute/src/db/infra/frTransform.h -> src/drt/src/db/infra/frTransform.h
+	renamed:    src/TritonRoute/src/db/obj/frAccess.cpp -> src/drt/src/db/obj/frAccess.cpp
+	renamed:    src/TritonRoute/src/db/obj/frAccess.h -> src/drt/src/db/obj/frAccess.h
+	renamed:    src/TritonRoute/src/db/obj/frBlock.h -> src/drt/src/db/obj/frBlock.h
+	renamed:    src/TritonRoute/src/db/obj/frBlockObject.h -> src/drt/src/db/obj/frBlockObject.h
+	renamed:    src/TritonRoute/src/db/obj/frBlockage.h -> src/drt/src/db/obj/frBlockage.h
+	renamed:    src/TritonRoute/src/db/obj/frBoundary.h -> src/drt/src/db/obj/frBoundary.h
+	renamed:    src/TritonRoute/src/db/obj/frFig.h -> src/drt/src/db/obj/frFig.h
+	renamed:    src/TritonRoute/src/db/obj/frGCellPattern.h -> src/drt/src/db/obj/frGCellPattern.h
+	renamed:    src/TritonRoute/src/db/obj/frGuide.h -> src/drt/src/db/obj/frGuide.h
+	renamed:    src/TritonRoute/src/db/obj/frInst.cpp -> src/drt/src/db/obj/frInst.cpp
+	renamed:    src/TritonRoute/src/db/obj/frInst.h -> src/drt/src/db/obj/frInst.h
+	renamed:    src/TritonRoute/src/db/obj/frInstBlockage.h -> src/drt/src/db/obj/frInstBlockage.h
+	renamed:    src/TritonRoute/src/db/obj/frInstTerm.cpp -> src/drt/src/db/obj/frInstTerm.cpp
+	renamed:    src/TritonRoute/src/db/obj/frInstTerm.h -> src/drt/src/db/obj/frInstTerm.h
+	renamed:    src/TritonRoute/src/db/obj/frMarker.h -> src/drt/src/db/obj/frMarker.h
+	renamed:    src/TritonRoute/src/db/obj/frNet.h -> src/drt/src/db/obj/frNet.h
+	renamed:    src/TritonRoute/src/db/obj/frNode.cpp -> src/drt/src/db/obj/frNode.cpp
+	renamed:    src/TritonRoute/src/db/obj/frNode.h -> src/drt/src/db/obj/frNode.h
+	renamed:    src/TritonRoute/src/db/obj/frPin.h -> src/drt/src/db/obj/frPin.h
+	renamed:    src/TritonRoute/src/db/obj/frRPin.cpp -> src/drt/src/db/obj/frRPin.cpp
+	renamed:    src/TritonRoute/src/db/obj/frRPin.h -> src/drt/src/db/obj/frRPin.h
+	renamed:    src/TritonRoute/src/db/obj/frRef.h -> src/drt/src/db/obj/frRef.h
+	renamed:    src/TritonRoute/src/db/obj/frShape.cpp -> src/drt/src/db/obj/frShape.cpp
+	renamed:    src/TritonRoute/src/db/obj/frShape.h -> src/drt/src/db/obj/frShape.h
+	renamed:    src/TritonRoute/src/db/obj/frTerm.h -> src/drt/src/db/obj/frTerm.h
+	renamed:    src/TritonRoute/src/db/obj/frTrackPattern.h -> src/drt/src/db/obj/frTrackPattern.h
+	renamed:    src/TritonRoute/src/db/obj/frVia.cpp -> src/drt/src/db/obj/frVia.cpp
+	renamed:    src/TritonRoute/src/db/obj/frVia.h -> src/drt/src/db/obj/frVia.h
+	renamed:    src/TritonRoute/src/db/taObj/taBlockObject.h -> src/drt/src/db/taObj/taBlockObject.h
+	renamed:    src/TritonRoute/src/db/taObj/taFig.h -> src/drt/src/db/taObj/taFig.h
+	renamed:    src/TritonRoute/src/db/taObj/taPin.h -> src/drt/src/db/taObj/taPin.h
+	renamed:    src/TritonRoute/src/db/taObj/taShape.cpp -> src/drt/src/db/taObj/taShape.cpp
+	renamed:    src/TritonRoute/src/db/taObj/taShape.h -> src/drt/src/db/taObj/taShape.h
+	renamed:    src/TritonRoute/src/db/taObj/taTrack.cpp -> src/drt/src/db/taObj/taTrack.cpp
+	renamed:    src/TritonRoute/src/db/taObj/taTrack.h -> src/drt/src/db/taObj/taTrack.h
+	renamed:    src/TritonRoute/src/db/taObj/taVia.h -> src/drt/src/db/taObj/taVia.h
+	renamed:    src/TritonRoute/src/db/tech/frConstraint.h -> src/drt/src/db/tech/frConstraint.h
+	renamed:    src/TritonRoute/src/db/tech/frLayer.cc -> src/drt/src/db/tech/frLayer.cc
+	renamed:    src/TritonRoute/src/db/tech/frLayer.h -> src/drt/src/db/tech/frLayer.h
+	renamed:    src/TritonRoute/src/db/tech/frLookupTbl.h -> src/drt/src/db/tech/frLookupTbl.h
+	renamed:    src/TritonRoute/src/db/tech/frTechObject.h -> src/drt/src/db/tech/frTechObject.h
+	renamed:    src/TritonRoute/src/db/tech/frViaDef.h -> src/drt/src/db/tech/frViaDef.h
+	renamed:    src/TritonRoute/src/db/tech/frViaRuleGenerate.h -> src/drt/src/db/tech/frViaRuleGenerate.h
+	renamed:    src/TritonRoute/src/dr/FlexDR.cpp -> src/drt/src/dr/FlexDR.cpp
+	renamed:    src/TritonRoute/src/dr/FlexDR.h -> src/drt/src/dr/FlexDR.h
+	renamed:    src/TritonRoute/src/dr/FlexDR_conn.cpp -> src/drt/src/dr/FlexDR_conn.cpp
+	renamed:    src/TritonRoute/src/dr/FlexDR_end.cpp -> src/drt/src/dr/FlexDR_end.cpp
+	renamed:    src/TritonRoute/src/dr/FlexDR_graphics.cpp -> src/drt/src/dr/FlexDR_graphics.cpp
+	renamed:    src/TritonRoute/src/dr/FlexDR_graphics.h -> src/drt/src/dr/FlexDR_graphics.h
+	renamed:    src/TritonRoute/src/dr/FlexDR_init.cpp -> src/drt/src/dr/FlexDR_init.cpp
+	renamed:    src/TritonRoute/src/dr/FlexDR_maze.cpp -> src/drt/src/dr/FlexDR_maze.cpp
+	renamed:    src/TritonRoute/src/dr/FlexDR_rq.cpp -> src/drt/src/dr/FlexDR_rq.cpp
+	renamed:    src/TritonRoute/src/dr/FlexGridGraph.cpp -> src/drt/src/dr/FlexGridGraph.cpp
+	renamed:    src/TritonRoute/src/dr/FlexGridGraph.h -> src/drt/src/dr/FlexGridGraph.h
+	renamed:    src/TritonRoute/src/dr/FlexGridGraph_maze.cpp -> src/drt/src/dr/FlexGridGraph_maze.cpp
+	renamed:    src/TritonRoute/src/dr/FlexMazeTypes.h -> src/drt/src/dr/FlexMazeTypes.h
+	renamed:    src/TritonRoute/src/dr/FlexWavefront.h -> src/drt/src/dr/FlexWavefront.h
+	renamed:    src/TritonRoute/src/frBaseTypes.h -> src/drt/src/frBaseTypes.h
+	renamed:    src/TritonRoute/src/frDesign.h -> src/drt/src/frDesign.h
+	renamed:    src/TritonRoute/src/frProfileTask.h -> src/drt/src/frProfileTask.h
+	renamed:    src/TritonRoute/src/frRTree.h -> src/drt/src/frRTree.h
+	renamed:    src/TritonRoute/src/frRegionQuery.cpp -> src/drt/src/frRegionQuery.cpp
+	renamed:    src/TritonRoute/src/frRegionQuery.h -> src/drt/src/frRegionQuery.h
+	renamed:    src/TritonRoute/src/gc/FlexGC.cpp -> src/drt/src/gc/FlexGC.cpp
+	renamed:    src/TritonRoute/src/gc/FlexGC.h -> src/drt/src/gc/FlexGC.h
+	new file:   src/drt/src/gc/FlexGC_cut.cpp
+	renamed:    src/TritonRoute/src/gc/FlexGC_end.cpp -> src/drt/src/gc/FlexGC_end.cpp
+	renamed:    src/TritonRoute/src/gc/FlexGC_eol.cpp -> src/drt/src/gc/FlexGC_eol.cpp
+	renamed:    src/TritonRoute/src/gc/FlexGC_impl.h -> src/drt/src/gc/FlexGC_impl.h
+	renamed:    src/TritonRoute/src/gc/FlexGC_inf.cpp -> src/drt/src/gc/FlexGC_inf.cpp
+	renamed:    src/TritonRoute/src/gc/FlexGC_init.cpp -> src/drt/src/gc/FlexGC_init.cpp
+	renamed:    src/TritonRoute/src/gc/FlexGC_main.cpp -> src/drt/src/gc/FlexGC_main.cpp
+	renamed:    src/TritonRoute/src/gc/FlexGC_rq.cpp -> src/drt/src/gc/FlexGC_rq.cpp
+	renamed:    src/TritonRoute/src/global.cpp -> src/drt/src/global.cpp
+	renamed:    src/TritonRoute/src/global.h -> src/drt/src/global.h
+	renamed:    src/TritonRoute/src/gr/FlexGR.cpp -> src/drt/src/gr/FlexGR.cpp
+	renamed:    src/TritonRoute/src/gr/FlexGR.h -> src/drt/src/gr/FlexGR.h
+	renamed:    src/TritonRoute/src/gr/FlexGRCMap.cpp -> src/drt/src/gr/FlexGRCMap.cpp
+	renamed:    src/TritonRoute/src/gr/FlexGRCMap.h -> src/drt/src/gr/FlexGRCMap.h
+	renamed:    src/TritonRoute/src/gr/FlexGRGridGraph.cpp -> src/drt/src/gr/FlexGRGridGraph.cpp
+	renamed:    src/TritonRoute/src/gr/FlexGRGridGraph.h -> src/drt/src/gr/FlexGRGridGraph.h
+	renamed:    src/TritonRoute/src/gr/FlexGRGridGraph_maze.cpp -> src/drt/src/gr/FlexGRGridGraph_maze.cpp
+	renamed:    src/TritonRoute/src/gr/FlexGRWavefront.h -> src/drt/src/gr/FlexGRWavefront.h
+	renamed:    src/TritonRoute/src/gr/FlexGR_end.cpp -> src/drt/src/gr/FlexGR_end.cpp
+	renamed:    src/TritonRoute/src/gr/FlexGR_init.cpp -> src/drt/src/gr/FlexGR_init.cpp
+	renamed:    src/TritonRoute/src/gr/FlexGR_maze.cpp -> src/drt/src/gr/FlexGR_maze.cpp
+	renamed:    src/TritonRoute/src/gr/FlexGR_rq.cpp -> src/drt/src/gr/FlexGR_rq.cpp
+	renamed:    src/TritonRoute/src/gr/FlexGR_topo.cpp -> src/drt/src/gr/FlexGR_topo.cpp
+	renamed:    src/TritonRoute/src/io/io.cpp -> src/drt/src/io/io.cpp
+	renamed:    src/TritonRoute/src/io/io.h -> src/drt/src/io/io.h
+	renamed:    src/TritonRoute/src/io/io_guide.cpp -> src/drt/src/io/io_guide.cpp
+	renamed:    src/TritonRoute/src/io/io_parser_helper.cpp -> src/drt/src/io/io_parser_helper.cpp
+	renamed:    src/TritonRoute/src/io/io_pin.cpp -> src/drt/src/io/io_pin.cpp
+	renamed:    src/TritonRoute/src/pa/FlexPA.cpp -> src/drt/src/pa/FlexPA.cpp
+	renamed:    src/TritonRoute/src/pa/FlexPA.h -> src/drt/src/pa/FlexPA.h
+	renamed:    src/TritonRoute/src/pa/FlexPA_graphics.cpp -> src/drt/src/pa/FlexPA_graphics.cpp
+	renamed:    src/TritonRoute/src/pa/FlexPA_graphics.h -> src/drt/src/pa/FlexPA_graphics.h
+	renamed:    src/TritonRoute/src/pa/FlexPA_init.cpp -> src/drt/src/pa/FlexPA_init.cpp
+	renamed:    src/TritonRoute/src/pa/FlexPA_prep.cpp -> src/drt/src/pa/FlexPA_prep.cpp
+	renamed:    src/TritonRoute/src/rp/FlexRP.cpp -> src/drt/src/rp/FlexRP.cpp
+	renamed:    src/TritonRoute/src/rp/FlexRP.h -> src/drt/src/rp/FlexRP.h
+	renamed:    src/TritonRoute/src/rp/FlexRP_init.cpp -> src/drt/src/rp/FlexRP_init.cpp
+	renamed:    src/TritonRoute/src/rp/FlexRP_prep.cpp -> src/drt/src/rp/FlexRP_prep.cpp
+	renamed:    src/TritonRoute/src/ta/FlexTA.cpp -> src/drt/src/ta/FlexTA.cpp
+	renamed:    src/TritonRoute/src/ta/FlexTA.h -> src/drt/src/ta/FlexTA.h
+	renamed:    src/TritonRoute/src/ta/FlexTA_assign.cpp -> src/drt/src/ta/FlexTA_assign.cpp
+	renamed:    src/TritonRoute/src/ta/FlexTA_end.cpp -> src/drt/src/ta/FlexTA_end.cpp
+	renamed:    src/TritonRoute/src/ta/FlexTA_init.cpp -> src/drt/src/ta/FlexTA_init.cpp
+	renamed:    src/TritonRoute/src/ta/FlexTA_rq.cpp -> src/drt/src/ta/FlexTA_rq.cpp
+	renamed:    src/TritonRoute/test/fixture.cpp -> src/drt/test/fixture.cpp
+	renamed:    src/TritonRoute/test/fixture.h -> src/drt/test/fixture.h
+	renamed:    src/TritonRoute/test/gcTest.cpp -> src/drt/test/gcTest.cpp
+	renamed:    src/TritonRoute/test/gc_test.tcl -> src/drt/test/gc_test.tcl
+	renamed:    src/TritonRoute/test/helpers.tcl -> src/drt/test/helpers.tcl
+	renamed:    src/TritonRoute/test/ispd18_sample.defok -> src/drt/test/ispd18_sample.defok
+	renamed:    src/TritonRoute/test/ispd18_sample.ok -> src/drt/test/ispd18_sample.ok
+	renamed:    src/TritonRoute/test/ispd18_sample.tcl -> src/drt/test/ispd18_sample.tcl
+	renamed:    src/TritonRoute/test/regression -> src/drt/test/regression
+	renamed:    src/TritonRoute/test/regression_tests.tcl -> src/drt/test/regression_tests.tcl
+	renamed:    src/TritonRoute/test/run-ispd.tcl -> src/drt/test/run-ispd.tcl
+	renamed:    src/TritonRoute/test/save_defok -> src/drt/test/save_defok
+	renamed:    src/TritonRoute/test/testcase/ispd18_sample/ispd18_sample.input.def -> src/drt/test/testcase/ispd18_sample/ispd18_sample.input.def
+	renamed:    src/TritonRoute/test/testcase/ispd18_sample/ispd18_sample.input.guide -> src/drt/test/testcase/ispd18_sample/ispd18_sample.input.guide
+	renamed:    src/TritonRoute/test/testcase/ispd18_sample/ispd18_sample.input.lef -> src/drt/test/testcase/ispd18_sample/ispd18_sample.input.lef
+	deleted:    src/fin/README
+	new file:   src/fin/README.md
+	deleted:    src/gpl/AUTHORS.md
+	modified:   src/gpl/README.md
+	modified:   src/gpl/doc/TclCommands.md
+	modified:   src/gpl/include/gpl/Replace.h
+	modified:   src/gpl/src/graphics.cpp
+	modified:   src/gpl/src/graphics.h
+	modified:   src/gpl/src/initialPlace.cpp
+	modified:   src/gpl/src/initialPlace.h
+	modified:   src/gpl/src/nesterovBase.cpp
+	modified:   src/gpl/src/nesterovBase.h
+	modified:   src/gpl/src/nesterovPlace.cpp
+	modified:   src/gpl/src/nesterovPlace.h
+	modified:   src/gpl/src/placerBase.cpp
+	modified:   src/gpl/src/placerBase.h
+	modified:   src/gpl/src/replace.cpp
+	modified:   src/gpl/src/replace.i
+	modified:   src/gpl/src/replace.tcl
+	modified:   src/gpl/src/routeBase.cpp
+	new file:   src/gpl/test/incremental02.def
+	new file:   src/gpl/test/incremental02.defok
+	new file:   src/gpl/test/incremental02.ok
+	new file:   src/gpl/test/incremental02.tcl
+	modified:   src/gpl/test/regression_tests.tcl
+	modified:   src/gpl/test/simple01-td.defok
+	modified:   src/gpl/test/simple01-td.ok
+	modified:   src/grt/LICENSE
+	modified:   src/grt/README.md
+	modified:   src/grt/include/grt/GlobalRouter.h
+	modified:   src/grt/src/GlobalRouter.cpp
+	modified:   src/grt/src/GlobalRouter.i
+	modified:   src/grt/src/GlobalRouter.tcl
+	modified:   src/grt/src/fastroute/LICENSE
+	modified:   src/grt/src/fastroute/include/DataType.h
+	modified:   src/grt/src/fastroute/include/FastRoute.h
+	modified:   src/grt/src/fastroute/src/FastRoute.cpp
+	modified:   src/grt/src/fastroute/src/RSMT.cpp
+	modified:   src/grt/src/fastroute/src/RipUp.cpp
+	modified:   src/grt/src/fastroute/src/maze.cpp
+	modified:   src/grt/src/fastroute/src/maze3D.cpp
+	modified:   src/grt/src/fastroute/src/route.cpp
+	modified:   src/grt/src/fastroute/src/utility.cpp
+	modified:   src/grt/test/clock_route.guideok
+	modified:   src/grt/test/clock_route.ok
+	modified:   src/grt/test/congestion1.guideok
+	modified:   src/grt/test/congestion1.ok
+	modified:   src/grt/test/congestion2.guideok
+	modified:   src/grt/test/congestion2.ok
+	modified:   src/grt/test/congestion5.ok
+	modified:   src/grt/test/congestion6.ok
+	modified:   src/grt/test/est_rc1.ok
+	modified:   src/grt/test/gcd.guideok
+	modified:   src/grt/test/gcd.ok
+	modified:   src/grt/test/multiple_calls.ok
+	modified:   src/grt/test/ndr_1w_3s.guideok
+	modified:   src/grt/test/ndr_1w_3s.ok
+	modified:   src/grt/test/ndr_2w_3s.guideok
+	modified:   src/grt/test/ndr_2w_3s.ok
+	modified:   src/grt/test/pd1.guideok
+	modified:   src/grt/test/pd1.ok
+	modified:   src/grt/test/pd2.guideok
+	modified:   src/grt/test/pd2.ok
+	modified:   src/grt/test/pd3.guideok
+	modified:   src/grt/test/pd3.ok
+	modified:   src/grt/test/pd4.guideok
+	modified:   src/grt/test/pd4.ok
+	modified:   src/grt/test/repair_antennas1.guideok
+	modified:   src/grt/test/repair_antennas1.ok
+	modified:   src/grt/test/repair_antennas2.guideok
+	modified:   src/grt/test/repair_antennas2.ok
+	modified:   src/grt/test/repair_antennas3.guideok
+	modified:   src/grt/test/repair_antennas3.ok
+	modified:   src/grt/test/repair_antennas_error2.ok
+	modified:   src/gui/CMakeLists.txt
+	modified:   src/gui/include/gui/gui.h
+	new file:   src/gui/resources/icon.png
+	new file:   src/gui/resources/resource.qrc
+	modified:   src/gui/src/dbDescriptors.cpp
+	modified:   src/gui/src/dbDescriptors.h
+	modified:   src/gui/src/displayControls.cpp
+	modified:   src/gui/src/displayControls.h
+	new file:   src/gui/src/drcWidget.cpp
+	new file:   src/gui/src/drcWidget.h
+	modified:   src/gui/src/gui.cpp
+	modified:   src/gui/src/gui.i
+	modified:   src/gui/src/inspector.cpp
+	modified:   src/gui/src/inspector.h
+	modified:   src/gui/src/layoutViewer.cpp
+	modified:   src/gui/src/layoutViewer.h
+	modified:   src/gui/src/mainWindow.cpp
+	modified:   src/gui/src/mainWindow.h
+	modified:   src/gui/src/options.h
+	new file:   src/gui/src/ruler.cpp
+	renamed:    src/gui/src/timingReportDialog.h -> src/gui/src/ruler.h
+	modified:   src/gui/src/scriptWidget.cpp
+	modified:   src/gui/src/scriptWidget.h
+	modified:   src/gui/src/search.h
+	modified:   src/gui/src/selectHighlightWindow.cpp
+	modified:   src/gui/src/selectHighlightWindow.h
+	modified:   src/gui/src/staGui.cpp
+	modified:   src/gui/src/staGui.h
+	modified:   src/gui/src/stub.cpp
+	deleted:    src/gui/src/timingDebugDialog.cpp
+	deleted:    src/gui/src/timingReportDialog.cpp
+	new file:   src/gui/src/timingWidget.cpp
+	renamed:    src/gui/src/timingDebugDialog.h -> src/gui/src/timingWidget.h
+	deleted:    src/gui/ui/reportTiming.ui
+	deleted:    src/gui/ui/timingDebug.ui
+	new file:   src/ifp/README.md
+	modified:   src/ifp/src/InitFloorplan.tcl
+	modified:   src/mpl/LICENSE
+	new file:   src/mpl/README.md
+	deleted:    src/odb/Jenkinsfile
+	modified:   src/odb/LICENSE
+	modified:   src/odb/README.md
+	new file:   src/odb/doc/OpenDB-AddFieldsInDbObjects.md
+	deleted:    src/odb/doc/OpenDB-AddFieldsInDbObjects.xlsx
+	modified:   src/odb/include/odb/cdl.h
+	modified:   src/odb/include/odb/db.h
+	deleted:    src/odb/jenkins/build.sh
+	deleted:    src/odb/jenkins/install.sh
+	deleted:    src/odb/jenkins/test-cpp.sh
+	deleted:    src/odb/jenkins/test-py.sh
+	deleted:    src/odb/jenkins/test-tcl.sh
+	deleted:    src/odb/jenkins/test-unittests.sh
+	modified:   src/odb/src/cdl/CMakeLists.txt
+	modified:   src/odb/src/cdl/cdl.cpp
+	modified:   src/odb/src/codeGenerator/README.md
+	modified:   src/odb/src/codeGenerator/dbTechLayerCutSpacingTableDefRule.json
+	modified:   src/odb/src/db/dbBlock.cpp
+	modified:   src/odb/src/db/dbTechLayerCutSpacingTableDefRule.cpp
+	modified:   src/odb/src/db/dbTechLayerCutSpacingTableDefRule.h
+	modified:   src/odb/src/def/doc/README.md
+	modified:   src/odb/src/defin/definReader.cpp
+	modified:   src/odb/src/lefin/lefTechLayerCutSpacingTableParser.cpp
+	new file:   src/odb/test/NangateOpenCellLibrary.cdl
+	modified:   src/odb/test/cpp/TestLef58Properties.cpp
+	modified:   src/odb/test/cpp/TestModule.cpp
+	modified:   src/odb/test/dump_netlists.tcl
+	modified:   src/odb/test/dump_netlists_cdl.ok
+	modified:   src/odb/test/dump_netlists_withfill.tcl
+	modified:   src/odb/test/dump_netlists_withfill_cdl.ok
+	modified:   src/odb/test/unitTestsPython/README.md
+	modified:   src/par/README.md
+	modified:   src/par/include/par/PartitionMgr.h
+	modified:   src/par/src/HypergraphDecomposition.cpp
+	modified:   src/par/src/HypergraphDecomposition.h
+	modified:   src/par/src/PartitionMgr.cpp
+	modified:   src/pdn/README.md
+	modified:   src/pdn/doc/PDN.md
+	modified:   src/pdn/doc/README.md
+	modified:   src/pdn/doc/TCL_Interface.md
+	modified:   src/pdn/doc/add_global_connection.md
+	modified:   src/pdn/doc/add_pdn_connect.md
+	modified:   src/pdn/doc/add_pdn_ring.md
+	modified:   src/pdn/doc/add_pdn_stripe.md
+	modified:   src/pdn/doc/define_pdn_grid.md
+	modified:   src/pdn/doc/example_PDN.cfg
+	modified:   src/pdn/doc/pdngen.md
+	modified:   src/pdn/doc/set_voltage_domain.md
+	modified:   src/pdn/src/PdnGen.tcl
+	modified:   src/pdn/test/asap7_vias.api.ok
+	modified:   src/pdn/test/asap7_vias.noviarules.api.ok
+	modified:   src/pdn/test/extend_to_core_ring.api.ok
+	modified:   src/pdn/test/soc_bsg_black_parrot_nangate45.api.ok
+	modified:   src/pdn/test/soc_bsg_black_parrot_nangate45.defok
+	modified:   src/pdn/test/soc_bsg_black_parrot_nangate45.pad_offset.api.ok
+	modified:   src/pdn/test/soc_bsg_black_parrot_nangate45.pad_offset.defok
+	modified:   src/pdn/test/tempSensor.api.ok
+	modified:   src/pdn/test/test_gcd.api.ok
+	modified:   src/pdn/test/test_gcd.defok
+	modified:   src/pdn/test/test_gcd.invert_viarule.api.ok
+	modified:   src/pdn/test/test_gcd.invert_viarule.defok
+	modified:   src/pdn/test/test_gcd_M7_pin.api.ok
+	modified:   src/pdn/test/test_gcd_M7_pin.defok
+	modified:   src/pdn/test/test_gcd_dual_rails.api.ok
+	modified:   src/pdn/test/test_gcd_dual_rails.defok
+	modified:   src/pdn/test/tinyRocket.api.ok
+	modified:   src/pdn/test/tinyRocket.api.tcl
+	modified:   src/pdn/test/tinyRocket.defok
+	modified:   src/ppl/LICENSE
+	modified:   src/ppl/README.md
+	modified:   src/ppl/src/munkres/LICENSE
+	modified:   src/psm/LICENSE
+	modified:   src/psm/README.md
+	modified:   src/psm/doc/Vsrc_description.md
+	deleted:    src/rcx/Jenkinsfile
+	modified:   src/rcx/README.md
+	new file:   src/rcx/doc/calibration.md
+	deleted:    src/rcx/doc/calibration.txt
+	deleted:    src/rcx/jenkins/build.sh
+	deleted:    src/rcx/jenkins/install.sh
+	deleted:    src/rcx/jenkins/test.sh
+	modified:   src/rcx/src/netRC.cpp
+	modified:   src/rmp/README.md
+	modified:   src/rmp/include/rmp/Restructure.h
+	modified:   src/rmp/include/rmp/blif.h
+	modified:   src/rmp/src/Restructure.cpp
+	modified:   src/rmp/src/blif.cpp
+	modified:   src/rmp/test/blif_reader.def.ok
+	modified:   src/rmp/test/blif_reader_const.def.ok
+	modified:   src/rmp/test/blif_reader_sequential.def.ok
+	new file:   src/rsz/README.md
+	modified:   src/rsz/include/rsz/Resizer.hh
+	modified:   src/rsz/src/Resizer.cc
+	modified:   src/rsz/test/gcd_resize.ok
+	modified:   src/rsz/test/repair_cap1.ok
+	modified:   src/rsz/test/repair_cap2.ok
+	modified:   src/rsz/test/repair_fanout1.ok
+	modified:   src/rsz/test/repair_slew6.ok
+	modified:   src/rsz/test/repair_slew8.ok
+	modified:   src/rsz/test/resize_slack2.ok
+	modified:   src/stt/include/stt/SteinerTreeBuilder.h
+	modified:   src/stt/src/SteinerTreeBuilder.cpp
+	modified:   src/stt/src/SteinerTreeBuilder.i
+	modified:   src/stt/src/flt/LICENSE
+	modified:   src/stt/src/flt/README.md
+	modified:   src/stt/src/pdr/LICENSE
+	deleted:    src/stt/src/pdr/README
+	new file:   src/stt/src/pdr/README.md
+	modified:   src/stt/src/pdr/src/edge.h
+	modified:   src/stt/src/pdr/src/graph.cpp
+	modified:   src/stt/src/pdr/src/graph.h
+	modified:   src/stt/src/pdr/src/node.cpp
+	modified:   src/stt/src/pdr/src/node.h
+	modified:   src/stt/src/pdr/src/pdrev.cpp
+	new file:   src/stt/src/pdr/src/pdrevII.h
+	modified:   src/stt/test/check.ok
+	modified:   src/stt/test/check.tcl
+	modified:   src/stt/test/flute1.ok
+	modified:   src/stt/test/flute_gcd.ok
+	modified:   src/stt/test/pd1.ok
+	modified:   src/stt/test/pd1.tcl
+	modified:   src/stt/test/regression_tests.tcl
+	modified:   src/stt/test/stt_helpers.tcl
+	new file:   src/tap/README.md
+	modified:   src/tap/include/tap/MakeTapcell.h
+	modified:   src/tap/include/tap/tapcell.h
+	modified:   src/tap/src/MakeTapcell.cpp
+	modified:   src/tap/src/tapcell.cpp
+	modified:   src/tap/src/tapcell.i
+	modified:   src/tap/test/avoid_overlap.ok
+	modified:   src/tap/test/boundary_macros.defok
+	modified:   src/tap/test/boundary_macros.ok
+	modified:   src/tap/test/cut_rows.ok
+	modified:   src/tap/test/cut_rows.tcl
+	modified:   src/tap/test/gcd_fakeram.ok
+	modified:   src/tap/test/gcd_nangate45.ok
+	modified:   src/tap/test/gcd_prefix.ok
+	modified:   src/tap/test/gcd_ripup.ok
+	modified:   src/tap/test/gcd_sky130.ok
+	modified:   src/tap/test/multiple_calls.ok
+	modified:   src/tap/test/no_endcap.ok
+	modified:   src/tap/test/symmetry.ok
+	modified:   test/aes_sky130hd.metrics_limits
+	modified:   test/aes_sky130hs.metrics_limits
+	modified:   test/flow.tcl
+	modified:   test/ibex_sky130hs.tcl
+	modified:   test/regression
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   CMakeLists.txt
+	both modified:   etc/DependencyInstaller.sh
+	both modified:   include/ord/Version.hh.cmake
+	both modified:   src/CMakeLists.txt
+	both modified:   src/Main.cc
+	both modified:   src/OpenRoad-py.i
+	both modified:   src/OpenRoad.i
+	both modified:   src/tap/src/tapcell.tcl
+
+removing .github/workflows
+moving docker_regression.yml
+moving docker_release.yml
+restore docker_regression.yml
+restore docker_release.yml
+On branch tmp
+Your branch is ahead of 'upstream/master' by 368 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+
+# commits
+
+rm space
+revert to scaped dquotes
+Fix list Python classes
+do not show version on prompt
+random whitespace and tab rm
+Use git describe as the version
+Update odb python interface docs
+gui: ruler, adding missing header
+gui: correcting units on capacitance for layer descriptor
+gui: removing isRepaint code, remapping redraw to full repaint, and adding shortcut for renderers to redraw
+Revert "many: make renderers in other tools always require repainting"
+[DRT] Simplify odb aliases
+[DRT] Replace frTermDirectionEnum with dbIoType
+[DRT] Replace frTermEnum with dbSigType
+[DRT] Replace frNetEnum with dbSigType
+[DRT] Replace frOrient with dbOrientType
+[DRT] Replace MacroClassEnum with dbMasterType
+[DRT] Replace frLayerTypeEnum with dbTechLayerType
+[DRT] Replace frPrefRoutingDir with odb::dbTechLayerDir
+[DRT] Change zDirs_ vector to enum for clarity
+[DRT] Convert getPrevAstarNodeDir to use FlexMazeIdx
+[DRT] cleanup unused code
+odb: include sstream for mac build error
+gui: adding basic tech layer descriptor and adding signal to select layer from display controls
+gui: switch unicode of mu to variable for readablility
+gui: add tooltip for routing layers with direction, min width/spacing, and resistance and capacitance if available
+par: some coverity issues addressed
+gui: fix coverity issues
+odb: add -masters to write_cdl
+Fix coverity issue and wrong indexing for DELAY_4 enum value
+Added debug lines
+Take note of WRONGDIRECTION widthtable rules, and apply them when determining the sizes of vias being created
+many: make renderers in other tools always require repainting
+gui: fix sta and drc renderers to correctly request repaints
+gui: correct instance name drawing
+gui: adding cache to layout viewer
+gui: reverts 016f37dcc28a76752c036ad96289a13ac10a6bc4 + gives RulerDescriptor copy of rulers vector
+gui: ruler manager singleton + renable editing on name
+Reduce the width of vias on intermediate layers in the non-preferred routing direction, allowing more routing space. Correct the calculation for the number of via rows to ensure that the via is contained within the overlapping metal shapes
+Rename status variable to success
+gui: ensure ruler names are unique and prevent modifying ruler name
+gui: switch from using bool& to return pair instead
+gui: fix ANCHOR -> Anchor
+gui: addressing comments about const and d1/dl
+gui: fix copyright
+gui: remove left over code
+remove unnecessary comments
+Update tap when there is no tapcell needed
+handle git describe failure when generating version string
+gui: snap to end points and center, fix drawing of ruler ticks for small rulers, adding shift to allow of different snapping
+gui: fix font hack in drawString and remove need to track unique transforms
+gui: fixing ruler intersection check to handle angled rulers better
+gui: make single function to handle next ruler point
+gui: adjust drawing of rulers to account for angled rulers and text
+gui: make rulers controllable from display controls
+gui: basic snapping to metal shapes + point and click rulers
+gui: changing drawString to use anchor
+gui: adding label to drawRulers
+gui: initial conversion to rulers as classes with descriptor
+Add is_area_mode_
+Correctly check spdlog installed in Ubuntu
+Add note about compiler in PATH
+Check before installing
+Cleanup dependencies
+update flow.tcl for version change
+Change version string from sha1 to 'git describe' output
+gui: partial revert of 27281826ea6e78d0c73def81caa893942c23fd27
+Add if statement to skip tapcell insertion
+Fix regression
+GR-Pin fix
+gui: update comments
+gpl: add incremental placement for unplace instances
+gui: fix layout viewer size when viewport changes
+Remove code related to define outside ifdef
+Remove RCX hard-coded define for debug net.
+gui: give obstructions and blockages basic names in descriptors
+revert getRouteBox change in FlexDR_graphics
+fixes #1036
+fix
+gui: switch addToOutput to rely on outputChanged, which calls repaint instead of processes events, to prevent recursive paint calls
+gui: switch redraw to use update as it ensures recursive calls are handled properly
+gui: adding comments to the layout viewer
+gui: standardize some of the highlighting commands in gui
+tap: minor fixes
+tap: fixed CI tests
+bug fix
+tap: fixed type name, moved some functions for swig utilization
+show gui after no path error
+tap: fixed comments, type names
+clang-format
+create graph edges for unreachable on-the-fly aps
+tap:re-ordered boundary_macros.defok, added comments, minor fixes
+gui: fixing segfault in timing widget when switching models
+stt okfiles
+stt checkTree ignore zero length branches
+gui: correct behavior of DRC widget to account for keyboard selection changes
+gui: correct centering behavior when zooming in and out
+A stripe on a rails layer will be horizontal, regardless of the preferred direction setting in the tech file
+gui: correct behavior of fit_pixels_per_dbu_ to ensure it is updated when window changes
+gui: ensure 0 and scale bar size do not overlap and avoid drawing ticks when they are spaced closely together
+gui: change scale bar view
+gui: ensure entire view is redrawn when scrolling through the layout
+gui: center scale bar text over bar
+gui: adding picometer scale
+tap: optimized and adjusted loops, variables, function returns and data structures along the code
+Improve fixing of p/g in channels, ensure full width connections to p/g nets are present inside channels and that channel shapes identified are rectangles rather than polygons.
+gui: add scale bar to layout view
+stt okfiles
+check.tcl defeat stupid keyword checker failure in comment
+pd cleanup
+stt check pd result and fall back to flute
+gui: add countdown to pause button
+gui: adding timeout to pause
+fix null pointer + * in comment
+remove printing
+gui: adding line number to DRC violation
+gui: adding combined file open filter
+gui: ensuring inspector columns are resized on load
+Revert "gui: coverity rand() is not used for crypto, no security concerns"
+gui: add help action to gui to open help URL
+gui: add main window icon
+gui: coverity rand() is not used for crypto, no security concerns
+gui: no point in drawing timing stage if there is no destination
+gui: ensure ScriptWidget variables are initialized
+gui: ensure HighlightGroupDelegate variables are initialized
+gui: switch to use db_ in selectAt
+gui: inspector coverty fix Matt identified
+stt compile error
+stt rm checkTree
+gui: ensure TimingPathRenderer variables are initialized on startup
+gui: ensure path_ is initialized in DetailedModel
+- pre commmit hook dummy
+- clang-format
+Replace -grid_over_pins with grid_over_pg_pins and make this behavior the default. Add option -grid_over_boundary to get previous behavior. Show which option is being used in the log file
+stt okfiles
+stt okfiles
+stt pd drvr_index moved by duplicate removal
+stt const
+closes #686
+gui: inspector + dbDescriptor coverty fixes
+rename TritonRoute to drt
+gui: add unordered_map to mainWindow header and correct keyPressEvent in timingWidget.h
+gui: clang-format drcWidget.cpp
+gui: convert drc to use new report
+drt: modify DRC report to include identifier for sources and convert two cout to logger
+gui: clears timing path if its deselected
+gui: inspector grab focus when selected
+gui: correct column behavior in DRC viewer
+gui: switch DRC violation to use odb geoms
+Update README.md
+gui: minor formatting
+gui: adding error and warns to TritonRoute parsing
+gui: only adding non-found sources to comment list
+gui: correct horizontal labels
+gui: provide feedback to DRC to mark violations as viewed
+grt okfiles yet again
+gui: remove sorting flag from detailed path in timing report
+gui: make use of polygon drawing
+gui: adding draw polygon to Painter
+gui: adding some zoom margin for the DRC
+gui: switch name of drc violation to layer and sources for TR report violations
+gui: drc viewer automatically render when visible
+stt check tree ignore zero rects
+gui: convert render registration to be based on widget visibility, connect signals for sorting
+gui: change name from timing_dialog_ to timing_widget_
+gui: modify timing model to allow for sorting across all data
+stt rearrange
+pdrev mv translateTree inside pd/pdrev functions
+Misc warns for rtd
+Review
+gui: basic interface for viewing DRC
+gui: convert Renderer select to return set of selctions
+gui: adding option for hashed brush in painter
+gui: make options and pixels_per_dbu available from Painter
+gui: provide access function in tcl to show/hide widgets in main window
+gui: dockify timing report
+Fix rebase issues
+Add note about clang-format
+Style
+Missing word
+Min requirements to compile and warn about docker
+Add back mentions to restricted words.
+Fix links to work in GitHub
+Add how to check for broken links
+Use build not _build for rtd
+Use same style for all code blocks
+Integration of ORFS documentation
+Re-wording
+Refactor documentation
+Clean up: remove out-of-date files
+rst -> md
+drt: one less DRV on ispd19_test10 with ACCESS_PATTERN_END_ITERATION_NUM=10
+tap: updated tcl code to c++ code
+stt reportSteinerTree path depth for flute trees
+grt: refactor isNonLeafClock
+grt: fix isNonLeafClock
+grt: use enum
+grt: refactor getEdgeCapacity
+grt: refactor clock nets detection
+grt: clang-format
+grt: update draw_route_guides command
+drt: bump ACCESS_PATTERN_END_ITERATION_NUM to 10 for difficult AOI gate
+drt: replace FlexPA::macroCellPinNoApCnt_ with ACCESS_PATTERN_END_ITERATION_NUM
+gui: make row color part of display controls
+gui: only draw instance obstructions if routing obstructions are visible
+gui: ensure dbInst properties and editors are using same values
+grt: use set instead of vector
+grt: update command names
+grt: restore const
+pdr mv RemoveSTNodes from graph to PdRev
+pdr segregate pdrevII code
+drt: fix duplicate message id
+drt: add debug GUI for pin access' combining step
+pdr rm unused code
+pdr cleanup
+makeSteinerTree(alpha) for regressions
+grt: fix min/max layers
+grt: compute actual capacities for nets with layer restriction
+add function to compute edge capacity considering layer restrictions
+Revert "Merge pull request #864 from eder-matheus/grt_revert"
+grt: add clear_route command
+grt: add support for wildcars in highlight_route command
+grt: add highlight_route as a public command
+update Jenkinsfile.nightly for replace->gpl
+gui: adding center and resolution access to tcl + correct behavior when zooming in/out
+gui: make ruler precision dependent on DBU
+gui: disable tcl input when paused
+gui: adding tcl access for pause
+Add error message when power/ground nets do not have global connections defined
+Remove commented code
+Modify scripts to support required time, use only delay4 for timing mode
+Support multiple calls in same session
+grt: refactorings for maze routeres
+rename opendb->odb
+spacingtable-opt squash
