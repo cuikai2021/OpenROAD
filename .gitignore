@@ -23,6 +23,8 @@ build*
 test/results
 flow
 
+docs/main
+
 .idea/
 cmake-build-debug/
 
@@ -32,5 +34,3 @@ devops_results
 
 utest/*/test/results
 messages.txt
-
-_build

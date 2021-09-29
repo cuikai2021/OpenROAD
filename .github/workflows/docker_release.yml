@@ -21,13 +21,18 @@ on:
 
 jobs:
   release:
-    runs-on: [self-hosted]
+    runs-on: ubuntu-latest
     steps:
-      - name: invoke workflow
+      - name: 1. get repo owner
+        run: |
+          repo=${{ github.repository }}
+          echo "REPO_OWNER=${repo%/*}" >> $GITHUB_ENV
+          
+      - name: 2. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-          repo: ICBench/bamboo
-          ref: v0.3.3
+          repo: ${{ env.REPO_OWNER }}/bamboo
+          ref: master
           workflow: release
           inputs: '{ "Eden_commit_id": "${{ github.event.inputs.Eden_commit_id }}", "yosys_commit_id": "${{ github.event.inputs.yosys_commit_id }}", "maple_commit_id": "${{ github.event.inputs.maple_commit_id }}", "release_name": "${{ github.event.inputs.release_name }}"}'
