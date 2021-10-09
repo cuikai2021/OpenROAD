@@ -399,16 +399,19 @@ variable voltage_domains {
     primary_power VDD primary_ground VSS
   }
 }
-variable icb_mode false
-variable icb_min_density 66.6
-variable icb_max_density 75.0
-variable icb_default_maxwidth 10
+variable icb_mode true
+# It is better to get min and max density from odb.
+# But I cannot find any API.
+variable min_density 66.6
+variable max_density 75.0
+variable default_maxwidth 10
 
 proc get_max_width {layer} {
   set max_width [$layer getMaxWidth]
   if {$max_width < 2147483647} {
     # OpenDB hides the fact that the layer has no MAXWIDTH field 
     # and returns the biggest value of int32_t.
+    # So I have to guess if it is set.
     return $max_width
   }
 
@@ -424,8 +427,8 @@ proc get_max_width {layer} {
     }
   }
 
-  variable icb_default_maxwidth
-  return $icb_default_maxwidth
+  variable default_maxwidth
+  return $default_maxwidth
 }
 
 proc get_min_width {layer} {
@@ -3213,7 +3216,6 @@ proc generate_via_stacks {l1 l2 tag connection} {
   variable stripe_locs
   variable def_units
   variable grid_data
-  variable icb_mode
 
   set area [dict get $grid_data area]
   # debug "From $l1 to $l2"
@@ -3271,40 +3273,6 @@ proc generate_via_stacks {l1 l2 tag connection} {
     set width [expr $xMax - $xMin]
     set height [expr $yMax - $yMin]
     # debug "($xMin,$yMin) -> ($xMax,$yMax): $width * $height"
-
-    if {!$icb_mode} {
-      # Ensure that the intersections covers entire width of the core ring.
-      # But this logic works only for those pins located at left and right.
-      # After a short discussion with Archer and Sarah, we decide to just ignore it.
-      if {![regexp {(.*)_PIN_(hor|ver)} $l1]} {
-        if {[get_dir $layer1] == "hor"} {
-          if {$height < [get_grid_wire_width $layer1]} {
-            # If the intersection doesnt cover the whole width of the bottom level wire, then ignore
-            utl::warn "PDN" 40 "No via added at ([expr 1.0 * $xMin / $def_units] [expr 1.0 * $yMin / $def_units] [expr 1.0 * $xMax / $def_units] [expr 1.0 * $yMax / $def_units]) because the full height of $layer1 ([expr 1.0 * [get_grid_wire_width $layer1] / $def_units]) is not covered by the overlap."
-            continue
-          }
-        } else {
-          if {$width < [get_grid_wire_width $layer1]} {
-            # If the intersection doesnt cover the whole width of the bottom level wire, then ignore
-            utl::warn "PDN" 41 "No via added at ([expr 1.0 * $xMin / $def_units] [expr 1.0 * $yMin / $def_units] [expr 1.0 * $xMax / $def_units] [expr 1.0 * $yMax / $def_units]) because the full width of $layer1 ([expr 1.0 * [get_grid_wire_width $layer1] / $def_units]) is not covered by the overlap."
-            continue
-          }
-        }
-      }
-      if {[get_dir $layer2] == "hor"} {
-        if {$height < [get_grid_wire_width $layer2]} {
-          # If the intersection doesnt cover the whole width of the top level wire, then ignore
-          utl::warn "PDN" 42 "No via added at ([expr 1.0 * $xMin / $def_units] [expr 1.0 * $yMin / $def_units] [expr 1.0 * $xMax / $def_units] [expr 1.0 * $yMax / $def_units]) because the full height of $layer2 ([expr 1.0 * [get_grid_wire_width $layer2] / $def_units]) is not covered by the overlap."
-          continue
-        }
-      } else {
-        if {$width < [get_grid_wire_width $layer2]} {
-          # If the intersection doesnt cover the whole width of the top level wire, then ignore
-          utl::warn "PDN" 43 "No via added at ([expr 1.0 * $xMin / $def_units] [expr 1.0 * $yMin / $def_units] [expr 1.0 * $xMax / $def_units] [expr 1.0 * $yMax / $def_units]) because the full width of $layer2 ([expr 1.0 * [get_grid_wire_width $layer2] / $def_units]) is not covered by the overlap."
-          continue
-        }
-      }
-    }
 
     set rule_name ${l1}${layer2}_${width}x${height}
     if {![dict exists $logical_viarules $rule_name]} {
@@ -4845,12 +4813,12 @@ proc init {args} {
   variable default_global_connections
   variable power_nets
   variable ground_nets
-  variable icb_default_maxwidth
+  variable default_maxwidth
 
   # debug "start" 
   init_tech 
 
-  set icb_default_maxwidth [ord::microns_to_dbu $icb_default_maxwidth]
+  set default_maxwidth [ord::microns_to_dbu $default_maxwidth]
   set design_name [$block getName]
 
   set physical_viarules {}
@@ -5009,13 +4977,13 @@ proc get_design_quadrant {x y} {
 }
 
 proc get_min_density {} {
-  variable icb_min_density
-  return $icb_min_density
+  variable min_density
+  return $min_density
 }
 
 proc get_max_density {} {
-  variable icb_max_density
-  return $icb_max_density
+  variable max_density
+  return $max_density
 }
 
 proc get_manufacturing_grid {layer} {
@@ -5029,32 +4997,32 @@ proc try_spacing {width spacing min_density max_density min_spacing} {
     return "small"
   }
   set density [expr 100.0 * $width / ($width + $spacing)]
-  debug "density=$density"
+  # debug "density=$density"
   if {$density < $min_density} {
     return "large"
   }
   if {$density > $max_density} {
     return "small"
   }
-  return "modest"
+  return "ok"
 }
 
 proc try_width {width arena min_spacing min_density max_density} {
   if {$arena <= $width} {
-    return 0
+    return [list "ok" 0]
   }
   incr arena [expr -$width]
   set num [expr $arena / $width]
   for {set i 1} {$i <= $num} {incr i} {
     set spacing [expr ($arena - $width * $i) / $i]
     set hint [try_spacing $width $spacing $min_density $max_density $min_spacing]
-    debug "hint=$hint width=$width spacing=$spacing i=$i arena=$arena"
+    # debug "hint=$hint width=$width spacing=$spacing i=$i arena=$arena"
     switch -exact $hint {
-      "modest" {
-        return $spacing
+      "ok" {
+        return [list "ok" $spacing]
       }
       "small" {
-        return {}
+        return [list "small"]
       }
       "large" {
         continue
@@ -5064,6 +5032,7 @@ proc try_width {width arena min_spacing min_density max_density} {
       }
     }
   }
+  return [list "large"]
 }
 
 proc geoms_on_layer {pins layer_name} {
@@ -5180,94 +5149,86 @@ proc putdown {width spacing from to} {
   return $res
 }
 
-# Let us take away the grid constraint for a while.
-# It is easy to see, if there are solutions, there is a specific width, 
-# every circuit narrower than that width has suitable spacing to satisfy
-# the density constraints and the min-spacing constraint.
-# We cannot say, a circuit wider than that width must not satisfy these constraints.
-# However, any suitable width wider than or equivalent to that width is good enough.
-# This is what a binary searching between $min_width and $max_width can deal with.
-# But, I don't know how to do unit testing in Tcl.
-# So I decide to simply try a width starting from $max_width, halve it and try again.
+# For each range from $from to $to: to maximize circuit width under the following constraints:
+# 1. Each manufacturing grid is either entirely covered or entirely empty.
+# 2. Both $from and $to are covered by circuits.
+# 3. Spacing is not smaller than $min_spacing.
+# 4. Width is between $min_width and $max_width.
+# 5. Density (width/(width+spacing)) is between $min_density and $max_density.
 #
-# The grid constraint will bring us a bad news.
-# The always-good-until-a-bad property does not hold under the grid constraint.
-# But in practice, grids are very small.
-# So let us just forget it in applying the algorithm.
+# The maximization of circuit width has some physical and economic benefits.
+# Wider circuits implies lower resistance and crosstalk.
+# And every PDN circuit will drill some vias to the neighbour layer, which is costly.
+# Wider circuits means less circuits to cover the same arena, and thus less vias are required.
+#
+# Let us take away the grid constraint, the min spacing constraint and 
+# the min width constraint for a while.
+#
+# It is easy to see, there is always a suitable spacing for a thin enough circuit 
+# to satisfy the density constraints and of course the max width constraint.
+# That is to say, if there are solutions, there is a specific width, 
+# there is a suitable spacing for every circuit narrower than this width
+# to satisfy these constraints.
+# We cannot say, a circuit wider than that width will not satisfy these constraints.
+# But we can say, any suitable width wider than or equivalent to this width is good enough.
+# So we come up with a variant of binary searching to find a suitable (width, spacing) pair
+# where width is good enough.
+#
+# In practice, grids are very small and the min spacing is very small too.
+# So this algorithm is also applicable practically.
 proc search_for_width_spacing \
-{grid arena min_width max_width min_spacing min_density max_density} \
+{grid from to min_width max_width min_spacing min_density max_density} \
 {
-  set arena [expr $arena / $grid]
+  set arena [expr ($to - $from) / $grid]
   set min_width [expr $min_width / $grid]
   set max_width [expr $max_width / $grid]
+  if {$max_width > $arena} {
+    set max_width $arena
+  }
   set min_spacing [expr $min_spacing / $grid]
-  for {set width $max_width} \
-      {$min_width <= $width} \
-      {set width [expr $width / 2]} \
-  {
-    set spacing [try_width $width $arena $min_spacing $min_density $max_density]
-    # debug "width=$width spacing=$spacing"
-    if {$spacing != ""} {
-      return [list [expr $width * $grid] [expr $spacing * $grid]]
+  # debug "enter: arena=$arena min_width=$min_width max_width=$max_width min_spacing=$min_spacing"
+  set width $max_width
+  set best_res {}
+  while {$min_width <= $max_width} {
+    set res [try_width $width $arena $min_spacing $min_density $max_density]
+    set hint [lindex $res 0]
+    # debug "res=$res"
+    switch -exact $hint {
+      "ok" {
+        set spacing [lindex $res 1]
+        # debug "hint=$hint width=$width spacing=$spacing"
+        if {$best_res == ""} {
+          set best_res [list $width $spacing]
+        } elseif {$width > [lindex $best_res 0]} {
+          set best_res [list $width $spacing]
+        }
+        set min_width [expr $width + 1]
+        set width [expr ($min_width + $max_width) / 2]
+      }
+      "small" {
+        # debug "hint=$hint width=$width"
+        set min_width [expr $width + 1]
+        set width [expr ($min_width + $max_width) / 2]
+      }
+      "large" {
+        # debug "hint=$hint width=$width"
+        set max_width [expr $width - 1]
+        set width [expr ($min_width + $max_width) / 2]
+      }
     }
   }
-  utl::error "PDN" 202 "cannot work out width and spacing to fit density requirement."
+  if {$best_res == ""} {
+    utl::error "PDN" 202 "cannot work out width and spacing to fit requirements."
+  }
+  lassign $best_res width spacing
+  # debug "leave: width=$width spacing=$spacing"
+  set width [expr $width * $grid]
+  set spacing [expr $spacing * $grid]
+  return [list $width $spacing]
 }
 
-proc icbmode_get_core_facing_pins {inst pins side layer_name} {
-  # debug "enter icbmode: inst=[$inst getName] #pins=[llength $pins] side=$side layer=$layer_name"
-  set layer [find_layer $layer_name]
-
-  set geoms [geoms_on_layer $pins $layer_name]
-  set pinboxes [geoms_to_pinboxes $geoms [$inst getOrigin] [$inst getOrient]]
-  set pinboxes [filter_connected_pinboxes $pinboxes $side $inst]
-  if {$pinboxes == ""} {
-    return {}
-  }
-  set ranges [pinboxes_to_ranges $side $pinboxes]
-  set merged_ranges [merge_ranges $ranges]
-  # debug "#pinboxes=[llength $pinboxes] ranges=[llength $ranges] merged=[llength $merged_ranges]"
-
-  # This is an optimal problem: to maximize circuit width under the following constraints:
-  # 1. Each grid is either entirely filled or entirely empty.
-  # 2. Both $from and $to are covered by circuits.
-  # 3. Spacing is not smaller than $min_spacing.
-  # 4. Density (width/(width+spacing)) is between $min_density and $max_density.
-  #
-  # The maximization of circuit width has some physical and economic benefits.
-  # Wider circuits implies lower resistance and crosstalk.
-  # And every PDN circuit will drill some vias to the neighbour layer, which is costly.
-  # Wider circuits means less circuits to cover the same arena, and thus less vias is required.
-  set grid [get_manufacturing_grid $layer]
-  set width [$layer getWidth]
-  set min_spacing [$layer getSpacing]
-  set max_width [get_max_width $layer]
-  set min_width [get_min_width $layer]
-  set min_density [get_min_density ]
-  set max_density [get_max_density ]
-  # debug "width=$width min_width=$min_width max_width=$max_width min_spacing=$min_spacing min_density=$min_density max_density=$max_density grid=$grid"
-  set res {}
-  foreach range $merged_ranges {
-    lassign $range from to
-    set width_spacing [search_for_width_spacing \
-      $grid \
-      [expr $to - $from] \
-      $min_width $max_width \
-      $min_spacing \
-      $min_density $max_density]
-    lassign $width_spacing width spacing
-    # debug "width=$width spacing=$spacing"
-    set new [putdown $width $spacing $from $to]
-    foreach x $new {
-      lappend res $x
-    }
-  }
-  return $res
-}
-
-proc get_core_facing_pins {instance pin_name side layer} {
+proc get_core_facing_pins {instance pin_name side layer_name} {
   variable block
-  variable icb_mode
 
   set geoms {}
   set core_pins {}
@@ -5282,63 +5243,48 @@ proc get_core_facing_pins {instance pin_name side layer} {
   }
   set pins [$mterm getMPins]
 
-  if {$icb_mode} {
-    return [icbmode_get_core_facing_pins $inst $pins $side $layer]
-  }
+  # debug "enter icbmode: inst=[$inst getName] #pins=[llength $pins] side=$side layer=$layer_name"
+  set layer [find_layer $layer_name]
 
-  # debug "start"
-  foreach pin $pins {
-    foreach geom [$pin getGeometry] {
-      if {[[$geom getTechLayer] getName] != $layer} {continue}
-      lappend geoms $geom
+  set geoms [geoms_on_layer $pins $layer_name]
+  set pinboxes [geoms_to_pinboxes $geoms [$inst getOrigin] [$inst getOrient]]
+  set pinboxes [filter_connected_pinboxes $pinboxes $side $inst]
+  if {$pinboxes == ""} {
+    return {}
+  }
+  set ranges [pinboxes_to_ranges $side $pinboxes]
+  set merged_ranges [merge_ranges $ranges]
+  # debug "#pinboxes=[llength $pinboxes] ranges=[llength $ranges] merged=[llength $merged_ranges]"
+
+  set grid [get_manufacturing_grid $layer]
+  set width [$layer getWidth]
+  set min_spacing [$layer getSpacing]
+  set max_width [get_max_width $layer]
+  set min_width [get_min_width $layer]
+  set min_density [get_min_density ]
+  set max_density [get_max_density ]
+  # debug "width=$width min_width=$min_width max_width=$max_width min_spacing=$min_spacing min_density=$min_density max_density=$max_density grid=$grid"
+  set res {}
+  foreach range $merged_ranges {
+    lassign $range from to
+    set width_spacing [search_for_width_spacing \
+      $grid \
+      $from \
+      $to \
+      $min_width $max_width \
+      $min_spacing \
+      $min_density $max_density]
+    lassign $width_spacing width spacing
+    # debug "width=$width spacing=$spacing"
+    set new [putdown $width $spacing $from $to]
+    foreach x $new {
+      lappend res $x
     }
   }
-   #debug "pin is $pins, geometry is  $geoms, [[$geom getTechLayer] getName], $layer"
-  foreach geom $geoms {
-    #debug "geom for "
-    set ipin [transform_box [$geom xMin] [$geom yMin] [$geom xMax] [$geom yMax] [$inst getOrigin] [$inst getOrient]]
-    #debug "$ipin"
-    #debug "$ipin [[$inst getBBox] xMin] [[$inst getBBox] yMin] [[$inst getBBox] xMax] [[$inst getBBox] yMax] "
-    switch $side {
-      "t" {
-        if {[lindex $ipin 1] == [[$inst getBBox] yMin]} {
-          lappend core_pins [list \
-            centre [expr ([lindex $ipin 2] + [lindex $ipin 0]) / 2] \
-            width [expr [lindex $ipin 2] - [lindex $ipin 0]] \
-          ]
-        }
-      }
-      "b" {
-        if {[lindex $ipin 3] == [[$inst getBBox] yMax]} {
-          lappend core_pins [list \
-            centre [expr ([lindex $ipin 2] + [lindex $ipin 0]) / 2] \
-            width [expr [lindex $ipin 2] - [lindex $ipin 0]] \
-          ]
-        }
-      }
-      "l" {
-        if {[lindex $ipin 2] == [[$inst getBBox] xMax]} {
-          lappend core_pins [list \
-            centre [expr ([lindex $ipin 3] + [lindex $ipin 1]) / 2] \
-            width [expr [lindex $ipin 3] - [lindex $ipin 1]] \
-          ]
-        }
-      }
-      "r" {
-        if {[lindex $ipin 0] == [[$inst getBBox] xMin]} {
-          lappend core_pins [list \
-            centre [expr ([lindex $ipin 3] + [lindex $ipin 1]) / 2] \
-            width [expr [lindex $ipin 3] - [lindex $ipin 1]] \
-          ]
-        }
-      }
-    }
-  }
-  #debug "$core_pins"
-  return $core_pins
+  return $res
 }
 
-proc zip_layer {direction} {
+proc couple_layers {direction} {
   variable grid_data
 
   set prefs {}
@@ -5350,7 +5296,7 @@ proc zip_layer {direction} {
       lappend nonprefs $layer
     }
   }
-  
+
   set res {}
   for {set i 0} {$i < [llength $prefs] && $i < [llength $nonprefs]} {incr i} {
     lappend res [list [lindex $prefs $i] [lindex $nonprefs $i]]
@@ -5378,11 +5324,11 @@ proc connect_pads_to_core_ring {type pin_name pads} {
         set required_direction "hor"
       }
     }
-    set coupled_layers [zip_layer $required_direction]
+    set coupled_layers [couple_layers $required_direction]
     foreach couple $coupled_layers {
       lassign $couple pref_layer non_pref_layer
-      set non_pref_layer_info [dict get $grid_data core_ring $non_pref_layer]
       # debug "inst=$inst_name pref_layer=$pref_layer non_pref_layer=$non_pref_layer"
+      set non_pref_layer_info [dict get $grid_data core_ring $non_pref_layer]
       switch $side {
         "t" {
           set y_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
@@ -5430,15 +5376,18 @@ proc connect_pads_to_core_ring {type pin_name pads} {
             set xmin [expr $centre - $width / 2]
             set ymin $y_min
             set xmax [expr $centre + $width / 2]
+            # overlap a little bit to improve connectivity
             set ymax [expr $y_max + $min_width]
           }
           "b" {
             set xmin [expr $centre - $width / 2]
+            # overlap a little bit to improve connectivity
             set ymin [expr $y_min - $min_width]
             set xmax [expr $centre + $width / 2]
             set ymax $y_max
           }
           "l" {
+            # overlap a little bit to improve connectivity
             set xmin [expr $x_min - $min_width]
             set ymin [expr $centre - $width / 2]
             set xmax $x_max
@@ -5447,6 +5396,7 @@ proc connect_pads_to_core_ring {type pin_name pads} {
           "r" {
             set xmin $x_min
             set ymin [expr $centre - $width / 2]
+            # overlap a little bit to improve connectivity
             set xmax [expr $x_max + $min_width]
             set ymax [expr $centre + $width / 2]
           }
