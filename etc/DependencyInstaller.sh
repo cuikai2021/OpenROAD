@@ -8,7 +8,7 @@ PROXYCHAINS=""
 _installGtest(){
     # gtest (latest)
     cd "${baseDir}"
-    git clone https://github.com/google/googletest.git
+    $PROXYCHAINS git clone https://github.com/google/googletest.git
     cd googletest
     cmake -B build .
     cmake --build build -j $(nproc) --target install
