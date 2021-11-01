@@ -8,8 +8,8 @@ enum {
     interface_version_3 = 0x00,
     interface_version_4 = 0x20,
     interface_version_5 = 0x21,
-    interface_version_6 = 0x09,
-    interface_version_7 = 0x21,
+    interface_version_6 = 0x11,
+    interface_version_7 = 0x01,
 };
 
 // POD types that can be consumed by go code
@@ -220,6 +220,8 @@ struct design
     int database_microns;
 
     int max_via_stack;
+    int min_layer;
+    int max_layer;
 }; // struct design
 
 // returned
