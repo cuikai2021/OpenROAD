@@ -98,8 +98,6 @@ void OpenDBAdapter::getDesignFromOpenDB()
   design_.database_microns = tech->getDbUnitsPerMicron();
 
   design_.max_via_stack = maxViaStack_;
-  design_.min_layer = 2;
-  design_.max_layer = 0;
 }
 
 void OpenDBAdapter::getLayersFromOpenDB()
@@ -109,7 +107,6 @@ void OpenDBAdapter::getLayersFromOpenDB()
   for (auto layer : tech->getLayers()) {
     switch (layer->getType().getValue()) {
       case odb::dbTechLayerType::ROUTING:
-        design_.max_layer = (int) layers_.size();
         addRoutingLayer(layer);
         break;
       case odb::dbTechLayerType::CUT:
@@ -139,6 +136,9 @@ void OpenDBAdapter::getLayersFromOpenDB()
     }
     design_.min_layer = it->second;
   }
+  else {
+    design_.min_layer = 2; // M2 by default
+  }
 
   if (!maxLayer_.empty()) {
     auto it = layerNameToIdxs_.find(maxLayer_);
@@ -157,6 +157,12 @@ void OpenDBAdapter::getLayersFromOpenDB()
                      it->second);
     }
     design_.max_layer = it->second;
+  }
+  else {
+    design_.max_layer = layers_.size()-1;
+    if (design_.max_layer > 7) {
+      design_.max_layer = 7; // M6 at most by default
+    }
   }
 }
 
