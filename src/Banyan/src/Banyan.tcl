@@ -3,12 +3,14 @@ sta::define_cmd_args "banyan_route" {
     [-debug_output prefix]
     [-debug_save_txt]
     [-max_via_stack]
+    [-min_layer]
+    [-max_layer]
 }
 
 
 proc banyan_route { args } {
   sta::parse_key_args "banyan_route" args \
-      keys {-log_level -debug_output -max_via_stack} \
+      keys {-log_level -debug_output -max_via_stack -min_layer -max_layer} \
       flags {-debug_save_txt}
 
   sta::check_argc_eq0 "banyan_route" $args
@@ -34,5 +36,17 @@ proc banyan_route { args } {
 
   set debug_save_txt [info exists flags(-debug_save_txt)]  
 
-  banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack
+  if { [info exists keys(-min_layer)] } {
+    set min_layer $keys(-min_layer)
+  } else {
+    set min_layer ""
+  }
+
+  if { [info exists keys(-max_layer)] } {
+    set max_layer $keys(-max_layer)
+  } else {
+    set max_layer ""
+  }
+  
+  banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack $min_layer $max_layer
 }
