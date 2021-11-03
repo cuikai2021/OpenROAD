@@ -1,8 +1,8 @@
 #pragma once
 
-#include <map>
-#include <list>
 #include <iostream>
+#include <list>
+#include <map>
 
 #include "banyan_go.h"
 #include "string.h"
@@ -70,7 +70,7 @@ class DBAdapter
   virtual ~DBAdapter() {}
 };
 
-class Axioms; 
+class Axioms;
 class OpenDBAdapter : public DBAdapter
 {
  private:
@@ -89,6 +89,8 @@ class OpenDBAdapter : public DBAdapter
   odb::dbDatabase* db_;
   utl::Logger* logger_;
   int maxViaStack_;
+  std::string minLayer_ = "";
+  std::string maxLayer_ = "";
 
   bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
@@ -142,8 +144,16 @@ class OpenDBAdapter : public DBAdapter
 
  public:
   friend class Axioms;
-  OpenDBAdapter(odb::dbDatabase* db, utl::Logger* logger, int maxViaStack)
-      : db_(db), logger_(logger), maxViaStack_(maxViaStack)
+  OpenDBAdapter(odb::dbDatabase* db,
+                utl::Logger* logger,
+                int maxViaStack,
+                std::string minLayer,
+                std::string maxLayer)
+      : db_(db),
+        logger_(logger),
+        maxViaStack_(maxViaStack),
+        minLayer_(minLayer),
+        maxLayer_(maxLayer)
   {
     getDesignFromOpenDB();
     getLayersFromOpenDB();
@@ -169,7 +179,10 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::layer>& getLayers() override { return layers_; }
   std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }
   std::vector<banyan_go::track>& getTracks() override { return tracks_; }
-  std::vector<banyan_go::ndr_layer>& getNDRLayers() override { return ndrlayers_; }
+  std::vector<banyan_go::ndr_layer>& getNDRLayers() override
+  {
+    return ndrlayers_;
+  }
   std::vector<banyan_go::ndr>& getNDRs() override { return ndrs_; }
   banyan_go::design getDesign() override { return design_; }
 };
