@@ -1,8 +1,8 @@
 
 #include <assert.h>
 
-#include <utility>
 #include <cmath>
+#include <utility>
 
 #include "DBAdapter.h"
 #include "GroupedRange.hpp"
@@ -12,8 +12,6 @@
 #include "odb/dbWireCodec.h"
 #include "odb/geom.h"
 #include "utl/Logger.h"
-
-
 
 namespace banyan {
 
@@ -30,7 +28,6 @@ std::string getViaNameFromViaBox(odb::dbSBox* box)
   }
   assert(false);
 }
-
 
 struct TrackLayerName
 {
@@ -94,7 +91,6 @@ void OpenDBAdapter::getDesignFromOpenDB()
   design_.ymin = defdist(box.yMin());
   design_.xmax = defdist(box.xMax());
   design_.ymax = defdist(box.yMax());
-
 
   auto tech = db_->getTech();
 
@@ -388,20 +384,20 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
     botBox = {botLayerIdx,
               botTranformX - xBotEnc,
               botTranformY - yBotEnc,
-              currX + xBotEnc*2,
-              currY + yBotEnc*2};
-              //currX + botTranformX + xBotEnc,
-              //currY + botTranformY + yBotEnc};
+              currX + xBotEnc * 2,
+              currY + yBotEnc * 2};
+    // currX + botTranformX + xBotEnc,
+    // currY + botTranformY + yBotEnc};
 
     int topTranformX = -currX / 2 + xOrigin + xTopOffset;
     int topTranformY = -currY / 2 + yOrigin + yTopOffset;
     topBox = {topLayerIdx,
               topTranformX - xTopEnc,
               topTranformY - yTopEnc,
-              currX + xTopEnc*2,
-              currY + yTopEnc*2};
-              //currX + topTranformX + xTopEnc,
-              //currY + topTranformY + yTopEnc};
+              currX + xTopEnc * 2,
+              currY + yTopEnc * 2};
+    // currX + topTranformX + xTopEnc,
+    // currY + topTranformY + yTopEnc};
   } else {
     int cnt = 0;
     for (auto group :
@@ -433,8 +429,8 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
       cnt++;
     }
   }
-  auto it = viaDefNameToIdxs_.insert(make_pair(
-    vname, (int)viadefs_.size())).first;
+  auto it
+      = viaDefNameToIdxs_.insert(make_pair(vname, (int) viadefs_.size())).first;
   viadefs_.push_back({it->first.c_str(), topBox, botBox, cutNums});
 }
 
@@ -472,7 +468,7 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
       throw odb::ZException("unsupported NET USE");
   }
   if (net->isSpecial()) {
-    use = banyan_go::net_use(use+banyan_go::NET_SPECIAL);
+    use = banyan_go::net_use(use + banyan_go::NET_SPECIAL);
   }
   nets_.push_back({it->first.c_str(), ndrIdx, use, 0, 0, 0, 0, 0, 0});
 }
@@ -527,7 +523,6 @@ void OpenDBAdapter::addBox(std::string layerName,
 
   boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom});
 }
-
 
 void OpenDBAdapter::addVia(odb::dbSBox* box)
 {
@@ -595,26 +590,29 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
     }
 
     case odb::dbSBox::HORIZONTAL: {
-      //w = dy;
-      //uint dw = dy >> 1;
-      //y1 += dw;
-      //y2 -= dw;
-      //assert(y1 == y2);
+      // w = dy;
+      // uint dw = dy >> 1;
+      // y1 += dw;
+      // y2 -= dw;
+      // assert(y1 == y2);
       break;
     }
 
     case odb::dbSBox::VERTICAL: {
-      //w = dx;
-      //uint dw = dx >> 1;
-      //x1 += dw;
-      //x2 -= dw;
-      //assert(x1 == x2);
+      // w = dx;
+      // uint dw = dx >> 1;
+      // x1 += dw;
+      // x2 -= dw;
+      // assert(x1 == x2);
       break;
     }
     case odb::dbSBox::OCTILINEAR: {
-      logger_->error(utl::BY, 703, "OCTILINEAR[{}] special path box not supported", box->getDirection());
+      logger_->error(utl::BY,
+                     703,
+                     "OCTILINEAR[{}] special path box not supported",
+                     box->getDirection());
       throw odb::ZException("OCTILINEAR special path box not supported");
-      
+
       odb::Oct oct = box->getOct();
       x1 = oct.getCenterLow().getX();
       y1 = oct.getCenterLow().getY();
@@ -746,41 +744,42 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
       if ((int) pathId <= 3 || pathId == odb::dbWireDecoder::END_DECODE)
         endpath = true;
     } while (!endpath);
-  }
-  if (hasRect) {
-    addBox(layerName, left, bottom, right, top);
-  }
-  if (hasEndPoint) {
-    if (beginX > endX || beginY > endY) {
-      std::swap(beginX, endX);
-      std::swap(beginY, endY);
-      std::swap(beginExt, endExt);
+    
+    if (hasRect) {
+      addBox(layerName, left, bottom, right, top);
     }
-    bool isHorizontal = (beginX != endX);
-    if (isHorizontal) {
-      addBox(layerName,
-             beginX - beginExt,
-             beginY - width / 2,
-             endX + endExt,
-             endY + width / 2);
-    } else {
-      addBox(layerName,
-             beginX - width / 2,
-             beginY - beginExt,
-             endX + width / 2,
-             endY + endExt);
-    }
-  }
-  if (viaName != "") {
-    int x, y;
     if (hasEndPoint) {
-      x = endX;
-      y = endY;
-    } else {
-      x = beginX;
-      y = beginY;
+      if (beginX > endX || beginY > endY) {
+        std::swap(beginX, endX);
+        std::swap(beginY, endY);
+        std::swap(beginExt, endExt);
+      }
+      bool isHorizontal = (beginX != endX);
+      if (isHorizontal) {
+        addBox(layerName,
+               beginX - beginExt,
+               beginY - width / 2,
+               endX + endExt,
+               endY + width / 2);
+      } else {
+        addBox(layerName,
+               beginX - width / 2,
+               beginY - beginExt,
+               endX + width / 2,
+               endY + endExt);
+      }
     }
-    addVia(viaName, x, y);
+    if (viaName != "") {
+      int x, y;
+      if (hasEndPoint) {
+        x = endX;
+        y = endY;
+      } else {
+        x = beginX;
+        y = beginY;
+      }
+      addVia(viaName, x, y);
+    }
   }
 }
 
@@ -893,15 +892,14 @@ void OpenDBAdapter::getPinsFromOpenDB()
           }
         }
       }
-      if ((boxIndexBegin != boxes_.size())
-        || (viaIndexBegin != vias_.size())) {
+      if ((boxIndexBegin != boxes_.size()) || (viaIndexBegin != vias_.size())) {
         strs_.emplace_back(nName + "/specialwire");
         pins_.push_back({strs_.back().c_str(),
-                        banyan_go::PIN_WIRE,
-                        boxIndexBegin,
-                        boxes_.size(),
-                        viaIndexBegin,
-                        vias_.size()});
+                         banyan_go::PIN_WIRE,
+                         boxIndexBegin,
+                         boxes_.size(),
+                         viaIndexBegin,
+                         vias_.size()});
       }
     }
 
@@ -970,10 +968,10 @@ void OpenDBAdapter::getObsFromOpenDB()
   size_t viaIndexBegin = vias_.size();
   for (auto blockage : block->getObstructions()) {
     auto layerName = blockage->getBBox()->getTechLayer()->getName();
-    //int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-    //if (layerIdx < obs_layers_) {
-    //  continue;
-    //}
+    // int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+    // if (layerIdx < obs_layers_) {
+    //   continue;
+    // }
     int xl = blockage->getBBox()->xMin();
     int yl = blockage->getBBox()->yMin();
     int xh = blockage->getBBox()->xMax();
@@ -1004,10 +1002,10 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       std::vector<std::pair<std::string, odb::Rect>> boxes;
       for (auto obs : master->getObstructions()) {
         std::string layerName = obs->getTechLayer()->getName();
-        //int layerIdx = AssertFind(layerNameToIdxs_, layerName);
-        //if (layerIdx < obs_layers_) {
-        //  continue;
-        //}
+        // int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+        // if (layerIdx < obs_layers_) {
+        //   continue;
+        // }
         odb::Rect rect(obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
         boxes.push_back(std::make_pair(layerName, rect));
       }
@@ -1146,7 +1144,8 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
     for (size_t i = net.rvia_begin; i < net.rvia_end; i++) {
       auto via = ret.rvias[i];
       if (via.viadef_index < 0) {
-        logger_->error(utl::BY, 705, "invalid viadef index[{}]", via.viadef_index);
+        logger_->error(
+            utl::BY, 705, "invalid viadef index[{}]", via.viadef_index);
         throw odb::ZException("invalid viadef index");
       }
       auto viadef = viadefs[via.viadef_index];
