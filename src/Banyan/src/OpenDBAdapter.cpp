@@ -789,41 +789,42 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
       if ((int) pathId <= 3 || pathId == odb::dbWireDecoder::END_DECODE)
         endpath = true;
     } while (!endpath);
-  }
-  if (hasRect) {
-    addBox(layerName, left, bottom, right, top);
-  }
-  if (hasEndPoint) {
-    if (beginX > endX || beginY > endY) {
-      std::swap(beginX, endX);
-      std::swap(beginY, endY);
-      std::swap(beginExt, endExt);
+    
+    if (hasRect) {
+      addBox(layerName, left, bottom, right, top);
     }
-    bool isHorizontal = (beginX != endX);
-    if (isHorizontal) {
-      addBox(layerName,
-             beginX - beginExt,
-             beginY - width / 2,
-             endX + endExt,
-             endY + width / 2);
-    } else {
-      addBox(layerName,
-             beginX - width / 2,
-             beginY - beginExt,
-             endX + width / 2,
-             endY + endExt);
-    }
-  }
-  if (viaName != "") {
-    int x, y;
     if (hasEndPoint) {
-      x = endX;
-      y = endY;
-    } else {
-      x = beginX;
-      y = beginY;
+      if (beginX > endX || beginY > endY) {
+        std::swap(beginX, endX);
+        std::swap(beginY, endY);
+        std::swap(beginExt, endExt);
+      }
+      bool isHorizontal = (beginX != endX);
+      if (isHorizontal) {
+        addBox(layerName,
+               beginX - beginExt,
+               beginY - width / 2,
+               endX + endExt,
+               endY + width / 2);
+      } else {
+        addBox(layerName,
+               beginX - width / 2,
+               beginY - beginExt,
+               endX + width / 2,
+               endY + endExt);
+      }
     }
-    addVia(viaName, x, y);
+    if (viaName != "") {
+      int x, y;
+      if (hasEndPoint) {
+        x = endX;
+        y = endY;
+      } else {
+        x = beginX;
+        y = beginY;
+      }
+      addVia(viaName, x, y);
+    }
   }
 }
 
