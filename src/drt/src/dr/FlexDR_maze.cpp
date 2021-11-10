@@ -2595,7 +2595,7 @@ bool FlexDRWorker::routeNet_postPatchOverlappedPath(drNet* net,
   auto width = layer->getWidth();
   bool patchStyle = true; // not really used
 
-  frPoint p[4];
+  Point p[4];
   for (size_t i = 0; i < 4; ++i)
     gridGraph_.getPoint(p[i], points[begin+i].x(), points[begin+i].y());
   if (preferH) {
@@ -2686,7 +2686,7 @@ void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
     auto currIdx = path[i];
     auto nextIdx = path[i + 1];
 
-    frPoint xy;
+    Point xy;
     gridGraph_.getPoint(xy, currIdx.x(), currIdx.y());
 
     if (currIdx.z() == nextIdx.z()) {
@@ -2710,7 +2710,7 @@ void FlexDRWorker::routeNet_postAstarPatchMinAreaVio(
   }
   points.push_back(path.back());
   {
-    frPoint xy;
+    Point xy;
     gridGraph_.getPoint(xy, path.back().x(), path.back().y());
     if (eO) logger_->report("{} points[{}] ({},{},{}) ({},{})", hit, points.size()-1, path.back().x(), path.back().y(), path.back().z(), xy.x(), xy.y());
   }
