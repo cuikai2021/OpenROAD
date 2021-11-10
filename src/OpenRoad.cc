@@ -411,6 +411,7 @@ OpenRoad::writeDb(const char *filename)
 void
 OpenRoad::readVerilog(const char *filename)
 {
+  verilog_network_->deleteTopInstance();
   dbReadVerilog(filename, verilog_network_);
 }
 
