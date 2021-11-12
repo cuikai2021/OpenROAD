@@ -18,7 +18,7 @@ proc banyan_route { args } {
   if { [info exists keys(-log_level)] } {
     set log_level $keys(-log_level)
   } else {
-    set log_level "INFO"
+    set log_level "DEBUG"
   }
 
   if { [info exists keys(-debug_output)] } {
@@ -39,13 +39,13 @@ proc banyan_route { args } {
   if { [info exists keys(-min_layer)] } {
     set min_layer $keys(-min_layer)
   } else {
-    set min_layer ""
+    set min_layer "M2"
   }
 
   if { [info exists keys(-max_layer)] } {
     set max_layer $keys(-max_layer)
   } else {
-    set max_layer ""
+    set max_layer "M7"
   }
   
   banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack $min_layer $max_layer
