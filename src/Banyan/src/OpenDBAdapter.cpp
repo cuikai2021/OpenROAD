@@ -103,7 +103,7 @@ void OpenDBAdapter::getDesignFromOpenDB()
 void OpenDBAdapter::getLayersFromOpenDB()
 {
   auto tech = db_->getTech();
-
+  int masterSliceIndex = -1;
   for (auto layer : tech->getLayers()) {
     switch (layer->getType().getValue()) {
       case odb::dbTechLayerType::ROUTING:
@@ -114,6 +114,7 @@ void OpenDBAdapter::getLayersFromOpenDB()
         break;
       case odb::dbTechLayerType::MASTERSLICE:
         addMasterSliceLayer(layer);
+        masterSliceIndex++;
         break;
       default:
         break;
@@ -126,18 +127,17 @@ void OpenDBAdapter::getLayersFromOpenDB()
       logger_->error(
           utl::BY, 780, "can not find minlayer for name {}", minLayer_);
     }
-    if (it->second < 2) {
+    if (it->second < masterSliceIndex + 2) {
       logger_->error(
           utl::BY,
           781,
           "minlayer must be greater than 1, the current setting is [{},{}]",
           minLayer_,
-          it->second);
+          it->second - masterSliceIndex);
     }
     design_.min_layer = it->second;
-  }
-  else {
-    design_.min_layer = 2; // M2 by default
+  } else {
+    design_.min_layer = masterSliceIndex + 2;  // M2 by default
   }
 
   if (!maxLayer_.empty()) {
@@ -152,16 +152,15 @@ void OpenDBAdapter::getLayersFromOpenDB()
                      "maxlayer must be greater than minlayer, the current "
                      "setting is min[{},{}] max[{},{}]",
                      minLayer_,
-                     design_.min_layer,
+                     design_.min_layer - masterSliceIndex,
                      maxLayer_,
-                     it->second);
+                     it->second - masterSliceIndex);
     }
     design_.max_layer = it->second;
-  }
-  else {
-    design_.max_layer = layers_.size()-1;
-    if (design_.max_layer > 7) {
-      design_.max_layer = 7; // M6 at most by default
+  } else {
+    design_.max_layer = layers_.size() - 1;
+    if (design_.max_layer > masterSliceIndex + 7) {
+      design_.max_layer = masterSliceIndex + 7;  // M6 at most by default
     }
   }
 }
@@ -789,7 +788,7 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
       if ((int) pathId <= 3 || pathId == odb::dbWireDecoder::END_DECODE)
         endpath = true;
     } while (!endpath);
-    
+
     if (hasRect) {
       addBox(layerName, left, bottom, right, top);
     }
