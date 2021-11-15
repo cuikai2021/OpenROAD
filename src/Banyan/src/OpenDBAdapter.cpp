@@ -103,7 +103,7 @@ void OpenDBAdapter::getDesignFromOpenDB()
 void OpenDBAdapter::getLayersFromOpenDB()
 {
   auto tech = db_->getTech();
-  int masterSliceIndex = -1;
+
   for (auto layer : tech->getLayers()) {
     switch (layer->getType().getValue()) {
       case odb::dbTechLayerType::ROUTING:
@@ -114,7 +114,6 @@ void OpenDBAdapter::getLayersFromOpenDB()
         break;
       case odb::dbTechLayerType::MASTERSLICE:
         addMasterSliceLayer(layer);
-        masterSliceIndex++;
         break;
       default:
         break;
@@ -127,17 +126,17 @@ void OpenDBAdapter::getLayersFromOpenDB()
       logger_->error(
           utl::BY, 780, "can not find minlayer for name {}", minLayer_);
     }
-    if (it->second < masterSliceIndex + 2) {
+    if (it->second < masterSliceLayerMaxIndex_ + 2) {
       logger_->error(
           utl::BY,
           781,
           "minlayer must be greater than 1, the current setting is [{},{}]",
           minLayer_,
-          it->second - masterSliceIndex);
+          it->second - masterSliceLayerMaxIndex_);
     }
     design_.min_layer = it->second;
   } else {
-    design_.min_layer = masterSliceIndex + 2;  // M2 by default
+    design_.min_layer = masterSliceLayerMaxIndex_ + 2;  // M2 by default
   }
 
   if (!maxLayer_.empty()) {
@@ -152,15 +151,16 @@ void OpenDBAdapter::getLayersFromOpenDB()
                      "maxlayer must be greater than minlayer, the current "
                      "setting is min[{},{}] max[{},{}]",
                      minLayer_,
-                     design_.min_layer - masterSliceIndex,
+                     design_.min_layer - masterSliceLayerMaxIndex_,
                      maxLayer_,
-                     it->second - masterSliceIndex);
+                     it->second - masterSliceLayerMaxIndex_);
     }
     design_.max_layer = it->second;
   } else {
     design_.max_layer = layers_.size() - 1;
-    if (design_.max_layer > masterSliceIndex + 7) {
-      design_.max_layer = masterSliceIndex + 7;  // M6 at most by default
+    if (design_.max_layer > masterSliceLayerMaxIndex_ + 7) {
+      design_.max_layer
+          = masterSliceLayerMaxIndex_ + 7;  // M6 at most by default
     }
   }
 }
@@ -209,6 +209,7 @@ void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
     auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
     layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0});
     hasAddedMasterSliceLayer_ = true;
+    masterSliceLayerMaxIndex_++;
   }
 }
 
