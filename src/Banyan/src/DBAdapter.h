@@ -94,6 +94,7 @@ class OpenDBAdapter : public DBAdapter
 
   bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
+  int masterSliceLayerMaxIndex_ = -1;
 
   std::map<std::string, int> layerNameToIdxs_;
 
