@@ -239,7 +239,7 @@ void OpenDBAdapter::getTracksFromOpenDB()
         break;
       } else if (track->getTechLayer()->getDirection()
                  == odb::dbTechLayerDir::VERTICAL) {
-        track->getGridY(grid);
+        track->getGridX(grid);
         dir = banyan_go::DIR_VERTICAL;
         tmin = design_.ymin;
         tmax = design_.ymax;
