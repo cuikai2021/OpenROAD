@@ -753,8 +753,7 @@ void _dbBlock::initialize(_dbChip* chip,
   _chip = chip->getOID();
   _hier_delimeter = delimeter;
   // create top module
-  _dbModule* _top = (_dbModule*) dbModule::create(
-      (dbBlock*) this, (std::string(name) + "_top_module").c_str());
+  _dbModule* _top = (_dbModule*) dbModule::create((dbBlock*) this, name);
   _top_module = _top->getOID();
   if (parent) {
     _def_units = parent->_def_units;
@@ -1663,10 +1662,11 @@ dbModInst* dbBlock::findModInst(const char* path)
   while (token != NULL) {
     cur_inst = cur_mod->findModInst(token);
     if (cur_inst == nullptr)
-      return nullptr;
+      break;
     cur_mod = cur_inst->getMaster();
     token = strtok(NULL, "/");
   }
+  free((void*) _path);
   return cur_inst;
 }
 

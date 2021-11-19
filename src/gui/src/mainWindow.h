@@ -33,16 +33,16 @@
 #pragma once
 
 #include <QAction>
+#include <QCloseEvent>
 #include <QLabel>
 #include <QMainWindow>
 #include <QToolBar>
 #include <memory>
-#include <typeindex>
 
 #include "findDialog.h"
 #include "gui/gui.h"
 #include "ord/OpenRoad.hh"
-#include "timingDebugDialog.h"
+#include "ruler.h"
 
 namespace odb {
 class dbDatabase;
@@ -60,6 +60,8 @@ class LayoutScroll;
 class ScriptWidget;
 class DisplayControls;
 class Inspector;
+class TimingWidget;
+class DRCWidget;
 
 // This is the main window for the GUI.  Currently we use a single
 // instance of this class.
@@ -69,9 +71,12 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
 
  public:
   MainWindow(QWidget* parent = nullptr);
+  ~MainWindow();
+
+  void setDatabase(odb::dbDatabase* db);
+  void init(sta::dbSta* sta);
 
   odb::dbDatabase* getDb() const { return db_; }
-  void setDb(odb::dbDatabase* db);
 
   // From ord::OpenRoad::Observer
   virtual void postReadLef(odb::dbTech* tech, odb::dbLib* library) override;
@@ -84,8 +89,13 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
   // Fit design in window
   void fit();
 
-  void registerDescriptor(const std::type_info& type,
-                          const Descriptor* descriptor);
+  DisplayControls* getControls() const { return controls_; }
+  LayoutViewer* getLayoutViewer() const { return viewer_; }
+  DRCWidget* getDRCViewer() const { return drc_viewer_; }
+  ScriptWidget* getScriptWidget() const { return script_; }
+  Inspector* getInspector() const { return inspector_; }
+
+  const std::vector<std::string> getRestoreTclCommands();
 
  signals:
   // Signaled when we get a postRead callback to tell the sub-widgets
@@ -95,15 +105,18 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
   // The user chose the exit action; notify the app
   void exit();
 
+  // The user chose to hide the gui
+  void hide();
+
   // Trigger a redraw (used by Renderers)
   void redraw();
 
   // Waits for the user to click continue before returning
   // Draw events are processed while paused.
-  void pause();
+  void pause(int timeout);
 
   // The selected set of objects has changed
-  void selectionChanged();
+  void selectionChanged(const Selected& selection = Selected());
 
   // The highlight set of objects has changed
   void highlightChanged();
@@ -118,15 +131,20 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
   // Set the location to display in the status bar
   void setLocation(qreal x, qreal y);
 
+  // Update selected name in status bar
+  void updateSelectedStatus(const Selected& selection);
+
   // Add to the selection
   void addSelected(const Selected& selection);
 
   // Add the selections to the current selections
   void addSelected(const SelectionSet& selections);
 
-  // Make an Selected from object with a known descriptor
-  Selected makeSelected(std::any object,
-                        void* additional_data = nullptr);
+  // Remove a selection from the set of selections
+  void removeSelected(const Selected& selection);
+
+  // Remove a selection type from the set of selections
+  void removeSelectedByType(const std::string& type);
 
   // Displays the selection in the status bar
   void setSelected(const Selected& selection, bool show_connectivity = false);
@@ -135,7 +153,10 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
   void addHighlighted(const SelectionSet& selection, int highlight_group = 0);
 
   // Add Ruler to Layout View
-  void addRuler(int x0, int y0, int x1, int y1);
+  std::string addRuler(int x0, int y0, int x1, int y1, const std::string& label = "", const std::string& name = "");
+
+  // Delete Ruler to Layout View
+  void deleteRuler(const std::string& name);
 
   // Add the selections(List) to highlight set
   void updateHighlightedSet(const QList<const Selected*>& items_to_highlight,
@@ -167,8 +188,8 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
   // Show Find Dialog Box
   void showFindDialog();
 
-  // show Timing Dialog Box
-  void showTimingDialog();
+  // Show help in browser
+  void showHelp();
 
   // add/remove toolbar button
   const std::string addToolbarButton(const std::string& name,
@@ -180,15 +201,17 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
   // request for user input
   const std::string requestUserInput(const QString& title, const QString& question);
 
-  DisplayControls* getControls() const { return controls_; }
-  LayoutViewer* getLayoutViewer() const { return viewer_; }
-
   bool anyObjectInSet(bool selection_set, odb::dbObjectType obj_type);
   void selectHighlightConnectedInsts(bool select_flag, int highlight_group = 0);
   void selectHighlightConnectedNets(bool select_flag,
                                     bool output,
                                     bool input,
                                     int highlight_group = 0);
+
+ protected:
+  // used to check if user intends to close Openroad or just the GUI.
+  void closeEvent(QCloseEvent* event) override;
+  void keyPressEvent(QKeyEvent* event) override;
 
  private:
   void createMenus();
@@ -202,16 +225,20 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
   utl::Logger* logger_;
   SelectionSet selected_;
   HighlightSet highlighted_;
-  std::vector<QLine> rulers_;
+  std::vector<std::unique_ptr<Ruler>> rulers_;
 
   // All but viewer_ are owned by this widget.  Qt will
   // handle destroying the children.
   DisplayControls* controls_;
   Inspector* inspector_;
+  ScriptWidget* script_;
   LayoutViewer* viewer_;  // owned by scroll_
   SelectHighlightWindow* selection_browser_;
   LayoutScroll* scroll_;
-  ScriptWidget* script_;
+  TimingWidget* timing_widget_;
+  DRCWidget* drc_viewer_;
+
+  FindObjectDialog* find_dialog_;
 
   QMenu* file_menu_;
   QMenu* view_menu_;
@@ -221,22 +248,20 @@ class MainWindow : public QMainWindow, public ord::OpenRoad::Observer
   QToolBar* view_tool_bar_;
 
   QAction* exit_;
+  QAction* hide_option_;
+  QAction* hide_;
   QAction* fit_;
   QAction* find_;
   QAction* inspect_;
   QAction* timing_debug_;
   QAction* zoom_in_;
   QAction* zoom_out_;
+  QAction* help_;
+  QAction* build_ruler_;
 
   QAction* congestion_setup_;
 
   QLabel* location_;
-
-  FindObjectDialog* find_dialog_;
-  TimingDebugDialog* timing_dialog_;
-
-  // Maps types to descriptors
-  std::unordered_map<std::type_index, const Descriptor*> descriptors_;
 
   // created button actions
   std::map<const std::string, std::unique_ptr<QAction>> buttons_;

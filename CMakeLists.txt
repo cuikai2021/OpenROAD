@@ -58,19 +58,37 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Disable compiler specific extensions like gnu++11.
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(EDEN_VERSION ${PROJECT_VERSION})
-message(STATUS "Eden version: ${EDEN_VERSION}")
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Get version string in EDEN_VERSION
 include(GetGitRevisionDescription)
-if (NOT EDEN_GIT_SHA1)
-  get_git_head_revision(GIT_REFSPEC EDEN_GIT_SHA1)
+git_describe(EDEN_VERSION)
+string(FIND ${EDEN_VERSION} "NOTFOUND" GIT_DESCRIBE_NOTFOUND)
+if(${GIT_DESCRIBE_NOTFOUND} GREATER -1)
+  message(WARNING "Eden git describe failed, using sha1 instead")
+  get_git_head_revision(GIT_REFSPEC EDEN_VERSION)
 endif()
-message(STATUS "OpenROAD git sha: ${EDEN_GIT_SHA1}")
+message(STATUS "Eden version: ${EDEN_VERSION}")
 
 # Default to bulding optimnized/release executable.
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RELEASE)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.3.0")
+    message(FATAL_ERROR "Insufficient gcc version. Found ${CMAKE_CXX_COMPILER_VERSION}, but require  >= 8.3.0.")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7.0.0")
+    message(FATAL_ERROR "Insufficient Clang version. Found ${CMAKE_CXX_COMPILER_VERSION}, but require >= 7.0.0.")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "12.0.0")
+    message(FATAL_ERROR "Insufficient AppleClang version. Found ${CMAKE_CXX_COMPILER_VERSION}, but require >= 12.0.0.")
+  endif()
+else()
+  message(WARNING "Compiler ${CMAKE_CXX_COMPILER_ID} is not officially supported.")
 endif()
 
 message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")

@@ -854,9 +854,9 @@ void FastRouteCore::newrouteZAll(int threshold)
 // Ripup the original route and do Monotonic routing within bounding box
 void FastRouteCore::routeMonotonic(int netID, int edgeID, int threshold)
 {
-  int i, j, cnt, x, xl, yl, xr, yr, n1, n2, x1, y1, x2, y2, xGrid_1,
+  int i, j, cnt, x, xl, yl, xr, yr, n1, n2, x1, y1, x2, y2,
       ind_i, ind_j, ind_x, k;
-  int vedge, hedge, segWidth, segHeight, curX, curY;
+  int segWidth, segHeight, curX, curY;
   std::vector<int> gridsX(x_range_ + y_range_);
   std::vector<int> gridsY(x_range_ + y_range_);
   float tmp;
@@ -908,7 +908,6 @@ void FastRouteCore::routeMonotonic(int netID, int edgeID, int threshold)
       cost.resize(boost::extents[segHeight + 1][segWidth + 1]);
       parent.resize(boost::extents[segHeight + 1][segWidth + 1]);
 
-      xGrid_1 = x_grid_ - 1;  // tmp variable to save runtime
       if (yl <= yr) {
         // initialize first column
         cost[0][0] = 0;
@@ -1259,7 +1258,6 @@ void FastRouteCore::spiralRouteAll()
   std::queue<int> edgeQueue;
 
   for (netID = 0; netID < num_valid_nets_; netID++) {
-    treeedges = sttrees_[netID].edges;
     treenodes = sttrees_[netID].nodes;
     deg = sttrees_[netID].deg;
 
@@ -1398,12 +1396,13 @@ void FastRouteCore::spiralRouteAll()
 
 void FastRouteCore::routeLVEnew(int netID,
                                 int edgeID,
+                                multi_array<float, 2>& d1,
+                                multi_array<float, 2>& d2,
                                 int threshold,
                                 int enlarge)
 {
-  int i, j, cnt, xmin, xmax, ymin, ymax, n1, n2, x1, y1, x2, y2, xGrid_1,
+  int i, j, cnt, xmin, xmax, ymin, ymax, n1, n2, x1, y1, x2, y2,
       deg, yminorig, ymaxorig;
-  int vedge, hedge;
   int bestp1x = 0;
   int bestp1y = 0;
   std::vector<int> gridsX(x_range_ + y_range_);
@@ -1465,20 +1464,18 @@ void FastRouteCore::routeLVEnew(int netID,
         }
       }
 
-      xGrid_1 = x_grid_ - 1;  // tmp variable to save runtime
-
       for (j = ymin; j <= ymax; j++) {
-        d1_[j][xmin] = 0;
+        d1[j][xmin] = 0;
       }
       // update other columns
       for (i = xmin; i <= xmax; i++) {
-        d2_[ymin][i] = 0;
+        d2[ymin][i] = 0;
       }
 
       for (j = ymin; j <= ymax; j++) {
         for (i = xmin; i < xmax; i++) {
           tmp = h_cost_table_[h_edges_[j][i].red + h_edges_[j][i].usage];
-          d1_[j][i + 1] = d1_[j][i] + tmp;
+          d1[j][i + 1] = d1[j][i] + tmp;
         }
         // update the cost of a column of grids by v-edges
       }
@@ -1487,7 +1484,7 @@ void FastRouteCore::routeLVEnew(int netID,
         // update the cost of a column of grids by h-edges
         for (i = xmin; i <= xmax; i++) {
           tmp = h_cost_table_[v_edges_[j][i].red + v_edges_[j][i].usage];
-          d2_[j + 1][i] = d2_[j][i] + tmp;
+          d2[j + 1][i] = d2[j][i] + tmp;
         }
         // update the cost of a column of grids by v-edges
       }
@@ -1496,12 +1493,12 @@ void FastRouteCore::routeLVEnew(int netID,
 
       for (j = ymin; j <= ymax; j++) {
         for (i = xmin; i <= xmax; i++) {
-          tmp1 = abs(d2_[j][x1] - d2_[y1][x1])
-                 + abs(d1_[j][i] - d1_[j][x1]);  // yfirst for point 1
-          tmp2 = abs(d2_[j][i] - d2_[y1][i]) + abs(d1_[y1][i] - d1_[y1][x1]);
-          tmp3 = abs(d2_[y2][i] - d2_[j][i]) + abs(d1_[y2][i] - d1_[y2][x2]);
-          tmp4 = abs(d2_[y2][x2] - d2_[j][x2])
-                 + abs(d1_[j][x2] - d1_[j][i]);  // xifrst for mid point
+          tmp1 = abs(d2[j][x1] - d2[y1][x1])
+                 + abs(d1[j][i] - d1[j][x1]);  // yfirst for point 1
+          tmp2 = abs(d2[j][i] - d2[y1][i]) + abs(d1[y1][i] - d1[y1][x1]);
+          tmp3 = abs(d2[y2][i] - d2[j][i]) + abs(d1[y2][i] - d1[y2][x2]);
+          tmp4 = abs(d2[y2][x2] - d2[j][x2])
+                 + abs(d1[j][x2] - d1[j][i]);  // xifrst for mid point
 
           tmp = tmp1 + tmp4;
           LH1 = false;
@@ -1622,7 +1619,6 @@ void FastRouteCore::routeLVEnew(int netID,
             gridsX[cnt] = x2;
             gridsY[cnt] = i;
             cnt++;
-            vedge = i * x_grid_ + x2;
             v_edges_[i][x2].usage += edgeCost;
           }
         } else {
@@ -1701,11 +1697,16 @@ void FastRouteCore::routeLVAll(int threshold, int expand, float logis_cof)
         = costheight_ / (exp((float) (h_capacity_ - i) * logis_cof) + 1) + 1;
   }
 
+  multi_array<float, 2> d1(boost::extents[y_range_][x_range_]);
+  multi_array<float, 2> d2(boost::extents[y_range_][x_range_]);
+  
   for (netID = 0; netID < num_valid_nets_; netID++) {
     numEdges = 2 * sttrees_[netID].deg - 3;
     for (edgeID = 0; edgeID < numEdges; edgeID++) {
       routeLVEnew(netID,
                   edgeID,
+                  d1,
+                  d2,
                   threshold,
                   expand);  // ripup previous route and do Monotonic routing
     }

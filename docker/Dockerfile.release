@@ -14,7 +14,7 @@ COPY ./Eden-src /Eden
 WORKDIR /Eden
 ARG EDEN_GIT_SHA1
 RUN git submodule update
-RUN cmake -DEDEN_GIT_SHA1=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
+RUN cmake -DEDEN_GIT_DESCRIBE=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
 
 
 ARG DEPS_IMAGE_TAG
@@ -22,10 +22,9 @@ FROM ${DEPS_IMAGE_TAG} AS deps_stage
 ADD ./Eden-src/src/Banyan/banyan-integrate/banyan.so /Eden-flow/flow/libs/banyan.so
 ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
 ADD ./klayout_0.26.6-1_amd64.deb .
-RUN apt-get install -y time libreadline-dev pkg-config 
 RUN \
   set -eu; \
-  apt-get update && apt-get install -y klayout; \
+  apt-get update && apt-get install -y klayout time libreadline-dev pkg-config imagemagick ssh; \
   dpkg -i klayout_0.26.6-1_amd64.deb; \
   rm -f klayout_0.26.6-1_amd64.deb; 
 
@@ -37,14 +36,24 @@ RUN  make
 FROM deps_stage
 RUN mkdir -p /usr/local/share/yosys
 ADD ./ossutil64 /usr/local/bin/ossutil64
-RUN chmod +x /usr/local/bin/ossutil64
-ADD modules/release/start_logtail.sh /Eden-flow/start_logtail.sh
-COPY --from=maple_build_stage /maple/build/src/maple /usr/local/bin
-COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin
-COPY --from=yosys_build_stage /yosys/share/* /usr/local/share/yosys
+ADD modules/release/tools/start_logtail.sh /Eden-flow/start_logtail.sh
+ADD modules/release/tools/gds2png.sh /Eden-flow/gds2png.sh
+ADD modules/release/tools/gds2png.txt /Eden-flow/gds2png.txt
+ADD ./envsubst /usr/local/bin/envsubst
+ADD ./tools/rpt_catcher.py /Eden-flow/rpt_catcher.py
+ADD ./tools/klayoutrc /Eden-flow/klayoutrc
+RUN chmod +x /usr/local/bin/ossutil64 /usr/local/bin/envsubst /Eden-flow/gds2png.sh
+
+COPY --from=registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:0616p7 /root/.ssh /root/.ssh
+
+COPY --from=maple_build_stage /maple/build/src/maple /usr/local/bin/sv2v
+COPY --from=maple_build_stage /maple/build/src/yosys* /usr/local/bin/
+COPY --from=maple_build_stage /maple/yosys/share/* /usr/local/share/yosys/
+COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin/origin-yosys/
 COPY --from=eden_build_stage /Eden/build/src/eden /usr/local/bin
 RUN mkdir -p /Eden-flow
 WORKDIR /Eden-flow
 RUN mkdir -p /Eden-flow/flow
 RUN chmod o+rw -R /Eden-flow/flow
-RUN ln -s /usr/local/bin/maple /usr/local/bin/sv2v
+RUN mv /usr/local/bin/yosys /usr/local/bin/maple
+RUN ln -s /usr/local/bin/origin-yosys/yosys /usr/local/bin/yosys

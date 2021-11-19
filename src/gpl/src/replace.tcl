@@ -40,8 +40,9 @@ sta::define_cmd_args "global_placement" {\
     [-density target_density]\
     [-init_density_penalty init_density_penalty]\
     [-init_wirelength_coef init_wirelength_coef]\
-    [-min_phi_coef min_phi_conef]\
+    [-min_phi_coef min_phi_coef]\
     [-max_phi_coef max_phi_coef]\
+    [-reference_hpwl reference_hpwl]\
     [-overflow overflow]\
     [-initial_place_max_iter initial_place_max_iter]\
     [-initial_place_max_fanout initial_place_max_fanout]\
@@ -63,6 +64,7 @@ proc global_placement { args } {
     keys {-bin_grid_count -density \
       -init_density_penalty -init_wirelength_coef \
       -min_phi_coef -max_phi_coef -overflow \
+      -reference_hpwl \
       -initial_place_max_iter -initial_place_max_fanout \
       -routability_check_overflow -routability_max_density \
       -routability_max_bloat_iter -routability_max_inflation_iter \
@@ -105,14 +107,6 @@ proc global_placement { args } {
     utl::warn "GPL" 116 "-disable_routability_driven is deprecated."
   }
   
-  # flow control for incremental GP
-  if { [info exists flags(-incremental)] } {
-    gpl::set_initial_place_max_iter_cmd 0
-    gpl::set_incremental_place_mode_cmd
-    # Disable routability driven
-    gpl::set_routability_driven_mode 0
-  }
-
   if { [info exists keys(-initial_place_max_fanout)] } { 
     set initial_place_max_fanout $keys(-initial_place_max_fanout)
     sta::check_positive_integer "-initial_place_max_fanout" $initial_place_max_fanout
@@ -169,6 +163,13 @@ proc global_placement { args } {
     sta::check_positive_float "-init_wirelength_coef" $coef
     gpl::set_init_wirelength_coef_cmd $coef
   }
+
+  if { [info exists keys(-reference_hpwl)] } {
+    set reference_hpwl $keys(-reference_hpwl)
+    sta::check_positive_float "-reference_hpwl" $reference_hpwl
+    gpl::set_reference_hpwl_cmd $reference_hpwl
+  }
+
   
   if { [info exists keys(-bin_grid_count)] } {
     set bin_grid_count  $keys(-bin_grid_count)
@@ -258,8 +259,12 @@ proc global_placement { args } {
   if { [ord::db_has_rows] } {
     sta::check_argc_eq0 "global_placement" $args
   
-    gpl::replace_initial_place_cmd
-    gpl::replace_nesterov_place_cmd
+    if { [info exists flags(-incremental)] } {
+      gpl::replace_incremental_place_cmd
+    } else {
+      gpl::replace_initial_place_cmd
+      gpl::replace_nesterov_place_cmd
+    }
     gpl::replace_reset_cmd
   } else {
     utl::error GPL 130 "No rows defined in design. Use initialize_floorplan to add rows."

@@ -36,9 +36,11 @@
 
 #pragma once
 
+#include <boost/functional/hash.hpp>
 #include <map>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "DataType.h"
 #include "boost/multi_array.hpp"
@@ -57,9 +59,35 @@ namespace stt {
 class SteinerTreeBuilder;
 }
 
+namespace gui {
+class Gui;
+}
+
 using boost::multi_array;
 
 namespace grt {
+
+class FastRouteRenderer;
+
+// Debug mode settings
+struct DebugSetting
+{
+  const odb::dbNet* net_;
+  bool steinerTree_;
+  bool rectilinearSTree_;
+  bool tree2D_;
+  bool tree3D_;
+  bool isOn_;
+  DebugSetting()
+      : net_(nullptr),
+        steinerTree_(false),
+        rectilinearSTree_(false),
+        tree2D_(false),
+        tree3D_(false),
+        isOn_(false)
+  {
+  }
+};
 
 using stt::Tree;
 
@@ -68,7 +96,8 @@ class FastRouteCore
  public:
   FastRouteCore(odb::dbDatabase* db,
                 utl::Logger* log,
-                stt::SteinerTreeBuilder* stt_builder);
+                stt::SteinerTreeBuilder* stt_builder,
+                gui::Gui* gui);
   ~FastRouteCore();
 
   void deleteComponents();
@@ -89,7 +118,10 @@ class FastRouteCore
              bool is_clock,
              int driver_idx,
              int cost,
+             int min_layer,
+             int max_layer,
              std::vector<int> edge_cost_per_layer);
+  void resetNewNetID();
   void initEdges();
   void setNumAdjustments(int nAdjustements);
   void addAdjustment(long x1,
@@ -105,6 +137,7 @@ class FastRouteCore
   void updateDbCongestion();
 
   int getEdgeCapacity(long x1, long y1, int l1, long x2, long y2, int l2);
+  int getEdgeCapacity(FrNet* net, int x1, int y1, EdgeDirection direction);
   int getEdgeCurrentResource(long x1,
                              long y1,
                              int l1,
@@ -144,6 +177,14 @@ class FastRouteCore
   }
   const std::vector<int>& getMaxVerticalOverflows() { return max_v_overflow_; }
 
+  // debug mode functions
+  void setDebugOn(bool isOn);
+  void setDebugNet(const odb::dbNet* net);
+  void setDebugSteinerTree(bool steinerTree);
+  void setDebugRectilinearSTree(bool rectiliniarSTree);
+  void setDebugTree2D(bool tree2D);
+  void setDebugTree3D(bool tree3D);
+
  private:
   NetRouteMap getRoutes();
   void init_usage();
@@ -169,11 +210,32 @@ class FastRouteCore
   void str_accu(const int rnd);
   void InitLastUsage(const int upType);
   void InitEstUsage();
+  void fixEmbeddedTrees();
+  void checkAndFixEmbeddedTree(const int net_id);
+  bool areEdgesOverlapping(const int net_id,
+                           const int edge_id,
+                           const std::vector<int>& edges);
+  void fixOverlappingEdge(
+      const int net_id,
+      const int edge,
+      std::vector<std::pair<short, short>>& blocked_positions);
+  void bendEdge(TreeEdge* treeedge,
+                TreeNode* treenodes,
+                std::vector<short>& new_route_x,
+                std::vector<short>& new_route_y,
+                std::vector<std::pair<short, short>>& blocked_positions);
+  void routeLShape(const TreeNode& startpoint,
+                   const TreeNode& endpoint,
+                   std::vector<std::pair<short, short>>& blocked_positions,
+                   std::vector<short>& new_route_x,
+                   std::vector<short>& new_route_y);
   void convertToMazerouteNet(const int netID);
   void setupHeap(const int netID,
                  const int edgeID,
-                 int* heapLen1,
-                 int* heapLen2,
+                 std::vector<float*>& src_heap,
+                 std::vector<float*>& dest_heap,
+                 multi_array<float, 2>& d1,
+                 multi_array<float, 2>& d2,
                  const int regionX1,
                  const int regionX2,
                  const int regionY1,
@@ -185,7 +247,8 @@ class FastRouteCore
                 const int edge_n1n2,
                 std::vector<int>& gridsX_n1n2,
                 std::vector<int>& gridsY_n1n2);
-  void updateRouteType1(const TreeNode* treenodes,
+  bool updateRouteType1(const int net_id,
+                        const TreeNode* treenodes,
                         const int n1,
                         const int A1,
                         const int A2,
@@ -194,7 +257,8 @@ class FastRouteCore
                         TreeEdge* treeedges,
                         const int edge_n1A1,
                         const int edge_n1A2);
-  void updateRouteType2(const TreeNode* treenodes,
+  bool updateRouteType2(const int net_id,
+                        const TreeNode* treenodes,
                         const int n1,
                         const int A1,
                         const int A2,
@@ -213,17 +277,22 @@ class FastRouteCore
                             int ripupTHlb,
                             int ripupTHub,
                             int layerOrientation);
-  void setupHeap3D(std::vector<int*> &heap1_3D,
-                   std::vector<short*> &heap2_3D,
-                   int netID,
+  void setupHeap3D(int netID,
                    int edgeID,
-                   int* heapLen1,
-                   int* heapLen2,
+                   std::vector<int*>& src_heap_3D,
+                   std::vector<int*>& dest_heap_3D,
+                   multi_array<Direction, 3>& directions_3D,
+                   multi_array<int, 3>& corr_edge_3D,
+                   multi_array<int, 3>& d1_3D,
+                   multi_array<int, 3>& d2_3D,
                    int regionX1,
                    int regionX2,
                    int regionY1,
                    int regionY2);
-  void newUpdateNodeLayers(TreeNode* treenodes, int edgeID, int n1, int lastL);
+  void newUpdateNodeLayers(TreeNode* treenodes,
+                           const int edgeID,
+                           const int n1,
+                           const int lastL);
   int copyGrids3D(TreeNode* treenodes,
                   int n1,
                   int n2,
@@ -300,7 +369,12 @@ class FastRouteCore
   void routeSegH(Segment* seg);
   void routeSegLFirstTime(Segment* seg);
   void spiralRoute(int netID, int edgeID);
-  void routeLVEnew(int netID, int edgeID, int threshold, int enlarge);
+  void routeLVEnew(int netID,
+                   int edgeID,
+                   multi_array<float, 2>& d1,
+                   multi_array<float, 2>& d2,
+                   int threshold,
+                   int enlarge);
 
   // ripup functions
   void ripupSegL(const Segment* seg);
@@ -337,6 +411,14 @@ class FastRouteCore
   void ConvertToFull3DType2();
   void fillVIA();
   int threeDVIA();
+  void fixEdgeAssignment(int& net_layer,
+                         multi_array<Edge3D, 3>& edges_3D,
+                         int x,
+                         int y,
+                         int k,
+                         int l,
+                         bool horizontal,
+                         int& best_cost);
   void assignEdge(int netID, int edgeID, bool processDIR);
   void recoverEdge(int netID, int edgeID);
   void newLayerAssignmentV4();
@@ -358,6 +440,11 @@ class FastRouteCore
   int edgeShift(Tree& t, int net);
   int edgeShiftNew(Tree& t, int net);
 
+  void steinerTreeVisualization(const stt::Tree& stree, FrNet* net);
+  void StTreeVisualization(const StTree& stree,
+                           FrNet* net,
+                           bool is3DVisualization);
+
   static const int MAXLEN = 20000;
   static const int BIG_INT = 1e7;  // big integer used as infinity
   static const int HCOST = 5000;
@@ -369,6 +456,7 @@ class FastRouteCore
   std::vector<int> max_h_overflow_;
   std::vector<int> max_v_overflow_;
   odb::dbDatabase* db_;
+  gui::Gui* gui_;
   bool allow_overflow_;
   int overflow_iterations_;
   int num_nets_;
@@ -420,7 +508,6 @@ class FastRouteCore
   std::vector<int> dcor_;
   std::vector<int> seglist_index_;  // the index for the segments for each net
   std::vector<int> seglist_cnt_;    // the number of segements for each net
-  std::vector<bool> pop_heap2_;
 
   std::vector<FrNet*> nets_;
   std::vector<OrderNetEdge> net_eo_;
@@ -434,25 +521,17 @@ class FastRouteCore
   std::vector<OrderNetPin> tree_order_pv_;
   std::vector<OrderTree> tree_order_cong_;
 
-
   multi_array<Edge, 2> v_edges_;       // The way it is indexed is (Y, X)
   multi_array<Edge, 2> h_edges_;       // The way it is indexed is (Y, X)
   multi_array<Edge3D, 3> h_edges_3D_;  // The way it is indexed is (Layer, Y, X)
   multi_array<Edge3D, 3> v_edges_3D_;  // The way it is indexed is (Layer, Y, X)
-  multi_array<Direction, 3> directions_3D_;
-  multi_array<parent3D, 3> pr_3D_;
-  multi_array<int, 3> corr_edge_3D_;
   multi_array<int, 2> corr_edge_;
   multi_array<int, 2> layer_grid_;
   multi_array<int, 2> via_link_;
-  multi_array<int, 3> d1_3D_;
-  multi_array<short, 3> d2_3D_;
   multi_array<short, 2> parent_x1_;
   multi_array<short, 2> parent_y1_;
   multi_array<short, 2> parent_x3_;
   multi_array<short, 2> parent_y3_;
-  multi_array<float, 2> d1_;
-  multi_array<float, 2> d2_;
   multi_array<bool, 2> hv_;
   multi_array<bool, 2> hyper_v_;
   multi_array<bool, 2> hyper_h_;
@@ -461,11 +540,11 @@ class FastRouteCore
   std::vector<StTree> sttrees_;  // the Steiner trees
   std::vector<StTree> sttrees_bk_;
 
-  std::vector<float*> heap2_;
-  std::vector<float*> heap1_;
-
   utl::Logger* logger_;
   stt::SteinerTreeBuilder* stt_builder_;
+
+  FastRouteRenderer* fastrouteRender_;
+  std::unique_ptr<DebugSetting> debug_;
 };
 
 }  // namespace grt

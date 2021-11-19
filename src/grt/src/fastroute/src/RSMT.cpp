@@ -35,6 +35,7 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <iostream>
 
 #include "DataType.h"
 #include "FastRoute.h"
@@ -478,25 +479,31 @@ bool FastRouteCore::netCongestion(const int netID)
     // remove L routing
     if (seg->xFirst) {
       for (int i = seg->x1; i < seg->x2; i++) {
-        if (h_edges_[seg->y1][i].est_usage >= h_edges_[seg->y1][i].cap) {
+        const int cap = getEdgeCapacity(
+            nets_[netID], i, seg->y1, EdgeDirection::Horizontal);
+        if (h_edges_[seg->y1][i].est_usage >= cap) {
           return true;
         }
       }
       for (int i = ymin; i < ymax; i++) {
-        if (v_edges_[i][seg->x2].est_usage
-            >= v_edges_[i][seg->x2].cap) {
+        const int cap = getEdgeCapacity(
+            nets_[netID], seg->x2, i, EdgeDirection::Vertical);
+        if (v_edges_[i][seg->x2].est_usage >= cap) {
           return true;
         }
       }
     } else {
       for (int i = ymin; i < ymax; i++) {
-        if (v_edges_[i][seg->x1].est_usage
-            >= v_edges_[i][seg->x1].cap) {
+        const int cap = getEdgeCapacity(
+            nets_[netID], seg->x1, i, EdgeDirection::Vertical);
+        if (v_edges_[i][seg->x1].est_usage >= cap) {
           return true;
         }
       }
       for (int i = seg->x1; i < seg->x2; i++) {
-        if (h_edges_[seg->y2][i].est_usage >= h_edges_[seg->y2][i].cap) {
+        const int cap = getEdgeCapacity(
+            nets_[netID], i, seg->y2, EdgeDirection::Horizontal);
+        if (h_edges_[seg->y2][i].est_usage >= cap) {
           return true;
         }
       }
@@ -595,26 +602,26 @@ float FastRouteCore::coeffADJ(const int netID)
   float coef;
   if (xmin == xmax) {
     for (int j = ymin; j < ymax; j++) {
-      Vcap += v_edges_[j][xmin].cap;
+      Vcap += getEdgeCapacity(nets_[netID], xmin, j, EdgeDirection::Vertical);
       Vusage += v_edges_[j][xmin].est_usage;
     }
     coef = 1;
   } else if (ymin == ymax) {
     for (int i = xmin; i < xmax; i++) {
-      Hcap += h_edges_[ymin][i].cap;
+      Hcap += getEdgeCapacity(nets_[netID], i, ymin, EdgeDirection::Horizontal);
       Husage += h_edges_[ymin][i].est_usage;
     }
     coef = 1;
   } else {
     for (int j = ymin; j <= ymax; j++) {
       for (int i = xmin; i < xmax; i++) {
-        Hcap += h_edges_[j][i].cap;
+        Hcap += getEdgeCapacity(nets_[netID], i, j, EdgeDirection::Horizontal);
         Husage += h_edges_[j][i].est_usage;
       }
     }
     for (int j = ymin; j < ymax; j++) {
       for (int i = xmin; i <= xmax; i++) {
-        Vcap += v_edges_[j][i].cap;
+        Vcap += getEdgeCapacity(nets_[netID], i, j, EdgeDirection::Vertical);
         Vusage += v_edges_[j][i].est_usage;
       }
     }
@@ -716,6 +723,9 @@ void FastRouteCore::gen_brk_RSMT(const bool congestionDriven,
         // call FLUTE to generate RSMT for each net
         fluteNormal(i, net->pinX, net->pinY, flute_accuracy, coeffV, rsmt);
       }
+    }
+    if (debug_->isOn_ && debug_->steinerTree_ && net->db_net == debug_->net_) {
+      steinerTreeVisualization(rsmt, net);
     }
 
     if (genTree) {

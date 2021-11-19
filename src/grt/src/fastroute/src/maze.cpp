@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <set>
 #include <sstream>
 
 #include "DataType.h"
@@ -46,9 +47,283 @@ namespace grt {
 
 using utl::GRT;
 
-#define PARENT(i) (i - 1) / 2
-#define LEFT(i) 2 * i + 1
-#define RIGHT(i) 2 * i + 2
+static int parent_index(int i)
+{
+  return (i - 1) / 2;
+}
+
+static int left_index(int i)
+{
+  return 2 * i + 1;
+}
+
+static int right_index(int i)
+{
+  return 2 * i + 2;
+}
+
+void FastRouteCore::fixEmbeddedTrees()
+{
+  // check embedded trees only when maze router is called
+  // i.e., when running overflow iterations
+  if (overflow_iterations_ > 0) {
+    for (int netID = 0; netID < num_valid_nets_; netID++) {
+      checkAndFixEmbeddedTree(netID);
+    }
+  }
+}
+
+void FastRouteCore::checkAndFixEmbeddedTree(const int net_id)
+{
+  TreeEdge* treeedges = sttrees_[net_id].edges;
+  const int deg = sttrees_[net_id].deg;
+
+  // group all edges that crosses the same position
+  std::unordered_map<std::pair<short, short>,
+                     std::vector<int>,
+                     boost::hash<std::pair<int, int>>>
+      position_to_edges_map;
+
+  auto cmp = [&](int a, int b) { return treeedges[a].len > treeedges[b].len; };
+  std::map<int, std::vector<std::pair<short, short>>, decltype(cmp)>
+      edges_to_blocked_pos_map(cmp);
+  for (int edgeID = 0; edgeID < 2 * deg - 3; edgeID++) {
+    TreeEdge* treeedge = &(treeedges[edgeID]);
+    if (treeedge->len > 0) {
+      int routeLen = treeedge->route.routelen;
+      const std::vector<short>& gridsX = treeedge->route.gridsX;
+      const std::vector<short>& gridsY = treeedge->route.gridsY;
+
+      for (int i = 0; i <= routeLen; i++) {
+        const std::pair<short, short> pos_i = {gridsX[i], gridsY[i]};
+        position_to_edges_map[pos_i].push_back(edgeID);
+      }
+    }
+  }
+
+  // for each position, check if there is an edge that don't share
+  // a node with the remaining edges
+  for (auto const& [position, edges] : position_to_edges_map) {
+    for (int edgeID : edges) {
+      if (areEdgesOverlapping(net_id, edgeID, edges)) {
+        edges_to_blocked_pos_map[edgeID].push_back(
+            {position.first, position.second});
+      }
+    }
+  }
+
+  // fix the longest edge and break the loop
+  if (!edges_to_blocked_pos_map.empty()) {
+    int edge = edges_to_blocked_pos_map.begin()->first;
+    std::vector<std::pair<short, short>>& blocked_positions
+        = edges_to_blocked_pos_map.begin()->second;
+    fixOverlappingEdge(net_id, edge, blocked_positions);
+  }
+}
+
+bool FastRouteCore::areEdgesOverlapping(const int net_id,
+                                        const int edge_id,
+                                        const std::vector<int>& edges)
+{
+  if (edges.size() == 1) {
+    return false;
+  }
+
+  TreeEdge* treeedges = sttrees_[net_id].edges;
+  TreeEdge* treeedge = &(treeedges[edge_id]);
+
+  int n1 = treeedge->n1;
+  int n2 = treeedge->n2;
+  int n1a = treeedge->n1a;
+  int n2a = treeedge->n2a;
+
+  for (int ed : edges) {
+    if (ed != edge_id) {
+      int ed_n1 = treeedges[ed].n1;
+      int ed_n2 = treeedges[ed].n2;
+      int ed_n1a = treeedges[ed].n1a;
+      int ed_n2a = treeedges[ed].n2a;
+      if ((ed_n1a == n1a) || ((ed_n1a == n2a)) || (ed_n1 == n1)
+          || (ed_n1 == n2)) {
+        return false;
+      }
+      if ((ed_n2a == n1a) || ((ed_n2a == n2a)) || (ed_n2 == n1)
+          || ((ed_n2 == n2))) {
+        return false;
+      }
+    }
+  }
+
+  // if the edge doesn't share any node with the other edges, it is overlapping
+  return true;
+}
+
+void FastRouteCore::fixOverlappingEdge(
+    const int net_id,
+    const int edge,
+    std::vector<std::pair<short, short>>& blocked_positions)
+{
+  TreeEdge* treeedge = &(sttrees_[net_id].edges[edge]);
+  TreeNode* treenodes = sttrees_[net_id].nodes;
+
+  auto sort_by_x = [](std::pair<short, short> a, std::pair<short, short> b) {
+    return a.first < b.first;
+  };
+
+  std::stable_sort(
+      blocked_positions.begin(), blocked_positions.end(), sort_by_x);
+
+  if (treeedge->len > 0) {
+    std::vector<short> new_route_x, new_route_y;
+    const TreeNode& startpoint = treenodes[treeedge->n1];
+    const TreeNode& endpoint = treenodes[treeedge->n2];
+    routeLShape(
+        startpoint, endpoint, blocked_positions, new_route_x, new_route_y);
+
+    treeedge->route.gridsX = new_route_x;
+    treeedge->route.gridsY = new_route_y;
+    treeedge->route.routelen = new_route_x.size() - 1;
+  }
+}
+
+void FastRouteCore::bendEdge(
+    TreeEdge* treeedge,
+    TreeNode* treenodes,
+    std::vector<short>& new_route_x,
+    std::vector<short>& new_route_y,
+    std::vector<std::pair<short, short>>& blocked_positions)
+{
+  const std::vector<short>& gridsX = treeedge->route.gridsX;
+  const std::vector<short>& gridsY = treeedge->route.gridsY;
+
+  for (int i = 0; i <= treeedge->route.routelen; i++) {
+    std::pair<short, short> pos = {gridsX[i], gridsY[i]};
+    if (pos == blocked_positions.front()) {
+      break;
+    } else {
+      new_route_x.push_back(pos.first);
+      new_route_y.push_back(pos.second);
+    }
+  }
+
+  short x_min = std::min(treenodes[treeedge->n1].x, treenodes[treeedge->n2].x);
+  short y_min = std::min(treenodes[treeedge->n1].y, treenodes[treeedge->n2].y);
+
+  const TreeNode& endpoint = treenodes[treeedge->n2];
+  if (blocked_positions.front().second == blocked_positions.back().second) {
+    // blocked positions are horizontally aligned
+    short y = (new_route_y.back() == y_min) ? new_route_y.back() + 1
+                                            : new_route_y.back() - 1;
+    new_route_x.push_back(new_route_x.back());
+    new_route_y.push_back(y);
+
+    for (short x = new_route_x.back(); x < endpoint.x; x++) {
+      new_route_x.push_back(x + 1);
+      new_route_y.push_back(y);
+    }
+
+    new_route_x.push_back(endpoint.x);
+    new_route_y.push_back(endpoint.y);
+  } else if (blocked_positions.front().first
+             == blocked_positions.back().first) {
+    // blocked positions are vertically aligned
+    short x = (new_route_x.back() == x_min) ? new_route_x.back() + 1
+                                            : new_route_x.back() - 1;
+    new_route_x.push_back(x);
+    new_route_y.push_back(new_route_y.back());
+
+    if (new_route_y.back() < endpoint.y) {
+      for (short y = new_route_y.back(); y < endpoint.y; y++) {
+        new_route_x.push_back(x);
+        new_route_y.push_back(y + 1);
+      }
+    } else {
+      for (short y = new_route_y.back(); y > endpoint.y; y--) {
+        new_route_x.push_back(x);
+        new_route_y.push_back(y - 1);
+      }
+    }
+
+    new_route_x.push_back(endpoint.x);
+    new_route_y.push_back(endpoint.y);
+  }
+}
+
+void FastRouteCore::routeLShape(
+    const TreeNode& startpoint,
+    const TreeNode& endpoint,
+    std::vector<std::pair<short, short>>& blocked_positions,
+    std::vector<short>& new_route_x,
+    std::vector<short>& new_route_y)
+{
+  new_route_x.push_back(startpoint.x);
+  new_route_y.push_back(startpoint.y);
+  short first_x;
+  short first_y;
+  if (blocked_positions.front().second == blocked_positions.back().second) {
+    // blocked positions are horizontally aligned
+    short y;
+    // using first_x variable to avoid duplicated points
+    if (startpoint.y != blocked_positions[0].second) {
+      y = startpoint.y;
+      // point (startpoint.x, startpoint.y) already
+      // added, so can be skiped in the for below
+      first_x = startpoint.x + 1;
+    } else {
+      y = endpoint.y;
+      // point (startpoint.x, endpoint.y) not added yet, so it
+      // need to be included in the for below
+      first_x = startpoint.x;
+    }
+    for (short x = first_x; x <= endpoint.x; x++) {
+      new_route_x.push_back(x);
+      new_route_y.push_back(y);
+    }
+    if (y < endpoint.y) {
+      while (y < endpoint.y) {
+        new_route_x.push_back(new_route_x.back());
+        new_route_y.push_back(y + 1);
+        y++;
+      }
+    } else {
+      while (y > endpoint.y) {
+        new_route_x.push_back(new_route_x.back());
+        new_route_y.push_back(y - 1);
+        y--;
+      }
+    }
+  } else {
+    // blocked positions are vertically aligned
+    short x;
+    if (startpoint.x != blocked_positions[0].first) {
+      x = startpoint.x;
+      // point (startpoint.x, startpoint.y) already
+      // added, so can be skiped in the for below
+      first_y = startpoint.y + 1;
+    } else {
+      x = endpoint.x;
+      // point (endpoint.x, startpoint.y) not added yet, so it
+      // need to be included in the for below
+      first_y = startpoint.y;
+    }
+    if (startpoint.y < endpoint.y) {
+      for (short y = first_y; y <= endpoint.y; y++) {
+        new_route_x.push_back(x);
+        new_route_y.push_back(y);
+      }
+    } else {
+      for (short y = first_y; y >= endpoint.y; y--) {
+        new_route_x.push_back(x);
+        new_route_y.push_back(y);
+      }
+    }
+    while (x < endpoint.x) {
+      new_route_y.push_back(new_route_y.back());
+      new_route_x.push_back(x + 1);
+      x++;
+    }
+  }
+}
 
 void FastRouteCore::convertToMazerouteNet(const int netID)
 {
@@ -209,14 +484,16 @@ void FastRouteCore::convertToMazeroute()
 }
 
 // non recursive version of heapify
-static void heapify(std::vector<float*> &array, const int heapSize, int i)
+static void heapify(std::vector<float*>& array)
 {
   bool stop = false;
+  const int heapSize = array.size();
+  int i = 0;
 
   float* tmp = array[i];
   do {
-    const int l = LEFT(i);
-    const int r = RIGHT(i);
+    const int l = left_index(i);
+    const int r = right_index(i);
 
     int smallest;
     if (l < heapSize && *(array[l]) < *tmp) {
@@ -238,29 +515,23 @@ static void heapify(std::vector<float*> &array, const int heapSize, int i)
   } while (!stop);
 }
 
-// build heap for an list of grid
-static void buildHeap(std::vector<float*> &array, int arrayLen)
-{
-  for (int i = arrayLen / 2 - 1; i >= 0; i--)
-    heapify(array, arrayLen, i);
-}
-
-static void updateHeap(std::vector<float*> &array, int arrayLen, int i)
+static void updateHeap(std::vector<float*>& array, int i)
 {
   float* tmpi = array[i];
-  while (i > 0 && *(array[PARENT(i)]) > *tmpi) {
-    const int parent = PARENT(i);
+  while (i > 0 && *(array[parent_index(i)]) > *tmpi) {
+    const int parent = parent_index(i);
     array[i] = array[parent];
     i = parent;
   }
   array[i] = tmpi;
 }
 
-// extract the entry with minimum distance from Priority queue
-static void extractMin(std::vector<float*> &array, int arrayLen)
+// remove the entry with minimum distance from Priority queue
+static void removeMin(std::vector<float*>& array)
 {
-  array[0] = array[arrayLen - 1];
-  heapify(array, arrayLen - 1, 0);
+  array[0] = array.back();
+  heapify(array);
+  array.pop_back();
 }
 
 /*
@@ -430,17 +701,19 @@ void FastRouteCore::updateCongestionHistory(const int upType,
 }
 
 // ripup a tree edge according to its ripup type and Z-route it
-// put all the nodes in the subtree t1 and t2 into heap1_ and heap2_
-// netID   - the ID for the net
-// edgeID  - the ID for the tree edge to route
-// d1_      - the distance of any grid from the source subtree t1
-// d2_      - the distance of any grid from the destination subtree t2
-// heap1_   - the heap storing the addresses for d1_[][]
-// heap2_   - the heap storing the addresses for d2_[][]
+// put all the nodes in the subtree t1 and t2 into src_heap and dest_heap
+// netID     - the ID for the net
+// edgeID    - the ID for the tree edge to route
+// d1        - the distance of any grid from the source subtree t1
+// d2        - the distance of any grid from the destination subtree t2
+// src_heap  - the heap storing the addresses for d1
+// dest_heap - the heap storing the addresses for d2
 void FastRouteCore::setupHeap(const int netID,
                               const int edgeID,
-                              int* heapLen1,
-                              int* heapLen2,
+                              std::vector<float*>& src_heap,
+                              std::vector<float*>& dest_heap,
+                              multi_array<float, 2>& d1,
+                              multi_array<float, 2>& d2,
                               const int regionX1,
                               const int regionX2,
                               const int regionY1,
@@ -462,14 +735,15 @@ void FastRouteCore::setupHeap(const int netID,
   const int x2 = treenodes[n2].x;
   const int y2 = treenodes[n2].y;
 
+  src_heap.clear();
+  dest_heap.clear();
+
   if (degree == 2)  // 2-pin net
   {
-    d1_[y1][x1] = 0;
-    heap1_[0] = &d1_[y1][x1];
-    *heapLen1 = 1;
-    d2_[y2][x2] = 0;
-    heap2_[0] = &d2_[y2][x2];
-    *heapLen2 = 1;
+    d1[y1][x1] = 0;
+    src_heap.push_back(&d1[y1][x1]);
+    d2[y2][x2] = 0;
+    dest_heap.push_back(&d2[y2][x2]);
   } else {  // net with more than 2 pins
     const int numNodes = 2 * degree - 2;
 
@@ -477,23 +751,20 @@ void FastRouteCore::setupHeap(const int netID,
     std::vector<int> queue(numNodes);
 
     // find all the grids on tree edges in subtree t1 (connecting to n1) and put
-    // them into heap1_
+    // them into src_heap
     if (n1 < degree) {  // n1 is a Pin node
-      // just need to put n1 itself into heap1_
-      d1_[y1][x1] = 0;
-      heap1_[0] = &d1_[y1][x1];
+      // just need to put n1 itself into src_heap
+      d1[y1][x1] = 0;
+      src_heap.push_back(&d1[y1][x1]);
       visited[n1] = true;
-      *heapLen1 = 1;
     } else {  // n1 is a Steiner node
-      int heapcnt = 0;
       int queuehead = 0;
       int queuetail = 0;
 
-      // add n1 into heap1_
-      d1_[y1][x1] = 0;
-      heap1_[0] = &d1_[y1][x1];
+      // add n1 into src_heap
+      d1[y1][x1] = 0;
+      src_heap.push_back(&d1[y1][x1]);
       visited[n1] = true;
-      heapcnt++;
 
       // add n1 into the queue
       queue[queuetail] = n1;
@@ -520,16 +791,15 @@ void FastRouteCore::setupHeap(const int netID,
             continue;
           }
 
-          // put all the grids on the two adjacent tree edges into heap1_
+          // put all the grids on the two adjacent tree edges into src_heap
           if (treeedges[edge].route.routelen > 0) {  // not a degraded edge
-            // put nbr into heap1_ if in enlarged region
+            // put nbr into src_heap if in enlarged region
             const TreeNode& nbr_node = treenodes[nbr];
             if (in_region_[nbr_node.y][nbr_node.x]) {
               const int nbrX = nbr_node.x;
               const int nbrY = nbr_node.y;
-              d1_[nbrY][nbrX] = 0;
-              heap1_[heapcnt] = &d1_[nbrY][nbrX];
-              heapcnt++;
+              d1[nbrY][nbrX] = 0;
+              src_heap.push_back(&d1[nbrY][nbrX]);
               corr_edge_[nbrY][nbrX] = edge;
             }
 
@@ -538,15 +808,14 @@ void FastRouteCore::setupHeap(const int netID,
               logger_->error(GRT, 125, "Setup heap: not maze routing.");
             }
 
-            // don't put edge_n1 and edge_n2 into heap1_
+            // don't put edge_n1 and edge_n2 into src_heap
             for (int j = 1; j < route->routelen; j++) {
               const int x_grid = route->gridsX[j];
               const int y_grid = route->gridsY[j];
 
               if (in_region_[y_grid][x_grid]) {
-                d1_[y_grid][x_grid] = 0;
-                heap1_[heapcnt] = &d1_[y_grid][x_grid];
-                heapcnt++;
+                d1[y_grid][x_grid] = 0;
+                src_heap.push_back(&d1[y_grid][x_grid]);
                 corr_edge_[y_grid][x_grid] = edge;
               }
             }
@@ -555,30 +824,26 @@ void FastRouteCore::setupHeap(const int netID,
           // add the neighbor of cur node into queue
           queue[queuetail] = nbr;
           queuetail++;
-        }                   // loop i (3 neigbors for cur node)
-      }                     // while queue is not empty
-      *heapLen1 = heapcnt;  // record the length of heap1_
-    }                       // else n1 is not a Pin node
+        }  // loop i (3 neigbors for cur node)
+      }    // while queue is not empty
+    }      // else n1 is not a Pin node
 
-    // find all the grids on subtree t2 (connect to n2) and put them into heap2_
-    // find all the grids on tree edges in subtree t2 (connecting to n2) and put
-    // them into heap2_
+    // find all the grids on subtree t2 (connect to n2) and put them into
+    // dest_heap find all the grids on tree edges in subtree t2 (connecting to
+    // n2) and put them into dest_heap
     if (n2 < degree) {  // n2 is a Pin node
-      // just need to put n1 itself into heap1_
-      d2_[y2][x2] = 0;
-      heap2_[0] = &d2_[y2][x2];
+      // just need to put n1 itself into src_heap
+      d2[y2][x2] = 0;
+      dest_heap.push_back(&d2[y2][x2]);
       visited[n2] = true;
-      *heapLen2 = 1;
     } else {  // n2 is a Steiner node
-      int heapcnt = 0;
       int queuehead = 0;
       int queuetail = 0;
 
-      // add n2 into heap2_
-      d2_[y2][x2] = 0;
-      heap2_[0] = &d2_[y2][x2];
+      // add n2 into dest_heap
+      d2[y2][x2] = 0;
+      dest_heap.push_back(&d2[y2][x2]);
       visited[n2] = true;
-      heapcnt++;
 
       // add n2 into the queue
       queue[queuetail] = n2;
@@ -606,16 +871,15 @@ void FastRouteCore::setupHeap(const int netID,
             continue;
           }
 
-          // put all the grids on the two adjacent tree edges into heap2_
+          // put all the grids on the two adjacent tree edges into dest_heap
           if (treeedges[edge].route.routelen > 0) {  // not a degraded edge
-            // put nbr into heap2_
+            // put nbr into dest_heap
             const TreeNode& nbr_node = treenodes[nbr];
             if (in_region_[nbr_node.y][nbr_node.x]) {
               const int nbrX = nbr_node.x;
               const int nbrY = nbr_node.y;
-              d2_[nbrY][nbrX] = 0;
-              heap2_[heapcnt] = &d2_[nbrY][nbrX];
-              heapcnt++;
+              d2[nbrY][nbrX] = 0;
+              dest_heap.push_back(&d2[nbrY][nbrX]);
               corr_edge_[nbrY][nbrX] = edge;
             }
 
@@ -624,14 +888,13 @@ void FastRouteCore::setupHeap(const int netID,
               logger_->error(GRT, 201, "Setup heap: not maze routing.");
             }
 
-            // don't put edge_n1 and edge_n2 into heap2_
+            // don't put edge_n1 and edge_n2 into dest_heap
             for (int j = 1; j < route->routelen; j++) {
               const int x_grid = route->gridsX[j];
               const int y_grid = route->gridsY[j];
               if (in_region_[y_grid][x_grid]) {
-                d2_[y_grid][x_grid] = 0;
-                heap2_[heapcnt] = &d2_[y_grid][x_grid];
-                heapcnt++;
+                d2[y_grid][x_grid] = 0;
+                dest_heap.push_back(&d2[y_grid][x_grid]);
                 corr_edge_[y_grid][x_grid] = edge;
               }
             }
@@ -640,11 +903,10 @@ void FastRouteCore::setupHeap(const int netID,
           // add the neighbor of cur node into queue
           queue[queuetail] = nbr;
           queuetail++;
-        }                   // loop i (3 neigbors for cur node)
-      }                     // while queue is not empty
-      *heapLen2 = heapcnt;  // record the length of heap2_
-    }                       // else n2 is not a Pin node
-  }                         // net with more than two pins
+        }  // loop i (3 neigbors for cur node)
+      }    // while queue is not empty
+    }      // else n2 is not a Pin node
+  }        // net with more than two pins
 
   for (int i = regionY1; i <= regionY2; i++) {
     for (int j = regionX1; j <= regionX2; j++)
@@ -700,7 +962,8 @@ int FastRouteCore::copyGrids(const TreeNode* treenodes,
   return cnt;
 }
 
-void FastRouteCore::updateRouteType1(const TreeNode* treenodes,
+bool FastRouteCore::updateRouteType1(const int net_id,
+                                     const TreeNode* treenodes,
                                      const int n1,
                                      const int A1,
                                      const int A2,
@@ -741,7 +1004,17 @@ void FastRouteCore::updateRouteType1(const TreeNode* treenodes,
   }
 
   if (E1_pos == -1) {
-    logger_->error(GRT, 169, "Invalid index for position ({}, {}).", E1x, E1y);
+    int x_pos = w_tile_ * (E1x + 0.5) + x_corner_;
+    int y_pos = h_tile_ * (E1y + 0.5) + y_corner_;
+    logger_->warn(
+        GRT,
+        169,
+        "Net {}: Invalid index for position ({}, {}). Net degree: {}.",
+        netName(nets_[net_id]),
+        x_pos,
+        y_pos,
+        nets_[net_id]->numPins);
+    return false;
   }
 
   // reallocate memory for route.gridsX and route.gridsY
@@ -821,9 +1094,12 @@ void FastRouteCore::updateRouteType1(const TreeNode* treenodes,
   treeedges[edge_n1A2].route.type = RouteType::MazeRoute;
   treeedges[edge_n1A2].route.routelen = cnt - 1;
   treeedges[edge_n1A2].len = abs(A2x - E1x) + abs(A2y - E1y);
+
+  return true;
 }
 
-void FastRouteCore::updateRouteType2(const TreeNode* treenodes,
+bool FastRouteCore::updateRouteType2(const int net_id,
+                                     const TreeNode* treenodes,
                                      const int n1,
                                      const int A1,
                                      const int A2,
@@ -905,7 +1181,17 @@ void FastRouteCore::updateRouteType2(const TreeNode* treenodes,
   }
 
   if (E1_pos == -1) {
-    logger_->error(GRT, 170, "Invalid index for position ({}, {}).", E1x, E1y);
+    int x_pos = w_tile_ * (E1x + 0.5) + x_corner_;
+    int y_pos = h_tile_ * (E1y + 0.5) + y_corner_;
+    logger_->warn(
+        GRT,
+        170,
+        "Net {}: Invalid index for position ({}, {}). Net degree: {}.",
+        netName(nets_[net_id]),
+        x_pos,
+        y_pos,
+        nets_[net_id]->numPins);
+    return false;
   }
 
   // allocate memory for gridsX[] and gridsY[] of edge_n1C1 and edge_n1C2
@@ -943,12 +1229,11 @@ void FastRouteCore::updateRouteType2(const TreeNode* treenodes,
     treeedges[edge_n1C2].route.gridsY[cnt] = gridsY_C1C2[i];
     cnt++;
   }
+  return true;
 }
 
 void FastRouteCore::reInitTree(const int netID)
 {
-  newRipupNet(netID);
-
   const int deg = sttrees_[netID].deg;
   const int numEdges = 2 * deg - 3;
   for (int edgeID = 0; edgeID < numEdges; edgeID++) {
@@ -962,6 +1247,13 @@ void FastRouteCore::reInitTree(const int netID)
   delete[] sttrees_[netID].edges;
 
   Tree rsmt;
+  const float net_alpha = stt_builder_->getAlpha(nets_[netID]->db_net);
+  // if failing tree was created with pd, fall back to flute with fluteNormal
+  // first so the structs necessary for fluteCongest are filled
+  if (net_alpha > 0.0) {
+    fluteNormal(netID, nets_[netID]->pinX, nets_[netID]->pinY, 2, 1.2, rsmt);
+  }
+
   fluteCongest(netID, nets_[netID]->pinX, nets_[netID]->pinY, 2, 1.2, rsmt);
 
   if (nets_[netID]->deg > 3) {
@@ -971,6 +1263,7 @@ void FastRouteCore::reInitTree(const int netID)
   copyStTree(netID, rsmt);
   newrouteLInMaze(netID);
   convertToMazerouteNet(netID);
+  checkAndFixEmbeddedTree(netID);
 }
 
 void FastRouteCore::mazeRouteMSMD(const int iter,
@@ -1038,9 +1331,6 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
     }
   }
 
-  for (int i = 0; i < y_grid_ * x_range_; i++) {
-    pop_heap2_[i] = false;
-  }
   for (int i = 0; i < y_grid_; i++) {
     for (int j = 0; j < x_grid_; j++)
       in_region_[i][j] = false;
@@ -1049,6 +1339,16 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
   if (ordering) {
     StNetOrder();
   }
+
+  std::vector<float*> src_heap;
+  std::vector<float*> dest_heap;
+  src_heap.reserve(y_grid_ * x_grid_);
+  dest_heap.reserve(y_grid_ * x_grid_);
+
+  multi_array<float, 2> d1(boost::extents[y_range_][x_range_]);
+  multi_array<float, 2> d2(boost::extents[y_range_][x_range_]);
+
+  std::vector<bool> pop_heap2(y_grid_ * x_range_, false);
 
   for (int nidRPC = 0; nidRPC < num_valid_nets_; nidRPC++) {
     const int netID = ordering ? tree_order_cong_[nidRPC].treeIndex : nidRPC;
@@ -1101,42 +1401,43 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
       const int regionY1 = std::max(ymin - enlarge_, 0);
       const int regionY2 = std::min(ymax + enlarge_, y_grid_ - 1);
 
-      // initialize d1_[][] and d2_[][] as BIG_INT
+      // initialize d1[][] and d2[][] as BIG_INT
       for (int i = regionY1; i <= regionY2; i++) {
         for (int j = regionX1; j <= regionX2; j++) {
-          d1_[i][j] = BIG_INT;
-          d2_[i][j] = BIG_INT;
+          d1[i][j] = BIG_INT;
+          d2[i][j] = BIG_INT;
           hyper_h_[i][j] = false;
           hyper_v_[i][j] = false;
         }
       }
 
-      // setup heap1_, heap2_ and initialize d1_[][] and d2_[][] for all the
+      // setup src_heap, dest_heap and initialize d1[][] and d2[][] for all the
       // grids on the two subtrees
-      int heapLen1, heapLen2;
       setupHeap(netID,
                 edgeID,
-                &heapLen1,
-                &heapLen2,
+                src_heap,
+                dest_heap,
+                d1,
+                d2,
                 regionX1,
                 regionX2,
                 regionY1,
                 regionY2);
 
       // while loop to find shortest path
-      int ind1 = (heap1_[0] - &d1_[0][0]);
-      for (int i = 0; i < heapLen2; i++)
-        pop_heap2_[(heap2_[i] - &d2_[0][0])] = true;
+      int ind1 = (src_heap[0] - &d1[0][0]);
+      for (int i = 0; i < dest_heap.size(); i++)
+        pop_heap2[(dest_heap[i] - &d2[0][0])] = true;
 
-      // stop when the grid position been popped out from both heap1_ and
-      // heap2_
-      while (pop_heap2_[ind1] == false) {
+      // stop when the grid position been popped out from both src_heap and
+      // dest_heap
+      while (pop_heap2[ind1] == false) {
         // relax all the adjacent grids within the enlarged region for
         // source subtree
         const int curX = ind1 % x_range_;
         const int curY = ind1 / x_range_;
         int preX, preY;
-        if (d1_[curY][curX] != 0) {
+        if (d1[curY][curX] != 0) {
           if (hv_[curY][curX]) {
             preX = parent_x1_[curY][curX];
             preY = parent_y1_[curY][curX];
@@ -1149,213 +1450,216 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
           preY = curY;
         }
 
-        extractMin(heap1_, heapLen1);
-        heapLen1--;
+        removeMin(src_heap);
 
         // left
         if (curX > regionX1) {
           float tmp;
-          if ((preY == curY) || (d1_[curY][curX] == 0)) {
-            tmp = d1_[curY][curX]
-                  + h_cost_table_[h_edges_[curY][curX - 1].usage + h_edges_[curY][curX - 1].red
+          if ((preY == curY) || (d1[curY][curX] == 0)) {
+            tmp = d1[curY][curX]
+                  + h_cost_table_[h_edges_[curY][curX - 1].usage
+                                  + h_edges_[curY][curX - 1].red
                                   + L * h_edges_[curY][(curX - 1)].last_usage];
           } else {
             if (curX < regionX2 - 1) {
               const int tmp_cost
-                  = d1_[curY][curX + 1]
+                  = d1[curY][curX + 1]
                     + h_cost_table_[h_edges_[curY][curX].usage
                                     + h_edges_[curY][curX].red
                                     + L * h_edges_[curY][curX].last_usage];
 
-              if (tmp_cost < d1_[curY][curX] + via) {
+              if (tmp_cost < d1[curY][curX] + via) {
                 hyper_h_[curY][curX] = true;
               }
             }
-            tmp = d1_[curY][curX] + via
-                  + h_cost_table_[h_edges_[curY][curX - 1].usage + h_edges_[curY][curX - 1].red
+            tmp = d1[curY][curX] + via
+                  + h_cost_table_[h_edges_[curY][curX - 1].usage
+                                  + h_edges_[curY][curX - 1].red
                                   + L * h_edges_[curY][curX - 1].last_usage];
           }
           tmpX = curX - 1;  // the left neighbor
 
-          if (d1_[curY][tmpX]
-              >= BIG_INT)  // left neighbor not been put into heap1_
+          if (d1[curY][tmpX]
+              >= BIG_INT)  // left neighbor not been put into src_heap
           {
-            d1_[curY][tmpX] = tmp;
+            d1[curY][tmpX] = tmp;
             parent_x3_[curY][tmpX] = curX;
             parent_y3_[curY][tmpX] = curY;
             hv_[curY][tmpX] = false;
-            heap1_[heapLen1] = &d1_[curY][tmpX];
-            heapLen1++;
-            updateHeap(heap1_, heapLen1, heapLen1 - 1);
-          } else if (d1_[curY][tmpX] > tmp)  // left neighbor been put into
-                                             // heap1_ but needs update
+            src_heap.push_back(&d1[curY][tmpX]);
+            updateHeap(src_heap, src_heap.size() - 1);
+          } else if (d1[curY][tmpX] > tmp)  // left neighbor been put into
+                                            // src_heap but needs update
           {
-            d1_[curY][tmpX] = tmp;
+            d1[curY][tmpX] = tmp;
             parent_x3_[curY][tmpX] = curX;
             parent_y3_[curY][tmpX] = curY;
             hv_[curY][tmpX] = false;
-            float* dtmp = &d1_[curY][tmpX];
+            float* dtmp = &d1[curY][tmpX];
             int ind = 0;
-            while (heap1_[ind] != dtmp)
+            while (src_heap[ind] != dtmp)
               ind++;
-            updateHeap(heap1_, heapLen1, ind);
+            updateHeap(src_heap, ind);
           }
         }
         // right
         if (curX < regionX2) {
           float tmp;
-          if ((preY == curY) || (d1_[curY][curX] == 0)) {
-            tmp = d1_[curY][curX]
-                  + h_cost_table_[h_edges_[curY][curX].usage + h_edges_[curY][curX].red
+          if ((preY == curY) || (d1[curY][curX] == 0)) {
+            tmp = d1[curY][curX]
+                  + h_cost_table_[h_edges_[curY][curX].usage
+                                  + h_edges_[curY][curX].red
                                   + L * h_edges_[curY][curX].last_usage];
           } else {
             if (curX > regionX1 + 1) {
               const int tmp_cost
-                  = d1_[curY][curX - 1]
+                  = d1[curY][curX - 1]
                     + h_cost_table_[h_edges_[curY][curX - 1].usage
                                     + h_edges_[curY][curX - 1].red
                                     + L * h_edges_[curY][curX - 1].last_usage];
 
-              if (tmp_cost < d1_[curY][curX] + via) {
+              if (tmp_cost < d1[curY][curX] + via) {
                 hyper_h_[curY][curX] = true;
               }
             }
-            tmp = d1_[curY][curX] + via
-                  + h_cost_table_[h_edges_[curY][curX].usage + h_edges_[curY][curX].red
+            tmp = d1[curY][curX] + via
+                  + h_cost_table_[h_edges_[curY][curX].usage
+                                  + h_edges_[curY][curX].red
                                   + L * h_edges_[curY][curX].last_usage];
           }
           tmpX = curX + 1;  // the right neighbor
 
-          if (d1_[curY][tmpX]
-              >= BIG_INT)  // right neighbor not been put into heap1_
+          if (d1[curY][tmpX]
+              >= BIG_INT)  // right neighbor not been put into src_heap
           {
-            d1_[curY][tmpX] = tmp;
+            d1[curY][tmpX] = tmp;
             parent_x3_[curY][tmpX] = curX;
             parent_y3_[curY][tmpX] = curY;
             hv_[curY][tmpX] = false;
-            heap1_[heapLen1] = &d1_[curY][tmpX];
-            heapLen1++;
-            updateHeap(heap1_, heapLen1, heapLen1 - 1);
-          } else if (d1_[curY][tmpX] > tmp)  // right neighbor been put into
-                                             // heap1_ but needs update
+            src_heap.push_back(&d1[curY][tmpX]);
+            updateHeap(src_heap, src_heap.size() - 1);
+          } else if (d1[curY][tmpX] > tmp)  // right neighbor been put into
+                                            // src_heap but needs update
           {
-            d1_[curY][tmpX] = tmp;
+            d1[curY][tmpX] = tmp;
             parent_x3_[curY][tmpX] = curX;
             parent_y3_[curY][tmpX] = curY;
             hv_[curY][tmpX] = false;
-            float* dtmp = &d1_[curY][tmpX];
+            float* dtmp = &d1[curY][tmpX];
             int ind = 0;
-            while (heap1_[ind] != dtmp)
+            while (src_heap[ind] != dtmp)
               ind++;
-            updateHeap(heap1_, heapLen1, ind);
+            updateHeap(src_heap, ind);
           }
         }
         // bottom
         if (curY > regionY1) {
           float tmp;
 
-          if ((preX == curX) || (d1_[curY][curX] == 0)) {
-            tmp = d1_[curY][curX]
-                  + v_cost_table_[v_edges_[curY - 1][curX].usage + v_edges_[curY - 1][curX].red
+          if ((preX == curX) || (d1[curY][curX] == 0)) {
+            tmp = d1[curY][curX]
+                  + v_cost_table_[v_edges_[curY - 1][curX].usage
+                                  + v_edges_[curY - 1][curX].red
                                   + L * v_edges_[curY - 1][curX].last_usage];
           } else {
             if (curY < regionY2 - 1) {
               const int tmp_cost
-                  = d1_[curY + 1][curX]
+                  = d1[curY + 1][curX]
                     + v_cost_table_[v_edges_[curY][curX].usage
                                     + v_edges_[curY][curX].red
                                     + L * v_edges_[curY][curX].last_usage];
 
-              if (tmp_cost < d1_[curY][curX] + via) {
+              if (tmp_cost < d1[curY][curX] + via) {
                 hyper_v_[curY][curX] = true;
               }
             }
-            tmp = d1_[curY][curX] + via
-                  + v_cost_table_[v_edges_[curY - 1][curX].usage + v_edges_[curY - 1][curX].red
+            tmp = d1[curY][curX] + via
+                  + v_cost_table_[v_edges_[curY - 1][curX].usage
+                                  + v_edges_[curY - 1][curX].red
                                   + L * v_edges_[curY - 1][curX].last_usage];
           }
           tmpY = curY - 1;  // the bottom neighbor
-          if (d1_[tmpY][curX]
-              >= BIG_INT)  // bottom neighbor not been put into heap1_
+          if (d1[tmpY][curX]
+              >= BIG_INT)  // bottom neighbor not been put into src_heap
           {
-            d1_[tmpY][curX] = tmp;
+            d1[tmpY][curX] = tmp;
             parent_x1_[tmpY][curX] = curX;
             parent_y1_[tmpY][curX] = curY;
             hv_[tmpY][curX] = true;
-            heap1_[heapLen1] = &d1_[tmpY][curX];
-            heapLen1++;
-            updateHeap(heap1_, heapLen1, heapLen1 - 1);
-          } else if (d1_[tmpY][curX] > tmp)  // bottom neighbor been put into
-                                             // heap1_ but needs update
+            src_heap.push_back(&d1[tmpY][curX]);
+            updateHeap(src_heap, src_heap.size() - 1);
+          } else if (d1[tmpY][curX] > tmp)  // bottom neighbor been put into
+                                            // src_heap but needs update
           {
-            d1_[tmpY][curX] = tmp;
+            d1[tmpY][curX] = tmp;
             parent_x1_[tmpY][curX] = curX;
             parent_y1_[tmpY][curX] = curY;
             hv_[tmpY][curX] = true;
-            float* dtmp = &d1_[tmpY][curX];
+            float* dtmp = &d1[tmpY][curX];
             int ind = 0;
-            while (heap1_[ind] != dtmp)
+            while (src_heap[ind] != dtmp)
               ind++;
-            updateHeap(heap1_, heapLen1, ind);
+            updateHeap(src_heap, ind);
           }
         }
         // top
         if (curY < regionY2) {
           float tmp;
 
-          if ((preX == curX) || (d1_[curY][curX] == 0)) {
-            tmp = d1_[curY][curX]
-                  + v_cost_table_[v_edges_[curY][curX].usage + v_edges_[curY][curX].red
+          if ((preX == curX) || (d1[curY][curX] == 0)) {
+            tmp = d1[curY][curX]
+                  + v_cost_table_[v_edges_[curY][curX].usage
+                                  + v_edges_[curY][curX].red
                                   + L * v_edges_[curY][curX].last_usage];
           } else {
             if (curY > regionY1 + 1) {
               const int tmp_cost
-                  = d1_[curY - 1][curX]
+                  = d1[curY - 1][curX]
                     + v_cost_table_[v_edges_[curY - 1][curX].usage
                                     + v_edges_[curY - 1][curX].red
                                     + L * v_edges_[curY - 1][curX].last_usage];
 
-              if (tmp_cost < d1_[curY][curX] + via) {
+              if (tmp_cost < d1[curY][curX] + via) {
                 hyper_v_[curY][curX] = true;
               }
             }
-            tmp = d1_[curY][curX] + via
-                  + v_cost_table_[v_edges_[curY][curX].usage + v_edges_[curY][curX].red
+            tmp = d1[curY][curX] + via
+                  + v_cost_table_[v_edges_[curY][curX].usage
+                                  + v_edges_[curY][curX].red
                                   + L * v_edges_[curY][curX].last_usage];
           }
           tmpY = curY + 1;  // the top neighbor
-          if (d1_[tmpY][curX]
-              >= BIG_INT)  // top neighbor not been put into heap1_
+          if (d1[tmpY][curX]
+              >= BIG_INT)  // top neighbor not been put into src_heap
           {
-            d1_[tmpY][curX] = tmp;
+            d1[tmpY][curX] = tmp;
             parent_x1_[tmpY][curX] = curX;
             parent_y1_[tmpY][curX] = curY;
             hv_[tmpY][curX] = true;
-            heap1_[heapLen1] = &d1_[tmpY][curX];
-            heapLen1++;
-            updateHeap(heap1_, heapLen1, heapLen1 - 1);
-          } else if (d1_[tmpY][curX] > tmp)  // top neighbor been put into
-                                             // heap1_ but needs update
+            src_heap.push_back(&d1[tmpY][curX]);
+            updateHeap(src_heap, src_heap.size() - 1);
+          } else if (d1[tmpY][curX] > tmp)  // top neighbor been put into
+                                            // src_heap but needs update
           {
-            d1_[tmpY][curX] = tmp;
+            d1[tmpY][curX] = tmp;
             parent_x1_[tmpY][curX] = curX;
             parent_y1_[tmpY][curX] = curY;
             hv_[tmpY][curX] = true;
-            float* dtmp = &d1_[tmpY][curX];
+            float* dtmp = &d1[tmpY][curX];
             int ind = 0;
-            while (heap1_[ind] != dtmp)
+            while (src_heap[ind] != dtmp)
               ind++;
-            updateHeap(heap1_, heapLen1, ind);
+            updateHeap(src_heap, ind);
           }
         }
 
         // update ind1 for next loop
-        ind1 = (heap1_[0] - &d1_[0][0]);
+        ind1 = (src_heap[0] - &d1[0][0]);
 
       }  // while loop
 
-      for (int i = 0; i < heapLen2; i++)
-        pop_heap2_[(heap2_[i] - &d2_[0][0])] = false;
+      for (int i = 0; i < dest_heap.size(); i++)
+        pop_heap2[(dest_heap[i] - &d2[0][0])] = false;
 
       const int crossX = ind1 % x_range_;
       const int crossY = ind1 / x_range_;
@@ -1364,7 +1668,7 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
       int curX = crossX;
       int curY = crossY;
       std::vector<int> tmp_gridsX, tmp_gridsY;
-      while (d1_[curY][curX] != 0)  // loop until reach subtree1
+      while (d1[curY][curX] != 0)  // loop until reach subtree1
       {
         bool hypered = false;
         if (cnt != 0) {
@@ -1451,8 +1755,25 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
           }
 
           // update route for edge (n1, A1), (n1, A2)
-          updateRouteType1(
-              treenodes, n1, A1, A2, E1x, E1y, treeedges, edge_n1A1, edge_n1A2);
+          bool route_ok = updateRouteType1(netID,
+                                           treenodes,
+                                           n1,
+                                           A1,
+                                           A2,
+                                           E1x,
+                                           E1y,
+                                           treeedges,
+                                           edge_n1A1,
+                                           edge_n1A2);
+          if (!route_ok) {
+            logger_->warn(GRT,
+                          150,
+                          "Net {} has errors during updateRouteType1.",
+                          netName(nets_[netID]));
+            reInitTree(netID);
+            nidRPC--;
+            break;
+          }
           // update position for n1
           treenodes[n1].x = E1x;
           treenodes[n1].y = E1y;
@@ -1464,18 +1785,28 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
           const int edge_C1C2 = corr_edge_[E1y][E1x];
 
           // update route for edge (n1, C1), (n1, C2) and (A1, A2)
-          updateRouteType2(treenodes,
-                           n1,
-                           A1,
-                           A2,
-                           C1,
-                           C2,
-                           E1x,
-                           E1y,
-                           treeedges,
-                           edge_n1A1,
-                           edge_n1A2,
-                           edge_C1C2);
+          bool route_ok = updateRouteType2(netID,
+                                           treenodes,
+                                           n1,
+                                           A1,
+                                           A2,
+                                           C1,
+                                           C2,
+                                           E1x,
+                                           E1y,
+                                           treeedges,
+                                           edge_n1A1,
+                                           edge_n1A2,
+                                           edge_C1C2);
+          if (!route_ok) {
+            logger_->warn(GRT,
+                          151,
+                          "Net {} has errors during updateRouteType2.",
+                          netName(nets_[netID]));
+            reInitTree(netID);
+            nidRPC--;
+            break;
+          }
           // update position for n1
           treenodes[n1].x = E1x;
           treenodes[n1].y = E1y;
@@ -1573,8 +1904,25 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
           }
 
           // update route for edge (n2, B1), (n2, B2)
-          updateRouteType1(
-              treenodes, n2, B1, B2, E2x, E2y, treeedges, edge_n2B1, edge_n2B2);
+          bool route_ok = updateRouteType1(netID,
+                                           treenodes,
+                                           n2,
+                                           B1,
+                                           B2,
+                                           E2x,
+                                           E2y,
+                                           treeedges,
+                                           edge_n2B1,
+                                           edge_n2B2);
+          if (!route_ok) {
+            logger_->warn(GRT,
+                          152,
+                          "Net {} has errors during updateRouteType1.",
+                          netName(nets_[netID]));
+            reInitTree(netID);
+            nidRPC--;
+            break;
+          }
 
           // update position for n2
           treenodes[n2].x = E2x;
@@ -1587,18 +1935,28 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
           const int edge_D1D2 = corr_edge_[E2y][E2x];
 
           // update route for edge (n2, D1), (n2, D2) and (B1, B2)
-          updateRouteType2(treenodes,
-                           n2,
-                           B1,
-                           B2,
-                           D1,
-                           D2,
-                           E2x,
-                           E2y,
-                           treeedges,
-                           edge_n2B1,
-                           edge_n2B2,
-                           edge_D1D2);
+          bool route_ok = updateRouteType2(netID,
+                                           treenodes,
+                                           n2,
+                                           B1,
+                                           B2,
+                                           D1,
+                                           D2,
+                                           E2x,
+                                           E2y,
+                                           treeedges,
+                                           edge_n2B1,
+                                           edge_n2B2,
+                                           edge_D1D2);
+          if (!route_ok) {
+            logger_->warn(GRT,
+                          153,
+                          "Net {} has errors during updateRouteType2.",
+                          netName(nets_[netID]));
+            reInitTree(netID);
+            nidRPC--;
+            break;
+          }
           // update position for n2
           treenodes[n2].x = E2x;
           treenodes[n2].y = E2y;
@@ -1685,11 +2043,6 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
           const int min_x = std::min(gridsX[i], gridsX[i + 1]);
           h_edges_[gridsY[i]][min_x].usage += edgeCost;
         }
-      }
-
-      if (checkRoute2DTree(netID)) {
-        reInitTree(netID);
-        return;
       }
     }  // loop edgeID
   }    // loop netID
@@ -1841,7 +2194,6 @@ int FastRouteCore::getOverflow3D()
 {
   // get overflow
   int overflow = 0;
-  int max_overflow = 0;
   int H_overflow = 0;
   int V_overflow = 0;
   int max_H_overflow = 0;
@@ -1877,7 +2229,6 @@ int FastRouteCore::getOverflow3D()
     }
   }
 
-  max_overflow = std::max(max_H_overflow, max_V_overflow);
   total_overflow_ = H_overflow + V_overflow;
 
   return total_usage;
