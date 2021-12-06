@@ -24,7 +24,7 @@ ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
 ADD ./klayout_0.26.6-1_amd64.deb .
 RUN \
   set -eu; \
-  apt-get update && apt-get install -y klayout time libreadline-dev pkg-config imagemagick; \
+  apt-get update && apt-get install -y klayout time libreadline-dev pkg-config imagemagick ssh; \
   dpkg -i klayout_0.26.6-1_amd64.deb; \
   rm -f klayout_0.26.6-1_amd64.deb; 
 
@@ -36,12 +36,15 @@ RUN  make
 FROM deps_stage
 RUN mkdir -p /usr/local/share/yosys
 ADD ./ossutil64 /usr/local/bin/ossutil64
-RUN chmod +x /usr/local/bin/ossutil64
 ADD modules/release/tools/start_logtail.sh /Eden-flow/start_logtail.sh
 ADD modules/release/tools/gds2png.sh /Eden-flow/gds2png.sh
 ADD modules/release/tools/gds2png.txt /Eden-flow/gds2png.txt
 ADD ./envsubst /usr/local/bin/envsubst
-RUN chmod +x /usr/local/bin/ossutil64 /usr/local/bin/envsubst
+ADD ./tools/rpt_catcher.py /Eden-flow/rpt_catcher.py
+ADD ./tools/klayoutrc /Eden-flow/klayoutrc
+RUN chmod +x /usr/local/bin/ossutil64 /usr/local/bin/envsubst /Eden-flow/gds2png.sh
+
+COPY --from=registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:0616p7 /root/.ssh /root/.ssh
 
 COPY --from=maple_build_stage /maple/build/src/maple /usr/local/bin/sv2v
 COPY --from=maple_build_stage /maple/build/src/yosys* /usr/local/bin/
