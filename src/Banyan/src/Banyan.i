@@ -16,7 +16,9 @@ void banyan_route(
   const char* max_via_stack,
   const char* min_layer,
   const char* max_layer,
-  bool cts)
+  bool cts,
+  const char* enable_route,
+  const char* enable_maze_top)
 {
   std::map<std::string, std::string> options;
   options["log_level"] = log_level;
@@ -26,7 +28,8 @@ void banyan_route(
   options["min_layer"] = min_layer;
   options["max_layer"] = max_layer;
   if (cts) options["cts"] = "";
-
+  options["enable_route"] = enable_route;
+  options["enable_maze_top"] = enable_maze_top;
   ord::OpenRoad::openRoad()->getBanyan()->main(options);
 }
 
