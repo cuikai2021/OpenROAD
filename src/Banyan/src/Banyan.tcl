@@ -48,20 +48,20 @@ proc banyan_route { args } {
   if { [info exists keys(-max_layer)] } {
     set max_layer $keys(-max_layer)
   } else {
-    set max_layer "M7"
+    set max_layer ""
   }
 
   set cts [info exists flags(-cts)]  
 
   if { [info exists keys(-enable_route)] } {
-    sta::check_bool "-enable_route" $keys(-enable_route)
+    check_bool "-enable_route" $keys(-enable_route)
     set enable_route $keys(-enable_route)
   } else {
     set enable_route "true"
   }
 
   if { [info exists keys(-enable_maze_top)] } {
-    sta::check_bool "-enable_maze_top" $keys(-enable_maze_top)
+    check_bool "-enable_maze_top" $keys(-enable_maze_top)
     set enable_maze_top $keys(-enable_maze_top)
   } else {
     set enable_maze_top "true"
