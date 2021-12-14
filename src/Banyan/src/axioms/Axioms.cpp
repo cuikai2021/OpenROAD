@@ -591,6 +591,12 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* techLayer,
   auto layerDir = techLayer->getDirection();
   auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
   uint64_t width = techLayer->getWidth();
+  uint64_t pitch = techLayer->getPitchX();
+  if(techLayer->getDirection() == odb::dbTechLayerDir::HORIZONTAL){
+    pitch = techLayer->getPitchY();
+  }
+
+  uint64_t spacing = pitch - width;
 
   auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
   auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
@@ -625,13 +631,13 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* techLayer,
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
 
-  if (cutSpacing <= width + marginBetweenCutsAndMetalBox) {
-    return cutsCenterToCenter;
+  if (cutSpacing <= spacing + marginBetweenCutsAndMetalBox) {
+    return 0;
   }
 
   double horizontalSpacing
       = std::sqrt(std::pow(cutSpacing, 2)
-                  - std::pow(width + marginBetweenCutsAndMetalBox, 2));
+                  - std::pow(spacing + marginBetweenCutsAndMetalBox, 2));
 
   horizontalSpacing = std::ceil(horizontalSpacing / 10) * 10;
 
