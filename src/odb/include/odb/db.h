@@ -1193,6 +1193,11 @@ class dbBlock : public dbObject
   ///
   void getDieArea(Rect& rect);
 
+  void setPolygonDieArea(std::vector<Point>&& polygon, std::vector<Rect>&& blks);
+  const std::vector<Point>& getPolygonDieArea();
+  void createDieAreaBlockages();
+  void deleteDieAreaBlockages();
+
   ///
   /// Get the core area. This computes the bbox of the rows
   /// and is O(#rows) in runtime.

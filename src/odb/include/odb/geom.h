@@ -140,6 +140,8 @@ class GeomShape
   virtual ~GeomShape() = default;
 };
 
+
+
 /*
 an Oct represents a 45-degree routing segment as 2 connected octagons
 
@@ -294,6 +296,8 @@ class Oct : public GeomShape
   friend dbOStream& operator<<(dbOStream& stream, const Oct& o);
 };
 
+
+
 class Rect : public GeomShape
 {
   int _xlo;
@@ -416,6 +420,7 @@ class Rect : public GeomShape
   friend dbIStream& operator>>(dbIStream& stream, Rect& r);
   friend dbOStream& operator<<(dbOStream& stream, const Rect& r);
 };
+
 
 inline Point::Point()
 {
