@@ -1754,10 +1754,12 @@ void dbBlock::deleteDieAreaBlockages()
     _dbBlockage* bkg = block->_blockage_tbl->getPtr(bid);
     block->_blockage_tbl->destroy(bkg);
   }
+  block->_diearea_pl_blockages.clear();
   for (auto bid : block->_diearea_rt_blockages) {
     _dbObstruction* bkg = block->_obstruction_tbl->getPtr(bid);
     dbObstruction::destroy((dbObstruction*) bkg);
   }
+  block->_diearea_rt_blockages.clear();
 }
 
 void dbBlock::createDieAreaBlockages()
