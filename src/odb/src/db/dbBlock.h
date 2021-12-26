@@ -161,6 +161,11 @@ class _dbBlock : public _dbObject
   char* _corner_name_list;
   char* _name;
   Rect _die_area;
+  dbVector<Point> _die_area_polygon;
+  dbVector<Rect> _die_area_blk_bboxes;
+  dbVector<uint> _diearea_pl_blockages;
+  dbVector<uint> _diearea_rt_blockages;
+
   dbId<_dbChip> _chip;
   dbId<_dbBox> _bbox;
   dbId<_dbBlock> _parent;

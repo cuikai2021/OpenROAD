@@ -200,9 +200,7 @@ void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
 
 void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
 {
-  assert(layers_.empty());
-  assert(!hasAddedMasterSliceLayer_ && !hasAddedCutLayer_);
-
+  assert(!hasAddedCutLayer_);
   if (layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::NWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::PWELL
       && layer->getLef58Type() != odb::dbTechLayer::LEF58_TYPE::DIFFUSION) {
