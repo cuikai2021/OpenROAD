@@ -40,8 +40,8 @@ ADD modules/release/tools/start_logtail.sh /Eden-flow/start_logtail.sh
 ADD modules/release/tools/gds2png.sh /Eden-flow/gds2png.sh
 ADD modules/release/tools/gds2png.txt /Eden-flow/gds2png.txt
 ADD ./envsubst /usr/local/bin/envsubst
-ADD ./tools/rpt_catcher.py /Eden-flow/rpt_catcher.py
-ADD ./tools/klayoutrc /Eden-flow/klayoutrc
+ADD modules/release/tools/rpt_catcher.py /Eden-flow/rpt_catcher.py
+ADD modules/release/tools/klayoutrc /Eden-flow/klayoutrc
 RUN chmod +x /usr/local/bin/ossutil64 /usr/local/bin/envsubst /Eden-flow/gds2png.sh
 
 COPY --from=registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:0616p7 /root/.ssh /root/.ssh

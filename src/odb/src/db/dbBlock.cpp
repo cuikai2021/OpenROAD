@@ -404,6 +404,10 @@ _dbBlock::_dbBlock(_dbDatabase* db, const _dbBlock& block)
       _corner_name_list(block._corner_name_list),
       _name(NULL),
       _die_area(block._die_area),
+      _die_area_polygon(block._die_area_polygon),
+      _die_area_blk_bboxes(block._die_area_blk_bboxes),
+      _diearea_pl_blockages(block._diearea_pl_blockages),
+      _diearea_rt_blockages(block._diearea_rt_blockages),
       _chip(block._chip),
       _bbox(block._bbox),
       _parent(block._parent),
@@ -876,6 +880,10 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   stream << block._corner_name_list;
   stream << block._name;
   stream << block._die_area;
+  stream << block._die_area_polygon;
+  stream << block._die_area_blk_bboxes;
+  stream << block._diearea_pl_blockages;
+  stream << block._diearea_rt_blockages;
   stream << block._chip;
   stream << block._bbox;
   stream << block._parent;
@@ -971,6 +979,10 @@ dbIStream& operator>>(dbIStream& stream, _dbBlock& block)
   stream >> block._corner_name_list;
   stream >> block._name;
   stream >> block._die_area;
+  stream >> block._die_area_polygon;
+  stream >> block._die_area_blk_bboxes;
+  stream >> block._diearea_pl_blockages;
+  stream >> block._diearea_rt_blockages;
   stream >> block._chip;
   stream >> block._bbox;
   stream >> block._parent;
@@ -1106,6 +1118,18 @@ bool _dbBlock::operator==(const _dbBlock& rhs) const
     return false;
 
   if (_die_area != rhs._die_area)
+    return false;
+
+  if (_die_area_polygon != rhs._die_area_polygon)
+    return false;
+
+  if (_die_area_blk_bboxes != rhs._die_area_blk_bboxes)
+    return false;
+
+  if (_diearea_pl_blockages != rhs._diearea_pl_blockages)
+    return false;
+
+  if (_diearea_rt_blockages != rhs._diearea_rt_blockages)
     return false;
 
   if (_chip != rhs._chip)
@@ -1708,6 +1732,75 @@ dbSet<dbBlockage> dbBlock::getBlockages()
 {
   _dbBlock* block = (_dbBlock*) this;
   return dbSet<dbBlockage>(block, block->_blockage_tbl);
+}
+
+void dbBlock::setPolygonDieArea(std::vector<odb::Point>&& points, std::vector<odb::Rect>&& blks)
+{
+  _dbBlock* block = (_dbBlock*) this;
+  block->_die_area_polygon = points;
+  block->_die_area_blk_bboxes = blks;
+}
+
+const std::vector<odb::Point>& dbBlock::getPolygonDieArea()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return block->_die_area_polygon;
+}
+
+void dbBlock::deleteDieAreaBlockages()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  for (auto bid : block->_diearea_pl_blockages) {
+    _dbBlockage* bkg = block->_blockage_tbl->getPtr(bid);
+    block->_blockage_tbl->destroy(bkg);
+  }
+  block->_diearea_pl_blockages.clear();
+  for (auto bid : block->_diearea_rt_blockages) {
+    _dbObstruction* bkg = block->_obstruction_tbl->getPtr(bid);
+    dbObstruction::destroy((dbObstruction*) bkg);
+  }
+  block->_diearea_rt_blockages.clear();
+}
+
+void dbBlock::createDieAreaBlockages()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  dbTech* tech = getDb()->getTech();
+
+  for (auto blockage : block->_die_area_blk_bboxes) {
+    _dbBlockage* bkg = block->_blockage_tbl->create();
+
+    _dbBox* box = block->_box_tbl->create();
+    box->_shape._rect.init(
+        blockage.xMin(), blockage.yMin(), blockage.xMax(), blockage.yMax());
+    box->_flags._owner_type = dbBoxOwner::BLOCKAGE;
+    box->_owner = bkg->getOID();
+    bkg->_bbox = box->getOID();
+
+    // Update bounding box of block
+    _dbBox* bbox = (_dbBox*) block->_box_tbl->getPtr(block->_bbox);
+    bbox->_shape._rect.merge(box->_shape._rect);
+
+    block->_diearea_pl_blockages.emplace_back(bkg->getOID());
+  }
+
+  for (auto blockage : block->_die_area_blk_bboxes) {
+    for (auto layer : tech->getLayers()) {
+      if (layer->getType().getValue() != odb::dbTechLayerType::ROUTING
+          && layer->getType().getValue() != odb::dbTechLayerType::CUT) {
+        continue;
+      }
+      dbObstruction* obs = dbObstruction::create((dbBlock*) block,
+                                                 layer,
+                                                 blockage.xMin(),
+                                                 blockage.yMin(),
+                                                 blockage.xMax(),
+                                                 blockage.yMax());
+
+      block->_diearea_rt_blockages.emplace_back(
+          ((_dbObstruction*) obs)->getOID());
+    }
+  }
 }
 
 dbSet<dbNet> dbBlock::getNets()
