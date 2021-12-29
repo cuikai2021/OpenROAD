@@ -92,9 +92,8 @@ class OpenDBAdapter : public DBAdapter
   std::string minLayer_ = "";
   std::string maxLayer_ = "";
 
-  bool hasAddedMasterSliceLayer_ = false;
   bool hasAddedCutLayer_ = false;
-  int masterSliceLayerMaxIndex_ = -1;
+  int belowRoutingLayerMaxIndex_ = -1;
 
   std::map<std::string, int> layerNameToIdxs_;
 
@@ -119,6 +118,7 @@ class OpenDBAdapter : public DBAdapter
   void addRoutingLayer(odb::dbTechLayer* layer);
   void addCutLayer(odb::dbTechLayer* layer);
   void addMasterSliceLayer(odb::dbTechLayer* layer);
+  void addImplantLayer(odb::dbTechLayer* layer);
 
   void getTracksFromOpenDB();
   void getViaDefsFromOpenDB();
