@@ -34,5 +34,5 @@ jobs:
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
           repo: ${{ env.REPO_OWNER }}/bamboo
           ref: master
-          workflow: release
+          workflow: release eden or banyan
           inputs: '{ "Eden_commit_id": "${{ github.event.inputs.Eden_commit_id }}", "yosys_commit_id": "${{ github.event.inputs.yosys_commit_id }}", "maple_commit_id": "${{ github.event.inputs.maple_commit_id }}", "release_name": "${{ github.event.inputs.release_name }}"}'
