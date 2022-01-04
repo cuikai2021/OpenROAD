@@ -198,8 +198,8 @@ void TritonCTS::countSinksPostDbWrite(TreeBuilder* builder, odb::dbNet* net,
                                       unsigned &sinks, unsigned &leafSinks,
                                       unsigned currWireLength, double &sinkWireLength,
                                       int& minDepth, int& maxDepth, int depth,
-                                      bool fullTree)
-{
+                                      bool fullTree, std::set<odb::dbITerm*> &used_iterm)
+{ 
   odb::dbSet<odb::dbITerm> iterms = net->getITerms();
   int driverX = 0;
   int driverY = 0;
@@ -239,9 +239,15 @@ void TritonCTS::countSinksPostDbWrite(TreeBuilder* builder, odb::dbNet* net,
         !builder->isAnyTreeBuffer(getClockFromInst(iterm->getInst()));
       if (!terminate) {
         odb::dbITerm* outputPin = iterm->getInst()->getFirstOutput();
-        if (outputPin)
-          countSinksPostDbWrite(builder, outputPin->getNet(), sinks, leafSinks, (currWireLength + dist),
-                                sinkWireLength, minDepth, maxDepth, depth+1, fullTree);
+        if (outputPin){
+          if (used_iterm.find(iterm) == used_iterm.end()) {
+            used_iterm.insert(iterm);
+            if (outputPin->getNet()){
+              countSinksPostDbWrite(builder, outputPin->getNet(), sinks, leafSinks, (currWireLength + dist),
+                                    sinkWireLength, minDepth, maxDepth, depth+1, fullTree, used_iterm);
+            }
+          }
+        }
         else {
           _logger->report("Hanging buffer {}", name);
         }
@@ -280,8 +286,9 @@ void TritonCTS::writeDataToDb()
     int minDepth = 0;
     int maxDepth = 0;
     bool reportFullTree = !builder->getParent() && builder->getChildren().size() && _options->getBalanceLevels();
+    std::set<odb::dbITerm*> used_iterm;
     countSinksPostDbWrite(builder, topClockNet, sinkCount, leafSinks, 0, allSinkDistance,
-                          minDepth, maxDepth, 0, reportFullTree);
+                          minDepth, maxDepth, 0, reportFullTree, used_iterm);
     _logger->info(CTS, 98, "Clock net \"{}\"", builder->getClock().getName());
     _logger->info(CTS, 99, " Sinks {}", sinkCount);
     _logger->info(CTS, 100, " Leaf buffers {}", leafSinks);
