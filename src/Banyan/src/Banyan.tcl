@@ -42,7 +42,7 @@ proc banyan_route { args } {
   if { [info exists keys(-min_layer)] } {
     set min_layer $keys(-min_layer)
   } else {
-    set min_layer "M2"
+    set min_layer ""
   }
 
   if { [info exists keys(-max_layer)] } {
