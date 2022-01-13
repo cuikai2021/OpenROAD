@@ -139,11 +139,9 @@ protected:
   PathRenderer *path_renderer_;
 
   // ICBench Methods protected
-  Sdc* getSdcOpt();
-  std::string getSdcOptName() { return sdc_opt_name_; }
-  void syncSdcFromSta();
+  Sdc* getSdcOpt(std::string name);
 
-  // variable
+  // ICBench variables
   sta::Map<std::string, Sdc*> sdc_list_;
   std::string sdc_opt_name_ = "default";
 };
