@@ -230,6 +230,7 @@ dbSta::dbSta() :
   db_cbk_(nullptr),
   path_renderer_(nullptr)
 {
+  sdc_list_.insert("default", sdc_);
 }
 
 dbSta::~dbSta()
@@ -786,29 +787,22 @@ PathRenderer::highlightInst(const Pin *pin,
 // ICBench Methods
 
 Sdc*
-dbSta::getSdcOpt(std::string name)
+dbSta::getOrCreateSdcOpt(std::string name)
 {
   if (!sdc_list_.hasKey(name)) {
-    if (report_ && name.compare("default"))
-      report_->warn(1001, "MMMC: create not default sdc \"%s\"", name.c_str());
+    report_->warn(1001, "MMMC: create not default sdc \"%s\"", name.c_str());
     sdc_list_.insert(name, new Sdc(this));
   }
   return sdc_list_.findKey(name);
 }
 
 void 
-dbSta::setSdcOptName(std::string name)
+dbSta::setSdcOpt(std::string name)
 {
-  if (name.compare(sdc_opt_name_)) {
-    // save past sdc
-    sdc_list_.insert(sdc_opt_name_, sdc_);
-
-    // switch to other sdc
-    report_->warn(1000, "MMMC: switch to sdc \"%s\"", name.c_str());
-    sdc_opt_name_ = name;
-    sdc_ = getSdcOpt(sdc_opt_name_);
-    networkChanged();
-  }
+  // switch to other sdc
+  report_->warn(1000, "MMMC: switch to sdc \"%s\"", name.c_str());
+  sdc_ = getOrCreateSdcOpt(name);
+  networkChanged();
 }
 
 } // namespace sta

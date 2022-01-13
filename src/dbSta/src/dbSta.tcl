@@ -91,7 +91,7 @@ define_cmd_args "set_sdc" { [-name name] }
 proc_redirect set_sdc {
   parse_key_args "read_sdc" args keys {-name} flags {}
 
-  set_sdc_opt_name_cmd $keys(-name)
+  set_sdc_opt_cmd $keys(-name)
 }
 
 # ICBench: wrapper `read_sdc`
@@ -102,7 +102,7 @@ proc_redirect read_sdc {
   parse_key_args "read_sdc" args keys {-mode} flag {} 0
 
   if { [info exists keys(-mode)] } {
-    set_sdc_opt_name_cmd $keys(-mode)
+    set_sdc_opt_cmd $keys(-mode)
   }
 
   set cmd [concat "__origin_read_sdc " $args ]
@@ -117,7 +117,7 @@ proc_redirect report_checks {
   parse_key_args "report_checks" args keys {-sdc} flag {} 0
 
   if { [info exists keys(-sdc)] } {
-    set_sdc_opt_name_cmd $keys(-sdc)
+    set_sdc_opt_cmd $keys(-sdc)
   }
 
   set cmd [concat "__origin_report_checks " $args ]

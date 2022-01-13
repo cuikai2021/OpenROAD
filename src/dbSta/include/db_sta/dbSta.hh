@@ -115,7 +115,7 @@ public:
   void highlight(PathRef *path);
 
   // ICBench Methods public
-  void setSdcOptName(std::string name);
+  void setSdcOpt(std::string name);
 
   using Sta::netSlack;
   using Sta::replaceCell;
@@ -139,11 +139,10 @@ protected:
   PathRenderer *path_renderer_;
 
   // ICBench Methods protected
-  Sdc* getSdcOpt(std::string name);
+  Sdc* getOrCreateSdcOpt(std::string name);
 
   // ICBench variables
   sta::Map<std::string, Sdc*> sdc_list_;
-  std::string sdc_opt_name_ = "default";
 };
 
 // Make a stand-alone (scratchpad) sta for block.

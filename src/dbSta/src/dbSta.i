@@ -122,11 +122,11 @@ db_network_defined()
 
 //ICBench methods
 void
-set_sdc_opt_name_cmd(std::string name)
+set_sdc_opt_cmd(std::string name)
 {
   ord::OpenRoad *openroad = ord::getOpenRoad();
   sta::dbSta *sta = openroad->getSta();
-  sta->setSdcOptName(name);
+  sta->setSdcOpt(name);
 }
 
 %} // inline
