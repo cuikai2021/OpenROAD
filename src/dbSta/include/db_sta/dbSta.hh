@@ -114,6 +114,9 @@ public:
   // Highlight path in the gui.
   void highlight(PathRef *path);
 
+  // ICBench Methods public
+  void setSdcOptName(std::string name);
+
   using Sta::netSlack;
   using Sta::replaceCell;
 
@@ -134,6 +137,15 @@ protected:
   dbStaReport *db_report_;
   dbStaCbk *db_cbk_;
   PathRenderer *path_renderer_;
+
+  // ICBench Methods protected
+  Sdc* getSdcOpt();
+  std::string getSdcOptName() { return sdc_opt_name_; }
+  void syncSdcFromSta();
+
+  // variable
+  sta::Map<std::string, Sdc*> sdc_list_;
+  std::string sdc_opt_name_ = "default";
 };
 
 // Make a stand-alone (scratchpad) sta for block.

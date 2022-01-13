@@ -235,6 +235,11 @@ dbSta::dbSta() :
 dbSta::~dbSta()
 {
   delete path_renderer_;
+  for (auto sdc : sdc_list_){
+    if(sdc.second != sdc_){
+      delete sdc.second;
+    }
+  }
 }
 
 void
@@ -775,6 +780,30 @@ PathRenderer::highlightInst(const Pin *pin,
     gui::Painter::Color inst_color = sta_->isClock(pin) ? clock_color : signal_color;
     painter.setBrush(inst_color);
     painter.drawRect(rect);
+  }
+}
+
+// ICBench Methods
+
+Sdc*
+dbSta::getSdcOpt()
+{
+  if (!sdc_list_.hasKey(sdc_opt_name_)) {
+    if (report_ && sdc_opt_name_.compare("default"))
+      report_->warn(1001, "MMMC: create not default sdc \"%s\"", sdc_opt_name_.c_str());
+    sdc_list_.insert(sdc_opt_name_, new Sdc(this));
+  }
+  return sdc_list_.findKey(sdc_opt_name_);
+}
+
+void 
+dbSta::setSdcOptName(std::string name)
+{
+  if (name.compare(sdc_opt_name_)) {
+    report_->warn(1000, "MMMC: switch to sdc \"%s\"", name.c_str());
+    sdc_opt_name_ = name;
+    sdc_ = getSdcOpt();
+    networkChanged();
   }
 }
 
