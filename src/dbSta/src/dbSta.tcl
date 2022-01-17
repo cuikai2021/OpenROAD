@@ -85,5 +85,44 @@ proc sta_warn { id msg } {
   utl::warn STA $id $msg
 }
 
+# ICBench procs
+define_cmd_args "set_sdc" { [-name name] }
+
+proc_redirect set_sdc {
+  parse_key_args "read_sdc" args keys {-name} flags {}
+
+  set_sdc_opt_cmd $keys(-name)
+}
+
+# ICBench: wrapper `read_sdc`
+rename read_sdc __origin_read_sdc
+define_cmd_args "read_sdc(icb)" { [-mode mode] }
+
+proc_redirect read_sdc {
+  parse_key_args "read_sdc" args keys {-mode} flag {} 0
+
+  if { [info exists keys(-mode)] } {
+    set_sdc_opt_cmd $keys(-mode)
+  }
+
+  set cmd [concat "__origin_read_sdc " $args ]
+  eval $cmd
+}
+
+# ICBench: wrapper `report_check`
+rename report_checks __origin_report_checks
+define_cmd_args "report_checks(icb)" { [-sdc sdc] }
+
+proc_redirect report_checks {
+  parse_key_args "report_checks" args keys {-sdc} flag {} 0
+
+  if { [info exists keys(-sdc)] } {
+    set_sdc_opt_cmd $keys(-sdc)
+  }
+
+  set cmd [concat "__origin_report_checks " $args ]
+  eval $cmd
+}
+
 # namespace
 }
