@@ -230,11 +230,17 @@ dbSta::dbSta() :
   db_cbk_(nullptr),
   path_renderer_(nullptr)
 {
+  sdc_list_.insert("default", sdc_);
 }
 
 dbSta::~dbSta()
 {
   delete path_renderer_;
+  for (auto sdc : sdc_list_){
+    if(sdc.second != sdc_){
+      delete sdc.second;
+    }
+  }
 }
 
 void
@@ -776,6 +782,27 @@ PathRenderer::highlightInst(const Pin *pin,
     painter.setBrush(inst_color);
     painter.drawRect(rect);
   }
+}
+
+// ICBench Methods
+
+Sdc*
+dbSta::getOrCreateSdcOpt(std::string name)
+{
+  if (!sdc_list_.hasKey(name)) {
+    report_->warn(1001, "MMMC: create not default sdc \"%s\"", name.c_str());
+    sdc_list_.insert(name, new Sdc(this));
+  }
+  return sdc_list_.findKey(name);
+}
+
+void 
+dbSta::setSdcOpt(std::string name)
+{
+  // switch to other sdc
+  report_->warn(1000, "MMMC: switch to sdc \"%s\"", name.c_str());
+  sdc_ = getOrCreateSdcOpt(name);
+  networkChanged();
 }
 
 } // namespace sta
