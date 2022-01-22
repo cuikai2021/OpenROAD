@@ -8,8 +8,8 @@ enum {
     interface_version_3 = 0x00,
     interface_version_4 = 0x20,
     interface_version_5 = 0x21,
-    interface_version_6 = 0x11,
-    interface_version_7 = 0x01,
+    interface_version_6 = 0x01,
+    interface_version_7 = 0x22,
 };
 
 // POD types that can be consumed by go code
@@ -63,7 +63,9 @@ enum pin_use {
     PIN_INST_UNUSED,
     PIN_OBS,
     PIN_INST_OBS,
+    PIN_DIEAREA_OBS,
 };
+
 
 #ifndef __cplusplus
 typedef struct box box;
@@ -71,6 +73,7 @@ typedef struct via via;
 typedef enum net_use net_use;
 typedef enum layer_dir layer_dir;
 #endif
+
 
 // a pin that can be accessed from a few boxes
 // Boxes are assumed to be connected even if they are not within all know layers.
@@ -88,6 +91,7 @@ struct pin
     // index into the via array
     GoUint64 via_begin;
     GoUint64 via_end;    
+
 }; // struct pin
 
 // a net of pins that need to be connected

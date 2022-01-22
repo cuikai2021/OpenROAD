@@ -1011,6 +1011,9 @@ void OpenDBAdapter::addNDR(odb::dbTechNonDefaultRule* ndr)
 void OpenDBAdapter::getObsFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
+  auto rtBlockageIds = block->getDieAreaRoutingBlockageIds();
+  std::set<uint> rtBlockageIdSet(rtBlockageIds.begin(), rtBlockageIds.end());
+
   size_t boxIndexBegin = boxes_.size();
   size_t viaIndexBegin = vias_.size();
   for (auto blockage : block->getObstructions()) {
@@ -1024,13 +1027,19 @@ void OpenDBAdapter::getObsFromOpenDB()
     int xh = blockage->getBBox()->xMax();
     int yh = blockage->getBBox()->yMax();
     addBox(layerName, xl, yl, xh, yh);
+    int use = banyan_go::PIN_OBS;
+    if (rtBlockageIdSet.find(blockage->getId()) != rtBlockageIdSet.end()) {
+      use = banyan_go::PIN_DIEAREA_OBS;
+            // logger_->info(
+            // utl::BY, 705, "diearea blockage {} [{},{},{},{}]", layerName, xl, yl, xh, yh);
+    }
+    pins_.push_back({"obs",
+                     use,
+                     boxIndexBegin,
+                     boxes_.size(),
+                     viaIndexBegin,
+                     vias_.size()});
   }
-  pins_.push_back({"obs",
-                   banyan_go::PIN_OBS,
-                   boxIndexBegin,
-                   boxes_.size(),
-                   viaIndexBegin,
-                   vias_.size()});
 }
 
 void OpenDBAdapter::getInstsObsFromOpenDB()

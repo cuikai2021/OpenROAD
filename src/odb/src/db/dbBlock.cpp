@@ -1747,6 +1747,12 @@ const std::vector<odb::Point>& dbBlock::getPolygonDieArea()
   return block->_die_area_polygon;
 }
 
+const std::vector<uint>& dbBlock::getDieAreaRoutingBlockageIds()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return block->_diearea_rt_blockages;
+}
+
 void dbBlock::deleteDieAreaBlockages()
 {
   _dbBlock* block = (_dbBlock*) this;
