@@ -1014,9 +1014,9 @@ void OpenDBAdapter::getObsFromOpenDB()
   auto rtBlockageIds = block->getDieAreaRoutingBlockageIds();
   std::set<uint> rtBlockageIdSet(rtBlockageIds.begin(), rtBlockageIds.end());
 
-  size_t boxIndexBegin = boxes_.size();
-  size_t viaIndexBegin = vias_.size();
   for (auto blockage : block->getObstructions()) {
+    size_t boxIndexBegin = boxes_.size();
+    size_t viaIndexBegin = vias_.size();
     auto layerName = blockage->getBBox()->getTechLayer()->getName();
     // int layerIdx = AssertFind(layerNameToIdxs_, layerName);
     // if (layerIdx < obs_layers_) {
@@ -1030,8 +1030,9 @@ void OpenDBAdapter::getObsFromOpenDB()
     int use = banyan_go::PIN_OBS;
     if (rtBlockageIdSet.find(blockage->getId()) != rtBlockageIdSet.end()) {
       use = banyan_go::PIN_DIEAREA_OBS;
-            // logger_->info(
-            // utl::BY, 705, "diearea blockage {} [{},{},{},{}]", layerName, xl, yl, xh, yh);
+      // logger_->info(
+      // utl::BY, 705, "diearea blockage {} [{},{},{},{}]", layerName, xl, yl,
+      // xh, yh);
     }
     pins_.push_back({"obs",
                      use,
