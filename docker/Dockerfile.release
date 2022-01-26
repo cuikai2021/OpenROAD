@@ -57,3 +57,4 @@ RUN mkdir -p /Eden-flow/flow
 RUN chmod o+rw -R /Eden-flow/flow
 RUN mv /usr/local/bin/yosys /usr/local/bin/maple
 RUN ln -s /usr/local/bin/origin-yosys/yosys /usr/local/bin/yosys
+RUN touch ~/.tchlsh-history
