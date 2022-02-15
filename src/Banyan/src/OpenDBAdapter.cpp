@@ -695,16 +695,15 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
   bool hasEndPoint = false;
   int beginX = -1;
   int beginY = -1;
-  int beginExt = -1;
+  int beginExt = 0;
   int endX = -1;
   int endY = -1;
-  int endExt = -1;
+  int endExt = 0;
   bool hasRect = false;
   int left = -1;
   int bottom = -1;
   int right = -1;
   int top = -1;
-  int width = 0;
   odb::dbWireDecoder decoder;
   decoder.begin(wire);
   odb::dbWireDecoder::OpCode pathId = decoder.next();
@@ -716,16 +715,15 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
     hasEndPoint = false;
     beginX = -1;
     beginY = -1;
-    beginExt = -1;
+    beginExt = 0;
     endX = -1;
     endY = -1;
-    endExt = -1;
+    endExt = 0;
     hasRect = false;
     left = -1;
     bottom = -1;
     right = -1;
     top = -1;
-    width = 0;
     bool endpath = false;
     do {
       switch (pathId) {
@@ -805,14 +803,14 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
       if (isHorizontal) {
         addBox(layerName,
                beginX - beginExt,
-               beginY - width / 2,
+               beginY,
                endX + endExt,
-               endY + width / 2);
+               endY);
       } else {
         addBox(layerName,
-               beginX - width / 2,
+               beginX,
                beginY - beginExt,
-               endX + width / 2,
+               endX,
                endY + endExt);
       }
     }
