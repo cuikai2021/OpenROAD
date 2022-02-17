@@ -688,144 +688,129 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
 
 void OpenDBAdapter::addWire(odb::dbWire* wire)
 {
-  std::string layerName = "";
-  std::string viaName = "";
-  std::string shape = "";
-  bool hasBeginPoint = false;
-  bool hasEndPoint = false;
-  int beginX = -1;
-  int beginY = -1;
-  int beginExt = -1;
-  int endX = -1;
-  int endY = -1;
-  int endExt = -1;
-  bool hasRect = false;
-  int left = -1;
-  int bottom = -1;
-  int right = -1;
-  int top = -1;
-  int width = 0;
-  odb::dbWireDecoder decoder;
-  decoder.begin(wire);
-  odb::dbWireDecoder::OpCode pathId = decoder.next();
-  while (pathId != odb::dbWireDecoder::END_DECODE) {
-    layerName = "";
-    viaName = "";
-    shape = "";
-    hasBeginPoint = false;
-    hasEndPoint = false;
-    beginX = -1;
-    beginY = -1;
-    beginExt = -1;
-    endX = -1;
-    endY = -1;
-    endExt = -1;
-    hasRect = false;
-    left = -1;
-    bottom = -1;
-    right = -1;
-    top = -1;
-    width = 0;
-    bool endpath = false;
-    do {
-      switch (pathId) {
-        case odb::dbWireDecoder::PATH:
-        case odb::dbWireDecoder::JUNCTION:
-        case odb::dbWireDecoder::SHORT:
-        case odb::dbWireDecoder::VWIRE:
-          layerName = decoder.getLayer()->getName();
-          AssertFind(layerNameToIdxs_, layerName);
-          break;
-        case odb::dbWireDecoder::POINT:
-          if (!hasBeginPoint) {
-            decoder.getPoint(beginX, beginY);
-            hasBeginPoint = true;
-          } else {
-            decoder.getPoint(endX, endY);
-            hasEndPoint = true;
-          }
-          beginX = defdist(beginX);
-          beginY = defdist(beginY);
-          endX = defdist(endX);
-          endY = defdist(endY);
-          break;
-        case odb::dbWireDecoder::POINT_EXT:
-          if (!hasBeginPoint) {
-            decoder.getPoint(beginX, beginY, beginExt);
-            hasBeginPoint = true;
-          } else {
-            decoder.getPoint(endX, endY, endExt);
-            hasEndPoint = true;
-          }
-          beginX = defdist(beginX);
-          beginY = defdist(beginY);
-          beginExt = defdist(beginExt);
-          endX = defdist(endX);
-          endY = defdist(endY);
-          endExt = defdist(endExt);
+  auto doAddWire = [&](const std::string& layerName, int x1, int y1, int ext1, int x2, int y2, int ext2) {
+    int beginX = defdist(x1);
+    int beginY = defdist(y1);
+    int beginExt = defdist(ext1);
+    int endX = defdist(x2);
+    int endY = defdist(y2);
+    int endExt = defdist(ext2);
 
-          break;
-        case odb::dbWireDecoder::VIA:
-          viaName = decoder.getVia()->getName();
-          break;
-        case odb::dbWireDecoder::TECH_VIA:
-          viaName = decoder.getTechVia()->getName();
-          break;
-        case odb::dbWireDecoder::RECT:
-          decoder.getRect(left, bottom, right, top);
-          left = defdist(left);
-          bottom = defdist(bottom);
-          right = defdist(right);
-          top = defdist(top);
-          hasRect = true;
-          break;
-        case odb::dbWireDecoder::ITERM:
-        case odb::dbWireDecoder::BTERM:
-        case odb::dbWireDecoder::RULE:
-        case odb::dbWireDecoder::END_DECODE:
-          break;
-        default:
-          break;
-      }
-      pathId = decoder.next();
-      if ((int) pathId <= 3 || pathId == odb::dbWireDecoder::END_DECODE)
-        endpath = true;
-    } while (!endpath);
+    assert(beginX == endX || beginY == endY);
+    if (beginX > endX || beginY > endY) {
+      std::swap(beginX, endX);
+      std::swap(beginY, endY);
+      std::swap(beginExt, endExt);
+    }
+    bool isHorizontal = (beginX != endX);
+    if (isHorizontal) {
+      addBox(layerName, beginX - beginExt, beginY, endX + endExt, endY);
+    } else {
+      addBox(layerName, beginX, beginY - beginExt, endX, endY + endExt);
+    }
+  };
 
-    if (hasRect) {
-      addBox(layerName, left, bottom, right, top);
-    }
-    if (hasEndPoint) {
-      if (beginX > endX || beginY > endY) {
-        std::swap(beginX, endX);
-        std::swap(beginY, endY);
-        std::swap(beginExt, endExt);
-      }
-      bool isHorizontal = (beginX != endX);
-      if (isHorizontal) {
+  auto doAddRect = [&](const std::string& layerName, int x, int y, int deltaX1, int deltaY1, int deltaX2, int deltaY2) {
+        int x1 = x + deltaX1;
+        int y1 = y + deltaY1;
+        int x2 = x + deltaX2;
+        int y2 = y + deltaY2;
         addBox(layerName,
-               beginX - beginExt,
-               beginY - width / 2,
-               endX + endExt,
-               endY + width / 2);
-      } else {
-        addBox(layerName,
-               beginX - width / 2,
-               beginY - beginExt,
-               endX + width / 2,
-               endY + endExt);
+               defdist(x1),
+               defdist(y1),
+               defdist(x2),
+               defdist(y2));
+
+  };
+
+  auto doAddVia = [&](const std::string& name, int x, int y) {
+    addVia(name, defdist(x), defdist(y));
+  };
+
+  odb::dbWireDecoder decode;
+  int prevX = std::numeric_limits<int>::max();
+  int prevY = std::numeric_limits<int>::max();
+  int prevExt = std::numeric_limits<int>::max();
+  bool hasPrevCoor = false;
+
+  for (decode.begin(wire);;) {
+    odb::dbWireDecoder::OpCode opcode = decode.next();
+
+    switch (opcode) {
+      case odb::dbWireDecoder::PATH:
+      case odb::dbWireDecoder::SHORT:
+      case odb::dbWireDecoder::VWIRE:
+      case odb::dbWireDecoder::JUNCTION: {
+        hasPrevCoor = false;
+        break;
       }
-    }
-    if (viaName != "") {
-      int x, y;
-      if (hasEndPoint) {
-        x = endX;
-        y = endY;
-      } else {
-        x = beginX;
-        y = beginY;
+
+      case odb::dbWireDecoder::POINT: {
+        int x, y;
+        decode.getPoint(x, y);
+        if (hasPrevCoor) {
+          doAddWire(decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, 0);
+        }
+        prevX = x;
+        prevY = y;
+        prevExt = 0;
+        hasPrevCoor = true;
+        break;
       }
-      addVia(viaName, x, y);
+
+      case odb::dbWireDecoder::POINT_EXT: {
+        int x, y, ext;
+        decode.getPoint(x, y, ext);
+        if (hasPrevCoor) {
+          doAddWire(decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, ext);
+        }
+        prevX = x;
+        prevY = y;
+        prevExt = ext;
+        hasPrevCoor = true;
+        break;
+      }
+
+      case odb::dbWireDecoder::VIA: {
+        assert(hasPrevCoor);
+        doAddVia(decode.getVia()->getName(), prevX, prevY);
+        break;
+      }
+
+      case odb::dbWireDecoder::TECH_VIA: {
+        assert(hasPrevCoor);
+        doAddVia(decode.getTechVia()->getName(), prevX, prevY);
+        break;
+      }
+
+      case odb::dbWireDecoder::RECT: {
+        assert(hasPrevCoor);
+
+        int deltaX1;
+        int deltaY1; 
+        int deltaX2; 
+        int deltaY2;
+        decode.getRect(deltaX1, deltaY1, deltaX2, deltaY2);
+        doAddRect(decode.getLayer()->getName(),
+                  prevX,
+                  prevY,
+                  deltaX1,
+                  deltaY1,
+                  deltaX2,
+                  deltaY2);
+        break;
+      }
+
+      case odb::dbWireDecoder::ITERM:
+      case odb::dbWireDecoder::BTERM:
+      case odb::dbWireDecoder::RULE:
+        break;
+
+      case odb::dbWireDecoder::END_DECODE:
+        return;
+
+      default:
+        break;
     }
   }
 }

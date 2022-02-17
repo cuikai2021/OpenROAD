@@ -8,12 +8,13 @@ sta::define_cmd_args "banyan_route" {
     [-min_layer]
     [-max_layer]
     [-cts]
+    [-report_route_json]
 }
 
 
 proc banyan_route { args } {
   sta::parse_key_args "banyan_route" args \
-      keys {-log_level -debug_output -max_via_stack -min_layer -max_layer -enable_route -enable_maze_top} \
+      keys {-log_level -debug_output -max_via_stack -min_layer -max_layer -enable_route -enable_maze_top -report_route_json} \
       flags {-debug_save_txt -cts}
 
   sta::check_argc_eq0 "banyan_route" $args
@@ -66,8 +67,14 @@ proc banyan_route { args } {
   } else {
     set enable_maze_top "true"
   }
+
+  if { [info exists keys(-report_route_json)] } {
+    set report_route_json $keys(-report_route_json)
+  } else {
+    set report_route_json ""
+  }
   
-  banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack $min_layer $max_layer $cts $enable_route $enable_maze_top
+  banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack $min_layer $max_layer $cts $enable_route $enable_maze_top $report_route_json
 }
 
 

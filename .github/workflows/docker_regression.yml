@@ -1,24 +1,25 @@
 name: run regression
 on: 
-  push:     
-    branches:
-      - devops-dev
-  workflow_dispatch:
+  [pull_request, workflow_dispatch]
     
 jobs:
   set-env:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. get repo owner
+      - name: 1. check key inputs
         run: |
-          repo=${{ github.repository }}
-          echo "REPO_OWNER=${repo%/*}" >> $GITHUB_ENV
-          
+          echo "base_owner ${{ github.event.pull_request.base.repo.owner.login }}"
+          echo "head_owner ${{ github.event.pull_request.head.repo.owner.login }}"
+          echo "head_ref ${{ github.event.pull_request.head.ref }}"
+          echo "head_sha ${{ github.event.pull_request.head.sha }}"
+          echo "base_ref ${{ github.event.pull_request.base.ref }}"
+
       - name: 2. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
-          repo: ${{ env.REPO_OWNER }}/bamboo
+          repo: ${{ github.event.pull_request.base.repo.owner.login }}/bamboo
           ref: master
           workflow: release eden regressions docker
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
+          inputs: '{ "base_owner": "${{ github.event.pull_request.base.repo.owner.login }}","head_sha": "${{ github.event.pull_request.head.sha }}","head_ref": "${{ github.event.pull_request.head.ref }}","head_owner": "${{ github.event.pull_request.head.repo.owner.login }}"}'

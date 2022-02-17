@@ -126,7 +126,8 @@ class TritonCTS
                              int& minDepth,
                              int& maxDepth,
                              int depth,
-                             bool fullTree);
+                             bool fullTree
+                             , std::set<odb::dbITerm*> &_used_iterm);
   std::pair<int, int> branchBufferCount(ClockInst* inst,
                                         int bufCounter,
                                         Clock& clockNet);
