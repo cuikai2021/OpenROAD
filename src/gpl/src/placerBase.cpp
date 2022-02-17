@@ -265,6 +265,14 @@ Instance::dy() const {
 int64_t
 Instance::area() const
 {
+  if (inst_ != nullptr) {
+    auto master = inst_->getMaster();
+    if (master != nullptr) {
+      auto w = master->getWidth();
+      auto h = master->getHeight();
+      return w * h;
+    }
+  }
   return static_cast<int64_t>(dx()) * dy();
 }
 
