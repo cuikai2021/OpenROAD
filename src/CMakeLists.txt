@@ -438,6 +438,7 @@ if(GTEST STREQUAL ON)
     openroad_swig
     gpl
     dpl
+    dpo
     fin
     rsz
     ppl
@@ -454,6 +455,7 @@ if(GTEST STREQUAL ON)
     gui
     drt
     Banyan
+    dst
     mpl
     mpl2
     psm
