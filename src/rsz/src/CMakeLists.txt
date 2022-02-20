@@ -32,6 +32,9 @@
 ## POSSIBILITY OF SUCH DAMAGE.
 ##
 ############################################################################
+cmake_minimum_required(VERSION 3.14)
+
+find_package(ortools CONFIG REQUIRED)
 
 include("openroad")
 
@@ -49,6 +52,7 @@ target_sources(rsz
     Rebuffer.cc
     SteinerTree.cc
     EstimateWireParasitics.cc
+    LPResizer.cc
 )
 
 target_include_directories(rsz
@@ -66,6 +70,7 @@ target_link_libraries(rsz
     gui
     utl
     spdlog::spdlog
+    ortools::ortools
 )
 
 messages(
