@@ -790,7 +790,8 @@ Sdc*
 dbSta::getOrCreateSdcOpt(std::string name)
 {
   if (!sdc_list_.hasKey(name)) {
-    report_->warn(1001, "MMMC: create not default sdc \"%s\"", name.c_str());
+    debugPrint(logger_, STA, "MMMC", 1, "create not default sdc \"{}\"",
+            name.c_str());
     sdc_list_.insert(name, new Sdc(this));
   }
   return sdc_list_.findKey(name);
@@ -800,9 +801,43 @@ void
 dbSta::setSdcOpt(std::string name)
 {
   // switch to other sdc
-  report_->warn(1000, "MMMC: switch to sdc \"%s\"", name.c_str());
+  debugPrint(logger_, STA, "MMMC", 1, "switch to sdc \"{}\"",
+            name.c_str());
   sdc_ = getOrCreateSdcOpt(name);
   networkChanged();
+}
+
+void 
+dbSta::forEachSdc(const std::function<void()>& func)
+{
+  if(sdc_list_.size() <= 1)
+    return func();
+
+  for (auto s : sdc_list_) {
+    Sdc* sdc = s.second;
+    std::string name = s.first;
+    if(sdc && sdc->clocks()->size() > 0)
+    {
+      setSdcOpt(name);
+      func();
+    }
+    else
+      debugPrint(logger_, STA, "MMMC", 4, "ignore \"{}\", nullptr or no clock defined",
+              name.c_str());
+  }
+}
+
+void 
+dbSta::forEachSdc(const std::function<void(Sdc*)>& func)
+{
+  for (auto s : sdc_list_) {
+    Sdc* sdc = s.second;
+    if(sdc && sdc->clocks()->size() > 0)
+      func(sdc);
+    else
+      debugPrint(logger_, STA, "MMMC", 4, "ignore \"{}\", nullptr or no clock defined",
+              s.first.c_str());
+  }
 }
 
 } // namespace sta
