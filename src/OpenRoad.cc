@@ -67,6 +67,7 @@
 #include "rsz/MakeResizer.hh"
 #include "gui/MakeGui.h"
 #include "dpl/MakeOpendp.h"
+#include "dpo/MakeOptdp.h"
 #include "fin/MakeFinale.h"
 #include "mpl/MakeMacroPlacer.h"
 #include "mpl2/MakeMacroPlacer.h"
@@ -82,6 +83,7 @@
 #include "ant/MakeAntennaChecker.hh"
 #include "par/MakePartitionMgr.h"
 #include "pdn/MakePdnGen.hh"
+#include "dst/MakeDistributed.h"
 #include "stt/MakeSteinerTreeBuilder.h"
 
 namespace sta {
@@ -126,6 +128,7 @@ OpenRoad::OpenRoad()
     resizer_(nullptr),
     ioPlacer_(nullptr),
     opendp_(nullptr),
+    optdp_(nullptr),
     finale_(nullptr),
     macro_placer_(nullptr),
     macro_placer2_(nullptr),
@@ -141,6 +144,7 @@ OpenRoad::OpenRoad()
     pdnsim_(nullptr),
     partitionMgr_(nullptr),
     pdngen_(nullptr),
+    distributer_(nullptr),
     stt_builder_(nullptr),
     threads_(1)
 {
@@ -154,6 +158,7 @@ OpenRoad::~OpenRoad()
   deleteIoplacer(ioPlacer_);
   deleteResizer(resizer_);
   deleteOpendp(opendp_);
+  deleteOptdp(optdp_);
   deleteGlobalRouter(global_router_);
   deleteRestructure(restructure_);
   deleteTritonCts(tritonCts_);
@@ -169,6 +174,7 @@ OpenRoad::~OpenRoad()
   odb::dbDatabase::destroy(db_);
   deletePartitionMgr(partitionMgr_);
   deletePdnGen(pdngen_);
+  deleteDistributed(distributer_);
   deleteSteinerTreeBuilder(stt_builder_);
   delete logger_;
 }
@@ -216,6 +222,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   ioPlacer_ = makeIoplacer();
   resizer_ = makeResizer();
   opendp_ = makeOpendp();
+  optdp_ = makeOptdp();
   finale_ = makeFinale();
   global_router_ = makeGlobalRouter();
   restructure_ = makeRestructure();
@@ -231,6 +238,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   antenna_checker_ = makeAntennaChecker();
   partitionMgr_ = makePartitionMgr();
   pdngen_ = makePdnGen();
+  distributer_ = makeDistributed();
   stt_builder_ = makeSteinerTreeBuilder();
 
   // Init components.
@@ -248,6 +256,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initIoplacer(this);
   initReplace(this);
   initOpendp(this);
+  initOptdp(this);
   initFinale(this);
   initGlobalRouter(this);
   initTritonCts(this);
@@ -262,6 +271,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initAntennaChecker(this);
   initPartitionMgr(this);
   initPdnGen(this);
+  initDistributed(this);
   initSteinerTreeBuilder(this);
 
   // Import exported commands to global namespace.
@@ -337,6 +347,8 @@ stringToDefVersion(string version)
 {
   if (version == "5.8")
     return odb::defout::Version::DEF_5_8;
+  else if (version == "5.7")
+    return odb::defout::Version::DEF_5_7;
   else if (version == "5.6")
     return odb::defout::Version::DEF_5_6;
   else if (version == "5.5")
@@ -447,7 +459,9 @@ OpenRoad::unitsInitialized()
 odb::Rect
 OpenRoad::getCore()
 {
-  return ord::getCore(db_->getChip()->getBlock());
+  odb::Rect core;
+  db_->getChip()->getBlock()->getCoreArea(core);
+  return core;
 }
 
 void OpenRoad::addObserver(Observer *observer)
@@ -523,34 +537,6 @@ OpenRoad::setThreadCount(const char* threads, bool printInfo) {
 int
 OpenRoad::getThreadCount() {
   return threads_;
-}
-
-////////////////////////////////////////////////////////////////
-
-// Need a header for these functions cherry uses in
-// InitFloorplan, Resizer, OpenDP.
-
-Rect
-getCore(dbBlock *block)
-{
-  odb::Rect core;
-  block->getCoreArea(core);
-  return core;
-}
-
-// Return the point inside rect that is closest to pt.
-Point
-closestPtInRect(Rect rect, Point pt)
-{
-  return Point(min(max(pt.getX(), rect.xMin()), rect.xMax()),
-               min(max(pt.getY(), rect.yMin()), rect.yMax()));
-}
-
-Point
-closestPtInRect(Rect rect, int x, int y)
-{
-  return Point(min(max(x, rect.xMin()), rect.xMax()),
-               min(max(y, rect.yMin()), rect.yMax()));
 }
 
 } // namespace
