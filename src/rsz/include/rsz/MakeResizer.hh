@@ -38,10 +38,12 @@
 namespace sta {
 class dbSta;
 class Resizer;
+class LPResizer;
 }
 
 namespace rsz {
 class Resizer;
+class LPResizer;
 }
 
 namespace ord {
@@ -51,10 +53,19 @@ class OpenRoad;
 rsz::Resizer *
 makeResizer();
 
+rsz::LPResizer *
+makeLPResizer();
+
 void
 deleteResizer(rsz::Resizer *resizer);
 
 void
+deleteLPResizer(rsz::LPResizer *lp_resizer);
+
+void
 initResizer(OpenRoad *openroad);
+
+void
+initLPResizer(OpenRoad *openroad);
 
 } // namespace

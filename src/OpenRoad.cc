@@ -114,6 +114,7 @@ using odb::Point;
 using sta::evalTclInit;
 using sta::dbSta;
 using sta::Resizer;
+using sta::LPResizer;
 
 using utl::ORD;
 
@@ -124,6 +125,7 @@ OpenRoad::OpenRoad()
     verilog_network_(nullptr),
     sta_(nullptr),
     resizer_(nullptr),
+    lp_resizer_ (nullptr),
     ioPlacer_(nullptr),
     opendp_(nullptr),
     finale_(nullptr),
@@ -153,6 +155,7 @@ OpenRoad::~OpenRoad()
   deleteDbSta(sta_);
   deleteIoplacer(ioPlacer_);
   deleteResizer(resizer_);
+  deleteLPResizer(lp_resizer_);
   deleteOpendp(opendp_);
   deleteGlobalRouter(global_router_);
   deleteRestructure(restructure_);
@@ -215,6 +218,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   verilog_network_ = makeDbVerilogNetwork();
   ioPlacer_ = makeIoplacer();
   resizer_ = makeResizer();
+  lp_resizer_ = makeLPResizer();
   opendp_ = makeOpendp();
   finale_ = makeFinale();
   global_router_ = makeGlobalRouter();
@@ -244,6 +248,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initInitFloorplan(this);
   initDbSta(this);
   initResizer(this);
+  initLPResizer(this);
   initDbVerilogNetwork(this);
   initIoplacer(this);
   initReplace(this);

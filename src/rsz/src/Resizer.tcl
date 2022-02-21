@@ -459,6 +459,12 @@ sta::proc_redirect report_long_wires {
   rsz::report_long_wires_cmd $count $digits
 }
 
+sta::define_cmd_args "fix_hold_lp" {}
+
+proc fix_hold_lp {} {
+  rsz::fix_hold_lp
+}
+
 namespace eval rsz {
   
 # for testing resizing separately

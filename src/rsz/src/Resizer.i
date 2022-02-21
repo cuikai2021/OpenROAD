@@ -39,6 +39,7 @@
 
 #include "sta/Liberty.hh"
 #include "rsz/Resizer.hh"
+#include "rsz/LPResizer.hh"
 #include "sta/Delay.hh"
 #include "sta/Liberty.hh"
 
@@ -46,6 +47,10 @@ namespace ord {
 // Defined in OpenRoad.i
 rsz::Resizer *
 getResizer();
+
+rsz::LPResizer *
+getLPResizer();
+
 void
 ensureLinked();
 }
@@ -66,6 +71,7 @@ typedef PinSet TmpPinSet;
 } // namespace
 
 using ord::getResizer;
+using ord::getLPResizer;
 using ord::ensureLinked;
 
 using sta::Corner;
@@ -88,6 +94,7 @@ using sta::dbNetwork;
 using sta::stringEq;
 
 using rsz::Resizer;
+using rsz::LPResizer;
 using rsz::ParasiticsSrc;
 
 %}
@@ -621,6 +628,14 @@ find_fanin_fanouts(PinSet *pins)
 {
   Resizer *resizer = getResizer();
   return resizer->findFaninFanouts(pins);
+}
+
+void
+fix_hold_lp()
+{
+  ensureLinked();
+  LPResizer *lp_resizer = getLPResizer();
+  lp_resizer->fixHold();
 }
 
 } // namespace
