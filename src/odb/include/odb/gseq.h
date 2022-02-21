@@ -65,10 +65,10 @@ typedef short unsigned int pixints;
 #define INIT 0
 #define WIDTH 1
 #define SLICES 2
-#define SCALING 4
+#define GS_SCALING 4
 #define ALLOCATED 8
 
-#define GS_ALL (WIDTH | SLICES | SCALING | ALLOCATED)
+#define GS_ALL (WIDTH | SLICES | GS_SCALING | ALLOCATED)
 
 #define GS_FILE 1
 #define GS_STRING 2
