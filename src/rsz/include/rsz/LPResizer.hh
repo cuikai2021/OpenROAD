@@ -1,67 +1,113 @@
 #pragma once
 
-#include "Resizer.hh"
-#include "ortools/linear_solver/linear_solver.h"
+#include <ortools/linear_solver/linear_solver.h>
 
-#define MAX_BUF_LEN 256
-#define INFINITY (std::numeric_limits<double>::max)()
+#include "Resizer.hh"
+#include "sta/ArcDelayCalc.hh"
+#include "sta/Bfs.hh"
+#include "sta/Corner.hh"
+#include "sta/DcalcAnalysisPt.hh"
+#include "sta/FuncExpr.hh"
+#include "sta/Fuzzy.hh"
+#include "sta/Graph.hh"
+#include "sta/GraphDelayCalc.hh"
+#include "sta/InputDrive.hh"
+#include "sta/Liberty.hh"
+#include "sta/Network.hh"
+#include "sta/Parasitics.hh"
+#include "sta/PathExpanded.hh"
+#include "sta/PathRef.hh"
+#include "sta/PathVertex.hh"
+#include "sta/PortDirection.hh"
+#include "sta/Report.hh"
+#include "sta/Sdc.hh"
+#include "sta/Search.hh"
+#include "sta/SearchPred.hh"
+#include "sta/StaMain.hh"
+#include "sta/TimingArc.hh"
+#include "sta/TimingModel.hh"
+#include "sta/TimingRole.hh"
+#include "sta/Units.hh"
+
+#define LP_MAX_BUF 256
+#define LP_INFINITY (std::numeric_limits<float>::max)()
 #define ARR_MAX_NAME "A[%s]"
 #define ARR_MIN_NAME "a[%s]"
 #define ARR_WIRE_NAME "w[%s][%s]"
 
-using namespace operations_research;
-
 namespace rsz {
 
-const double infinity = (std::numeric_limits<T>::max)();
+using namespace operations_research;
+using namespace sta;
+
+using operations_research::MPSolver;
 
 typedef std::pair<Vertex*, Vertex*> WirePair;
+typedef sta::Set<WirePair> WirePairSet;
+typedef sta::Map<Sdc*, WirePairSet> WireListMap;
 typedef sta::Map<Vertex*, MPVariable*> VertexMPVarMap;
 typedef sta::Map<Sdc*, VertexMPVarMap> MMVertexMPVarMap;
 typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
-typedef sta::Map<const char*, MPConstraint*> MPConstraintMap;
+typedef sta::Map<int, MPConstraint*> MPConstraintMap;
 
-class LPResolver : public StaState
+typedef MPSolver::ResultStatus LPResult;
+
+class LPHoldFixer : public Resizer
 {
  public:
-  LPResolver(Vertex* end)
-      : end_(end), StaState(), solver_(MPSolver::CreateSolver("GLOP")){init()};
-  void init();
-  void doLP();
-  double getWirePadding(Vertex* pred, Vertex* succ);
+  LPHoldFixer();
+  LPResult doLP();
+  float getWirePadding(WirePair wire_pair);
+  WirePairSet getAllWirePairFrom(Vertex* vertex);
+  VertexSet getNonZeroPaddingPred();
 
  protected:
-  void makeVar(Sdc* sdc, Vertex* vertex);
+  void makeVar(Vertex* vertex);
+  void makeWire(Vertex* pred, Vertex* succ);
+  void makeVarFanins(VertexSet fanins);
+  void makeVarAllModes();
+
+  int addConstraints(float low_bound, float high_bound);
   void genPIConstraints();
   void genPOConstraints();
   void genWireConstraints();
-  const char[MAX_BUF_LEN] getVarName(Vertex* vertex, const char* fmt, ...);
-  __attribute__((format(printf, 3, 4)));
 
-  const char[MAX_BUF_LEN] getWireName(Vertex* pred,
-                                      Vertex* succ,
-                                      const char* fmt,
-                                      ...);
-  __attribute__((format(printf, 4, 5)));
+  float getRequired(Vertex* vertex, const MinMax* min_max);
+  float getDelay(WirePair wire);
+
+  bool isPI(Vertex* vertex);
+
+  const char* getVarName(Vertex* vertex, const char* fmt);
+  const char* getWireName(Vertex* pred, Vertex* succ);
 
   // variables
   int ct_index_ = 0;
 
-  Vertex* end_;
-  MPSolver solver_;
+  MPSolver* solver_;
   MMVertexMPVarMap arrival_max_;  // A
   MMVertexMPVarMap arrival_min_;  // a
   WireMPVarMap wire_;             // w
   MPConstraintMap constraint_;
 
-  sta::Map<Sdc*, WirePair> wire_list_;
-  dbSta sta_;
-}
+  WireListMap wire_list_;
+};
 
 class LPResizer : public Resizer
 {
  public:
-  LPResizer();
+  LPResizer() : Resizer(){};
+  void fixHold();
+
+ protected:
+  bool fixHoldCore();
+  bool insertBuffer(LPHoldFixer* fixer, Vertex* vertex);
+  bool insertAllBuffer(LPHoldFixer* fixer);
+
+  LibertyCell* findHoldBuffer(float min_limit, float max_limit);
+
+  const int max_insert_num_ = 10;
+  float uncertainty_ = 0.001f;
+
 };
 
 }  // namespace rsz
