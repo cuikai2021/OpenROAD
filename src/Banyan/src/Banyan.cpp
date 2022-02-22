@@ -100,6 +100,8 @@ int Banyan::main(const std::map<std::string, std::string>& options)
   Axioms axioms(bdAdapter);
 
   banyan_go::route_ret ret;
+  ::memset(&ret, 0, sizeof(ret));
+
   long long err = banyan_route(banyan_go::to_slice(options_vec),
                                bdAdapter.getDesign(),
                                banyan_go::to_slice(bdAdapter.getLayers()),
