@@ -44,9 +44,9 @@ using operations_research::MPSolver;
 
 typedef std::pair<Vertex*, Vertex*> WirePair;
 typedef sta::Set<WirePair> WirePairSet;
-typedef sta::Map<Sdc*, WirePairSet> WireListMap;
+typedef sta::Map<Sdc*, WirePairSet*> WireListMap;
 typedef sta::Map<Vertex*, MPVariable*> VertexMPVarMap;
-typedef sta::Map<Sdc*, VertexMPVarMap> MMVertexMPVarMap;
+typedef sta::Map<Sdc*, VertexMPVarMap*> MMVertexMPVarMap;
 typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
 typedef sta::Map<int, MPConstraint*> MPConstraintMap;
 
@@ -55,7 +55,9 @@ typedef MPSolver::ResultStatus LPResult;
 class LPHoldFixer : public Resizer
 {
  public:
-  LPHoldFixer();
+  LPHoldFixer(OpenRoad* openroad);
+  virtual ~LPHoldFixer();
+
   LPResult doLP();
   float getWirePadding(WirePair wire_pair);
   WirePairSet getAllWirePairFrom(Vertex* vertex);
@@ -77,11 +79,10 @@ class LPHoldFixer : public Resizer
 
   bool isPI(Vertex* vertex);
 
-  const char* getVarName(Vertex* vertex, const char* fmt);
-  const char* getWireName(Vertex* pred, Vertex* succ);
-
   // variables
   int ct_index_ = 0;
+  int var_index_ = 0;
+  int wire_index_ = 0;
 
   MPSolver* solver_;
   MMVertexMPVarMap arrival_max_;  // A
@@ -107,7 +108,6 @@ class LPResizer : public Resizer
 
   const int max_insert_num_ = 10;
   float uncertainty_ = 0.001f;
-
 };
 
 }  // namespace rsz
