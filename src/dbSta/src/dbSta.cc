@@ -810,9 +810,6 @@ dbSta::setSdcOpt(std::string name)
 void 
 dbSta::forEachSdc(const std::function<void()>& func)
 {
-  if(sdc_list_.size() <= 1)
-    return func();
-
   for (auto s : sdc_list_) {
     Sdc* sdc = s.second;
     std::string name = s.first;
