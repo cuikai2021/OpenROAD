@@ -27,22 +27,17 @@ LPHoldFixer::LPHoldFixer(OpenRoad* openroad)
        openroad->getSteinerTreeBuilder(),
        openroad->getGlobalRouter());
   makeVarAllModes();
-  genPIConstraints();
-  genPOConstraints();
-  genWireConstraints();
 }
 
 LPHoldFixer::~LPHoldFixer()
 {
-  for (auto w : wire_list_)
-    delete w.second;
   for (auto A : arrival_max_)
     delete A.second;
   for (auto a : arrival_min_)
     delete a.second;
 }
 
-void LPHoldFixer::makeVar(Vertex* vertex, MMVertexMPVarMap &arrival)
+void LPHoldFixer::makeVar(Vertex* vertex, MMVertexMPVarMap& arrival)
 {
   if (!arrival.hasKey(sdc_))
     arrival.insert(sdc_, new VertexMPVarMap());
@@ -56,22 +51,11 @@ void LPHoldFixer::makeVar(Vertex* vertex, MMVertexMPVarMap &arrival)
 void LPHoldFixer::makeWire(Vertex* pred, Vertex* succ)
 {
   WirePair wire(pred, succ);
-
-  if (!wire_list_.hasKey(sdc_))
-    wire_list_.insert(sdc_, new WirePairSet());
-
   if (!wire_.hasKey(wire))
     wire_.insert(
         wire,
         solver_->MakeNumVar(0.0, LP_INFINITY, std::to_string(wire_index_++)));
-  wire_list_.findKey(sdc_)->insert(wire);
-  debugPrint(logger_,
-             utl::RSZ,
-             "LPHoldFixer",
-             3,
-             "pair: {} -> {}",
-             pred->name(sdc_network_),
-             succ->name(sdc_network_));
+  genWireConstraints(wire);
 }
 
 void LPHoldFixer::makeVarFanins(VertexSet fanins)
@@ -113,6 +97,8 @@ void LPHoldFixer::makeVarAllModes()
       makeVarFanins(fanins);
       makeVarFanins(hold_failures);
     }
+    genPOConstraints(ends);
+    genPIConstraints();
   });
 }
 
@@ -132,43 +118,60 @@ bool LPHoldFixer::isPI(Vertex* vertex)
     if (w.first.second == vertex)
       return false;
   }
+  printf("%s is PI\n", vertex->name(sdc_network_));
   return true;
 }
 
 void LPHoldFixer::genPIConstraints()
 {
-  sta_->forEachSdc([&](Sdc* sdc) {
-    sdc_ = sta_->sdc();
-    VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-    for (auto A = map->begin(); A != map->end(); ++A) {
-      Vertex* vertex = A->first;
-      if (isPI(vertex)) {
-        // A(PI) == 0.0
-        int index = addConstraints(0.0f, 0.0f);
-        constraint_.findKey(index)->SetCoefficient(A->second, 1);
-        // a(PI)) == 0.0
-        index = addConstraints(0.0f, 0.0f);
-        constraint_.findKey(index)->SetCoefficient(
-            arrival_min_.findKey(sdc_)->findKey(vertex), 1);
-      }
+  VertexMPVarMap* map = arrival_max_.findKey(sdc_);
+  for (auto A = map->begin(); A != map->end(); ++A) {
+    Vertex* vertex = A->first;
+    if (isPI(vertex)) {
+      float delay = getArrivalMax(vertex);
+      // A(PI) == 0.0
+      int index = addConstraints(delay, delay);
+      constraint_.findKey(index)->SetCoefficient(A->second, 1);
+      // a(PI)) == 0.0
+      index = addConstraints(delay, delay);
+      constraint_.findKey(index)->SetCoefficient(
+          arrival_min_.findKey(sdc_)->findKey(vertex), 1);
     }
-  });
+  }
 }
 
 float LPHoldFixer::getRequired(Vertex* vertex, const MinMax* min_max)
 {
-  float extreme_required = INF;
+  float extreme_required = 0.0f;
   VertexPathIterator path_iter(vertex, sta_);
   while (path_iter.hasNext()) {
     Path* path = path_iter.next();
     if (path->minMax(this) == min_max) {
       float required = path->required(sta_);
-      if ((min_max == MinMax::max() ^ fuzzyLess(required, extreme_required))
-          || fuzzyInf(extreme_required))
+      if ((fuzzyLess(extreme_required, required)))
         extreme_required = required;
     }
   }
+  printf("extreme_require of %s : %s\n",
+         vertex->name(sdc_network_),
+         delayAsString(extreme_required, this, 3));
   return extreme_required;
+}
+
+float LPHoldFixer::getArrivalMax(Vertex* vertex)
+{
+  float max_arrival = 0.0f;
+  VertexPathIterator path_iter(vertex, sta_);
+  while (path_iter.hasNext()) {
+    Path* path = path_iter.next();
+    float arrival = path->arrival(sta_);
+    if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
+      max_arrival = arrival;
+  }
+  printf("arrival_max of %s : %s\n",
+         vertex->name(sdc_network_),
+         delayAsString(max_arrival, this, 3));
+  return max_arrival;
 }
 
 void LPHoldFixer::makeDelay(Vertex* vertex)
@@ -186,11 +189,11 @@ void LPHoldFixer::makeDelay(Vertex* vertex)
       Vertex* path_vertex = path->vertex(sta_);
       if (vertex == path_vertex) {
         TimingArc* prev_arc = expanded.prevArc(i);
-        TimingArc* corner_arc = prev_arc->cornerArc(lib_ap);
+        // TimingArc* corner_arc = prev_arc->cornerArc(lib_ap);
         Edge* prev_edge = path->prevEdge(prev_arc, sta_);
         load_delay = graph_->arcDelay(prev_edge, prev_arc, dcalc_ap->index());
         // Remove intrinsic delay to find load dependent delay.
-        -corner_arc->intrinsicDelay();
+        //  - corner_arc->intrinsicDelay();
         debugPrint(logger_,
                    utl::RSZ,
                    "LPHoldFixer",
@@ -211,58 +214,49 @@ float LPHoldFixer::getDelay(Vertex* vertex)
   return delay_map_[vertex];
 }
 
-void LPHoldFixer::genPOConstraints()
+void LPHoldFixer::genPOConstraints(VertexSet* ends)
 {
-  sta_->forEachSdc([&]() {
-    // init();
-    sdc_ = sta_->sdc();
-    sta_->findRequireds();
-    VertexSet* ends = sta_->search()->endpoints();
-    VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-    for (auto A = map->begin(); A != map->end(); ++A) {
-      Vertex* vertex = A->first;
-      if (ends->hasKey(vertex)) {
-        // -A(PO) >= -R(PO)
-        int index = addConstraints(0.0f - getRequired(vertex, MinMax::max()),
-                                   LP_INFINITY);
-        constraint_.findKey(index)->SetCoefficient(A->second, -1);
-        // a(PO)) >= r(PO)
-        index = addConstraints(getRequired(vertex, MinMax::min()), LP_INFINITY);
-        constraint_.findKey(index)->SetCoefficient(
-            arrival_min_.findKey(sdc_)->findKey(vertex), 1);
-      }
+  VertexMPVarMap* map = arrival_max_.findKey(sdc_);
+  for (auto A = map->begin(); A != map->end(); ++A) {
+    Vertex* vertex = A->first;
+    if (ends->hasKey(vertex)) {
+      // -A(PO) >= -R(PO)
+      int index = addConstraints(0.0f - getArrivalMax(vertex), LP_INFINITY);
+      constraint_.findKey(index)->SetCoefficient(A->second, -1);
+      // a(PO)) >= r(PO)
+      index = addConstraints(getRequired(vertex, MinMax::min()), LP_INFINITY);
+      constraint_.findKey(index)->SetCoefficient(
+          arrival_min_.findKey(sdc_)->findKey(vertex), 1);
     }
-  });
+  }
 }
 
-void LPHoldFixer::genWireConstraints()
+void LPHoldFixer::genWireConstraints(WirePair wire)
 {
-  sta_->forEachSdc([&]() {
-    // init();
-    sdc_ = sta_->sdc();
-    sta_->findRequireds();
-    WirePairSet* map = wire_list_.findKey(sdc_);
-    VertexSet* ends = sta_->search()->endpoints();
-    for (auto iter = map->begin(); iter != map->end(); ++iter) {
-      WirePair wire = *iter;
-      Vertex* pred = wire.first;
-      Vertex* succ = wire.second;
-      VertexMPVarMap* A = arrival_max_.findKey(sdc_);
-      VertexMPVarMap* a = arrival_max_.findKey(sdc_);
-      MPVariable* w_var = wire_.findKey(wire);
-      float delay = getDelay(succ);
-      // Aj >= Ai + wij + delay  -->  -Ai + Aj - wij >= delay
-      int index = addConstraints(delay, LP_INFINITY);
-      constraint_.findKey(index)->SetCoefficient(A->findKey(pred), -1);
-      constraint_.findKey(index)->SetCoefficient(A->findKey(succ), 1);
-      constraint_.findKey(index)->SetCoefficient(w_var, -1);
-      // aj <= ai + wij + delay  -->  ai - aj + wij >= -delay
-      index = addConstraints(0.0f - delay, LP_INFINITY);
-      constraint_.findKey(index)->SetCoefficient(a->findKey(pred), 1);
-      constraint_.findKey(index)->SetCoefficient(a->findKey(succ), -1);
-      constraint_.findKey(index)->SetCoefficient(w_var, 1);
-    }
-  });
+  Vertex* pred = wire.first;
+  Vertex* succ = wire.second;
+  VertexMPVarMap* A = arrival_max_.findKey(sdc_);
+  VertexMPVarMap* a = arrival_min_.findKey(sdc_);
+  MPVariable* w_var = wire_.findKey(wire);
+  float delay = getDelay(succ);
+  debugPrint(logger_,
+             utl::RSZ,
+             "LPHoldFixer",
+             3,
+             "delay between {} -> {} : {}",
+             pred->name(sta_->sdcNetwork()),
+             succ->name(sta_->sdcNetwork()),
+             delayAsString(delay, sta_, 3));
+  // Aj >= Ai + wij + delay  -->  -Ai + Aj - wij >= delay
+  int index = addConstraints(delay, LP_INFINITY);
+  constraint_.findKey(index)->SetCoefficient(A->findKey(pred), -1);
+  constraint_.findKey(index)->SetCoefficient(A->findKey(succ), 1);
+  constraint_.findKey(index)->SetCoefficient(w_var, -1);
+  // aj <= ai + wij + delay  -->  ai - aj + wij >= -delay
+  index = addConstraints(0.0f - delay, LP_INFINITY);
+  constraint_.findKey(index)->SetCoefficient(a->findKey(pred), 1);
+  constraint_.findKey(index)->SetCoefficient(a->findKey(succ), -1);
+  constraint_.findKey(index)->SetCoefficient(w_var, 1);
 }
 
 LPResult LPHoldFixer::doLP()
@@ -285,7 +279,7 @@ float LPHoldFixer::getWirePadding(WirePair wire_pair)
              "padding between {} -> {} : {}",
              wire_pair.first->name(sta_->sdcNetwork()),
              wire_pair.second->name(sta_->sdcNetwork()),
-             padding);
+             delayAsString(padding, sta_, 3));
   return padding;
 }
 
@@ -308,6 +302,14 @@ VertexSet LPHoldFixer::getNonZeroPaddingPred()
     WirePair wire_pair = w.first;
     Vertex* pred = wire_pair.first;
     float padding = w.second->solution_value();
+    debugPrint(logger_,
+               utl::RSZ,
+               "LPHoldFixer",
+               3,
+               "padding between {} -> {} : {}",
+               wire_pair.first->name(sdc_network_),
+               wire_pair.second->name(sdc_network_),
+               delayAsString(padding, sta_, 3));
     if (vio_pred_set.find(pred) != vio_pred_set.end()
         && fuzzyLess(0.0f, padding))
       vio_pred_set.insert(pred);

@@ -44,7 +44,6 @@ using operations_research::MPSolver;
 
 typedef std::pair<Vertex*, Vertex*> WirePair;
 typedef sta::Set<WirePair> WirePairSet;
-typedef sta::Map<Sdc*, WirePairSet*> WireListMap;
 typedef sta::Map<Vertex*, MPVariable*> VertexMPVarMap;
 typedef sta::Map<Sdc*, VertexMPVarMap*> MMVertexMPVarMap;
 typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
@@ -71,10 +70,11 @@ class LPHoldFixer : public Resizer
 
   int addConstraints(float low_bound, float high_bound);
   void genPIConstraints();
-  void genPOConstraints();
-  void genWireConstraints();
+  void genPOConstraints(VertexSet* ends);
+  void genWireConstraints(WirePair wire);
 
   float getRequired(Vertex* vertex, const MinMax* min_max);
+  float getArrivalMax(Vertex* vertex);
   void makeDelay(Vertex* vertex);
   float getDelay(Vertex* vertex);
 
@@ -91,7 +91,6 @@ class LPHoldFixer : public Resizer
   WireMPVarMap wire_;             // w
   MPConstraintMap constraint_;
 
-  WireListMap wire_list_;
   sta::Map<Vertex *, float> delay_map_;
 };
 
@@ -108,7 +107,6 @@ class LPResizer : public Resizer
 
   LibertyCell* findHoldBuffer(float min_limit, float max_limit);
 
-  const int max_insert_num_ = 10;
   float uncertainty_ = 0.001f;
 };
 
