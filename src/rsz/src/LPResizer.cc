@@ -42,20 +42,12 @@ LPHoldFixer::~LPHoldFixer()
     delete a.second;
 }
 
-void LPHoldFixer::makeVar(Vertex* vertex)
+void LPHoldFixer::makeVar(Vertex* vertex, MMVertexMPVarMap &arrival)
 {
-  if (!arrival_max_.hasKey(sdc_))
-    arrival_max_.insert(sdc_, new VertexMPVarMap());
-  if (!arrival_max_.findKey(sdc_)->hasKey(vertex)) {
-    arrival_max_.findKey(sdc_)->insert(
-        vertex,
-        solver_->MakeNumVar(0.0, LP_INFINITY, std::to_string(var_index_++)));
-  }
-
-  if (!arrival_min_.hasKey(sdc_))
-    arrival_min_.insert(sdc_, new VertexMPVarMap());
-  if (!arrival_min_.findKey(sdc_)->hasKey(vertex)) {
-    arrival_min_.findKey(sdc_)->insert(
+  if (!arrival.hasKey(sdc_))
+    arrival.insert(sdc_, new VertexMPVarMap());
+  if (!arrival.findKey(sdc_)->hasKey(vertex)) {
+    arrival.findKey(sdc_)->insert(
         vertex,
         solver_->MakeNumVar(0.0, LP_INFINITY, std::to_string(var_index_++)));
   }
@@ -73,14 +65,21 @@ void LPHoldFixer::makeWire(Vertex* pred, Vertex* succ)
         wire,
         solver_->MakeNumVar(0.0, LP_INFINITY, std::to_string(wire_index_++)));
   wire_list_.findKey(sdc_)->insert(wire);
-  printf(
-      "pair: %s -> %s\n", pred->name(sdc_network_), succ->name(sdc_network_));
+  debugPrint(logger_,
+             utl::RSZ,
+             "LPHoldFixer",
+             3,
+             "pair: {} -> {}",
+             pred->name(sdc_network_),
+             succ->name(sdc_network_));
 }
 
 void LPHoldFixer::makeVarFanins(VertexSet fanins)
 {
   for (auto vertex : fanins) {
-    makeVar(vertex);
+    makeVar(vertex, arrival_max_);
+    makeVar(vertex, arrival_min_);
+    makeDelay(vertex);
     SearchPredNonReg2 pred(sta_);
     BfsBkwdIterator iter(BfsIndex::other, &pred, this);
     iter.enqueueAdjacentVertices(vertex);
@@ -129,12 +128,8 @@ int LPHoldFixer::addConstraints(float low_bound, float high_bound)
 
 bool LPHoldFixer::isPI(Vertex* vertex)
 {
-  SearchPredNonReg2 search_pred(sta_);
-  VertexInEdgeIterator edge_iter(vertex, sta_->graph());
-  while (edge_iter.hasNext()) {
-    Edge* edge = edge_iter.next();
-    Vertex* from_vertex = edge->from(sta_->graph());
-    if (search_pred.searchFrom(from_vertex) && search_pred.searchThru(edge))
+  for (auto w : wire_) {
+    if (w.first.second == vertex)
       return false;
   }
   return true;
@@ -176,18 +171,50 @@ float LPHoldFixer::getRequired(Vertex* vertex, const MinMax* min_max)
   return extreme_required;
 }
 
-float LPHoldFixer::getDelay(WirePair wire)
+void LPHoldFixer::makeDelay(Vertex* vertex)
 {
-  Vertex* succ = wire.second;
-  Pin* pin = succ->pin();
-  LibertyPort* drvr_port = sta_->network()->libertyPort(pin);
-  return gateDelay(drvr_port, 0.0f, tgt_slew_dcalc_ap_);
+  if (!delay_map_.hasKey(vertex)) {
+    Delay load_delay = 0.0f;
+    PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+    PathExpanded expanded(&path, sta_);
+    const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
+    int lib_ap = dcalc_ap->libertyIndex();
+    int start_index = expanded.startIndex();
+    int path_length = expanded.size();
+    for (int i = start_index; i < path_length; i++) {
+      PathRef* path = expanded.path(i);
+      Vertex* path_vertex = path->vertex(sta_);
+      if (vertex == path_vertex) {
+        TimingArc* prev_arc = expanded.prevArc(i);
+        TimingArc* corner_arc = prev_arc->cornerArc(lib_ap);
+        Edge* prev_edge = path->prevEdge(prev_arc, sta_);
+        load_delay = graph_->arcDelay(prev_edge, prev_arc, dcalc_ap->index());
+        // Remove intrinsic delay to find load dependent delay.
+        -corner_arc->intrinsicDelay();
+        debugPrint(logger_,
+                   utl::RSZ,
+                   "LPHoldFixer",
+                   3,
+                   "{} load_delay = {}",
+                   path_vertex->name(network_),
+                   delayAsString(load_delay, sta_, 3));
+      }
+    }
+    delay_map_.insert(vertex, load_delay);
+  }
+}
+
+float LPHoldFixer::getDelay(Vertex* vertex)
+{
+  if (!delay_map_.hasKey(vertex))
+    return 0.0f;
+  return delay_map_[vertex];
 }
 
 void LPHoldFixer::genPOConstraints()
 {
   sta_->forEachSdc([&]() {
-    init();
+    // init();
     sdc_ = sta_->sdc();
     sta_->findRequireds();
     VertexSet* ends = sta_->search()->endpoints();
@@ -211,7 +238,7 @@ void LPHoldFixer::genPOConstraints()
 void LPHoldFixer::genWireConstraints()
 {
   sta_->forEachSdc([&]() {
-    init();
+    // init();
     sdc_ = sta_->sdc();
     sta_->findRequireds();
     WirePairSet* map = wire_list_.findKey(sdc_);
@@ -223,9 +250,7 @@ void LPHoldFixer::genWireConstraints()
       VertexMPVarMap* A = arrival_max_.findKey(sdc_);
       VertexMPVarMap* a = arrival_max_.findKey(sdc_);
       MPVariable* w_var = wire_.findKey(wire);
-      float delay = 0.0f;
-      if (!ends->hasKey(succ))
-        float delay = getDelay(wire);
+      float delay = getDelay(succ);
       // Aj >= Ai + wij + delay  -->  -Ai + Aj - wij >= delay
       int index = addConstraints(delay, LP_INFINITY);
       constraint_.findKey(index)->SetCoefficient(A->findKey(pred), -1);
@@ -244,9 +269,6 @@ LPResult LPHoldFixer::doLP()
 {
   MPObjective* const objective = solver_->MutableObjective();
   for (auto w : wire_) {
-    printf("pair: %s -> %s\n",
-           w.first.first->name(sdc_network_),
-           w.first.second->name(sdc_network_));
     objective->SetCoefficient(w.second, 1);
   }
   objective->SetMinimization();
@@ -286,14 +308,6 @@ VertexSet LPHoldFixer::getNonZeroPaddingPred()
     WirePair wire_pair = w.first;
     Vertex* pred = wire_pair.first;
     float padding = w.second->solution_value();
-    debugPrint(logger_,
-               utl::RSZ,
-               "LPHoldFixer",
-               3,
-               "padding between {} -> {} : {}",
-               pred->name(sta_->sdcNetwork()),
-               wire_pair.second->name(sta_->sdcNetwork()),
-               padding);
     if (vio_pred_set.find(pred) != vio_pred_set.end()
         && fuzzyLess(0.0f, padding))
       vio_pred_set.insert(pred);
@@ -345,8 +359,7 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
         min_padding = padding;
     }
   }
-  LibertyCell* buffer_cell
-      = findHoldBuffer(min_padding - uncertainty_, min_padding + uncertainty_);
+  LibertyCell* buffer_cell = findHoldBuffer(0.0f, min_padding + uncertainty_);
   if (buffer_cell != nullptr) {
     makeHoldDelay(vertex, 1, load_pins, loads_have_out_port, buffer_cell);
     inserted_buffer_count_++;

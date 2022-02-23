@@ -64,7 +64,7 @@ class LPHoldFixer : public Resizer
   VertexSet getNonZeroPaddingPred();
 
  protected:
-  void makeVar(Vertex* vertex);
+  void makeVar(Vertex* vertex, MMVertexMPVarMap &arrival);
   void makeWire(Vertex* pred, Vertex* succ);
   void makeVarFanins(VertexSet fanins);
   void makeVarAllModes();
@@ -75,7 +75,8 @@ class LPHoldFixer : public Resizer
   void genWireConstraints();
 
   float getRequired(Vertex* vertex, const MinMax* min_max);
-  float getDelay(WirePair wire);
+  void makeDelay(Vertex* vertex);
+  float getDelay(Vertex* vertex);
 
   bool isPI(Vertex* vertex);
 
@@ -91,6 +92,7 @@ class LPHoldFixer : public Resizer
   MPConstraintMap constraint_;
 
   WireListMap wire_list_;
+  sta::Map<Vertex *, float> delay_map_;
 };
 
 class LPResizer : public Resizer
