@@ -29,11 +29,8 @@
 #include "sta/TimingRole.hh"
 #include "sta/Units.hh"
 
-#define LP_MAX_BUF 256
 #define LP_INFINITY (std::numeric_limits<float>::max)()
-#define ARR_MAX_NAME "A[%s]"
-#define ARR_MIN_NAME "a[%s]"
-#define ARR_WIRE_NAME "w[%s][%s]"
+#define LP_SCALING 100000
 
 namespace rsz {
 
@@ -63,7 +60,7 @@ class LPHoldFixer : public Resizer
   VertexSet getNonZeroPaddingPred();
 
  protected:
-  void makeVar(Vertex* vertex, MMVertexMPVarMap &arrival);
+  void makeVar(Vertex* vertex, MMVertexMPVarMap& arrival);
   void makeWire(Vertex* pred, Vertex* succ);
   void makeVarFanins(VertexSet fanins);
   void makeVarAllModes();
@@ -78,12 +75,15 @@ class LPHoldFixer : public Resizer
   void makeDelay(Vertex* vertex);
   float getDelay(Vertex* vertex);
 
+  // can not do lp for 10^-10, should zoom in
+  float zoomIn(float ori) { return ori * LP_SCALING; }
+  float zoomOut(float ori) { return ori / LP_SCALING; }
+
   bool isPI(Vertex* vertex);
 
   // variables
   int ct_index_ = 0;
   int var_index_ = 0;
-  int wire_index_ = 0;
 
   MPSolver* solver_;
   MMVertexMPVarMap arrival_max_;  // A
@@ -91,7 +91,7 @@ class LPHoldFixer : public Resizer
   WireMPVarMap wire_;             // w
   MPConstraintMap constraint_;
 
-  sta::Map<Vertex *, float> delay_map_;
+  sta::Map<Vertex*, float> delay_map_;
 };
 
 class LPResizer : public Resizer
@@ -104,10 +104,15 @@ class LPResizer : public Resizer
   bool fixHoldCore();
   bool insertBuffer(LPHoldFixer* fixer, Vertex* vertex);
   bool insertAllBuffer(LPHoldFixer* fixer);
+  Pin* findFanoutPin(WirePair wire_pair);
+  void insertHoldDelay(Vertex* drvr,
+                       int buffer_count,
+                       PinSeq& load_pins,
+                       bool loads_have_out_port,
+                       LibertyCell* buffer_cell);
 
-  LibertyCell* findHoldBuffer(float min_limit, float max_limit);
+  LibertyCell* findHoldBuffer(float min_limit);
 
-  float uncertainty_ = 0.001f;
 };
 
 }  // namespace rsz
