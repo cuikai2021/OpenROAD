@@ -77,6 +77,7 @@ class LPHoldFixer : public Resizer
   float getArrivalMax(Vertex* vertex);
   void makeDelay(Vertex* vertex);
   float getDelay(Vertex* vertex);
+  float getCriLongArrival(Vertex* end);
 
   // can not do lp for 10^-10, should zoom in
   float zoomIn(float ori) { return ori * LP_SCALING; }

@@ -131,12 +131,13 @@ void LPHoldFixer::genPIConstraints()
   for (auto A = map->begin(); A != map->end(); ++A) {
     Vertex* vertex = A->first;
     if (isPI(vertex)) {
-      float delay = zoomIn(getArrivalMax(vertex));
+      float arrival = zoomIn(getArrivalMax(vertex));
+      float delay = zoomIn(getDelay(vertex));
       // A(PI) == delay_init
       int index = addConstraints(delay, delay);
       constraint_.findKey(index)->SetCoefficient(A->second, 1);
       // a(PI)) == delay_init
-      index = addConstraints(delay, delay);
+      index = addConstraints(arrival, arrival);
       constraint_.findKey(index)->SetCoefficient(
           arrival_min_.findKey(sdc_)->findKey(vertex), 1);
     }
@@ -171,9 +172,32 @@ float LPHoldFixer::getArrivalMax(Vertex* vertex)
   return max_arrival;
 }
 
+float LPHoldFixer::getCriLongArrival(Vertex* end)
+{
+  float sum = 0.0f;
+  const Slack end_slack = sta_->vertexSlack(end, MinMax::max());
+  Vertex* vertex = end;
+  while (!isPI(vertex) || !vertex->isDriver(sta_->network())){
+    sum += getDelay(vertex);
+    Vertex* opt_vertex = vertex;
+    VertexInEdgeIterator edge_iter(opt_vertex, sta_->graph());
+    while (edge_iter.hasNext()) {
+      Edge* edge = edge_iter.next();
+      Vertex* fanin = edge->from(sta_->graph());
+      Slack slack = sta_->vertexSlack(fanin, MinMax::max());
+      if (fuzzyEqual(end_slack, slack)) {
+        vertex = fanin;
+        break;
+      }
+    }
+  }
+  sum += getDelay(vertex);  // PI delay
+  return sum;
+}
+
 void LPHoldFixer::makeDelay(Vertex* vertex)
 {
-  if (!delay_map_.hasKey(vertex)) {
+  if (!delay_map_.hasKey(vertex) || isPI(vertex)) {
     Delay load_delay = 0.0f;
     PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
     PathExpanded expanded(&path, sta_);
@@ -218,8 +242,8 @@ void LPHoldFixer::genPOConstraints(VertexSet* ends)
     Vertex* vertex = A->first;
     if (ends->hasKey(vertex)) {
       // -A(PO) >= -R(PO)
-      int index = addConstraints(-zoomIn(getRequired(vertex, MinMax::max())),
-                                 LP_INFINITY);
+      int index
+          = addConstraints(-zoomIn(getCriLongArrival(vertex)), LP_INFINITY);
       constraint_.findKey(index)->SetCoefficient(A->second, -1);
       // a(PO)) >= r(PO)
       index = addConstraints(zoomIn(getRequired(vertex, MinMax::min())),
