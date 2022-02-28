@@ -262,7 +262,9 @@ LPResult LPHoldFixer::doLP()
 {
   MPObjective* const objective = solver_->MutableObjective();
   for (auto w : wire_) {
-    objective->SetCoefficient(w.second, 1);
+    Vertex* pred = w.first.first;
+    double priority = 1.0 + pred->level() * LP_PRIORITY;
+    objective->SetCoefficient(w.second, priority);
   }
   objective->SetMinimization();
   logger_->info(
