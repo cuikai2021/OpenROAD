@@ -32,6 +32,8 @@
 #define LP_INFINITY (std::numeric_limits<float>::max)()
 #define LP_SCALING 100000
 #define LP_PRIORITY 0.0000001
+#define LP_STA_SCALING 1000000000
+#define LP_ROUNDING_LIMIT 0.009f / LP_STA_SCALING
 
 namespace rsz {
 

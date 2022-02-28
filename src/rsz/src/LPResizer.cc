@@ -309,7 +309,7 @@ VertexSet LPHoldFixer::getNonZeroPaddingPred()
     WirePair wire_pair = w.first;
     Vertex* pred = wire_pair.first;
     float padding = zoomOut(w.second->solution_value());
-    if (fuzzyLess(0.0f, padding)) {
+    if (fuzzyLess(LP_ROUNDING_LIMIT, padding)) {
       logger_->info(utl::RSZ,
                     1105,
                     "non zero padding between {} -> {} : {}",
@@ -453,7 +453,7 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
   float min_padding = INF;
   for (auto wire_pair : wire_pair_set) {
     float padding = fixer->getWirePadding(wire_pair);
-    if (fuzzyLess(0.0f, padding)) {
+    if (fuzzyLess(LP_ROUNDING_LIMIT, padding)) {
       Pin* fanout_pin = findFanoutPin(wire_pair);
       if (fanout_pin != nullptr) {
         load_pins.push_back(fanout_pin);
