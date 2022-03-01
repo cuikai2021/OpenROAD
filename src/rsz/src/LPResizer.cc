@@ -70,7 +70,7 @@ void LPHoldFixer::makeVarFanins(VertexSet fanins)
     iter.enqueueAdjacentVertices(vertex);
     while (iter.hasNext()) {
       Vertex* fanin = iter.next();
-      if (!fanin->isDriver(network_))
+      if (!fanin->isDriver(sta_->network()))
         iter.enqueueAdjacentVertices(fanin);
       else {
         makeVar(fanin, arrival_max_);
@@ -248,7 +248,7 @@ void LPHoldFixer::makeDelay(Vertex* vertex)
         TimingArc* prev_arc = expanded.prevArc(i);
         // TimingArc* corner_arc = prev_arc->cornerArc(lib_ap);
         Edge* prev_edge = path->prevEdge(prev_arc, sta_);
-        load_delay = graph_->arcDelay(prev_edge, prev_arc, dcalc_ap->index());
+        load_delay = sta_->graph()->arcDelay(prev_edge, prev_arc, dcalc_ap->index());
         // Remove intrinsic delay to find load dependent delay.
         //  - corner_arc->intrinsicDelay();
         debugPrint(logger_,
@@ -256,7 +256,7 @@ void LPHoldFixer::makeDelay(Vertex* vertex)
                    "LPHoldFixer",
                    4,
                    "{} load_delay = {}",
-                   path_vertex->name(network_),
+                   path_vertex->name(sta_->network()),
                    delayAsString(load_delay, sta_, 3));
       }
     }
@@ -435,18 +435,18 @@ void LPResizer::insertHoldDelay(Vertex* drvr,
                                 LibertyCell* buffer_cell)
 {
   Pin* drvr_pin = drvr->pin();
-  Instance* parent = db_network_->topInstance();
-  Net* drvr_net = network_->isTopLevelPort(drvr_pin)
-                      ? db_network_->net(db_network_->term(drvr_pin))
-                      : db_network_->net(drvr_pin);
+  Instance* parent = sta_->getDbNetwork()->topInstance();
+  Net* drvr_net = sta_->network()->isTopLevelPort(drvr_pin)
+                      ? sta_->getDbNetwork()->net(sta_->getDbNetwork()->term(drvr_pin))
+                      : sta_->getDbNetwork()->net(drvr_pin);
   Net *in_net, *out_net;
   if (loads_have_out_port) {
     // Verilog uses nets as ports, so the net connected to an output port has
     // to be preserved.
     // Move the driver pin over to gensym'd net.
     in_net = makeUniqueNet();
-    Port* drvr_port = network_->port(drvr_pin);
-    Instance* drvr_inst = network_->instance(drvr_pin);
+    Port* drvr_port = sta_->network()->port(drvr_pin);
+    Instance* drvr_inst = sta_->network()->instance(drvr_pin);
     sta_->disconnectPin(drvr_pin);
     sta_->connectPin(drvr_inst, drvr_port, in_net);
     out_net = drvr_net;
@@ -457,7 +457,7 @@ void LPResizer::insertHoldDelay(Vertex* drvr,
 
   parasiticsInvalid(in_net);
   // Spread buffers between driver and load center.
-  Point drvr_loc = db_network_->location(drvr_pin);
+  Point drvr_loc = sta_->getDbNetwork()->location(drvr_pin);
   Point load_center = findCenter(load_pins);
   int dx = (load_center.x() - drvr_loc.x()) / (buffer_count + 1);
   int dy = (load_center.y() - drvr_loc.y()) / (buffer_count + 1);
@@ -472,10 +472,10 @@ void LPResizer::insertHoldDelay(Vertex* drvr,
     // drvr_pin->drvr_net->hold_buffer->net2->load_pins
     string buffer_name = makeUniqueInstName("hold");
     buffer
-        = db_network_->makeInstance(buffer_cell, buffer_name.c_str(), parent);
+        = sta_->getDbNetwork()->makeInstance(buffer_cell, buffer_name.c_str(), parent);
     journalMakeBuffer(buffer);
     inserted_buffer_count_++;
-    designAreaIncr(area(db_network_->cell(buffer_cell)));
+    designAreaIncr(area(sta_->getDbNetwork()->cell(buffer_cell)));
 
     sta_->connectPin(buffer, input, buf_in_net);
     sta_->connectPin(buffer, output, buf_out_net);
@@ -486,27 +486,27 @@ void LPResizer::insertHoldDelay(Vertex* drvr,
   }
 
   for (Pin* load_pin : load_pins) {
-    Net* load_net = network_->isTopLevelPort(load_pin)
-                        ? network_->net(network_->term(load_pin))
-                        : network_->net(load_pin);
+    Net* load_net = sta_->network()->isTopLevelPort(load_pin)
+                        ? sta_->network()->net(sta_->network()->term(load_pin))
+                        : sta_->network()->net(load_pin);
     if (load_net != out_net) {
-      Instance* load = db_network_->instance(load_pin);
-      Port* load_port = db_network_->port(load_pin);
+      Instance* load = sta_->getDbNetwork()->instance(load_pin);
+      Port* load_port = sta_->getDbNetwork()->port(load_pin);
       sta_->disconnectPin(load_pin);
       sta_->connectPin(load, load_port, out_net);
     }
   }
-  Pin* buffer_out_pin = network_->findPin(buffer, output);
+  Pin* buffer_out_pin = sta_->network()->findPin(buffer, output);
   // resizeToTargetSlew(buffer_out_pin, false);
 }
 
 Vertex* LPResizer::findRealVertex(LPHoldFixer* fixer, Vertex* vertex)
 {
   std::string vertex_name = fixer->getVertexName(vertex);
-  VertexIterator vertex_iter(graph_);
+  VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
     Vertex* test_vertex = vertex_iter.next();
-    if (!vertex_name.compare(test_vertex->name(sdc_network_)))
+    if (!vertex_name.compare(test_vertex->name(sta_->sdcNetwork())))
       return test_vertex;
   }
   return nullptr;
@@ -516,16 +516,16 @@ Pin* LPResizer::findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair)
 {
   Vertex* pred = findRealVertex(fixer, wire_pair.first);
   Vertex* succ = findRealVertex(fixer, wire_pair.second);
-  if (!succ->isDriver(network_))
+  if (!succ->isDriver(sta_->network()))
     return succ->pin();
-  VertexOutEdgeIterator pred_edge_iter(pred, graph_);
+  VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
   while (pred_edge_iter.hasNext()) {
     Edge* pred_edge = pred_edge_iter.next();
-    Vertex* fanout = pred_edge->to(graph_);
-    VertexInEdgeIterator succ_edge_iter(succ, graph_);
+    Vertex* fanout = pred_edge->to(sta_->graph());
+    VertexInEdgeIterator succ_edge_iter(succ, sta_->graph());
     while (succ_edge_iter.hasNext()) {
       Edge* succ_edge = succ_edge_iter.next();
-      Vertex* fanin = succ_edge->from(graph_);
+      Vertex* fanin = succ_edge->from(sta_->graph());
       if (fanin == fanout)
         return fanin->pin();
     }
@@ -547,8 +547,8 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
       Pin* fanout_pin = findFanoutPin(fixer, wire_pair);
       if (fanout_pin != nullptr) {
         load_pins.push_back(fanout_pin);
-        if (network_->direction(fanout_pin)->isAnyOutput()
-            && network_->isTopLevelPort(fanout_pin))
+        if (sta_->network()->direction(fanout_pin)->isAnyOutput()
+            && sta_->network()->isTopLevelPort(fanout_pin))
           loads_have_out_port = true;
 
         if (fuzzyLess(max_padding, padding))
