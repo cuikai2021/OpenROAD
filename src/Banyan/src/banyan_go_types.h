@@ -7,8 +7,8 @@ enum {
     interface_version_2 = 0x00,
     interface_version_3 = 0x00,
     interface_version_4 = 0x20,
-    interface_version_5 = 0x21,
-    interface_version_6 = 0x01,
+    interface_version_5 = 0x22,
+    interface_version_6 = 0x02,
     interface_version_7 = 0x22,
 };
 
@@ -32,6 +32,26 @@ struct box
 
     int x, y, w, h;
 }; // struct box
+
+enum {
+    DEFAULT_WIRE_EXT = -1,
+};
+
+// a box located in a specific layer with wire extension
+struct boxx
+{
+    // the layer the box belongs to
+    // 0, 1, 2, ...: routing layers from the lowest
+    int la;
+
+    int x, y, w, h;
+
+    // Start / end extension of a wire.
+    // When start / end extension is not specified in def, start_ext / end_ext value is -1, and the default value (width/2) or NDR value must be applied.
+    // When start / end extension is specified in def, start_ext / end_ext is that value.
+    // NOTE: A valid def specified extension value must be greater than or equal to 0 (zero).
+    int start_ext, end_ext;
+}; // struct boxx
 
 // a via connecting two layers
 struct via

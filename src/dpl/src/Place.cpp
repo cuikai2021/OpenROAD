@@ -46,7 +46,6 @@
 
 #include "Graphics.h"
 #include "utl/Logger.h"
-#include "ord/OpenRoad.hh"
 
 //#define ODP_DEBUG
 
@@ -60,7 +59,6 @@ using std::sort;
 using std::string;
 using std::vector;
 
-using ord::closestPtInRect;
 using utl::DPL;
 
 static bool
@@ -73,6 +71,7 @@ Opendp::detailedPlacement()
     graphics_->startPlacement(block_);
   }
 
+  placement_failures_.clear();
   initGrid();
   // Paint fixed cells.
   setFixedGridCells();
@@ -283,7 +282,7 @@ Opendp::place()
     if (!(isFixed(&cell) || cell.inGroup() || cell.is_placed_)) {
       sorted_cells.push_back(&cell);
       if (!cellFitsInCore(&cell)) {
-        logger_->warn(DPL, 15, "instance {} does not fit inside the ROW core area.",
+        logger_->error(DPL, 15, "instance {} does not fit inside the ROW core area.",
                       cell.name());
       }
     }
@@ -408,7 +407,7 @@ Opendp::brickPlace1(const Group *group)
     // which seems broken. It should start looking at the nearest point
     // on the rect boundary. -cherry
     if (!mapMove(cell, legal)) {
-      logger_->warn(DPL, 16, "cannot place instance {}.", cell->name());
+      logger_->error(DPL, 16, "cannot place instance {}.", cell->name());
     }
   }
 }
@@ -468,7 +467,7 @@ Opendp::brickPlace2(const Group *group)
       // which seems broken. It should start looking at the nearest point
       // on the rect boundary. -cherry
       if (!mapMove(cell, legal))
-        logger_->warn(DPL, 17, "cannot place instance {}.", cell->name());
+        logger_->error(DPL, 17, "cannot place instance {}.", cell->name());
     }
   }
 }
@@ -583,18 +582,18 @@ Opendp::mapMove(Cell *cell,
   return false;
 }
 
-bool
+void
 Opendp::shiftMove(Cell *cell)
 {
   Point grid_pt = legalGridPt(cell, true);
   int grid_x = grid_pt.getX();
   int grid_y = grid_pt.getY();
   // magic number alert
-  int boundary_margin = 3;
+  int boundary_margin = 30;
   int margin_width = gridPaddedWidth(cell) * boundary_margin;
   set<Cell *> region_cells;
-  for (int x = grid_x - margin_width; x < grid_x + margin_width; x++) {
-    for (int y = grid_y - boundary_margin; y < grid_y + boundary_margin; y++) {
+  for (int x = 0; x < row_site_count_; x++) {
+    for (int y = 0; y < row_count_; y++) {
       Pixel *pixel = gridPixel(x, y);
       if (pixel) {
         Cell *cell = pixel->cell;
@@ -612,23 +611,23 @@ Opendp::shiftMove(Cell *cell)
   }
 
   // place target cell
-  if (!mapMove(cell)) {
-    logger_->warn(DPL, 18, "detailed placement failed on {}.",
-                  cell->name());
-    return false;
-  }
+  if (!mapMove(cell))
+    placement_failures_.push_back(cell->db_inst_);
 
   // re-place erased cells
   for (Cell *around_cell : region_cells) {
-    if (cell->inGroup() == around_cell->inGroup()) {
-      if (!mapMove(around_cell)) {
-        logger_->warn(DPL, 19, "detailed placement failed on {}",
-                      around_cell->name());
-        return false;
-      }
-    }
+    // if (cell->inGroup() == around_cell->inGroup()) {
+    //   if (!mapMove(around_cell)) {
+    //     logger_->warn(DPL, 19, "detailed placement failed on {}",
+    //                   around_cell->name());
+    //     abort();
+    //     return false;
+    //   }
+    // }
+    if (cell->inGroup() == around_cell->inGroup()
+        && !mapMove(around_cell))
+      placement_failures_.push_back(cell->db_inst_);
   }
-  return true;
 }
 
 bool
@@ -705,26 +704,44 @@ Opendp::diamondSearch(const Cell *cell,
                       int y) const
 {
   // Diamond search limits.
-  int x_min = x - max_displacement_x_;
-  int y_min = y - max_displacement_y_;
-  int x_max = x + max_displacement_x_;
-  int y_max = y + max_displacement_y_;
+  // int x_min = x - max_displacement_x_;
+  // int y_min = y - max_displacement_y_;
+  // int x_max = x + max_displacement_x_;
+  // int y_max = y + max_displacement_y_;
+  int x_min = 0;
+  int y_min = 0;
+  int x_max = row_site_count_;
+  int y_max = row_count_;
 
   // Restrict search to group boundary.
-  Group *group = cell->group_;
-  if (group) {
-    // Map boundary to grid staying inside.
-    Rect grid_boundary(divCeil(group->boundary.xMin(), site_width_),
-                       divCeil(group->boundary.yMin(), row_height_),
-                       group->boundary.xMax() / site_width_,
-                       group->boundary.yMax() / row_height_);
-    Point min = closestPtInRect(grid_boundary, x_min, y_min);
-    Point max = closestPtInRect(grid_boundary, x_max, y_max);
-    x_min = min .getX();
-    y_min = min .getY();
-    x_max = max.getX();
-    y_max = max.getY();
-  }
+  // Group *group = cell->group_;
+  // if (group) {
+  //   // Map boundary to grid staying inside.
+  //   Rect grid_boundary(divCeil(group->boundary.xMin(), site_width_),
+  //                      divCeil(group->boundary.yMin(), row_height_),
+  //                      group->boundary.xMax() / site_width_,
+  //                      group->boundary.yMax() / row_height_);
+  //   Point min = closestPtInRect(grid_boundary, x_min, y_min);
+  //   Point max = closestPtInRect(grid_boundary, x_max, y_max);
+  //   x_min = min .getX();
+  //   y_min = min .getY();
+  //   x_max = max.getX();
+  //   y_max = max.getY();
+  // }
+  // Group *group = cell->group_;
+  // if (group) {
+  //   // Map boundary to grid staying inside.
+  //   Rect grid_boundary(divCeil(group->boundary.xMin(), site_width_),
+  //                      divCeil(group->boundary.yMin(), row_height_),
+  //                      group->boundary.xMax() / site_width_,
+  //                      group->boundary.yMax() / row_height_);
+  //   Point min = grid_boundary.closestPtInside(Point(x_min, y_min));
+  //   Point max = grid_boundary.closestPtInside(Point(x_max, y_max));
+  //   x_min = min .getX();
+  //   y_min = min .getY();
+  //   x_max = max.getX();
+  //   y_max = max.getY();
+  // }
 
   // Clip diamond limits to grid bounds.
   x_min = max(0, x_min);
@@ -744,15 +761,15 @@ Opendp::diamondSearch(const Cell *cell,
   if (avail_pt.pixel)
     return avail_pt;
 
-  for (int i = 1; i < std::max(max_displacement_y_, max_displacement_x_); i++) {
+  for (int i = 1; i < std::max(row_count_, row_site_count_); i++) {
     PixelPt best_pt;
     int best_dist = 0;
     // left side
     for (int j = 1; j < i * 2; j++) {
       int x_offset = -((j + 1) / 2);
       int y_offset = (i * 2 - j) / 2;
-      if (abs(x_offset) < max_displacement_x_
-          && abs(y_offset) < max_displacement_y_) {
+      if (abs(x_offset) < row_site_count_
+          && abs(y_offset) < row_count_) {
         if (j % 2 == 1)
           y_offset = -y_offset;
         diamondSearchSide(cell, x, y, x_min, y_min, x_max, y_max, x_offset, y_offset,
@@ -764,8 +781,8 @@ Opendp::diamondSearch(const Cell *cell,
     for (int j = 1; j < (i + 1) * 2; j++) {
       int x_offset = (j - 1) / 2;
       int y_offset = ((i + 1) * 2 - j) / 2;
-      if (abs(x_offset) < max_displacement_x_
-          && abs(y_offset) < max_displacement_y_) {
+      if (abs(x_offset) < row_site_count_
+          && abs(y_offset) < row_count_) {
         if (j % 2 == 1)
           y_offset = -y_offset;
         diamondSearchSide(cell, x, y, x_min, y_min, x_max, y_max, x_offset, y_offset,
@@ -987,7 +1004,7 @@ Opendp::moveHopeless(int& grid_x, int& grid_y) const
       break;
     }
   }
-  for (int y = grid_y + 1; y < row_site_count_; ++y) { // above
+  for (int y = grid_y + 1; y < row_count_; ++y) { // above
     if (grid_[y][grid_x].is_valid) {
       int dist = (y - grid_y) * row_height_;
       if (dist < best_dist) {

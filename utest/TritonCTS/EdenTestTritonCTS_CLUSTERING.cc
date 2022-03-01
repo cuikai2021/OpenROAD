@@ -1,4 +1,4 @@
-#include <clustering.h>
+#include <Clustering.h>
 #include <itest.h>
 
 #include "CtsOptions.h"
@@ -124,10 +124,10 @@ TEST_F(TritonCTS_clustering, kmeans)
   // minCostFlow()'s side effects are private, it can't be test individually
   float silh = cluster->Kmeans(means.size(), CAP, 0, means, MAX, power);
   EXPECT_GT(silh, 0.5f);
-  EXPECT_NEAR(means[0].first, 2.8f, 0.1f);
-  EXPECT_NEAR(means[0].second, 62.9, 0.1f);
-  EXPECT_NEAR(means[1].first, 4.2f, 0.1f);
-  EXPECT_NEAR(means[1].second, 80.0f, 0.1f);
+  EXPECT_NEAR(means[0].first, 3.46f, 0.1f);
+  EXPECT_NEAR(means[0].second, 70.89, 0.1f);
+  EXPECT_NEAR(means[1].first, 3.52f, 0.1f);
+  EXPECT_NEAR(means[1].second, 70.89f, 0.1f);
 }
 
 TEST_F(TritonCTS_clustering, iterative_kmeans)

@@ -6,36 +6,116 @@
 [INFO ODB-0222] Reading LEF file: Nangate45/fakeram45_64x7.lef
 [INFO ODB-0225]     Created 1 library cells
 [INFO ODB-0226] Finished LEF file:  Nangate45/fakeram45_64x7.lef
-[INFO ODB-0127] Reading DEF file: gcd_mem1.def
-[INFO ODB-0128] Design: gcd_mem1
-[INFO ODB-0130]     Created 61 pins.
-[INFO ODB-0131]     Created 307 components and 1738 component-terminals.
-[INFO ODB-0132]     Created 2 special nets and 0 connections.
-[INFO ODB-0133]     Created 384 nets and 1124 connections.
-[INFO ODB-0134] Finished DEF file: gcd_mem1.def
+[WARNING IFP-0028] Core area lower left (5.000, 5.000) snapped to (5.130, 5.600).
+[INFO IFP-0001] Added 49 rows of 578 sites.
+[WARNING PPL-0015] Macro mem0 is not placed.
+Found 0 macro blocks.
+Using 1u default distance from corners.
+Using 2 tracks default min distance between IO pins.
+[INFO PPL-0007] Random pin placement.
+[INFO GPL-0002] DBU: 2000
+[INFO GPL-0003] SiteSize: 380 2800
+[INFO GPL-0004] CoreAreaLxLy: 10260 11200
+[INFO GPL-0005] CoreAreaUxUy: 229900 148400
+[INFO GPL-0006] NumInstances: 307
+[INFO GPL-0007] NumPlaceInstances: 307
+[INFO GPL-0008] NumFixedInstances: 0
+[INFO GPL-0009] NumDummyInstances: 0
+[INFO GPL-0010] NumNets: 384
+[INFO GPL-0011] NumPins: 1185
+[INFO GPL-0012] DieAreaLxLy: 0 0
+[INFO GPL-0013] DieAreaUxUy: 240000 160000
+[INFO GPL-0014] CoreAreaLxLy: 10260 11200
+[INFO GPL-0015] CoreAreaUxUy: 229900 148400
+[INFO GPL-0016] CoreArea: 30134608000
+[INFO GPL-0017] NonPlaceInstsArea: 0
+[INFO GPL-0018] PlaceInstsArea: 5688945408
+[INFO GPL-0019] Util(%): 18.88
+[INFO GPL-0020] StdInstsArea: 2234400000
+[INFO GPL-0021] MacroInstsArea: 3454545408
+[InitialPlace]  Iter: 1 CG Error: 0.00000004 HPWL: 19577250
+[InitialPlace]  Iter: 2 CG Error: 0.00000010 HPWL: 17165409
+[InitialPlace]  Iter: 3 CG Error: 0.00000011 HPWL: 17101620
+[InitialPlace]  Iter: 4 CG Error: 0.00000003 HPWL: 17100503
+[InitialPlace]  Iter: 5 CG Error: 0.00000008 HPWL: 17086461
+[INFO GPL-0031] FillerInit: NumGCells: 2657
+[INFO GPL-0032] FillerInit: NumGNets: 384
+[INFO GPL-0033] FillerInit: NumGPins: 1185
+[INFO GPL-0023] TargetDensity: 0.70
+[INFO GPL-0024] AveragePlaceInstArea: 18530766
+[INFO GPL-0025] IdealBinArea: 26472524
+[INFO GPL-0026] IdealBinCnt: 1138
+[INFO GPL-0027] TotalBinArea: 30134608000
+[INFO GPL-0028] BinCnt: 32 32
+[INFO GPL-0029] BinSize: 6864 4288
+[INFO GPL-0030] NumBins: 1024
+[NesterovSolve] Iter: 1 overflow: 0.423976 HPWL: 10743644
+[NesterovSolve] Iter: 10 overflow: 0.386554 HPWL: 10907041
+[NesterovSolve] Iter: 20 overflow: 0.379658 HPWL: 10892741
+[NesterovSolve] Iter: 30 overflow: 0.376211 HPWL: 10880215
+[NesterovSolve] Iter: 40 overflow: 0.376282 HPWL: 10870458
+[NesterovSolve] Iter: 50 overflow: 0.376872 HPWL: 10870834
+[NesterovSolve] Iter: 60 overflow: 0.376941 HPWL: 10871754
+[NesterovSolve] Iter: 70 overflow: 0.376954 HPWL: 10875539
+[NesterovSolve] Iter: 80 overflow: 0.376959 HPWL: 10875600
+[NesterovSolve] Iter: 90 overflow: 0.376848 HPWL: 10874612
+[NesterovSolve] Iter: 100 overflow: 0.376594 HPWL: 10874064
+[NesterovSolve] Iter: 110 overflow: 0.376471 HPWL: 10875384
+[NesterovSolve] Iter: 120 overflow: 0.376663 HPWL: 10881472
+[NesterovSolve] Iter: 130 overflow: 0.377274 HPWL: 10892414
+[NesterovSolve] Iter: 140 overflow: 0.378092 HPWL: 10914029
+[NesterovSolve] Iter: 150 overflow: 0.379073 HPWL: 10951796
+[NesterovSolve] Iter: 160 overflow: 0.379647 HPWL: 11011909
+[NesterovSolve] Iter: 170 overflow: 0.377196 HPWL: 11083471
+[NesterovSolve] Iter: 180 overflow: 0.374851 HPWL: 11179226
+[NesterovSolve] Iter: 190 overflow: 0.36612 HPWL: 11133072
+[NesterovSolve] Iter: 200 overflow: 0.357821 HPWL: 11069828
+[NesterovSolve] Iter: 210 overflow: 0.351929 HPWL: 11101562
+[NesterovSolve] Iter: 220 overflow: 0.361609 HPWL: 11164857
+[NesterovSolve] Iter: 230 overflow: 0.353106 HPWL: 11179387
+[NesterovSolve] Iter: 240 overflow: 0.327072 HPWL: 11177615
+[NesterovSolve] Iter: 250 overflow: 0.30078 HPWL: 11200077
+[NesterovSolve] Iter: 260 overflow: 0.276654 HPWL: 11246845
+[NesterovSolve] Iter: 270 overflow: 0.246862 HPWL: 11325678
+[NesterovSolve] Iter: 280 overflow: 0.234847 HPWL: 11342731
+[NesterovSolve] Iter: 290 overflow: 0.212568 HPWL: 11398183
+[NesterovSolve] Iter: 300 overflow: 0.190072 HPWL: 11459663
+[NesterovSolve] Iter: 310 overflow: 0.168291 HPWL: 11531776
+[NesterovSolve] Iter: 320 overflow: 0.150552 HPWL: 11540324
+[NesterovSolve] Iter: 330 overflow: 0.141879 HPWL: 11546306
+[NesterovSolve] Iter: 340 overflow: 0.130152 HPWL: 11582902
+[NesterovSolve] Iter: 350 overflow: 0.122915 HPWL: 11580594
+[NesterovSolve] Iter: 360 overflow: 0.11659 HPWL: 11590027
+[NesterovSolve] Iter: 370 overflow: 0.11136 HPWL: 11600619
+[NesterovSolve] Iter: 380 overflow: 0.106647 HPWL: 11625026
+[NesterovSolve] Iter: 390 overflow: 0.102286 HPWL: 11644551
+[NesterovSolve] Iter: 400 overflow: 0.101347 HPWL: 11670580
+[NesterovSolve] Finished with Overflow: 0.099434
 [INFO MPL-0005] Found 1 macros.
-[INFO MPL-0009] West pins 22.
-[INFO MPL-0009] East pins 9.
-[INFO MPL-0009] North pins 12.
-[INFO MPL-0009] South pins 18.
-[INFO MPL-0069] Initial weighted wire length 689.719.
+[INFO MPL-0009] West pins 14.
+[INFO MPL-0009] East pins 14.
+[INFO MPL-0009] North pins 18.
+[INFO MPL-0009] South pins 15.
+[INFO MPL-0069] Initial weighted wire length 1458.77.
 Begin one level partition.
 [INFO MPL-0076] Partition 1 macros.
 [INFO MPL-0077] Using 1 cut lines.
-[INFO MPL-0079] Cut line 23.94.
+[INFO MPL-0079] Cut line 61.18.
 End one level partition.
 Begin horizontal partition.
 Begin east partition.
-[INFO MPL-0076] Partition 0 macros.
-[INFO MPL-0077] Using 0 cut lines.
-End east partition.
-Begin west partition.
 [INFO MPL-0076] Partition 1 macros.
 [INFO MPL-0077] Using 1 cut lines.
-[INFO MPL-0079] Cut line 2.80.
+[INFO MPL-0079] Cut line 5.60.
+End east partition.
+Begin west partition.
+[INFO MPL-0076] Partition 0 macros.
+[INFO MPL-0077] Using 0 cut lines.
 End west partition.
 End horizontal partition.
 [INFO MPL-0070] Using 1 partition sets.
-[INFO MPL-0071] Solution 1 weighted wire length 755.276.
-[INFO MPL-0073] Best weighted wire length 755.276.
-No differences found.
+[WARNING MPL-0061] Parquet area 57.77 x 60 exceeds the partition area 56.05 x 68.6.
+[WARNING MPL-0072] No partition solutions found.
+Differences found at line 77.
+    - _438_ INV_X1 + PLACED ( 97946 92484 ) N ;
+    - _438_ INV_X1 + PLACED ( 88789 86999 ) N ;

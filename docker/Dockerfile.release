@@ -13,13 +13,12 @@ FROM ${DEPS_IMAGE_TAG} AS eden_build_stage
 COPY ./Eden-src /Eden
 WORKDIR /Eden
 ARG EDEN_GIT_SHA1
-RUN git submodule update
 RUN cmake -DEDEN_GIT_DESCRIBE=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
 
 
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS deps_stage
-ADD ./Eden-src/src/Banyan/banyan-integrate/banyan.so /Eden-flow/flow/libs/banyan.so
+ADD ./Eden-src/src/Banyan/banyan-integrate/*.so /Eden-flow/flow/libs/
 ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
 ADD ./klayout_0.26.6-1_amd64.deb .
 RUN \
@@ -57,3 +56,4 @@ RUN mkdir -p /Eden-flow/flow
 RUN chmod o+rw -R /Eden-flow/flow
 RUN mv /usr/local/bin/yosys /usr/local/bin/maple
 RUN ln -s /usr/local/bin/origin-yosys/yosys /usr/local/bin/yosys
+RUN touch ~/.tchlsh-history

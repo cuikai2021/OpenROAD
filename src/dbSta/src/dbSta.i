@@ -120,4 +120,13 @@ db_network_defined()
   db_network->readDefAfter(block);
 }
 
+//ICBench methods
+void
+set_sdc_opt_cmd(std::string name)
+{
+  ord::OpenRoad *openroad = ord::getOpenRoad();
+  sta::dbSta *sta = openroad->getSta();
+  sta->setSdcOpt(name);
+}
+
 %} // inline
