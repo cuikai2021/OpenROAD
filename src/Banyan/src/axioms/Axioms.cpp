@@ -138,6 +138,18 @@ odb::dbTechLayer* Axioms::getCutLayerFromVia(odb::dbTechVia* via)
   return cutLayer;
 }
 
+bool isVaildSpacingRule(odb::dbTechLayerSpacingRule* spacingRule, uint width)
+{
+  uint wmin = 0;
+  uint wmax = 0;
+  bool hasRange = spacingRule->getRange(wmin, wmax);
+  if (!hasRange) {
+    return true;
+  }
+
+  return (wmin <= width && width <= wmax);
+}
+
 uint64_t Axioms::getRoutingPRLSpacing(odb::dbTechLayer* layer, bool isSameNet)
 {
   if (layer == nullptr) {
@@ -167,7 +179,9 @@ uint64_t Axioms::getRoutingPRLSpacing(odb::dbTechLayer* layer, bool isSameNet)
                             twoEdges)) {
       continue;
     } else if (spacingRule->getSpacing() > spacing) {
-      spacing = spacingRule->getSpacing();
+      if (isVaildSpacingRule(spacingRule, width)) {
+        spacing = spacingRule->getSpacing();
+      }
     }
   }
 
@@ -180,6 +194,7 @@ uint64_t Axioms::getRoutingEOLSpacing(odb::dbTechLayer* layer, bool isSameNet)
     return 0;
   }
   uint spacing = layer->getSpacing();
+  uint width = layer->getWidth();
 
   auto prlSpacing = getRoutingPRLSpacing(layer, isSameNet);
 
@@ -203,17 +218,23 @@ uint64_t Axioms::getRoutingEOLSpacing(odb::dbTechLayer* layer, bool isSameNet)
         continue;
       }
       if (parallelSpace == 0 || parallelWithin == 0) {
-         spacing = spacingRule->getSpacing();
-         break;
+        if (isVaildSpacingRule(spacingRule, width)) {
+          spacing = spacingRule->getSpacing();
+        }
+        break;
       } else {
         if (prlSpacing < parallelWithin
             || (uint) layer->getSpacing() < eolWithin) {
-          spacing = spacingRule->getSpacing();
+          if (isVaildSpacingRule(spacingRule, width)) {
+            spacing = spacingRule->getSpacing();
+          }
           break;
         }
       }
     } else if (spacingRule->getSpacing() > spacing) {
-      spacing = spacingRule->getSpacing();
+      if (isVaildSpacingRule(spacingRule, width)) {
+        spacing = spacingRule->getSpacing();
+      }
     }
   }
 
@@ -570,11 +591,12 @@ uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* techLayer,
   auto routingSpacing
       = dbAdapter_.defdist(getRoutingEOLSpacing(techLayer, isSameNet));
 
-
   uint64_t spacing = std::max(routingSpacing, cutSpacing);
 
   delete boundaryBoxOfViaX;
   delete boundaryBoxOfViaY;
+
+  // logger_->info(utl::BY, 90, "spacing {} ", spacing);
 
   return spacing + std::max(metalBoxWidthOfViaX, width) / 2
          + std::max(metalBoxWidthOfViaY, width) / 2;
@@ -592,7 +614,7 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* techLayer,
   auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
   uint64_t width = techLayer->getWidth();
   uint64_t pitch = techLayer->getPitchX();
-  if(techLayer->getDirection() == odb::dbTechLayerDir::HORIZONTAL){
+  if (techLayer->getDirection() == odb::dbTechLayerDir::HORIZONTAL) {
     pitch = techLayer->getPitchY();
   }
 
@@ -757,7 +779,7 @@ void Axioms::initTable()
       for (auto width : width_idx) {
         for (auto prl : length_idx) {
           // for width and prl 'greater than'
-          auto spacing = techLayer->findV55Spacing(width+1, prl+1);
+          auto spacing = techLayer->findV55Spacing(width + 1, prl + 1);
           tableTriples.push_back({(int) prl, (int) width, (uint64) spacing});
         }
       }
@@ -774,9 +796,9 @@ void Axioms::initTable()
       for (auto mincut_rule : cut_rules) {
         if (mincut_rule->getMinimumCuts(numcuts, width)) {
           if (mincut_rule->getLengthForCuts(length, distance)) {
-            tableTriples.push_back({(int) width, (int)distance, (uint64) numcuts});
-          }
-          else {
+            tableTriples.push_back(
+                {(int) width, (int) distance, (uint64) numcuts});
+          } else {
             tableTriples.push_back({(int) width, 0, (uint64) numcuts});
           }
         }
