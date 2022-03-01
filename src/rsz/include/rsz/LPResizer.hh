@@ -33,7 +33,7 @@
 #define LP_SCALING 100000
 #define LP_PRIORITY 0.0000001
 #define LP_STA_SCALING 1000000000
-#define LP_ROUNDING_LIMIT 0.009f / LP_STA_SCALING
+#define LP_ROUNDING_LIMIT 0.005f / LP_STA_SCALING
 
 namespace rsz {
 
@@ -62,6 +62,8 @@ class LPHoldFixer : public Resizer
   WirePairSet getAllWirePairFrom(Vertex* vertex);
   VertexSet getNonZeroPaddingPred();
 
+  std::string getVertexName(Vertex* vertex);
+
  protected:
   void makeVar(Vertex* vertex, MMVertexMPVarMap& arrival);
   void makeWire(Vertex* pred, Vertex* succ);
@@ -79,6 +81,10 @@ class LPHoldFixer : public Resizer
   float getDelay(Vertex* vertex);
   float getCriLongArrival(Vertex* end);
 
+  void findHoldVioNameMM(float slack_margin);
+  bool hasHoldViolation(Vertex* vertex);
+  VertexSet getHoldViolations();  // should run findHoldVioNaemMM before
+
   // can not do lp for 10^-10, should zoom in
   float zoomIn(float ori) { return ori * LP_SCALING; }
   float zoomOut(float ori) { return ori / LP_SCALING; }
@@ -95,7 +101,8 @@ class LPHoldFixer : public Resizer
   WireMPVarMap wire_;             // w
   MPConstraintMap constraint_;
 
-  sta::Map<Vertex*, float> delay_map_;
+  sta::Map<Vertex*, std::pair<std::string, float>> delay_map_;
+  sta::Set<std::string> vio_ends_name_;
 };
 
 class LPResizer : public Resizer
@@ -108,15 +115,19 @@ class LPResizer : public Resizer
   bool fixHoldCore();
   bool insertBuffer(LPHoldFixer* fixer, Vertex* vertex);
   bool insertAllBuffer(LPHoldFixer* fixer);
-  Pin* findFanoutPin(WirePair wire_pair);
+  Pin* findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair);
   void insertHoldDelay(Vertex* drvr,
                        int buffer_count,
                        PinSeq& load_pins,
                        bool loads_have_out_port,
                        LibertyCell* buffer_cell);
 
+  Vertex* findRealVertex(LPHoldFixer* fixer, Vertex* vertex);
+
   LibertyCell* findHoldBuffer(float min_limit);
 
+  // constant
+  const float uncertainty_ = 0.1f;
 };
 
 }  // namespace rsz

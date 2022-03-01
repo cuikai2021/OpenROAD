@@ -81,7 +81,7 @@ void LPHoldFixer::makeVarFanins(VertexSet fanins)
   }
 }
 
-void LPHoldFixer::makeVarAllModes()
+void LPHoldFixer::findHoldVioNameMM(float slack_margin)
 {
   sta_->forEachSdc([&]() {
     sdc_ = sta_->sdc();
@@ -90,17 +90,45 @@ void LPHoldFixer::makeVarAllModes()
     Slack worst_slack;  // unused
     VertexSet hold_failures;
     findHoldViolations(ends, 0.0f, worst_slack, hold_failures);
+    for (auto vertex : hold_failures)
+      vio_ends_name_.insert(vertex->name(sta_->sdcNetwork()));
+  });
+  for (auto name : vio_ends_name_)
+    logger_->info(utl::RSZ, 1100, "vio end {}", name);
+}
+
+bool LPHoldFixer::hasHoldViolation(Vertex* vertex)
+{
+  std::string name = vertex->name(sta_->sdcNetwork());
+  Slack slack = sta_->vertexSlack(vertex, MinMax::min());
+  if (!fuzzyInf(slack) && vio_ends_name_.find(name) != vio_ends_name_.end())
+    return true;
+  return false;
+}
+
+VertexSet LPHoldFixer::getHoldViolations()
+{
+  VertexSet* ends = sta_->search()->endpoints();
+  VertexSet hold_failures;
+  for (Vertex* vertex : *ends)
+    if (hasHoldViolation(vertex))
+      hold_failures.insert(vertex);
+  return hold_failures;
+}
+
+void LPHoldFixer::makeVarAllModes()
+{
+  const float slack_margin = 0.0f;
+  findHoldVioNameMM(slack_margin);
+  sta_->forEachSdc([&]() {
+    sdc_ = sta_->sdc();
+    sta_->findRequireds();
+    VertexSet hold_failures = getHoldViolations();
     if (!hold_failures.empty()) {
-      debugPrint(logger_,
-                 utl::RSZ,
-                 "LPHoldFixer",
-                 3,
-                 "worst slack: {}",
-                 delayAsString(worst_slack, this, 3));
       VertexSet fanins = findHoldFanins(hold_failures);
       makeVarFanins(fanins);
       makeVarFanins(hold_failures);
-      genPOConstraints(ends);
+      genPOConstraints(&hold_failures);
       genPIConstraints();
     }
   });
@@ -133,6 +161,14 @@ void LPHoldFixer::genPIConstraints()
     if (isPI(vertex)) {
       float arrival = zoomIn(getArrivalMax(vertex));
       float delay = zoomIn(getDelay(vertex));
+      debugPrint(logger_,
+                 utl::RSZ,
+                 "LPHoldFixer",
+                 3,
+                 "PI {} , A = {}, a = {}",
+                 vertex->name(sta_->sdcNetwork()),
+                 delayAsString(zoomOut(delay), sta_, 3),
+                 delayAsString(zoomOut(arrival), sta_, 3));
       // A(PI) == delay_init
       int index = addConstraints(delay, delay);
       constraint_.findKey(index)->SetCoefficient(A->second, 1);
@@ -177,7 +213,7 @@ float LPHoldFixer::getCriLongArrival(Vertex* end)
   float sum = 0.0f;
   const Slack end_slack = sta_->vertexSlack(end, MinMax::max());
   Vertex* vertex = end;
-  while (!isPI(vertex) || !vertex->isDriver(sta_->network())){
+  while (!isPI(vertex) || !vertex->isDriver(sta_->network())) {
     sum += getDelay(vertex);
     Vertex* opt_vertex = vertex;
     VertexInEdgeIterator edge_iter(opt_vertex, sta_->graph());
@@ -218,13 +254,15 @@ void LPHoldFixer::makeDelay(Vertex* vertex)
         debugPrint(logger_,
                    utl::RSZ,
                    "LPHoldFixer",
-                   3,
+                   4,
                    "{} load_delay = {}",
                    path_vertex->name(network_),
                    delayAsString(load_delay, sta_, 3));
       }
     }
-    delay_map_.insert(vertex, load_delay);
+    std::pair<std::string, float> delay_pair
+        = {vertex->name(sta_->sdcNetwork()), load_delay};
+    delay_map_.insert(vertex, delay_pair);
   }
 }
 
@@ -232,7 +270,14 @@ float LPHoldFixer::getDelay(Vertex* vertex)
 {
   if (!delay_map_.hasKey(vertex))
     return 0.0f;
-  return delay_map_[vertex];
+  return delay_map_[vertex].second;
+}
+
+std::string LPHoldFixer::getVertexName(Vertex* vertex)
+{
+  if (!delay_map_.hasKey(vertex))
+    return "unknown";
+  return delay_map_[vertex].first;
 }
 
 void LPHoldFixer::genPOConstraints(VertexSet* ends)
@@ -242,8 +287,17 @@ void LPHoldFixer::genPOConstraints(VertexSet* ends)
     Vertex* vertex = A->first;
     if (ends->hasKey(vertex)) {
       // -A(PO) >= -R(PO)
-      int index
-          = addConstraints(-zoomIn(getCriLongArrival(vertex)), LP_INFINITY);
+      float critical_long_arrival = getCriLongArrival(vertex);
+      float min_required = getRequired(vertex, MinMax::min());
+      debugPrint(logger_,
+                 utl::RSZ,
+                 "LPHoldFixer",
+                 3,
+                 "PO {} , R = {}, r = {}",
+                 vertex->name(sta_->sdcNetwork()),
+                 delayAsString(critical_long_arrival, sta_, 3),
+                 delayAsString(min_required, sta_, 3));
+      int index = addConstraints(-zoomIn(critical_long_arrival), LP_INFINITY);
       constraint_.findKey(index)->SetCoefficient(A->second, -1);
       // a(PO)) >= r(PO)
       index = addConstraints(zoomIn(getRequired(vertex, MinMax::min())),
@@ -265,7 +319,7 @@ void LPHoldFixer::genWireConstraints(WirePair wire)
   debugPrint(logger_,
              utl::RSZ,
              "LPHoldFixer",
-             3,
+             4,
              "delay between {} -> {} : {}",
              pred->name(sta_->sdcNetwork()),
              succ->name(sta_->sdcNetwork()),
@@ -308,8 +362,8 @@ float LPHoldFixer::getWirePadding(WirePair wire_pair)
              "LPHoldFixer",
              3,
              "padding between {} -> {} : {}",
-             wire_pair.first->name(sta_->sdcNetwork()),
-             wire_pair.second->name(sta_->sdcNetwork()),
+             getVertexName(wire_pair.first),
+             getVertexName(wire_pair.second),
              delayAsString(padding, sta_, 3));
   return padding;
 }
@@ -337,8 +391,8 @@ VertexSet LPHoldFixer::getNonZeroPaddingPred()
       logger_->info(utl::RSZ,
                     1105,
                     "non zero padding between {} -> {} : {}",
-                    wire_pair.first->name(sta_->sdcNetwork()),
-                    wire_pair.second->name(sta_->sdcNetwork()),
+                    getVertexName(wire_pair.first),
+                    getVertexName(wire_pair.second),
                     delayAsString(padding, sta_, 3));
       if (vio_pred_set.find(pred) == vio_pred_set.end())
         vio_pred_set.insert(pred);
@@ -446,10 +500,22 @@ void LPResizer::insertHoldDelay(Vertex* drvr,
   // resizeToTargetSlew(buffer_out_pin, false);
 }
 
-Pin* LPResizer::findFanoutPin(WirePair wire_pair)
+Vertex* LPResizer::findRealVertex(LPHoldFixer* fixer, Vertex* vertex)
 {
-  Vertex* pred = wire_pair.first;
-  Vertex* succ = wire_pair.second;
+  std::string vertex_name = fixer->getVertexName(vertex);
+  VertexIterator vertex_iter(graph_);
+  while (vertex_iter.hasNext()) {
+    Vertex* test_vertex = vertex_iter.next();
+    if (!vertex_name.compare(test_vertex->name(sdc_network_)))
+      return test_vertex;
+  }
+  return nullptr;
+}
+
+Pin* LPResizer::findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair)
+{
+  Vertex* pred = findRealVertex(fixer, wire_pair.first);
+  Vertex* succ = findRealVertex(fixer, wire_pair.second);
   if (!succ->isDriver(network_))
     return succ->pin();
   VertexOutEdgeIterator pred_edge_iter(pred, graph_);
@@ -478,7 +544,7 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
   for (auto wire_pair : wire_pair_set) {
     float padding = fixer->getWirePadding(wire_pair);
     if (fuzzyLess(LP_ROUNDING_LIMIT, padding)) {
-      Pin* fanout_pin = findFanoutPin(wire_pair);
+      Pin* fanout_pin = findFanoutPin(fixer, wire_pair);
       if (fanout_pin != nullptr) {
         load_pins.push_back(fanout_pin);
         if (network_->direction(fanout_pin)->isAnyOutput()
@@ -493,18 +559,20 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
     }
   }
   findBuffers();
-  LibertyCell* buffer_cell = findHoldBuffer(min_padding);
+  LibertyCell* buffer_cell = findHoldBuffer(max_padding);
+  Vertex* insert_from = findRealVertex(fixer, vertex);
   if (buffer_cell != nullptr && !load_pins.empty()) {
     const DcalcAnalysisPt* dcalc_ap
         = sta_->cmdCorner()->findDcalcAnalysisPt(max_);
-    insertHoldDelay(vertex, 1, load_pins, loads_have_out_port, buffer_cell);
-    if (!fuzzyLess(max_padding - min_padding, 0.1f)) {
+    insertHoldDelay(
+        insert_from, 1, load_pins, loads_have_out_port, buffer_cell);
+    if (!fuzzyLess(max_padding - min_padding, uncertainty_ / LP_STA_SCALING)) {
       logger_->warn(
           utl::RSZ,
           1000,
           "can not insert one buffer to satisfy all {} fanout from {}",
           load_pins.size(),
-          vertex->name(sta_->sdcNetwork()));
+          insert_from->name(sta_->sdcNetwork()));
     } else
       ret = true;
   } else {
