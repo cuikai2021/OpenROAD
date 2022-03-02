@@ -156,8 +156,8 @@ bool LPHoldFixer::isPI(Vertex* vertex)
 void LPHoldFixer::genPIConstraints()
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-  for (auto A = map->begin(); A != map->end(); ++A) {
-    Vertex* vertex = A->first;
+  for (auto A : *map) {
+    Vertex* vertex = A.first;
     if (isPI(vertex)) {
       float arrival = zoomIn(getArrivalMax(vertex));
       float delay = zoomIn(getDelay(vertex));
@@ -171,7 +171,7 @@ void LPHoldFixer::genPIConstraints()
                  delayAsString(zoomOut(arrival), sta_, 3));
       // A(PI) == delay_init
       int index = addConstraints(delay, delay);
-      constraint_.findKey(index)->SetCoefficient(A->second, 1);
+      constraint_.findKey(index)->SetCoefficient(A.second, 1);
       // a(PI)) == delay_init
       index = addConstraints(arrival, arrival);
       constraint_.findKey(index)->SetCoefficient(
@@ -274,8 +274,8 @@ std::string LPHoldFixer::getVertexName(Vertex* vertex)
 void LPHoldFixer::genPOConstraints(VertexSet* ends)
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-  for (auto A = map->begin(); A != map->end(); ++A) {
-    Vertex* vertex = A->first;
+  for (auto A : *map) {
+    Vertex* vertex = A.first;
     if (ends->hasKey(vertex)) {
       float critical_long_arrival = getCriLongArrival(vertex);
       float min_required = getRequired(vertex, MinMax::min());
@@ -291,7 +291,7 @@ void LPHoldFixer::genPOConstraints(VertexSet* ends)
                  delayAsString(min_required, sta_, 3));
       // -A(PO) >= -R(PO)
       int index = addConstraints(-zoomIn(critical_long_arrival), LP_INFINITY);
-      constraint_.findKey(index)->SetCoefficient(A->second, -1);
+      constraint_.findKey(index)->SetCoefficient(A.second, -1);
       // a(PO)) >= r(PO)
       index = addConstraints(zoomIn(getRequired(vertex, MinMax::min())),
                              LP_INFINITY);
