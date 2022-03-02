@@ -202,7 +202,6 @@ float LPHoldFixer::getArrivalMax(Vertex* vertex)
   while (path_iter.hasNext()) {
     Path* path = path_iter.next();
     float arrival = path->arrival(sta_);
-    printf("%s\n", delayAsString(arrival, sta_, 3));
     if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
       max_arrival = arrival;
   }
@@ -231,7 +230,6 @@ void LPHoldFixer::makeDelay(Vertex* vertex)
     PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
     PathExpanded expanded(&path, sta_);
     const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
-    int lib_ap = dcalc_ap->libertyIndex();
     int start_index = expanded.startIndex();
     int path_length = expanded.size();
     for (int i = start_index; i < path_length; i++) {
@@ -239,14 +237,11 @@ void LPHoldFixer::makeDelay(Vertex* vertex)
       Vertex* path_vertex = path->vertex(sta_);
       if (vertex == path_vertex) {
         TimingArc* prev_arc = expanded.prevArc(i);
-        // TimingArc* corner_arc = prev_arc->cornerArc(lib_ap);
         Edge* prev_edge = path->prevEdge(prev_arc, sta_);
         if (!prev_edge)
           continue;
         load_delay
             = sta_->graph()->arcDelay(prev_edge, prev_arc, dcalc_ap->index());
-        // Remove intrinsic delay to find load dependent delay.
-        //  - corner_arc->intrinsicDelay();
         debugPrint(logger_,
                    utl::RSZ,
                    "LPHoldFixer",
@@ -282,7 +277,6 @@ void LPHoldFixer::genPOConstraints(VertexSet* ends)
   for (auto A = map->begin(); A != map->end(); ++A) {
     Vertex* vertex = A->first;
     if (ends->hasKey(vertex)) {
-      // -A(PO) >= -R(PO)
       float critical_long_arrival = getCriLongArrival(vertex);
       float min_required = getRequired(vertex, MinMax::min());
       if (fuzzyLess(critical_long_arrival, min_required))
@@ -295,6 +289,7 @@ void LPHoldFixer::genPOConstraints(VertexSet* ends)
                  vertex->name(sta_->sdcNetwork()),
                  delayAsString(critical_long_arrival, sta_, 3),
                  delayAsString(min_required, sta_, 3));
+      // -A(PO) >= -R(PO)
       int index = addConstraints(-zoomIn(critical_long_arrival), LP_INFINITY);
       constraint_.findKey(index)->SetCoefficient(A->second, -1);
       // a(PO)) >= r(PO)
@@ -535,6 +530,7 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
 {
   WirePairSet wire_pair_set = fixer->getAllWirePairFrom(vertex);
   PinSeq load_pins;
+  Vertex* insert_from = findRealVertex(fixer, vertex);
   bool loads_have_out_port = false;
   bool ret = false;
   float max_padding = -0.0f;
@@ -556,6 +552,17 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
       }
     }
   }
+
+  if (!fuzzyLess(max_padding - min_padding, uncertainty_ / LP_STA_SCALING)) {
+    logger_->warn(
+        utl::RSZ,
+        1000,
+        "padding diff in all {} fanout from {} higher then uncertainty",
+        load_pins.size(),
+        insert_from->name(sta_->sdcNetwork()));
+    return false;
+  }
+
   findBuffers();
   float padding = max_padding;
   int buffer_count = 1;
@@ -565,31 +572,16 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
     padding /= LP_BUFFER_SPILIT;
     buffer_cell = findHoldBuffer(padding);
   }
-  Vertex* insert_from = findRealVertex(fixer, vertex);
+
   if (buffer_cell != nullptr && !load_pins.empty()) {
     const DcalcAnalysisPt* dcalc_ap
         = sta_->cmdCorner()->findDcalcAnalysisPt(max_);
     insertHoldDelay(
         insert_from, buffer_count, load_pins, loads_have_out_port, buffer_cell);
-    if (!fuzzyLess(max_padding - min_padding, uncertainty_ / LP_STA_SCALING)) {
-      logger_->warn(
-          utl::RSZ,
-          1000,
-          "can not insert one buffer to satisfy all {} fanout from {}",
-          load_pins.size(),
-          insert_from->name(sta_->sdcNetwork()));
-    } else {
-      ret = true;
-    }
     logger_->info(
         utl::RSZ, 1107, "inserted {} buffer ", std::to_string(buffer_count));
-  } else {
-    logger_->warn(utl::RSZ,
-                  1001,
-                  "No matched buffer, min padding is {}",
-                  delayAsString(min_padding, this, 3));
   }
-  return ret;
+  return true;
 }
 
 bool LPResizer::insertAllBuffer(LPHoldFixer* fixer)

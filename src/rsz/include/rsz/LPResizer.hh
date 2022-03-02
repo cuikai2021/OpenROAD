@@ -114,6 +114,8 @@ class LPResizer : public Resizer
 
  protected:
   bool fixHoldCore();
+  
+  int fundInsertBufferCell(float max_padding, LibertyCell* buffer_cell);
   bool insertBuffer(LPHoldFixer* fixer, Vertex* vertex);
   bool insertAllBuffer(LPHoldFixer* fixer);
   Pin* findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair);
