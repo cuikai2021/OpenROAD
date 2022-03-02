@@ -230,7 +230,6 @@ dbSta::dbSta() :
   db_cbk_(nullptr),
   path_renderer_(nullptr)
 {
-  sdc_list_.insert("default", sdc_);
 }
 
 dbSta::~dbSta()
