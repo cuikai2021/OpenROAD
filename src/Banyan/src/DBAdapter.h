@@ -58,7 +58,7 @@ class DBAdapter
       = 0;
   virtual std::vector<banyan_go::net>& getNets() = 0;
   virtual std::vector<banyan_go::pin>& getPins() = 0;
-  virtual std::vector<banyan_go::box>& getBoxes() = 0;
+  virtual std::vector<banyan_go::boxx>& getBoxes() = 0;
   virtual std::vector<banyan_go::via>& getVias() = 0;
   virtual std::vector<banyan_go::layer>& getLayers() = 0;
   virtual std::vector<banyan_go::viadef>& getViadefs() = 0;
@@ -76,7 +76,7 @@ class OpenDBAdapter : public DBAdapter
  private:
   std::vector<banyan_go::net> nets_;
   std::vector<banyan_go::pin> pins_;
-  std::vector<banyan_go::box> boxes_;
+  std::vector<banyan_go::boxx> boxes_;
   std::vector<banyan_go::via> vias_;
   std::vector<banyan_go::layer> layers_;
   std::vector<banyan_go::viadef> viadefs_;
@@ -130,6 +130,7 @@ class OpenDBAdapter : public DBAdapter
   void addBox(odb::dbBox* box);
   void addBox(std::string layerName, const odb::Rect& rect);
   void addBox(std::string layerName, int left, int bottom, int right, int top);
+  void addWireBox(const std::string& layerName, int left, int bottom, int right, int top, int startExt, int endExt);
 
   void addNet(odb::dbNet* net);
   void addWire(odb::dbWire* wire);
@@ -175,7 +176,7 @@ class OpenDBAdapter : public DBAdapter
                 banyan_go::route_ret& ret) override;
   std::vector<banyan_go::net>& getNets() override { return nets_; }
   std::vector<banyan_go::pin>& getPins() override { return pins_; }
-  std::vector<banyan_go::box>& getBoxes() override { return boxes_; }
+  std::vector<banyan_go::boxx>& getBoxes() override { return boxes_; }
   std::vector<banyan_go::via>& getVias() override { return vias_; }
   std::vector<banyan_go::layer>& getLayers() override { return layers_; }
   std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }

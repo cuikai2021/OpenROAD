@@ -4,3 +4,6 @@
 [submodule "src/Banyan/banyan-integrate"]
 	path = src/Banyan/banyan-integrate
 	url = git@github.com:ICBench/banyan-integrate.git
+[submodule "src/abc"]
+	path = third-party/abc
+	url = https://github.com/The-OpenROAD-Project/abc.git

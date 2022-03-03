@@ -36,4 +36,6 @@ Type: stdcell, grid
 [INFO PDN-0012] **** END INFO ****
 [INFO PDN-0013] Inserting stdcell grid - grid.
 [INFO PDN-0015] Writing to database.
-No differences found.
+Differences found at line 411.
+      + ROUTED metal3 0 + SHAPE STRIPE ( 1359380 1339160 ) via3_6000x6000
+      + ROUTED metal3 0 + SHAPE STRIPE ( 1383380 1363160 ) via3_6000x6000

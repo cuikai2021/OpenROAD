@@ -534,7 +534,9 @@ void OpenDBAdapter::addBox(odb::dbBox* box)
                     defdist(box->xMin()),
                     defdist(box->yMin()),
                     defdist(box->getDX()),
-                    defdist(box->getDY())});
+                    defdist(box->getDY()),
+                    banyan_go::DEFAULT_WIRE_EXT,
+                    banyan_go::DEFAULT_WIRE_EXT});
 }
 
 void OpenDBAdapter::addBox(std::string layerName, const odb::Rect& rect)
@@ -551,7 +553,9 @@ void OpenDBAdapter::addBox(std::string layerName, const odb::Rect& rect)
                     defdist(rect.xMin()),
                     defdist(rect.yMin()),
                     defdist(rect.dx()),
-                    defdist(rect.dy())});
+                    defdist(rect.dy()),
+                    banyan_go::DEFAULT_WIRE_EXT,
+                    banyan_go::DEFAULT_WIRE_EXT});
 }
 
 void OpenDBAdapter::addBox(std::string layerName,
@@ -568,7 +572,28 @@ void OpenDBAdapter::addBox(std::string layerName,
     //        layerIdx, layerName);
   }
 
-  boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom});
+  boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom,
+                    banyan_go::DEFAULT_WIRE_EXT, banyan_go::DEFAULT_WIRE_EXT});
+}
+
+void OpenDBAdapter::addWireBox(const std::string& layerName,
+                               int left,
+                               int bottom,
+                               int right,
+                               int top,
+                               int startExt,
+                               int endExt)
+{
+  assert((startExt == banyan_go::DEFAULT_WIRE_EXT || startExt >= 0) &&
+         (endExt == banyan_go::DEFAULT_WIRE_EXT || endExt >= 0));
+  int layerIdx = AssertFind(layerNameToIdxs_, layerName);
+  if (layerIdx < 0) {
+    // logger_->info(utl::BY,
+    //        802,
+    //        "box on layer[{}] {}",
+    //        layerIdx, layerName);
+  }
+  boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom, startExt, endExt});
 }
 
 void OpenDBAdapter::addVia(odb::dbSBox* box)
@@ -683,7 +708,8 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
   }
 
   boxes_.push_back(
-      {layerIdx, defdist(x1), defdist(y1), defdist(dx), defdist(dy)});
+      {layerIdx, defdist(x1), defdist(y1), defdist(dx), defdist(dy),
+       banyan_go::DEFAULT_WIRE_EXT, banyan_go::DEFAULT_WIRE_EXT});
 }
 
 void OpenDBAdapter::addWire(odb::dbWire* wire)
@@ -702,12 +728,7 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
       std::swap(beginY, endY);
       std::swap(beginExt, endExt);
     }
-    bool isHorizontal = (beginX != endX);
-    if (isHorizontal) {
-      addBox(layerName, beginX - beginExt, beginY, endX + endExt, endY);
-    } else {
-      addBox(layerName, beginX, beginY - beginExt, endX, endY + endExt);
-    }
+    addWireBox(layerName, beginX, beginY, endX, endY, beginExt, endExt);
   };
 
   auto doAddRect = [&](const std::string& layerName, int x, int y, int deltaX1, int deltaY1, int deltaX2, int deltaY2) {
@@ -746,14 +767,16 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
       }
 
       case odb::dbWireDecoder::POINT: {
-        int x, y;
+        int x, y, ext;
         decode.getPoint(x, y);
+        ext = banyan_go::DEFAULT_WIRE_EXT;
+
         if (hasPrevCoor) {
-          doAddWire(decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, 0);
+          doAddWire(decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, ext);
         }
         prevX = x;
         prevY = y;
-        prevExt = 0;
+        prevExt = ext;
         hasPrevCoor = true;
         break;
       }
