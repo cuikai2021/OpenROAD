@@ -31,7 +31,7 @@
 
 #define LP_INFINITY (std::numeric_limits<float>::max)()
 #define LP_SCALING 100000
-#define LP_PRIORITY 0.0000001
+#define LP_PRIORITY 10000000
 #define LP_STA_SCALING 1000000000
 #define LP_ROUNDING_LIMIT 0.005f / LP_STA_SCALING
 #define LP_BUFFER_SPILIT 2
@@ -64,11 +64,12 @@ class LPHoldFixer : public Resizer
   VertexSet getNonZeroPaddingPred();
 
   std::string getVertexName(Vertex* vertex);
+  Vertex* findRealVertex(Vertex* vertex);
 
  protected:
   void makeVar(Vertex* vertex, MMVertexMPVarMap& arrival);
   void makeWire(Vertex* pred, Vertex* succ);
-  void makeVarFanins(VertexSet fanins);
+  void makeVarFanins(VertexSeq fanins);
   void makeVarAllModes();
 
   int addConstraints(float low_bound, float high_bound);
@@ -85,6 +86,8 @@ class LPHoldFixer : public Resizer
   void findHoldVioNameMM(float slack_margin);
   bool hasHoldViolation(Vertex* vertex);
   VertexSet getHoldViolations();  // should run findHoldVioNaemMM before
+
+  VertexSeq getSortedVertexSeq(VertexMPVarMap* mp_var_map);
 
   // can not do lp for 10^-10, should zoom in
   float zoomIn(float ori) { return ori * LP_SCALING; }
@@ -124,8 +127,6 @@ class LPResizer : public Resizer
                        PinSeq& load_pins,
                        bool loads_have_out_port,
                        LibertyCell* buffer_cell);
-
-  Vertex* findRealVertex(LPHoldFixer* fixer, Vertex* vertex);
 
   LibertyCell* findHoldBuffer(float min_limit);
 

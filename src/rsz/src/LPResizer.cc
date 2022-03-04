@@ -59,7 +59,7 @@ void LPHoldFixer::makeWire(Vertex* pred, Vertex* succ)
   genWireConstraints(wire);
 }
 
-void LPHoldFixer::makeVarFanins(VertexSet fanins)
+void LPHoldFixer::makeVarFanins(VertexSeq fanins)
 {
   for (auto vertex : fanins) {
     makeVar(vertex, arrival_max_);
@@ -126,8 +126,10 @@ void LPHoldFixer::makeVarAllModes()
     VertexSet hold_failures = getHoldViolations();
     if (!hold_failures.empty()) {
       VertexSet fanins = findHoldFanins(hold_failures);
-      makeVarFanins(fanins);
-      makeVarFanins(hold_failures);
+      VertexSeq sorted_fanins = sortHoldFanins(fanins);
+      VertexSeq sorted_hold_failures = sortHoldFanins(hold_failures);
+      makeVarFanins(sorted_fanins);
+      makeVarFanins(sorted_hold_failures);
       genPOConstraints(&hold_failures);
       genPIConstraints();
     }
@@ -153,11 +155,21 @@ bool LPHoldFixer::isPI(Vertex* vertex)
   return true;
 }
 
+VertexSeq LPHoldFixer::getSortedVertexSeq(VertexMPVarMap* mp_var_map)
+{
+  VertexSet vertex_set;
+  for (auto pair : *mp_var_map) {
+    vertex_set.insert(pair.first);
+  }
+  VertexSeq sorted_vertex = sortHoldFanins(vertex_set);
+  return sorted_vertex;
+}
+
 void LPHoldFixer::genPIConstraints()
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-  for (auto A : *map) {
-    Vertex* vertex = A.first;
+  VertexSeq sorted_vertex = getSortedVertexSeq(map);
+  for (auto vertex : sorted_vertex) {
     if (isPI(vertex)) {
       float arrival = zoomIn(getArrivalMax(vertex));
       float delay = zoomIn(getDelay(vertex));
@@ -171,7 +183,7 @@ void LPHoldFixer::genPIConstraints()
                  delayAsString(zoomOut(arrival), sta_, 3));
       // A(PI) == delay_init
       int index = addConstraints(delay, delay);
-      constraint_.findKey(index)->SetCoefficient(A.second, 1);
+      constraint_.findKey(index)->SetCoefficient(map->findKey(vertex), 1);
       // a(PI)) == delay_init
       index = addConstraints(arrival, arrival);
       constraint_.findKey(index)->SetCoefficient(
@@ -271,11 +283,23 @@ std::string LPHoldFixer::getVertexName(Vertex* vertex)
   return delay_map_[vertex].first;
 }
 
+Vertex* LPHoldFixer::findRealVertex(Vertex* vertex)
+{
+  std::string vertex_name = getVertexName(vertex);
+  VertexIterator vertex_iter(sta_->graph());
+  while (vertex_iter.hasNext()) {
+    Vertex* test_vertex = vertex_iter.next();
+    if (!vertex_name.compare(test_vertex->name(sta_->sdcNetwork())))
+      return test_vertex;
+  }
+  return nullptr;
+}
+
 void LPHoldFixer::genPOConstraints(VertexSet* ends)
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-  for (auto A : *map) {
-    Vertex* vertex = A.first;
+  VertexSeq sorted_vertex = getSortedVertexSeq(map);
+  for (auto vertex : sorted_vertex) {
     if (ends->hasKey(vertex)) {
       float critical_long_arrival = getCriLongArrival(vertex);
       float min_required = getRequired(vertex, MinMax::min());
@@ -291,7 +315,7 @@ void LPHoldFixer::genPOConstraints(VertexSet* ends)
                  delayAsString(min_required, sta_, 3));
       // -A(PO) >= -R(PO)
       int index = addConstraints(-zoomIn(critical_long_arrival), LP_INFINITY);
-      constraint_.findKey(index)->SetCoefficient(A.second, -1);
+      constraint_.findKey(index)->SetCoefficient(map->findKey(vertex), -1);
       // a(PO)) >= r(PO)
       index = addConstraints(zoomIn(getRequired(vertex, MinMax::min())),
                              LP_INFINITY);
@@ -333,8 +357,8 @@ LPResult LPHoldFixer::doLP()
 {
   MPObjective* const objective = solver_->MutableObjective();
   for (auto w : wire_) {
-    Vertex* pred = w.first.first;
-    double priority = 1.0 + pred->level() * LP_PRIORITY;
+    Vertex* pred = findRealVertex(w.first.first);
+    int priority = LP_PRIORITY + pred->level();
     objective->SetCoefficient(w.second, priority);
   }
   objective->SetMinimization();
@@ -343,7 +367,11 @@ LPResult LPHoldFixer::doLP()
   logger_->info(
       utl::RSZ, 1103, "Number of constraints = {}", solver_->NumConstraints());
   LPResult result = solver_->Solve();
-  logger_->info(utl::RSZ, 1104, "Objective value = {}", objective->Value());
+  logger_->info(utl::RSZ,
+                1104,
+                "Objective value = {} (PRIORITY {})",
+                objective->Value(),
+                LP_PRIORITY);
   return result;
 }
 
@@ -493,22 +521,10 @@ void LPResizer::insertHoldDelay(Vertex* drvr,
   // resizeToTargetSlew(buffer_out_pin, false);
 }
 
-Vertex* LPResizer::findRealVertex(LPHoldFixer* fixer, Vertex* vertex)
-{
-  std::string vertex_name = fixer->getVertexName(vertex);
-  VertexIterator vertex_iter(sta_->graph());
-  while (vertex_iter.hasNext()) {
-    Vertex* test_vertex = vertex_iter.next();
-    if (!vertex_name.compare(test_vertex->name(sta_->sdcNetwork())))
-      return test_vertex;
-  }
-  return nullptr;
-}
-
 Pin* LPResizer::findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair)
 {
-  Vertex* pred = findRealVertex(fixer, wire_pair.first);
-  Vertex* succ = findRealVertex(fixer, wire_pair.second);
+  Vertex* pred = fixer->findRealVertex(wire_pair.first);
+  Vertex* succ = fixer->findRealVertex(wire_pair.second);
   if (!succ->isDriver(sta_->network()))
     return succ->pin();
   VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
@@ -530,7 +546,7 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, Vertex* vertex)
 {
   WirePairSet wire_pair_set = fixer->getAllWirePairFrom(vertex);
   PinSeq load_pins;
-  Vertex* insert_from = findRealVertex(fixer, vertex);
+  Vertex* insert_from = fixer->findRealVertex(vertex);
   bool loads_have_out_port = false;
   bool ret = false;
   float max_padding = -0.0f;
