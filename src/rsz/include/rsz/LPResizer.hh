@@ -59,41 +59,41 @@ class LPHoldFixer : public Resizer
   virtual ~LPHoldFixer();
 
   LPResult doLP();
-  float getWirePadding(WirePair wire_pair);
-  WirePairSet getAllWirePairFrom(Vertex* vertex);
-  VertexSet getNonZeroPaddingPred();
+  float getWirePadding(WirePair wire_pair) const;
+  WirePairSet getAllWirePairFrom(Vertex* vertex) const;
+  VertexSet getNonZeroPaddingPred() const;
 
-  std::string getVertexName(Vertex* vertex);
-  Vertex* findRealVertex(Vertex* vertex);
+  std::string getVertexName(Vertex* vertex) const;
+  Vertex* findRealVertex(Vertex* vertex) const;
 
  protected:
   void makeVar(Vertex* vertex, MMVertexMPVarMap& arrival);
   void makeWire(Vertex* pred, Vertex* succ);
   void makeVarFanins(VertexSeq fanins);
   void makeVarAllModes();
+  void makeDelay(Vertex* vertex);
+  void findHoldVioNameMM(float slack_margin);
 
   int addConstraints(float low_bound, float high_bound);
   void genPIConstraints();
   void genPOConstraints(VertexSet* ends);
   void genWireConstraints(WirePair wire);
 
-  float getRequired(Vertex* vertex, const MinMax* min_max);
-  float getArrivalMax(Vertex* vertex);
-  void makeDelay(Vertex* vertex);
-  float getDelay(Vertex* vertex);
-  float getCriLongArrival(Vertex* end);
+  float getRequired(Vertex* vertex, const MinMax* min_max) const;
+  float getArrivalMax(Vertex* vertex) const;
+  float getDelay(Vertex* vertex) const;
+  float getCriLongArrival(Vertex* end) const;
 
-  void findHoldVioNameMM(float slack_margin);
-  bool hasHoldViolation(Vertex* vertex);
-  VertexSet getHoldViolations();  // should run findHoldVioNaemMM before
+  bool hasHoldViolation(Vertex* vertex) const;
+  VertexSet getHoldViolations() const;  // should run findHoldVioNaemMM before
 
   VertexSeq getSortedVertexSeq(VertexMPVarMap* mp_var_map);
 
   // can not do lp for 10^-10, should zoom in
-  float zoomIn(float ori) { return ori * LP_SCALING; }
-  float zoomOut(float ori) { return ori / LP_SCALING; }
+  float zoomIn(float ori) const { return ori * LP_SCALING; }
+  float zoomOut(float ori) const { return ori / LP_SCALING; }
 
-  bool isPI(Vertex* vertex);
+  bool isPI(Vertex* vertex) const;
 
   // variables
   int ct_index_ = 0;
@@ -117,11 +117,11 @@ class LPResizer : public Resizer
 
  protected:
   bool fixHoldCore();
-  
-  int fundInsertBufferCell(float max_padding, LibertyCell* buffer_cell);
+
+  int findInsertBufferCell(float max_padding, LibertyCell* buffer_cell);
   bool insertBuffer(LPHoldFixer* fixer, Vertex* vertex);
   bool insertAllBuffer(LPHoldFixer* fixer);
-  Pin* findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair);
+  Pin* findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair) const;
   void insertHoldDelay(Vertex* drvr,
                        int buffer_count,
                        PinSeq& load_pins,
