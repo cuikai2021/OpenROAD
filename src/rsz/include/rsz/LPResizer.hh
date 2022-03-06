@@ -43,12 +43,14 @@ using namespace sta;
 
 using operations_research::MPSolver;
 
-typedef std::pair<Vertex*, Vertex*> WirePair;
+typedef std::pair<std::string, std::string> WirePair;
 typedef sta::Set<WirePair> WirePairSet;
-typedef sta::Map<Vertex*, MPVariable*> VertexMPVarMap;
+typedef sta::Map<std::string, MPVariable*> VertexMPVarMap;
 typedef sta::Map<Sdc*, VertexMPVarMap*> MMVertexMPVarMap;
 typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
 typedef sta::Map<int, MPConstraint*> MPConstraintMap;
+typedef sta::Vector<std::string> VertexNameSeq;
+typedef sta::Set<std::string> VertexNameSet;
 
 typedef MPSolver::ResultStatus LPResult;
 
@@ -60,15 +62,14 @@ class LPHoldFixer : public Resizer
 
   LPResult doLP();
   float getWirePadding(WirePair wire_pair) const;
-  WirePairSet getAllWirePairFrom(Vertex* vertex) const;
-  VertexSet getNonZeroPaddingPred() const;
+  WirePairSet getAllWirePairFrom(std::string vertex_name) const;
+  VertexNameSet getNonZeroPaddingPred() const;
 
-  std::string getVertexName(Vertex* vertex) const;
-  Vertex* findRealVertex(Vertex* vertex) const;
+  Vertex* findRealVertex(std::string vertex_name) const;
 
  protected:
-  void makeVar(Vertex* vertex, MMVertexMPVarMap& arrival);
-  void makeWire(Vertex* pred, Vertex* succ);
+  void makeVar(std::string vertex_name, MMVertexMPVarMap& arrival);
+  void makeWire(std::string pred, std::string succ);
   void makeVarFanins(VertexSeq fanins);
   void makeVarAllModes();
   void makeDelay(Vertex* vertex);
@@ -81,19 +82,19 @@ class LPHoldFixer : public Resizer
 
   float getRequired(Vertex* vertex, const MinMax* min_max) const;
   float getArrivalMax(Vertex* vertex) const;
-  float getDelay(Vertex* vertex) const;
+  float getDelay(std::string vertex_name) const;
   float getCriLongArrival(Vertex* end) const;
 
   bool hasHoldViolation(Vertex* vertex) const;
   VertexSet getHoldViolations() const;  // should run findHoldVioNaemMM before
 
-  VertexSeq getSortedVertexSeq(VertexMPVarMap* mp_var_map);
+  VertexNameSeq getSortedNameSeq(VertexMPVarMap* mp_var_map);
 
   // can not do lp for 10^-10, should zoom in
   float zoomIn(float ori) const { return ori * LP_SCALING; }
   float zoomOut(float ori) const { return ori / LP_SCALING; }
 
-  bool isPI(Vertex* vertex) const;
+  bool isPI(std::string vertex_name) const;
 
   // variables
   int ct_index_ = 0;
@@ -105,8 +106,8 @@ class LPHoldFixer : public Resizer
   WireMPVarMap wire_;             // w
   MPConstraintMap constraint_;
 
-  sta::Map<Vertex*, std::pair<std::string, float>> delay_map_;
-  sta::Set<std::string> vio_ends_name_;
+  sta::Map<std::string, float> delay_map_;
+  VertexNameSet vio_ends_name_;
 };
 
 class LPResizer : public Resizer
@@ -119,7 +120,7 @@ class LPResizer : public Resizer
   bool fixHoldCore();
 
   int findInsertBufferCell(float max_padding, LibertyCell* buffer_cell);
-  bool insertBuffer(LPHoldFixer* fixer, Vertex* vertex);
+  bool insertBuffer(LPHoldFixer* fixer, std::string vertex_name);
   bool insertAllBuffer(LPHoldFixer* fixer);
   Pin* findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair) const;
   void insertHoldDelay(Vertex* drvr,
@@ -132,7 +133,6 @@ class LPResizer : public Resizer
 
   // constant
   const float uncertainty_ = 0.1f;
-  const int retry_limit_ = 2;
 };
 
 }  // namespace rsz
