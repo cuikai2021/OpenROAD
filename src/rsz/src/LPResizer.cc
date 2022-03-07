@@ -97,11 +97,11 @@ void LPHoldFixer::findHoldVioNameMM()
     }
   });
   logger_->info(utl::RSZ,
-                1109,
-                "slack_margin = {}",
+                1100,
+                "vio ends: (slack_margin = {}) ",
                 delayAsString(slack_margin, sta_, 3));
   for (auto name : vio_ends_name_)
-    logger_->info(utl::RSZ, 1100, "vio end {}", name);
+    logger_->info(utl::RSZ, 1101, "   {}", name);
 }
 
 bool LPHoldFixer::hasHoldViolation(Vertex* vertex) const
@@ -182,7 +182,7 @@ void LPHoldFixer::genPIConstraints()
       float delay = zoomIn(getDelay(vertex_name));
       if (vertex_name.find(LP_HIER_CHAR) == string::npos
           && !options_->fixTopPI()) {
-        logger_->info(utl::RSZ, 1110, "ignore top PI {}", vertex_name);
+        logger_->info(utl::RSZ, 1102, "ignore top PI {}", vertex_name);
         continue;
       }
       debugPrint(logger_,
@@ -367,12 +367,12 @@ LPResult LPHoldFixer::doLP()
   }
   objective->SetMinimization();
   logger_->info(
-      utl::RSZ, 1102, "Number of variables = {}", solver_->NumVariables());
+      utl::RSZ, 1103, "Number of variables = {}", solver_->NumVariables());
   logger_->info(
-      utl::RSZ, 1103, "Number of constraints = {}", solver_->NumConstraints());
+      utl::RSZ, 1104, "Number of constraints = {}", solver_->NumConstraints());
   LPResult result = solver_->Solve();
   logger_->info(utl::RSZ,
-                1104,
+                1105,
                 "Objective value = {} (PRIORITY {})",
                 objective->Value(),
                 LP_PRIORITY);
@@ -383,7 +383,7 @@ float LPHoldFixer::getWirePadding(WirePair wire_pair) const
 {
   float padding = zoomOut(wire_.findKey(wire_pair)->solution_value());
   logger_->info(utl::RSZ,
-                1108,
+                1106,
                 "padding between {} -> {} : {}",
                 wire_pair.first.c_str(),
                 wire_pair.second.c_str(),
@@ -412,7 +412,7 @@ VertexNameSet LPHoldFixer::getNonZeroPaddingPred() const
     float padding = zoomOut(w.second->solution_value());
     if (fuzzyLess(LP_ROUNDING_LIMIT, padding)) {
       logger_->info(utl::RSZ,
-                    1105,
+                    1107,
                     "non zero padding between {} -> {} : {}",
                     wire_pair.first.c_str(),
                     wire_pair.second.c_str(),
@@ -444,7 +444,7 @@ LibertyCell* LPResizer::findHoldBuffer(float min_limit)
   }
   if (max_buffer)
     logger_->info(utl::RSZ,
-                  1106,
+                  1108,
                   "choose buffer {}, delay {}",
                   max_buffer->name(),
                   delayAsString(max_delay, this, 3));
@@ -597,7 +597,7 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, std::string vertex_name)
     insertHoldDelay(
         insert_from, buffer_count, load_pins, loads_have_out_port, buffer_cell);
     logger_->info(
-        utl::RSZ, 1107, "inserted {} buffer ", std::to_string(buffer_count));
+        utl::RSZ, 1109, "inserted {} buffer ", std::to_string(buffer_count));
   }
   return true;
 }
@@ -611,7 +611,7 @@ bool LPResizer::insertAllBuffer(LPHoldFixer* fixer)
       ret = false;
   }
   logger_->info(
-      utl::RSZ, 1101, "Totally inserted {} buffers", inserted_buffer_count_);
+      utl::RSZ, 1110, "Totally inserted {} buffers", inserted_buffer_count_);
   return ret;
 }
 
@@ -622,7 +622,7 @@ bool LPResizer::fixHoldCore()
   bool ret = true;
   if (result != MPSolver::ResultStatus::OPTIMAL) {
     logger_->warn(
-        utl::RSZ, 1003, "Linear Programming failed, return {}", result);
+        utl::RSZ, 1001, "Linear Programming failed, return {}", result);
     ret = false;
   } else {
     ret = insertAllBuffer(fixer);
@@ -641,7 +641,7 @@ void LPResizer::fixHold()
   updateParasitics();
   incrementalParasiticsEnd();
   if (!ret) {
-    logger_->warn(utl::RSZ, 1004, "fail to fix all hold violations");
+    logger_->warn(utl::RSZ, 1002, "fail to fix all hold violations");
   }
 }
 
