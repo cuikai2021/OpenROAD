@@ -40,6 +40,7 @@
 #include "sta/Liberty.hh"
 #include "rsz/Resizer.hh"
 #include "rsz/LPResizer.hh"
+#include "rsz/LPOptions.hh"
 #include "sta/Delay.hh"
 #include "sta/Liberty.hh"
 
@@ -95,6 +96,7 @@ using sta::stringEq;
 
 using rsz::Resizer;
 using rsz::LPResizer;
+using rsz::LPOptions;
 using rsz::ParasiticsSrc;
 
 %}
@@ -631,12 +633,38 @@ find_fanin_fanouts(PinSet *pins)
   return resizer->findFaninFanouts(pins);
 }
 
+// ICBench methods
+
 void
 fix_hold_lp()
 {
   ensureLinked();
   LPResizer *lp_resizer = getLPResizer();
   lp_resizer->fixHold();
+}
+
+void
+lp_ignore_top_pi()
+{
+  LPResizer *lp_resizer = getLPResizer();
+  LPOptions *options = lp_resizer->getOptions();
+  options->falseFixTopPI();
+}
+
+void
+lp_set_uncertainty(float uncertainty)
+{
+  LPResizer *lp_resizer = getLPResizer();
+  LPOptions *options = lp_resizer->getOptions();
+  options->setUncertainty(uncertainty);
+}
+
+void
+lp_set_slack_margin(float slack_margin)
+{
+  LPResizer *lp_resizer = getLPResizer();
+  LPOptions *options = lp_resizer->getOptions();
+  options->setSlackMargin(slack_margin);
 }
 
 } // namespace

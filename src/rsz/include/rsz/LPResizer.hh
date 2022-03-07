@@ -2,6 +2,7 @@
 
 #include <ortools/linear_solver/linear_solver.h>
 
+#include "LPOptions.hh"
 #include "Resizer.hh"
 #include "sta/ArcDelayCalc.hh"
 #include "sta/Bfs.hh"
@@ -29,12 +30,15 @@
 #include "sta/TimingRole.hh"
 #include "sta/Units.hh"
 
+#define LP_SOLVER "SCIP"
 #define LP_INFINITY (std::numeric_limits<float>::max)()
+#define LP_ZERO 0.0f
 #define LP_SCALING 100000
 #define LP_PRIORITY 10000000
 #define LP_STA_SCALING 1000000000
 #define LP_ROUNDING_LIMIT 0.005f / LP_STA_SCALING
 #define LP_BUFFER_SPILIT 2
+#define LP_HIER_CHAR "/"
 
 namespace rsz {
 
@@ -57,7 +61,7 @@ typedef MPSolver::ResultStatus LPResult;
 class LPHoldFixer : public Resizer
 {
  public:
-  LPHoldFixer(OpenRoad* openroad);
+  LPHoldFixer(OpenRoad* openroad, LPOptions* options);
   virtual ~LPHoldFixer();
 
   LPResult doLP();
@@ -73,7 +77,7 @@ class LPHoldFixer : public Resizer
   void makeVarFanins(VertexSeq fanins);
   void makeVarAllModes();
   void makeDelay(Vertex* vertex);
-  void findHoldVioNameMM(float slack_margin);
+  void findHoldVioNameMM();
 
   int addConstraints(float low_bound, float high_bound);
   void genPIConstraints();
@@ -108,13 +112,18 @@ class LPHoldFixer : public Resizer
 
   sta::Map<std::string, float> delay_map_;
   VertexNameSet vio_ends_name_;
+
+  LPOptions* options_;
 };
 
 class LPResizer : public Resizer
 {
  public:
-  LPResizer() : Resizer(){};
+  LPResizer() : Resizer() { options_ = new LPOptions(); }
+  virtual ~LPResizer() { delete options_; }
   void fixHold();
+
+  LPOptions* getOptions() { return options_; }
 
  protected:
   bool fixHoldCore();
@@ -131,8 +140,8 @@ class LPResizer : public Resizer
 
   LibertyCell* findHoldBuffer(float min_limit);
 
-  // constant
-  const float uncertainty_ = 0.1f;
+  // variable
+  LPOptions* options_;
 };
 
 }  // namespace rsz

@@ -452,9 +452,25 @@ sta::proc_redirect report_long_wires {
   rsz::report_long_wires_cmd $count $digits
 }
 
-sta::define_cmd_args "fix_hold_lp" {}
+# ICBench cmd
 
-proc fix_hold_lp {} {
+sta::define_cmd_args "fix_hold_lp" {[-ignore_pi] [-uncertainty uncertainty]\
+                                        [-slack_margin slack_margin]}
+
+proc fix_hold_lp { args } {
+  sta::parse_key_args "fix_hold_lp" args \
+    keys {-uncertainty -slack_margin} \
+    flags {-ignore_pi}
+  
+  if { [info exists flags(-ignore_pi)] } {
+    rsz::lp_ignore_top_pi
+  }
+  if { [info exists keys(-uncertainty)] } {
+    rsz::lp_set_uncertainty $keys(-uncertainty)
+  }
+  if { [info exists keys(-slack_margin)] } {
+    rsz::lp_set_slack_margin $keys(-slack_margin)
+  }
   rsz::fix_hold_lp
 }
 
