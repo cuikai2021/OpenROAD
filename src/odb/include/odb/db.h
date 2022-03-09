@@ -1201,6 +1201,7 @@ class dbBlock : public dbObject
 
   void setPolygonDieArea(std::vector<Point>&& polygon, std::vector<Rect>&& blks);
   const std::vector<Point>& getPolygonDieArea();
+  const std::vector<uint>& getDieAreaRoutingBlockageIds();
   void createDieAreaBlockages();
   void deleteDieAreaBlockages();
 
