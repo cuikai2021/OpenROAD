@@ -644,14 +644,6 @@ fix_hold_lp()
 }
 
 void
-lp_ignore_top_pi()
-{
-  LPResizer *lp_resizer = getLPResizer();
-  LPOptions *options = lp_resizer->getOptions();
-  options->falseFixTopPI();
-}
-
-void
 lp_set_uncertainty(float uncertainty)
 {
   LPResizer *lp_resizer = getLPResizer();

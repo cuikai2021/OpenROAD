@@ -462,9 +462,6 @@ proc fix_hold_lp { args } {
     keys {-uncertainty -slack_margin} \
     flags {-ignore_pi}
   
-  if { [info exists flags(-ignore_pi)] } {
-    rsz::lp_ignore_top_pi
-  }
   if { [info exists keys(-uncertainty)] } {
     rsz::lp_set_uncertainty $keys(-uncertainty)
   }

@@ -38,7 +38,6 @@
 #define LP_STA_SCALING 1000000000
 #define LP_ROUNDING_LIMIT 0.005f / LP_STA_SCALING
 #define LP_BUFFER_SPILIT 2
-#define LP_HIER_CHAR "/"
 
 namespace rsz {
 
@@ -84,13 +83,13 @@ class LPHoldFixer : public Resizer
   void genPOConstraints(VertexSet* ends);
   void genWireConstraints(WirePair wire);
 
-  float getRequired(Vertex* vertex, const MinMax* min_max) const;
   float getArrivalMax(Vertex* vertex) const;
   float getDelay(std::string vertex_name) const;
   float getCriLongArrival(Vertex* end) const;
 
+  VertexSet getAllRelatedEnds(VertexSet ends);
   bool hasHoldViolation(Vertex* vertex) const;
-  VertexSet getHoldViolations() const;  // should run findHoldVioNaemMM before
+  VertexSet getHoldViolations();  // should run findHoldVioNaemMM before
 
   VertexNameSeq getSortedNameSeq(VertexMPVarMap* mp_var_map);
 
@@ -103,6 +102,7 @@ class LPHoldFixer : public Resizer
   // variables
   int ct_index_ = 0;
   int var_index_ = 0;
+  Slack sdc_worst_slack_ = LP_ZERO;
 
   MPSolver* solver_;
   MMVertexMPVarMap arrival_max_;  // A
@@ -112,6 +112,7 @@ class LPHoldFixer : public Resizer
 
   sta::Map<std::string, float> delay_map_;
   VertexNameSet vio_ends_name_;
+  VertexNameSet complete_vio_ends_;
 
   LPOptions* options_;
 };

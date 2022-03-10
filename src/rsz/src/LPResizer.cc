@@ -77,6 +77,7 @@ void LPHoldFixer::makeVarFanins(VertexSeq fanins)
         std::string fanin_name = fanin->name(sta_->sdcNetwork());
         makeVar(fanin_name, arrival_max_);
         makeVar(fanin_name, arrival_min_);
+        makeDelay(fanin);
         makeWire(fanin_name, vertex_name);
       }
     }
@@ -113,14 +114,44 @@ bool LPHoldFixer::hasHoldViolation(Vertex* vertex) const
   return false;
 }
 
-VertexSet LPHoldFixer::getHoldViolations() const
+VertexSet LPHoldFixer::getHoldViolations()
 {
   VertexSet* ends = sta_->search()->endpoints();
   VertexSet hold_failures;
+  Vertex* worst_vertex;
+  sta_->worstSlack(max_, sdc_worst_slack_, worst_vertex);
+  debugPrint(logger_,
+             utl::RSZ,
+             "LPHoldFixer",
+             4,
+             "WNS end {}, slack = {}",
+             worst_vertex->name(sta_->network()),
+             delayAsString(sdc_worst_slack_, sta_, 3));
   for (Vertex* vertex : *ends)
     if (hasHoldViolation(vertex))
       hold_failures.insert(vertex);
   return hold_failures;
+}
+
+VertexSet LPHoldFixer::getAllRelatedEnds(VertexSet ends)
+{
+  VertexSet fanin_roots = findFaninRoots(ends);
+  VertexSet related_ends = ends;
+  sta::SearchPredNonLatch2 pred(sta_);
+  BfsFwdIterator iter(BfsIndex::other, &pred, this);
+  for (Vertex* reg_out : fanin_roots)
+    iter.enqueueAdjacentVertices(reg_out);
+
+  while (iter.hasNext()) {
+    Vertex* vertex = iter.next();
+    if (isRegister(vertex)) {
+      if (!fuzzyInf(sta_->vertexSlack(vertex, MinMax::max()))
+          && !sta_->isClock(vertex->pin()))
+        related_ends.insert(vertex);
+    } else
+      iter.enqueueAdjacentVertices(vertex);
+  }
+  return related_ends;
 }
 
 void LPHoldFixer::makeVarAllModes()
@@ -130,6 +161,7 @@ void LPHoldFixer::makeVarAllModes()
     sdc_ = sta_->sdc();
     sta_->findRequireds();
     VertexSet hold_failures = getHoldViolations();
+    hold_failures = getAllRelatedEnds(hold_failures);
     if (!hold_failures.empty()) {
       VertexSet fanins = findHoldFanins(hold_failures);
       VertexSeq sorted_fanins = sortHoldFanins(fanins);
@@ -154,11 +186,14 @@ int LPHoldFixer::addConstraints(float low_bound, float high_bound)
 
 bool LPHoldFixer::isPI(std::string vertex_name) const
 {
+  bool ret = false;
   for (auto w : wire_) {
     if (!vertex_name.compare(w.first.second))
       return false;
+    else if (!vertex_name.compare(w.first.first))
+      ret = true;
   }
-  return true;
+  return ret;
 }
 
 VertexNameSeq LPHoldFixer::getSortedNameSeq(VertexMPVarMap* mp_var_map)
@@ -179,22 +214,17 @@ void LPHoldFixer::genPIConstraints()
     if (isPI(vertex_name)) {
       Vertex* vertex = findRealVertex(vertex_name);
       float arrival = zoomIn(getArrivalMax(vertex));
-      float delay = zoomIn(getDelay(vertex_name));
-      if (vertex_name.find(LP_HIER_CHAR) == string::npos
-          && !options_->fixTopPI()) {
-        logger_->info(utl::RSZ, 1102, "ignore top PI {}", vertex_name);
-        continue;
-      }
+      // float delay = zoomIn(getDelay(vertex_name));
       debugPrint(logger_,
                  utl::RSZ,
                  "LPHoldFixer",
                  3,
                  "PI {} , A = {}, a = {}",
                  vertex->name(sta_->sdcNetwork()),
-                 delayAsString(zoomOut(delay), sta_, 3),
+                 delayAsString(zoomOut(arrival), sta_, 3),
                  delayAsString(zoomOut(arrival), sta_, 3));
       // A(PI) == delay_init
-      int index = addConstraints(delay, delay);
+      int index = addConstraints(arrival, arrival);
       constraint_.findKey(index)->SetCoefficient(map->findKey(vertex_name), 1);
       // a(PI)) == delay_init
       index = addConstraints(arrival, arrival);
@@ -202,21 +232,6 @@ void LPHoldFixer::genPIConstraints()
           arrival_min_.findKey(sdc_)->findKey(vertex_name), 1);
     }
   }
-}
-
-float LPHoldFixer::getRequired(Vertex* vertex, const MinMax* min_max) const
-{
-  float extreme_required = LP_ZERO;
-  VertexPathIterator path_iter(vertex, sta_);
-  while (path_iter.hasNext()) {
-    Path* path = path_iter.next();
-    if (path->minMax(this) == min_max) {
-      float required = path->required(sta_);
-      if ((fuzzyLess(extreme_required, required)))
-        extreme_required = required;
-    }
-  }
-  return extreme_required;
 }
 
 float LPHoldFixer::getArrivalMax(Vertex* vertex) const
@@ -235,14 +250,18 @@ float LPHoldFixer::getArrivalMax(Vertex* vertex) const
 float LPHoldFixer::getCriLongArrival(Vertex* end) const
 {
   float sum = LP_ZERO;
-  PathRef path = sta_->vertexWorstArrivalPath(end, MinMax::max());
+  PathRef path = sta_->vertexWorstSlackPath(end, MinMax::max());
   PathExpanded expanded(&path, sta_);
   int start_index = expanded.startIndex();
   int path_length = expanded.size();
   for (int i = start_index; i < path_length; i++) {
     PathRef* path = expanded.path(i);
     Vertex* vertex = path->vertex(sta_);
-    sum += getDelay(vertex->name(sta_->sdcNetwork()));
+    std::string vertex_name = vertex->name(sta_->sdcNetwork());
+    if (isPI(vertex_name))
+      sum += getArrivalMax(vertex);
+    else
+      sum += getDelay(vertex->name(sta_->sdcNetwork()));
   }
   return sum;
 }
@@ -250,7 +269,7 @@ float LPHoldFixer::getCriLongArrival(Vertex* end) const
 void LPHoldFixer::makeDelay(Vertex* vertex)
 {
   std::string vertex_name = vertex->name(sta_->sdcNetwork());
-  if (!delay_map_.hasKey(vertex_name) || isPI(vertex_name)) {
+  if (!delay_map_.hasKey(vertex_name)) {
     Delay load_delay = LP_ZERO;
     PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
     PathExpanded expanded(&path, sta_);
@@ -306,10 +325,14 @@ void LPHoldFixer::genPOConstraints(VertexSet* ends)
     Vertex* vertex = findRealVertex(vertex_name);
     if (ends->hasKey(vertex)) {
       float critical_long_arrival = getCriLongArrival(vertex);
-      float min_required = getRequired(vertex, MinMax::min());
+      float min_required = sta_->vertexRequired(vertex, MinMax::min());
       // what if whole path don't satisfy hold bound
-      if (fuzzyLess(critical_long_arrival, min_required))
-        critical_long_arrival = getRequired(vertex, MinMax::max());
+      if (fuzzyLess(critical_long_arrival, min_required)
+          || complete_vio_ends_.find(vertex_name) != complete_vio_ends_.end()) {
+        critical_long_arrival
+            = sta_->vertexRequired(vertex, MinMax::max()) - sdc_worst_slack_;
+        complete_vio_ends_.insert(vertex_name);
+      }
       debugPrint(logger_,
                  utl::RSZ,
                  "LPHoldFixer",
