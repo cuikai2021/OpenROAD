@@ -59,6 +59,16 @@ void LPHoldFixer::makeWire(std::string pred, std::string succ)
   genWireConstraints(wire);
 }
 
+int LPHoldFixer::addConstraints(float low_bound, float high_bound)
+{
+  int index = ct_index_;
+  ct_index_++;
+  constraint_.insert(
+      index,
+      solver_->MakeRowConstraint(low_bound, high_bound, std::to_string(index)));
+  return index;
+}
+
 void LPHoldFixer::makeVarFanins(VertexSeq fanins)
 {
   for (auto vertex : fanins) {
@@ -175,16 +185,6 @@ void LPHoldFixer::makeVarAllModes()
   });
 }
 
-int LPHoldFixer::addConstraints(float low_bound, float high_bound)
-{
-  int index = ct_index_;
-  ct_index_++;
-  constraint_.insert(
-      index,
-      solver_->MakeRowConstraint(low_bound, high_bound, std::to_string(index)));
-  return index;
-}
-
 bool LPHoldFixer::isPI(std::string vertex_name) const
 {
   bool ret = false;
@@ -205,34 +205,6 @@ VertexNameSeq LPHoldFixer::getSortedNameSeq(VertexMPVarMap* mp_var_map)
   }
   std::sort(name_seq.begin(), name_seq.end());
   return name_seq;
-}
-
-void LPHoldFixer::genPIConstraints()
-{
-  VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-  VertexNameSeq sorted_vertex = getSortedNameSeq(map);
-  for (auto vertex_name : sorted_vertex) {
-    if (isPI(vertex_name)) {
-      Vertex* vertex = findRealVertex(vertex_name);
-      float arrival = zoomIn(getArrivalMax(vertex));
-      // float delay = zoomIn(getDelay(vertex_name));
-      debugPrint(logger_,
-                 utl::RSZ,
-                 "LPHoldFixer",
-                 3,
-                 "PI {} , A = {}, a = {}",
-                 vertex->name(sta_->sdcNetwork()),
-                 delayAsString(zoomOut(arrival), sta_, 3),
-                 delayAsString(zoomOut(arrival), sta_, 3));
-      // A(PI) == delay_init
-      int index = addConstraints(arrival, arrival);
-      constraint_.findKey(index)->SetCoefficient(map->findKey(vertex_name), 1);
-      // a(PI)) == delay_init
-      index = addConstraints(arrival, arrival);
-      constraint_.findKey(index)->SetCoefficient(
-          arrival_min_.findKey(sdc_)->findKey(vertex_name), 1);
-    }
-  }
 }
 
 float LPHoldFixer::getArrivalMax(Vertex* vertex) const
@@ -316,6 +288,34 @@ Vertex* LPHoldFixer::findRealVertex(std::string vertex_name) const
       return test_vertex;
   }
   return nullptr;
+}
+
+void LPHoldFixer::genPIConstraints()
+{
+  VertexMPVarMap* map = arrival_max_.findKey(sdc_);
+  VertexNameSeq sorted_vertex = getSortedNameSeq(map);
+  for (auto vertex_name : sorted_vertex) {
+    if (isPI(vertex_name)) {
+      Vertex* vertex = findRealVertex(vertex_name);
+      float arrival = zoomIn(getArrivalMax(vertex));
+      // float delay = zoomIn(getDelay(vertex_name));
+      debugPrint(logger_,
+                 utl::RSZ,
+                 "LPHoldFixer",
+                 3,
+                 "PI {} , A = {}, a = {}",
+                 vertex->name(sta_->sdcNetwork()),
+                 delayAsString(zoomOut(arrival), sta_, 3),
+                 delayAsString(zoomOut(arrival), sta_, 3));
+      // A(PI) == delay_init
+      int index = addConstraints(arrival, arrival);
+      constraint_.findKey(index)->SetCoefficient(map->findKey(vertex_name), 1);
+      // a(PI)) == delay_init
+      index = addConstraints(arrival, arrival);
+      constraint_.findKey(index)->SetCoefficient(
+          arrival_min_.findKey(sdc_)->findKey(vertex_name), 1);
+    }
+  }
 }
 
 void LPHoldFixer::genPOConstraints(VertexSet* ends)
