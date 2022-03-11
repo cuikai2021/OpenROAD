@@ -659,6 +659,14 @@ lp_set_slack_margin(float slack_margin)
   options->setSlackMargin(slack_margin);
 }
 
+void
+lp_analyze_clk()
+{
+  LPResizer *lp_resizer = getLPResizer();
+  LPOptions *options = lp_resizer->getOptions();
+  options->analyzeClk();
+}
+
 } // namespace
 
 %} // inline

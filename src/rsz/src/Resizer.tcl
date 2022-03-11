@@ -454,19 +454,22 @@ sta::proc_redirect report_long_wires {
 
 # ICBench cmd
 
-sta::define_cmd_args "fix_hold_lp" {[-ignore_pi] [-uncertainty uncertainty]\
+sta::define_cmd_args "fix_hold_lp" {[-clk] [-uncertainty uncertainty]\
                                         [-slack_margin slack_margin]}
 
 proc fix_hold_lp { args } {
   sta::parse_key_args "fix_hold_lp" args \
     keys {-uncertainty -slack_margin} \
-    flags {-ignore_pi}
+    flags {-clk}
   
   if { [info exists keys(-uncertainty)] } {
     rsz::lp_set_uncertainty $keys(-uncertainty)
   }
   if { [info exists keys(-slack_margin)] } {
     rsz::lp_set_slack_margin $keys(-slack_margin)
+  }
+  if { [info exists flags(-clk)] } {
+    rsz::lp_analyze_clk
   }
   rsz::fix_hold_lp
 }

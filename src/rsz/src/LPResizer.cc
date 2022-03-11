@@ -145,8 +145,9 @@ VertexSet LPHoldFixer::getAllRelatedEnds(VertexSet ends)
   while (iter.hasNext()) {
     Vertex* vertex = iter.next();
     if (isRegister(vertex)) {
-      if (!fuzzyInf(sta_->vertexSlack(vertex, MinMax::max()))
-          && !sta_->isClock(vertex->pin()))
+      if (options_->ignoreClk() && sta_->isClock(vertex->pin()))
+        continue;
+      if (!fuzzyInf(sta_->vertexSlack(vertex, MinMax::max())))
         related_ends.insert(vertex);
     } else
       iter.enqueueAdjacentVertices(vertex);
