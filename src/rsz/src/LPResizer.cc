@@ -143,28 +143,6 @@ VertexSet LPHoldFixer::getHoldViolations()
   return hold_failures;
 }
 
-VertexSet LPHoldFixer::getAllRelatedEnds(VertexSet ends)
-{
-  VertexSet fanin_roots = findFaninRoots(ends);
-  VertexSet related_ends = ends;
-  sta::SearchPredNonLatch2 pred(sta_);
-  BfsFwdIterator iter(BfsIndex::other, &pred, this);
-  for (Vertex* reg_out : fanin_roots)
-    iter.enqueueAdjacentVertices(reg_out);
-
-  while (iter.hasNext()) {
-    Vertex* vertex = iter.next();
-    if (isRegister(vertex)) {
-      if (options_->ignoreClk() && sta_->isClock(vertex->pin()))
-        continue;
-      if (!fuzzyInf(sta_->vertexSlack(vertex, MinMax::max())))
-        related_ends.insert(vertex);
-    } else
-      iter.enqueueAdjacentVertices(vertex);
-  }
-  return related_ends;
-}
-
 void LPHoldFixer::makeVarAllModes()
 {
   findHoldVioNameMM();
@@ -172,7 +150,7 @@ void LPHoldFixer::makeVarAllModes()
     sdc_ = sta_->sdc();
     sta_->findRequireds();
     VertexSet hold_failures = getHoldViolations();
-    hold_failures = getAllRelatedEnds(hold_failures);
+    hold_failures = getAllRelatedEnds(hold_failures, options_->ignoreClk());
     if (!hold_failures.empty()) {
       VertexSet fanins = findHoldFanins(hold_failures);
       VertexSeq sorted_fanins = sortHoldFanins(fanins);
@@ -277,17 +255,6 @@ float LPHoldFixer::getDelay(std::string vertex_name) const
   if (!delay_map_.hasKey(vertex_name))
     return LP_ZERO;
   return delay_map_.at(vertex_name);
-}
-
-Vertex* LPHoldFixer::findRealVertex(std::string vertex_name) const
-{
-  VertexIterator vertex_iter(sta_->graph());
-  while (vertex_iter.hasNext()) {
-    Vertex* test_vertex = vertex_iter.next();
-    if (!vertex_name.compare(test_vertex->name(sta_->sdcNetwork())))
-      return test_vertex;
-  }
-  return nullptr;
 }
 
 void LPHoldFixer::genPIConstraints()
@@ -551,8 +518,8 @@ void LPResizer::insertHoldDelay(Vertex* drvr,
 
 Pin* LPResizer::findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair) const
 {
-  Vertex* pred = fixer->findRealVertex(wire_pair.first);
-  Vertex* succ = fixer->findRealVertex(wire_pair.second);
+  Vertex* pred = findRealVertex(wire_pair.first);
+  Vertex* succ = findRealVertex(wire_pair.second);
   if (!succ->isDriver(sta_->network()))
     return succ->pin();
   VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
@@ -574,7 +541,7 @@ bool LPResizer::insertBuffer(LPHoldFixer* fixer, std::string vertex_name)
 {
   WirePairSet wire_pair_set = fixer->getAllWirePairFrom(vertex_name);
   PinSeq load_pins;
-  Vertex* insert_from = fixer->findRealVertex(vertex_name);
+  Vertex* insert_from = findRealVertex(vertex_name);
   bool loads_have_out_port = false;
   float max_padding = LP_ZERO;
   float min_padding = INF;

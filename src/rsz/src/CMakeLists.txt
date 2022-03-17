@@ -53,6 +53,7 @@ target_sources(rsz
     SteinerTree.cc
     EstimateWireParasitics.cc
     LPResizer.cc
+    MCFResizer.cc
 )
 
 target_include_directories(rsz

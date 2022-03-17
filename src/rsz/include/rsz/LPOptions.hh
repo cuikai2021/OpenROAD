@@ -15,7 +15,7 @@ class LPOptions
   void setUncertainty(float uncertainty) { uncertainty_ = uncertainty; }
   void setSlackMargin(float slack_margin) { slack_margin_ = slack_margin; }
 
-  bool analyzeClk() { ignore_clk_ = false; }
+  void analyzeClk() { ignore_clk_ = false; }
 
  private:
   float uncertainty_ = 0.1f;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ortools/graph/min_cost_flow.h>
 #include <ortools/linear_solver/linear_solver.h>
 
 #include "LPOptions.hh"
@@ -39,6 +40,12 @@
 #define LP_ROUNDING_LIMIT 0.005f / LP_STA_SCALING
 #define LP_BUFFER_SPILIT 2
 
+#define MCF_INT_INF (std::numeric_limits<int>::max)()
+#define MCF_INVALIDE -1
+#define MCF_SCALING LP_SCALING* LP_STA_SCALING
+#define MCF_ZERO 0
+#define MCF_SRC_NAME "$src$"
+
 namespace rsz {
 
 using namespace operations_research;
@@ -55,7 +62,71 @@ typedef sta::Map<int, MPConstraint*> MPConstraintMap;
 typedef sta::Vector<std::string> VertexNameSeq;
 typedef sta::Set<std::string> VertexNameSet;
 
+typedef int Index;
+typedef int Cost;
+typedef sta::Vector<Index> IndexSeq;
+typedef sta::Vector<Cost> CostSeq;
+typedef std::pair<Index, Index> MCFEdge;
+typedef std::pair<std::pair<Index, Index>, Delay> MCFEdgeWeight;
+typedef sta::Set<MCFEdgeWeight> MCFEdgeWeightSet;
+
 typedef MPSolver::ResultStatus LPResult;
+typedef int MCFResult;
+
+class MCFResizerCore : public Resizer
+{
+ public:
+  MCFResizerCore(OpenRoad* openroad, LPOptions* options);
+  virtual ~MCFResizerCore(){};
+
+  MCFResult doMinCostFlow();
+  bool remap();
+  Delay getNewDelay(Vertex* vertex);
+  Delay getResizeValue(Vertex* vertex);
+  VertexSet getResizeVertex();
+
+ protected:
+  void initMCF();
+  void buildIndexMap(VertexSet ends);
+
+  void addConstraintBase(Index pred, Index succ, Cost capacity, Cost cost);
+  void addConstraintEdge(Vertex* pred, Vertex* succ);
+  void addConstraintPO(Vertex* po);
+  void addConstraintPI(Vertex* pi);
+  
+  MCFEdgeWeightSet buildBellmanGraph() const;
+  void initArrivalMap();
+  bool updateArrivalMap(const MCFEdgeWeightSet bellman_graph);
+
+  Cost delay2Cost(Delay delay) const { return round(delay * MCF_SCALING); }
+  Delay cost2Delay(Cost cost) const { return (float) cost / MCF_SCALING; }
+  bool isInf(Cost cost) const { return cost == MCF_INT_INF; }
+
+  Index getIndex(Vertex* vertex) const;
+  std::string getNodeVertexName(Index index) const;
+  Delay getDelay(Vertex* vertex);
+  Delay getLowBound(Vertex* vertex);
+  Delay getHighBound(Vertex* vertex);
+
+  VertexSeq sortVertexSet(VertexSet set) const;
+
+  // constant
+  const Index s_index_ = 0;
+
+  // variables
+  SimpleMinCostFlow solver_;
+  IndexSeq start_nodes_;
+  IndexSeq end_nodes_;
+  CostSeq capacities_;
+  CostSeq unit_costs_;
+
+  MCFEdgeWeightSet bellman_graph_;
+  sta::Map<Index, Arrival> arrival_map_;
+
+  sta::Map<std::string, Index> vertex_index_map_;
+
+  LPOptions* options_;
+};
 
 class LPHoldFixer : public Resizer
 {
@@ -67,8 +138,6 @@ class LPHoldFixer : public Resizer
   float getWirePadding(WirePair wire_pair) const;
   WirePairSet getAllWirePairFrom(std::string vertex_name) const;
   VertexNameSet getNonZeroPaddingPred() const;
-
-  Vertex* findRealVertex(std::string vertex_name) const;
 
  protected:
   void makeVar(std::string vertex_name, MMVertexMPVarMap& arrival);
@@ -87,7 +156,6 @@ class LPHoldFixer : public Resizer
   float getDelay(std::string vertex_name) const;
   float getCriLongArrival(Vertex* end) const;
 
-  VertexSet getAllRelatedEnds(VertexSet ends);
   bool hasHoldViolation(Vertex* vertex) const;
   VertexSet getHoldViolations();  // should run findHoldVioNaemMM before
 
