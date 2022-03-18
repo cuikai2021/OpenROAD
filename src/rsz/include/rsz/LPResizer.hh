@@ -79,15 +79,20 @@ class MCFResizerCore : public Resizer
   MCFResizerCore(OpenRoad* openroad, LPOptions* options);
   virtual ~MCFResizerCore(){};
 
-  MCFResult doMinCostFlow();
+  MCFResult doMCF();
   bool remap();
   Delay getNewDelay(Vertex* vertex);
   Delay getResizeValue(Vertex* vertex);
   VertexSet getResizeVertex();
 
+  void reportMCF();
+
  protected:
   void initMCF();
   void buildIndexMap(VertexSet ends);
+  Index buildIndex(Vertex* vertex);
+  void buildAllFaninEdge(VertexSeq fanins);
+  void buildALLEdgePO(VertexSet ends);
 
   void addConstraintBase(Index pred, Index succ, Cost capacity, Cost cost);
   void addConstraintEdge(Vertex* pred, Vertex* succ);
@@ -111,16 +116,17 @@ class MCFResizerCore : public Resizer
   VertexSeq sortVertexSet(VertexSet set) const;
 
   // constant
-  const Index s_index_ = 0;
+  const Index s_index_ = MCF_ZERO;
 
   // variables
+  Index index_ = s_index_;
+
   SimpleMinCostFlow solver_;
   IndexSeq start_nodes_;
   IndexSeq end_nodes_;
   CostSeq capacities_;
   CostSeq unit_costs_;
 
-  MCFEdgeWeightSet bellman_graph_;
   sta::Map<Index, Arrival> arrival_map_;
 
   sta::Map<std::string, Index> vertex_index_map_;
@@ -190,7 +196,9 @@ class LPResizer : public Resizer
  public:
   LPResizer() : Resizer() { options_ = new LPOptions(); }
   virtual ~LPResizer() { delete options_; }
+
   void fixHold();
+  void fixSetup();
 
   LPOptions* getOptions() { return options_; }
 

@@ -667,6 +667,14 @@ lp_analyze_clk()
   options->analyzeClk();
 }
 
+void
+fix_setup_mcf()
+{
+  ensureLinked();
+  LPResizer *lp_resizer = getLPResizer();
+  lp_resizer->fixSetup();
+}
+
 } // namespace
 
 %} // inline

@@ -474,6 +474,19 @@ proc fix_hold_lp { args } {
   rsz::fix_hold_lp
 }
 
+sta::define_cmd_args "fix_setup_mcf" {[-slack_margin slack_margin]}
+
+proc fix_setup_mcf { args } {
+  sta::parse_key_args "fix_setup_mcf" args \
+    keys {-uncertainty -slack_margin} \
+    flags {}
+  
+  if { [info exists keys(-slack_margin)] } {
+    rsz::lp_set_slack_margin $keys(-slack_margin)
+  }
+  rsz::fix_setup_mcf
+}
+
 namespace eval rsz {
   
 # for testing resizing separately

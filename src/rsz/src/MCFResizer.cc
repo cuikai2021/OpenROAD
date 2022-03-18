@@ -87,19 +87,60 @@ Delay MCFResizerCore::getHighBound(Vertex* vertex)
   return 1.00 / LP_STA_SCALING;
 }
 
+Index MCFResizerCore::buildIndex(Vertex* vertex)
+{
+  std::string vertex_name = vertex->name(sta_->sdcNetwork());
+  if (!vertex_index_map_.hasKey(vertex_name))
+    vertex_index_map_.insert(vertex_name, index_++);
+  return vertex_index_map_[vertex_name];
+}
+
+void MCFResizerCore::buildAllFaninEdge(VertexSeq fanins)
+{
+  for (auto vertex : fanins) {
+    buildIndex(vertex);
+    SearchPredNonReg2 pred(sta_);
+    // add PI constraint if no pred
+    if (!pred.searchTo(vertex))
+      addConstraintPI(vertex);
+
+    // add edge constraint
+    BfsBkwdIterator iter(BfsIndex::other, &pred, this);
+    iter.enqueueAdjacentVertices(vertex);
+    while (iter.hasNext()) {
+      Vertex* fanin = iter.next();
+      if (!fanin->isDriver(sta_->network()))
+        iter.enqueueAdjacentVertices(fanin);
+      else {
+        buildIndex(fanin);
+        addConstraintEdge(fanin, vertex);
+      }
+    }
+  }
+}
+void MCFResizerCore::buildALLEdgePO(VertexSet ends)
+{
+  for (auto node : vertex_index_map_) {
+    Vertex* vertex = findRealVertex(node.first);
+    if (ends.find(vertex) != ends.end()) {
+      Index po_id = buildIndex(vertex);
+      addConstraintPO(vertex);
+      solver_.SetNodeSupply(po_id, -MCF_INT_INF);
+    }
+  }
+}
+
 void MCFResizerCore::buildIndexMap(VertexSet ends)
 {
-  Index index = s_index_;
   VertexSet all_ends = getAllRelatedEnds(ends, options_->ignoreClk());
   VertexSet fanins = findHoldFanins(all_ends);
   VertexSeq sorted_fanins = sortHoldFanins(fanins);
 
-  vertex_index_map_.insert(MCF_SRC_NAME, index);
-  for (auto vertex : sorted_fanins) {
-    index++;
-    std::string vertex_name = vertex->name(sta_->sdcNetwork());
-    vertex_index_map_.insert(vertex_name, index);
-  }
+  // the special node SRC
+  vertex_index_map_.insert(MCF_SRC_NAME, index_++);
+
+  buildAllFaninEdge(sorted_fanins);
+  buildALLEdgePO(all_ends);
 }
 
 void MCFResizerCore::addConstraintBase(Index pred,
@@ -154,10 +195,9 @@ void MCFResizerCore::initMCF()
       failures.insert(vertex);
   }
   buildIndexMap(failures);
-  // build all constraints
 }
 
-MCFResult MCFResizerCore::doMinCostFlow()
+MCFResult MCFResizerCore::doMCF()
 {
   // Add each arc.
   for (int i = 0; i < start_nodes_.size(); ++i)
@@ -182,8 +222,8 @@ MCFEdgeWeightSet MCFResizerCore::buildBellmanGraph() const
 
     // build Bellman Graph with KKT condition for edge (i,j)
     // A(i) + w(i,j) >= A(j); f(i,j) < c(i,j)
-    if (flow > MCF_ZERO){}
-      bellman_graph.insert(MCFEdgeWeight(MCFEdge(pred,succ), delay));
+    if (flow > MCF_ZERO)
+      bellman_graph.insert(MCFEdgeWeight(MCFEdge(pred, succ), delay));
     // A(i) <= A(j) - w(i,j); f(i,j) > 0
     if (flow < capacity || isInf(capacity))
       bellman_graph.insert(MCFEdgeWeight(MCFEdge(succ, pred), -delay));
@@ -228,7 +268,7 @@ bool MCFResizerCore::remap()
   bool changed = true;
   MCFEdgeWeightSet bellman_graph = buildBellmanGraph();
   initArrivalMap();
-  for (size_t iter = 0; iter < arrival_map_.size() && changed; ++iter)
+  for (size_t iter = 0; iter <= arrival_map_.size() && changed; ++iter)
     changed = updateArrivalMap(bellman_graph);
 
   if (changed)
@@ -278,6 +318,32 @@ VertexSet MCFResizerCore::getResizeVertex()
     }
   }
   return resize_vertex;
+}
+
+////////////////////////////////////////////////////////
+//
+//  class LPResizer
+//
+////////////////////////////////////////////////////////
+
+void LPResizer::fixSetup()
+{
+  MCFResizerCore fixer = MCFResizerCore(openroad_, options_);
+  MCFResult status = fixer.doMCF();
+  if (status == MinCostFlow::OPTIMAL) {
+    if (fixer.remap()) {
+      VertexSet changed_vertex = fixer.getResizeVertex();
+      logger_->info(utl::RSZ, 1300, "Resize result:");
+      for (auto vertex : changed_vertex) {
+        Delay resize = fixer.getResizeValue(vertex);
+        logger_->info(utl::RSZ,
+                      1301,
+                      " {} : {}",
+                      vertex->name(sta_->sdcNetwork()),
+                      delayAsString(resize, sta_, 3));
+      }
+    }
+  }
 }
 
 }  // namespace rsz
