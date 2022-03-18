@@ -42,7 +42,7 @@
 
 #define MCF_INT_INF (std::numeric_limits<int>::max)()
 #define MCF_INVALIDE -1
-#define MCF_SCALING LP_SCALING* LP_STA_SCALING
+// #define MCF_SCALING (LP_SCALING * LP_STA_SCALING)
 #define MCF_ZERO 0
 #define MCF_SRC_NAME "$src$"
 
@@ -62,8 +62,8 @@ typedef sta::Map<int, MPConstraint*> MPConstraintMap;
 typedef sta::Vector<std::string> VertexNameSeq;
 typedef sta::Set<std::string> VertexNameSet;
 
-typedef int Index;
-typedef int Cost;
+typedef int32_t Index;
+typedef int64_t Cost;
 typedef sta::Vector<Index> IndexSeq;
 typedef sta::Vector<Cost> CostSeq;
 typedef std::pair<Index, Index> MCFEdge;
@@ -98,13 +98,13 @@ class MCFResizerCore : public Resizer
   void addConstraintEdge(Vertex* pred, Vertex* succ);
   void addConstraintPO(Vertex* po);
   void addConstraintPI(Vertex* pi);
-  
+
   MCFEdgeWeightSet buildBellmanGraph() const;
   void initArrivalMap();
   bool updateArrivalMap(const MCFEdgeWeightSet bellman_graph);
 
-  Cost delay2Cost(Delay delay) const { return round(delay * MCF_SCALING); }
-  Delay cost2Delay(Cost cost) const { return (float) cost / MCF_SCALING; }
+  Cost delay2Cost(Delay delay);
+  Delay cost2Delay(Cost cost) const;
   bool isInf(Cost cost) const { return cost == MCF_INT_INF; }
 
   Index getIndex(Vertex* vertex) const;

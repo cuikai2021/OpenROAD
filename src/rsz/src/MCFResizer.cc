@@ -29,6 +29,16 @@ MCFResizerCore::MCFResizerCore(OpenRoad* openroad, LPOptions* options)
   initMCF();
 }
 
+Cost MCFResizerCore::delay2Cost(Delay delay)
+{
+  Delay scaled_delay = std::stof(delayAsString(delay, sta_, 3));
+  return round(scaled_delay * LP_SCALING);
+}
+Delay MCFResizerCore::cost2Delay(Cost cost) const
+{
+  return ((float) cost) / LP_SCALING / LP_STA_SCALING;
+}
+
 Index MCFResizerCore::getIndex(Vertex* vertex) const
 {
   std::string vertex_name = vertex->name(sta_->sdcNetwork());
@@ -79,12 +89,12 @@ Delay MCFResizerCore::getDelay(Vertex* vertex)
 Delay MCFResizerCore::getLowBound(Vertex* vertex)
 {
   // todo
-  return 0.01 / LP_STA_SCALING;
+  return 0.01f / LP_STA_SCALING;
 }
 Delay MCFResizerCore::getHighBound(Vertex* vertex)
 {
   // todo
-  return 1.00 / LP_STA_SCALING;
+  return 1.00f / LP_STA_SCALING;
 }
 
 Index MCFResizerCore::buildIndex(Vertex* vertex)
@@ -98,13 +108,9 @@ Index MCFResizerCore::buildIndex(Vertex* vertex)
 void MCFResizerCore::buildAllFaninEdge(VertexSeq fanins)
 {
   for (auto vertex : fanins) {
+    bool is_pi = true;
     buildIndex(vertex);
     SearchPredNonReg2 pred(sta_);
-    // add PI constraint if no pred
-    if (!pred.searchTo(vertex))
-      addConstraintPI(vertex);
-
-    // add edge constraint
     BfsBkwdIterator iter(BfsIndex::other, &pred, this);
     iter.enqueueAdjacentVertices(vertex);
     while (iter.hasNext()) {
@@ -114,31 +120,34 @@ void MCFResizerCore::buildAllFaninEdge(VertexSeq fanins)
       else {
         buildIndex(fanin);
         addConstraintEdge(fanin, vertex);
+        is_pi = false;
       }
     }
+    if (is_pi)
+      addConstraintPI(vertex);
   }
 }
 void MCFResizerCore::buildALLEdgePO(VertexSet ends)
 {
   for (auto node : vertex_index_map_) {
     Vertex* vertex = findRealVertex(node.first);
-    if (ends.find(vertex) != ends.end()) {
-      Index po_id = buildIndex(vertex);
+    if (ends.find(vertex) != ends.end())
       addConstraintPO(vertex);
-      solver_.SetNodeSupply(po_id, -MCF_INT_INF);
-    }
   }
 }
 
 void MCFResizerCore::buildIndexMap(VertexSet ends)
 {
   VertexSet all_ends = getAllRelatedEnds(ends, options_->ignoreClk());
+  // VertexSet all_ends = ends;
   VertexSet fanins = findHoldFanins(all_ends);
+  VertexSeq sorted_ends = sortHoldFanins(all_ends);
   VertexSeq sorted_fanins = sortHoldFanins(fanins);
 
   // the special node SRC
   vertex_index_map_.insert(MCF_SRC_NAME, index_++);
 
+  buildAllFaninEdge(sorted_ends);
   buildAllFaninEdge(sorted_fanins);
   buildALLEdgePO(all_ends);
 }
@@ -152,6 +161,15 @@ void MCFResizerCore::addConstraintBase(Index pred,
   end_nodes_.push_back(succ);
   capacities_.push_back(capacity);
   unit_costs_.push_back(cost);
+  debugPrint(logger_,
+             utl::RSZ,
+             "MCF",
+             4,
+             "cst: {} -> {} , cap = {}, cost = {}",
+             getNodeVertexName(pred),
+             getNodeVertexName(succ),
+             isInf(capacity) ? "INF" : std::to_string(capacity),
+             std::to_string(cost));
 }
 
 void MCFResizerCore::addConstraintEdge(Vertex* pred, Vertex* succ)
@@ -160,8 +178,8 @@ void MCFResizerCore::addConstraintEdge(Vertex* pred, Vertex* succ)
   Index pred_index = getIndex(pred);
   Index succ_index = getIndex(succ);
   Cost capacity = delay2Cost(delay);  // todo
-  Cost low_bound = getLowBound(succ);
-  Cost high_bound = getHighBound(succ);
+  Delay low_bound = getLowBound(succ);
+  Delay high_bound = getHighBound(succ);
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
   addConstraintBase(
       pred_index, succ_index, MCF_INT_INF, -delay2Cost(low_bound));
@@ -175,7 +193,7 @@ void MCFResizerCore::addConstraintPO(Vertex* po)
   Index po_index = getIndex(po);
   Required req = sta_->vertexRequired(po, MinMax::max()) + slack_margin;
   addConstraintBase(po_index, s_index_, MCF_INT_INF, delay2Cost(req));
-  solver_.SetNodeSupply(po_index, MCF_INT_INF);
+  solver_.SetNodeSupply(po_index, -MCF_INT_INF);
 }
 
 void MCFResizerCore::addConstraintPI(Vertex* pi)
@@ -189,10 +207,21 @@ void MCFResizerCore::initMCF()
   const Slack slack_margin = options_->slackMargin() / LP_STA_SCALING;
   VertexSet* ends = sta_->search()->endpoints();
   VertexSet failures;
+
+  logger_->info(utl::RSZ,
+                1302,
+                "Violated Ends: (slack_margin = {})",
+                delayAsString(slack_margin, sta_, 3));
   for (Vertex* vertex : *ends) {
     Slack slack = sta_->vertexSlack(vertex, MinMax::max());
-    if (!fuzzyLess(slack, slack_margin))
+    if (!fuzzyInf(slack) && fuzzyLess(slack, slack_margin)) {
       failures.insert(vertex);
+      logger_->info(utl::RSZ,
+                    1303,
+                    "   {} : {}",
+                    delayAsString(slack, sta_, 3),
+                    vertex->name(sta_->sdcNetwork()));
+    }
   }
   buildIndexMap(failures);
 }
@@ -291,18 +320,25 @@ Delay MCFResizerCore::getNewDelay(Vertex* vertex)
       if (vertex_index_map_.hasKey(pred->name(sta_->sdcNetwork()))) {
         Index pred_index = getIndex(pred);
         Index succ_index = getIndex(vertex);
-        Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
-        if (fuzzyLess(new_delay, shortest_delay))
-          shortest_delay = new_delay;
+        if (pred_index != s_index_) {
+          Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
+          if (fuzzyLess(new_delay, shortest_delay))
+            shortest_delay = new_delay;
+        }
       }
     }
   }
+  if (shortest_delay == LP_INFINITY)
+    shortest_delay = LP_ZERO;
   return shortest_delay;
 }
 
 Delay MCFResizerCore::getResizeValue(Vertex* vertex)
 {
-  return getNewDelay(vertex) - getDelay(vertex);
+  Delay new_delay = getNewDelay(vertex);
+  if (fuzzyZero(new_delay))
+    return LP_ZERO;
+  return new_delay - getDelay(vertex);
 }
 
 VertexSet MCFResizerCore::getResizeVertex()
@@ -320,6 +356,33 @@ VertexSet MCFResizerCore::getResizeVertex()
   return resize_vertex;
 }
 
+void MCFResizerCore::reportMCF()
+{
+  debugPrint(logger_,
+             utl::RSZ,
+             "MCF",
+             3,
+             "Minimum cost flow: {}",
+             std::to_string(solver_.OptimalCost()));
+  for (std::size_t i = 0; i < solver_.NumArcs(); ++i) {
+    Index pred = solver_.Tail(i);
+    Index succ = solver_.Head(i);
+    Cost flow = solver_.Flow(i);
+    Cost cap = solver_.Capacity(i);
+    Cost cost = solver_.UnitCost(i);
+    debugPrint(logger_,
+               utl::RSZ,
+               "MCF",
+               3,
+               "{} -> {}, flow = {}/{}, cost = {}",
+               getNodeVertexName(pred),
+               getNodeVertexName(succ),
+               isInf(flow) ? "INF" : std::to_string(flow),
+               isInf(cap) ? "INF" : std::to_string(cap),
+               std::to_string(cost));
+  }
+}
+
 ////////////////////////////////////////////////////////
 //
 //  class LPResizer
@@ -331,16 +394,19 @@ void LPResizer::fixSetup()
   MCFResizerCore fixer = MCFResizerCore(openroad_, options_);
   MCFResult status = fixer.doMCF();
   if (status == MinCostFlow::OPTIMAL) {
+    fixer.reportMCF();
     if (fixer.remap()) {
       VertexSet changed_vertex = fixer.getResizeVertex();
       logger_->info(utl::RSZ, 1300, "Resize result:");
       for (auto vertex : changed_vertex) {
         Delay resize = fixer.getResizeValue(vertex);
+        Delay new_delay = fixer.getNewDelay(vertex);
         logger_->info(utl::RSZ,
                       1301,
-                      " {} : {}",
+                      " {} : {} (new_delay = {})",
                       vertex->name(sta_->sdcNetwork()),
-                      delayAsString(resize, sta_, 3));
+                      delayAsString(resize, sta_, 3),
+                      delayAsString(new_delay, sta_, 3));
       }
     }
   }
