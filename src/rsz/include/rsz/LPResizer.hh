@@ -110,6 +110,8 @@ class MCFResizerCore : public Resizer
   Index getIndex(Vertex* vertex) const;
   std::string getNodeVertexName(Index index) const;
   Delay getDelay(Vertex* vertex);
+  const char* getInPortName(Vertex* pred, Vertex* succ) const;
+  Delay getBound(Vertex* vertex, const MinMax* min_max);
   Delay getLowBound(Vertex* vertex);
   Delay getHighBound(Vertex* vertex);
 
@@ -216,6 +218,10 @@ class LPResizer : public Resizer
                        LibertyCell* buffer_cell);
 
   LibertyCell* findHoldBuffer(float min_limit);
+
+  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
+  bool resizeCell(Vertex* vertex, Delay target_delay);
+  bool resizeAllCells(MCFResizerCore* fixer);
 
   // variable
   LPOptions* options_;

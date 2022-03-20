@@ -25,6 +25,7 @@ MCFResizerCore::MCFResizerCore(OpenRoad* openroad, LPOptions* options)
        openroad->getSta(),
        openroad->getSteinerTreeBuilder(),
        openroad->getGlobalRouter());
+  resizePreamble();
   init();
   initMCF();
 }
@@ -57,44 +58,81 @@ std::string MCFResizerCore::getNodeVertexName(Index index) const
 
 Delay MCFResizerCore::getDelay(Vertex* vertex)
 {
-  std::string vertex_name = vertex->name(sta_->sdcNetwork());
-  Delay load_delay = LP_ZERO;
+  if (!vertex->isDriver(sta_->network()))
+    return LP_ZERO;
+  Pin* drvr_pin = vertex->pin();
+  LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
   PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
-  PathExpanded expanded(&path, sta_);
   const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
-  int start_index = expanded.startIndex();
-  int path_length = expanded.size();
-  for (int i = start_index; i < path_length; i++) {
-    PathRef* path = expanded.path(i);
-    Vertex* path_vertex = path->vertex(sta_);
-    if (vertex == path_vertex) {
-      TimingArc* prev_arc = expanded.prevArc(i);
-      Edge* prev_edge = path->prevEdge(prev_arc, sta_);
-      if (!prev_edge)
-        continue;
-      load_delay
-          = sta_->graph()->arcDelay(prev_edge, prev_arc, dcalc_ap->index());
-      debugPrint(logger_,
-                 utl::RSZ,
-                 "LPHoldFixer",
-                 4,
-                 "{} load_delay = {}",
-                 path_vertex->name(sta_->network()),
-                 delayAsString(load_delay, sta_, 3));
+  const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
+  return gateDelay(drvr_port, load_cap, dcalc_ap);
+}
+
+const char* MCFResizerCore::getInPortName(Vertex* pred, Vertex* succ) const
+{
+  VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
+  while (pred_edge_iter.hasNext()) {
+    Edge* pred_edge = pred_edge_iter.next();
+    Vertex* fanout = pred_edge->to(sta_->graph());
+    VertexInEdgeIterator succ_edge_iter(succ, sta_->graph());
+    while (succ_edge_iter.hasNext()) {
+      Edge* succ_edge = succ_edge_iter.next();
+      Vertex* fanin = succ_edge->from(sta_->graph());
+      if (fanin == fanout) {
+        Pin* pin = fanin->pin();
+        LibertyPort* port = sta_->network()->libertyPort(pin);
+        return port->name();
+      }
     }
   }
-  return load_delay;
+  return nullptr;
+}
+
+Delay MCFResizerCore::getBound(Vertex* vertex, const MinMax* min_max)
+{
+  if (!vertex->isDriver(sta_->network()))
+    return LP_ZERO;
+  Pin* drvr_pin = vertex->pin();
+  LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
+  LibertyCell* cell = drvr_port->libertyCell();
+  LibertyCellSeq* equiv_cells = sta_->equivCells(cell);
+  PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+  const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
+  const char* drvr_port_name = drvr_port->name();
+  const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
+  int lib_ap = dcalc_ap->libertyIndex();
+  Delay extreme_delay = INF;
+  if (!equiv_cells) {
+    debugPrint(logger_, utl::RSZ, "MCF", 3, "no equiv_cells");
+    return LP_ZERO;
+  }
+  for (LibertyCell* equiv : *equiv_cells) {
+    LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
+    LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
+    Delay equiv_delay = gateDelay(equiv_drvr, load_cap, dcalc_ap);
+    if (((min_max == MinMax::max()) ^ fuzzyLess(equiv_delay, extreme_delay))
+        || fuzzyInf(extreme_delay))
+      extreme_delay = equiv_delay;
+  }
+  debugPrint(logger_,
+             utl::RSZ,
+             "MCF",
+             3,
+             "{} extreme delay {}",
+             vertex->name(sta_->sdcNetwork()),
+             delayAsString(extreme_delay, sta_, 3));
+  return extreme_delay;
 }
 
 Delay MCFResizerCore::getLowBound(Vertex* vertex)
 {
-  // todo
-  return 0.01f / LP_STA_SCALING;
+  return getBound(vertex, MinMax::min());
 }
+
 Delay MCFResizerCore::getHighBound(Vertex* vertex)
 {
   // todo
-  return 1.00f / LP_STA_SCALING;
+  return getBound(vertex, MinMax::max());
 }
 
 Index MCFResizerCore::buildIndex(Vertex* vertex)
@@ -139,7 +177,6 @@ void MCFResizerCore::buildALLEdgePO(VertexSet ends)
 void MCFResizerCore::buildIndexMap(VertexSet ends)
 {
   VertexSet all_ends = getAllRelatedEnds(ends, options_->ignoreClk());
-  // VertexSet all_ends = ends;
   VertexSet fanins = findHoldFanins(all_ends);
   VertexSeq sorted_ends = sortHoldFanins(all_ends);
   VertexSeq sorted_fanins = sortHoldFanins(fanins);
@@ -389,27 +426,87 @@ void MCFResizerCore::reportMCF()
 //
 ////////////////////////////////////////////////////////
 
+LibertyCell* LPResizer::findResizeCell(Vertex* vertex, Delay target_delay)
+{
+  Pin* drvr_pin = vertex->pin();
+  LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
+  LibertyCell* cell = drvr_port->libertyCell();
+  LibertyCellSeq* equiv_cells = sta_->equivCells(cell);
+  PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+  const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
+  const char* drvr_port_name = drvr_port->name();
+  const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
+  int lib_ap = dcalc_ap->libertyIndex();
+  Delay extreme_delay = INF;
+  LibertyCell* resize_cell = nullptr;
+  for (LibertyCell* equiv : *equiv_cells) {
+    LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
+    LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
+    Delay equiv_delay = gateDelay(equiv_drvr, load_cap, dcalc_ap);
+    if (fuzzyLess(equiv_delay, extreme_delay)
+        && fuzzyLess(target_delay, equiv_delay)) {
+      extreme_delay = equiv_delay;
+      resize_cell = equiv;
+    }
+  }
+  return resize_cell;
+}
+
+bool LPResizer::resizeCell(Vertex* vertex, Delay target_delay)
+{
+  LibertyCell* resize_cell = findResizeCell(vertex, target_delay);
+  if (resize_cell) {
+    Instance* drvr = network_->instance(vertex->pin());
+    if (replaceCell(drvr, resize_cell, true)) {
+      logger_->info(utl::RSZ,
+                    1304,
+                    "resize cell {} -> {}",
+                    vertex->name(sta_->sdcNetwork()),
+                    resize_cell->name());
+      resize_count_++;
+      return true;
+    }
+  }
+  logger_->warn(utl::RSZ,
+                1201,
+                "cannot resize cell ({} -> {})",
+                vertex->name(sta_->sdcNetwork()),
+                delayAsString(target_delay, sta_, 3));
+  return false;
+}
+
+bool LPResizer::resizeAllCells(MCFResizerCore* fixer)
+{
+  bool ret = true;
+  VertexSet changed_vertex = fixer->getResizeVertex();
+  for (auto vertex : changed_vertex) {
+    Delay resize = fixer->getResizeValue(vertex);
+    Delay new_delay = fixer->getNewDelay(vertex);
+    logger_->info(utl::RSZ,
+                  1301,
+                  " {} : {} (new_delay = {})",
+                  vertex->name(sta_->sdcNetwork()),
+                  delayAsString(resize, sta_, 3),
+                  delayAsString(new_delay, sta_, 3));
+    if (!resizeCell(vertex, new_delay))
+      ret = false;
+  }
+  return ret;
+}
+
 void LPResizer::fixSetup()
 {
   MCFResizerCore fixer = MCFResizerCore(openroad_, options_);
   MCFResult status = fixer.doMCF();
+  bool ret = false;
   if (status == MinCostFlow::OPTIMAL) {
     fixer.reportMCF();
     if (fixer.remap()) {
-      VertexSet changed_vertex = fixer.getResizeVertex();
-      logger_->info(utl::RSZ, 1300, "Resize result:");
-      for (auto vertex : changed_vertex) {
-        Delay resize = fixer.getResizeValue(vertex);
-        Delay new_delay = fixer.getNewDelay(vertex);
-        logger_->info(utl::RSZ,
-                      1301,
-                      " {} : {} (new_delay = {})",
-                      vertex->name(sta_->sdcNetwork()),
-                      delayAsString(resize, sta_, 3),
-                      delayAsString(new_delay, sta_, 3));
-      }
+      ret = resizeAllCells(&fixer);
     }
   }
+  if (!ret)
+    logger_->warn(utl::RSZ, 1202, "Fail to resize all cells");
 }
 
 }  // namespace rsz
