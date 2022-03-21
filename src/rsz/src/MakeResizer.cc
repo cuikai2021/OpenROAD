@@ -36,7 +36,7 @@
 #include "rsz/MakeResizer.hh"
 
 #include "rsz/Resizer.hh"
-#include "rsz/LPResizer.hh"
+// #include "rsz/LPResizer.hh"
 #include "ord/OpenRoad.hh"
 #include "gui/gui.h"
 
@@ -48,11 +48,11 @@ makeResizer()
   return new rsz::Resizer;
 }
 
-rsz::LPResizer *
-makeLPResizer()
-{
-  return new rsz::LPResizer;
-}
+// rsz::LPResizer *
+// makeLPResizer()
+// {
+//   return new rsz::LPResizer;
+// }
 
 void
 deleteResizer(rsz::Resizer *resizer)
@@ -60,11 +60,11 @@ deleteResizer(rsz::Resizer *resizer)
   delete resizer;
 }
 
-void
-deleteLPResizer(rsz::LPResizer *lp_resizer)
-{
-  delete lp_resizer;
-}
+// void
+// deleteLPResizer(rsz::LPResizer *lp_resizer)
+// {
+//   delete lp_resizer;
+// }
 
 void
 initResizer(OpenRoad *openroad)
@@ -80,18 +80,18 @@ initResizer(OpenRoad *openroad)
                                openroad->getGlobalRouter());
 }
 
-void
-initLPResizer(OpenRoad *openroad)
-{
-  openroad->getLPResizer()->init(openroad,
-                               openroad->tclInterp(),
-                               openroad->getLogger(),
-                               // Broken gui api missing openroad accessor.
-                               gui::Gui::get(),
-                               openroad->getDb(),
-                               openroad->getSta(),
-                               openroad->getSteinerTreeBuilder(),
-                               openroad->getGlobalRouter());
-}
+// void
+// initLPResizer(OpenRoad *openroad)
+// {
+//   openroad->getLPResizer()->init(openroad,
+//                                openroad->tclInterp(),
+//                                openroad->getLogger(),
+//                                // Broken gui api missing openroad accessor.
+//                                gui::Gui::get(),
+//                                openroad->getDb(),
+//                                openroad->getSta(),
+//                                openroad->getSteinerTreeBuilder(),
+//                                openroad->getGlobalRouter());
+// }
 
 }

@@ -222,6 +222,7 @@ add_subdirectory(Banyan)
 add_subdirectory(utl)
 add_subdirectory(dst)
 add_subdirectory(pdn)
+add_subdirectory(Laurel)
 
 ################################################################
 
@@ -283,6 +284,7 @@ target_link_libraries(eden
   par
   utl
   pdn
+  Laurel
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -463,6 +465,7 @@ if(GTEST STREQUAL ON)
     par
     utl
     pdn
+    Laurel
     utt
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}

@@ -60,7 +60,7 @@ namespace ord {
 using sta::dbSta;
 using sta::dbNetwork;
 using rsz::Resizer;
-using rsz::LPResizer;
+using lrl::Laurel;
 
 using odb::dbDatabase;
 
@@ -119,11 +119,11 @@ getResizer()
   return openroad->getResizer();
 }
 
-LPResizer *
-getLPResizer()
+Laurel *
+getLaurel()
 {
   OpenRoad *openroad = getOpenRoad();
-  return openroad->getLPResizer();
+  return openroad->getLaurel();
 }
 
 rmp::Restructure *

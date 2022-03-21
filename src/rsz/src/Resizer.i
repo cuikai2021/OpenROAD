@@ -39,8 +39,8 @@
 
 #include "sta/Liberty.hh"
 #include "rsz/Resizer.hh"
-#include "rsz/LPResizer.hh"
-#include "rsz/LPOptions.hh"
+// #include "rsz/LPResizer.hh"
+// #include "rsz/LPOptions.hh"
 #include "sta/Delay.hh"
 #include "sta/Liberty.hh"
 
@@ -49,8 +49,8 @@ namespace ord {
 rsz::Resizer *
 getResizer();
 
-rsz::LPResizer *
-getLPResizer();
+// rsz::LPResizer *
+// getLPResizer();
 
 void
 ensureLinked();
@@ -72,7 +72,7 @@ typedef PinSet TmpPinSet;
 } // namespace
 
 using ord::getResizer;
-using ord::getLPResizer;
+// using ord::getLPResizer;
 using ord::ensureLinked;
 
 using sta::Corner;
@@ -95,8 +95,8 @@ using sta::dbNetwork;
 using sta::stringEq;
 
 using rsz::Resizer;
-using rsz::LPResizer;
-using rsz::LPOptions;
+// using rsz::LPResizer;
+// using rsz::LPOptions;
 using rsz::ParasiticsSrc;
 
 %}
@@ -635,45 +635,45 @@ find_fanin_fanouts(PinSet *pins)
 
 // ICBench methods
 
-void
-fix_hold_lp()
-{
-  ensureLinked();
-  LPResizer *lp_resizer = getLPResizer();
-  lp_resizer->fixHold();
-}
+// void
+// fix_hold_lp()
+// {
+//   ensureLinked();
+//   LPResizer *lp_resizer = getLPResizer();
+//   lp_resizer->fixHold();
+// }
 
-void
-lp_set_uncertainty(float uncertainty)
-{
-  LPResizer *lp_resizer = getLPResizer();
-  LPOptions *options = lp_resizer->getOptions();
-  options->setUncertainty(uncertainty);
-}
+// void
+// lp_set_uncertainty(float uncertainty)
+// {
+//   LPResizer *lp_resizer = getLPResizer();
+//   LPOptions *options = lp_resizer->getOptions();
+//   options->setUncertainty(uncertainty);
+// }
 
-void
-lp_set_slack_margin(float slack_margin)
-{
-  LPResizer *lp_resizer = getLPResizer();
-  LPOptions *options = lp_resizer->getOptions();
-  options->setSlackMargin(slack_margin);
-}
+// void
+// lp_set_slack_margin(float slack_margin)
+// {
+//   LPResizer *lp_resizer = getLPResizer();
+//   LPOptions *options = lp_resizer->getOptions();
+//   options->setSlackMargin(slack_margin);
+// }
 
-void
-lp_analyze_clk()
-{
-  LPResizer *lp_resizer = getLPResizer();
-  LPOptions *options = lp_resizer->getOptions();
-  options->analyzeClk();
-}
+// void
+// lp_analyze_clk()
+// {
+//   LPResizer *lp_resizer = getLPResizer();
+//   LPOptions *options = lp_resizer->getOptions();
+//   options->analyzeClk();
+// }
 
-void
-fix_setup_mcf()
-{
-  ensureLinked();
-  LPResizer *lp_resizer = getLPResizer();
-  lp_resizer->fixSetup();
-}
+// void
+// fix_setup_mcf()
+// {
+//   ensureLinked();
+//   LPResizer *lp_resizer = getLPResizer();
+//   lp_resizer->fixSetup();
+// }
 
 } // namespace
 

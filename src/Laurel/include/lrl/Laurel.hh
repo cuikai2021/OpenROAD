@@ -3,8 +3,8 @@
 #include <ortools/graph/min_cost_flow.h>
 #include <ortools/linear_solver/linear_solver.h>
 
-#include "LPOptions.hh"
-#include "Resizer.hh"
+#include "lrl/Options.hh"
+#include "rsz/Resizer.hh"
 #include "sta/ArcDelayCalc.hh"
 #include "sta/Bfs.hh"
 #include "sta/Corner.hh"
@@ -46,12 +46,14 @@
 #define MCF_ZERO 0
 #define MCF_SRC_NAME "$src$"
 
-namespace rsz {
+namespace lrl {
 
 using namespace operations_research;
 using namespace sta;
+using namespace rsz;
 
 using operations_research::MPSolver;
+using rsz::Resizer;
 
 typedef std::pair<std::string, std::string> WirePair;
 typedef sta::Set<WirePair> WirePairSet;
@@ -73,11 +75,51 @@ typedef sta::Set<MCFEdgeWeight> MCFEdgeWeightSet;
 typedef MPSolver::ResultStatus LPResult;
 typedef int MCFResult;
 
-class MCFResizerCore : public Resizer
+class HoldFixer;
+class SetupFixer;
+
+class Laurel : public Resizer
 {
  public:
-  MCFResizerCore(OpenRoad* openroad, LPOptions* options);
-  virtual ~MCFResizerCore(){};
+  Laurel() : Resizer() { options_ = new Options(); }
+  virtual ~Laurel() { delete options_; }
+
+  void fixHold();
+  void fixSetup();
+
+  Options* getOptions() { return options_; }
+
+ protected:
+  bool fixHoldCore();
+
+  int findInsertBufferCell(float max_padding, LibertyCell* buffer_cell);
+  bool insertBuffer(HoldFixer* fixer, std::string vertex_name);
+  bool insertAllBuffer(HoldFixer* fixer);
+  Pin* findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const;
+  void insertHoldDelay(Vertex* drvr,
+                       int buffer_count,
+                       PinSeq& load_pins,
+                       bool loads_have_out_port,
+                       LibertyCell* buffer_cell);
+
+  LibertyCell* findHoldBuffer(float min_limit);
+
+  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
+  bool resizeCell(Vertex* vertex, Delay target_delay);
+  bool resizeAllCells(SetupFixer* fixer);
+
+  virtual VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
+  virtual Vertex* findRealVertex(std::string vertex_name) const;
+
+  // variable
+  Options* options_;
+};
+
+class SetupFixer : public Laurel
+{
+ public:
+  SetupFixer(OpenRoad* openroad, Options* options);
+  virtual ~SetupFixer(){};
 
   MCFResult doMCF();
   bool remap();
@@ -118,10 +160,10 @@ class MCFResizerCore : public Resizer
   VertexSeq sortVertexSet(VertexSet set) const;
 
   // constant
-  const Index s_index_ = MCF_ZERO;
+  const Index s_index = MCF_ZERO;
 
   // variables
-  Index index_ = s_index_;
+  Index index_ = s_index;
 
   SimpleMinCostFlow solver_;
   IndexSeq start_nodes_;
@@ -133,14 +175,14 @@ class MCFResizerCore : public Resizer
 
   sta::Map<std::string, Index> vertex_index_map_;
 
-  LPOptions* options_;
+  Options* options_;
 };
 
-class LPHoldFixer : public Resizer
+class HoldFixer : public Laurel
 {
  public:
-  LPHoldFixer(OpenRoad* openroad, LPOptions* options);
-  virtual ~LPHoldFixer();
+  HoldFixer(OpenRoad* openroad, Options* options);
+  virtual ~HoldFixer();
 
   LPResult doLP();
   float getWirePadding(WirePair wire_pair) const;
@@ -190,41 +232,7 @@ class LPHoldFixer : public Resizer
   VertexNameSet vio_ends_name_;
   VertexNameSet complete_vio_ends_;
 
-  LPOptions* options_;
+  Options* options_;
 };
 
-class LPResizer : public Resizer
-{
- public:
-  LPResizer() : Resizer() { options_ = new LPOptions(); }
-  virtual ~LPResizer() { delete options_; }
-
-  void fixHold();
-  void fixSetup();
-
-  LPOptions* getOptions() { return options_; }
-
- protected:
-  bool fixHoldCore();
-
-  int findInsertBufferCell(float max_padding, LibertyCell* buffer_cell);
-  bool insertBuffer(LPHoldFixer* fixer, std::string vertex_name);
-  bool insertAllBuffer(LPHoldFixer* fixer);
-  Pin* findFanoutPin(LPHoldFixer* fixer, WirePair wire_pair) const;
-  void insertHoldDelay(Vertex* drvr,
-                       int buffer_count,
-                       PinSeq& load_pins,
-                       bool loads_have_out_port,
-                       LibertyCell* buffer_cell);
-
-  LibertyCell* findHoldBuffer(float min_limit);
-
-  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
-  bool resizeCell(Vertex* vertex, Delay target_delay);
-  bool resizeAllCells(MCFResizerCore* fixer);
-
-  // variable
-  LPOptions* options_;
-};
-
-}  // namespace rsz
+}  // namespace lrl

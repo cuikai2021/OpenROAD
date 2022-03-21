@@ -625,8 +625,8 @@ class Resizer : public StaState
 
   ////////////////////////////////////////////////////////////////
   // ICBench Methods
-  VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
-  Vertex* findRealVertex(std::string vertex_name) const;
+  // VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
+  // Vertex* findRealVertex(std::string vertex_name) const;
 
   // These are command args values.
   // Layer RC per wire length indexed by layer->getNumber(), corner->index

@@ -52,8 +52,8 @@ target_sources(rsz
     Rebuffer.cc
     SteinerTree.cc
     EstimateWireParasitics.cc
-    LPResizer.cc
-    MCFResizer.cc
+    # LPResizer.cc
+    # MCFResizer.cc
 )
 
 target_include_directories(rsz
@@ -71,7 +71,7 @@ target_link_libraries(rsz
     gui
     utl
     spdlog::spdlog
-    ortools::ortools
+    # ortools::ortools
 )
 
 messages(

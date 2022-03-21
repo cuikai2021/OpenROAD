@@ -1,8 +1,8 @@
 #pragma once
 
-namespace rsz {
+namespace lrl {
 
-class LPOptions
+class Options
 {
  public:
   // getter
@@ -24,4 +24,4 @@ class LPOptions
   bool ignore_clk_ = true;
 };
 
-}  // namespace rsz
+}  // namespace lrl
