@@ -1,10 +1,5 @@
 #pragma once
 
-namespace sta {
-class dbSta;
-class Laurel;
-}  // namespace sta
-
 namespace lrl {
 class Laurel;
 }  // namespace lrl

@@ -48,6 +48,9 @@
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
 
+#include "lrl/Laurel.hh"
+#include "lrl/Options.hh"
+
 ////////////////////////////////////////////////////////////////
 //
 // C++ helper functions used by the interface functions.
@@ -61,6 +64,7 @@ using sta::dbSta;
 using sta::dbNetwork;
 using rsz::Resizer;
 using lrl::Laurel;
+using lrl::Options;
 
 using odb::dbDatabase;
 
@@ -543,6 +547,52 @@ delete_all_memory()
 {
   ord::deleteAllMemory();
 }
+
+// ICBench methods
+
+namespace lrl {
+
+void
+fix_hold_cmd()
+{
+  ensureLinked();
+  Laurel *laurel = getLaurel();
+  laurel->fixHold();
+}
+
+void
+set_uncertainty(float uncertainty)
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->setUncertainty(uncertainty);
+}
+
+void
+set_slack_margin(float slack_margin)
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->setSlackMargin(slack_margin);
+}
+
+void
+analyze_clk()
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->analyzeClk();
+}
+
+void
+fix_setup_cmd()
+{
+  ensureLinked();
+  Laurel *laurel = getLaurel();
+  laurel->fixSetup();
+}
+
+} // namespace
 
 }
 
