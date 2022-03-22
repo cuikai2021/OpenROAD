@@ -39,8 +39,6 @@
 
 #include "sta/Liberty.hh"
 #include "rsz/Resizer.hh"
-// #include "rsz/LPResizer.hh"
-// #include "rsz/LPOptions.hh"
 #include "sta/Delay.hh"
 #include "sta/Liberty.hh"
 
@@ -48,9 +46,6 @@ namespace ord {
 // Defined in OpenRoad.i
 rsz::Resizer *
 getResizer();
-
-// rsz::LPResizer *
-// getLPResizer();
 
 void
 ensureLinked();
@@ -72,7 +67,6 @@ typedef PinSet TmpPinSet;
 } // namespace
 
 using ord::getResizer;
-// using ord::getLPResizer;
 using ord::ensureLinked;
 
 using sta::Corner;
@@ -632,48 +626,6 @@ find_fanin_fanouts(PinSet *pins)
   Resizer *resizer = getResizer();
   return resizer->findFaninFanouts(pins);
 }
-
-// ICBench methods
-
-// void
-// fix_hold_lp()
-// {
-//   ensureLinked();
-//   LPResizer *lp_resizer = getLPResizer();
-//   lp_resizer->fixHold();
-// }
-
-// void
-// lp_set_uncertainty(float uncertainty)
-// {
-//   LPResizer *lp_resizer = getLPResizer();
-//   LPOptions *options = lp_resizer->getOptions();
-//   options->setUncertainty(uncertainty);
-// }
-
-// void
-// lp_set_slack_margin(float slack_margin)
-// {
-//   LPResizer *lp_resizer = getLPResizer();
-//   LPOptions *options = lp_resizer->getOptions();
-//   options->setSlackMargin(slack_margin);
-// }
-
-// void
-// lp_analyze_clk()
-// {
-//   LPResizer *lp_resizer = getLPResizer();
-//   LPOptions *options = lp_resizer->getOptions();
-//   options->analyzeClk();
-// }
-
-// void
-// fix_setup_mcf()
-// {
-//   ensureLinked();
-//   LPResizer *lp_resizer = getLPResizer();
-//   lp_resizer->fixSetup();
-// }
 
 } // namespace
 

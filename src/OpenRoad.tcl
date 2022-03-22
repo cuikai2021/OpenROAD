@@ -254,7 +254,6 @@ proc laurel { args } {
     keys {-slack_margin} \
     flags {-setup -hold}
   
-  puts "laurel"
   if { [info exists keys(-slack_margin)] } {
     ord::set_slack_margin $keys(-slack_margin)
   }

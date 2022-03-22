@@ -301,6 +301,10 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
     if (!resizeCell(vertex, new_delay))
       ret = false;
   }
+  logger_->info(utl::LRL,
+                1305,
+                "Totally resized {} cells",
+                std::to_string(resize_count_));
   return ret;
 }
 
@@ -317,6 +321,8 @@ void Laurel::fixSetup()
   }
   if (!ret)
     logger_->warn(utl::LRL, 1202, "Fail to resize all cells");
+  else
+    logger_->info(utl::LRL, 1306, "Succeed to resize all cells");
 }
 
 ////////////////////////////////////////////////////////
