@@ -31,20 +31,19 @@
 #include "sta/TimingRole.hh"
 #include "sta/Units.hh"
 
-#define LP_SOLVER "SCIP"
-#define LP_INFINITY (std::numeric_limits<float>::max)()
-#define LP_ZERO 0.0f
-#define LP_SCALING 100000
-#define LP_PRIORITY 10000000
-#define LP_STA_SCALING 1000000000
-#define LP_ROUNDING_LIMIT 0.005f / LP_STA_SCALING
-#define LP_BUFFER_SPILIT 2
+#define LRL_H_SOLVER "SCIP"
+#define LRL_H_INFINITY (std::numeric_limits<float>::max)()
+#define LRL_H_ZERO 0.0f
+#define LRL_H_SCALING 100000
+#define LRL_H_PRIORITY 10000000
+#define LRL_H_STA_SCALING 1000000000
+#define LRL_H_ROUNDING_LIMIT 0.005f / LRL_H_STA_SCALING
+#define LRL_H_BUFFER_SPILIT 2
 
-#define MCF_INT_INF (std::numeric_limits<int>::max)()
-#define MCF_INVALIDE -1
-// #define MCF_SCALING (LP_SCALING * LP_STA_SCALING)
-#define MCF_ZERO 0
-#define MCF_SRC_NAME "$src$"
+#define LRL_S_INT_INF (std::numeric_limits<int>::max)()
+#define LRL_S_INVALIDE -1
+#define LRL_S_ZERO 0
+#define LRL_S_SRC_NAME "$src$"
 
 namespace lrl {
 
@@ -55,25 +54,27 @@ using namespace rsz;
 using operations_research::MPSolver;
 using rsz::Resizer;
 
-typedef std::pair<std::string, std::string> WirePair;
-typedef sta::Set<WirePair> WirePairSet;
-typedef sta::Map<std::string, MPVariable*> VertexMPVarMap;
-typedef sta::Map<Sdc*, VertexMPVarMap*> MMVertexMPVarMap;
-typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
-typedef sta::Map<int, MPConstraint*> MPConstraintMap;
-typedef sta::Vector<std::string> VertexNameSeq;
-typedef sta::Set<std::string> VertexNameSet;
-
 typedef int32_t Index;
 typedef int64_t Cost;
+typedef std::string Name;
+
+typedef std::pair<Name, Name> WirePair;
+typedef sta::Set<WirePair> WirePairSet;
+typedef sta::Map<Name, MPVariable*> VertexMPVarMap;
+typedef sta::Map<Sdc*, VertexMPVarMap*> MMVertexMPVarMap;
+typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
+typedef sta::Map<Index, MPConstraint*> MPConstraintMap;
+typedef sta::Vector<Name> VertexNameSeq;
+typedef sta::Set<Name> VertexNameSet;
+
 typedef sta::Vector<Index> IndexSeq;
 typedef sta::Vector<Cost> CostSeq;
-typedef std::pair<Index, Index> MCFEdge;
-typedef std::pair<std::pair<Index, Index>, Delay> MCFEdgeWeight;
-typedef sta::Set<MCFEdgeWeight> MCFEdgeWeightSet;
+typedef std::pair<Index, Index> IdEdge;
+typedef std::pair<std::pair<Index, Index>, Delay> IdEdgeWeight;
+typedef sta::Set<IdEdgeWeight> IdEdgeWeightSet;
 
-typedef MPSolver::ResultStatus LPResult;
-typedef int MCFResult;
+typedef MPSolver::ResultStatus HoldResult;
+typedef int32_t SetupResult;
 
 class HoldFixer;
 class SetupFixer;
@@ -92,8 +93,8 @@ class Laurel : public Resizer
  protected:
   bool fixHoldCore();
 
-  int findInsertBufferCell(float max_padding, LibertyCell* buffer_cell);
-  bool insertBuffer(HoldFixer* fixer, std::string vertex_name);
+  int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
+  bool insertBuffer(HoldFixer* fixer, Name vertex_name);
   bool insertAllBuffer(HoldFixer* fixer);
   Pin* findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const;
   void insertHoldDelay(Vertex* drvr,
@@ -102,14 +103,14 @@ class Laurel : public Resizer
                        bool loads_have_out_port,
                        LibertyCell* buffer_cell);
 
-  LibertyCell* findHoldBuffer(float min_limit);
+  LibertyCell* findHoldBuffer(Delay min_limit);
 
   LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
   bool resizeCell(Vertex* vertex, Delay target_delay);
   bool resizeAllCells(SetupFixer* fixer);
 
   virtual VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
-  virtual Vertex* findRealVertex(std::string vertex_name) const;
+  virtual Vertex* findRealVertex(Name vertex_name) const;
 
   // variable
   Options* options_;
@@ -121,16 +122,16 @@ class SetupFixer : public Laurel
   SetupFixer(OpenRoad* openroad, Options* options);
   virtual ~SetupFixer(){};
 
-  MCFResult doMCF();
+  SetupResult resolve();
   bool remap();
   Delay getNewDelay(Vertex* vertex);
   Delay getResizeValue(Vertex* vertex);
   VertexSet getResizeVertex();
 
-  void reportMCF();
+  void report();
 
  protected:
-  void initMCF();
+  void initAlgorithm();
   void buildIndexMap(VertexSet ends);
   Index buildIndex(Vertex* vertex);
   void buildAllFaninEdge(VertexSeq fanins);
@@ -141,16 +142,16 @@ class SetupFixer : public Laurel
   void addConstraintPO(Vertex* po);
   void addConstraintPI(Vertex* pi);
 
-  MCFEdgeWeightSet buildBellmanGraph() const;
+  IdEdgeWeightSet buildBellmanGraph() const;
   void initArrivalMap();
-  bool updateArrivalMap(const MCFEdgeWeightSet bellman_graph);
+  bool updateArrivalMap(const IdEdgeWeightSet bellman_graph);
 
   Cost delay2Cost(Delay delay);
   Delay cost2Delay(Cost cost) const;
-  bool isInf(Cost cost) const { return cost == MCF_INT_INF; }
+  bool isInf(Cost cost) const { return cost == LRL_S_INT_INF; }
 
   Index getIndex(Vertex* vertex) const;
-  std::string getNodeVertexName(Index index) const;
+  Name getNodeVertexName(Index index) const;
   Delay getDelay(Vertex* vertex);
   const char* getInPortName(Vertex* pred, Vertex* succ) const;
   Delay getBound(Vertex* vertex, const MinMax* min_max);
@@ -160,7 +161,7 @@ class SetupFixer : public Laurel
   VertexSeq sortVertexSet(VertexSet set) const;
 
   // constant
-  const Index s_index = MCF_ZERO;
+  const Index s_index = LRL_S_ZERO;
 
   // variables
   Index index_ = s_index;
@@ -173,7 +174,7 @@ class SetupFixer : public Laurel
 
   sta::Map<Index, Arrival> arrival_map_;
 
-  sta::Map<std::string, Index> vertex_index_map_;
+  sta::Map<Name, Index> vertex_index_map_;
 
   Options* options_;
 };
@@ -184,27 +185,27 @@ class HoldFixer : public Laurel
   HoldFixer(OpenRoad* openroad, Options* options);
   virtual ~HoldFixer();
 
-  LPResult doLP();
-  float getWirePadding(WirePair wire_pair) const;
-  WirePairSet getAllWirePairFrom(std::string vertex_name) const;
+  HoldResult resolve();
+  Delay getWirePadding(WirePair wire_pair) const;
+  WirePairSet getAllWirePairFrom(Name vertex_name) const;
   VertexNameSet getNonZeroPaddingPred() const;
 
  protected:
-  void makeVar(std::string vertex_name, MMVertexMPVarMap& arrival);
-  void makeWire(std::string pred, std::string succ);
+  void makeVar(Name vertex_name, MMVertexMPVarMap& arrival);
+  void makeWire(Name pred, Name succ);
   void makeVarFanins(VertexSeq fanins);
   void makeVarAllModes();
   void makeDelay(Vertex* vertex);
   void findHoldVioNameMM();
 
-  int addConstraints(float low_bound, float high_bound);
+  int addConstraints(Delay low_bound, Delay high_bound);
   void genPIConstraints();
   void genPOConstraints(VertexSet* ends);
   void genWireConstraints(WirePair wire);
 
-  float getArrivalMax(Vertex* vertex) const;
-  float getDelay(std::string vertex_name) const;
-  float getCriLongArrival(Vertex* end) const;
+  Delay getArrivalMax(Vertex* vertex) const;
+  Delay getDelay(Name vertex_name) const;
+  Delay getCriLongArrival(Vertex* end) const;
 
   bool hasHoldViolation(Vertex* vertex) const;
   VertexSet getHoldViolations();  // should run findHoldVioNaemMM before
@@ -212,15 +213,15 @@ class HoldFixer : public Laurel
   VertexNameSeq getSortedNameSeq(VertexMPVarMap* mp_var_map);
 
   // can not do lp for 10^-10, should zoom in
-  float zoomIn(float ori) const { return ori * LP_SCALING; }
-  float zoomOut(float ori) const { return ori / LP_SCALING; }
+  Delay zoomIn(Delay ori) const { return ori * LRL_H_SCALING; }
+  Delay zoomOut(Delay ori) const { return ori / LRL_H_SCALING; }
 
-  bool isPI(std::string vertex_name) const;
+  bool isPI(Name vertex_name) const;
 
   // variables
   int ct_index_ = 0;
   int var_index_ = 0;
-  Slack sdc_worst_slack_ = LP_ZERO;
+  Slack sdc_worst_slack_ = LRL_H_ZERO;
 
   MPSolver* solver_;
   MMVertexMPVarMap arrival_max_;  // A
@@ -228,7 +229,7 @@ class HoldFixer : public Laurel
   WireMPVarMap wire_;             // w
   MPConstraintMap constraint_;
 
-  sta::Map<std::string, float> delay_map_;
+  sta::Map<Name, Delay> delay_map_;
   VertexNameSet vio_ends_name_;
   VertexNameSet complete_vio_ends_;
 

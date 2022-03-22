@@ -15,12 +15,12 @@ using namespace rsz;
 //
 ////////////////////////////////////////////////////////
 
-LibertyCell* Laurel::findHoldBuffer(float min_limit)
+LibertyCell* Laurel::findHoldBuffer(Delay min_limit)
 {
   LibertyCell* max_buffer = nullptr;
-  float max_delay = INF;
+  Delay max_delay = INF;
   for (LibertyCell* buffer : buffer_cells_) {
-    float buffer_min_delay = bufferHoldDelay(buffer);
+    Delay buffer_min_delay = bufferHoldDelay(buffer);
     if ((max_buffer == nullptr || buffer_min_delay < max_delay)
         && fuzzyLess(min_limit, buffer_min_delay)) {
       max_buffer = buffer;
@@ -131,17 +131,17 @@ Pin* Laurel::findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const
   return nullptr;
 }
 
-bool Laurel::insertBuffer(HoldFixer* fixer, std::string vertex_name)
+bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
 {
   WirePairSet wire_pair_set = fixer->getAllWirePairFrom(vertex_name);
   PinSeq load_pins;
   Vertex* insert_from = findRealVertex(vertex_name);
   bool loads_have_out_port = false;
-  float max_padding = LP_ZERO;
-  float min_padding = INF;
+  Delay max_padding = LRL_H_ZERO;
+  Delay min_padding = INF;
   for (auto wire_pair : wire_pair_set) {
-    float padding = fixer->getWirePadding(wire_pair);
-    if (fuzzyLess(LP_ROUNDING_LIMIT, padding)) {
+    Delay padding = fixer->getWirePadding(wire_pair);
+    if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
       Pin* fanout_pin = findFanoutPin(fixer, wire_pair);
       if (fanout_pin != nullptr) {
         load_pins.push_back(fanout_pin);
@@ -157,7 +157,7 @@ bool Laurel::insertBuffer(HoldFixer* fixer, std::string vertex_name)
     }
   }
 
-  const float uncertainty = options_->uncertainty() / LP_STA_SCALING;
+  const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
   if (!fuzzyLess(max_padding - min_padding, uncertainty)) {
     logger_->warn(
         utl::LRL,
@@ -169,12 +169,12 @@ bool Laurel::insertBuffer(HoldFixer* fixer, std::string vertex_name)
   }
 
   findBuffers();
-  float padding = max_padding;
+  Delay padding = max_padding;
   int buffer_count = 1;
   LibertyCell* buffer_cell = findHoldBuffer(max_padding);
   while (!buffer_cell) {
-    buffer_count *= LP_BUFFER_SPILIT;
-    padding /= LP_BUFFER_SPILIT;
+    buffer_count *= LRL_H_BUFFER_SPILIT;
+    padding /= LRL_H_BUFFER_SPILIT;
     buffer_cell = findHoldBuffer(padding);
   }
 
@@ -203,7 +203,7 @@ bool Laurel::insertAllBuffer(HoldFixer* fixer)
 bool Laurel::fixHoldCore()
 {
   HoldFixer* fixer = new HoldFixer(openroad_, options_);
-  LPResult result = fixer->doLP();
+  HoldResult result = fixer->resolve();
   bool ret = true;
   if (result != MPSolver::ResultStatus::OPTIMAL) {
     logger_->warn(
@@ -307,10 +307,10 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
 void Laurel::fixSetup()
 {
   SetupFixer fixer = SetupFixer(openroad_, options_);
-  MCFResult status = fixer.doMCF();
+  SetupResult status = fixer.resolve();
   bool ret = false;
   if (status == MinCostFlow::OPTIMAL) {
-    fixer.reportMCF();
+    fixer.report();
     if (fixer.remap()) {
       ret = resizeAllCells(&fixer);
     }
@@ -347,7 +347,7 @@ VertexSet Laurel::getAllRelatedEnds(VertexSet ends, bool ignore_clk)
   return related_ends;
 }
 
-Vertex* Laurel::findRealVertex(std::string vertex_name) const
+Vertex* Laurel::findRealVertex(Name vertex_name) const
 {
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
