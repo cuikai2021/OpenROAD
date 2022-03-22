@@ -1,0 +1,243 @@
+[INFO ODB-0222] Reading LEF file: Nangate45/Nangate45_tech.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45_tech.lef
+[INFO ODB-0222] Reading LEF file: Nangate45/Nangate45_stdcell.lef
+[INFO ODB-0225]     Created 134 library cells
+[INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45_stdcell.lef
+[WARNING RSZ-0014] wire capacitance for corner default is zero. Use the set_wire_rc command to set wire resistance and capacitance.
+-----------------
+report scan b4repair 
+-----------------
+Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
+Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: min
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock clk (rise edge)
+   0.00    0.00   clock network delay (propagated)
+   0.00    0.00 ^ r2/CK (SDFFRS_X1)
+   0.06    0.06 v r2/Q (SDFFRS_X1)
+   0.03    0.09 v b1/Z (TBUF_X1)
+   0.01    0.10 v u1/ZN (AND2_X2)
+   0.00    0.10 v r3/SI (SDFFRS_X1)
+           0.10   data arrival time
+
+   0.00    0.00   clock clk (rise edge)
+   0.18    0.18   clock network delay (propagated)
+   0.00    0.18   clock reconvergence pessimism
+           0.18 ^ r3/CK (SDFFRS_X1)
+  -0.01    0.17   library hold time
+           0.17   data required time
+---------------------------------------------------------
+           0.17   data required time
+          -0.10   data arrival time
+---------------------------------------------------------
+          -0.07   slack (VIOLATED)
+
+
+worst slack 1.94
+-----------------
+report func1 b4repair 
+-----------------
+Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
+Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: min
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock clk (rise edge)
+   0.00    0.00   clock network delay (propagated)
+   0.00    0.00 ^ r2/CK (SDFFRS_X1)
+   0.07    0.07 ^ r2/Q (SDFFRS_X1)
+   0.03    0.10 ^ b1/Z (TBUF_X1)
+   0.02    0.11 ^ sb1/Z (TBUF_X1)
+   0.02    0.13 ^ sb2/Z (TBUF_X1)
+   0.02    0.14 ^ sb3/Z (TBUF_X1)
+   0.02    0.16 ^ sb4/Z (TBUF_X1)
+   0.02    0.17 ^ sb5/Z (TBUF_X1)
+   0.02    0.19 ^ u2/ZN (AND2_X2)
+   0.00    0.19 ^ r3/D (SDFFRS_X1)
+           0.19   data arrival time
+
+   0.00    0.00   clock clk (rise edge)
+   0.18    0.18   clock network delay (propagated)
+   0.00    0.18   clock reconvergence pessimism
+           0.18 ^ r3/CK (SDFFRS_X1)
+  -0.01    0.18   library hold time
+           0.18   data required time
+---------------------------------------------------------
+           0.18   data required time
+          -0.19   data arrival time
+---------------------------------------------------------
+           0.01   slack (MET)
+
+
+worst slack 1.84
+-----------------
+report func2 b4repair 
+-----------------
+Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
+Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: min
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock clk (rise edge)
+   0.00    0.00   clock network delay (propagated)
+   0.00    0.00 ^ r2/CK (SDFFRS_X1)
+   0.06    0.06 v r2/Q (SDFFRS_X1)
+   0.03    0.09 v b1/Z (TBUF_X1)
+   0.02    0.11 v b1x/Z (TBUF_X1)
+   0.02    0.13 v m1/Z (MUX2_X2)
+   0.01    0.15 v u2/ZN (AND2_X2)
+   0.00    0.15 v r3/D (SDFFRS_X1)
+           0.15   data arrival time
+
+   0.00    0.00   clock clk (rise edge)
+   0.18    0.18   clock network delay (propagated)
+   0.00    0.18   clock reconvergence pessimism
+           0.18 ^ r3/CK (SDFFRS_X1)
+  -0.01    0.17   library hold time
+           0.17   data required time
+---------------------------------------------------------
+           0.17   data required time
+          -0.15   data arrival time
+---------------------------------------------------------
+          -0.03   slack (VIOLATED)
+
+
+worst slack 1.92
+[INFO LRL-1100] vio ends: (slack_margin = 0.000) 
+[INFO LRL-1101]    r3/D
+[INFO LRL-1101]    r3/SI
+[INFO LRL-1103] Number of variables = 100
+[INFO LRL-1104] Number of constraints = 86
+[INFO LRL-1105] Objective value = 72.55503124295046 (PRIORITY 10000000)
+[INFO LRL-1107] non zero padding between b1/Z -> u1/ZN : 0.062
+[INFO LRL-1107] non zero padding between b1x/Z -> m1/Z : 0.011
+[INFO LRL-1106] padding between b1/Z -> b1x/Z : 0.000
+[INFO LRL-1106] padding between b1/Z -> sb1/Z : 0.000
+[INFO LRL-1106] padding between b1/Z -> u1/ZN : 0.062
+[INFO LRL-1108] choose buffer BUF_X4, delay 0.010
+[INFO LRL-1109] inserted 8 buffer 
+[INFO LRL-1106] padding between b1x/Z -> fb2/Z : 0.000
+[INFO LRL-1106] padding between b1x/Z -> m1/Z : 0.011
+[INFO LRL-1108] choose buffer BUF_X32, delay 0.011
+[INFO LRL-1109] inserted 1 buffer 
+[INFO LRL-1110] Totally inserted 9 buffers
+-----------------
+report scan after repair 
+-----------------
+Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
+Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: min
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock clk (rise edge)
+   0.00    0.00   clock network delay (propagated)
+   0.00    0.00 ^ r2/CK (SDFFRS_X1)
+   0.07    0.07 ^ r2/Q (SDFFRS_X1)
+   0.02    0.09 ^ b2/Z (TBUF_X1)
+   0.02    0.11 ^ b3/Z (TBUF_X1)
+   0.02    0.12 ^ b4/Z (TBUF_X1)
+   0.02    0.14 ^ b5/Z (TBUF_X1)
+   0.02    0.15 ^ b6/Z (TBUF_X1)
+   0.02    0.17 ^ u1/ZN (AND2_X2)
+   0.00    0.17 ^ r3/SI (SDFFRS_X1)
+           0.17   data arrival time
+
+   0.00    0.00   clock clk (rise edge)
+   0.18    0.18   clock network delay (propagated)
+   0.00    0.18   clock reconvergence pessimism
+           0.18 ^ r3/CK (SDFFRS_X1)
+  -0.01    0.18   library hold time
+           0.18   data required time
+---------------------------------------------------------
+           0.18   data required time
+          -0.17   data arrival time
+---------------------------------------------------------
+          -0.01   slack (VIOLATED)
+
+
+worst slack 1.92
+-----------------
+report func1 after repair 
+-----------------
+Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
+Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: min
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock clk (rise edge)
+   0.00    0.00   clock network delay (propagated)
+   0.00    0.00 ^ r2/CK (SDFFRS_X1)
+   0.07    0.07 ^ r2/Q (SDFFRS_X1)
+   0.03    0.10 ^ b1/Z (TBUF_X1)
+   0.02    0.12 ^ sb1/Z (TBUF_X1)
+   0.02    0.13 ^ sb2/Z (TBUF_X1)
+   0.02    0.15 ^ sb3/Z (TBUF_X1)
+   0.02    0.16 ^ sb4/Z (TBUF_X1)
+   0.02    0.18 ^ sb5/Z (TBUF_X1)
+   0.02    0.19 ^ u2/ZN (AND2_X2)
+   0.00    0.19 ^ r3/D (SDFFRS_X1)
+           0.19   data arrival time
+
+   0.00    0.00   clock clk (rise edge)
+   0.18    0.18   clock network delay (propagated)
+   0.00    0.18   clock reconvergence pessimism
+           0.18 ^ r3/CK (SDFFRS_X1)
+  -0.01    0.18   library hold time
+           0.18   data required time
+---------------------------------------------------------
+           0.18   data required time
+          -0.19   data arrival time
+---------------------------------------------------------
+           0.02   slack (MET)
+
+
+worst slack 1.81
+-----------------
+report func2 after repair 
+-----------------
+Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
+Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: min
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock clk (rise edge)
+   0.00    0.00   clock network delay (propagated)
+   0.00    0.00 ^ r2/CK (SDFFRS_X1)
+   0.06    0.06 v r2/Q (SDFFRS_X1)
+   0.03    0.09 v b1/Z (TBUF_X1)
+   0.05    0.14 v b1x/Z (TBUF_X1)
+   0.01    0.15 v hold9/Z (BUF_X32)
+   0.02    0.17 v m1/Z (MUX2_X2)
+   0.01    0.19 v u2/ZN (AND2_X2)
+   0.00    0.19 v r3/D (SDFFRS_X1)
+           0.19   data arrival time
+
+   0.00    0.00   clock clk (rise edge)
+   0.18    0.18   clock network delay (propagated)
+   0.00    0.18   clock reconvergence pessimism
+           0.18 ^ r3/CK (SDFFRS_X1)
+  -0.01    0.17   library hold time
+           0.17   data required time
+---------------------------------------------------------
+           0.17   data required time
+          -0.19   data arrival time
+---------------------------------------------------------
+           0.01   slack (MET)
+
+
+worst slack 1.91

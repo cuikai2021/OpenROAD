@@ -1,0 +1,101 @@
+[INFO ODB-0222] Reading LEF file: sky130hd/sky130hd.tlef
+[INFO ODB-0223]     Created 13 technology layers
+[INFO ODB-0224]     Created 25 technology vias
+[INFO ODB-0226] Finished LEF file:  sky130hd/sky130hd.tlef
+[INFO ODB-0222] Reading LEF file: sky130hd/sky130hd_std_cell.lef
+[INFO ODB-0225]     Created 437 library cells
+[INFO ODB-0226] Finished LEF file:  sky130hd/sky130hd_std_cell.lef
+end reading sdc
+
+[WARNING RSZ-0014] wire capacitance for corner default is zero. Use the set_wire_rc command to set wire resistance and capacitance.
+-----------------
+report func1 b4repair 
+-----------------
+Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
+Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: max
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock clk (rise edge)
+   0.00    0.00   clock network delay (propagated)
+   0.00    0.00 ^ r2/CLK (sky130_fd_sc_hd__sdfxtp_1)
+   0.94    0.94 v r2/Q (sky130_fd_sc_hd__sdfxtp_1)
+   0.28    1.23 v b2/X (sky130_fd_sc_hd__buf_1)
+   0.26    1.49 v b3/X (sky130_fd_sc_hd__buf_1)
+   1.38    2.87 v b4/X (sky130_fd_sc_hd__dlymetal6s6s_1)
+   0.28    3.15 v b5/X (sky130_fd_sc_hd__buf_1)
+   0.26    3.41 v b6/X (sky130_fd_sc_hd__buf_1)
+   0.76    4.17 v u2/X (sky130_fd_sc_hd__and2_2)
+   0.00    4.17 v r3/D (sky130_fd_sc_hd__sdfxtp_1)
+           4.17   data arrival time
+
+   5.50    5.50   clock clk (rise edge)
+   0.00    5.50   clock network delay (propagated)
+   0.00    5.50   clock reconvergence pessimism
+           5.50 ^ r3/CLK (sky130_fd_sc_hd__sdfxtp_1)
+  -1.35    4.15   library setup time
+           4.15   data required time
+---------------------------------------------------------
+           4.15   data required time
+          -4.17   data arrival time
+---------------------------------------------------------
+          -0.03   slack (VIOLATED)
+
+
+[INFO LRL-1302] Violated Ends: (slack_margin = 0.000)
+[INFO LRL-1303]    -0.025 : r3/D
+[INFO LRL-1301]  b1/X : 0.429 (new_delay = 1.873)
+[INFO LRL-1304] resize cell b1/X -> sky130_fd_sc_hd__dlygate4sd3_1
+[INFO LRL-1301]  b2/X : 0.000 (new_delay = 0.431)
+[INFO LRL-1304] resize cell b2/X -> sky130_fd_sc_hd__dlymetal6s2s_1
+[INFO LRL-1301]  b3/X : -0.001 (new_delay = 0.417)
+[INFO LRL-1304] resize cell b3/X -> sky130_fd_sc_hd__buf_4
+[INFO LRL-1301]  b4/X : -1.021 (new_delay = 0.431)
+[INFO LRL-1304] resize cell b4/X -> sky130_fd_sc_hd__dlymetal6s2s_1
+[INFO LRL-1301]  b5/X : 0.000 (new_delay = 0.431)
+[INFO LRL-1304] resize cell b5/X -> sky130_fd_sc_hd__dlymetal6s2s_1
+[INFO LRL-1301]  b6/X : -0.000 (new_delay = 0.411)
+[INFO LRL-1304] resize cell b6/X -> sky130_fd_sc_hd__buf_4
+[INFO LRL-1301]  u2/X : -0.248 (new_delay = 0.596)
+[INFO LRL-1304] resize cell u2/X -> sky130_fd_sc_hd__and2_2
+[INFO LRL-1305] Totally resized 7 cells
+[INFO LRL-1306] Succeed to resize all cells
+end repair timing
+-----------------
+report func2 after repair 
+-----------------
+Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
+Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: max
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock clk (rise edge)
+   0.00    0.00   clock network delay (propagated)
+   0.00    0.00 ^ r2/CLK (sky130_fd_sc_hd__sdfxtp_1)
+   0.94    0.94 v r2/Q (sky130_fd_sc_hd__sdfxtp_1)
+   0.48    1.42 v b2/X (sky130_fd_sc_hd__dlymetal6s2s_1)
+   0.47    1.89 v b3/X (sky130_fd_sc_hd__buf_4)
+   0.47    2.35 v b4/X (sky130_fd_sc_hd__dlymetal6s2s_1)
+   0.48    2.84 v b5/X (sky130_fd_sc_hd__dlymetal6s2s_1)
+   0.47    3.31 v b6/X (sky130_fd_sc_hd__buf_4)
+   0.77    4.08 v u2/X (sky130_fd_sc_hd__and2_2)
+   0.00    4.08 v r3/D (sky130_fd_sc_hd__sdfxtp_1)
+           4.08   data arrival time
+
+   5.50    5.50   clock clk (rise edge)
+   0.00    5.50   clock network delay (propagated)
+   0.00    5.50   clock reconvergence pessimism
+           5.50 ^ r3/CLK (sky130_fd_sc_hd__sdfxtp_1)
+  -1.35    4.15   library setup time
+           4.15   data required time
+---------------------------------------------------------
+           4.15   data required time
+          -4.08   data arrival time
+---------------------------------------------------------
+           0.07   slack (MET)
+
+
