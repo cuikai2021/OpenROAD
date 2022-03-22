@@ -4129,41 +4129,4 @@ Instance *Resizer::makeInstance(LibertyCell *cell,
   return inst;
 }
 
-// ICBench methods
-
-// VertexSet
-// Resizer::getAllRelatedEnds(VertexSet ends, bool ignore_clk)
-// {
-//   VertexSet fanin_roots = findFaninRoots(ends);
-//   VertexSet related_ends = ends;
-//   sta::SearchPredNonLatch2 pred(sta_);
-//   BfsFwdIterator iter(BfsIndex::other, &pred, this);
-//   for (Vertex* reg_out : fanin_roots)
-//     iter.enqueueAdjacentVertices(reg_out);
-
-//   while (iter.hasNext()) {
-//     Vertex* vertex = iter.next();
-//     if (isRegister(vertex)) {
-//       if (ignore_clk &&sta_->isClock(vertex->pin()))
-//         continue;
-//       if (!sta::fuzzyInf(sta_->vertexSlack(vertex, MinMax::max())))
-//         related_ends.insert(vertex);
-//     } else
-//       iter.enqueueAdjacentVertices(vertex);
-//   }
-//   return related_ends;
-// }
-
-// Vertex* 
-// Resizer::findRealVertex(std::string vertex_name) const
-// {
-//   VertexIterator vertex_iter(sta_->graph());
-//   while (vertex_iter.hasNext()) {
-//     Vertex* test_vertex = vertex_iter.next();
-//     if (!vertex_name.compare(test_vertex->name(sta_->sdcNetwork())))
-//       return test_vertex;
-//   }
-//   return nullptr;
-// }
-
 } // namespace

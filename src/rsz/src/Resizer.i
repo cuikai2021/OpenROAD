@@ -46,7 +46,6 @@ namespace ord {
 // Defined in OpenRoad.i
 rsz::Resizer *
 getResizer();
-
 void
 ensureLinked();
 }
@@ -89,8 +88,6 @@ using sta::dbNetwork;
 using sta::stringEq;
 
 using rsz::Resizer;
-// using rsz::LPResizer;
-// using rsz::LPOptions;
 using rsz::ParasiticsSrc;
 
 %}

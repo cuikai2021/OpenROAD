@@ -32,7 +32,6 @@
 ## POSSIBILITY OF SUCH DAMAGE.
 ##
 ############################################################################
-cmake_minimum_required(VERSION 3.14)
 
 include("openroad")
 
