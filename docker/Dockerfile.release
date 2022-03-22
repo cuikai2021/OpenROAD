@@ -1,5 +1,6 @@
 ARG DEPS_IMAGE_TAG
 ARG EDEN_GIT_SHA1
+ARG CPU_CORES
 
 FROM ${DEPS_IMAGE_TAG} AS maple_build_stage
 COPY ./maple /maple
@@ -13,19 +14,13 @@ FROM ${DEPS_IMAGE_TAG} AS eden_build_stage
 COPY ./Eden-src /Eden
 WORKDIR /Eden
 ARG EDEN_GIT_SHA1
-RUN cmake -DEDEN_GIT_DESCRIBE=${EDEN_GIT_SHA1} -B build . && cmake --build build -j 8
+RUN cmake -DEDEN_GIT_DESCRIBE=${EDEN_GIT_SHA1} -B build . && cmake --build build -j `expr ${CPU_CORES} * 2`
 
 
 ARG DEPS_IMAGE_TAG
 FROM ${DEPS_IMAGE_TAG} AS deps_stage
 ADD ./Eden-src/src/Banyan/banyan-integrate/*.so /Eden-flow/flow/libs/
 ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
-ADD ./klayout_0.26.6-1_amd64.deb .
-RUN \
-  set -eu; \
-  apt-get update && apt-get install -y klayout time libreadline-dev pkg-config imagemagick ssh; \
-  dpkg -i klayout_0.26.6-1_amd64.deb; \
-  rm -f klayout_0.26.6-1_amd64.deb; 
 
 FROM deps_stage AS yosys_build_stage
 COPY ./yosys /yosys
@@ -42,8 +37,6 @@ ADD ./envsubst /usr/local/bin/envsubst
 ADD modules/release/tools/rpt_catcher.py /Eden-flow/rpt_catcher.py
 ADD modules/release/tools/klayoutrc /Eden-flow/klayoutrc
 RUN chmod +x /usr/local/bin/ossutil64 /usr/local/bin/envsubst /Eden-flow/gds2png.sh
-
-COPY --from=registry.cn-shanghai.aliyuncs.com/ieden/eden_release_ubuntu:0616p7 /root/.ssh /root/.ssh
 
 COPY --from=maple_build_stage /maple/build/src/maple /usr/local/bin/sv2v
 COPY --from=maple_build_stage /maple/build/src/yosys* /usr/local/bin/
