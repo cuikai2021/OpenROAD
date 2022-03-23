@@ -167,7 +167,6 @@ target_link_libraries(openroad_swig
     dbSta
     odb
     OpenSTA
-    Laurel
 )
 
 ################################################################

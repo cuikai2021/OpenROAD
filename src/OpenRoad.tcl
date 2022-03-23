@@ -211,61 +211,6 @@ proc thread_count { } {
   return [ord::thread_count]
 }
 
-# ICBench Methods
-
-sta::define_cmd_args "laurel_fix_hold" {[-clk] [-uncertainty uncertainty]\
-                                        [-slack_margin slack_margin]}
-
-proc laurel_fix_hold { args } {
-  sta::parse_key_args "fix_hold" args \
-    keys {-uncertainty -slack_margin} \
-    flags {-clk}
-  
-  if { [info exists keys(-uncertainty)] } {
-    ord::set_uncertainty $keys(-uncertainty)
-  }
-  if { [info exists keys(-slack_margin)] } {
-    ord::set_slack_margin $keys(-slack_margin)
-  }
-  if { [info exists flags(-clk)] } {
-    ord::analyze_clk
-  }
-  ord::fix_hold_cmd
-}
-
-sta::define_cmd_args "laurel_fix_setup" {[-slack_margin slack_margin]}
-
-proc laurel_fix_setup { args } {
-  sta::parse_key_args "fix_setup" args \
-    keys {-slack_margin} \
-    flags {}
-  
-  if { [info exists keys(-slack_margin)] } {
-    ord::set_slack_margin $keys(-slack_margin)
-  }
-  ord::fix_setup_cmd
-}
-
-sta::define_cmd_args "laurel" {[-slack_margin slack_margin]\
-                                 [-setup] [-hold]}
-
-proc laurel { args } {
-  sta::parse_key_args "laurel" args \
-    keys {-slack_margin} \
-    flags {-setup -hold}
-  
-  if { [info exists keys(-slack_margin)] } {
-    ord::set_slack_margin $keys(-slack_margin)
-  }
-
-  if { [info exists flags(-setup)] } {
-    ord::fix_setup_cmd
-  }
-  if { [info exists flags(-hold)] } {
-    ord::fix_hold_cmd
-  }
-}
-
 ################################################################
 
 namespace eval ord {

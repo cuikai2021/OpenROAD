@@ -16,7 +16,7 @@ using namespace sta;
 HoldFixer::HoldFixer(OpenRoad* openroad, Options* options)
     : Laurel(), solver_(MPSolver::CreateSolver(LRL_H_SOLVER)), options_(options)
 {
-  init(openroad,
+  initLaurel(openroad,
        openroad->tclInterp(),
        openroad->getLogger(),
        // Broken gui api missing openroad accessor.

@@ -2,12 +2,47 @@
 
 #include "gui/gui.h"
 #include "ord/OpenRoad.hh"
+#include "sta/StaMain.hh"
+
+namespace sta {
+extern const char* Laurel_tcl_inits[];
+}
 
 namespace lrl {
 
 using namespace operations_research;
 using namespace sta;
 using namespace rsz;
+
+extern "C" {
+extern int Laurel_Init(Tcl_Interp* interp);
+}
+
+void Laurel::initLaurel(OpenRoad* openroad,
+                        Tcl_Interp* interp,
+                        Logger* logger,
+                        Gui* gui,
+                        dbDatabase* db,
+                        dbSta* sta,
+                        SteinerTreeBuilder* stt_builder,
+                        GlobalRouter* global_router)
+{
+  openroad_ = openroad;
+  logger_ = logger;
+  gui_ = gui;
+  db_ = db;
+  block_ = nullptr;
+  sta_ = sta;
+  stt_builder_ = stt_builder;
+  global_router_ = global_router;
+  incr_groute_ = nullptr;
+  db_network_ = sta->getDbNetwork();
+  copyState(sta);
+  // Define swig TCL commands.
+  Laurel_Init(interp);
+  // Eval encoded sta TCL sources.
+  evalTclInit(interp, sta::Laurel_tcl_inits);
+}
 
 ////////////////////////////////////////////////////////
 //

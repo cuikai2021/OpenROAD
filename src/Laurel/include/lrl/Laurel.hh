@@ -84,6 +84,14 @@ class Laurel : public Resizer
  public:
   Laurel() : Resizer() { options_ = new Options(); }
   virtual ~Laurel() { delete options_; }
+  void initLaurel(OpenRoad* openroad,
+                  Tcl_Interp* interp,
+                  Logger* logger,
+                  Gui* gui,
+                  dbDatabase* db,
+                  dbSta* sta,
+                  SteinerTreeBuilder* stt_builder,
+                  GlobalRouter* global_router);
 
   void fixHold();
   void fixSetup();

@@ -18,7 +18,7 @@ void deleteLaurel(lrl::Laurel* laurel)
 
 void initLaurel(OpenRoad* openroad)
 {
-  openroad->getLaurel()->init(openroad,
+  openroad->getLaurel()->initLaurel(openroad,
                               openroad->tclInterp(),
                               openroad->getLogger(),
                               // Broken gui api missing openroad accessor.

@@ -16,7 +16,7 @@ using namespace sta;
 SetupFixer::SetupFixer(OpenRoad* openroad, Options* options)
     : Laurel(), options_(options)
 {
-  init(openroad,
+  initLaurel(openroad,
        openroad->tclInterp(),
        openroad->getLogger(),
        // Broken gui api missing openroad accessor.
