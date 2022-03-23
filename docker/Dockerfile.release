@@ -1,6 +1,6 @@
 ARG DEPS_IMAGE_TAG
 ARG EDEN_GIT_SHA1
-ARG CPU_CORES
+ARG JOBS_NUM
 
 FROM ${DEPS_IMAGE_TAG} AS maple_build_stage
 COPY ./maple /maple
@@ -14,8 +14,8 @@ FROM ${DEPS_IMAGE_TAG} AS eden_build_stage
 COPY ./Eden-src /Eden
 WORKDIR /Eden
 ARG EDEN_GIT_SHA1
-ARG CPU_CORES
-RUN cmake -DEDEN_GIT_DESCRIBE=${EDEN_GIT_SHA1} -B build . && cmake --build build -j `expr ${CPU_CORES} \* 2`
+ARG JOBS_NUM=8
+RUN cmake -DEDEN_GIT_DESCRIBE=${EDEN_GIT_SHA1} -B build . && cmake --build build -j ${JOBS_NUM}
 
 
 ARG DEPS_IMAGE_TAG
