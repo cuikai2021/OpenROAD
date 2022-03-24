@@ -362,11 +362,11 @@ void Laurel::fixSetup()
 
 ////////////////////////////////////////////////////////
 //
-//  Common functions
+//  class LaurelAdapter
 //
 ////////////////////////////////////////////////////////
 
-VertexSet Laurel::getAllRelatedEnds(VertexSet ends, bool ignore_clk)
+VertexSet LaurelAdapter::getAllRelatedEnds(VertexSet ends, bool ignore_clk)
 {
   VertexSet fanin_roots = findFaninRoots(ends);
   VertexSet related_ends = ends;
@@ -388,7 +388,7 @@ VertexSet Laurel::getAllRelatedEnds(VertexSet ends, bool ignore_clk)
   return related_ends;
 }
 
-Vertex* Laurel::findRealVertex(Name vertex_name) const
+Vertex* LaurelAdapter::findRealVertex(Name vertex_name) const
 {
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {

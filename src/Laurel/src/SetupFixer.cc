@@ -14,9 +14,9 @@ using namespace sta;
 ////////////////////////////////////////////////////////
 
 SetupFixer::SetupFixer(OpenRoad* openroad, Options* options)
-    : Laurel(), options_(options)
+    : LaurelAdapter(), options_(options)
 {
-  initLaurel(openroad,
+  init(openroad,
        openroad->tclInterp(),
        openroad->getLogger(),
        // Broken gui api missing openroad accessor.
@@ -319,7 +319,8 @@ bool SetupFixer::updateArrivalMap(const IdEdgeWeightSet bellman_graph)
     Arrival pred_arrival = arrival_map_[pred];
     Arrival succ_arrival = arrival_map_[succ];
     Arrival new_arrival = pred_arrival + weight;
-    if (!(fuzzyEqual(LRL_H_INFINITY, pred_arrival) && fuzzyLess(LRL_H_ZERO, weight))
+    if (!(fuzzyEqual(LRL_H_INFINITY, pred_arrival)
+          && fuzzyLess(LRL_H_ZERO, weight))
         && fuzzyLess(new_arrival, succ_arrival)) {
       arrival_map_[succ] = new_arrival;
       changed = true;

@@ -14,9 +14,11 @@ using namespace sta;
 ////////////////////////////////////////////////////////
 
 HoldFixer::HoldFixer(OpenRoad* openroad, Options* options)
-    : Laurel(), solver_(MPSolver::CreateSolver(LRL_H_SOLVER)), options_(options)
+    : LaurelAdapter(),
+      solver_(MPSolver::CreateSolver(LRL_H_SOLVER)),
+      options_(options)
 {
-  initLaurel(openroad,
+  init(openroad,
        openroad->tclInterp(),
        openroad->getLogger(),
        // Broken gui api missing openroad accessor.
@@ -309,7 +311,8 @@ void HoldFixer::genPOConstraints(VertexSet* ends)
                  delayAsString(critical_long_arrival, sta_, 3),
                  delayAsString(min_required, sta_, 3));
       // -A(PO) >= -R(PO)
-      int index = addConstraints(-zoomIn(critical_long_arrival), LRL_H_INFINITY);
+      int index
+          = addConstraints(-zoomIn(critical_long_arrival), LRL_H_INFINITY);
       constraint_.findKey(index)->SetCoefficient(map->findKey(vertex_name), -1);
       // a(PO)) >= r(PO)
       index = addConstraints(zoomIn(min_required), LRL_H_INFINITY);

@@ -31,20 +31,6 @@
 #include "sta/TimingRole.hh"
 #include "sta/Units.hh"
 
-#define LRL_H_SOLVER "SCIP"
-#define LRL_H_INFINITY (std::numeric_limits<float>::max)()
-#define LRL_H_ZERO 0.0f
-#define LRL_H_SCALING 100000
-#define LRL_H_PRIORITY 10000000
-#define LRL_H_STA_SCALING 1000000000
-#define LRL_H_ROUNDING_LIMIT 0.005f / LRL_H_STA_SCALING
-#define LRL_H_BUFFER_SPILIT 2
-
-#define LRL_S_INT_INF (std::numeric_limits<int>::max)()
-#define LRL_S_INVALIDE -1
-#define LRL_S_ZERO 0
-#define LRL_S_SRC_NAME "$src$"
-
 namespace lrl {
 
 using namespace operations_research;
@@ -76,55 +62,30 @@ typedef sta::Set<IdEdgeWeight> IdEdgeWeightSet;
 typedef MPSolver::ResultStatus HoldResult;
 typedef int32_t SetupResult;
 
-class HoldFixer;
-class SetupFixer;
-
-class Laurel : public Resizer
+class LaurelAdapter : public Resizer
 {
- public:
-  Laurel() : Resizer() { options_ = new Options(); }
-  virtual ~Laurel() { delete options_; }
-  void initLaurel(OpenRoad* openroad,
-                  Tcl_Interp* interp,
-                  Logger* logger,
-                  Gui* gui,
-                  dbDatabase* db,
-                  dbSta* sta,
-                  SteinerTreeBuilder* stt_builder,
-                  GlobalRouter* global_router);
-
-  void fixHold();
-  void fixSetup();
-
-  Options* getOptions() { return options_; }
-
  protected:
-  bool fixHoldCore();
-
-  int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
-  bool insertBuffer(HoldFixer* fixer, Name vertex_name);
-  bool insertAllBuffer(HoldFixer* fixer);
-  Pin* findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const;
-  void insertHoldDelay(Vertex* drvr,
-                       int buffer_count,
-                       PinSeq& load_pins,
-                       bool loads_have_out_port,
-                       LibertyCell* buffer_cell);
-
-  LibertyCell* findHoldBuffer(Delay min_limit);
-
-  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
-  bool resizeCell(Vertex* vertex, Delay target_delay);
-  bool resizeAllCells(SetupFixer* fixer);
-
+  // common methods
   virtual VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
   virtual Vertex* findRealVertex(Name vertex_name) const;
 
-  // variable
-  Options* options_;
+  // constants
+  const char* LRL_H_SOLVER = "SCIP";
+  const float LRL_H_INFINITY = (std::numeric_limits<float>::max)();
+  const float LRL_H_ZERO = 0.0f;
+  const int32_t LRL_H_SCALING = 100000;
+  const int32_t LRL_H_PRIORITY = 10000000;
+  const int32_t LRL_H_STA_SCALING = 1000000000;
+  const float LRL_H_ROUNDING_LIMIT = 0.005f / LRL_H_STA_SCALING;
+  const int32_t LRL_H_BUFFER_SPILIT = 2;
+
+  const int32_t LRL_S_INT_INF = (std::numeric_limits<int32_t>::max)();
+  const int32_t LRL_S_INVALIDE = -1;
+  const int32_t LRL_S_ZERO = 0;
+  const char* LRL_S_SRC_NAME = "$src$";
 };
 
-class SetupFixer : public Laurel
+class SetupFixer : public LaurelAdapter
 {
  public:
   SetupFixer(OpenRoad* openroad, Options* options);
@@ -187,7 +148,7 @@ class SetupFixer : public Laurel
   Options* options_;
 };
 
-class HoldFixer : public Laurel
+class HoldFixer : public LaurelAdapter
 {
  public:
   HoldFixer(OpenRoad* openroad, Options* options);
@@ -241,6 +202,48 @@ class HoldFixer : public Laurel
   VertexNameSet vio_ends_name_;
   VertexNameSet complete_vio_ends_;
 
+  Options* options_;
+};
+
+class Laurel : public LaurelAdapter
+{
+ public:
+  Laurel() : LaurelAdapter() { options_ = new Options(); }
+  virtual ~Laurel() { delete options_; }
+  void initLaurel(OpenRoad* openroad,
+                  Tcl_Interp* interp,
+                  Logger* logger,
+                  Gui* gui,
+                  dbDatabase* db,
+                  dbSta* sta,
+                  SteinerTreeBuilder* stt_builder,
+                  GlobalRouter* global_router);
+
+  void fixHold();
+  void fixSetup();
+
+  Options* getOptions() { return options_; }
+
+ protected:
+  bool fixHoldCore();
+
+  int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
+  bool insertBuffer(HoldFixer* fixer, Name vertex_name);
+  bool insertAllBuffer(HoldFixer* fixer);
+  Pin* findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const;
+  void insertHoldDelay(Vertex* drvr,
+                       int buffer_count,
+                       PinSeq& load_pins,
+                       bool loads_have_out_port,
+                       LibertyCell* buffer_cell);
+
+  LibertyCell* findHoldBuffer(Delay min_limit);
+
+  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
+  bool resizeCell(Vertex* vertex, Delay target_delay);
+  bool resizeAllCells(SetupFixer* fixer);
+
+  // variable
   Options* options_;
 };
 
