@@ -83,6 +83,7 @@ class LaurelAdapter : public Resizer
   const int32_t LRL_S_INVALIDE = -1;
   const int32_t LRL_S_ZERO = 0;
   const char* LRL_S_SRC_NAME = "$src$";
+  const Index s_index = LRL_S_ZERO;
 };
 
 class SetupFixer : public LaurelAdapter
@@ -128,9 +129,6 @@ class SetupFixer : public LaurelAdapter
   Delay getHighBound(Vertex* vertex);
 
   VertexSeq sortVertexSet(VertexSet set) const;
-
-  // constant
-  const Index s_index = LRL_S_ZERO;
 
   // variables
   Index index_ = s_index;
