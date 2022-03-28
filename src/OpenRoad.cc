@@ -65,6 +65,7 @@
 #include "ifp//MakeInitFloorplan.hh"
 #include "ppl/MakeIoplacer.h"
 #include "rsz/MakeResizer.hh"
+#include "lrl/MakeLaurel.hh"
 #include "gui/MakeGui.h"
 #include "dpl/MakeOpendp.h"
 #include "dpo/MakeOptdp.h"
@@ -116,6 +117,7 @@ using odb::Point;
 using sta::evalTclInit;
 using sta::dbSta;
 using sta::Resizer;
+using sta::Laurel;
 
 using utl::ORD;
 
@@ -126,6 +128,7 @@ OpenRoad::OpenRoad()
     verilog_network_(nullptr),
     sta_(nullptr),
     resizer_(nullptr),
+    laurel_ (nullptr),
     ioPlacer_(nullptr),
     opendp_(nullptr),
     optdp_(nullptr),
@@ -157,6 +160,7 @@ OpenRoad::~OpenRoad()
   deleteDbSta(sta_);
   deleteIoplacer(ioPlacer_);
   deleteResizer(resizer_);
+  deleteLaurel(laurel_);
   deleteOpendp(opendp_);
   deleteOptdp(optdp_);
   deleteGlobalRouter(global_router_);
@@ -221,6 +225,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   verilog_network_ = makeDbVerilogNetwork();
   ioPlacer_ = makeIoplacer();
   resizer_ = makeResizer();
+  laurel_ = makeLaurel();
   opendp_ = makeOpendp();
   optdp_ = makeOptdp();
   finale_ = makeFinale();
@@ -252,6 +257,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initInitFloorplan(this);
   initDbSta(this);
   initResizer(this);
+  initLaurel(this);
   initDbVerilogNetwork(this);
   initIoplacer(this);
   initReplace(this);

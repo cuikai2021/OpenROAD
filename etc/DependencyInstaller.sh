@@ -26,6 +26,7 @@ _installCommonDev() {
     lemonVersion=1.3.1
     spdlogVersion=1.8.1
     googletest=1.10.x # recommend to use latest version
+    ortoolsVersion=9.3
 
     # temp dir to download and compile
     baseDir=/tmp/installers
@@ -109,6 +110,14 @@ _installCommonDev() {
     # gtest (latest)
     _installGtest
 
+    # or-tools (latest)
+    cd "${baseDir}"
+    $PROXYCHAINS git clone -b "v${ortoolsVersion}" https://github.com/google/or-tools
+    cd or-tools
+    make third_party
+    make cc
+    make install_cc
+
     cd "$lastDir"
     rm -rf "${baseDir}"
 }
@@ -158,7 +167,12 @@ _installUbuntuDev() {
         tcl-dev \
         tcllib \
         wget \
-        zlib1g-dev
+        zlib1g-dev \
+        build-essential \
+        pkg-config \
+        autoconf \
+        libtool \
+        lsb-release
 }
 
 _installUbuntuRuntime() {

@@ -200,6 +200,7 @@ if (NOT USE_SYSTEM_OPENSTA)
 endif()
 add_subdirectory(dbSta)
 add_subdirectory(rsz)
+add_subdirectory(Laurel)
 add_subdirectory(stt)
 add_subdirectory(gpl)
 add_subdirectory(dpl)
@@ -261,6 +262,7 @@ target_link_libraries(eden
   dpo
   fin
   rsz
+  Laurel
   ppl
   stt
   dbSta
@@ -463,6 +465,7 @@ if(GTEST STREQUAL ON)
     par
     utl
     pdn
+    Laurel
     utt
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
