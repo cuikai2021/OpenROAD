@@ -24,6 +24,8 @@ OPTIONS:
                                                   e.g.: -cmake='-DFLAGS="-a -b"'
         to build Eden with gtest:
             ./etc/Build.sh -cmake=-DGTEST=ON
+        to build Eden with debug enabled
+            ./etc/Build.sh -cmake=-DCMAKE_BUILD_TYPE=Debug
 
   -compiler=COMPILER_NAME                       Compiler name: gcc or clang
                                                   Default: gcc
