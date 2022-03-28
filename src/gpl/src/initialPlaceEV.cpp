@@ -201,8 +201,8 @@ static void dropOutRangeTopNElems(std::vector<double>& X, size_t N)
   }
 }
 
-// init inst(cell) locations with eig_vec
-static void initInstLoc(const Matrix& eig_vecs,
+// update inst(cell) locations with eig_vec
+static void updateInstLoc(const Matrix& eig_vecs,
                         int dim,
                         int delta,
                         int centerLoc,
@@ -573,13 +573,13 @@ void InitialPlaceEV::updateInstLocs(const Matrix& eig_vecs)
   const double scale
       = sqrt(double(pb_->placeInstsArea()) / pb_->die().coreArea());
 
-  initInstLoc(eig_vecs,
+  updateInstLoc(eig_vecs,
               X,
               scale * pb_->die().coreDx(),
               pb_->die().coreCx(),
               pb_->placeInsts().size(),
               instLocVec_[X]);
-  initInstLoc(eig_vecs,
+  updateInstLoc(eig_vecs,
               Y,
               scale * pb_->die().coreDy(),
               pb_->die().coreCy(),
