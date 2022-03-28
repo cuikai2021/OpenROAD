@@ -172,7 +172,8 @@ _installUbuntuDev() {
         pkg-config \
         autoconf \
         libtool \
-        lsb-release
+        lsb-release \
+        liboctave-dev
 }
 
 _installUbuntuRuntime() {
