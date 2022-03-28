@@ -45,6 +45,8 @@ sta::define_cmd_args "global_placement" {\
     [-max_phi_coef max_phi_coef]\
     [-reference_hpwl reference_hpwl]\
     [-overflow overflow]\
+    [-initial_place_guide_file initial_place_guide_file]
+    [-initial_place_policy initial_place_policy]
     [-initial_place_max_iter initial_place_max_iter]\
     [-initial_place_max_fanout initial_place_max_fanout]\
     [-routability_check_overflow routability_check_overflow]\
@@ -66,6 +68,8 @@ proc global_placement { args } {
       -init_density_penalty -init_wirelength_coef \
       -min_phi_coef -max_phi_coef -overflow \
       -reference_hpwl \
+      -initial_place_guide_file \
+      -initial_place_policy \
       -initial_place_max_iter -initial_place_max_fanout \
       -routability_check_overflow -routability_max_density \
       -routability_max_bloat_iter -routability_max_inflation_iter \
@@ -98,6 +102,16 @@ proc global_placement { args } {
   gpl::set_skip_io_mode_cmd $skip_io
   if { $skip_io } {
     gpl::set_initial_place_max_iter_cmd 0
+  }
+
+  if { [info exists keys(-initial_place_guide_file)] } { 
+    set initial_place_guide_file $keys(-initial_place_guide_file)
+    gpl::set_initial_place_guide_file_cmd $initial_place_guide_file
+  } 
+
+  if { [info exists keys(-initial_place_policy)] } { 
+    set initial_place_policy $keys(-initial_place_policy)
+    gpl::set_initial_place_policy_cmd $initial_place_policy
   }
 
   set timing_driven [info exists flags(-timing_driven)]

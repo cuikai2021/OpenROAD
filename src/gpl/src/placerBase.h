@@ -38,6 +38,7 @@
 #include <unordered_map>
 #include <memory>
 
+#include "dimension.h"
 namespace odb {
 class dbDatabase;
 
@@ -112,6 +113,7 @@ public:
   int uy() const;
   int cx() const;
   int cy() const;
+  int c(DIMENSION d) const { return d == X ? cx() : cy(); }
   int dx() const;
   int dy() const;
   int64_t area() const;
@@ -147,27 +149,23 @@ public:
 
   bool isITerm() const;
   bool isBTerm() const;
-  bool isMinPinX() const;
-  bool isMaxPinX() const;
-  bool isMinPinY() const;
-  bool isMaxPinY() const;
+  bool isMinPin(DIMENSION dim) const;
+  bool isMaxPin(DIMENSION dim) const;
 
   void setITerm();
   void setBTerm();
-  void setMinPinX();
-  void setMinPinY();
-  void setMaxPinX();
-  void setMaxPinY();
-  void unsetMinPinX();
-  void unsetMinPinY();
-  void unsetMaxPinX();
-  void unsetMaxPinY();
+  void setMinPin(DIMENSION dim);
+  void setMaxPin(DIMENSION dim);
+  void unsetMinPin(DIMENSION dim);
+  void unsetMaxPin(DIMENSION dim);
 
   int cx() const;
   int cy() const;
+  int c(DIMENSION dim) const { return dim == X ? cx() : cy(); }
 
   int offsetCx() const;
   int offsetCy() const;
+  int offsetC(DIMENSION dim) const { return dim == X ? offsetCx() : offsetCy(); }
 
   void updateLocation(const Instance* inst);
 
