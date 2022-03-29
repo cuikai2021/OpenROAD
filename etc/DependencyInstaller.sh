@@ -38,7 +38,7 @@ _installCommonDev() {
         cd "${baseDir}"
         $PROXYCHAINS wget https://cmake.org/files/v${cmakeVersionBig}/cmake-${cmakeVersionSmall}-Linux-x86_64.sh
         # md5sum -c <(echo "73041a43d27a30cdcbfdfdb61310d081  cmake-${cmakeVersionSmall}-Linux-x86_64.sh") || exit 1
-        md5sum -c <(echo "e52b1fc9cdb4df224e60e4581bff0c18  cmake-${cmakeVersionSmall}-Linux-x86_64.sh") || exit 1
+        md5sum -c <(echo "53b3d1bbfb1f4d46213f338630ae7a30  cmake-${cmakeVersionSmall}-Linux-x86_64.sh") || exit 1
         $SUDO chmod +x cmake-${cmakeVersionSmall}-Linux-x86_64.sh
         ./cmake-${cmakeVersionSmall}-Linux-x86_64.sh --skip-license --prefix=/usr/local
     else
