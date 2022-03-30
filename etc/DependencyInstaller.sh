@@ -116,9 +116,9 @@ _installCommonDev() {
     cd "${baseDir}"
     $PROXYCHAINS git clone -b "v${ortoolsVersion}" https://github.com/google/or-tools
     cd or-tools
-    make third_party
-    make cc
-    make install_cc
+    cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release -DBUILD_DEPS=ON
+    cmake --build build -j $(nproc) --config Release -v 
+    cmake --build build --target install
 
     cd "$lastDir"
     rm -rf "${baseDir}"
@@ -169,12 +169,7 @@ _installUbuntuDev() {
         tcl-dev \
         tcllib \
         wget \
-        zlib1g-dev \
-        build-essential \
-        pkg-config \
-        autoconf \
-        libtool \
-        lsb-release
+        zlib1g-dev
 }
 
 _installUbuntuRuntime() {
