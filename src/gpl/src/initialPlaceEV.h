@@ -50,7 +50,9 @@ class InitialPlaceEV : public InitialPlace
   InitialPlaceEV(InitialPlaceVars ipVars,
                  std::shared_ptr<PlacerBase> pb,
                  utl::Logger* logger)
-      : InitialPlace(ipVars, pb, logger){}
+      : InitialPlace(ipVars, pb, logger)
+  {
+  }
   ~InitialPlaceEV() {}
 
   void run();
@@ -59,7 +61,7 @@ class InitialPlaceEV : public InitialPlace
   void initAdjGraph(std::vector<T>& aList);
 
   void initLaplaceMatrix(SparseMatrix& graphL,
-                         int vetexNum,
+                         int vertexNum,
                          std::vector<T>& edges);
 
   struct Snapshot
@@ -69,7 +71,7 @@ class InitialPlaceEV : public InitialPlace
     Matrix eig_vecs;
     SparseMatrix B;
   };
-  void tuneVetexWeights(const SparseMatrix& graphL, Snapshot& snap);
+  void tuneVertexWeights(const SparseMatrix& graphL, Snapshot& snap);
 
   void updateEdgeWeights(const SparseMatrix& vertexWeights,
                          std::vector<T>& edges);
@@ -116,7 +118,8 @@ class InitialPlaceEV : public InitialPlace
 
   void updateInstLocs(const IdSolver& idSolver, Eigen::VectorXf aInstLocs[2]);
 
-  void dumpMatrixAB(const std::vector<T>& aList, const std::string& postfix) const;
+  void dumpMatrixAB(const std::vector<T>& aList,
+                    const std::string& postfix) const;
   void dumpXYLocs(const std::string& filename) const;
 };
 

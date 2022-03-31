@@ -227,7 +227,7 @@ void InitialPlaceEV::run()
   placeInstsCenter();
 
   Snapshot snap;
-  tuneVetexWeights(graphL, snap);
+  tuneVertexWeights(graphL, snap);
 
   updateInstLocs(snap.eig_vecs);
 
@@ -324,12 +324,12 @@ void InitialPlaceEV::initAdjGraph(vector<T>& aList)
 
 // construct the laplace matrix of the connectivity graph
 void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
-                                       int vetexNum,
+                                       int vertexNum,
                                        std::vector<T>& edges)
 {
   graphL = SparseMatrix(
-      vetexNum, vetexNum, octave_idx_type(2 * edges.size() + vetexNum));
-  for (int i = 0; i < vetexNum; ++i) {
+      vertexNum, vertexNum, octave_idx_type(2 * edges.size() + vertexNum));
+  for (int i = 0; i < vertexNum; ++i) {
     graphL(i, i) = 0;
   }
   for (auto& t : edges) {
@@ -340,7 +340,7 @@ void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
   }
 }
 
-void InitialPlaceEV::tuneVetexWeights(const SparseMatrix& graphL,
+void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
                                       Snapshot& snap)
 {
   const octave_idx_type placeCnt = pb_->placeInsts().size();
@@ -465,7 +465,7 @@ void InitialPlaceEV::tuneVetexWeights(const SparseMatrix& graphL,
       snap.iter);
 
   // dump matrix B for debug
-  // std::ofstream oss("debug.vetex.weights.mtx");
+  // std::ofstream oss("debug.vertex.weights.mtx");
   // oss << placeCnt << " " << placeCnt << " " << placeCnt << std::endl;
   // oss << snap.B << std::endl;
 }
