@@ -192,19 +192,18 @@ void updateInstLoc(const Matrix& eig_vecs,
   const int minLoc = centerLoc - (delta / 2);
   instLocVec.resize(placeCnt);
   {
-    std::vector<Id2Val> vecX;
+    std::vector<double> vecX;
     vecX.reserve(evec.numel());
     for (int i = 0; i < evec.numel(); ++i) {
-      vecX.push_back(Id2Val(i, evec(i)));
+      vecX.push_back(evec(i));
     }
-    sort(vecX.begin(), vecX.end(), [](const Id2Val& lhs, const Id2Val& rhs) {
-      return lhs.second < rhs.second;
-    });
-    auto scale = delta / (getVal(vecX[vecX.size() - 1]) - getVal(vecX[0]));
+    auto minmax = std::minmax_element(vecX.begin(), vecX.end());
+    auto min_val = *minmax.first;
+    auto max_val = *minmax.second;
+    auto scale = delta / (max_val - min_val);
     for (int i = 0; i < vecX.size(); ++i) {
-      auto id = vecX[i].first;
-      auto c = (getVal(vecX[i]) - getVal(vecX[0])) * scale + minLoc;
-      instLocVec(id) = c;
+      auto c = (vecX[i] - min_val) * scale + minLoc;
+      instLocVec(i) = c;
     }
   }
 }
