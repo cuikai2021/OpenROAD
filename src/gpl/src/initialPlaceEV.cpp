@@ -61,7 +61,7 @@ return:
   eig_val: eigen values
   nconv: number of Ritz values that satisfy convergence
 */
-static int eigs(Matrix& eig_vec,
+int eigs(Matrix& eig_vec,
                 ColumnVector& eig_val,
                 const SparseMatrix& A,
                 const SparseMatrix& B,
@@ -132,7 +132,7 @@ static int eigs(Matrix& eig_vec,
   return nconv;
 }
 
-static bool isSourcePin(Pin* pin)
+bool isSourcePin(Pin* pin)
 {
   if (pin->isITerm()) {
     return pin->dbITerm()->getIoType() != odb::dbIoType::INPUT;
@@ -141,7 +141,7 @@ static bool isSourcePin(Pin* pin)
   }
 }
 
-static Pin* getSourcePin(Net* net)
+Pin* getSourcePin(Net* net)
 {
   auto pins = net->pins();
   for (auto& pin : pins) {
@@ -153,7 +153,7 @@ static Pin* getSourcePin(Net* net)
   return nullptr;
 }
 
-static void reposition(std::vector<double>& X)
+void reposition(std::vector<double>& X)
 {
   double sum_x = 0;
   for (auto x: X) {
@@ -165,7 +165,7 @@ static void reposition(std::vector<double>& X)
   }
 }
 
-static void normalize(SparseMatrix& B, octave_idx_type placeCnt)
+void normalize(SparseMatrix& B, octave_idx_type placeCnt)
 {
   double sum = 0;
   for (int i = 0; i < placeCnt; ++i) {
@@ -178,7 +178,7 @@ static void normalize(SparseMatrix& B, octave_idx_type placeCnt)
 }
 
 // update inst(cell) locations with eig_vec
-static void updateInstLoc(const Matrix& eig_vecs,
+void updateInstLoc(const Matrix& eig_vecs,
                           int dim,
                           int delta,
                           int centerLoc,
