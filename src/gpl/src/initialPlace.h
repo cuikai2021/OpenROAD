@@ -68,7 +68,8 @@ class InitialPlace
   InitialPlace(InitialPlaceVars ipVars,
                std::shared_ptr<PlacerBase> pb,
                utl::Logger* logger);
-  ~InitialPlace();
+  
+  virtual ~InitialPlace();
 
   virtual void run() = 0;
 

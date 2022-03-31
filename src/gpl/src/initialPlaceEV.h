@@ -46,11 +46,11 @@ namespace gpl {
 class InitialPlaceEV : public InitialPlace
 {
  public:
-  InitialPlaceEV();
+  InitialPlaceEV() {}
   InitialPlaceEV(InitialPlaceVars ipVars,
                  std::shared_ptr<PlacerBase> pb,
                  utl::Logger* logger)
-      : InitialPlace(ipVars, pb, logger){};
+      : InitialPlace(ipVars, pb, logger){}
   ~InitialPlaceEV() {}
 
   void run();

@@ -46,11 +46,11 @@ class Graphics;
 
 class InitialPlaceBicgstab : public InitialPlace {
   public:
-    InitialPlaceBicgstab() {} ;
+    InitialPlaceBicgstab() {}
     InitialPlaceBicgstab(InitialPlaceVars ipVars, 
         std::shared_ptr<PlacerBase> pb,
-        utl::Logger* logger) : InitialPlace(ipVars, pb, logger) {};
-    ~InitialPlaceBicgstab() {} ;
+        utl::Logger* logger) : InitialPlace(ipVars, pb, logger) {}
+    ~InitialPlaceBicgstab() {}
 
     void run();
 
