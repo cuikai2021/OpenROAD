@@ -83,7 +83,7 @@ class InitialPlaceEV : public InitialPlace
    public:
     // old IDs are in range [0, N-1];
     // assign new IDs to nodes after 'removed' some insts
-    void init(int N, std::set<int>& removed)
+    void init(int N, const std::set<int>& removed)
     {
       int newID = 0;
       for (int id = 0; id < N; ++id) {
@@ -116,8 +116,8 @@ class InitialPlaceEV : public InitialPlace
 
   void updateInstLocs(const IdSolver& idSolver, Eigen::VectorXf aInstLocs[2]);
 
-  void dumpMatrixAB(const std::vector<T>& aList, const std::string& postfix);
-  void dumpXYLocs(const std::string& filename);
+  void dumpMatrixAB(const std::vector<T>& aList, const std::string& postfix) const;
+  void dumpXYLocs(const std::string& filename) const;
 };
 
 }  // namespace gpl

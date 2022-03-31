@@ -96,7 +96,7 @@ static int eigs(Matrix& eig_vec,
   std::ostream& os = std::cout;
   // Defines the required convergence tolerance,
   // calculated as tol * norm (A)}.  The default is @code{eps}.
-  double tol;
+  double tol = 0;
 
   bool rvec = true;
 
@@ -156,12 +156,12 @@ static Pin* getSourcePin(Net* net)
 static void reposition(std::vector<double>& X)
 {
   double sum_x = 0;
-  for (size_t i = 0; i < X.size(); ++i) {
-    sum_x += X[i];
+  for (auto x: X) {
+    sum_x += x;
   }
   auto avg_x = sum_x / X.size();
-  for (size_t i = 0; i < X.size(); ++i) {
-    X[i] = X[i] - avg_x;
+  for (auto & x: X) {
+    x -= avg_x;
   }
 }
 
@@ -180,11 +180,13 @@ static void normalize(SparseMatrix& B, octave_idx_type placeCnt)
 // drop the top N elems which are 'out-of-range'.
 static void dropOutRangeTopNElems(std::vector<double>& X, size_t N)
 {
+  assert(X.size() > N);
   std::priority_queue<double, std::vector<double>, std::greater<double>> q;
   std::vector<double> absX = X;
-  for (size_t i = 0; i < absX.size(); ++i) {
-    absX[i] = std::abs(absX[i]);
+  for (auto & x: X) {
+    x = std::abs(x);
   }
+
   for (size_t i = 0; i < N; ++i) {
     q.push(absX[i]);
   }
@@ -203,11 +205,11 @@ static void dropOutRangeTopNElems(std::vector<double>& X, size_t N)
 
 // update inst(cell) locations with eig_vec
 static void updateInstLoc(const Matrix& eig_vecs,
-                        int dim,
-                        int delta,
-                        int centerLoc,
-                        const octave_idx_type placeCnt,
-                        Eigen::VectorXf& instLocVec)
+                          int dim,
+                          int delta,
+                          int centerLoc,
+                          const octave_idx_type placeCnt,
+                          Eigen::VectorXf& instLocVec)
 {
   const auto K = eig_vecs.columns();
   assert(K == 4);
@@ -375,9 +377,7 @@ void InitialPlaceEV::tuneVetexWeights(const SparseMatrix& graphL,
 
   snap.ratio = placeCnt;
 
-  // const int MAX_ITER = 200;
-  // const int MAX_ITER = 10;
-  const int MAX_ITER = 80;
+  const int MAX_ITER = 100; // todo: make it configurable in runtime
   int iter = 1;
   const int K = 4;  // number of eig values to get
 #ifndef NDEBUG
@@ -574,24 +574,24 @@ void InitialPlaceEV::updateInstLocs(const Matrix& eig_vecs)
       = sqrt(double(pb_->placeInstsArea()) / pb_->die().coreArea());
 
   updateInstLoc(eig_vecs,
-              X,
-              scale * pb_->die().coreDx(),
-              pb_->die().coreCx(),
-              pb_->placeInsts().size(),
-              instLocVec_[X]);
+                X,
+                scale * pb_->die().coreDx(),
+                pb_->die().coreCx(),
+                pb_->placeInsts().size(),
+                instLocVec_[X]);
   updateInstLoc(eig_vecs,
-              Y,
-              scale * pb_->die().coreDy(),
-              pb_->die().coreCy(),
-              pb_->placeInsts().size(),
-              instLocVec_[Y]);
+                Y,
+                scale * pb_->die().coreDy(),
+                pb_->die().coreCy(),
+                pb_->placeInsts().size(),
+                instLocVec_[Y]);
 
   updateCoordi();
 }
 
 // dump the A|B matrix
 void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
-                                  const std::string& postfix)
+                                  const std::string& postfix) const
 {
   const octave_idx_type placeCnt = pb_->placeInsts().size();
   std::string files[2] = {"./LB.X." + postfix, "./LB.Y." + postfix};
@@ -696,7 +696,7 @@ void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
   }
 }
 
-void InitialPlaceEV::dumpXYLocs(const std::string& filename)
+void InitialPlaceEV::dumpXYLocs(const std::string& filename) const
 {
   const octave_idx_type placeCnt = pb_->placeInsts().size();
   std::ofstream oss(filename);
