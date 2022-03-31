@@ -55,8 +55,6 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
   }
   L.setFromTriplets(vecT.begin(), vecT.end());
 
-  float errors[DIMENSION_CNT] = {0.0f, 0.0f};
-
   // init vector b
   for (auto const dim : {X, Y}) {
     auto& b = aB[dim];
@@ -93,7 +91,6 @@ float InitialPlaceEV::bicgSolve(const SMatrix& L,
                                 const Eigen::VectorXf& b,
                                 Eigen::VectorXf& instLocs)
 {
-  auto const N = b.size();
   BiCGSTAB<SMatrix, IdentityPreconditioner> solver;
   solver.setMaxIterations(ipVars_.maxSolverIter);
   solver.compute(L);

@@ -177,32 +177,6 @@ static void normalize(SparseMatrix& B, octave_idx_type placeCnt)
   }
 }
 
-// drop the top N elems which are 'out-of-range'.
-static void dropOutRangeTopNElems(std::vector<double>& X, size_t N)
-{
-  assert(X.size() > N);
-  std::priority_queue<double, std::vector<double>, std::greater<double>> q;
-  std::vector<double> absX = X;
-  for (auto & x: X) {
-    x = std::abs(x);
-  }
-
-  for (size_t i = 0; i < N; ++i) {
-    q.push(absX[i]);
-  }
-  for (size_t i = N; i < absX.size(); ++i) {
-    if (absX[i] > q.top()) {
-      q.pop();
-      q.push(absX[i]);
-    }
-  }
-  for (size_t i = 0; i < X.size(); ++i) {
-    if (absX[i] > q.top()) {
-      X[i] = X[i] > 0 ? q.top() : -q.top();
-    }
-  }
-}
-
 // update inst(cell) locations with eig_vec
 static void updateInstLoc(const Matrix& eig_vecs,
                           int dim,
@@ -380,10 +354,6 @@ void InitialPlaceEV::tuneVetexWeights(const SparseMatrix& graphL,
   const int MAX_ITER = 100; // todo: make it configurable in runtime
   int iter = 1;
   const int K = 4;  // number of eig values to get
-#ifndef NDEBUG
-  std::set<int> max_density_nodes;
-  double r_last_iter;
-#endif
   do {
     Matrix eig_vecs;
     ColumnVector eig_vals;
@@ -487,60 +457,6 @@ void InitialPlaceEV::tuneVetexWeights(const SparseMatrix& graphL,
       B(id, id) *= 1.618;
     }
     normalize(B, placeCnt);
-
-// #ifndef NDEBUG
-#if 0
-    // check the density and nodes# change in the max_density_nodes from last
-    // iter.
-    if (iter > 1) {
-      double Xmin = INT32_MAX;
-      double Xmax = INT32_MIN;
-      for (size_t i = 0; i < X.size(); ++i) {
-        int id = getId(X[i]);
-        double val = getVal(X[i]);
-        if (max_density_nodes.count(id)) {
-          Xmax = std::max(Xmax, val);
-          Xmin = std::min(Xmin, val);
-        }
-      }
-
-      int nodeNum = 0;
-      for (size_t i = 0; i < X.size(); ++i) {
-        int id = getId(X[i]);
-        double val = getVal(X[i]);
-        if (val >= Xmin && val <= Xmax) {
-          nodeNum++;
-        }
-      }
-      auto density_updated = (nodeNum - 1) / (Xmax - Xmin);
-      auto r_updated = density_updated / avgDensity;
-
-      auto density_tight = (max_density_nodes.size() - 1) / (Xmax - Xmin);
-      auto r_tight = density_tight / avgDensity;
-      log_->report(
-          "\tmax_density_nodes updated: "
-          "r(new/old)={:0.4f}(=new{:0.4f}/old{:0.4f}), "
-          "r_tight(new/old)={:0.4f}(=new{:0.4f}/old{:0.4f}), "
-          "nodeNum.delta={}(=new{}-old{})",
-          r_updated / r_last_iter,
-          r_updated,
-          r_last_iter,
-          r_tight / r_last_iter,
-          r_tight,
-          r_last_iter,
-          nodeNum - max_density_nodes.size(),
-          nodeNum,
-          max_density_nodes.size());
-    }
-    {
-      r_last_iter = r;
-      // update max_density_nodes
-      max_density_nodes.clear();
-      for (int i = result.first; i < result.second; ++i) {
-        max_density_nodes.insert(getId(X[i]));
-      }
-    }
-#endif
   } while (iter++ < MAX_ITER);
 
   log_->report(
@@ -708,7 +624,6 @@ void InitialPlaceEV::dumpXYLocs(const std::string& filename) const
       vec[i] = insts[i]->c((gpl::DIMENSION) dim);
     }
     reposition(vec);
-    // dropOutRangeTopNElems(vec, vec.size() / 100);
     for (size_t i = 0; i < placeCnt; ++i) {
       oss << i + 1 << " " << dim + 1 << " " << vec[i] << std::endl;
     }
