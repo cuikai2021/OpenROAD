@@ -42,6 +42,7 @@
 #include <string_view>
 #include <cstdlib>
 #include <type_traits>
+#include <unordered_set>
 
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/ostr.h"
@@ -277,6 +278,11 @@ class Logger
                                                 "OFF"};
   static constexpr const char *pattern_ = "%v";
   static constexpr const char* tool_names_[] = { FOREACH_TOOL(GENERATE_STRING) };
+  typedef std::unordered_set<std::string> SuppressedExactMessageMap;
+public:
+  static SuppressedExactMessageMap* suppressed_exact_messages;
+  static void registerSuppressedExactMessage(const std::string& message);
+  bool suppressExactMessage(const std::string& message);
 };
 
 // Use this macro for any debug messages.  It avoids evaluating message and varargs
