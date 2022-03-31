@@ -123,6 +123,8 @@ public:
 
   // ICBench Methods public
   void setSdcOpt(std::string name);
+  void forEachSdc(const std::function<void()>& func);
+  void forEachSdc(const std::function<void(Sdc*)>& func);
 
   using Sta::netSlack;
   using Sta::replaceCell;

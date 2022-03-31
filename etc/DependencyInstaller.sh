@@ -17,7 +17,8 @@ _installGtest(){
 _installCommonDev() {
     lastDir="$(pwd)"
     # tools versions
-    cmakeVersionBig=3.14
+    # cmakeVersionBig=3.14
+    cmakeVersionBig=3.18
     cmakeVersionSmall=${cmakeVersionBig}.0
     swigVersion=4.0.1
     boostVersionBig=1.76
@@ -26,6 +27,7 @@ _installCommonDev() {
     lemonVersion=1.3.1
     spdlogVersion=1.8.1
     googletest=1.10.x # recommend to use latest version
+    ortoolsVersion=9.3
 
     # temp dir to download and compile
     baseDir=/tmp/installers
@@ -35,7 +37,8 @@ _installCommonDev() {
     if [[ -z $(cmake --version | grep ${cmakeVersionBig}) ]]; then
         cd "${baseDir}"
         $PROXYCHAINS wget https://cmake.org/files/v${cmakeVersionBig}/cmake-${cmakeVersionSmall}-Linux-x86_64.sh
-        md5sum -c <(echo "73041a43d27a30cdcbfdfdb61310d081  cmake-${cmakeVersionSmall}-Linux-x86_64.sh") || exit 1
+        # md5sum -c <(echo "73041a43d27a30cdcbfdfdb61310d081  cmake-${cmakeVersionSmall}-Linux-x86_64.sh") || exit 1
+        md5sum -c <(echo "53b3d1bbfb1f4d46213f338630ae7a30  cmake-${cmakeVersionSmall}-Linux-x86_64.sh") || exit 1
         $SUDO chmod +x cmake-${cmakeVersionSmall}-Linux-x86_64.sh
         ./cmake-${cmakeVersionSmall}-Linux-x86_64.sh --skip-license --prefix=/usr/local
     else
@@ -108,6 +111,14 @@ _installCommonDev() {
 
     # gtest (latest)
     _installGtest
+
+    # or-tools (latest)
+    cd "${baseDir}"
+    $PROXYCHAINS git clone -b "v${ortoolsVersion}" https://github.com/google/or-tools
+    cd or-tools
+    cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release -DBUILD_DEPS=ON
+    cmake --build build -j $(nproc) --config Release -v 
+    cmake --build build --target install
 
     cd "$lastDir"
     rm -rf "${baseDir}"

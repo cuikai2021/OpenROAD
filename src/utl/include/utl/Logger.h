@@ -80,6 +80,7 @@ namespace utl {
     X(TAP) \
     X(UKN) \
     X(BY) \
+    X(LRL) \
 
 #define GENERATE_ENUM(ENUM) ENUM,
 #define GENERATE_STRING(STRING) #STRING,

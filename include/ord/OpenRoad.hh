@@ -56,11 +56,16 @@ namespace sta {
 class dbSta;
 class dbNetwork;
 class Resizer;
+class Laurel;
 class LibertyCell;
 }
 
 namespace rsz {
 class Resizer;
+}
+
+namespace lrl {
+class Laurel;
 }
 
 namespace ppl {
@@ -167,6 +172,7 @@ public:
   sta::dbSta *getSta() { return sta_; }
   sta::dbNetwork *getDbNetwork();
   rsz::Resizer *getResizer() { return resizer_; }
+  lrl::Laurel *getLaurel() { return laurel_; }
   rmp::Restructure *getRestructure() { return restructure_; } 
   cts::TritonCTS *getTritonCts() { return tritonCts_; } 
   dbVerilogNetwork *getVerilogNetwork() { return verilog_network_; }
@@ -263,6 +269,7 @@ private:
   dbVerilogNetwork *verilog_network_;
   sta::dbSta *sta_;
   rsz::Resizer *resizer_;
+  lrl::Laurel *laurel_;
   ppl::IOPlacer *ioPlacer_;
   dpl::Opendp *opendp_;
   dpo::Optdp *optdp_;

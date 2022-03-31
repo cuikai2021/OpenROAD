@@ -48,6 +48,7 @@
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
 
+
 ////////////////////////////////////////////////////////////////
 //
 // C++ helper functions used by the interface functions.
@@ -60,6 +61,7 @@ namespace ord {
 using sta::dbSta;
 using sta::dbNetwork;
 using rsz::Resizer;
+using lrl::Laurel;
 
 using odb::dbDatabase;
 
@@ -116,6 +118,13 @@ getResizer()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getResizer();
+}
+
+Laurel *
+getLaurel()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getLaurel();
 }
 
 rmp::Restructure *
