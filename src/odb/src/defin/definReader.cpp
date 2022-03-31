@@ -60,10 +60,12 @@
 #include "defzlib.hpp"
 #include "utl/Logger.h"
 
-#define UNSUPPORTED(msg)              \
-  reader->error((msg));               \
-  if (!reader->_continue_on_errors) { \
-    return PARSE_ERROR;               \
+#define UNSUPPORTED(msg)                \
+  if (!reader->suppressMessage(msg)) {  \
+    reader->error((msg));               \
+    if (!reader->_continue_on_errors) { \
+      return PARSE_ERROR;               \
+    }                                   \
   }
 
 #define CHECKBLOCK                                                        \
@@ -364,6 +366,7 @@ int definReader::blockageCallback(defrCallbackType_e /* unused: type */,
   definBlockage* blockageR = reader->_blockageR;
 
   if (blockage->hasExceptpgnet()) {
+    blockageR->blockageRoutingExceptPGNet();
     UNSUPPORTED("EXCEPTPGNET on blockage is unsupported");
   }
 
@@ -1639,6 +1642,11 @@ int definReader::specialNetCallback(defrCallbackType_e /* unused: type */,
 void definReader::line(int line_num)
 {
   _logger->info(utl::ODB, 125, "lines processed: {}", line_num);
+}
+
+bool definReader::suppressMessage(const char* msg)
+{
+  return _logger->suppressExactMessage(msg);
 }
 
 void definReader::error(const char* msg)
