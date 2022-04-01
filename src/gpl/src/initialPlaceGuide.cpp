@@ -43,7 +43,7 @@ namespace gpl {
 using namespace std;
 
 void InitialPlaceGuide::run() {
-  assert(guide_file_ != nullptr);
+  assert(guide_file_ != "");
 #ifndef NDEBUG // FIXME @bangxiang: to cleanup
   {
     const int centerX = pb_->die().coreCx();

@@ -163,8 +163,8 @@ class Replace
     std::unique_ptr<InitialPlace> ip_;
     std::unique_ptr<NesterovPlace> np_;
 
-    const char* initialPlaceGuideFilePath_;
-    const char* initialPlacePolicy_;
+    std::string initialPlaceGuideFilePath_;
+    std::string initialPlacePolicy_;
     int initialPlaceMaxIter_;
     int initialPlaceMinDiffLength_;
     int initialPlaceMaxSolverIter_;

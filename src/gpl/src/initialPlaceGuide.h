@@ -34,22 +34,23 @@
 #pragma once
 
 #include "initialPlace.h"
+#include <string>
 
 namespace gpl {
 
 class InitialPlaceGuide : public InitialPlace {
   public:
-    InitialPlaceGuide() : guide_file_(nullptr) {};
+    InitialPlaceGuide() : guide_file_("") {}
     InitialPlaceGuide(InitialPlaceVars ipVars, 
         std::shared_ptr<PlacerBase> pb,
         utl::Logger* logger,
-        const char* guide_file) : InitialPlace(ipVars, pb, logger), guide_file_(guide_file) {};
+        const std::string& guide_file) : InitialPlace(ipVars, pb, logger), guide_file_(guide_file) {}
     ~InitialPlaceGuide() {} ;
 
     virtual void run();
     
   private:
-    const char* guide_file_;
+    std::string guide_file_;
 };
 
 }
