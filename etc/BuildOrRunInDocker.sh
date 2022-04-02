@@ -12,6 +12,7 @@ echo $cmd;
 
 workdir=`pwd`
 docker run -it --rm --network=host \
+  --env="DISPLAY" --volume="$HOME/.Xauthority:/root/.Xauthority:rw" \
   --mount type=bind,src=$workdir,dst=$workdir \
   --user `id -u`:`id -g` \
   --entrypoint /bin/bash \
