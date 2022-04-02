@@ -41,6 +41,7 @@
 #include <queue>
 #include <set>
 
+#include "graphics.h"
 #include "maxDensity.h"
 #include "octave/dColVector.h"
 #include "octave/eigs-base.h"
@@ -62,11 +63,11 @@ return:
   nconv: number of Ritz values that satisfy convergence
 */
 int eigs(Matrix& eig_vec,
-                ColumnVector& eig_val,
-                const SparseMatrix& A,
-                const SparseMatrix& B,
-                octave_idx_type k,
-                double sigma = 0.0)
+         ColumnVector& eig_val,
+         const SparseMatrix& A,
+         const SparseMatrix& B,
+         octave_idx_type k,
+         double sigma = 0.0)
 {
   assert(A.issymmetric());
 
@@ -156,11 +157,11 @@ Pin* getSourcePin(Net* net)
 void reposition(std::vector<double>& X)
 {
   double sum_x = 0;
-  for (auto x: X) {
+  for (auto x : X) {
     sum_x += x;
   }
   auto avg_x = sum_x / X.size();
-  for (auto & x: X) {
+  for (auto& x : X) {
     x -= avg_x;
   }
 }
@@ -179,11 +180,11 @@ void normalize(SparseMatrix& B, octave_idx_type placeCnt)
 
 // update inst(cell) locations with eig_vec
 void updateInstLoc(const Matrix& eig_vecs,
-                          int dim,
-                          int delta,
-                          int centerLoc,
-                          const octave_idx_type placeCnt,
-                          Eigen::VectorXf& instLocVec)
+                   int dim,
+                   int delta,
+                   int centerLoc,
+                   const octave_idx_type placeCnt,
+                   Eigen::VectorXf& instLocVec)
 {
   const auto K = eig_vecs.columns();
   assert(K == 4);
@@ -228,8 +229,6 @@ void InitialPlaceEV::run()
   Snapshot snap;
   tuneVertexWeights(graphL, snap);
 
-  updateInstLocs(snap.eig_vecs);
-
 #ifndef NDEBUG
   dumpMatrixAB(aList, "final.mtx");
   dumpXYLocs("XY.locs.mtx");
@@ -254,11 +253,18 @@ void InitialPlaceEV::run()
     bicgInit(idSolver, aList, L, aB, aInstLocs);
 
     float errors[DIMENSION_CNT] = {0.0f, 0.0f};
+    std::unique_ptr<Graphics> graphics;
+    if (ipVars_.debug && Graphics::guiActive()) {
+      graphics = make_unique<Graphics>(log_, pb_);
+    }
     for (int i = 1; i <= ipVars_.maxIter; i++) {
       for (auto dim : {X, Y}) {
         errors[dim] = bicgSolve(L, aB[dim], aInstLocs[dim]);
       }
       updateInstLocs(idSolver, aInstLocs);
+      if (graphics) {
+        graphics->cellPlot(true);
+      }
       log_->report("[InitialPlaceEVBicg]  Iter: {} CG Error: {:0.8f} HPWL: {}",
                    i,
                    max(errors[X], errors[Y]),
@@ -340,7 +346,7 @@ void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
 }
 
 void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
-                                      Snapshot& snap)
+                                       Snapshot& snap)
 {
   const octave_idx_type placeCnt = pb_->placeInsts().size();
   SparseMatrix B(placeCnt, placeCnt, placeCnt);
@@ -350,7 +356,12 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
 
   snap.ratio = placeCnt;
 
-  const int MAX_ITER = 100; // todo: make it configurable in runtime
+  std::unique_ptr<Graphics> graphics;
+  if (ipVars_.debug && Graphics::guiActive()) {
+    graphics = make_unique<Graphics>(log_, pb_);
+  }
+
+  const int MAX_ITER = 100;  // todo: make it configurable in runtime
   int iter = 1;
   const int K = 4;  // number of eig values to get
   do {
@@ -433,6 +444,10 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
       snap.iter = iter;
       snap.eig_vecs = eig_vecs;
       snap.B = B;
+      updateInstLocs(snap.eig_vecs);
+      if (graphics) {
+        graphics->cellPlot(true);
+      }
     }
     if (snap.ratio < 1.2) {
       log_->report(
