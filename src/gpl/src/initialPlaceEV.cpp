@@ -265,7 +265,7 @@ void InitialPlaceEV::run()
       if (graphics) {
         graphics->cellPlot(true);
       }
-      log_->report("[InitialPlaceEVBicg]  Iter: {} CG Error: {:0.8f} HPWL: {}",
+      log_->report("[InitialPlaceEVBicg] Iter: {} CG Error: {:0.8f} HPWL: {}",
                    i,
                    max(errors[X], errors[Y]),
                    pb_->hpwl());
@@ -445,6 +445,8 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
       snap.eig_vecs = eig_vecs;
       snap.B = B;
       updateInstLocs(snap.eig_vecs);
+      log_->report("[InitialPlace/EVPlace] Iter: {}, HPWL: {}",
+       iter, pb_->hpwl());
       if (graphics) {
         graphics->cellPlot(true);
       }
@@ -474,9 +476,10 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
   } while (iter++ < MAX_ITER);
 
   log_->report(
-      "[InitialPlace/EVPlace] maxDensity: snapRatio={:0.4f}, snapIter={}",
+      "[InitialPlace/EVPlace] maxDensity: snapRatio={:0.4f}, snapIter={}, HPWL: {}",
       snap.ratio,
-      snap.iter);
+      snap.iter,
+      pb_->hpwl());
 
   // dump matrix B for debug
   // std::ofstream oss("debug.vertex.weights.mtx");
