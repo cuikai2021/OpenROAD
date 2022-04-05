@@ -647,5 +647,6 @@ void InitialPlaceEV::dumpXYLocs(const std::string& filename) const
       oss << i + 1 << " " << dim + 1 << " " << vec[i] << std::endl;
     }
   }
+}
 
 }  // namespace gpl
