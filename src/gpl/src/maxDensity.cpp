@@ -53,16 +53,6 @@ bool MDLine::isPointAbove(const MDPoint& p)
   }
 }
 
-int getId(const Id2Val& v)
-{
-  return v.first;
-}
-
-double getVal(const Id2Val& v)
-{
-  return v.second;
-}
-
 double slope(const std::vector<Id2Val>& X, int i, int j)
 {
   return (j - i) / (getVal(X[j]) - getVal(X[i]));

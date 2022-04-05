@@ -305,17 +305,19 @@ void InitialPlaceEV::initAdjGraph(vector<T>& aList)
 
     // foreach two pins in single nets.
     auto pin_from = getSourcePin(net);
+    if (!pin_from->isPlaceInstConnected()) {
+      continue;
+    }
 
     for (auto& pin_to : net->pins()) {
-      if (pin_to != pin_from && pin_to->isPlaceInstConnected()
-          && pin_from->isPlaceInstConnected()) {
+      if (pin_to != pin_from && pin_to->isPlaceInstConnected()) {
         auto row = pin_from->instance()->extId();
         auto col = pin_to->instance()->extId();
         if (row > col) {
           std::swap(row, col);
         }
         auto k = row * placeCnt + col;
-        m[k] = m[k] + 1;
+        ++m[k];
       }
     }
   }
@@ -370,9 +372,8 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
     eigs(eig_vecs, eig_vals, graphL, B, K);
 
     int ev_min_idx = K - 2;  // the 1st smallest eigen value who is not 0 or nan
-    auto eval_min = eig_vals.elem(ev_min_idx);
     for (; ev_min_idx >= 0; --ev_min_idx) {
-      eval_min = eig_vals.elem(ev_min_idx);
+      auto eval_min = eig_vals.elem(ev_min_idx);
       if (!std::isnan(eval_min) && std::abs(eval_min) > 1e-7) {
         break;
       }
@@ -445,8 +446,8 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
       snap.eig_vecs = eig_vecs;
       snap.B = B;
       updateInstLocs(snap.eig_vecs);
-      log_->report("[InitialPlace/EVPlace] Iter: {}, HPWL: {}",
-       iter, pb_->hpwl());
+      log_->report(
+          "[InitialPlace/EVPlace] Iter: {}, HPWL: {}", iter, pb_->hpwl());
       if (graphics) {
         graphics->cellPlot(true);
       }
@@ -476,7 +477,8 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
   } while (iter++ < MAX_ITER);
 
   log_->report(
-      "[InitialPlace/EVPlace] maxDensity: snapRatio={:0.4f}, snapIter={}, HPWL: {}",
+      "[InitialPlace/EVPlace] maxDensity: snapRatio={:0.4f}, snapIter={}, "
+      "HPWL: {}",
       snap.ratio,
       snap.iter,
       pb_->hpwl());
@@ -528,7 +530,7 @@ void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
 {
   const octave_idx_type placeCnt = pb_->placeInsts().size();
   std::string files[2] = {"./LB.X." + postfix, "./LB.Y." + postfix};
-  for (int dim = gpl::X; dim < 2; ++dim) {
+  for (auto dim : {gpl::X, gpl::Y}) {
     std::cout << "dumping Matrix " << files[dim] << std::endl;
     std::ofstream oss(files[dim]);
     oss << placeCnt << " " << placeCnt + 1 << " " << aList.size() * 2 + placeCnt
@@ -634,7 +636,7 @@ void InitialPlaceEV::dumpXYLocs(const std::string& filename) const
   const octave_idx_type placeCnt = pb_->placeInsts().size();
   std::ofstream oss(filename);
   oss << placeCnt << " " << 2 << " " << 2 * placeCnt << std::endl;
-  for (int dim = gpl::X; dim < 2; ++dim) {
+  for (auto dim : {gpl::X, gpl::Y}) {
     std::vector<double> vec(placeCnt);
     auto const& insts = pb_->placeInsts();
     for (size_t i = 0; i < placeCnt; ++i) {
@@ -645,6 +647,5 @@ void InitialPlaceEV::dumpXYLocs(const std::string& filename) const
       oss << i + 1 << " " << dim + 1 << " " << vec[i] << std::endl;
     }
   }
-}
 
 }  // namespace gpl
