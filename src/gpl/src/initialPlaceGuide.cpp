@@ -33,8 +33,8 @@
 
 #include "initialPlaceGuide.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <map>
 
 #include "placerBase.h"
@@ -42,44 +42,33 @@
 namespace gpl {
 using namespace std;
 
-void InitialPlaceGuide::run() {
+void InitialPlaceGuide::run()
+{
   assert(guide_file_ != "");
-#ifndef NDEBUG // FIXME @bangxiang: to cleanup
-  {
-    const int centerX = pb_->die().coreCx();
-    const int centerY = pb_->die().coreCy();
 
-    for(auto& inst: pb_->placeInsts()) {
-      if (!inst->isLocked()) {
-        if (inst->dbInst()->isPlaced()) {
-          auto p = inst->dbInst();
-          std::cout << p->getName() << ":(" << inst->lx() << "," << inst->ly() << ")" << std::endl;
-        } else {
-          std::cout << "inst->setCenterLocation(): (" << centerX << "," << centerY << ")" << std::endl;
-          inst->setCenterLocation(centerX, centerY);
-        }
-      }
-    }
+  const std::string DEF_FILE_POSTFIX = ".def";
+  if (guide_file_.rfind(DEF_FILE_POSTFIX) != 0) {
+    // all positions are set in the def file already.
     return;
   }
-#endif
+
   std::ifstream fin(guide_file_);
   string line;
-  std::map<std::string, std::pair<int, int> > m;
+  std::map<std::string, std::pair<int, int>> m;
   while (getline(fin, line)) {
-      stringstream ss(line);
-      string name = "";
-      int x = 0;
-      int y = 0;
-      ss >> name >> x >> y;
-      m[name] = std::make_pair(x, y);
+    stringstream ss(line);
+    string name = "";
+    int x = 0;
+    int y = 0;
+    ss >> name >> x >> y;
+    m[name] = std::make_pair(x, y);
   }
   fin.close();
 
   assert(pb_);
   const int centerX = pb_->die().coreCx();
   const int centerY = pb_->die().coreCy();
-  for(auto& inst : pb_->placeInsts()) {
+  for (auto& inst : pb_->placeInsts()) {
     if (!inst->isLocked()) {
       auto k = inst->dbInst()->getName();
       if (m.count(k) != 0) {
@@ -92,4 +81,4 @@ void InitialPlaceGuide::run() {
   }
 }
 
-}
+}  // namespace gpl
