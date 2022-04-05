@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # the dependency docker to build or run in docker
-deps_docker=registry.cn-shanghai.aliyuncs.com/ieden/eden_deps_ubuntu:220328or-tools
+deps_docker=registry.cn-shanghai.aliyuncs.com/ieden/eden_deps_ubuntu:dev-latest
 
 # e.g.
 # build_cmd="./etc/Build.sh -cmake=-DCMAKE_BUILD_TYPE=Debug -threads=$(($(nproc) / 2))";
