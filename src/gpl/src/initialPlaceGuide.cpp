@@ -52,6 +52,7 @@ void InitialPlaceGuide::run()
     return;
   }
 
+  // FIXME: error handling 
   std::ifstream fin(guide_file_);
   string line;
   std::map<std::string, std::pair<int, int>> m;
