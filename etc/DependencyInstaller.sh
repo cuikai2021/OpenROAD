@@ -169,7 +169,8 @@ _installUbuntuDev() {
         tcl-dev \
         tcllib \
         wget \
-        zlib1g-dev
+        zlib1g-dev \
+        liboctave-dev
 }
 
 _installUbuntuRuntime() {

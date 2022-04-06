@@ -90,6 +90,8 @@ class Replace
     int doNesterovPlace(int start_iter = 0);
 
     // Initial Place param settings
+    void setInitialPlaceGuideFile(const char* path);
+    void setInitialPlacePolicy(const char* policy);
     void setInitialPlaceMaxIter(int iter);
     void setInitialPlaceMinDiffLength(int length);
     void setInitialPlaceMaxSolverIter(int iter);
@@ -161,6 +163,8 @@ class Replace
     std::unique_ptr<InitialPlace> ip_;
     std::unique_ptr<NesterovPlace> np_;
 
+    std::string initialPlaceGuideFilePath_;
+    std::string initialPlacePolicy_;
     int initialPlaceMaxIter_;
     int initialPlaceMinDiffLength_;
     int initialPlaceMaxSolverIter_;

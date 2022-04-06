@@ -33,6 +33,9 @@
 
 #include "gpl/Replace.h"
 #include "initialPlace.h"
+#include "initialPlaceBicgstab.h"
+#include "initialPlaceGuide.h"
+#include "initialPlaceEV.h"
 #include "nesterovPlace.h"
 #include "placerBase.h"
 #include "nesterovBase.h"
@@ -57,6 +60,8 @@ Replace::Replace()
   pb_(nullptr), nb_(nullptr), 
   rb_(nullptr), tb_(nullptr), 
   ip_(nullptr), np_(nullptr),
+  initialPlaceGuideFilePath_(""),
+  initialPlacePolicy_(""),
   initialPlaceMaxIter_(20), 
   initialPlaceMinDiffLength_(1500),
   initialPlaceMaxSolverIter_(100),
@@ -115,6 +120,8 @@ void Replace::reset() {
   tb_.reset();
   rb_.reset();
 
+  initialPlaceGuideFilePath_ = "";
+  initialPlacePolicy_ = "";
   initialPlaceMaxIter_ = 20;
   initialPlaceMinDiffLength_ = 1500;
   initialPlaceMaxSolverIter_ = 100;
@@ -251,9 +258,14 @@ void Replace::doInitialPlace()
   ipVars.netWeightScale = initialPlaceNetWeightScale_;
   ipVars.debug = gui_debug_initial_;
   
-  std::unique_ptr<InitialPlace> ip(new InitialPlace(ipVars, pb_, log_));
-  ip_ = std::move(ip);
-  ip_->doBicgstabPlace();
+  if (initialPlaceGuideFilePath_ != "") {
+    ip_ = std::move(std::unique_ptr<InitialPlace>(new InitialPlaceGuide(ipVars, pb_, log_, initialPlaceGuideFilePath_)));
+  } else if (initialPlacePolicy_ == "ev") {
+    ip_ = std::move(std::unique_ptr<InitialPlace>(new InitialPlaceEV(ipVars, pb_, log_)));
+  } else { // default
+    ip_ = std::move(std::unique_ptr<InitialPlace>(new InitialPlaceBicgstab(ipVars, pb_, log_)));
+  }
+  ip_->run();
 }
 
 void Replace::initNesterovPlace() {
@@ -336,6 +348,16 @@ int Replace::doNesterovPlace(int start_iter) {
   if (timingDrivenMode_)
     rs_->resizeSlackPreamble();
   return np_->doNesterovPlace(start_iter);
+}
+
+void
+Replace::setInitialPlaceGuideFile(const char* path) {
+  initialPlaceGuideFilePath_ = path !=nullptr ? std::string(path) : "";
+}
+
+void
+Replace::setInitialPlacePolicy(const char* policy) {
+  initialPlacePolicy_ = policy !=nullptr ? std::string(policy) : "";
 }
 
 void

@@ -55,6 +55,11 @@ target_sources(gpl
     src/MakeReplace.cpp
     src/replace.cpp
     src/initialPlace.cpp
+    src/initialPlaceBicgstab.cpp
+    src/initialPlaceGuide.cpp
+    src/initialPlaceEV.cpp
+    src/initialPlaceEVBicg.cpp
+    src/maxDensity.cpp
     src/nesterovPlace.cpp
     src/placerBase.cpp
     src/nesterovBase.cpp
@@ -73,6 +78,11 @@ messages(TARGET gpl)
 target_include_directories(gpl
   PUBLIC
     include
+    "/usr/include/octave-5.2.0/"
+)
+
+LINK_DIRECTORIES(/usr/lib /usr/local/lib
+/usr/lib/x86_64-linux-gnu/octave/5.2.0
 )
 
 target_link_libraries(gpl
@@ -85,6 +95,8 @@ target_link_libraries(gpl
     stt
     rsz
     grt
+    octave
+    octinterp
 )
 
 # CIMG_USE case
