@@ -163,6 +163,7 @@ void Logger::registerSuppressedExactMessage(const std::string& message)
 {
   std::string msg = trim(message);
   if (suppressed_exact_messages == nullptr) {
+    atexit(deleteLoggerStatics);
     suppressed_exact_messages = new SuppressedExactMessageMap;
   }
   suppressed_exact_messages->insert(msg);
