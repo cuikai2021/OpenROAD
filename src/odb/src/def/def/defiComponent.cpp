@@ -815,6 +815,22 @@ int defiComponent::haloDist() const {
   return haloDist_;
 }
 
+int defiComponent::leftHalo() const {
+  return leftHalo_;
+}
+
+int defiComponent::rightHalo() const {
+  return rightHalo_;
+}
+
+int defiComponent::topHalo() const {
+  return topHalo_;
+}
+
+int defiComponent::bottomHalo() const {
+  return bottomHalo_;
+}
+
 // 5.7
 const char* defiComponent::minLayer() const {
   return minLayer_;
