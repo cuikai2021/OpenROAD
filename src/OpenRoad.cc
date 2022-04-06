@@ -86,6 +86,7 @@
 #include "pdn/MakePdnGen.hh"
 #include "dst/MakeDistributed.h"
 #include "stt/MakeSteinerTreeBuilder.h"
+#include "linden/linden.hpp"
 
 namespace sta {
 extern const char *openroad_swig_tcl_inits[];
@@ -156,6 +157,7 @@ OpenRoad::OpenRoad()
 
 OpenRoad::~OpenRoad()
 {
+  linden::deleteLindenDp(this);
   deleteDbVerilogNetwork(verilog_network_);
   deleteDbSta(sta_);
   deleteIoplacer(ioPlacer_);
@@ -279,6 +281,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initPdnGen(this);
   initDistributed(this);
   initSteinerTreeBuilder(this);
+  linden::initLindenDp(this);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");
