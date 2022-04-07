@@ -96,6 +96,11 @@ void definBlockage::blockageRoutingFills()
   _fills = true;
 }
 
+void definBlockage::blockageRoutingExceptPGNet() 
+{
+  _except_pg_net = true;
+}
+
 void definBlockage::blockageRoutingPushdown()
 {
   _pushdown = true;

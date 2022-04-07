@@ -50,6 +50,7 @@ class definBlockage : public definBase
   bool _soft;
   bool _has_min_spacing;
   bool _has_effective_width;
+  bool _except_pg_net;
   int _min_spacing;
   int _effective_width;
   float _max_density;
@@ -60,6 +61,7 @@ class definBlockage : public definBase
   virtual void blockageRoutingComponent(const char* comp);
   virtual void blockageRoutingSlots();
   virtual void blockageRoutingFills();
+  virtual void blockageRoutingExceptPGNet();
   virtual void blockageRoutingPushdown();
   virtual void blockageRoutingMinSpacing(int spacing);
   virtual void blockageRoutingEffectiveWidth(int width);

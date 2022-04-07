@@ -120,6 +120,13 @@ metric(const char *metric,
   logger->metric(metric, value);
 }
 
+void 
+suppress_exact_message(const char* msg)
+{
+  Logger *logger = getLogger();
+  logger->registerSuppressedExactMessage(msg);
+}
+
 } // namespace
 
 %} // inline

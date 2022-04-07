@@ -35,6 +35,7 @@
 #include "definBase.h"
 #include "defrReader.hpp"
 #include "odb.h"
+#include "util.h"
 
 namespace utl {
 class Logger;
@@ -87,6 +88,7 @@ class definReader : public definBase
   void init();
   void setLibs(std::vector<dbLib*>& lib_names);
 
+  virtual bool suppressMessage(const char* msg);
   virtual void error(const char* msg);
   virtual void line(int line_num);
 

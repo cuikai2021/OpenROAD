@@ -390,6 +390,13 @@ set_debug_level(const char* tool_name,
   logger->setDebugLevel(id, group, level);
 }
 
+void
+suppress_exact_message(const char* msg)
+{
+  auto logger = getLogger();
+  logger->registerSuppressedExactMessage(msg);
+}
+
 ////////////////////////////////////////////////////////////////
 
 odb::dbDatabase *
