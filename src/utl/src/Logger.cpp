@@ -173,7 +173,7 @@ bool Logger::suppressExactMessage(const std::string& message)
 {
   if (suppressed_exact_messages) {
     std::string msg = trim(message);
-    return suppressed_exact_messages->count(msg) ? true : false;
+    return suppressed_exact_messages->count(msg) != 0;
   }
   return false;
 }
