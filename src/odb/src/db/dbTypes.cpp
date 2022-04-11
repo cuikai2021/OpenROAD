@@ -1215,6 +1215,37 @@ const char* dbBoxOwner::getString() const
   return value;
 }
 
+dbNetPattern::dbNetPattern(const char* value)
+{
+  _value = STEINER;
+  if (strcasecmp(value, "BALANCED") == 0)
+	_value = BALANCED;
+  else if(strcasecmp(value, "STEINER") == 0)
+	_value = STEINER;
+  else if(strcasecmp(value, "TRUNK") == 0)
+	_value = TRUNK;
+  else if(strcasecmp(value, "WIRELOGIC") == 0)
+	_value = WIRELOGIC;
+}
+
+dbNetPattern::dbNetPattern(Value value)
+ : _value(value) {}
+
+dbNetPattern::dbNetPattern()
+ : _value(STEINER) {}
+
+dbNetPattern::dbNetPattern(const dbNetPattern & value)
+ : _value(value._value) {}
+
+const char* dbNetPattern::getString() const {
+  switch(_value) {
+  case BALANCED: return "BALANCED";
+  case TRUNK:    return "TRUNK";
+  case WIRELOGIC:return "WIRELOGIC";
+  default:       return "STEINER";
+  }
+}
+
 dbWireType::dbWireType(const char* value)
 {
   _value = NONE;

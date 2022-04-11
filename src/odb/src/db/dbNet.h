@@ -81,6 +81,12 @@ struct _dbNetFlags
   uint _block_rule : 1;
 };
 
+struct _dbNetFlags2
+{
+  uint _pattern : 2;
+  uint _spare : 30; // unused
+};
+
 class _dbNet : public _dbObject
 {
  public:
@@ -96,7 +102,8 @@ class _dbNet : public _dbObject
   };
 
   // PERSISTANT-MEMBERS
-  _dbNetFlags _flags;
+  _dbNetFlags  _flags;
+  _dbNetFlags2 _flags2;
   char* _name;
   union
   {

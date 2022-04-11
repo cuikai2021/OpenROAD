@@ -1358,6 +1358,9 @@ void defout_impl::writeSNet(dbNet* net)
   const char* sig_type = defSigType(net->getSigType());
   fprintf(_out, " + USE %s", sig_type);
 
+  if (net->hasPattern())
+	fprintf(_out, " + PATTERN %s", net->getPatternStr());
+
   _non_default_rule = NULL;
   dbSet<dbSWire> swires = net->getSWires();
   dbSet<dbSWire>::iterator itr;
