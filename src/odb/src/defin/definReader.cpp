@@ -756,10 +756,6 @@ int definReader::netCallback(defrCallbackType_e /* unused: type */,
     UNSUPPORTED("ORIGINAL on net is unsupported");
   }
 
-  if (net->hasPattern()) {
-    UNSUPPORTED("PATTERN on net is unsupported");
-  }
-
   if (net->hasCap()) {
     UNSUPPORTED("ESTCAP on net is unsupported");
   }
@@ -891,6 +887,10 @@ int definReader::netCallback(defrCallbackType_e /* unused: type */,
   }
 
   handle_props(net, netR);
+
+  if (net->hasPattern()) {
+    netR->pattern(net->pattern());
+  }
 
   netR->end();
 
@@ -1497,10 +1497,6 @@ int definReader::specialNetCallback(defrCallbackType_e /* unused: type */,
     UNSUPPORTED("ESTCAP on special net is unsupported");
   }
 
-  if (net->hasPattern()) {
-    UNSUPPORTED("PATTERN on special net is unsupported");
-  }
-
   if (net->hasOriginal()) {
     UNSUPPORTED("ORIGINAL on special net is unsupported");
   }
@@ -1634,6 +1630,9 @@ int definReader::specialNetCallback(defrCallbackType_e /* unused: type */,
   }
 
   handle_props(net, snetR);
+
+  if (net->hasPattern())
+	snetR->pattern(net->pattern());
 
   snetR->end();
 

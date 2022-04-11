@@ -105,6 +105,7 @@ class definNet : public definBase
   void property(const char* name, const char* value);
   void property(const char* name, int value);
   void property(const char* name, double value);
+  void pattern(const char* name);
   void end();
 
   void pathBegin(const char* layer);

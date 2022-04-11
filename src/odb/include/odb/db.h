@@ -2096,6 +2096,14 @@ class dbNet : public dbObject
   bool isSpef();
 
   ///
+  /// Pattern related
+  ///
+  void setPattern(const dbNetPattern & value);
+  bool hasPattern() const;
+  dbNetPattern getPattern() const;
+  const char* getPatternStr() const;
+
+  ///
   /// Set/Reset the size-only flag
   ///
   void setSizeOnly(bool v);

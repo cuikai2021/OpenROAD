@@ -575,6 +575,14 @@ void definSNet::property(const char* name, double value)
   dbDoubleProperty::create(_cur_net, name, value);
 }
 
+void definSNet::pattern(const char* name)
+{
+  if ((_cur_net == NULL) || _replace_wires)
+    return;
+  _cur_net->setPattern(dbNetPattern(name));
+}
+
+
 void definSNet::end()
 {
   if (_cur_net == NULL)

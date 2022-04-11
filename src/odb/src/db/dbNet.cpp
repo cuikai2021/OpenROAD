@@ -127,6 +127,8 @@ _dbNet::_dbNet(_dbDatabase*)
   _flags._source = dbSourceType::NONE;
   _flags._rc_disconnected = 0;
   _flags._block_rule = 0;
+  _flags2._pattern = dbNetPattern::STEINER;
+  _flags2._spare = 0;
   _name = 0;
   _gndc_calibration_factor = 1.0;
   _cc_calibration_factor = 1.0;
@@ -146,6 +148,8 @@ _dbNet::~_dbNet()
 dbOStream& operator<<(dbOStream& stream, const _dbNet& net)
 {
   uint* bit_field = (uint*) &net._flags;
+  stream << *bit_field;
+  bit_field = (uint*) &net._flags2;
   stream << *bit_field;
   stream << net._name;
   stream << net._gndc_calibration_factor;
@@ -170,6 +174,8 @@ dbOStream& operator<<(dbOStream& stream, const _dbNet& net)
 dbIStream& operator>>(dbIStream& stream, _dbNet& net)
 {
   uint* bit_field = (uint*) &net._flags;
+  stream >> *bit_field;
+  bit_field = (uint*) &net._flags2;
   stream >> *bit_field;
   stream >> net._name;
   stream >> net._gndc_calibration_factor;
@@ -268,6 +274,9 @@ bool _dbNet::operator==(const _dbNet& rhs) const
   if (_flags._block_rule != rhs._flags._block_rule)
     return false;
 
+  if (_flags2._pattern != rhs._flags2._pattern)
+	return false;
+
   if (_name && rhs._name) {
     if (strcmp(_name, rhs._name) != 0)
       return false;
@@ -356,6 +365,7 @@ void _dbNet::differences(dbDiff& diff,
   DIFF_FIELD(_flags._source);
   DIFF_FIELD(_flags._rc_disconnected);
   DIFF_FIELD(_flags._block_rule);
+  DIFF_FIELD(_flags2._pattern);
   DIFF_FIELD_NO_DEEP(_gndc_calibration_factor);
   DIFF_FIELD_NO_DEEP(_cc_calibration_factor);
   DIFF_FIELD_NO_DEEP(_next_entry);
@@ -443,6 +453,7 @@ void _dbNet::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_FIELD(_flags._source);
   DIFF_OUT_FIELD(_flags._rc_disconnected);
   DIFF_OUT_FIELD(_flags._block_rule);
+  DIFF_OUT_FIELD(_flags2._pattern);
   DIFF_OUT_FIELD_NO_DEEP(_gndc_calibration_factor);
   DIFF_OUT_FIELD_NO_DEEP(_cc_calibration_factor);
   DIFF_OUT_FIELD_NO_DEEP(_next_entry);
@@ -1148,6 +1159,29 @@ void dbNet::setSpef(bool value)
     block->_journal->updateField(
         this, _dbNet::FLAGS, prev_flags, flagsToUInt(net));
   }
+}
+
+void dbNet::setPattern(const dbNetPattern & value)
+{
+  _dbNet* net = (_dbNet*) this;
+  net->_flags2._pattern = value;
+}
+
+bool dbNet::hasPattern() const
+{
+  _dbNet* net = (_dbNet*) this;
+  return net->_flags2._pattern != dbNetPattern::STEINER;
+}
+
+dbNetPattern dbNet::getPattern() const
+{
+  _dbNet* net = (_dbNet*) this;
+  return dbNetPattern((dbNetPattern::Value)net->_flags2._pattern);
+}
+
+const char* dbNet::getPatternStr() const
+{
+  return getPattern().getString();
 }
 
 bool dbNet::isSelect()
