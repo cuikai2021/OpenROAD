@@ -49,20 +49,27 @@ class InitialPlaceEV : public InitialPlace
   InitialPlaceEV() {}
   InitialPlaceEV(InitialPlaceVars ipVars,
                  std::shared_ptr<PlacerBase> pb,
-                 utl::Logger* logger)
-      : InitialPlace(ipVars, pb, logger)
-  {
-  }
+                 utl::Logger* logger);
   ~InitialPlaceEV() {}
 
   void run();
 
  private:
-  void initAdjGraph(std::vector<T>& aList);
+  std::vector<Instance*> placeInsts_;
+  virtual const std::vector<Instance*>& placeInsts() const
+  {
+    return placeInsts_;
+  }
+  std::size_t placeInstsNum() const { return placeInsts_.size(); }
 
-  void initLaplaceMatrix(SparseMatrix& graphL,
-                         int vertexNum,
-                         std::vector<T>& edges);
+  void setPlaceInsts(const std::vector<Instance*>& insts);
+  void resetPlaceInsts();
+
+  bool resolveUnconnectedGraph(const Triplets& edges);
+
+  void initAdjGraph(Triplets& aList);
+
+  void initLaplaceMatrix(SparseMatrix& graphL, int vertexNum, Triplets& edges);
 
   struct Snapshot
   {
@@ -73,8 +80,7 @@ class InitialPlaceEV : public InitialPlace
   };
   void tuneVertexWeights(const SparseMatrix& graphL, Snapshot& snap);
 
-  void updateEdgeWeights(const SparseMatrix& vertexWeights,
-                         std::vector<T>& edges);
+  void updateEdgeWeights(const SparseMatrix& vertexWeights, Triplets& edges);
 
   void updateInstLocs(const Matrix& eig_vecs);
 
@@ -107,7 +113,7 @@ class InitialPlaceEV : public InitialPlace
   };
 
   void bicgInit(IdSolver& idSolver,
-                const std::vector<T>& aList,
+                const Triplets& aList,
                 SMatrix& L,
                 Eigen::VectorXf aB[2],
                 Eigen::VectorXf aInstLocs[2]);
@@ -118,8 +124,7 @@ class InitialPlaceEV : public InitialPlace
 
   void updateInstLocs(const IdSolver& idSolver, Eigen::VectorXf aInstLocs[2]);
 
-  void dumpMatrixAB(const std::vector<T>& aList,
-                    const std::string& postfix) const;
+  void dumpMatrixAB(const Triplets& aList, const std::string& postfix) const;
   void dumpXYLocs(const std::string& filename) const;
 };
 

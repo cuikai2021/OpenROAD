@@ -22,7 +22,7 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
   std::set<int> fixed;
   adsorbInsts(fixed);
 
-  idSolver.init(pb_->placeInsts().size(), fixed);
+  idSolver.init(placeInstsNum(), fixed);
 
   // init matrix L
   auto const N = idSolver.numNewIDs();
@@ -66,7 +66,7 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
       auto w_ij = e.value();
       for (auto j : {e.row(), e.col()}) {
         if (fixed.count(j)) {
-          auto f_j = pb_->placeInsts()[j]->c(dim);
+          auto f_j = placeInsts()[j]->c(dim);
           auto i = j == e.row() ? e.col() : e.row();
           if (!fixed.count(i)) {
             i = idSolver.old2new(i);
@@ -82,7 +82,7 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
     auto& instLocs = aInstLocs[dim];
     instLocs.resize(N);
     for (int id = 0; id < N; ++id) {
-      instLocs(id) = pb_->placeInsts()[idSolver.new2old(id)]->c(dim);
+      instLocs(id) = placeInsts()[idSolver.new2old(id)]->c(dim);
     }
   }
 }
@@ -104,7 +104,7 @@ void InitialPlaceEV::updateInstLocs(const IdSolver& idSolver,
   auto const N = idSolver.numNewIDs();
   for (int id = 0; id < N; ++id) {
     auto oid = idSolver.new2old(id);
-    auto inst = pb_->placeInsts()[oid];
+    auto inst = placeInsts()[oid];
     inst->dbSetCenterLocation( aInstLocs[X](id), aInstLocs[Y](id) );
   }
 }
@@ -146,7 +146,7 @@ void InitialPlaceEV::adsorbInsts(std::set<int>& fixedInstIDs)
   };
 
   typedef std::vector<Instance*> InstVec;
-  InstVec insts = pb_->placeInsts();
+  InstVec insts = placeInsts();
   InstVec rect[2][2];
 
   for (auto d0 : {X, Y}) {

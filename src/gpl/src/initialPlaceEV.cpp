@@ -209,17 +209,74 @@ void updateInstLoc(const Matrix& eig_vecs,
   }
 }
 
+// find the connected components of a graph
+void components(const InitialPlace::Triplets& edges,
+                const int VERTEX_NUM,
+                std::map<int, std::vector<int>>& results)
+{
+  std::vector<int> n2g(VERTEX_NUM, -1);
+  auto& g2n = results;
+  int groupId = 1;
+  for (auto& e : edges) {
+    auto n0 = e.row();
+    auto n1 = e.col();
+    auto g0 = n2g[n0];
+    auto g1 = n2g[n1];
+    if (g0 < 0 && g1 < 0) {
+      // new a group
+      g2n[groupId] = std::vector<int>({n0, n1});
+      n2g[n0] = groupId;
+      n2g[n1] = groupId;
+      ++groupId;
+    } else if (g0 < 0 && g1 > 0) {
+      // add n0 into g1
+      n2g[n0] = g1;
+      g2n[g1].push_back(n0);
+    } else if (g0 > 0 && g1 < 0) {
+      // add n1 into g0
+      n2g[n1] = g0;
+      g2n[g0].push_back(n1);
+    } else if (g0 != g1) {
+      assert(g0 > 0 && g1 > 0);
+      // merge(g0, g1);
+      for (auto const& node : g2n[g1]) {
+        n2g[node] = g0;
+        g2n[g0].push_back(node);
+      }
+      g2n.erase(g1);
+    }
+  }
+
+  for (int i = 0; i < VERTEX_NUM; ++i) {
+    if (n2g[i] < 0) {
+      g2n[groupId] = std::vector<int>(1, i);
+      n2g[i] = groupId;
+      ++groupId;
+    }
+  }
+}
+
 }  // namespace
+
+InitialPlaceEV::InitialPlaceEV(InitialPlaceVars ipVars,
+                               std::shared_ptr<PlacerBase> pb,
+                               utl::Logger* logger)
+    : InitialPlace(ipVars, pb, logger)
+{
+  setPlaceInsts(pb_->placeInsts());
+}
 
 void InitialPlaceEV::run()
 {
-  setPlaceInstExtId();
-
-  vector<T> aList;
+  Triplets aList;
   initAdjGraph(aList);
 
+  if (resolveUnconnectedGraph(aList)) {
+    initAdjGraph(aList);
+  }
+
   SparseMatrix graphL;
-  initLaplaceMatrix(graphL, pb_->placeInsts().size(), aList);
+  initLaplaceMatrix(graphL, placeInstsNum(), aList);
 
 #ifndef NDEBUG
   dumpMatrixAB(aList, "initial.mtx");
@@ -275,16 +332,53 @@ void InitialPlaceEV::run()
     }
   }
 
+  resetPlaceInsts();
+
 #ifndef NDEBUG
   dumpMatrixAB(aList, "final.bicg.mtx");
   dumpXYLocs("XY.locs.bicg.mtx");
 #endif
 }
 
-// matrix of the connectivity graph
-void InitialPlaceEV::initAdjGraph(vector<T>& aList)
+bool InitialPlaceEV::resolveUnconnectedGraph(const Triplets& edges)
 {
-  const int placeCnt = pb_->placeInsts().size();
+  std::map<int, std::vector<int>> comps;
+  components(edges, placeInstsNum(), comps);
+  if (comps.size() > 1) {  // unconnected graph
+    const std::vector<int>* g = nullptr;
+    // get the max connected sub-graph
+    for (auto const& [k, v] : comps) {
+      if (g == nullptr || v.size() > g->size()) {
+        g = &v;
+      }
+    }
+    std::vector<Instance*> insts;
+    insts.reserve(g->size());
+    for (auto i : *g) {
+      insts.push_back(placeInsts_[i]);
+    }
+    setPlaceInsts(insts);
+    return true;
+  }
+  return false;
+}
+
+void InitialPlaceEV::setPlaceInsts(const std::vector<Instance*>& insts)
+{
+  placeInsts_ = insts;
+  setPlaceInstExtId();
+}
+
+void InitialPlaceEV::resetPlaceInsts()
+{
+  setPlaceInsts(pb_->placeInsts());
+}
+
+// matrix of the connectivity graph
+void InitialPlaceEV::initAdjGraph(Triplets& aList)
+{
+  const int placeCnt = placeInstsNum();
+  aList.clear();
   aList.reserve(2 * placeCnt);
   std::map<int, float> m;
   for (auto& net : pb_->nets()) {
@@ -332,7 +426,7 @@ void InitialPlaceEV::initAdjGraph(vector<T>& aList)
 // construct the laplace matrix of the connectivity graph
 void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
                                        int vertexNum,
-                                       std::vector<T>& edges)
+                                       Triplets& edges)
 {
   graphL = SparseMatrix(
       vertexNum, vertexNum, octave_idx_type(2 * edges.size() + vertexNum));
@@ -350,7 +444,7 @@ void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
 void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
                                        Snapshot& snap)
 {
-  const octave_idx_type placeCnt = pb_->placeInsts().size();
+  const octave_idx_type placeCnt = placeInstsNum();
   SparseMatrix B(placeCnt, placeCnt, placeCnt);
   for (int i = 0; i < placeCnt; ++i) {
     B(i, i) = 1;
@@ -490,9 +584,9 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
 }
 
 void InitialPlaceEV::updateEdgeWeights(const SparseMatrix& vertexWeights,
-                                       std::vector<T>& edges)
+                                       Triplets& edges)
 {
-  auto const placeCnt = pb_->placeInsts().size();
+  auto const placeCnt = placeInstsNum();
   std::vector<double> b(placeCnt, 0);
   for (int i = 0; i < placeCnt; ++i) {
     b[i] = vertexWeights(i, i);
@@ -512,23 +606,23 @@ void InitialPlaceEV::updateInstLocs(const Matrix& eig_vecs)
                 X,
                 scale * pb_->die().coreDx(),
                 pb_->die().coreCx(),
-                pb_->placeInsts().size(),
+                placeInstsNum(),
                 instLocVec_[X]);
   updateInstLoc(eig_vecs,
                 Y,
                 scale * pb_->die().coreDy(),
                 pb_->die().coreCy(),
-                pb_->placeInsts().size(),
+                placeInstsNum(),
                 instLocVec_[Y]);
 
   updateCoordi();
 }
 
 // dump the A|B matrix
-void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
+void InitialPlaceEV::dumpMatrixAB(const Triplets& aList,
                                   const std::string& postfix) const
 {
-  const octave_idx_type placeCnt = pb_->placeInsts().size();
+  const octave_idx_type placeCnt = placeInstsNum();
   std::string files[2] = {"./LB.X." + postfix, "./LB.Y." + postfix};
   for (auto dim : {gpl::X, gpl::Y}) {
     std::cout << "dumping Matrix " << files[dim] << std::endl;
@@ -537,7 +631,7 @@ void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
         << std::endl;
     {
       std::vector<double> vec(placeCnt);
-      auto const& insts = pb_->placeInsts();
+      auto const& insts = placeInsts();
       for (size_t i = 0; i < placeCnt; ++i) {
         vec[i] = insts[i]->c((gpl::DIMENSION) dim);
       }
@@ -633,12 +727,12 @@ void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
 
 void InitialPlaceEV::dumpXYLocs(const std::string& filename) const
 {
-  const octave_idx_type placeCnt = pb_->placeInsts().size();
+  const octave_idx_type placeCnt = placeInstsNum();
   std::ofstream oss(filename);
   oss << placeCnt << " " << 2 << " " << 2 * placeCnt << std::endl;
   for (auto dim : {gpl::X, gpl::Y}) {
     std::vector<double> vec(placeCnt);
-    auto const& insts = pb_->placeInsts();
+    auto const& insts = placeInsts();
     for (size_t i = 0; i < placeCnt; ++i) {
       vec[i] = insts[i]->c((gpl::DIMENSION) dim);
     }
