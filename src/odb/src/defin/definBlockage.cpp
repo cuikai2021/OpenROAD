@@ -98,7 +98,7 @@ void definBlockage::blockageRoutingFills()
 
 void definBlockage::blockageRoutingExceptPGNet() 
 {
-  _except_pg_net = true;
+  _except_pgnet = true;
 }
 
 void definBlockage::blockageRoutingPushdown()
@@ -133,6 +133,9 @@ void definBlockage::blockageRoutingRect(int x1, int y1, int x2, int y2)
   if (_pushdown)
     o->setPushedDown();
 
+  if (_except_pgnet)
+	o->setExceptPGNet();
+
   if (_fills)
     o->setFillObstruction();
 
@@ -164,6 +167,9 @@ void definBlockage::blockageRoutingPolygon(const std::vector<Point>& points)
         _block, _layer, r.xMin(), r.yMin(), r.xMax(), r.yMax(), _inst);
     if (_pushdown)
       o->setPushedDown();
+
+    if (_except_pgnet)
+      o->setExceptPGNet();
 
     if (_fills)
       o->setFillObstruction();

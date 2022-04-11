@@ -64,6 +64,7 @@ _dbObstruction::_dbObstruction(_dbDatabase*)
   _flags._pushed_down = 0;
   _flags._has_min_spacing = 0;
   _flags._has_effective_width = 0;
+  _flags._except_pgnet = 0;
   _flags._spare_bits = 0;
   _min_spacing = 0;
   _effective_width = 0;
@@ -113,6 +114,9 @@ bool _dbObstruction::operator==(const _dbObstruction& rhs) const
   if (_flags._has_effective_width != rhs._flags._has_effective_width)
     return false;
 
+  if (_flags._except_pgnet != rhs._flags._except_pgnet)
+	return false;
+
   if (_inst != rhs._inst)
     return false;
 
@@ -135,6 +139,7 @@ void _dbObstruction::differences(dbDiff& diff,
   DIFF_FIELD(_flags._pushed_down);
   DIFF_FIELD(_flags._has_min_spacing);
   DIFF_FIELD(_flags._has_effective_width);
+  DIFF_FIELD(_flags._except_pgnet);
   DIFF_FIELD(_min_spacing);
   DIFF_FIELD(_effective_width);
 
@@ -172,6 +177,7 @@ void _dbObstruction::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_FIELD(_flags._pushed_down);
   DIFF_OUT_FIELD(_flags._has_min_spacing);
   DIFF_OUT_FIELD(_flags._has_effective_width);
+  DIFF_OUT_FIELD(_flags._except_pgnet);
   DIFF_OUT_FIELD(_min_spacing);
   DIFF_OUT_FIELD(_effective_width);
 
@@ -248,6 +254,12 @@ bool _dbObstruction::operator<(const _dbObstruction& rhs) const
       return true;
 
     if (_flags._has_effective_width > rhs._flags._has_effective_width)
+      return false;
+
+    if (_flags._except_pgnet < rhs._flags._except_pgnet)
+      return true;
+
+    if (_flags._except_pgnet > rhs._flags._except_pgnet)
       return false;
 
     if (_min_spacing < rhs._min_spacing)
@@ -343,6 +355,18 @@ int dbObstruction::getEffectiveWidth()
 {
   _dbObstruction* obs = (_dbObstruction*) this;
   return obs->_effective_width;
+}
+
+void dbObstruction::setExceptPGNet()
+{
+  _dbObstruction* obs = (_dbObstruction*)this;
+  obs->_flags._except_pgnet = 1U;
+}
+
+bool dbObstruction::hasExceptPGNet() const
+{
+  _dbObstruction* obs = (_dbObstruction*)this;
+  return obs->_flags._except_pgnet == 1U;
 }
 
 bool dbObstruction::hasMinSpacing()
