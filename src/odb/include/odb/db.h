@@ -3970,6 +3970,16 @@ class dbObstruction : public dbObject
   int getEffectiveWidth();
 
   ///
+  /// Set the except power ground net.
+  ///
+  void setExceptPGNet();
+
+  ///
+  /// Get the except power ground net.
+  ///
+  bool hasExceptPGNet() const;
+
+  ///
   /// Returns true if this bpin has an min-spacing rule.
   ///
   bool hasMinSpacing();
