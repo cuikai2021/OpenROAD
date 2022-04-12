@@ -210,50 +210,105 @@ void updateInstLoc(const Matrix& eig_vecs,
 }
 
 // find the connected components of a graph
-void components(const InitialPlace::Triplets& edges,
-                const size_t VERTEX_NUM,
-                std::map<size_t, std::vector<size_t>>& results)
+std::vector<std::vector<size_t>> components(const InitialPlace::Triplets& edges,
+                                            const size_t VERTEX_NUM)
 {
-  std::vector<size_t> n2g(VERTEX_NUM, 0);
-  auto& g2n = results;
-  size_t groupId = 1;
-  for (auto& e : edges) {
-    auto n0 = e.row();
-    auto n1 = e.col();
-    auto g0 = n2g[n0];
-    auto g1 = n2g[n1];
-    if (g0 == 0 && g1 == 0) {
-      // new a group
-      g2n[groupId] = std::vector<size_t>({n0, n1});
-      n2g[n0] = groupId;
-      n2g[n1] = groupId;
-      ++groupId;
-    } else if (g0 == 0 && g1 > 0) {
-      // add n0 into g1
-      n2g[n0] = g1;
-      g2n[g1].push_back(n0);
-    } else if (g0 > 0 && g1 == 0) {
-      // add n1 into g0
-      n2g[n1] = g0;
-      g2n[g0].push_back(n1);
-    } else if (g0 != g1) {
-      assert(g0 > 0 && g1 > 0);
-      // merge(g0, g1);
-      for (auto const& node : g2n[g1]) {
-        n2g[node] = g0;
-        g2n[g0].push_back(node);
+  struct Node
+  {
+    size_t id;
+    size_t groupId;
+    Node* next;
+    Node(size_t id_, size_t groupId_)
+        : id(id_), groupId(groupId_), next(nullptr)
+    {
+    }
+  };
+
+  struct List
+  {
+    Node* head;
+    Node* tail;
+    size_t size;
+    size_t id;
+    List(Node* head_, Node* tail_, size_t size_, size_t id_)
+        : head(head_), tail(tail_), size(size_), id(id_)
+    {
+    }
+    void merge(List& ano)
+    {
+      assert(tail && tail->next == nullptr);
+      tail->next = ano.head;
+      tail = ano.tail;
+      size += ano.size;
+      for (auto p = ano.head; p != nullptr; p = p->next) {
+        p->groupId = id;
       }
-      g2n.erase(g1);
+      ano.clear();
+    }
+    void clear()
+    {
+      head = tail = nullptr;
+      size = 0;
+      id = LONG_MAX;
+    }
+    void release()
+    {
+      for (auto p = head; p != nullptr;) {
+        auto next = p->next;
+        delete p;
+        p = next;
+      }
+    }
+  };
+
+  std::vector<List> groups;
+  groups.reserve(VERTEX_NUM);
+  for (size_t i = 0; i < VERTEX_NUM; ++i) {
+    size_t nodeId = i;
+    size_t groupId = i;
+    auto node = new Node(nodeId, groupId);
+    groups.emplace_back(List(node, node, 1, groupId));
+  }
+
+  typedef std::pair<Node*, Node*> Edge;
+  std::vector<Edge> nodeEdges;
+  nodeEdges.reserve(edges.size());
+  for (auto& e : edges) {
+    auto n0 = groups[e.row()].head;
+    auto n1 = groups[e.col()].head;
+    nodeEdges.emplace_back(std::make_pair(n0, n1));
+  }
+
+  for (auto& e : nodeEdges) {
+    auto n0 = e.first;
+    auto n1 = e.second;
+    if (n0->groupId != n1->groupId) {
+      auto& lst0 = groups[n0->groupId];
+      auto& lst1 = groups[n1->groupId];
+      if (lst0.size > lst1.size) {
+        lst0.merge(lst1);
+      } else {
+        lst1.merge(lst0);
+      }
     }
   }
 
-  for (size_t i = 0; i < VERTEX_NUM; ++i) {
-    if (n2g[i] == 0) {
-      g2n[groupId] = std::vector<size_t>(1, i);
-      n2g[i] = groupId;
-      ++groupId;
+  std::vector<std::vector<size_t>> res;
+  for (auto const& g : groups) {
+    if (g.size > 0) {
+      std::vector<size_t> vec;
+      vec.reserve(g.size);
+      for (auto p = g.head; p != nullptr; p = p->next) {
+        vec.push_back(p->id);
+      }
+      res.emplace_back(vec);
     }
   }
+  
+  for (auto& g : groups) {
+    g.release();
+  }
+  return res;
 }
 
 }  // namespace
@@ -342,19 +397,18 @@ void InitialPlaceEV::run()
 
 bool InitialPlaceEV::resolveUnconnectedGraph(const Triplets& edges)
 {
-  std::map<size_t, std::vector<size_t>> comps;
-  components(edges, placeInstsNum(), comps);
+  std::vector<std::vector<size_t>> comps = components(edges, placeInstsNum());
   if (comps.size() > 1) {  // unconnected graph
-    const std::vector<size_t>* g = nullptr;
+    const std::vector<size_t>* pMaxComp = nullptr;
     // get the max connected sub-graph
-    for (auto const& [k, v] : comps) {
-      if (g == nullptr || v.size() > g->size()) {
-        g = &v;
+    for (auto const& g : comps) {
+      if (pMaxComp == nullptr || g.size() > pMaxComp->size()) {
+        pMaxComp = &g;
       }
     }
     std::vector<Instance*> insts;
-    insts.reserve(g->size());
-    for (auto i : *g) {
+    insts.reserve(pMaxComp->size());
+    for (auto i : *pMaxComp) {
       insts.push_back(placeInsts_[i]);
     }
     setPlaceInsts(insts);
