@@ -19,7 +19,7 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
                               Eigen::VectorXf aB[2],
                               Eigen::VectorXf aInstLocs[2])
 {
-  std::set<int> fixed;
+  std::set<size_t> fixed;
   adsorbInsts(fixed);
 
   idSolver.init(placeInstsNum(), fixed);
@@ -59,7 +59,7 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
   for (auto const dim : {X, Y}) {
     auto& b = aB[dim];
     b.resize(N);
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       b(i) = 0;
     }
     for (auto e : aList) {
@@ -81,7 +81,7 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
   for (auto const dim : {X, Y}) {
     auto& instLocs = aInstLocs[dim];
     instLocs.resize(N);
-    for (int id = 0; id < N; ++id) {
+    for (size_t id = 0; id < N; ++id) {
       instLocs(id) = placeInsts()[idSolver.new2old(id)]->c(dim);
     }
   }
@@ -102,14 +102,14 @@ void InitialPlaceEV::updateInstLocs(const IdSolver& idSolver,
                                     Eigen::VectorXf aInstLocs[2])
 {
   auto const N = idSolver.numNewIDs();
-  for (int id = 0; id < N; ++id) {
+  for (size_t id = 0; id < N; ++id) {
     auto oid = idSolver.new2old(id);
     auto inst = placeInsts()[oid];
     inst->dbSetCenterLocation( aInstLocs[X](id), aInstLocs[Y](id) );
   }
 }
 
-void InitialPlaceEV::adsorbInsts(std::set<int>& fixedInstIDs)
+void InitialPlaceEV::adsorbInsts(std::set<size_t>& fixedInstIDs)
 {
   class InstCmp
   {
@@ -119,7 +119,7 @@ void InitialPlaceEV::adsorbInsts(std::set<int>& fixedInstIDs)
     {
     }
 
-    static bool ne(int v0, int v1)
+    static bool ne(size_t v0, size_t v1)
     {
       const int N = 1000;
       return (v0 / N) != (v1 / N);

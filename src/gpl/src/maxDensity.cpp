@@ -1,7 +1,7 @@
 #include "maxDensity.h"
 
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
 namespace maxDensity {
 
@@ -10,7 +10,8 @@ namespace maxDensity {
 * The length of the segment is j - i + 1 and its density is
 * u_i_j = (j - i + 1) / (Xj - Xi)
 *
-* In the maximum-density segment problem, a sequnce X and two integers, L and U,
+* In the maximum-density segment problem, a sequnce X and two size_tegers, L and
+U,
 * with 1 <= L <= U <= n, are given as input, and we want to find a maximum
 possible
 * density segment of X with length at least L and at most U.
@@ -53,18 +54,18 @@ bool MDLine::isPointAbove(const MDPoint& p)
   }
 }
 
-double slope(const std::vector<Id2Val>& X, int i, int j)
+double slope(const std::vector<Id2Val>& X, size_t i, size_t j)
 {
   return (j - i) / (getVal(X[j]) - getVal(X[i]));
 }
 
-void max_density(std::pair<int, int>& result,
-                        const std::vector<Id2Val>& X,
-                        int L,
-                        int U)
+void max_density(std::pair<size_t, size_t>& result,
+                 const std::vector<Id2Val>& X,
+                 size_t L,
+                 size_t U)
 {
 #ifndef NDEBUG
-  for (int i = 1; i < X.size(); ++i) {
+  for (size_t i = 1; i < X.size(); ++i) {
     assert(getVal(X[i]) >= getVal(X[i - 1]));
   }
 #endif
@@ -89,9 +90,9 @@ void max_density(std::pair<int, int>& result,
 #define DEBUG_PRINT_MD_RESULT ((void) 0);
 #endif
 
-  for (int j = L; j < X.size(); ++j) {
+  for (size_t j = L; j < X.size(); ++j) {
     // L <= j - i + 1 <= U
-    auto imin = std::max((j + 1) - U, 0);
+    auto imin = std::max((j + 1) - U, (size_t) 0);
     auto imax = (j + 1) - L;
 #if 0  // the O(n^2) complexity implementation, which is to check the
        // correctness of this algorithm.
@@ -112,7 +113,7 @@ void max_density(std::pair<int, int>& result,
     MDPoint p_j(getVal(X[j]), j);
     if (line.isPointAbove(p_y)) {
       if (line.isPointAbove(p_j)) {
-        int alpha = line.point.y;
+        size_t alpha = line.point.y;
         for (auto i = std::max(imin, alpha); i <= imax; ++i) {
           auto sl = slope(X, i, j);
           if (sl > line.slope) {
@@ -148,4 +149,4 @@ void max_density(std::pair<int, int>& result,
   DEBUG_PRINT_MD_RESULT
 }
 
-} // end of namespace gpl_util
+}  // namespace maxDensity

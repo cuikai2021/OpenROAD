@@ -69,7 +69,7 @@ class InitialPlaceEV : public InitialPlace
 
   void initAdjGraph(Triplets& aList);
 
-  void initLaplaceMatrix(SparseMatrix& graphL, int vertexNum, Triplets& edges);
+  void initLaplaceMatrix(SparseMatrix& graphL, size_t  vertexNum, Triplets& edges);
 
   struct Snapshot
   {
@@ -84,17 +84,17 @@ class InitialPlaceEV : public InitialPlace
 
   void updateInstLocs(const Matrix& eig_vecs);
 
-  void adsorbInsts(std::set<int>& fixedInstIDs);
+  void adsorbInsts(std::set<size_t>& fixedInstIDs);
 
   class IdSolver
   {
    public:
     // old IDs are in range [0, N-1];
     // assign new IDs to nodes after 'removed' some insts
-    void init(int N, const std::set<int>& removed)
+    void init(size_t N, const std::set<size_t>& removed)
     {
-      int newID = 0;
-      for (int id = 0; id < N; ++id) {
+      size_t newID = 0;
+      for (size_t id = 0; id < N; ++id) {
         if (!removed.count(id)) {
           n2o[newID] = id;
           o2n[id] = newID;
@@ -102,14 +102,14 @@ class InitialPlaceEV : public InitialPlace
         }
       }
     }
-    int old2new(int id) const { return o2n.at(id); }
-    int new2old(int id) const { return n2o.at(id); }
+    size_t old2new(size_t id) const { return o2n.at(id); }
+    size_t new2old(size_t id) const { return n2o.at(id); }
 
-    int numNewIDs() const { return n2o.size(); }
+    size_t numNewIDs() const { return n2o.size(); }
 
    private:
-    std::map<int, int> n2o;
-    std::map<int, int> o2n;
+    std::map<size_t, size_t> n2o;
+    std::map<size_t, size_t> o2n;
   };
 
   void bicgInit(IdSolver& idSolver,

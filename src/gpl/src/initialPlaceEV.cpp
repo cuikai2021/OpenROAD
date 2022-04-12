@@ -169,11 +169,11 @@ void reposition(std::vector<double>& X)
 void normalize(SparseMatrix& B, octave_idx_type placeCnt)
 {
   double sum = 0;
-  for (int i = 0; i < placeCnt; ++i) {
+  for (octave_idx_type i = 0; i < placeCnt; ++i) {
     sum += B(i, i);
   }
   auto r = placeCnt / sum;
-  for (int i = 0; i < placeCnt; ++i) {
+  for (octave_idx_type i = 0; i < placeCnt; ++i) {
     B(i, i) *= r;
   }
 }
@@ -195,14 +195,14 @@ void updateInstLoc(const Matrix& eig_vecs,
   {
     std::vector<double> vecX;
     vecX.reserve(evec.numel());
-    for (int i = 0; i < evec.numel(); ++i) {
+    for (octave_idx_type i = 0; i < evec.numel(); ++i) {
       vecX.push_back(evec(i));
     }
     auto minmax = std::minmax_element(vecX.begin(), vecX.end());
     auto min_val = *minmax.first;
     auto max_val = *minmax.second;
     auto scale = delta / (max_val - min_val);
-    for (int i = 0; i < vecX.size(); ++i) {
+    for (size_t i = 0; i < vecX.size(); ++i) {
       auto c = (vecX[i] - min_val) * scale + minLoc;
       instLocVec(i) = c;
     }
@@ -211,28 +211,28 @@ void updateInstLoc(const Matrix& eig_vecs,
 
 // find the connected components of a graph
 void components(const InitialPlace::Triplets& edges,
-                const int VERTEX_NUM,
-                std::map<int, std::vector<int>>& results)
+                const size_t VERTEX_NUM,
+                std::map<size_t, std::vector<size_t>>& results)
 {
-  std::vector<int> n2g(VERTEX_NUM, -1);
+  std::vector<size_t> n2g(VERTEX_NUM, 0);
   auto& g2n = results;
-  int groupId = 1;
+  size_t groupId = 1;
   for (auto& e : edges) {
     auto n0 = e.row();
     auto n1 = e.col();
     auto g0 = n2g[n0];
     auto g1 = n2g[n1];
-    if (g0 < 0 && g1 < 0) {
+    if (g0 == 0 && g1 == 0) {
       // new a group
-      g2n[groupId] = std::vector<int>({n0, n1});
+      g2n[groupId] = std::vector<size_t>({n0, n1});
       n2g[n0] = groupId;
       n2g[n1] = groupId;
       ++groupId;
-    } else if (g0 < 0 && g1 > 0) {
+    } else if (g0 == 0 && g1 > 0) {
       // add n0 into g1
       n2g[n0] = g1;
       g2n[g1].push_back(n0);
-    } else if (g0 > 0 && g1 < 0) {
+    } else if (g0 > 0 && g1 == 0) {
       // add n1 into g0
       n2g[n1] = g0;
       g2n[g0].push_back(n1);
@@ -247,9 +247,9 @@ void components(const InitialPlace::Triplets& edges,
     }
   }
 
-  for (int i = 0; i < VERTEX_NUM; ++i) {
-    if (n2g[i] < 0) {
-      g2n[groupId] = std::vector<int>(1, i);
+  for (size_t i = 0; i < VERTEX_NUM; ++i) {
+    if (n2g[i] == 0) {
+      g2n[groupId] = std::vector<size_t>(1, i);
       n2g[i] = groupId;
       ++groupId;
     }
@@ -314,7 +314,7 @@ void InitialPlaceEV::run()
     if (ipVars_.debug && Graphics::guiActive()) {
       graphics = make_unique<Graphics>(log_, pb_);
     }
-    for (int i = 1; i <= ipVars_.maxIter; i++) {
+    for (size_t i = 1; i <= ipVars_.maxIter; i++) {
       for (auto dim : {X, Y}) {
         errors[dim] = bicgSolve(L, aB[dim], aInstLocs[dim]);
       }
@@ -342,10 +342,10 @@ void InitialPlaceEV::run()
 
 bool InitialPlaceEV::resolveUnconnectedGraph(const Triplets& edges)
 {
-  std::map<int, std::vector<int>> comps;
+  std::map<size_t, std::vector<size_t>> comps;
   components(edges, placeInstsNum(), comps);
   if (comps.size() > 1) {  // unconnected graph
-    const std::vector<int>* g = nullptr;
+    const std::vector<size_t>* g = nullptr;
     // get the max connected sub-graph
     for (auto const& [k, v] : comps) {
       if (g == nullptr || v.size() > g->size()) {
@@ -377,10 +377,10 @@ void InitialPlaceEV::resetPlaceInsts()
 // matrix of the connectivity graph
 void InitialPlaceEV::initAdjGraph(Triplets& aList)
 {
-  const int placeCnt = placeInstsNum();
+  const size_t placeCnt = placeInstsNum();
   aList.clear();
   aList.reserve(2 * placeCnt);
-  std::map<int, float> m;
+  std::map<size_t, float> m;
   for (auto& net : pb_->nets()) {
     auto sigT = net->dbNet()->getSigType();
     if (sigT != odb::dbSigType::SIGNAL && sigT != odb::dbSigType::CLOCK
@@ -425,12 +425,12 @@ void InitialPlaceEV::initAdjGraph(Triplets& aList)
 
 // construct the laplace matrix of the connectivity graph
 void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
-                                       int vertexNum,
+                                       size_t vertexNum,
                                        Triplets& edges)
 {
   graphL = SparseMatrix(
       vertexNum, vertexNum, octave_idx_type(2 * edges.size() + vertexNum));
-  for (int i = 0; i < vertexNum; ++i) {
+  for (size_t i = 0; i < vertexNum; ++i) {
     graphL(i, i) = 0;
   }
   for (auto& t : edges) {
@@ -446,7 +446,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
 {
   const octave_idx_type placeCnt = placeInstsNum();
   SparseMatrix B(placeCnt, placeCnt, placeCnt);
-  for (int i = 0; i < placeCnt; ++i) {
+  for (size_t i = 0; i < placeCnt; ++i) {
     B(i, i) = 1;
   }
 
@@ -480,7 +480,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
 
     std::vector<Id2Val> vId2Val[2];
     double ratios[2];
-    std::pair<int, int> results[2];
+    std::pair<size_t, size_t> results[2];
     for (int dim = 0; dim < gpl::DIMENSION_CNT; ++dim) {
       std::vector<Id2Val>& X = vId2Val[dim];
       auto ev_idx = ev_min_idx - dim;
@@ -490,7 +490,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
       {  // init X with eig_vec
         auto ev = eig_vecs.column(ev_idx);
         X.reserve(ev.numel());
-        for (int i = 0; i < ev.numel(); ++i) {
+        for (size_t i = 0; i < ev.numel(); ++i) {
           X.push_back(Id2Val(i, ev(i)));
         }
         sort(X.begin(), X.end(), [](const Id2Val& lhs, const Id2Val& rhs) {
@@ -499,7 +499,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
         {  // scale the values
           auto scale
               = std::sqrt(X.size()) / (getVal(X[X.size() - 1]) - getVal(X[0]));
-          for (int i = 1; i < X.size(); ++i) {
+          for (size_t i = 1; i < X.size(); ++i) {
             auto c = (getVal(X[i]) - getVal(X[0])) * scale;
             X[i].second = c;
           }
@@ -507,7 +507,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
         }
       }
 
-      std::pair<int, int>& result = results[dim];
+      std::pair<size_t, size_t>& result = results[dim];
       max_density(result, X, 2 * std::sqrt(X.size()), X.size());
 
       auto avgDensity = slope(X, 0, X.size() - 1);
@@ -560,9 +560,9 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
     }
 
     auto const& result = results[target];
-    for (int i = result.first; i < result.second; ++i) {
+    for (size_t i = result.first; i < result.second; ++i) {
       auto const& X = vId2Val[target];
-      int id = getId(X[i]);
+      size_t id = getId(X[i]);
       // B(id, id) *= std::sqrt(r);
       // B(id, id) *= 2;
       B(id, id) *= 1.618;
@@ -588,7 +588,7 @@ void InitialPlaceEV::updateEdgeWeights(const SparseMatrix& vertexWeights,
 {
   auto const placeCnt = placeInstsNum();
   std::vector<double> b(placeCnt, 0);
-  for (int i = 0; i < placeCnt; ++i) {
+  for (size_t i = 0; i < placeCnt; ++i) {
     b[i] = vertexWeights(i, i);
   }
   for (auto& e : edges) {
