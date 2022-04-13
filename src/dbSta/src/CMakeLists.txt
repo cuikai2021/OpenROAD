@@ -47,6 +47,7 @@ target_sources(dbSta
     dbSdcNetwork.cc
     dbReadVerilog.cc
     heatMap.cpp
+    MultiMode.cc
 )
 
 target_include_directories(dbSta

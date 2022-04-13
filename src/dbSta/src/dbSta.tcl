@@ -103,8 +103,6 @@ proc_redirect read_sdc {
 
   if { [info exists keys(-mode)] } {
     set_sdc_opt_cmd $keys(-mode)
-  } else {
-    set_sdc_opt_cmd default
   }
 
   set cmd [concat "__origin_read_sdc " $args ]
