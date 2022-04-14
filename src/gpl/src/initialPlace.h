@@ -35,6 +35,7 @@
 
 #include <Eigen/SparseCore>
 #include <memory>
+#include <vector>
 
 #include "dimension.h"
 #include "odb/db.h"
@@ -46,6 +47,7 @@ class Logger;
 namespace gpl {
 
 class PlacerBase;
+class Instance;
 
 class InitialPlaceVars
 {
@@ -68,13 +70,15 @@ class InitialPlace
   InitialPlace(InitialPlaceVars ipVars,
                std::shared_ptr<PlacerBase> pb,
                utl::Logger* logger);
-  
+
   virtual ~InitialPlace();
 
   virtual void run() = 0;
 
- protected:
   typedef Eigen::Triplet<float> T;
+  typedef std::vector<T> Triplets;
+
+ protected:
   typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 
   InitialPlaceVars ipVars_;
@@ -82,6 +86,8 @@ class InitialPlace
   utl::Logger* log_;
 
   Eigen::VectorXf instLocVec_[DIMENSION_CNT];
+
+  virtual const std::vector<Instance*>& placeInsts() const;
 
   void placeInstsCenter();
   void setPlaceInstExtId();

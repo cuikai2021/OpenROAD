@@ -49,20 +49,27 @@ class InitialPlaceEV : public InitialPlace
   InitialPlaceEV() {}
   InitialPlaceEV(InitialPlaceVars ipVars,
                  std::shared_ptr<PlacerBase> pb,
-                 utl::Logger* logger)
-      : InitialPlace(ipVars, pb, logger)
-  {
-  }
+                 utl::Logger* logger);
   ~InitialPlaceEV() {}
 
   void run();
 
  private:
-  void initAdjGraph(std::vector<T>& aList);
+  std::vector<Instance*> placeInsts_;
+  virtual const std::vector<Instance*>& placeInsts() const
+  {
+    return placeInsts_;
+  }
+  std::size_t placeInstsNum() const { return placeInsts_.size(); }
 
-  void initLaplaceMatrix(SparseMatrix& graphL,
-                         int vertexNum,
-                         std::vector<T>& edges);
+  void setPlaceInsts(const std::vector<Instance*>& insts);
+  void resetPlaceInsts();
+
+  bool resolveUnconnectedGraph(const Triplets& edges);
+
+  void initAdjGraph(Triplets& aList);
+
+  void initLaplaceMatrix(SparseMatrix& graphL, size_t  vertexNum, Triplets& edges);
 
   struct Snapshot
   {
@@ -73,22 +80,21 @@ class InitialPlaceEV : public InitialPlace
   };
   void tuneVertexWeights(const SparseMatrix& graphL, Snapshot& snap);
 
-  void updateEdgeWeights(const SparseMatrix& vertexWeights,
-                         std::vector<T>& edges);
+  void updateEdgeWeights(const SparseMatrix& vertexWeights, Triplets& edges);
 
   void updateInstLocs(const Matrix& eig_vecs);
 
-  void adsorbInsts(std::set<int>& fixedInstIDs);
+  void adsorbInsts(std::set<size_t>& fixedInstIDs);
 
   class IdSolver
   {
    public:
     // old IDs are in range [0, N-1];
     // assign new IDs to nodes after 'removed' some insts
-    void init(int N, const std::set<int>& removed)
+    void init(size_t N, const std::set<size_t>& removed)
     {
-      int newID = 0;
-      for (int id = 0; id < N; ++id) {
+      size_t newID = 0;
+      for (size_t id = 0; id < N; ++id) {
         if (!removed.count(id)) {
           n2o[newID] = id;
           o2n[id] = newID;
@@ -96,18 +102,18 @@ class InitialPlaceEV : public InitialPlace
         }
       }
     }
-    int old2new(int id) const { return o2n.at(id); }
-    int new2old(int id) const { return n2o.at(id); }
+    size_t old2new(size_t id) const { return o2n.at(id); }
+    size_t new2old(size_t id) const { return n2o.at(id); }
 
-    int numNewIDs() const { return n2o.size(); }
+    size_t numNewIDs() const { return n2o.size(); }
 
    private:
-    std::map<int, int> n2o;
-    std::map<int, int> o2n;
+    std::map<size_t, size_t> n2o;
+    std::map<size_t, size_t> o2n;
   };
 
   void bicgInit(IdSolver& idSolver,
-                const std::vector<T>& aList,
+                const Triplets& aList,
                 SMatrix& L,
                 Eigen::VectorXf aB[2],
                 Eigen::VectorXf aInstLocs[2]);
@@ -118,8 +124,7 @@ class InitialPlaceEV : public InitialPlace
 
   void updateInstLocs(const IdSolver& idSolver, Eigen::VectorXf aInstLocs[2]);
 
-  void dumpMatrixAB(const std::vector<T>& aList,
-                    const std::string& postfix) const;
+  void dumpMatrixAB(const Triplets& aList, const std::string& postfix) const;
   void dumpXYLocs(const std::string& filename) const;
 };
 

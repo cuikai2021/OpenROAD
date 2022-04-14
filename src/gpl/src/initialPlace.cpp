@@ -39,12 +39,13 @@
 namespace gpl {
 using namespace std;
 
-InitialPlaceVars::InitialPlaceVars() 
+InitialPlaceVars::InitialPlaceVars()
 {
   reset();
 }
 
-void InitialPlaceVars::reset() {
+void InitialPlaceVars::reset()
+{
   maxIter = 20;
   minDiffLength = 1500;
   maxSolverIter = 100;
@@ -53,56 +54,67 @@ void InitialPlaceVars::reset() {
   debug = false;
 }
 
-InitialPlace::InitialPlace()
-: ipVars_(), pb_(nullptr), log_(nullptr) {} 
-
-InitialPlace::InitialPlace(InitialPlaceVars ipVars, 
-    std::shared_ptr<PlacerBase> pb,
-    utl::Logger* log)
-: ipVars_(ipVars), pb_(pb), log_(log)
+InitialPlace::InitialPlace() : ipVars_(), pb_(nullptr), log_(nullptr)
 {
 }
 
-InitialPlace::~InitialPlace() {
+InitialPlace::InitialPlace(InitialPlaceVars ipVars,
+                           std::shared_ptr<PlacerBase> pb,
+                           utl::Logger* log)
+    : ipVars_(ipVars), pb_(pb), log_(log)
+{
+}
+
+InitialPlace::~InitialPlace()
+{
   reset();
 }
 
-void InitialPlace::reset() {
+void InitialPlace::reset()
+{
   pb_ = nullptr;
   ipVars_.reset();
 }
 
+const std::vector<Instance*>& InitialPlace::placeInsts() const
+{
+  return pb_->placeInsts();
+}
+
 // starting point of initial place is center.
-void InitialPlace::placeInstsCenter() {
+void InitialPlace::placeInstsCenter()
+{
   const int centerX = pb_->die().coreCx();
   const int centerY = pb_->die().coreCy();
 
-  for(auto& inst: pb_->placeInsts()) {
+  for (auto& inst : placeInsts()) {
     if (!inst->isLocked()) {
       inst->setCenterLocation(centerX, centerY);
     }
   }
 }
 
-void InitialPlace::setPlaceInstExtId() {
+void InitialPlace::setPlaceInstExtId()
+{
   // reset ExtId for all instances
-  for(auto& inst : pb_->insts()) {
+  for (auto& inst : pb_->insts()) {
     inst->setExtId(INT_MAX);
   }
   // set index only with place-able instances
-  for(auto& inst : pb_->placeInsts()) {
-    inst->setExtId(&inst - &(pb_->placeInsts()[0]));
+  for (auto& inst : placeInsts()) {
+    inst->setExtId(&inst - &(placeInsts()[0]));
   }
 }
 
-void InitialPlace::updateCoordi() {
-  for(auto& inst : pb_->placeInsts()) {
+void InitialPlace::updateCoordi()
+{
+  for (auto& inst : placeInsts()) {
     int idx = inst->extId();
     if (!inst->isLocked()) {
-      inst->dbSetCenterLocation( instLocVec_[X](idx), instLocVec_[Y](idx) );
+      inst->dbSetCenterLocation(instLocVec_[X](idx), instLocVec_[Y](idx));
       inst->dbSetPlaced();
     }
   }
 }
 
-}
+}  // namespace gpl

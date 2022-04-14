@@ -19,10 +19,10 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
                               Eigen::VectorXf aB[2],
                               Eigen::VectorXf aInstLocs[2])
 {
-  std::set<int> fixed;
+  std::set<size_t> fixed;
   adsorbInsts(fixed);
 
-  idSolver.init(pb_->placeInsts().size(), fixed);
+  idSolver.init(placeInstsNum(), fixed);
 
   // init matrix L
   auto const N = idSolver.numNewIDs();
@@ -59,14 +59,14 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
   for (auto const dim : {X, Y}) {
     auto& b = aB[dim];
     b.resize(N);
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       b(i) = 0;
     }
     for (auto e : aList) {
       auto w_ij = e.value();
       for (auto j : {e.row(), e.col()}) {
         if (fixed.count(j)) {
-          auto f_j = pb_->placeInsts()[j]->c(dim);
+          auto f_j = placeInsts()[j]->c(dim);
           auto i = j == e.row() ? e.col() : e.row();
           if (!fixed.count(i)) {
             i = idSolver.old2new(i);
@@ -81,8 +81,8 @@ void InitialPlaceEV::bicgInit(IdSolver& idSolver,
   for (auto const dim : {X, Y}) {
     auto& instLocs = aInstLocs[dim];
     instLocs.resize(N);
-    for (int id = 0; id < N; ++id) {
-      instLocs(id) = pb_->placeInsts()[idSolver.new2old(id)]->c(dim);
+    for (size_t id = 0; id < N; ++id) {
+      instLocs(id) = placeInsts()[idSolver.new2old(id)]->c(dim);
     }
   }
 }
@@ -102,14 +102,14 @@ void InitialPlaceEV::updateInstLocs(const IdSolver& idSolver,
                                     Eigen::VectorXf aInstLocs[2])
 {
   auto const N = idSolver.numNewIDs();
-  for (int id = 0; id < N; ++id) {
+  for (size_t id = 0; id < N; ++id) {
     auto oid = idSolver.new2old(id);
-    auto inst = pb_->placeInsts()[oid];
+    auto inst = placeInsts()[oid];
     inst->dbSetCenterLocation( aInstLocs[X](id), aInstLocs[Y](id) );
   }
 }
 
-void InitialPlaceEV::adsorbInsts(std::set<int>& fixedInstIDs)
+void InitialPlaceEV::adsorbInsts(std::set<size_t>& fixedInstIDs)
 {
   class InstCmp
   {
@@ -119,7 +119,7 @@ void InitialPlaceEV::adsorbInsts(std::set<int>& fixedInstIDs)
     {
     }
 
-    static bool ne(int v0, int v1)
+    static bool ne(size_t v0, size_t v1)
     {
       const int N = 1000;
       return (v0 / N) != (v1 / N);
@@ -146,7 +146,7 @@ void InitialPlaceEV::adsorbInsts(std::set<int>& fixedInstIDs)
   };
 
   typedef std::vector<Instance*> InstVec;
-  InstVec insts = pb_->placeInsts();
+  InstVec insts = placeInsts();
   InstVec rect[2][2];
 
   for (auto d0 : {X, Y}) {

@@ -169,11 +169,11 @@ void reposition(std::vector<double>& X)
 void normalize(SparseMatrix& B, octave_idx_type placeCnt)
 {
   double sum = 0;
-  for (int i = 0; i < placeCnt; ++i) {
+  for (octave_idx_type i = 0; i < placeCnt; ++i) {
     sum += B(i, i);
   }
   auto r = placeCnt / sum;
-  for (int i = 0; i < placeCnt; ++i) {
+  for (octave_idx_type i = 0; i < placeCnt; ++i) {
     B(i, i) *= r;
   }
 }
@@ -195,31 +195,143 @@ void updateInstLoc(const Matrix& eig_vecs,
   {
     std::vector<double> vecX;
     vecX.reserve(evec.numel());
-    for (int i = 0; i < evec.numel(); ++i) {
+    for (octave_idx_type i = 0; i < evec.numel(); ++i) {
       vecX.push_back(evec(i));
     }
     auto minmax = std::minmax_element(vecX.begin(), vecX.end());
     auto min_val = *minmax.first;
     auto max_val = *minmax.second;
     auto scale = delta / (max_val - min_val);
-    for (int i = 0; i < vecX.size(); ++i) {
+    for (size_t i = 0; i < vecX.size(); ++i) {
       auto c = (vecX[i] - min_val) * scale + minLoc;
       instLocVec(i) = c;
     }
   }
 }
 
+// find the connected components of a graph
+std::vector<std::vector<size_t>> components(const InitialPlace::Triplets& edges,
+                                            const size_t VERTEX_NUM)
+{
+  struct Node
+  {
+    size_t id;
+    size_t groupId;
+    Node* next;
+    Node(size_t id_, size_t groupId_)
+        : id(id_), groupId(groupId_), next(nullptr)
+    {
+    }
+  };
+
+  struct List
+  {
+    Node* head;
+    Node* tail;
+    size_t size;
+    size_t id;
+    List(Node* head_, Node* tail_, size_t size_, size_t id_)
+        : head(head_), tail(tail_), size(size_), id(id_)
+    {
+    }
+    void merge(List& ano)
+    {
+      assert(tail && tail->next == nullptr);
+      tail->next = ano.head;
+      tail = ano.tail;
+      size += ano.size;
+      for (auto p = ano.head; p != nullptr; p = p->next) {
+        p->groupId = id;
+      }
+      ano.clear();
+    }
+    void clear()
+    {
+      head = tail = nullptr;
+      size = 0;
+      id = LONG_MAX;
+    }
+    void release()
+    {
+      for (auto p = head; p != nullptr;) {
+        auto next = p->next;
+        delete p;
+        p = next;
+      }
+    }
+  };
+
+  std::vector<List> groups;
+  groups.reserve(VERTEX_NUM);
+  for (size_t i = 0; i < VERTEX_NUM; ++i) {
+    size_t nodeId = i;
+    size_t groupId = i;
+    auto node = new Node(nodeId, groupId);
+    groups.emplace_back(List(node, node, 1, groupId));
+  }
+
+  typedef std::pair<Node*, Node*> Edge;
+  std::vector<Edge> nodeEdges;
+  nodeEdges.reserve(edges.size());
+  for (auto& e : edges) {
+    auto n0 = groups[e.row()].head;
+    auto n1 = groups[e.col()].head;
+    nodeEdges.emplace_back(std::make_pair(n0, n1));
+  }
+
+  for (auto& e : nodeEdges) {
+    auto n0 = e.first;
+    auto n1 = e.second;
+    if (n0->groupId != n1->groupId) {
+      auto& lst0 = groups[n0->groupId];
+      auto& lst1 = groups[n1->groupId];
+      if (lst0.size > lst1.size) {
+        lst0.merge(lst1);
+      } else {
+        lst1.merge(lst0);
+      }
+    }
+  }
+
+  std::vector<std::vector<size_t>> res;
+  for (auto const& g : groups) {
+    if (g.size > 0) {
+      std::vector<size_t> vec;
+      vec.reserve(g.size);
+      for (auto p = g.head; p != nullptr; p = p->next) {
+        vec.push_back(p->id);
+      }
+      res.emplace_back(vec);
+    }
+  }
+  
+  for (auto& g : groups) {
+    g.release();
+  }
+  return res;
+}
+
 }  // namespace
+
+InitialPlaceEV::InitialPlaceEV(InitialPlaceVars ipVars,
+                               std::shared_ptr<PlacerBase> pb,
+                               utl::Logger* logger)
+    : InitialPlace(ipVars, pb, logger)
+{
+  setPlaceInsts(pb_->placeInsts());
+}
 
 void InitialPlaceEV::run()
 {
-  setPlaceInstExtId();
-
-  vector<T> aList;
+  Triplets aList;
   initAdjGraph(aList);
 
+  if (resolveUnconnectedGraph(aList)) {
+    initAdjGraph(aList);
+  }
+
   SparseMatrix graphL;
-  initLaplaceMatrix(graphL, pb_->placeInsts().size(), aList);
+  initLaplaceMatrix(graphL, placeInstsNum(), aList);
 
 #ifndef NDEBUG
   dumpMatrixAB(aList, "initial.mtx");
@@ -257,7 +369,7 @@ void InitialPlaceEV::run()
     if (ipVars_.debug && Graphics::guiActive()) {
       graphics = make_unique<Graphics>(log_, pb_);
     }
-    for (int i = 1; i <= ipVars_.maxIter; i++) {
+    for (size_t i = 1; i <= ipVars_.maxIter; i++) {
       for (auto dim : {X, Y}) {
         errors[dim] = bicgSolve(L, aB[dim], aInstLocs[dim]);
       }
@@ -275,18 +387,54 @@ void InitialPlaceEV::run()
     }
   }
 
+  resetPlaceInsts();
+
 #ifndef NDEBUG
   dumpMatrixAB(aList, "final.bicg.mtx");
   dumpXYLocs("XY.locs.bicg.mtx");
 #endif
 }
 
-// matrix of the connectivity graph
-void InitialPlaceEV::initAdjGraph(vector<T>& aList)
+bool InitialPlaceEV::resolveUnconnectedGraph(const Triplets& edges)
 {
-  const int placeCnt = pb_->placeInsts().size();
+  std::vector<std::vector<size_t>> comps = components(edges, placeInstsNum());
+  if (comps.size() > 1) {  // unconnected graph
+    const std::vector<size_t>* pMaxComp = nullptr;
+    // get the max connected sub-graph
+    for (auto const& g : comps) {
+      if (pMaxComp == nullptr || g.size() > pMaxComp->size()) {
+        pMaxComp = &g;
+      }
+    }
+    std::vector<Instance*> insts;
+    insts.reserve(pMaxComp->size());
+    for (auto i : *pMaxComp) {
+      insts.push_back(placeInsts_[i]);
+    }
+    setPlaceInsts(insts);
+    return true;
+  }
+  return false;
+}
+
+void InitialPlaceEV::setPlaceInsts(const std::vector<Instance*>& insts)
+{
+  placeInsts_ = insts;
+  setPlaceInstExtId();
+}
+
+void InitialPlaceEV::resetPlaceInsts()
+{
+  setPlaceInsts(pb_->placeInsts());
+}
+
+// matrix of the connectivity graph
+void InitialPlaceEV::initAdjGraph(Triplets& aList)
+{
+  const size_t placeCnt = placeInstsNum();
+  aList.clear();
   aList.reserve(2 * placeCnt);
-  std::map<int, float> m;
+  std::map<size_t, float> m;
   for (auto& net : pb_->nets()) {
     auto sigT = net->dbNet()->getSigType();
     if (sigT != odb::dbSigType::SIGNAL && sigT != odb::dbSigType::CLOCK
@@ -331,12 +479,12 @@ void InitialPlaceEV::initAdjGraph(vector<T>& aList)
 
 // construct the laplace matrix of the connectivity graph
 void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
-                                       int vertexNum,
-                                       std::vector<T>& edges)
+                                       size_t vertexNum,
+                                       Triplets& edges)
 {
   graphL = SparseMatrix(
       vertexNum, vertexNum, octave_idx_type(2 * edges.size() + vertexNum));
-  for (int i = 0; i < vertexNum; ++i) {
+  for (size_t i = 0; i < vertexNum; ++i) {
     graphL(i, i) = 0;
   }
   for (auto& t : edges) {
@@ -350,9 +498,9 @@ void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
 void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
                                        Snapshot& snap)
 {
-  const octave_idx_type placeCnt = pb_->placeInsts().size();
+  const octave_idx_type placeCnt = placeInstsNum();
   SparseMatrix B(placeCnt, placeCnt, placeCnt);
-  for (int i = 0; i < placeCnt; ++i) {
+  for (size_t i = 0; i < placeCnt; ++i) {
     B(i, i) = 1;
   }
 
@@ -386,7 +534,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
 
     std::vector<Id2Val> vId2Val[2];
     double ratios[2];
-    std::pair<int, int> results[2];
+    std::pair<size_t, size_t> results[2];
     for (int dim = 0; dim < gpl::DIMENSION_CNT; ++dim) {
       std::vector<Id2Val>& X = vId2Val[dim];
       auto ev_idx = ev_min_idx - dim;
@@ -396,7 +544,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
       {  // init X with eig_vec
         auto ev = eig_vecs.column(ev_idx);
         X.reserve(ev.numel());
-        for (int i = 0; i < ev.numel(); ++i) {
+        for (size_t i = 0; i < ev.numel(); ++i) {
           X.push_back(Id2Val(i, ev(i)));
         }
         sort(X.begin(), X.end(), [](const Id2Val& lhs, const Id2Val& rhs) {
@@ -405,7 +553,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
         {  // scale the values
           auto scale
               = std::sqrt(X.size()) / (getVal(X[X.size() - 1]) - getVal(X[0]));
-          for (int i = 1; i < X.size(); ++i) {
+          for (size_t i = 1; i < X.size(); ++i) {
             auto c = (getVal(X[i]) - getVal(X[0])) * scale;
             X[i].second = c;
           }
@@ -413,7 +561,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
         }
       }
 
-      std::pair<int, int>& result = results[dim];
+      std::pair<size_t, size_t>& result = results[dim];
       max_density(result, X, 2 * std::sqrt(X.size()), X.size());
 
       auto avgDensity = slope(X, 0, X.size() - 1);
@@ -466,9 +614,9 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
     }
 
     auto const& result = results[target];
-    for (int i = result.first; i < result.second; ++i) {
+    for (size_t i = result.first; i < result.second; ++i) {
       auto const& X = vId2Val[target];
-      int id = getId(X[i]);
+      size_t id = getId(X[i]);
       // B(id, id) *= std::sqrt(r);
       // B(id, id) *= 2;
       B(id, id) *= 1.618;
@@ -490,11 +638,11 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
 }
 
 void InitialPlaceEV::updateEdgeWeights(const SparseMatrix& vertexWeights,
-                                       std::vector<T>& edges)
+                                       Triplets& edges)
 {
-  auto const placeCnt = pb_->placeInsts().size();
+  auto const placeCnt = placeInstsNum();
   std::vector<double> b(placeCnt, 0);
-  for (int i = 0; i < placeCnt; ++i) {
+  for (size_t i = 0; i < placeCnt; ++i) {
     b[i] = vertexWeights(i, i);
   }
   for (auto& e : edges) {
@@ -512,23 +660,23 @@ void InitialPlaceEV::updateInstLocs(const Matrix& eig_vecs)
                 X,
                 scale * pb_->die().coreDx(),
                 pb_->die().coreCx(),
-                pb_->placeInsts().size(),
+                placeInstsNum(),
                 instLocVec_[X]);
   updateInstLoc(eig_vecs,
                 Y,
                 scale * pb_->die().coreDy(),
                 pb_->die().coreCy(),
-                pb_->placeInsts().size(),
+                placeInstsNum(),
                 instLocVec_[Y]);
 
   updateCoordi();
 }
 
 // dump the A|B matrix
-void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
+void InitialPlaceEV::dumpMatrixAB(const Triplets& aList,
                                   const std::string& postfix) const
 {
-  const octave_idx_type placeCnt = pb_->placeInsts().size();
+  const octave_idx_type placeCnt = placeInstsNum();
   std::string files[2] = {"./LB.X." + postfix, "./LB.Y." + postfix};
   for (auto dim : {gpl::X, gpl::Y}) {
     std::cout << "dumping Matrix " << files[dim] << std::endl;
@@ -537,7 +685,7 @@ void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
         << std::endl;
     {
       std::vector<double> vec(placeCnt);
-      auto const& insts = pb_->placeInsts();
+      auto const& insts = placeInsts();
       for (size_t i = 0; i < placeCnt; ++i) {
         vec[i] = insts[i]->c((gpl::DIMENSION) dim);
       }
@@ -633,12 +781,12 @@ void InitialPlaceEV::dumpMatrixAB(const std::vector<T>& aList,
 
 void InitialPlaceEV::dumpXYLocs(const std::string& filename) const
 {
-  const octave_idx_type placeCnt = pb_->placeInsts().size();
+  const octave_idx_type placeCnt = placeInstsNum();
   std::ofstream oss(filename);
   oss << placeCnt << " " << 2 << " " << 2 * placeCnt << std::endl;
   for (auto dim : {gpl::X, gpl::Y}) {
     std::vector<double> vec(placeCnt);
-    auto const& insts = pb_->placeInsts();
+    auto const& insts = placeInsts();
     for (size_t i = 0; i < placeCnt; ++i) {
       vec[i] = insts[i]->c((gpl::DIMENSION) dim);
     }
