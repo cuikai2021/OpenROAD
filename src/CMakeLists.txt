@@ -200,6 +200,7 @@ if (NOT USE_SYSTEM_OPENSTA)
 endif()
 add_subdirectory(dbSta)
 add_subdirectory(rsz)
+add_subdirectory(Laurel)
 add_subdirectory(stt)
 add_subdirectory(gpl)
 add_subdirectory(dpl)
@@ -222,6 +223,7 @@ add_subdirectory(Banyan)
 add_subdirectory(utl)
 add_subdirectory(dst)
 add_subdirectory(pdn)
+add_subdirectory(linden)
 
 ################################################################
 
@@ -261,6 +263,7 @@ target_link_libraries(eden
   dpo
   fin
   rsz
+  Laurel
   ppl
   stt
   dbSta
@@ -283,6 +286,7 @@ target_link_libraries(eden
   par
   utl
   pdn
+  linden
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -463,7 +467,9 @@ if(GTEST STREQUAL ON)
     par
     utl
     pdn
+    Laurel
     utt
+    linden
     ${TCL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
     ${GTEST_LIBRARIES}

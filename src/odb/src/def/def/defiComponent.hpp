@@ -140,6 +140,10 @@ public:
   void haloEdges(int* left, int* bottom, int* right, int* top);  // 5.6 
   int hasRouteHalo() const;                // 5.7
   int haloDist() const;                    // 5.7
+  int leftHalo() const;
+  int bottomHalo() const;
+  int rightHalo() const;
+  int topHalo() const;
   const char* minLayer() const;            // 5.7
   const char* maxLayer() const;            // 5.7
 

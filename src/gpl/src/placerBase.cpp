@@ -350,36 +350,36 @@ void Pin::setBTerm() {
   bTermField_ = 1;
 }
 
-void Pin::setMinPinX() {
+void Pin::setMinPin(DIMENSION dim) {
+  if (dim == X) {
   minPinXField_ = 1;
-}
-
-void Pin::setMinPinY() {
+  } else {
   minPinYField_ = 1;
 }
-
-void Pin::setMaxPinX() {
-  maxPinXField_ = 1;
 }
 
-void Pin::setMaxPinY() {
+void Pin::setMaxPin(DIMENSION dim) {
+  if (dim == X) {
+    maxPinXField_ = 1;
+  } else {
   maxPinYField_ = 1;
 }
-
-void Pin::unsetMinPinX() {
-  minPinXField_ = 0;
 }
 
-void Pin::unsetMinPinY() {
+void Pin::unsetMinPin(DIMENSION dim) {
+  if (dim == X) {
+    minPinXField_ = 0;
+  } else {
   minPinYField_ = 0;
 }
-
-void Pin::unsetMaxPinX() {
-  maxPinXField_ = 0;
 }
 
-void Pin::unsetMaxPinY() {
+void Pin::unsetMaxPin(DIMENSION dim) {
+  if (dim == X) {
+    maxPinXField_ = 0;
+  } else {
   maxPinYField_ = 0; 
+  }
 }
 
 bool Pin::isITerm() const {
@@ -390,20 +390,12 @@ bool Pin::isBTerm() const {
   return (bTermField_ == 1);
 }
 
-bool Pin::isMinPinX() const {
-  return (minPinXField_ == 1);
+bool Pin::isMinPin(DIMENSION dim) const {
+  return dim == X ? (minPinXField_ == 1) : (minPinYField_ == 1);
 }
 
-bool Pin::isMinPinY() const {
-  return (minPinYField_ == 1);
-}
-
-bool Pin::isMaxPinX() const {
-  return (maxPinXField_ == 1);
-}
-
-bool Pin::isMaxPinY() const {
-  return (maxPinYField_ == 1);
+bool Pin::isMaxPin(DIMENSION dim) const {
+  return dim == X ? (maxPinXField_ == 1) : (maxPinYField_ == 1);
 }
 
 int Pin::cx() const {

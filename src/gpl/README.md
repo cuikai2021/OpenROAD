@@ -34,6 +34,8 @@ global_placement
     [-min_phi_coef min_phi_conef]
     [-max_phi_coef max_phi_coef]
     [-overflow overflow]
+    [-initial_place_guide_file initial_place_guide_file]
+    [-initial_place_policy initial_place_policy]
     [-initial_place_max_iter initial_place_max_iter]
     [-initial_place_max_fanout initial_place_max_fanout]
     [-routability_check_overflow routability_check_overflow]
@@ -63,6 +65,8 @@ global_placement
 - `-min_phi_coef`: set `pcof_min(µ_k Lower Bound)`. Default value is 0.95. Allowed values are `[0.95-1.05, float]`.
 - `-max_phi_coef`: set `pcof_max(µ_k Upper Bound)`. Default value is 1.05. Allowed values are `[1.00-1.20, float]`.
 - `-overflow`: set target overflow for termination condition. Default value is 0.1. Allowed values are `[0-1, float]`.
+- `initial_place_guide_file`: a guide file which contails cells' initial positions to start the gpl
+- `initial_place_policy`: set the policy to initialize positions to start the gpl
 - `-initial_place_max_iter`: set maximum iterations in initial place. Default value is 20. Allowed values are `[0-MAX_INT, int]`.
 - `-initial_place_max_fanout`: set net escape condition in initial place when 'fanout >= initial_place_max_fanout'. Default value is 200. Allowed values are `[1-MAX_INT, int]`.
 - `-timing_driven_net_reweight_overflow`: set overflow threshold for timing-driven net reweighting. Allowed values are `tcl list of [0-100, int]`.

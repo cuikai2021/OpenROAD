@@ -31,12 +31,14 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef __REPLACE_INIT_PLACE__
-#define __REPLACE_INIT_PLACE__
+#pragma once
 
 #include <Eigen/SparseCore>
-#include "odb/db.h"
 #include <memory>
+#include <vector>
+
+#include "dimension.h"
+#include "odb/db.h"
 
 namespace utl {
 class Logger;
@@ -45,10 +47,11 @@ class Logger;
 namespace gpl {
 
 class PlacerBase;
-class Graphics;
+class Instance;
 
-class InitialPlaceVars {
-public:
+class InitialPlaceVars
+{
+ public:
   int maxIter;
   int minDiffLength;
   int maxSolverIter;
@@ -60,56 +63,36 @@ public:
   void reset();
 };
 
-typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
+class InitialPlace
+{
+ public:
+  InitialPlace();
+  InitialPlace(InitialPlaceVars ipVars,
+               std::shared_ptr<PlacerBase> pb,
+               utl::Logger* logger);
 
-class InitialPlace {
-  public:
-    InitialPlace();
-    InitialPlace(InitialPlaceVars ipVars, 
-        std::shared_ptr<PlacerBase> pb,
-        utl::Logger* logger);
-    ~InitialPlace();
+  virtual ~InitialPlace();
 
-    void doBicgstabPlace();
+  virtual void run() = 0;
 
-  private:
-    InitialPlaceVars ipVars_;
-    std::shared_ptr<PlacerBase> pb_;
-    utl::Logger* log_;
+  typedef Eigen::Triplet<float> T;
+  typedef std::vector<T> Triplets;
 
-    // Solve two SparseMatrix equations here;
-    //
-    // find instLocVecX_
-    // s.t. satisfies placeInstForceMatrixX_ * instLocVecX_ = fixedInstForceVecX_
-    //
-    // find instLocVecY_
-    // s.t. satisfies placeInstForceMatrixY_ * instLocVecY_ = fixedInstForceVecY_
-    //
-    // instLocVecX_ : current/target instances' center X coordinates. 1-col vector.
-    // instLocVecY_ : current/target instances' center Y coordinates. 1-col vector.
-    //
-    // fixedInstForceVecX_ : contains fixed instances' forces toward X coordi. 1-col vector.
-    // fixedInstForceVecY_ : contains fixed instances' forces toward Y coordi. 1-col vector.
-    //
-    // placeInstForceMatrixX_ :
-    //        SparseMatrix that contains connectivity forces on X // B2B model is used
-    //
-    // placeInstForceMatrixY_ :
-    //        SparseMatrix that contains connectivity forces on Y // B2B model is used
-    //
-    // Used the interative BiCGSTAB solver to solve matrix eqs.
+ protected:
+  typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 
-    Eigen::VectorXf instLocVecX_, fixedInstForceVecX_;
-    Eigen::VectorXf instLocVecY_, fixedInstForceVecY_;
-    SMatrix placeInstForceMatrixX_, placeInstForceMatrixY_;
+  InitialPlaceVars ipVars_;
+  std::shared_ptr<PlacerBase> pb_;
+  utl::Logger* log_;
 
-    void placeInstsCenter();
-    void setPlaceInstExtId();
-    void updatePinInfo();
-    void createSparseMatrix();
-    void updateCoordi();
-    void reset();
+  Eigen::VectorXf instLocVec_[DIMENSION_CNT];
+
+  virtual const std::vector<Instance*>& placeInsts() const;
+
+  void placeInstsCenter();
+  void setPlaceInstExtId();
+  void updateCoordi();
+  void reset();
 };
 
-}
-#endif
+}  // namespace gpl

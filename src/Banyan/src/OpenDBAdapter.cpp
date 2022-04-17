@@ -1186,6 +1186,9 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
       } else if (box.h == 0) {
         _wire_encoder.addPoint(box.x, box.y);
         _wire_encoder.addPoint(box.x + box.w, box.y);
+      } else {
+        _wire_encoder.addPoint(box.x, box.y);
+        _wire_encoder.addRect(0, 0, box.w, box.h);
       }
       // TODO
       // else if (box.w == box.h) {

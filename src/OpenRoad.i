@@ -48,6 +48,7 @@
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
 
+
 ////////////////////////////////////////////////////////////////
 //
 // C++ helper functions used by the interface functions.
@@ -60,6 +61,7 @@ namespace ord {
 using sta::dbSta;
 using sta::dbNetwork;
 using rsz::Resizer;
+using lrl::Laurel;
 
 using odb::dbDatabase;
 
@@ -116,6 +118,13 @@ getResizer()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getResizer();
+}
+
+Laurel *
+getLaurel()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getLaurel();
 }
 
 rmp::Restructure *
@@ -379,6 +388,13 @@ set_debug_level(const char* tool_name,
     logger->error(utl::ORD, 15, "Unknown tool name {}", tool_name);
   }
   logger->setDebugLevel(id, group, level);
+}
+
+void
+suppress_exact_message(const char* msg)
+{
+  auto logger = getLogger();
+  logger->registerSuppressedExactMessage(msg);
 }
 
 ////////////////////////////////////////////////////////////////
