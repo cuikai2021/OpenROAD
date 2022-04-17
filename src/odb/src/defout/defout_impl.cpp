@@ -1116,6 +1116,9 @@ void defout_impl::writeBlockages(dbBlock* block)
 
     fprintf(_out, "    - LAYER %s", lname.c_str());
 
+    if (obs->hasExceptPGNet())
+      fprintf(_out, " + EXCEPTPGNET");
+
     if (inst) {
       if (_use_net_inst_ids)
         fprintf(_out, " + COMPONENT I%u", inst->getId());
@@ -1354,6 +1357,9 @@ void defout_impl::writeSNet(dbNet* net)
 
   const char* sig_type = defSigType(net->getSigType());
   fprintf(_out, " + USE %s", sig_type);
+
+  if (net->hasPattern())
+	fprintf(_out, " + PATTERN %s", net->getPatternStr());
 
   _non_default_rule = NULL;
   dbSet<dbSWire> swires = net->getSWires();

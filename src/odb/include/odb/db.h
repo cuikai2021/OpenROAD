@@ -2096,6 +2096,14 @@ class dbNet : public dbObject
   bool isSpef();
 
   ///
+  /// Pattern related
+  ///
+  void setPattern(const dbNetPattern & value);
+  bool hasPattern() const;
+  dbNetPattern getPattern() const;
+  const char* getPatternStr() const;
+
+  ///
   /// Set/Reset the size-only flag
   ///
   void setSizeOnly(bool v);
@@ -3968,6 +3976,16 @@ class dbObstruction : public dbObject
   /// Return the effective width rule.
   ///
   int getEffectiveWidth();
+
+  ///
+  /// Set the except power ground net.
+  ///
+  void setExceptPGNet();
+
+  ///
+  /// Get the except power ground net.
+  ///
+  bool hasExceptPGNet() const;
 
   ///
   /// Returns true if this bpin has an min-spacing rule.

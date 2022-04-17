@@ -795,6 +795,60 @@ class dbPolygonOwner
 };
 
 ///
+/// Defines the type of net pattern
+///
+class dbNetPattern
+{
+ public:
+  enum Value {
+	BALANCED,
+    STEINER,
+    TRUNK,
+	WIRELOGIC
+  };
+
+  ///
+  /// Create a net pattern of one of the following
+  /// values "balanced", "steiner", "trunk", "wirelogic"
+  /// default "steiner"
+  ///
+  dbNetPattern(const char* value);
+
+  ///
+  /// Create a net pattern of explicit value
+  ///
+  dbNetPattern(Value value);
+
+  ///
+  /// Create a net pattern using "steiner"
+  ///
+  dbNetPattern();
+
+  ///
+  /// Copy constructor.
+  ///
+  dbNetPattern(const dbNetPattern & value);
+
+  ///
+  /// Returns the type-value.
+  ///
+  Value getValue() const { return _value; }
+
+  ///
+  /// Returns the owner-value as a string.
+  ///
+  const char* getString() const;
+
+  ///
+  /// Cast operator
+  ///
+  operator Value() const { return _value; }
+
+ private:
+  Value _value;
+};
+
+///
 /// Defines the type of wires.
 ///
 class dbWireType

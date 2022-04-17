@@ -50,7 +50,7 @@ class definBlockage : public definBase
   bool _soft;
   bool _has_min_spacing;
   bool _has_effective_width;
-  bool _except_pg_net;
+  bool _except_pgnet;
   int _min_spacing;
   int _effective_width;
   float _max_density;
