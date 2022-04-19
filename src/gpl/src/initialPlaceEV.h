@@ -69,7 +69,9 @@ class InitialPlaceEV : public InitialPlace
 
   void initAdjGraph(Triplets& aList);
 
-  void initLaplaceMatrix(SparseMatrix& graphL, size_t  vertexNum, Triplets& edges);
+  void initLaplaceMatrix(SparseMatrix& graphL,
+                         size_t vertexNum,
+                         Triplets& edges);
 
   struct Snapshot
   {
