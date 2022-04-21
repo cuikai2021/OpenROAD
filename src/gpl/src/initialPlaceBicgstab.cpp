@@ -51,6 +51,16 @@ using utl::GPL;
 static PlotEnv pe;
 #endif
 
+// Solve two SparseMatrix on X/Y equations here;
+//
+// find instance location vector X
+// s.t. satisfies AX = b, where
+//   - A: SparseMatrix that contains connectivity forces on X // B2B model is
+//   used
+//   - X: current/target instances' center X coordinates. 1-col vector.
+//   - b: contains fixed instances' forces toward X coordi. 1-col vector.
+//
+// Used the interative BiCGSTAB solver to solve matrix eqs.
 void InitialPlaceBicgstab::run()
 {
   float errors[DIMENSION_CNT] = {0.0f, 0.0f};
@@ -72,16 +82,14 @@ void InitialPlaceBicgstab::run()
   setPlaceInstExtId();
   for (int i = 1; i <= ipVars_.maxIter; i++) {
     updatePinInfo();
-    createSparseMatrix();
-
-    // BiCGSTAB solver for initial place
     for (auto dim : {X, Y}) {
-      BiCGSTAB<SMatrix, IdentityPreconditioner> solver;
-      solver.setMaxIterations(ipVars_.maxSolverIter);
-      solver.compute(placeInstForceMatrix_[dim]);
-      instLocVec_[dim]
-          = solver.solveWithGuess(fixedInstForceVec_[dim], instLocVec_[dim]);
-      errors[dim] = solver.error();
+      createSparseMatrix(dim);
+      SMatrix s(pb_->placeInsts().size(), pb_->placeInsts().size());
+      // The triplet vector is recommended usages to fill in SparseMatrix from
+      // Eigen docs.
+      s.setFromTriplets(matrixATriplets_[dim].begin(),
+                        matrixATriplets_[dim].end());
+      errors[dim] = bicgSolve(s, fixedInstForceVec_[dim], instLocVec_[dim]);
     }
 
     log_->report("[InitialPlace]  Iter: {} CG Error: {:0.8f} HPWL: {}",
@@ -150,33 +158,17 @@ void InitialPlaceBicgstab::updatePinInfo(DIMENSION dim)
   }
 }
 
-void InitialPlaceBicgstab::createSparseMatrix()
-{
-  createSparseMatrix(X);
-  createSparseMatrix(Y);
-}
-
-// solve placeInstForceMatrix_[X] * xcg_x_ = xcg_b_ and placeInstForceMatrix_[Y]
-// * ycg_x_ = ycg_b_ eq.
+// AX = b
+// create matrix A and vector b from B2B modeling
 void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
 {
   const int placeCnt = pb_->placeInsts().size();
   instLocVec_[dim].resize(placeCnt);
   fixedInstForceVec_[dim].resize(placeCnt);
-  placeInstForceMatrix_[dim].resize(placeCnt, placeCnt);
 
-  //
   // listX and listY is a temporary vector that have tuples, (idx1, idx2, val)
-  //
-  // listX finally becomes placeInstForceMatrix_[X]
-  // listY finally becomes placeInstForceMatrix_[Y]
-  //
-  // The triplet vector is recommended usages
-  // to fill in SparseMatrix from Eigen docs.
-  //
-
-  typedef Eigen::Triplet<float> T;
-  vector<T> aList;
+  auto& aList = matrixATriplets_[dim];
+  aList.clear();
   aList.reserve(1000000);
 
   // initialize vector
@@ -264,8 +256,17 @@ void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
       }
     }
   }
+}
 
-  placeInstForceMatrix_[dim].setFromTriplets(aList.begin(), aList.end());
+float InitialPlaceBicgstab::bicgSolve(const SMatrix& L,
+                                const Eigen::VectorXf& b,
+                                Eigen::VectorXf& instLocs)
+{
+  BiCGSTAB<SMatrix, IdentityPreconditioner> solver;
+  solver.setMaxIterations(ipVars_.maxSolverIter);
+  solver.compute(L);
+  instLocs = solver.solveWithGuess(b, instLocs);
+  return solver.error();
 }
 
 }  // namespace gpl

@@ -77,9 +77,9 @@ class InitialPlace
 
   typedef Eigen::Triplet<float> T;
   typedef std::vector<T> Triplets;
+  typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 
  protected:
-  typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 
   InitialPlaceVars ipVars_;
   std::shared_ptr<PlacerBase> pb_;
