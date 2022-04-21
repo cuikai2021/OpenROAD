@@ -51,6 +51,17 @@ using utl::GPL;
 static PlotEnv pe;
 #endif
 
+InitialPlaceBicgstab::InitialPlaceBicgstab(InitialPlaceVars ipVars,
+                                           std::shared_ptr<PlacerBase> pb,
+                                           utl::Logger* logger)
+    : InitialPlace(ipVars, pb, logger)
+{
+  placeInstsCenter();
+
+  // set ExtId for idx reference // easy recovery
+  setPlaceInstExtId();
+}
+
 // Solve two SparseMatrix on X/Y equations here;
 //
 // find instance location vector X
@@ -63,8 +74,6 @@ static PlotEnv pe;
 // Used the interative BiCGSTAB solver to solve matrix eqs.
 void InitialPlaceBicgstab::run()
 {
-  float errors[DIMENSION_CNT] = {0.0f, 0.0f};
-
 #ifdef ENABLE_CIMG_LIB
   pe.setPlacerBase(pb_);
   pe.setLogger(log_);
@@ -76,10 +85,7 @@ void InitialPlaceBicgstab::run()
     graphics = make_unique<Graphics>(log_, pb_);
   }
 
-  placeInstsCenter();
-
-  // set ExtId for idx reference // easy recovery
-  setPlaceInstExtId();
+  float errors[DIMENSION_CNT] = {0.0f, 0.0f};
   for (int i = 1; i <= ipVars_.maxIter; i++) {
     updatePinInfo();
     for (auto dim : {X, Y}) {
@@ -259,8 +265,8 @@ void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
 }
 
 float InitialPlaceBicgstab::bicgSolve(const SMatrix& L,
-                                const Eigen::VectorXf& b,
-                                Eigen::VectorXf& instLocs)
+                                      const Eigen::VectorXf& b,
+                                      Eigen::VectorXf& instLocs)
 {
   BiCGSTAB<SMatrix, IdentityPreconditioner> solver;
   solver.setMaxIterations(ipVars_.maxSolverIter);

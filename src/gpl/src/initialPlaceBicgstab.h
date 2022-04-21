@@ -50,10 +50,7 @@ class InitialPlaceBicgstab : public InitialPlace
   InitialPlaceBicgstab() {}
   InitialPlaceBicgstab(InitialPlaceVars ipVars,
                        std::shared_ptr<PlacerBase> pb,
-                       utl::Logger* logger)
-      : InitialPlace(ipVars, pb, logger)
-  {
-  }
+                       utl::Logger* logger);
   ~InitialPlaceBicgstab() {}
 
   void run();
