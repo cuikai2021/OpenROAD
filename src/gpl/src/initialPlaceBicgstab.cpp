@@ -106,7 +106,7 @@ void InitialPlaceBicgstab::run()
 #endif
 
     if (graphics) {
-      graphics->cellPlot(true);
+      graphics->cellPlot(false);
     }
 
     if (max(errors[X], errors[Y]) <= 1e-5 && i >= 5) {
