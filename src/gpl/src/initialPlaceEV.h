@@ -60,7 +60,6 @@ class InitialPlaceEV : public InitialPlace
   {
     return placeInsts_;
   }
-  std::size_t placeInstsNum() const { return placeInsts_.size(); }
 
   void setPlaceInsts(const std::vector<Instance*>& insts);
   void resetPlaceInsts();

@@ -88,6 +88,7 @@ class InitialPlace
   Eigen::VectorXf instLocVec_[DIMENSION_CNT];
 
   virtual const std::vector<Instance*>& placeInsts() const;
+  std::size_t placeInstsNum() const { return placeInsts().size(); }
 
   void placeInstsCenter();
   void setPlaceInstExtId();
