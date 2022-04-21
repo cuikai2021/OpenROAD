@@ -331,7 +331,7 @@ void InitialPlaceEV::run()
   }
 
   SparseMatrix graphL;
-  initLaplaceMatrix(graphL, placeInstsNum(), aList);
+  initLaplaceMatrix(placeInstsNum(), aList, graphL);
 
 #ifndef NDEBUG
   dumpMatrixAB(aList, "initial.mtx");
@@ -478,9 +478,9 @@ void InitialPlaceEV::initAdjGraph(Triplets& aList)
 }
 
 // construct the laplace matrix of the connectivity graph
-void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
-                                       size_t vertexNum,
-                                       Triplets& edges)
+void InitialPlaceEV::initLaplaceMatrix(size_t vertexNum,
+                                       const Triplets& edges,
+                                       SparseMatrix& graphL)
 {
   graphL = SparseMatrix(
       vertexNum, vertexNum, octave_idx_type(2 * edges.size() + vertexNum));
