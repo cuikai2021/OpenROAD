@@ -304,7 +304,7 @@ std::vector<std::vector<size_t>> components(const InitialPlace::Triplets& edges,
       res.emplace_back(vec);
     }
   }
-  
+
   for (auto& g : groups) {
     g.release();
   }
@@ -488,8 +488,11 @@ void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
     graphL(i, i) = 0;
   }
   for (auto& t : edges) {
-    graphL(t.row(), t.col()) = -t.value();
-    graphL(t.col(), t.row()) = -t.value();
+    graphL(t.row(), t.col()) = 0;
+  }
+  for (auto& t : edges) {
+    graphL(t.row(), t.col()) += -t.value();
+    graphL(t.col(), t.row()) += -t.value();
     graphL(t.row(), t.row()) += t.value();
     graphL(t.col(), t.col()) += t.value();
   }
@@ -609,7 +612,8 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
 
     if (iter - snap.iter > 50) {
       log_->report(
-          "[InitialPlace/EVPlace] no convergence in the latest 50 iterations");
+          "[InitialPlace/EVPlace] no convergence in the latest 50 "
+          "iterations");
       break;
     }
 
