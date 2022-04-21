@@ -28,7 +28,7 @@ class InitialPlaceDirichlet : public InitialPlaceBicgstab
   void run();
 
  protected:
-  void updateInstLocs(Matrix eig_vecs[2]);
+  void updateInstLoc(const Matrix& eig_vecs, int dim);
 };
 
 }  // namespace gpl
