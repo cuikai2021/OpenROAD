@@ -36,6 +36,7 @@
 #include "initialPlaceBicgstab.h"
 #include "initialPlaceGuide.h"
 #include "initialPlaceEV.h"
+#include "initialPlaceDirichlet.h"
 #include "nesterovPlace.h"
 #include "placerBase.h"
 #include "nesterovBase.h"
@@ -262,6 +263,8 @@ void Replace::doInitialPlace()
     ip_ = std::move(std::unique_ptr<InitialPlace>(new InitialPlaceGuide(ipVars, pb_, log_, initialPlaceGuideFilePath_)));
   } else if (initialPlacePolicy_ == "ev") {
     ip_ = std::move(std::unique_ptr<InitialPlace>(new InitialPlaceEV(ipVars, pb_, log_)));
+  } else if (initialPlacePolicy_ == "dirichlet") {
+    ip_ = std::move(std::unique_ptr<InitialPlace>(new InitialPlaceDirichlet(ipVars, pb_, log_)));
   } else { // default
     ip_ = std::move(std::unique_ptr<InitialPlace>(new InitialPlaceBicgstab(ipVars, pb_, log_)));
   }
