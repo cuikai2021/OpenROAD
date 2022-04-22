@@ -180,7 +180,7 @@ void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
   // initialize vector
   for (auto& inst : pb_->placeInsts()) {
     int idx = inst->extId();
-    instLocVec_[dim](idx) = inst->c(dim);
+    instLocVec_[dim](idx) = abs2normLoc(inst->c(dim), dim);
     fixedInstForceVec_[dim](idx) = 0;
   }
 
@@ -247,7 +247,7 @@ void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
             // cout << "inst2: " << inst2 << endl;
             aList.push_back(T(inst2, inst2, weight));
             fixedInstForceVec_[dim](inst2)
-                += weight * (pin1->c(dim) - pin2->offsetC(dim));
+                += weight * (abs2normLoc(pin1->c(dim), dim) - pin2->offsetC(dim));
           }
           // pin1 from Instance / pin2 from IO port
           else if (pin1->isPlaceInstConnected()
@@ -256,7 +256,7 @@ void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
             // cout << "inst1: " << inst1 << endl;
             aList.push_back(T(inst1, inst1, weight));
             fixedInstForceVec_[dim](inst1)
-                += weight * (pin2->c(dim) - pin1->offsetC(dim));
+                += weight * (abs2normLoc(pin2->c(dim), dim) - pin1->offsetC(dim));
           }
         }
       }
