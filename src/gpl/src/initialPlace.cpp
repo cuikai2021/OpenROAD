@@ -111,10 +111,48 @@ void InitialPlace::updateCoordi()
   for (auto& inst : placeInsts()) {
     int idx = inst->extId();
     if (!inst->isLocked()) {
-      inst->dbSetCenterLocation(instLocVec_[X](idx), instLocVec_[Y](idx));
+      auto x = norm2absLoc(instLocVec_[X](idx), X);
+      auto y = norm2absLoc(instLocVec_[Y](idx), Y);
+      inst->dbSetCenterLocation(x, y);
       inst->dbSetPlaced();
     }
   }
+}
+
+// origin point of the normalized coordinates
+int InitialPlace::normOriginLoc(DIMENSION dim) const
+{
+  return 0;
+  // return dim == X ? pb_->die().dieCx() :pb_->die().dieCy();
+}
+
+float InitialPlace::norm2absLoc(float loc, DIMENSION dim) const
+{
+  return loc - normOriginLoc(dim);
+}
+
+float InitialPlace::abs2normLoc(float loc, DIMENSION dim) const
+{
+  return loc + normOriginLoc(dim);
+}
+
+std::pair<int, int> InitialPlace::minmaxLoc(DIMENSION dim) const
+{
+  std::pair<int, int> minmax;
+  int& minLoc = minmax.first;
+  int& maxLoc = minmax.second;
+  auto die = pb_->die();
+  minLoc = dim == X ? die.dieLx() : die.dieLy();
+  maxLoc = dim == X ? die.dieUx() : die.dieUy();
+
+  const double scale = sqrt(double(pb_->placeInstsArea()) / die.coreArea());
+  const int delta = (1 - scale) * (dim == X ? die.dieDx() : die.dieDy());
+  minLoc += delta;
+  maxLoc -= delta;
+
+  minLoc = abs2normLoc(minLoc, dim);
+  maxLoc = abs2normLoc(maxLoc, dim);
+  return minmax;
 }
 
 }  // namespace gpl

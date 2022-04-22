@@ -80,7 +80,6 @@ class InitialPlace
   typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 
  protected:
-
   InitialPlaceVars ipVars_;
   std::shared_ptr<PlacerBase> pb_;
   utl::Logger* log_;
@@ -89,6 +88,13 @@ class InitialPlace
 
   virtual const std::vector<Instance*>& placeInsts() const;
   std::size_t placeInstsNum() const { return placeInsts().size(); }
+
+  // convertion between absolute location and normalized location
+  int normOriginLoc(DIMENSION dim) const;
+  float norm2absLoc(float loc, DIMENSION dim) const;
+  float abs2normLoc(float loc, DIMENSION dim) const;
+  
+  std::pair<int, int> minmaxLoc(DIMENSION dim) const;
 
   void placeInstsCenter();
   void setPlaceInstExtId();
