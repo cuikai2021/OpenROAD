@@ -87,4 +87,29 @@ int eigs(Matrix& eig_vec,
   return nconv;
 }
 
+// scale eigen vector to locations
+Eigen::VectorXf eigvec2locs(const ColumnVector& evec,
+                        const int minLoc,
+                        const int maxLoc)
+{
+  Eigen::VectorXf Xf;
+  Xf.resize(evec.numel());
+  {
+    std::vector<double> vecX;
+    vecX.reserve(evec.numel());
+    for (octave_idx_type i = 0; i < evec.numel(); ++i) {
+      vecX.push_back(evec(i));
+    }
+    auto minmax = std::minmax_element(vecX.begin(), vecX.end());
+    auto min_val = *minmax.first;
+    auto max_val = *minmax.second;
+    auto scale = (maxLoc - minLoc) / (max_val - min_val);
+    for (size_t i = 0; i < vecX.size(); ++i) {
+      auto c = (vecX[i] - min_val) * scale + minLoc;
+      Xf(i) = c;
+    }
+  }
+  return Xf;
+}
+
 }  // namespace gpl
