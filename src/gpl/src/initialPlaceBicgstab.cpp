@@ -90,7 +90,7 @@ void InitialPlaceBicgstab::run()
     updatePinInfo();
     for (auto dim : {X, Y}) {
       createSparseMatrix(dim);
-      SMatrix s(pb_->placeInsts().size(), pb_->placeInsts().size());
+      SMatrix s(placeInstsNum(), placeInstsNum());
       // The triplet vector is recommended usages to fill in SparseMatrix from
       // Eigen docs.
       s.setFromTriplets(matrixATriplets_[dim].begin(),
@@ -168,7 +168,7 @@ void InitialPlaceBicgstab::updatePinInfo(DIMENSION dim)
 // create matrix A and vector b from B2B modeling
 void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
 {
-  const int placeCnt = pb_->placeInsts().size();
+  const int placeCnt = placeInstsNum();
   instLocVec_[dim].resize(placeCnt);
   fixedInstForceVec_[dim].resize(placeCnt);
 
@@ -178,7 +178,7 @@ void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
   aList.reserve(1000000);
 
   // initialize vector
-  for (auto& inst : pb_->placeInsts()) {
+  for (auto& inst : placeInsts()) {
     int idx = inst->extId();
     instLocVec_[dim](idx) = abs2normLoc(inst->c(dim), dim);
     fixedInstForceVec_[dim](idx) = 0;

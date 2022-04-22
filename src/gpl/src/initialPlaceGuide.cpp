@@ -69,7 +69,7 @@ void InitialPlaceGuide::run()
   assert(pb_);
   const int centerX = pb_->die().coreCx();
   const int centerY = pb_->die().coreCy();
-  for (auto& inst : pb_->placeInsts()) {
+  for (auto& inst : placeInsts()) {
     if (!inst->isLocked()) {
       auto k = inst->dbInst()->getName();
       if (m.count(k) != 0) {
