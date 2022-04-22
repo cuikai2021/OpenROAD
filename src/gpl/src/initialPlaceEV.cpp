@@ -41,9 +41,9 @@
 #include <queue>
 #include <set>
 
+#include "eigs.h"
 #include "graphics.h"
 #include "maxDensity.h"
-#include "eigs.h"
 #include "odb/dbTypes.h"
 #include "placerBase.h"
 #include "utl/Logger.h"
@@ -101,34 +101,15 @@ void normalize(SparseMatrix& B, octave_idx_type placeCnt)
 }
 
 // update inst(cell) locations with eig_vec
-void updateInstLoc(const Matrix& eig_vecs,
-                   int dim,
-                   int delta,
-                   int centerLoc,
-                   const octave_idx_type placeCnt,
-                   Eigen::VectorXf& instLocVec)
+Eigen::VectorXf updateInstLoc(const Matrix& eig_vecs,
+                              int dim,
+                              const std::pair<int, int>& minmax)
 {
   const auto K = eig_vecs.columns();
   assert(K == 4);
   const auto ev_idx = K - 2 - dim;
   const auto& evec = eig_vecs.column(ev_idx);
-  const int minLoc = centerLoc - (delta / 2);
-  instLocVec.resize(placeCnt);
-  {
-    std::vector<double> vecX;
-    vecX.reserve(evec.numel());
-    for (octave_idx_type i = 0; i < evec.numel(); ++i) {
-      vecX.push_back(evec(i));
-    }
-    auto minmax = std::minmax_element(vecX.begin(), vecX.end());
-    auto min_val = *minmax.first;
-    auto max_val = *minmax.second;
-    auto scale = delta / (max_val - min_val);
-    for (size_t i = 0; i < vecX.size(); ++i) {
-      auto c = (vecX[i] - min_val) * scale + minLoc;
-      instLocVec(i) = c;
-    }
-  }
+  return gpl::eigvec2locs(evec, minmax.first, minmax.second);
 }
 
 // find the connected components of a graph
@@ -579,21 +560,8 @@ void InitialPlaceEV::updateEdgeWeights(const SparseMatrix& vertexWeights,
 
 void InitialPlaceEV::updateInstLocs(const Matrix& eig_vecs)
 {
-  const double scale
-      = sqrt(double(pb_->placeInstsArea()) / pb_->die().coreArea());
-
-  updateInstLoc(eig_vecs,
-                X,
-                scale * pb_->die().coreDx(),
-                pb_->die().coreCx(),
-                placeInstsNum(),
-                instLocVec_[X]);
-  updateInstLoc(eig_vecs,
-                Y,
-                scale * pb_->die().coreDy(),
-                pb_->die().coreCy(),
-                placeInstsNum(),
-                instLocVec_[Y]);
+  instLocVec_[X] = updateInstLoc(eig_vecs, X, minmaxLoc(X));
+  instLocVec_[Y] = updateInstLoc(eig_vecs, Y, minmaxLoc(Y));
 
   updateCoordi();
 }

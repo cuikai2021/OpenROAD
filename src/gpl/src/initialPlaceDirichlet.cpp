@@ -1,5 +1,7 @@
 #include "initialPlaceDirichlet.h"
 
+#include <iostream>
+
 #include "eigs.h"
 #include "graphics.h"
 #include "octave/dMatrix.h"
@@ -53,52 +55,36 @@ void InitialPlaceDirichlet::run()
 }
 
 // update inst(cell) locations with eig_vec
-void InitialPlaceDirichlet::updateInstLoc(const Matrix& eig_vecs, int dim)
+void InitialPlaceDirichlet::updateInstLoc(const Matrix& eig_vecs, DIMENSION dim)
 {
   auto die = pb_->die();
-  const double scale = sqrt(double(pb_->placeInstsArea()) / die.coreArea());
+
 
   const ColumnVector& evec = eig_vecs.column(eig_vecs.columns() - 1);
 
-  const octave_idx_type placeCnt = placeInstsNum();
-
-  Eigen::VectorXf Xf;
-  Xf.resize(placeCnt);
-  {  // convert eigen-vector to coordinate on the die area
-    auto delta = scale * (dim == X ? die.coreDx() : die.coreDy());
-    auto centerLoc = dim == X ? die.coreCx() : die.coreCy();
-    const int minLoc = centerLoc - (delta / 2);
-    std::vector<double> vecX;
-    vecX.reserve(evec.numel());
-    for (octave_idx_type i = 0; i < evec.numel(); ++i) {
-      vecX.push_back(evec(i));
-    }
-    auto minmax = std::minmax_element(vecX.begin(), vecX.end());
-    auto min_val = *minmax.first;
-    auto max_val = *minmax.second;
-    auto scale = delta / (max_val - min_val);
-    for (size_t i = 0; i < vecX.size(); ++i) {
-      auto c = (vecX[i] - min_val) * scale + minLoc;
-      Xf(i) = c;
-    }
-  }
+  auto minmax = minmaxLoc(dim);
+  auto minLoc = minmax.first;
+  auto maxLoc = minmax.second;
+  Eigen::VectorXf Xf = gpl::eigvec2locs(evec, minLoc, maxLoc);
 
   auto const& X0 = instLocVec_[dim];
   auto const& X1 = Xf;
 
-  // get the ratio to make x0 + x1 * ratio <= maxLoc
+  // get the ratio to make  minLoc <= x0 + x1 * ratio <= maxLoc
   float ratio = 1.0;
   {
-    size_t maxLoc = dim == X ? die.coreUx() : die.coreUy();
     for (size_t i = 0; i < placeInstsNum(); ++i) {
       auto const x0 = X0[i];
       auto const x1 = X1[i];
       auto loc = x0 + x1;
-      if (loc > maxLoc) {
-        float r = (maxLoc - x0) / x1;
+      if (loc > maxLoc || loc < minLoc) {
+        assert(x1 != 0);
+        auto minmax = loc > maxLoc ? maxLoc : minLoc;
+        float r = (minmax - x0) / x1;
         if (r < ratio) {
           ratio = r;
         }
+        assert(r > 0 && r < 1);
       }
     }
   }
