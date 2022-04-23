@@ -12,6 +12,12 @@
 
 namespace gpl {
 
+/*
+minimize QW(X) = QW(X0) + QW(X1)
+  - step1: solve AX=b to get vector X0
+  - step2: solve Dirichlet Eigenvector A to get vector X1
+  - step3: update location: X=X0+X1
+*/
 void InitialPlaceDirichlet::run()
 {
   std::unique_ptr<Graphics> graphics;
@@ -58,7 +64,6 @@ void InitialPlaceDirichlet::run()
 void InitialPlaceDirichlet::updateInstLoc(const Matrix& eig_vecs, DIMENSION dim)
 {
   auto die = pb_->die();
-
 
   const ColumnVector& evec = eig_vecs.column(eig_vecs.columns() - 1);
 

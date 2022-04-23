@@ -122,8 +122,13 @@ void InitialPlace::updateCoordi()
 // origin point of the normalized coordinates
 int InitialPlace::normOriginLoc(DIMENSION dim) const
 {
-  return 0;
-  // return dim == X ? pb_->die().dieCx() :pb_->die().dieCy();
+#if 0
+  // disabled，因为normalize 到die的中心点之后，结果似乎并没有变好
+  // 要和Harry进一步分析后再定是否要做这个normalize
+  return dim == X ? pb_->die().dieCx() :pb_->die().dieCy();
+#else
+  return 0; // absolute location respect to the die's origin (0, 0)
+#endif
 }
 
 float InitialPlace::norm2absLoc(float loc, DIMENSION dim) const
