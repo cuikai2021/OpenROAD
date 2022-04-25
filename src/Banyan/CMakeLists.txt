@@ -42,7 +42,9 @@ target_link_libraries(Banyan
     dl
     odb
     utl
+    Laurel
     OpenSTA
+    dbSta
     Threads::Threads
     OpenMP::OpenMP_CXX
     Boost::boost

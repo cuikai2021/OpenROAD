@@ -27,6 +27,14 @@ namespace utl {
 class Logger;
 }
 
+namespace lrl {
+class Laurel;
+}
+
+namespace sta {
+class Pin;
+}
+
 #define AssertFind(mmap, key) \
   assertFind(mmap, key, __FILE__, __LINE__, __func__)
 
@@ -65,6 +73,7 @@ class DBAdapter
   virtual std::vector<banyan_go::track>& getTracks() = 0;
   virtual std::vector<banyan_go::ndr_layer>& getNDRLayers() = 0;
   virtual std::vector<banyan_go::ndr>& getNDRs() = 0;
+  virtual std::vector<banyan_go::table_triple>& getTableTriples() = 0;
   virtual banyan_go::design getDesign() = 0;
 
   virtual ~DBAdapter() {}
@@ -83,11 +92,14 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::track> tracks_;
   std::vector<banyan_go::ndr_layer> ndrlayers_;
   std::vector<banyan_go::ndr> ndrs_;
+  std::vector<banyan_go::table_triple> tableTriples_;
+
   banyan_go::design design_;
 
  protected:
   odb::dbDatabase* db_;
   utl::Logger* logger_;
+  lrl::Laurel* laurel_;
   int maxViaStack_;
   std::string minLayer_ = "";
   std::string maxLayer_ = "";
@@ -143,16 +155,20 @@ class OpenDBAdapter : public DBAdapter
 
   void getNetsFromOpenDB();
   void getPinsFromOpenDB();
+  void getWireBugdeting();
+  sta::Pin* getStaPin(const char* name);
 
  public:
   friend class Axioms;
   OpenDBAdapter(odb::dbDatabase* db,
                 utl::Logger* logger,
+                lrl::Laurel* laurel,
                 int maxViaStack,
                 std::string minLayer,
                 std::string maxLayer)
       : db_(db),
         logger_(logger),
+        laurel_(laurel),
         maxViaStack_(maxViaStack),
         minLayer_(minLayer),
         maxLayer_(maxLayer)
@@ -164,6 +180,7 @@ class OpenDBAdapter : public DBAdapter
     getNDRsFromOpenDB();
     getNetsFromOpenDB();
     getPinsFromOpenDB();
+    getWireBugdeting();
     getObsFromOpenDB();
     getInstsObsFromOpenDB();
   }
@@ -181,11 +198,10 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::layer>& getLayers() override { return layers_; }
   std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }
   std::vector<banyan_go::track>& getTracks() override { return tracks_; }
-  std::vector<banyan_go::ndr_layer>& getNDRLayers() override
-  {
-    return ndrlayers_;
-  }
+  std::vector<banyan_go::ndr_layer>& getNDRLayers() override { return ndrlayers_; }
   std::vector<banyan_go::ndr>& getNDRs() override { return ndrs_; }
+  std::vector<banyan_go::table_triple>& getTableTriples() override { return tableTriples_; }
+
   banyan_go::design getDesign() override { return design_; }
 };
 

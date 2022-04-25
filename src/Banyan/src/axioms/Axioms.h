@@ -41,7 +41,6 @@ class Axioms
 {
  private:
   std::map<std::string, odb::dbTechVia*> defaultViaMap;
-  std::vector<banyan_go::table_triple> tableTriples;
 
  protected:
   OpenDBAdapter& dbAdapter_;
@@ -111,19 +110,18 @@ class Axioms
 
  public:
   const std::string VIA_NULL = "null";
+
   Axioms(OpenDBAdapter& dbAdapter)
       : dbAdapter_(dbAdapter), db_(dbAdapter.db_), logger_(dbAdapter.logger_)
   {
     initDefaultViaMap();
     initTable();
   };
+
   ~Axioms(){
 
   };
-  std::vector<banyan_go::table_triple>& getTableTriples()
-  {
-    return tableTriples;
-  }
+
 };
 
 }  // namespace banyan

@@ -12,6 +12,10 @@
 #include "odb/dbWireCodec.h"
 #include "odb/geom.h"
 #include "utl/Logger.h"
+#include "lrl/Laurel.hh"
+#include "db_sta/dbNetwork.hh"
+#include "sta/Network.hh"
+
 
 namespace banyan {
 
@@ -27,6 +31,7 @@ std::string getViaNameFromViaBox(odb::dbSBox* box)
     return blockVia->getName();
   }
   assert(false);
+  return "";
 }
 
 struct TrackLayerName
@@ -489,6 +494,58 @@ void OpenDBAdapter::getNetsFromOpenDB()
   }
 }
 
+sta::Pin* OpenDBAdapter::getStaPin(const char* name)
+{
+  odb::dbBlock* block = db_->getChip()->getBlock();
+  sta::dbNetwork* network = laurel_->getDbNetwork();
+  auto iterm = block->findITerm(name);
+  if (iterm != nullptr) {
+    return network->dbToSta(iterm);
+  }
+
+  auto bterm = block->findBTerm(name);
+  if (bterm != nullptr) {
+    return network->dbToSta(bterm);
+  }
+
+  return nullptr;
+}
+
+void OpenDBAdapter::getWireBugdeting()
+{
+  odb::dbBlock* block = db_->getChip()->getBlock();
+  for (auto net : block->getNets()) {
+    auto bynetIndex = AssertFind(netNameToIdxs_, net->getName());
+    auto bynet = nets_.at(bynetIndex);
+
+    sta::Pin* src;
+    int srcIdx;
+    std::vector<sta::Pin*> sinks;
+    std::vector<int> sinkIdxes;
+
+    for (int i = bynet.pin_begin; i < bynet.pin_end; i++) {
+      auto bypin = pins_.at(i);
+      auto staPin = getStaPin(bypin.name);
+      if (bypin.use == banyan_go::PIN_SOURCE) {
+        src = staPin;
+        srcIdx = i;
+      } else if (bypin.use == banyan_go::PIN_SINK) {
+        sinks.push_back(staPin);
+        sinkIdxes.push_back(i);
+      }
+
+    }
+
+    bynet.wire_budget_begin = tableTriples_.size();
+    for (size_t i = 0; i < sinks.size(); i++) {
+      auto sink = sinks.at(i);
+      tableTriples_.push_back(
+          {srcIdx, sinkIdxes[i], laurel_->getWireBudMaxLen(src, sink)});
+    }
+    bynet.wire_budget_end = tableTriples_.size();
+  }
+}
+
 void OpenDBAdapter::addNet(odb::dbNet* net)
 {
   int ndrIdx = -1;
@@ -517,7 +574,7 @@ void OpenDBAdapter::addNet(odb::dbNet* net)
   if (net->isSpecial()) {
     use = banyan_go::net_use(use + banyan_go::NET_SPECIAL);
   }
-  nets_.push_back({it->first.c_str(), ndrIdx, use, 0, 0, 0, 0, 0, 0});
+  nets_.push_back({it->first.c_str(), ndrIdx, use, 0, 0, 0, 0, 0, 0, 0, 0});
 }
 
 void OpenDBAdapter::addBox(odb::dbBox* box)
@@ -1190,22 +1247,6 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
         _wire_encoder.addPoint(box.x, box.y);
         _wire_encoder.addRect(0, 0, box.w, box.h);
       }
-      // TODO
-      // else if (box.w == box.h) {
-      // }
-      // else if (box.w > box.h) {
-      //   int beginX = box.x + width / 2;
-      //   int beginY = box.y + width / 2;
-      //   int endX = box.x + box.w - width / 2;
-      //   _wire_encoder.addPoint(beginX, beginY);
-      //   _wire_encoder.addPoint(endX, beginY);
-      // } else {
-      //   int beginX = box.x + width / 2;
-      //   int beginY = box.y + width / 2;
-      //   int endY = box.y + box.h - width / 2;
-      //   _wire_encoder.addPoint(beginX, beginY);
-      //   _wire_encoder.addPoint(beginX, endY);
-      // }
     }
 
     // add wire via

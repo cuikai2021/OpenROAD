@@ -29,10 +29,12 @@ Banyan::~Banyan()
 
 void Banyan::init(Tcl_Interp* tcl_interp,
                   odb::dbDatabase* db,
-                  utl::Logger* logger)
+                  utl::Logger* logger,
+                  lrl::Laurel* laurel)
 {
   db_ = db;
   logger_ = logger;
+  laurel_ = laurel;
   // Define swig TCL commands.
   Banyan_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::Banyan_tcl_inits);
@@ -96,7 +98,7 @@ int Banyan::main(const std::map<std::string, std::string>& options)
       maxLayer = kv.second;
     }
   }
-  OpenDBAdapter bdAdapter(db_, logger_, maxViaStack, minLayer, maxLayer);
+  OpenDBAdapter bdAdapter(db_, logger_, laurel_, maxViaStack, minLayer, maxLayer);
   Axioms axioms(bdAdapter);
 
   banyan_go::route_ret ret;
@@ -111,7 +113,7 @@ int Banyan::main(const std::map<std::string, std::string>& options)
                                banyan_go::to_slice(bdAdapter.getBoxes()),
                                banyan_go::to_slice(bdAdapter.getVias()),
                                banyan_go::to_slice(bdAdapter.getViadefs()),
-                               banyan_go::to_slice(axioms.getTableTriples()),
+                               banyan_go::to_slice(bdAdapter.getTableTriples()),
                                &ret);
 
   if (err == 0) {

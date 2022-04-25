@@ -673,6 +673,7 @@ void Axioms::addTableTriples(
     bool isSameNet,
     bool excludedNullVia)
 {
+  auto tableTriples = dbAdapter_.tableTriples_;
   if (!excludedNullVia) {
     tableTriples.push_back(
         {NULL_VIA_IDX,
@@ -722,6 +723,7 @@ void Axioms::initTable()
         = AssertFind(dbAdapter_.layerNameToIdxs_, techLayer->getName());
     std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer;
     getDefaultViasInLayer(techLayer, defaultViasInLayer);
+    auto tableTriples = dbAdapter_.tableTriples_;
     //===============================================================================================
     dbAdapter_.layers_[layerIdx].trunk_min_len_begin = tableTriples.size();
     addTableTriples(

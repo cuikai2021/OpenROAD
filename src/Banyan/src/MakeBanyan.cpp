@@ -18,7 +18,7 @@ void deleteBanyan(banyan::Banyan* router)
 void initBanyan(OpenRoad* openroad)
 {
   openroad->getBanyan()->init(
-      openroad->tclInterp(), openroad->getDb(), openroad->getLogger());
+      openroad->tclInterp(), openroad->getDb(), openroad->getLogger(), openroad->getLaurel());
 }
 
 }  // namespace ord
