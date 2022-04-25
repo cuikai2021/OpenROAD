@@ -4,6 +4,7 @@
 
 #include "eigs.h"
 #include "graphics.h"
+#include "netModelB2B.h"
 #include "octave/dMatrix.h"
 #include "octave/dSparse.h"
 #include "placerBase.h"
@@ -26,13 +27,20 @@ void InitialPlaceDirichlet::run()
   }
   for (int iter = 0; iter < 1; ++iter) {
     InitialPlaceBicgstab::run();
+
+    NetModelB2B model(ipVars_.minDiffLength,
+                      ipVars_.maxFanout,
+                      ipVars_.netWeightScale,
+                      pb_->nets(),
+                      placeInsts());
+
     const octave_idx_type placeCnt = placeInstsNum();
     const int K = 4;  // number of eig values to get
     for (auto dim : {X, Y}) {
-      auto const& triplets = matrixATriplets_[dim];
+      auto const& triplets = model.getMatrixATriplets(dim);
       SparseMatrix A(
           placeCnt, placeCnt, octave_idx_type(2 * triplets.size() + placeCnt));
-      {  // init matrix A from the B2B modeling net matrix
+      {  // init matrix A from the net modeling result
         for (auto& t : triplets) {
           A(t.row(), t.col()) = 0;
         }

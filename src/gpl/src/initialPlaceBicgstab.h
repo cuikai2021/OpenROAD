@@ -56,12 +56,9 @@ class InitialPlaceBicgstab : public InitialPlace
   void run();
 
  protected:
-  Eigen::VectorXf fixedInstForceVec_[DIMENSION_CNT];
-  Triplets matrixATriplets_[DIMENSION_CNT];
 
   void updatePinInfo();
   void updatePinInfo(DIMENSION dim);
-  void createSparseMatrix(DIMENSION dim);
 
   float bicgSolve(const SMatrix& L,
                   const Eigen::VectorXf& b,

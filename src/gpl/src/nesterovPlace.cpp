@@ -577,7 +577,7 @@ NesterovPlace::doNesterovPlace(int start_iter) {
       bool update = (iter == 0 || (iter+1) % npVars_.debug_update_iterations == 0);
       if (update) {
         bool pause = (iter == 0 || (iter+1) % npVars_.debug_pause_iterations == 0);
-        graphics_->cellPlot(pause);
+        graphics_->cellPlot(pause && false);
       }
     }
 

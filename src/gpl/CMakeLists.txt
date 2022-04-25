@@ -60,6 +60,8 @@ target_sources(gpl
     src/initialPlaceEV.cpp
     src/initialPlaceEVBicg.cpp
     src/initialPlaceDirichlet.cpp
+    src/netModel.cpp
+    src/netModelB2B.cpp
     src/eigs.cpp
     src/maxDensity.cpp
     src/nesterovPlace.cpp

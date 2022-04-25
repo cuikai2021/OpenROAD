@@ -36,6 +36,7 @@
 #include <Eigen/IterativeLinearSolvers>
 
 #include "graphics.h"
+#include "netModelB2B.h"
 #include "placerBase.h"
 #include "plot.h"
 #include "utl/Logger.h"
@@ -88,14 +89,25 @@ void InitialPlaceBicgstab::run()
   float errors[DIMENSION_CNT] = {0.0f, 0.0f};
   for (int i = 1; i <= ipVars_.maxIter; i++) {
     updatePinInfo();
+    NetModelB2B model(ipVars_.minDiffLength,
+                      ipVars_.maxFanout,
+                      ipVars_.netWeightScale,
+                      pb_->nets(),
+                      placeInsts());
     for (auto dim : {X, Y}) {
-      createSparseMatrix(dim);
       SMatrix s(placeInstsNum(), placeInstsNum());
       // The triplet vector is recommended usages to fill in SparseMatrix from
       // Eigen docs.
-      s.setFromTriplets(matrixATriplets_[dim].begin(),
-                        matrixATriplets_[dim].end());
-      errors[dim] = bicgSolve(s, fixedInstForceVec_[dim], instLocVec_[dim]);
+      auto matrixATriplets = model.getMatrixATriplets(dim);
+      s.setFromTriplets(matrixATriplets.begin(), matrixATriplets.end());
+
+      // initialize vector
+      instLocVec_[dim].resize(placeInstsNum());
+      for (auto& inst : placeInsts()) {
+        auto idx = inst->extId();
+        instLocVec_[dim](idx) = inst->c(dim);
+      }
+      errors[dim] = bicgSolve(s, model.getVectorB(dim), instLocVec_[dim]);
     }
 
     log_->report("[InitialPlace]  Iter: {} CG Error: {:0.8f} HPWL: {}",
@@ -159,106 +171,6 @@ void InitialPlaceBicgstab::updatePinInfo(DIMENSION dim)
         max = pin->c(dim);
         pinMax = pin;
         pinMax->setMaxPin(dim);
-      }
-    }
-  }
-}
-
-// AX = b
-// create matrix A and vector b from B2B modeling
-void InitialPlaceBicgstab::createSparseMatrix(DIMENSION dim)
-{
-  const int placeCnt = placeInstsNum();
-  instLocVec_[dim].resize(placeCnt);
-  fixedInstForceVec_[dim].resize(placeCnt);
-
-  // listX and listY is a temporary vector that have tuples, (idx1, idx2, val)
-  auto& aList = matrixATriplets_[dim];
-  aList.clear();
-  aList.reserve(1000000);
-
-  // initialize vector
-  for (auto& inst : placeInsts()) {
-    int idx = inst->extId();
-    instLocVec_[dim](idx) = abs2normLoc(inst->c(dim), dim);
-    fixedInstForceVec_[dim](idx) = 0;
-  }
-
-  // for each net
-  for (auto& net : pb_->nets()) {
-    // skip for small nets.
-    if (net->pins().size() <= 1) {
-      continue;
-    }
-
-    // escape long time cals on huge fanout.
-    //
-    if (net->pins().size() >= ipVars_.maxFanout) {
-      continue;
-    }
-
-    float netWeight = ipVars_.netWeightScale / (net->pins().size() - 1);
-
-    // foreach two pins in single nets.
-    auto& pins = net->pins();
-    for (int pinIdx1 = 1; pinIdx1 < pins.size(); ++pinIdx1) {
-      Pin* pin1 = pins[pinIdx1];
-      for (int pinIdx2 = 0; pinIdx2 < pinIdx1; ++pinIdx2) {
-        Pin* pin2 = pins[pinIdx2];
-
-        // no need to fill in when instance is same
-        if (pin1->instance() == pin2->instance()) {
-          continue;
-        }
-
-        // B2B modeling on min/maxX pins.
-        if (pin1->isMinPin(dim) || pin1->isMaxPin(dim) || pin2->isMinPin(dim)
-            || pin2->isMaxPin(dim)) {
-          int diff = abs(pin1->c(dim) - pin2->c(dim));
-          float weight = 0;
-          if (diff > ipVars_.minDiffLength) {
-            weight = netWeight / diff;
-          } else {
-            weight = netWeight / ipVars_.minDiffLength;
-          }
-
-          // both pin cames from instance
-          if (pin1->isPlaceInstConnected() && pin2->isPlaceInstConnected()) {
-            const int inst1 = pin1->instance()->extId();
-            const int inst2 = pin2->instance()->extId();
-            // cout << "inst: " << inst1 << " " << inst2 << endl;
-
-            aList.push_back(T(inst1, inst1, weight));
-            aList.push_back(T(inst2, inst2, weight));
-
-            aList.push_back(T(inst1, inst2, -weight));
-            aList.push_back(T(inst2, inst1, -weight));
-
-            fixedInstForceVec_[dim](inst1)
-                += weight * (pin2->offsetC(dim) - pin1->offsetC(dim));
-
-            fixedInstForceVec_[dim](inst2)
-                += weight * (pin1->offsetC(dim) - pin2->offsetC(dim));
-          }
-          // pin1 from IO port / pin2 from Instance
-          else if (!pin1->isPlaceInstConnected()
-                   && pin2->isPlaceInstConnected()) {
-            const int inst2 = pin2->instance()->extId();
-            // cout << "inst2: " << inst2 << endl;
-            aList.push_back(T(inst2, inst2, weight));
-            fixedInstForceVec_[dim](inst2)
-                += weight * (abs2normLoc(pin1->c(dim), dim) - pin2->offsetC(dim));
-          }
-          // pin1 from Instance / pin2 from IO port
-          else if (pin1->isPlaceInstConnected()
-                   && !pin2->isPlaceInstConnected()) {
-            const int inst1 = pin1->instance()->extId();
-            // cout << "inst1: " << inst1 << endl;
-            aList.push_back(T(inst1, inst1, weight));
-            fixedInstForceVec_[dim](inst1)
-                += weight * (abs2normLoc(pin2->c(dim), dim) - pin1->offsetC(dim));
-          }
-        }
       }
     }
   }
