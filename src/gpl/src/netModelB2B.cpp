@@ -1,8 +1,8 @@
 #include "netModelB2B.h"
 
-#include "placerBase.h"
-
 #include <iostream>
+
+#include "placerBase.h"
 
 namespace gpl {
 
@@ -13,7 +13,7 @@ void NetModelB2B::buildOn(DIMENSION dim)
   // listX and listY is a temporary vector that have tuples, (idx1, idx2, val)
   auto& aList = matrixATriplets_[dim];
   aList.clear();
-  aList.reserve(2*placeInstsNum());
+  aList.reserve(2 * placeInstsNum());
 
   // initialize vector
   fixedInstForceVec_[dim].resize(placeInstsNum());
@@ -52,54 +52,59 @@ void NetModelB2B::buildOn(DIMENSION dim)
         // B2B modeling on min/maxX pins.
         if (pin1->isMinPin(dim) || pin1->isMaxPin(dim) || pin2->isMinPin(dim)
             || pin2->isMaxPin(dim)) {
-          int diff = abs(pin1->c(dim) - pin2->c(dim));
-          float weight = 0;
-          if (diff > minDiffLength_) {
-            weight = netWeight / diff;
-          } else {
-            weight = netWeight / minDiffLength_;
-          }
+          float w = weight(pin1, pin2, netWeight, dim);
 
           // both pin cames from instance
           if (pin1->isPlaceInstConnected() && pin2->isPlaceInstConnected()) {
             const int inst1 = pin1->instance()->extId();
             const int inst2 = pin2->instance()->extId();
-            // cout << "inst: " << inst1 << " " << inst2 << endl;
 
-            aList.push_back(T(inst1, inst1, weight));
-            aList.push_back(T(inst2, inst2, weight));
+            aList.push_back(T(inst1, inst1, w));
+            aList.push_back(T(inst2, inst2, w));
 
-            aList.push_back(T(inst1, inst2, -weight));
-            aList.push_back(T(inst2, inst1, -weight));
+            aList.push_back(T(inst1, inst2, -w));
+            aList.push_back(T(inst2, inst1, -w));
 
             fixedInstForceVec_[dim](inst1)
-                += weight * (pin2->offsetC(dim) - pin1->offsetC(dim));
+                += w * (pin2->offsetC(dim) - pin1->offsetC(dim));
 
             fixedInstForceVec_[dim](inst2)
-                += weight * (pin1->offsetC(dim) - pin2->offsetC(dim));
+                += w * (pin1->offsetC(dim) - pin2->offsetC(dim));
           }
           // pin1 from IO port / pin2 from Instance
           else if (!pin1->isPlaceInstConnected()
                    && pin2->isPlaceInstConnected()) {
             const int inst2 = pin2->instance()->extId();
-            // cout << "inst2: " << inst2 << endl;
-            aList.push_back(T(inst2, inst2, weight));
+            aList.push_back(T(inst2, inst2, w));
             fixedInstForceVec_[dim](inst2)
-                += weight * (pin1->c(dim) - pin2->offsetC(dim));
+                += w * (pin1->c(dim) - pin2->offsetC(dim));
           }
           // pin1 from Instance / pin2 from IO port
           else if (pin1->isPlaceInstConnected()
                    && !pin2->isPlaceInstConnected()) {
             const int inst1 = pin1->instance()->extId();
-            // cout << "inst1: " << inst1 << endl;
-            aList.push_back(T(inst1, inst1, weight));
+            aList.push_back(T(inst1, inst1, w));
             fixedInstForceVec_[dim](inst1)
-                += weight * (pin2->c(dim) - pin1->offsetC(dim));
+                += w * (pin2->c(dim) - pin1->offsetC(dim));
           }
         }
       }
     }
   }
-}  
+}
+
+// weight of a two pin connection
+float NetModelB2B::weight(Pin* pin1, Pin* pin2, float netWeight, DIMENSION dim)
+{
+  assert(pin1 && pin2);
+  int diff = abs(pin1->c(dim) - pin2->c(dim));
+  float w = 0;
+  if (diff > minDiffLength_) {
+    w = netWeight / diff;
+  } else {
+    w = netWeight / minDiffLength_;
+  }
+  return w;
+}
 
 }  // namespace gpl
