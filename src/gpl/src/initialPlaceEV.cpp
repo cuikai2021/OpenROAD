@@ -56,27 +56,6 @@ using namespace std;
 
 namespace {
 
-bool isSourcePin(Pin* pin)
-{
-  if (pin->isITerm()) {
-    return pin->dbITerm()->getIoType() != odb::dbIoType::INPUT;
-  } else {
-    return pin->dbBTerm()->getIoType() != odb::dbIoType::OUTPUT;
-  }
-}
-
-Pin* getSourcePin(Net* net)
-{
-  auto pins = net->pins();
-  for (auto& pin : pins) {
-    if (isSourcePin(pin)) {
-      return pin;
-    }
-  }
-  assert(0 && "net must have a source pin");
-  return nullptr;
-}
-
 void reposition(std::vector<double>& X)
 {
   double sum_x = 0;
