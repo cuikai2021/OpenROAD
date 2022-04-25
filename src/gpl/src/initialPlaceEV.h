@@ -68,7 +68,7 @@ class InitialPlaceEV : public InitialPlace
 
   void initAdjGraph(Triplets& aList);
 
-  void initLaplaceMatrix(size_t vertexNum,
+  void createSparseMatrix(size_t vertexNum,
                          const Triplets& edges,
                          SparseMatrix& graphL);
 

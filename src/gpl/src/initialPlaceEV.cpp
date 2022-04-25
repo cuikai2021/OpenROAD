@@ -47,6 +47,7 @@
 #include "odb/dbTypes.h"
 #include "placerBase.h"
 #include "utl/Logger.h"
+#include "netModelStar.h"
 
 using namespace maxDensity;
 
@@ -107,7 +108,7 @@ Eigen::VectorXf updateInstLoc(const Matrix& eig_vecs,
 {
   const auto K = eig_vecs.columns();
   assert(K == 4);
-  const auto ev_idx = K - 2 - dim;
+  const auto ev_idx = K - 1 - dim;
   const auto& evec = eig_vecs.column(ev_idx);
   return gpl::eigvec2locs(evec, minmax.first, minmax.second);
 }
@@ -234,7 +235,7 @@ void InitialPlaceEV::run()
   }
 
   SparseMatrix graphL;
-  initLaplaceMatrix(placeInstsNum(), aList, graphL);
+  createSparseMatrix(placeInstsNum(), aList, graphL);
 
 #ifndef NDEBUG
   dumpMatrixAB(aList, "initial.mtx");
@@ -334,54 +335,13 @@ void InitialPlaceEV::resetPlaceInsts()
 // matrix of the connectivity graph
 void InitialPlaceEV::initAdjGraph(Triplets& aList)
 {
-  const size_t placeCnt = placeInstsNum();
-  aList.clear();
-  aList.reserve(2 * placeCnt);
-  std::map<size_t, float> m;
-  for (auto& net : pb_->nets()) {
-    auto sigT = net->dbNet()->getSigType();
-    if (sigT != odb::dbSigType::SIGNAL && sigT != odb::dbSigType::CLOCK
-        && sigT != odb::dbSigType::RESET) {
-      continue;
-    }
-    // skip for small nets.
-    if (net->pins().size() <= 1) {
-      continue;
-    }
-
-    // escape long time cals on huge fanout.
-    if (net->pins().size() >= ipVars_.maxFanout) {
-      // continue;
-    }
-
-    // foreach two pins in single nets.
-    auto pin_from = getSourcePin(net);
-    if (!pin_from->isPlaceInstConnected()) {
-      continue;
-    }
-
-    for (auto& pin_to : net->pins()) {
-      if (pin_to != pin_from && pin_to->isPlaceInstConnected()) {
-        auto row = pin_from->instance()->extId();
-        auto col = pin_to->instance()->extId();
-        if (row > col) {
-          std::swap(row, col);
-        }
-        auto k = row * placeCnt + col;
-        ++m[k];
-      }
-    }
-  }
-
-  for (auto const& [k, v] : m) {
-    auto row = k / placeCnt;
-    auto col = k % placeCnt;
-    aList.push_back(T(row, col, v));
-  }
+  NetModelStar model(
+      ipVars_.maxFanout, ipVars_.netWeightScale, pb_->nets(), placeInsts());
+  aList = model.getMatrixATriplets(X);
 }
 
 // construct the laplace matrix of the connectivity graph
-void InitialPlaceEV::initLaplaceMatrix(size_t vertexNum,
+void InitialPlaceEV::createSparseMatrix(size_t vertexNum,
                                        const Triplets& edges,
                                        SparseMatrix& graphL)
 {
@@ -394,10 +354,7 @@ void InitialPlaceEV::initLaplaceMatrix(size_t vertexNum,
     graphL(t.row(), t.col()) = 0;
   }
   for (auto& t : edges) {
-    graphL(t.row(), t.col()) += -t.value();
-    graphL(t.col(), t.row()) += -t.value();
-    graphL(t.row(), t.row()) += t.value();
-    graphL(t.col(), t.col()) += t.value();
+    graphL(t.row(), t.col()) += t.value();
   }
 }
 
@@ -425,7 +382,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
     ColumnVector eig_vals;
     eigs(eig_vecs, eig_vals, graphL, B, K);
 
-    int ev_min_idx = K - 2;  // the 1st smallest eigen value who is not 0 or nan
+    int ev_min_idx = K - 1;  // the 1st smallest eigen value who is not 0 or nan
     for (; ev_min_idx >= 0; --ev_min_idx) {
       auto eval_min = eig_vals.elem(ev_min_idx);
       if (!std::isnan(eval_min) && std::abs(eval_min) > 1e-7) {
