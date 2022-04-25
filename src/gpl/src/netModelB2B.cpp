@@ -10,7 +10,7 @@ namespace gpl {
 // create matrix A and vector b from B2B modeling
 void NetModelB2B::buildOn(DIMENSION dim)
 {
-  // listX and listY is a temporary vector that have tuples, (idx1, idx2, val)
+  // triplets of (idx1, idx2, val)
   auto& aList = matrixATriplets_[dim];
   aList.clear();
   aList.reserve(2 * placeInstsNum());
@@ -22,7 +22,6 @@ void NetModelB2B::buildOn(DIMENSION dim)
     fixedInstForceVec_[dim](idx) = 0;
   }
 
-  // for each net
   for (auto& net : nets()) {
     // skip for small nets.
     if (net->pins().size() <= 1) {
@@ -30,7 +29,6 @@ void NetModelB2B::buildOn(DIMENSION dim)
     }
 
     // escape long time cals on huge fanout.
-    //
     if (net->pins().size() >= maxFanout_) {
       continue;
     }
@@ -50,8 +48,7 @@ void NetModelB2B::buildOn(DIMENSION dim)
         }
 
         // B2B modeling on min/maxX pins.
-        if (pin1->isMinPin(dim) || pin1->isMaxPin(dim) || pin2->isMinPin(dim)
-            || pin2->isMaxPin(dim)) {
+        if (isBoundary(pin1, dim) || isBoundary(pin2, dim)) {
           float w = weight(pin1, pin2, netWeight, dim);
 
           // both pin cames from instance
@@ -105,6 +102,10 @@ float NetModelB2B::weight(Pin* pin1, Pin* pin2, float netWeight, DIMENSION dim)
     w = netWeight / minDiffLength_;
   }
   return w;
+}
+
+bool NetModelB2B::isBoundary(Pin* pin, DIMENSION dim) {
+  return pin->isMinPin(dim) || pin->isMaxPin(dim);
 }
 
 }  // namespace gpl

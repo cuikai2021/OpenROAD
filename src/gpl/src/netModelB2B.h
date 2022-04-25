@@ -24,6 +24,7 @@ class NetModelB2B : public NetModel
  protected:
   virtual void buildOn(DIMENSION dim);
   virtual float weight(Pin* pin1, Pin* pin2, float netWeight, DIMENSION dim);
+  bool isBoundary(Pin* pin, DIMENSION dim);
 
  private:
   size_t minDiffLength_;
