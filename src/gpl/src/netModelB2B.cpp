@@ -41,7 +41,10 @@ void NetModelB2B::buildOn(DIMENSION dim)
 }
 
 // weight of a two pin connection
-float NetModelB2B::weight(Pin* pin1, Pin* pin2, float netWeight, DIMENSION dim)
+float NetModelB2B::weight(Pin* pin1,
+                          Pin* pin2,
+                          float netWeight,
+                          DIMENSION dim) const
 {
   assert(pin1 && pin2);
   int diff = abs(pin1->c(dim) - pin2->c(dim));
@@ -54,7 +57,7 @@ float NetModelB2B::weight(Pin* pin1, Pin* pin2, float netWeight, DIMENSION dim)
   return w;
 }
 
-bool NetModelB2B::isBoundary(Pin* pin, DIMENSION dim)
+bool NetModelB2B::isBoundary(Pin* pin, DIMENSION dim) const
 {
   return pin->isMinPin(dim) || pin->isMaxPin(dim);
 }

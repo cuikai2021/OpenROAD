@@ -22,10 +22,13 @@ class NetModelStar : public NetModel
 
  protected:
   virtual void buildOn(DIMENSION dim);
-  virtual float weight(Pin* pin1, Pin* pin2, float netWeight, DIMENSION dim);
+  virtual float weight(Pin* pin1,
+                       Pin* pin2,
+                       float netWeight,
+                       DIMENSION dim) const;
 
-  bool isSourcePin(Pin* pin);
-  Pin* getSourcePin(Net* net);
+  bool isSourcePin(Pin* pin) const;
+  Pin* getSourcePin(Net* net) const;
 };
 
 }  // namespace gpl

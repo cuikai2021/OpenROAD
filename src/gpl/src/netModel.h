@@ -41,15 +41,18 @@ class NetModel
   std::size_t placeInstsNum() const { return placeInsts().size(); }
 
  protected:
-  
   void reset(DIMENSION dim);
-  
+
   void build();
-  
+
   virtual void buildOn(DIMENSION dim) = 0;
-  
-  virtual void addTwoPinConn(Pin* pin1, Pin* pin2, float w, DIMENSION dim);
-  virtual bool isSkipped(Net* net) const;
+  virtual float weight(Pin* pin1,
+                       Pin* pin2,
+                       float netWeight,
+                       DIMENSION dim) const = 0;
+
+  void addTwoPinConn(Pin* pin1, Pin* pin2, float w, DIMENSION dim);
+  bool isSkipped(Net* net) const;
 
   std::size_t maxFanout_;
   float netWeightScale_;

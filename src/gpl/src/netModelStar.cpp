@@ -2,9 +2,9 @@
 
 #include <iostream>
 
+#include "odb/db.h"
 #include "odb/dbTypes.h"
 #include "placerBase.h"
-#include "odb/db.h"
 
 namespace gpl {
 
@@ -32,7 +32,7 @@ void NetModelStar::buildOn(DIMENSION dim)
   }
 }
 
-bool NetModelStar::isSourcePin(Pin* pin)
+bool NetModelStar::isSourcePin(Pin* pin) const
 {
   if (pin->isITerm()) {
     return pin->dbITerm()->getIoType() != odb::dbIoType::INPUT;
@@ -41,7 +41,7 @@ bool NetModelStar::isSourcePin(Pin* pin)
   }
 }
 
-Pin* NetModelStar::getSourcePin(Net* net)
+Pin* NetModelStar::getSourcePin(Net* net) const
 {
   auto pins = net->pins();
   for (auto& pin : pins) {
@@ -54,7 +54,10 @@ Pin* NetModelStar::getSourcePin(Net* net)
 }
 
 // weight of a two pin connection
-float NetModelStar::weight(Pin* pin1, Pin* pin2, float netWeight, DIMENSION dim)
+float NetModelStar::weight(Pin* pin1,
+                           Pin* pin2,
+                           float netWeight,
+                           DIMENSION dim) const
 {
   assert(pin1 && pin2);
   auto w = netWeight;
