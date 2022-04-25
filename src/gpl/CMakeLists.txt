@@ -62,6 +62,7 @@ target_sources(gpl
     src/initialPlaceDirichlet.cpp
     src/netModel.cpp
     src/netModelB2B.cpp
+    src/netModelStar.cpp
     src/eigs.cpp
     src/maxDensity.cpp
     src/nesterovPlace.cpp

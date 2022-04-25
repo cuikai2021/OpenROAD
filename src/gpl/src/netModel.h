@@ -6,6 +6,7 @@
 
 namespace gpl {
 class Instance;
+class Pin;
 class Net;
 
 // Net Modeling which converts hyper graph into two-pin connections
@@ -40,13 +41,20 @@ class NetModel
   std::size_t placeInstsNum() const { return placeInsts().size(); }
 
  protected:
+  
+  void reset(DIMENSION dim);
+  
   void build();
+  
   virtual void buildOn(DIMENSION dim) = 0;
+  
+  virtual void addTwoPinConn(Pin* pin1, Pin* pin2, float w, DIMENSION dim);
+  virtual bool isSkipped(Net* net) const;
 
   std::size_t maxFanout_;
   float netWeightScale_;
   const std::vector<Net*>& nets_;
-  const std::vector<Instance*>& placeInsts_;                 // moveable instances
+  const std::vector<Instance*>& placeInsts_;          // moveable instances
   Triplets matrixATriplets_[DIMENSION_CNT];           // matrix A
   Eigen::VectorXf fixedInstForceVec_[DIMENSION_CNT];  // vector b
 };
