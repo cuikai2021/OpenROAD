@@ -16,7 +16,7 @@ class NetModel
   typedef std::vector<T> Triplets;
 
   NetModel(std::size_t maxFanout,
-           std::size_t netWeightScale,
+           float netWeightScale,
            const std::vector<Net*>& nets,
            const std::vector<Instance*>& placeInsts)
       : maxFanout_(maxFanout),
@@ -44,7 +44,7 @@ class NetModel
   virtual void buildOn(DIMENSION dim) = 0;
 
   std::size_t maxFanout_;
-  std::size_t netWeightScale_;
+  float netWeightScale_;
   const std::vector<Net*>& nets_;
   const std::vector<Instance*>& placeInsts_;                 // moveable instances
   Triplets matrixATriplets_[DIMENSION_CNT];           // matrix A
