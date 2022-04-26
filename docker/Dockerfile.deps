@@ -3,16 +3,15 @@
 ARG ubuntuVersion=20.04
 
 ARG copyImage=ubuntu:${ubuntuVersion}
-FROM $copyImage
+FROM $copyImage AS deps
 USER root 
 
 COPY ./etc/DependencyInstaller.sh /tmp
 RUN bash /tmp/DependencyInstaller.sh -dev 
 RUN rm -f /tmp/DependencyInstaller.sh
 
-ADD ./klayout_0.26.6-1_amd64.deb .
-RUN \
-  set -eu; \
-  apt-get update && apt-get install -y klayout time libreadline-dev pkg-config imagemagick ssh; \
-  dpkg -i klayout_0.26.6-1_amd64.deb; \
-  rm -f klayout_0.26.6-1_amd64.deb;
+FROM deps AS deps-debug
+RUN apt install -y liboctave-dev gdb
+
+FROM deps-debug AS deps-debug-vscode
+COPY ./vscode-extensions /root/.vscode-server/extensions
