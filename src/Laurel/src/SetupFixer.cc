@@ -209,12 +209,18 @@ void SetupFixer::addConstraintBase(Index pred,
              std::to_string(cost));
 }
 
+Delay SetupFixer::costSlope(Vertex* pred, Vertex* succ)
+{
+  // todo
+  return 1.0f;
+}
+
 void SetupFixer::addConstraintEdge(Vertex* pred, Vertex* succ)
 {
   Delay delay = getDelay(succ);
   Index pred_index = getIndex(pred);
   Index succ_index = getIndex(succ);
-  Cost capacity = delay2Cost(delay);  // todo
+  Cost capacity = delay2Cost(costSlope(pred, succ) * delay);
   Delay low_bound = getLowBound(succ);
   Delay high_bound = getHighBound(succ);
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));

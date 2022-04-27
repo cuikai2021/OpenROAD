@@ -68,6 +68,7 @@ class LaurelAdapter : public Resizer
   // common methods
   virtual VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
   virtual Vertex* findRealVertex(Name vertex_name) const;
+  virtual Pin* findFanoutPin(WirePair wire_pair) const;
 
   // constants
   const char* LRL_H_SOLVER = "SCIP";
@@ -107,8 +108,10 @@ class SetupFixer : public LaurelAdapter
   void buildAllFaninEdge(VertexSeq fanins);
   void buildALLEdgePO(VertexSet ends);
 
+  virtual Delay costSlope(Vertex* pred, Vertex* succ);
+
   void addConstraintBase(Index pred, Index succ, Cost capacity, Cost cost);
-  void addConstraintEdge(Vertex* pred, Vertex* succ);
+  virtual void addConstraintEdge(Vertex* pred, Vertex* succ);
   void addConstraintPO(Vertex* po);
   void addConstraintPI(Vertex* pi);
 
@@ -144,6 +147,28 @@ class SetupFixer : public LaurelAdapter
   sta::Map<Name, Index> vertex_index_map_;
 
   Options* options_;
+};
+
+class WireBudgeting : public SetupFixer
+{
+ public:
+  WireBudgeting(OpenRoad* openroad, Options* options)
+      : SetupFixer(openroad, options){};
+  virtual ~WireBudgeting(){};
+
+  uint64 getNewWireLength(Vertex* pred, Vertex* succ);
+
+ protected:
+  virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
+  Delay getLowBound(Vertex* pred, Vertex* succ);
+  Delay getHighBound(Vertex* pred, Vertex* succ);
+  virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
+
+  uint64 getTreeDist(Vertex* drvr, Vertex* dst);
+  SteinerPt findNextPt(SteinerTree* tree, SteinerPt drvr_pt, SteinerPt last);
+
+  // uint64 manhattanDistance(Vertex* pred, Vertex* succ);
+  // double getDrvrWireLength(Vertex* drvr);
 };
 
 class HoldFixer : public LaurelAdapter
@@ -207,7 +232,8 @@ class Laurel : public LaurelAdapter
 {
  public:
   Laurel() : LaurelAdapter() { options_ = new Options(); }
-  virtual ~Laurel() { delete options_; }
+  virtual ~Laurel();
+
   void initLaurel(OpenRoad* openroad,
                   Tcl_Interp* interp,
                   Logger* logger,
@@ -219,6 +245,14 @@ class Laurel : public LaurelAdapter
 
   void fixHold();
   void fixSetup();
+  void wireBudgeting();
+
+  void clearWireBudgeting();
+
+  // get Wire budgeting result by pin to pin after wireBudgeting()
+  // unit DBU
+  uint64 getWireBudMaxLen(Vertex* fanin, Vertex* fanout);
+  uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout);
 
   Options* getOptions() { return options_; }
 
@@ -228,7 +262,6 @@ class Laurel : public LaurelAdapter
   int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
   bool insertBuffer(HoldFixer* fixer, Name vertex_name);
   bool insertAllBuffer(HoldFixer* fixer);
-  Pin* findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const;
   void insertHoldDelay(Vertex* drvr,
                        int buffer_count,
                        PinSeq& load_pins,
@@ -243,6 +276,7 @@ class Laurel : public LaurelAdapter
 
   // variable
   Options* options_;
+  WireBudgeting* wire_budgeting_ = nullptr;
 };
 
 }  // namespace lrl

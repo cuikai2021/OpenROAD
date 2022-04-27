@@ -44,6 +44,12 @@ void Laurel::initLaurel(OpenRoad* openroad,
   evalTclInit(interp, sta::Laurel_tcl_inits);
 }
 
+Laurel::~Laurel()
+{
+  delete options_;
+  clearWireBudgeting();
+}
+
 ////////////////////////////////////////////////////////
 //
 //  For fixing hold
@@ -145,27 +151,6 @@ void Laurel::insertHoldDelay(Vertex* drvr,
   // resizeToTargetSlew(buffer_out_pin, false);
 }
 
-Pin* Laurel::findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const
-{
-  Vertex* pred = findRealVertex(wire_pair.first);
-  Vertex* succ = findRealVertex(wire_pair.second);
-  if (!succ->isDriver(sta_->network()))
-    return succ->pin();
-  VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
-  while (pred_edge_iter.hasNext()) {
-    Edge* pred_edge = pred_edge_iter.next();
-    Vertex* fanout = pred_edge->to(sta_->graph());
-    VertexInEdgeIterator succ_edge_iter(succ, sta_->graph());
-    while (succ_edge_iter.hasNext()) {
-      Edge* succ_edge = succ_edge_iter.next();
-      Vertex* fanin = succ_edge->from(sta_->graph());
-      if (fanin == fanout)
-        return fanin->pin();
-    }
-  }
-  return nullptr;
-}
-
 bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
 {
   WirePairSet wire_pair_set = fixer->getAllWirePairFrom(vertex_name);
@@ -177,7 +162,7 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
   for (auto wire_pair : wire_pair_set) {
     Delay padding = fixer->getWirePadding(wire_pair);
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
-      Pin* fanout_pin = findFanoutPin(fixer, wire_pair);
+      Pin* fanout_pin = findFanoutPin(wire_pair);
       if (fanout_pin != nullptr) {
         load_pins.push_back(fanout_pin);
         if (sta_->network()->direction(fanout_pin)->isAnyOutput()
@@ -362,6 +347,53 @@ void Laurel::fixSetup()
 
 ////////////////////////////////////////////////////////
 //
+//  For wire budgeting
+//
+////////////////////////////////////////////////////////
+
+void Laurel::clearWireBudgeting()
+{
+  if (wire_budgeting_)
+    delete wire_budgeting_;
+  wire_budgeting_ = nullptr;
+}
+
+void Laurel::wireBudgeting()
+{
+  clearWireBudgeting();
+  wire_budgeting_ = new WireBudgeting(openroad_, options_);
+  SetupResult status = wire_budgeting_->resolve();
+  if (status == MinCostFlow::OPTIMAL) {
+    wire_budgeting_->report();
+    if (!wire_budgeting_->remap()) {
+      logger_->warn(utl::LRL, 1203, "Fail to do wire budgeting");
+      clearWireBudgeting();
+    } else
+      logger_->info(utl::LRL, 1307, "Succeed to do wire budgeting");
+  }
+}
+
+uint64 Laurel::getWireBudMaxLen(Vertex* fanin, Vertex* fanout)
+{
+  if (!wire_budgeting_) {
+    logger_->warn(
+        utl::LRL,
+        1204,
+        "did not or failed to do wire budgeting, wire length return 0");
+    return LRL_S_ZERO;
+  }
+  return wire_budgeting_->getNewWireLength(fanin, fanout);
+}
+
+uint64 Laurel::getWireBudMaxLen(Pin* fanin, Pin* fanout)
+{
+  Vertex* pred = graph_->pinDrvrVertex(fanin);
+  Vertex* succ = graph_->pinDrvrVertex(fanout);
+  return getWireBudMaxLen(pred, succ);
+}
+
+////////////////////////////////////////////////////////
+//
 //  class LaurelAdapter
 //
 ////////////////////////////////////////////////////////
@@ -395,6 +427,27 @@ Vertex* LaurelAdapter::findRealVertex(Name vertex_name) const
     Vertex* test_vertex = vertex_iter.next();
     if (!vertex_name.compare(test_vertex->name(sta_->sdcNetwork())))
       return test_vertex;
+  }
+  return nullptr;
+}
+
+Pin* LaurelAdapter::findFanoutPin(WirePair wire_pair) const
+{
+  Vertex* pred = findRealVertex(wire_pair.first);
+  Vertex* succ = findRealVertex(wire_pair.second);
+  if (!succ->isDriver(sta_->network()))
+    return succ->pin();
+  VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
+  while (pred_edge_iter.hasNext()) {
+    Edge* pred_edge = pred_edge_iter.next();
+    Vertex* fanout = pred_edge->to(sta_->graph());
+    VertexInEdgeIterator succ_edge_iter(succ, sta_->graph());
+    while (succ_edge_iter.hasNext()) {
+      Edge* succ_edge = succ_edge_iter.next();
+      Vertex* fanin = succ_edge->from(sta_->graph());
+      if (fanin == fanout)
+        return fanin->pin();
+    }
   }
   return nullptr;
 }
