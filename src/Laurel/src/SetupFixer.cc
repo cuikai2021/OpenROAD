@@ -27,7 +27,7 @@ SetupFixer::SetupFixer(OpenRoad* openroad, Options* options)
        openroad->getGlobalRouter());
   resizePreamble();
   init();
-  initAlgorithm();
+  // initAlgorithm();
 }
 
 Cost SetupFixer::delay2Cost(Delay delay)
@@ -235,14 +235,14 @@ void SetupFixer::addConstraintPO(Vertex* po)
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
   Index po_index = getIndex(po);
   Required req = sta_->vertexRequired(po, MinMax::max()) + slack_margin;
-  addConstraintBase(po_index, s_index, LRL_S_INT_INF, delay2Cost(req));
+  addConstraintBase(po_index, S_INDEX, LRL_S_INT_INF, delay2Cost(req));
   solver_.SetNodeSupply(po_index, -LRL_S_INT_INF);
 }
 
 void SetupFixer::addConstraintPI(Vertex* pi)
 {
   Index pi_index = getIndex(pi);
-  addConstraintBase(s_index, pi_index, LRL_S_INT_INF, LRL_S_ZERO);
+  addConstraintBase(S_INDEX, pi_index, LRL_S_INT_INF, LRL_S_ZERO);
 }
 
 void SetupFixer::initAlgorithm()
@@ -277,7 +277,7 @@ SetupResult SetupFixer::resolve()
         start_nodes_[i], end_nodes_[i], capacities_[i], unit_costs_[i]);
 
   // Add node supplies.
-  solver_.SetNodeSupply(s_index, LRL_S_INT_INF);
+  solver_.SetNodeSupply(S_INDEX, LRL_S_INT_INF);
 
   return solver_.SolveMaxFlowWithMinCost();
 }
@@ -308,7 +308,7 @@ void SetupFixer::initArrivalMap()
   arrival_map_.clear();
   for (auto node : vertex_index_map_) {
     Index index = node.second;
-    if (index == s_index)
+    if (index == S_INDEX)
       arrival_map_.insert(index, LRL_H_ZERO);
     else
       arrival_map_.insert(index, LRL_H_INFINITY);
@@ -364,7 +364,7 @@ Delay SetupFixer::getNewDelay(Vertex* vertex)
       if (vertex_index_map_.hasKey(pred->name(sta_->sdcNetwork()))) {
         Index pred_index = getIndex(pred);
         Index succ_index = getIndex(vertex);
-        if (pred_index != s_index) {
+        if (pred_index != S_INDEX) {
           Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
           if (fuzzyLess(new_delay, shortest_delay))
             shortest_delay = new_delay;
