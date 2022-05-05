@@ -1199,8 +1199,8 @@ void NesterovBase::updateGCellCenterLocation(
 void NesterovBase::updateGCellDensityCenterLocation(
     const std::vector<FloatPoint>& coordis)
 {
-  for (auto& coordi : coordis) {
-    int idx = &coordi - &coordis[0];
+  for (size_t idx = 0; idx < coordis.size(); ++idx) {
+    auto coordi = coordis[idx];
     gCells_[idx]->setDensityCenterLocation(coordi.x, coordi.y);
   }
   bg_.updateBinsGCellDensityArea(gCells_);
