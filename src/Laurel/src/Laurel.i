@@ -28,12 +28,12 @@ using ord::ensureLinked;
 
 namespace lrl {
 
-void
+int
 fix_hold_cmd()
 {
   ensureLinked();
   Laurel *laurel = getLaurel();
-  laurel->fixHold();
+  return laurel->fixHold();
 }
 
 void
@@ -60,12 +60,12 @@ analyze_clk()
   options->analyzeClk();
 }
 
-void
+int
 fix_setup_cmd()
 {
   ensureLinked();
   Laurel *laurel = getLaurel();
-  laurel->fixSetup();
+  return laurel->fixSetup();
 }
 
 } // namespace

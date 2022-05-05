@@ -217,15 +217,14 @@ class Laurel : public LaurelAdapter
                   SteinerTreeBuilder* stt_builder,
                   GlobalRouter* global_router);
 
-  void fixHold();
-  void fixSetup();
+  int fixHold();
+  int fixSetup();
 
   Options* getOptions() { return options_; }
 
  protected:
   bool fixHoldCore();
 
-  int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
   bool insertBuffer(HoldFixer* fixer, Name vertex_name);
   bool insertAllBuffer(HoldFixer* fixer);
   Pin* findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const;
