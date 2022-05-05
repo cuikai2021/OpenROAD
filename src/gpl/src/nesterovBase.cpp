@@ -747,16 +747,12 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
   // update density and overflowArea
   // for nesterov use and FFT library
   for (auto& bin : bins_) {
-    int64_t binArea = bin->binArea();
-    bin->setDensity(static_cast<float>(bin->nonPlaceArea()
-                                       + bin->instPlacedArea()
-                                       + bin->fillerArea())
-                    / static_cast<float>(binArea * bin->targetDensity()));
-
-    overflowArea_ += std::max(
-        0.0f,
-        static_cast<float>(bin->instPlacedArea() + bin->nonPlaceArea())
-            - (binArea * bin->targetDensity()));
+    const float binTargetArea = bin->binArea() * bin->targetDensity();
+    const float occupiedNonFillerArea = bin->instPlacedArea() + bin->nonPlaceArea();
+    const float occupiedAllArea = occupiedNonFillerArea + bin->fillerArea();
+    const float overflow = occupiedNonFillerArea - binTargetArea;
+    bin->setDensity(occupiedAllArea / binTargetArea);
+    overflowArea_ += std::max(0.0f, overflow);
   }
 }
 
