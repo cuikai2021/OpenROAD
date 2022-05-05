@@ -748,7 +748,8 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
   // for nesterov use and FFT library
   for (auto& bin : bins_) {
     const float binTargetArea = bin->binArea() * bin->targetDensity();
-    const float occupiedNonFillerArea = bin->instPlacedArea() + bin->nonPlaceArea();
+    const float occupiedNonFillerArea
+        = bin->instPlacedArea() + bin->nonPlaceArea();
     const float occupiedAllArea = occupiedNonFillerArea + bin->fillerArea();
     const float overflow = occupiedNonFillerArea - binTargetArea;
     bin->setDensity(occupiedAllArea / binTargetArea);
@@ -1176,8 +1177,8 @@ GNet* NesterovBase::dbToNb(odb::dbNet* net) const
 // gcell update
 void NesterovBase::updateGCellLocation(const std::vector<FloatPoint>& coordis)
 {
-  for (auto& coordi : coordis) {
-    int idx = &coordi - &coordis[0];
+  for (size_t idx = 0; idx < coordis.size(); ++idx) {
+    auto coordi = coordis[idx];
     gCells_[idx]->setLocation(coordi.x, coordi.y);
   }
 }
@@ -1186,8 +1187,8 @@ void NesterovBase::updateGCellLocation(const std::vector<FloatPoint>& coordis)
 void NesterovBase::updateGCellCenterLocation(
     const std::vector<FloatPoint>& coordis)
 {
-  for (auto& coordi : coordis) {
-    int idx = &coordi - &coordis[0];
+  for (size_t idx = 0; idx < coordis.size(); ++idx) {
+    auto coordi = coordis[idx];
     gCells_[idx]->setCenterLocation(coordi.x, coordi.y);
   }
 }
