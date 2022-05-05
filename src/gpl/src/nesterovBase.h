@@ -310,8 +310,8 @@ class GNet {
     //
     // X forces.
     //
-    // waExpMinSumX_: store sigma {exp(x_i/gamma)}
-    // waXExpMinSumX_: store signa {x_i*exp(e_i/gamma)}
+    // waExpMinSumX_:  store sigma {exp(x_i/gamma)}
+    // waXExpMinSumX_: store sigma {x_i*exp(x_i/gamma)}
     // waExpMaxSumX_ : store sigma {exp(-x_i/gamma)}
     // waXExpMaxSumX_: store sigma {x_i*exp(-x_i/gamma)}
     //
@@ -324,8 +324,8 @@ class GNet {
     //
     // Y forces.
     //
-    // waExpMinSumY_: store sigma {exp(y_i/gamma)}
-    // waYExpMinSumY_: store signa {y_i*exp(e_i/gamma)}
+    // waExpMinSumY_:  store sigma {exp(y_i/gamma)}
+    // waYExpMinSumY_: store sigma {y_i*exp(y_i/gamma)}
     // waExpMaxSumY_ : store sigma {exp(-y_i/gamma)}
     // waYExpMaxSumY_: store sigma {y_i*exp(-y_i/gamma)}
     //
