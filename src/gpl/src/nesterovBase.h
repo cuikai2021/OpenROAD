@@ -73,19 +73,16 @@ class GCell
 
   // instance cells
   GCell(Instance* inst);
-  GCell(const std::vector<Instance*>& insts);
 
   // filler cells
   GCell(int cx, int cy, int dx, int dy);
   ~GCell();
 
   Instance* instance() const;
-  const std::vector<Instance*>& insts() const { return insts_; }
   const std::vector<GPin*>& gPins() const { return gPins_; }
 
   void addGPin(GPin* gPin);
 
-  void setClusteredInstance(const std::vector<Instance*>& insts);
   void setInstance(Instance* inst);
   void setFiller();
 
@@ -126,13 +123,12 @@ class GCell
   float densityScale() const { return densityScale_; }
 
   bool isInstance() const;
-  bool isClusteredInstance() const;
   bool isFiller() const;
   bool isMacroInstance() const;
   bool isStdInstance() const;
 
  private:
-  std::vector<Instance*> insts_;
+  Instance* inst_;
   std::vector<GPin*> gPins_;
   int lx_;
   int ly_;
@@ -154,11 +150,9 @@ class GNet
  public:
   GNet();
   GNet(Net* net);
-  GNet(const std::vector<Net*>& nets);
   ~GNet();
 
-  Net* net() const;
-  const std::vector<Net*>& nets() const { return nets_; }
+  Net* net() const { return net_; }
   const std::vector<GPin*>& gPins() const { return gPins_; }
 
   int lx() const { return lx_; }
@@ -202,8 +196,9 @@ class GNet
   float waYExpMaxSumY() const { return wa_[Y].waXExpMaxSum(); }
 
  private:
+  Net* net_;
   std::vector<GPin*> gPins_;
-  std::vector<Net*> nets_;
+
   int lx_;
   int ly_;
   int ux_;
@@ -222,11 +217,9 @@ class GPin
  public:
   GPin();
   GPin(Pin* pin);
-  GPin(const std::vector<Pin*>& pins);
   ~GPin();
 
   Pin* pin() const;
-  const std::vector<Pin*>& pins() const { return pins_; }
 
   GCell* gCell() const { return gCell_; }
   GNet* gNet() const { return gNet_; }
@@ -260,9 +253,9 @@ class GPin
   void updateDensityLocation(const GCell* gCell);
 
  private:
+  Pin* pin_;
   GCell* gCell_;
   GNet* gNet_;
-  std::vector<Pin*> pins_;
 
   int offsetCx_;
   int offsetCy_;

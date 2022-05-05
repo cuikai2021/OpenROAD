@@ -68,7 +68,8 @@ static float fastExp(float exp);
 // GCell
 
 GCell::GCell()
-    : lx_(0),
+    : inst_(nullptr),
+      lx_(0),
       ly_(0),
       ux_(0),
       uy_(0),
@@ -87,11 +88,6 @@ GCell::GCell(Instance* inst) : GCell()
   setInstance(inst);
 }
 
-GCell::GCell(const std::vector<Instance*>& insts) : GCell()
-{
-  setClusteredInstance(insts);
-}
-
 GCell::GCell(int cx, int cy, int dx, int dy) : GCell()
 {
   dLx_ = lx_ = cx - dx / 2;
@@ -103,12 +99,13 @@ GCell::GCell(int cx, int cy, int dx, int dy) : GCell()
 
 GCell::~GCell()
 {
-  insts_.clear();
+  inst_ = nullptr;
 }
 
 void GCell::setInstance(Instance* inst)
 {
-  insts_.push_back(inst);
+  assert(inst);
+  inst_ = inst;
   // density coordi has the same center points.
   dLx_ = lx_ = inst->lx();
   dLy_ = ly_ = inst->ly();
@@ -118,7 +115,7 @@ void GCell::setInstance(Instance* inst)
 
 Instance* GCell::instance() const
 {
-  return insts_.empty() ? nullptr : *insts_.begin();
+  return inst_;
 }
 
 void GCell::addGPin(GPin* gPin)
@@ -129,11 +126,7 @@ void GCell::addGPin(GPin* gPin)
 // do nothing
 void GCell::setFiller()
 {
-}
-
-void GCell::setClusteredInstance(const std::vector<Instance*>& insts)
-{
-  insts_ = insts;
+  assert(inst_ == nullptr);
 }
 
 void GCell::setLocation(int lx, int ly)
@@ -233,17 +226,12 @@ void GCell::setGradientY(float gradientY)
 
 bool GCell::isInstance() const
 {
-  return (insts_.size() == 1);
-}
-
-bool GCell::isClusteredInstance() const
-{
-  return (insts_.size() > 0);
+  return inst_ != nullptr;
 }
 
 bool GCell::isFiller() const
 {
-  return (insts_.size() == 0);
+  return inst_ == nullptr;
 }
 
 bool GCell::isMacroInstance() const
@@ -266,7 +254,8 @@ bool GCell::isStdInstance() const
 // GNet
 
 GNet::GNet()
-    : lx_(0),
+    : net_(nullptr),
+      lx_(0),
       ly_(0),
       ux_(0),
       uy_(0),
@@ -278,23 +267,13 @@ GNet::GNet()
 
 GNet::GNet(Net* net) : GNet()
 {
-  nets_.push_back(net);
-}
-
-GNet::GNet(const std::vector<Net*>& nets) : GNet()
-{
-  nets_ = nets;
+  net_ = net;
 }
 
 GNet::~GNet()
 {
   gPins_.clear();
-  nets_.clear();
-}
-
-Net* GNet::net() const
-{
-  return *nets_.begin();
+  net_ = nullptr;
 }
 
 void GNet::setTimingWeight(float timingWeight)
@@ -350,7 +329,8 @@ bool GNet::isDontCare() const
 // GPin
 
 GPin::GPin()
-    : gCell_(nullptr),
+    : pin_(nullptr),
+      gCell_(nullptr),
       gNet_(nullptr),
       offsetCx_(0),
       offsetCy_(0),
@@ -369,28 +349,24 @@ GPin::GPin()
 
 GPin::GPin(Pin* pin) : GPin()
 {
-  pins_.push_back(pin);
+  assert(pin);
+  pin_ = pin;
   cx_ = pin->cx();
   cy_ = pin->cy();
   offsetCx_ = pin->offsetCx();
   offsetCy_ = pin->offsetCy();
 }
 
-GPin::GPin(const std::vector<Pin*>& pins)
-{
-  pins_ = pins;
-}
-
 GPin::~GPin()
 {
   gCell_ = nullptr;
   gNet_ = nullptr;
-  pins_.clear();
+  pin_ = nullptr;
 }
 
 Pin* GPin::pin() const
 {
-  return *pins_.begin();
+  return pin_;
 }
 
 void GPin::setGCell(GCell* gCell)
