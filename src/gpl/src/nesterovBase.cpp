@@ -661,7 +661,8 @@ void BinGrid::initBins()
     // cout << "idxX: " << idxX << " idxY: " << idxY
     //  << " x:" << x << " y:" << y
     //  << " " << x+sizeX << " " << y+sizeY << endl;
-    binStor_.emplace_back(Bin(idxX, idxY, x, y, x + sizeX, y + sizeY, targetDensity_));
+    binStor_.emplace_back(
+        Bin(idxX, idxY, x, y, x + sizeX, y + sizeY, targetDensity_));
 
     // move x, y coordinates.
     x += binSizeX_;
@@ -723,35 +724,19 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
     // The following function is critical runtime hotspot
     // for global placer.
     //
-    if (cell->isInstance()) {
-      // macro should have
-      // scale-down with target-density
-      if (cell->isMacroInstance()) {
-        for (int i = pairX.first; i < pairX.second; i++) {
-          for (int j = pairY.first; j < pairY.second; j++) {
-            Bin* bin = bins_[j * binCntX_ + i];
-            bin->addInstPlacedArea(getOverlapDensityArea(bin, cell)
-                                   * cell->densityScale()
-                                   * bin->targetDensity());
-          }
-        }
-      }
-      // normal cells
-      else if (cell->isStdInstance()) {
-        for (int i = pairX.first; i < pairX.second; i++) {
-          for (int j = pairY.first; j < pairY.second; j++) {
-            Bin* bin = bins_[j * binCntX_ + i];
-            bin->addInstPlacedArea(getOverlapDensityArea(bin, cell)
-                                   * cell->densityScale());
-          }
-        }
-      }
-    } else if (cell->isFiller()) {
-      for (int i = pairX.first; i < pairX.second; i++) {
-        for (int j = pairY.first; j < pairY.second; j++) {
-          Bin* bin = bins_[j * binCntX_ + i];
-          bin->addFillerArea(getOverlapDensityArea(bin, cell)
-                             * cell->densityScale());
+    for (int i = pairX.first; i < pairX.second; i++) {
+      for (int j = pairY.first; j < pairY.second; j++) {
+        Bin* bin = bins_[j * binCntX_ + i];
+        auto area = getOverlapDensityArea(bin, cell) * cell->densityScale();
+        if (cell->isMacroInstance()) {
+          // macro should have scale-down with target-density
+          area *= bin->targetDensity();
+          bin->addInstPlacedArea(area);
+        } else if (cell->isStdInstance()) {
+          bin->addInstPlacedArea(area);
+        } else {
+          assert(cell->isFiller());
+          bin->addFillerArea(area);
         }
       }
     }
