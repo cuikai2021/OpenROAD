@@ -68,13 +68,13 @@ class FFT;
 
 class GCell
 {
- public:
   GCell();
+ public:
 
-  // instance cells
+  // instance cell
   GCell(Instance* inst);
 
-  // filler cells
+  // filler cell
   GCell(int cx, int cy, int dx, int dy);
   ~GCell();
 
@@ -147,8 +147,8 @@ class GCell
 
 class GNet
 {
- public:
   GNet();
+ public:
   GNet(Net* net);
   ~GNet();
 
@@ -214,8 +214,8 @@ class GNet
 
 class GPin
 {
- public:
   GPin();
+ public:
   GPin(Pin* pin);
   ~GPin();
 
@@ -288,8 +288,8 @@ class GPin
 
 class Bin
 {
- public:
   Bin();
+ public:
   Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity);
 
   ~Bin();
@@ -441,8 +441,8 @@ class NesterovBaseVars
 
 class NesterovBase
 {
- public:
   NesterovBase();
+ public:
   NesterovBase(NesterovBaseVars nbVars,
                std::shared_ptr<PlacerBase> pb,
                utl::Logger* log);

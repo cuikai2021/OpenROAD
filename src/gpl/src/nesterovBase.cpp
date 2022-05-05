@@ -649,18 +649,19 @@ void BinGrid::initBins()
   log_->info(GPL, 29, "BinSize: {} {}", binSizeX_, binSizeY_);
 
   // initialize binStor_, bins_ vector
-  binStor_.resize(binCntX_ * binCntY_);
-  bins_.reserve(binCntX_ * binCntY_);
+  size_t binsCnt = binCntX_ * binCntY_;
+  binStor_.reserve(binsCnt);
+  bins_.reserve(binsCnt);
   int x = lx_, y = ly_;
   int idxX = 0, idxY = 0;
-  for (auto& bin : binStor_) {
+  for (size_t i = 0; i < binsCnt; ++i) {
     int sizeX = (x + binSizeX_ > ux_) ? ux_ - x : binSizeX_;
     int sizeY = (y + binSizeY_ > uy_) ? uy_ - y : binSizeY_;
 
     // cout << "idxX: " << idxX << " idxY: " << idxY
     //  << " x:" << x << " y:" << y
     //  << " " << x+sizeX << " " << y+sizeY << endl;
-    bin = Bin(idxX, idxY, x, y, x + sizeX, y + sizeY, targetDensity_);
+    binStor_.emplace_back(Bin(idxX, idxY, x, y, x + sizeX, y + sizeY, targetDensity_));
 
     // move x, y coordinates.
     x += binSizeX_;
@@ -674,7 +675,7 @@ void BinGrid::initBins()
       idxX = 0;
     }
 
-    bins_.push_back(&bin);
+    bins_.push_back(&*binStor_.rbegin());
   }
 
   log_->info(GPL, 30, "NumBins: {}", bins_.size());
