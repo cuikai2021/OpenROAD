@@ -117,7 +117,6 @@ class Replace
     void setReferenceHpwl(float deltaHpwl);
 
     void setIncrementalPlaceMode(bool mode);
-    void setVerboseLevel(int verbose);
     
     // temp funcs; OpenDB should have these values. 
     void setPadLeft(int padding);
@@ -205,7 +204,6 @@ class Replace
     int padLeft_;
     int padRight_;
 
-    int verbose_;
     bool gui_debug_;
     int gui_debug_pause_iterations_;
     int gui_debug_update_iterations_;
