@@ -1426,11 +1426,13 @@ float NesterovBase::getDensityCoordiLayoutInsideX(const GCell* gCell,
   float adjVal = cx;
   // TODO will change base on each assigned binGrids.
   //
-  if (cx - gCell->dDx() / 2 < bg_.lx()) {
-    adjVal = bg_.lx() + gCell->dDx() / 2;
+  auto min = bg_.lx() + gCell->dDx() / 2;
+  auto max = bg_.ux() - gCell->dDx() / 2;
+  if (adjVal < min) {
+    adjVal = min;
   }
-  if (cx + gCell->dDx() / 2 > bg_.ux()) {
-    adjVal = bg_.ux() - gCell->dDx() / 2;
+  if (adjVal > max) {
+    adjVal = max;
   }
   return adjVal;
 }
@@ -1441,13 +1443,14 @@ float NesterovBase::getDensityCoordiLayoutInsideY(const GCell* gCell,
   float adjVal = cy;
   // TODO will change base on each assigned binGrids.
   //
-  if (cy - gCell->dDy() / 2 < bg_.ly()) {
-    adjVal = bg_.ly() + gCell->dDy() / 2;
+  auto min = bg_.ly() + gCell->dDy() / 2;
+  auto max = bg_.uy() - gCell->dDy() / 2;
+  if (adjVal < min) {
+    adjVal = min;
   }
-  if (cy + gCell->dDy() / 2 > bg_.uy()) {
-    adjVal = bg_.uy() - gCell->dDy() / 2;
+  if (adjVal > max) {
+    adjVal = max;
   }
-
   return adjVal;
 }
 
