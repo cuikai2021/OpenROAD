@@ -696,7 +696,7 @@ void BinGrid::updateBinsNonPlaceArea()
     std::pair<int, int> pairY = getMinMaxIdxY(inst);
     for (int i = pairX.first; i < pairX.second; i++) {
       for (int j = pairY.first; j < pairY.second; j++) {
-        Bin* bin = bins_[j * binCntX_ + i];
+        Bin* bin = binAt(i, j);
 
         // Note that nonPlaceArea should have scale-down with
         // target density.
@@ -726,7 +726,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
     //
     for (int i = pairX.first; i < pairX.second; i++) {
       for (int j = pairY.first; j < pairY.second; j++) {
-        Bin* bin = bins_[j * binCntX_ + i];
+        Bin* bin = binAt(i, j);
         auto area = getOverlapDensityArea(bin, cell) * cell->densityScale();
         if (cell->isMacroInstance()) {
           // macro should have scale-down with target-density
@@ -1689,7 +1689,7 @@ FloatPoint NesterovBase::getDensityGradient(const GCell* gCell) const
 
   for (int i = pairX.first; i < pairX.second; i++) {
     for (int j = pairY.first; j < pairY.second; j++) {
-      Bin* bin = bg_.bins()[j * binCntX() + i];
+      Bin* bin = bg_.binAt(i, j);
       float overlapArea
           = getOverlapDensityArea(bin, gCell) * gCell->densityScale();
 

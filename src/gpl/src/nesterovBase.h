@@ -69,8 +69,8 @@ class FFT;
 class GCell
 {
   GCell();
- public:
 
+ public:
   // instance cell
   GCell(Instance* inst);
 
@@ -148,6 +148,7 @@ class GCell
 class GNet
 {
   GNet();
+
  public:
   GNet(Net* net);
   ~GNet();
@@ -215,6 +216,7 @@ class GNet
 class GPin
 {
   GPin();
+
  public:
   GPin(Pin* pin);
   ~GPin();
@@ -289,6 +291,7 @@ class GPin
 class Bin
 {
   Bin();
+
  public:
   Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity);
 
@@ -401,6 +404,7 @@ class BinGrid
   std::pair<int, int> getMinMaxIdxY(const Instance* inst) const;
 
   const std::vector<Bin*>& bins() const { return bins_; }
+  Bin* binAt(int xIdx, int yIdx) const { return bins_[yIdx * binCntX_ + xIdx]; }
 
   void updateBinsNonPlaceArea();
 
@@ -442,6 +446,7 @@ class NesterovBaseVars
 class NesterovBase
 {
   NesterovBase();
+
  public:
   NesterovBase(NesterovBaseVars nbVars,
                std::shared_ptr<PlacerBase> pb,
