@@ -727,7 +727,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
     for (int i = pairX.first; i < pairX.second; i++) {
       for (int j = pairY.first; j < pairY.second; j++) {
         Bin* bin = binAt(i, j);
-        auto area = getOverlapDensityArea(bin, cell) * cell->densityScale();
+        auto area = getOverlapDensityArea(bin, cell);
         if (cell->isMacroInstance()) {
           // macro should have scale-down with target-density
           area *= bin->targetDensity();
@@ -1690,8 +1690,7 @@ FloatPoint NesterovBase::getDensityGradient(const GCell* gCell) const
   for (int i = pairX.first; i < pairX.second; i++) {
     for (int j = pairY.first; j < pairY.second; j++) {
       Bin* bin = bg_.binAt(i, j);
-      float overlapArea
-          = getOverlapDensityArea(bin, gCell) * gCell->densityScale();
+      float overlapArea = getOverlapDensityArea(bin, gCell);
 
       electroForce.x += overlapArea * bin->electroForceX();
       electroForce.y += overlapArea * bin->electroForceY();
@@ -1766,13 +1765,14 @@ static float getOverlapDensityArea(const Bin* bin, const GCell* cell)
       rectLy = max(bin->ly(), cell->dLy()),
       rectUx = min(bin->ux(), cell->dUx()),
       rectUy = min(bin->uy(), cell->dUy());
-
+  float area = 0.0;
   if (rectLx >= rectUx || rectLy >= rectUy) {
-    return 0;
+    area = 0;
   } else {
-    return static_cast<float>(rectUx - rectLx)
+    area = static_cast<float>(rectUx - rectLx)
            * static_cast<float>(rectUy - rectLy);
   }
+  return area * cell->densityScale();
 }
 
 static int64_t getOverlapArea(const Bin* bin, const Instance* inst)
