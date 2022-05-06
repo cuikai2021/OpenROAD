@@ -1336,11 +1336,9 @@ void NesterovBase::updateAreas()
   stdInstsArea_ = macroInstsArea_ = 0;
   for (auto* gCell : gCells_) {
     if (gCell->isMacroInstance()) {
-      macroInstsArea_ += static_cast<int64_t>(gCell->dx())
-                         * static_cast<int64_t>(gCell->dy());
+      macroInstsArea_ += gCell->instance()->area();
     } else if (gCell->isStdInstance()) {
-      stdInstsArea_ += static_cast<int64_t>(gCell->dx())
-                       * static_cast<int64_t>(gCell->dy());
+      stdInstsArea_ += gCell->instance()->area();
     }
   }
 
