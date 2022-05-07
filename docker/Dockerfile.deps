@@ -11,7 +11,7 @@ RUN bash /tmp/DependencyInstaller.sh -dev
 RUN rm -f /tmp/DependencyInstaller.sh
 
 FROM deps AS deps-debug
-RUN apt install -y liboctave-dev gdb
+RUN apt install -y gdb
 
 FROM deps-debug AS deps-debug-vscode
 COPY ./vscode-extensions /root/.vscode-server/extensions
