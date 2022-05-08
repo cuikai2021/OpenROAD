@@ -225,6 +225,8 @@ class Laurel : public LaurelAdapter
   uint64 getWireBudMaxLen(Vertex* fanin, Vertex* fanout){return 0;}
   uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout){return 0;}
 
+  uint64 getWireLenScalingRate(Pin* fanin, Pin* fanout) { return 0; }
+
   Options* getOptions() { return options_; }
 
  protected:
