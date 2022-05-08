@@ -1335,10 +1335,17 @@ void NesterovBase::updateAreas()
   // stdInstsArea and macroInstsArea
   stdInstsArea_ = macroInstsArea_ = 0;
   for (auto* gCell : gCells_) {
+    if (!gCell->isInstance()) {
+      continue;
+    }
+    const float r = static_cast<float>(gCell->dx())
+              / static_cast<float>(gCell->instance()->dx());
+    const float area_inflation = r * r;
+    auto const inst_area = gCell->instance()->area() * area_inflation;
     if (gCell->isMacroInstance()) {
-      macroInstsArea_ += gCell->instance()->area();
+      macroInstsArea_ += inst_area;
     } else if (gCell->isStdInstance()) {
-      stdInstsArea_ += gCell->instance()->area();
+      stdInstsArea_ += inst_area;
     }
   }
 
