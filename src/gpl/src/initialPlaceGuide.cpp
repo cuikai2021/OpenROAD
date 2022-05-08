@@ -38,21 +38,18 @@
 #include <map>
 
 #include "placerBase.h"
+#include "utl/Logger.h"
 
 namespace gpl {
 using namespace std;
 
+// NOTE: 
+//   This class may not be needed any more as we have initialPlaceDef already.
+//   It can be savely removed if not used within two quarters (by end of 2022)
 void InitialPlaceGuide::run()
 {
   assert(guide_file_ != "");
-
-  const std::string DEF_FILE_POSTFIX = ".def";
-  if (guide_file_.rfind(DEF_FILE_POSTFIX) != 0) {
-    // all positions are set in the def file already.
-    return;
-  }
-
-  // FIXME: error handling 
+  // FIXME: error handling
   std::ifstream fin(guide_file_);
   string line;
   std::map<std::string, std::pair<int, int>> m;
