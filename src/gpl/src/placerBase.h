@@ -34,11 +34,13 @@
 #ifndef __PLACER_BASE__
 #define __PLACER_BASE__
 
-#include <vector>
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
 #include "dimension.h"
+#include "odb/geom.h"
+
 namespace odb {
 class dbDatabase;
 
@@ -54,7 +56,7 @@ class dbBox;
 
 class Rect;
 
-}
+}  // namespace odb
 
 namespace utl {
 class Logger;
@@ -64,15 +66,17 @@ namespace gpl {
 
 class Pin;
 class Net;
-class GCell;
 
-
-class Instance {
-public:
+class Instance
+{
+ public:
   Instance();
-  Instance(odb::dbInst* inst, int padLeft, int padRight,
-           int site_height, utl::Logger* logger);
-  Instance(int lx, int ly, int ux, int uy); // dummy instance
+  Instance(odb::dbInst* inst,
+           int padLeft,
+           int padRight,
+           int site_height,
+           utl::Logger* logger);
+  Instance(int lx, int ly, int ux, int uy);  // dummy instance
   ~Instance();
 
   odb::dbInst* dbInst() const { return inst_; }
@@ -107,38 +111,38 @@ public:
   void dbSetLocation(int x, int y);
   void dbSetCenterLocation(int x, int y);
 
-  int lx() const;
-  int ly() const;
-  int ux() const;
-  int uy() const;
-  int cx() const;
-  int cy() const;
+  int lx() const { return rect_.xMin(); }
+  int ly() const { return rect_.yMin(); }
+  int ux() const { return rect_.xMax(); }
+  int uy() const { return rect_.yMax(); }
+
+  int cx() const { return (lx() + ux()) / 2; }
+  int cy() const { return (ly() + uy()) / 2; }
   int c(DIMENSION d) const { return d == X ? cx() : cy(); }
-  int dx() const;
-  int dy() const;
+
+  int dx() const { return rect_.dx(); }
+  int dy() const { return rect_.dy(); }
+
   int64_t area() const;
 
-  
   void setExtId(int extId);
   int extId() const { return extId_; }
 
   void addPin(Pin* pin);
-  const std::vector<Pin*> & pins() const { return pins_; }
+  const std::vector<Pin*>& pins() const { return pins_; }
 
-private:
+ private:
   odb::dbInst* inst_;
   std::vector<Pin*> pins_;
-  int lx_;
-  int ly_;
-  int ux_;
-  int uy_;
+  odb::Rect rect_;
   int extId_;
   bool is_macro_;
   bool is_locked_;
 };
 
-class Pin {
-public:
+class Pin
+{
+ public:
   Pin();
   explicit Pin(odb::dbITerm* iTerm);
   explicit Pin(odb::dbBTerm* bTerm);
@@ -165,7 +169,10 @@ public:
 
   int offsetCx() const;
   int offsetCy() const;
-  int offsetC(DIMENSION dim) const { return dim == X ? offsetCx() : offsetCy(); }
+  int offsetC(DIMENSION dim) const
+  {
+    return dim == X ? offsetCx() : offsetCy();
+  }
 
   void updateLocation(const Instance* inst);
 
@@ -177,16 +184,15 @@ public:
   Instance* instance() const { return inst_; }
   Net* net() const { return net_; }
   std::string name() const;
-  
-private:
+
+ private:
   void* term_;
   Instance* inst_;
   Net* net_;
 
   // pin center coordinate is enough
   // Pins' placed location.
-  int cx_;
-  int cy_;
+  odb::Point center_;
 
   // offset coordinates inside instance.
   // origin point is center point of instance.
@@ -195,53 +201,53 @@ private:
   int offsetCx_;
   int offsetCy_;
 
-  unsigned char iTermField_:1;
-  unsigned char bTermField_:1;
-  unsigned char minPinXField_:1;
-  unsigned char minPinYField_:1;
-  unsigned char maxPinXField_:1;
-  unsigned char maxPinYField_:1;
+  unsigned char iTermField_ : 1;
+  unsigned char bTermField_ : 1;
+  unsigned char minPinXField_ : 1;
+  unsigned char minPinYField_ : 1;
+  unsigned char maxPinXField_ : 1;
+  unsigned char maxPinYField_ : 1;
 
   void updateCoordi(odb::dbITerm* iTerm);
   void updateCoordi(odb::dbBTerm* bTerm);
 };
 
-class Net {
-public:
+class Net
+{
+ public:
   Net();
   Net(odb::dbNet* net, bool skipIoMode);
   ~Net();
 
-  int lx() const;
-  int ly() const;
-  int ux() const;
-  int uy() const;
-  int cx() const;
-  int cy() const;
+  int lx() const { return rect_.xMin(); }
+  int ly() const { return rect_.yMin(); }
+  int ux() const { return rect_.xMax(); }
+  int uy() const { return rect_.yMax(); }
+
+  int cx() const { return (lx() + ux()) / 2; }
+  int cy() const { return (ly() + uy()) / 2; }
 
   // HPWL: half-parameter-wire-length
   int64_t hpwl() const;
 
   void updateBox(bool skipIoMode = false);
 
-  const std::vector<Pin*> & pins() const { return pins_; }
+  const std::vector<Pin*>& pins() const { return pins_; }
 
   odb::dbNet* dbNet() const { return net_; }
   odb::dbSigType getSigType() const;
 
   void addPin(Pin* pin);
 
-private:
+ private:
   odb::dbNet* net_;
   std::vector<Pin*> pins_;
-  int lx_;
-  int ly_;
-  int ux_;
-  int uy_;
+  odb::Rect rect_;
 };
 
-class Die {
-public:
+class Die
+{
+ public:
   Die();
   Die(const odb::Rect& dieBox, const odb::Rect& coreRect);
   ~Die();
@@ -249,15 +255,15 @@ public:
   void setDieBox(const odb::Rect& dieBox);
   void setCoreBox(const odb::Rect& coreBox);
 
-  int dieLx() const { return dieLx_; }
-  int dieLy() const { return dieLy_; }
-  int dieUx() const { return dieUx_; }
-  int dieUy() const { return dieUy_; }
+  int dieLx() const { return die_.xMin(); }
+  int dieLy() const { return die_.yMin(); }
+  int dieUx() const { return die_.xMax(); }
+  int dieUy() const { return die_.yMax(); }
 
-  int coreLx() const { return coreLx_; }
-  int coreLy() const { return coreLy_; }
-  int coreUx() const { return coreUx_; }
-  int coreUy() const { return coreUy_; }
+  int coreLx() const { return core_.xMin(); }
+  int coreLy() const { return core_.yMin(); }
+  int coreUx() const { return core_.xMax(); }
+  int coreUy() const { return core_.yMax(); }
 
   int dieCx() const;
   int dieCy() const;
@@ -271,34 +277,28 @@ public:
   int64_t dieArea() const;
   int64_t coreArea() const;
 
-private:
-  int dieLx_;
-  int dieLy_;
-  int dieUx_;
-  int dieUy_;
-  int coreLx_;
-  int coreLy_;
-  int coreUx_;
-  int coreUy_;
+ private:
+  odb::Rect die_;
+  odb::Rect core_;
 };
 
-class PlacerBaseVars {
-public:
+class PlacerBaseVars
+{
+ public:
   int padLeft;
   int padRight;
   bool skipIoMode;
 
   PlacerBaseVars();
-  void reset(); 
+  void reset();
 };
 
-class PlacerBase {
-public:
+class PlacerBase
+{
+ public:
   PlacerBase();
   // temp padLeft/Right before OpenDB supporting...
-  PlacerBase(odb::dbDatabase* db, 
-      PlacerBaseVars pbVars, 
-      utl::Logger* log);
+  PlacerBase(odb::dbDatabase* db, PlacerBaseVars pbVars, utl::Logger* log);
   ~PlacerBase();
 
   const std::vector<Instance*>& insts() const { return insts_; }
@@ -343,7 +343,7 @@ public:
 
   void unlockAll();
 
-private:
+ private:
   odb::dbDatabase* db_;
   utl::Logger* log_;
 
@@ -386,6 +386,6 @@ private:
   void reset();
 };
 
-}
+}  // namespace gpl
 
 #endif

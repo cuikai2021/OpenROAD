@@ -66,10 +66,7 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst);
 
 Instance::Instance()
     : inst_(nullptr),
-      lx_(0),
-      ly_(0),
-      ux_(0),
-      uy_(0),
+      rect_(),
       extId_(INT_MIN),
       is_macro_(false),
       is_locked_(false)
@@ -86,14 +83,16 @@ Instance::Instance(odb::dbInst* inst,
 {
   inst_ = inst;
   dbBox* bbox = inst->getBBox();
+  int lx_, ly_;
   inst->getLocation(lx_, ly_);
-  ux_ = lx_ + bbox->getDX();
-  uy_ = ly_ + bbox->getDY();
+  auto ux_ = lx_ + bbox->getDX();
+  auto uy_ = ly_ + bbox->getDY();
 
   if (isPlaceInstance()) {
     lx_ -= padLeft;
     ux_ += padRight;
   }
+  rect_ = Rect(lx_, ly_, ux_, uy_);
 
   // Masters more than row_limit rows tall are treated as macros
   constexpr int row_limit = 6;
@@ -117,21 +116,13 @@ Instance::Instance(odb::dbInst* inst,
 }
 
 // for dummy instances
-Instance::Instance(int lx, int ly, int ux, int uy) : Instance()
+Instance::Instance(int lx, int ly, int ux, int uy)
+    : rect_(lx, ly, ux, uy), inst_(nullptr)
 {
-  inst_ = nullptr;
-  lx_ = lx;
-  ly_ = ly;
-  ux_ = ux;
-  uy_ = uy;
 }
 
 Instance::~Instance()
 {
-  inst_ = nullptr;
-  lx_ = ly_ = 0;
-  ux_ = uy_ = 0;
-  pins_.clear();
 }
 
 bool Instance::isFixed() const
@@ -174,11 +165,7 @@ bool Instance::isDummy() const
 
 void Instance::setLocation(int x, int y)
 {
-  ux_ = x + (ux_ - lx_);
-  uy_ = y + (uy_ - ly_);
-
-  lx_ = x;
-  ly_ = y;
+  rect_.moveTo(x, y);
 
   // pins update
   for (auto& pin : pins_) {
@@ -188,12 +175,7 @@ void Instance::setLocation(int x, int y)
 
 void Instance::setCenterLocation(int x, int y)
 {
-  const int halfX = (ux_ - lx_) / 2;
-  const int halfY = (uy_ - ly_) / 2;
-  lx_ = x - halfX;
-  ly_ = y - halfY;
-  ux_ = x + halfX;
-  uy_ = y + halfY;
+  rect_.moveDelta(x - cx(), y - cy());
 
   // pins update
   for (auto& pin : pins_) {
@@ -213,7 +195,7 @@ void Instance::dbSetPlacementStatus(dbPlacementStatus ps)
 
 void Instance::dbSetLocation()
 {
-  inst_->setLocation(lx_, ly_);
+  inst_->setLocation(lx(), ly());
 }
 
 void Instance::dbSetLocation(int x, int y)
@@ -228,50 +210,10 @@ void Instance::dbSetCenterLocation(int x, int y)
   dbSetLocation();
 }
 
-int Instance::lx() const
-{
-  return lx_;
-}
-
-int Instance::ly() const
-{
-  return ly_;
-}
-
-int Instance::ux() const
-{
-  return ux_;
-}
-
-int Instance::uy() const
-{
-  return uy_;
-}
-
-int Instance::cx() const
-{
-  return (lx_ + ux_) / 2;
-}
-
-int Instance::cy() const
-{
-  return (ly_ + uy_) / 2;
-}
-
-int Instance::dx() const
-{
-  return (ux_ - lx_);
-}
-
-int Instance::dy() const
-{
-  return (uy_ - ly_);
-}
-
 int64_t Instance::area() const
 {
   if (inst_ == nullptr) {  // dummy instance
-    return static_cast<int64_t>(dx()) * dy();
+    return rect_.area();
   } else {
     auto master = inst_->getMaster();
     assert(master != nullptr);
@@ -318,8 +260,7 @@ Pin::Pin()
     : term_(nullptr),
       inst_(nullptr),
       net_(nullptr),
-      cx_(0),
-      cy_(0),
+      center_(),
       offsetCx_(0),
       offsetCy_(0),
       iTermField_(0),
@@ -426,12 +367,12 @@ bool Pin::isMaxPin(DIMENSION dim) const
 
 int Pin::cx() const
 {
-  return cx_;
+  return center_.getX();
 }
 
 int Pin::cy() const
 {
-  return cy_;
+  return center_.getY();
 }
 
 int Pin::offsetCx() const
@@ -495,8 +436,7 @@ void Pin::updateCoordi(odb::dbITerm* iTerm)
     offsetCy_ = (offsetLy + offsetUy) / 2 - instCenterY;
   }
 
-  cx_ = lx + instCenterX + offsetCx_;
-  cy_ = ly + instCenterY + offsetCy_;
+  center_.set(lx + instCenterX + offsetCx_, ly + instCenterY + offsetCy_);
 }
 
 //
@@ -528,14 +468,12 @@ void Pin::updateCoordi(odb::dbBTerm* bTerm)
   // Just center
   offsetCx_ = offsetCy_ = 0;
 
-  cx_ = (lx + ux) / 2;
-  cy_ = (ly + uy) / 2;
+  center_.set((lx + ux) / 2, (ly + uy) / 2);
 }
 
 void Pin::updateLocation(const Instance* inst)
 {
-  cx_ = inst->cx() + offsetCx_;
-  cy_ = inst->cy() + offsetCy_;
+  center_.set(inst->cx() + offsetCx_, inst->cy() + offsetCy_);
 }
 
 void Pin::setInstance(Instance* inst)
@@ -566,7 +504,7 @@ Pin::~Pin()
 ////////////////////////////////////////////////////////
 // Net
 
-Net::Net() : net_(nullptr), lx_(0), ly_(0), ux_(0), uy_(0)
+Net::Net() : net_(nullptr), rect_()
 {
 }
 Net::Net(odb::dbNet* net, bool skipIoMode) : Net()
@@ -577,67 +515,37 @@ Net::Net(odb::dbNet* net, bool skipIoMode) : Net()
 
 Net::~Net()
 {
-  net_ = nullptr;
-  lx_ = ly_ = ux_ = uy_ = 0;
-}
-
-int Net::lx() const
-{
-  return lx_;
-}
-
-int Net::ly() const
-{
-  return ly_;
-}
-
-int Net::ux() const
-{
-  return ux_;
-}
-
-int Net::uy() const
-{
-  return uy_;
-}
-
-int Net::cx() const
-{
-  return (lx_ + ux_) / 2;
-}
-
-int Net::cy() const
-{
-  return (ly_ + uy_) / 2;
 }
 
 int64_t Net::hpwl() const
 {
-  return static_cast<int64_t>((ux_ - lx_) + (uy_ - ly_));
+  return rect_.dx() + rect_.dy();
 }
 
 void Net::updateBox(bool skipIoMode)
 {
-  lx_ = INT_MAX;
-  ly_ = INT_MAX;
-  ux_ = INT_MIN;
-  uy_ = INT_MIN;
+  bool first = true;
   for (dbITerm* iTerm : net_->getITerms()) {
     dbBox* box = iTerm->getInst()->getBBox();
-    lx_ = std::min(box->xMin(), lx_);
-    ly_ = std::min(box->yMin(), ly_);
-    ux_ = std::max(box->xMax(), ux_);
-    uy_ = std::max(box->yMax(), uy_);
+    Rect r(box->xMin(), box->yMin(), box->xMax(), box->yMax());
+    if (first) {
+      rect_ = r;
+      first = false;
+    } else {
+      rect_.merge(r);
+    }
   }
 
   if (skipIoMode == false) {
     for (dbBTerm* bTerm : net_->getBTerms()) {
       for (dbBPin* bPin : bTerm->getBPins()) {
-        Rect bbox = bPin->getBBox();
-        lx_ = std::min(bbox.xMin(), lx_);
-        ly_ = std::min(bbox.yMin(), ly_);
-        ux_ = std::max(bbox.xMax(), ux_);
-        uy_ = std::max(bbox.yMax(), uy_);
+        const Rect& r = bPin->getBBox();
+        if (first) {
+          rect_ = r;
+          first = false;
+        } else {
+          rect_.merge(r);
+        }
       }
     }
   }
@@ -656,15 +564,7 @@ odb::dbSigType Net::getSigType() const
 ////////////////////////////////////////////////////////
 // Die
 
-Die::Die()
-    : dieLx_(0),
-      dieLy_(0),
-      dieUx_(0),
-      dieUy_(0),
-      coreLx_(0),
-      coreLy_(0),
-      coreUx_(0),
-      coreUy_(0)
+Die::Die() : die_(), core_()
 {
 }
 
@@ -676,64 +576,56 @@ Die::Die(const odb::Rect& dieRect, const odb::Rect& coreRect) : Die()
 
 Die::~Die()
 {
-  dieLx_ = dieLy_ = dieUx_ = dieUy_ = 0;
-  coreLx_ = coreLy_ = coreUx_ = coreUy_ = 0;
 }
 
 void Die::setDieBox(const odb::Rect& dieRect)
 {
-  dieLx_ = dieRect.xMin();
-  dieLy_ = dieRect.yMin();
-  dieUx_ = dieRect.xMax();
-  dieUy_ = dieRect.yMax();
+  die_ = dieRect;
 }
 
 void Die::setCoreBox(const odb::Rect& coreRect)
 {
-  coreLx_ = coreRect.xMin();
-  coreLy_ = coreRect.yMin();
-  coreUx_ = coreRect.xMax();
-  coreUy_ = coreRect.yMax();
+  core_ = coreRect;
 }
 
 int Die::dieCx() const
 {
-  return (dieLx_ + dieUx_) / 2;
+  return (dieLx() + dieUx()) / 2;
 }
 
 int Die::dieCy() const
 {
-  return (dieLy_ + dieUy_) / 2;
+  return (dieLy() + dieUy()) / 2;
 }
 
 int Die::dieDx() const
 {
-  return dieUx_ - dieLx_;
+  return die_.dx();
 }
 
 int Die::dieDy() const
 {
-  return dieUy_ - dieLy_;
+  return die_.dy();
 }
 
 int Die::coreCx() const
 {
-  return (coreLx_ + coreUx_) / 2;
+  return (coreLx() + coreUx()) / 2;
 }
 
 int Die::coreCy() const
 {
-  return (coreLy_ + coreUy_) / 2;
+  return (coreLy() + coreUy()) / 2;
 }
 
 int Die::coreDx() const
 {
-  return coreUx_ - coreLx_;
+  return core_.dx();
 }
 
 int Die::coreDy() const
 {
-  return coreUy_ - coreLy_;
+  return core_.dy();
 }
 
 int64_t Die::dieArea() const
