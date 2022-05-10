@@ -88,18 +88,17 @@ GCell::GCell(Instance* inst) : GCell()
   setInstance(inst);
 }
 
-GCell::GCell(int cx, int cy, int dx, int dy) : GCell()
+GCell::GCell(const IntPoint& c, int dx, int dy) : GCell()
 {
-  dLx_ = lx_ = cx - dx / 2;
-  dLy_ = ly_ = cy - dy / 2;
-  dUx_ = ux_ = cx + dx / 2;
-  dUy_ = uy_ = cy + dy / 2;
+  dLx_ = lx_ = c.x - dx / 2;
+  dLy_ = ly_ = c.y - dy / 2;
+  dUx_ = ux_ = c.x + dx / 2;
+  dUy_ = uy_ = c.y + dy / 2;
   setFiller();
 }
 
 GCell::~GCell()
 {
-  inst_ = nullptr;
 }
 
 void GCell::setInstance(Instance* inst)
@@ -261,7 +260,7 @@ GNet::GNet()
       uy_(0),
       timingWeight_(1),
       customWeight_(1),
-      isDontCare_(0)
+      isDontCare_(false)
 {
 }
 
@@ -317,12 +316,12 @@ void GNet::clearWaVars()
 
 void GNet::setDontCare()
 {
-  isDontCare_ = 1;
+  isDontCare_ = true;
 }
 
 bool GNet::isDontCare() const
 {
-  return (gPins_.size() == 0) || (isDontCare_ == 1);
+  return (gPins_.size() == 0) || isDontCare_;
 }
 
 ////////////////////////////////////////////////
@@ -1123,10 +1122,9 @@ void NesterovBase::initFillerGCells()
 
     // place filler cells on random coordi and
     // set size as avgDx and avgDy
-    GCell myGCell(randX % pb_->die().coreDx() + pb_->die().coreLx(),
-                  randY % pb_->die().coreDy() + pb_->die().coreLy(),
-                  fillerDx_,
-                  fillerDy_);
+    IntPoint center(randX % pb_->die().coreDx() + pb_->die().coreLx(),
+                    randY % pb_->die().coreDy() + pb_->die().coreLy());
+    GCell myGCell(center, fillerDx_, fillerDy_);
 
     gCellStor_.push_back(myGCell);
   }
@@ -1339,7 +1337,7 @@ void NesterovBase::updateAreas()
       continue;
     }
     const float r = static_cast<float>(gCell->dx())
-              / static_cast<float>(gCell->instance()->dx());
+                    / static_cast<float>(gCell->instance()->dx());
     const float area_inflation = r * r;
     auto const inst_area = gCell->instance()->area() * area_inflation;
     if (gCell->isMacroInstance()) {

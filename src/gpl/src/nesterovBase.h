@@ -74,7 +74,7 @@ class GCell
   explicit GCell(Instance* inst);
 
   // filler cell
-  GCell(int cx, int cy, int dx, int dy);
+  GCell(const IntPoint& c, int dx, int dy);
   ~GCell();
 
   Instance* instance() const;
@@ -209,7 +209,7 @@ class GNet
 
   WAWireLengthModel wa_[DIMENSION_CNT];
 
-  unsigned char isDontCare_ : 1;
+  bool isDontCare_;
 };
 
 class GPin
