@@ -32,7 +32,7 @@ class WAWireLengthModel
 
  private:
   //
-  // weighted average WL model stor for better indexing
+  // weighted average WL model store for better indexing
   // Please check the equation (4) in the ePlace-MS paper.
   //
   // WA: weighted Average
