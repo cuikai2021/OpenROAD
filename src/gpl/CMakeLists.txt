@@ -71,7 +71,6 @@ target_sources(gpl
     src/fft.cpp
     src/fftsg.cpp
     src/fftsg2d.cpp
-    src/point.cpp
     src/plot.cpp
     src/routeBase.cpp
     src/timingBase.cpp
