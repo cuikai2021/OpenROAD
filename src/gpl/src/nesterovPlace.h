@@ -31,8 +31,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef __REPLACE_NESTEROV_PLACE__
-#define __REPLACE_NESTEROV_PLACE__
+#pragma once
 
 #include "point.h"
 #include <memory>
@@ -206,4 +205,3 @@ private:
 };
 }
 
-#endif
