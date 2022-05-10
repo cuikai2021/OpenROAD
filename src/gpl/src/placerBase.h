@@ -31,15 +31,14 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef __PLACER_BASE__
-#define __PLACER_BASE__
+#pragma once
 
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
 #include "dimension.h"
-#include "odb/geom.h"
+#include "rect.h"
 
 namespace odb {
 class dbDatabase;
@@ -67,7 +66,7 @@ namespace gpl {
 class Pin;
 class Net;
 
-class Instance
+class Instance : public IntRect
 {
  public:
   Instance();
@@ -111,18 +110,6 @@ class Instance
   void dbSetLocation(int x, int y);
   void dbSetCenterLocation(int x, int y);
 
-  int lx() const { return rect_.xMin(); }
-  int ly() const { return rect_.yMin(); }
-  int ux() const { return rect_.xMax(); }
-  int uy() const { return rect_.yMax(); }
-
-  int cx() const { return (lx() + ux()) / 2; }
-  int cy() const { return (ly() + uy()) / 2; }
-  int c(DIMENSION d) const { return d == X ? cx() : cy(); }
-
-  int dx() const { return rect_.dx(); }
-  int dy() const { return rect_.dy(); }
-
   int64_t area() const;
 
   void setExtId(int extId);
@@ -134,7 +121,6 @@ class Instance
  private:
   odb::dbInst* inst_;
   std::vector<Pin*> pins_;
-  odb::Rect rect_;
   int extId_;
   bool is_macro_;
   bool is_locked_;
@@ -212,20 +198,12 @@ class Pin
   void updateCoordi(odb::dbBTerm* bTerm);
 };
 
-class Net
+class Net : public IntRect
 {
  public:
   Net();
   Net(odb::dbNet* net, bool skipIoMode);
   ~Net();
-
-  int lx() const { return rect_.xMin(); }
-  int ly() const { return rect_.yMin(); }
-  int ux() const { return rect_.xMax(); }
-  int uy() const { return rect_.yMax(); }
-
-  int cx() const { return (lx() + ux()) / 2; }
-  int cy() const { return (ly() + uy()) / 2; }
 
   // HPWL: half-parameter-wire-length
   int64_t hpwl() const;
@@ -242,7 +220,6 @@ class Net
  private:
   odb::dbNet* net_;
   std::vector<Pin*> pins_;
-  odb::Rect rect_;
 };
 
 class Die
@@ -265,17 +242,18 @@ class Die
   int coreUx() const { return core_.xMax(); }
   int coreUy() const { return core_.yMax(); }
 
-  int dieCx() const;
-  int dieCy() const;
-  int dieDx() const;
-  int dieDy() const;
-  int coreCx() const;
-  int coreCy() const;
-  int coreDx() const;
-  int coreDy() const;
+  int dieCx() const { return (dieLx() + dieUx()) / 2; }
+  int dieCy() const { return (dieLy() + dieUy()) / 2; }
+  int dieDx() const { return die_.dx(); }
+  int dieDy() const { return die_.dy(); }
 
-  int64_t dieArea() const;
-  int64_t coreArea() const;
+  int coreCx() const { return (coreLx() + coreUx()) / 2; }
+  int coreCy() const { return (coreLy() + coreUy()) / 2; }
+  int coreDx() const { return core_.dx(); }
+  int coreDy() const { return core_.dy(); }
+
+  int64_t dieArea() const { return die_.area(); }
+  int64_t coreArea() const { return core_.area(); }
 
  private:
   odb::Rect die_;
@@ -387,5 +365,3 @@ class PlacerBase
 };
 
 }  // namespace gpl
-
-#endif

@@ -65,8 +65,7 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst);
 // Instance
 
 Instance::Instance()
-    : inst_(nullptr),
-      rect_(),
+    : IntRect(), inst_(nullptr),
       extId_(INT_MIN),
       is_macro_(false),
       is_locked_(false)
@@ -92,7 +91,7 @@ Instance::Instance(odb::dbInst* inst,
     lx_ -= padLeft;
     ux_ += padRight;
   }
-  rect_ = Rect(lx_, ly_, ux_, uy_);
+  rect_.reset(lx_, ly_, ux_, uy_);
 
   // Masters more than row_limit rows tall are treated as macros
   constexpr int row_limit = 6;
@@ -117,7 +116,7 @@ Instance::Instance(odb::dbInst* inst,
 
 // for dummy instances
 Instance::Instance(int lx, int ly, int ux, int uy)
-    : rect_(lx, ly, ux, uy), inst_(nullptr)
+    : IntRect(lx, ly, ux, uy), inst_(nullptr)
 {
 }
 
@@ -504,7 +503,7 @@ Pin::~Pin()
 ////////////////////////////////////////////////////////
 // Net
 
-Net::Net() : net_(nullptr), rect_()
+Net::Net() : IntRect(), net_(nullptr)
 {
 }
 Net::Net(odb::dbNet* net, bool skipIoMode) : Net()
@@ -586,56 +585,6 @@ void Die::setDieBox(const odb::Rect& dieRect)
 void Die::setCoreBox(const odb::Rect& coreRect)
 {
   core_ = coreRect;
-}
-
-int Die::dieCx() const
-{
-  return (dieLx() + dieUx()) / 2;
-}
-
-int Die::dieCy() const
-{
-  return (dieLy() + dieUy()) / 2;
-}
-
-int Die::dieDx() const
-{
-  return die_.dx();
-}
-
-int Die::dieDy() const
-{
-  return die_.dy();
-}
-
-int Die::coreCx() const
-{
-  return (coreLx() + coreUx()) / 2;
-}
-
-int Die::coreCy() const
-{
-  return (coreLy() + coreUy()) / 2;
-}
-
-int Die::coreDx() const
-{
-  return core_.dx();
-}
-
-int Die::coreDy() const
-{
-  return core_.dy();
-}
-
-int64_t Die::dieArea() const
-{
-  return static_cast<int64_t>(dieDx()) * static_cast<int64_t>(dieDy());
-}
-
-int64_t Die::coreArea() const
-{
-  return static_cast<int64_t>(coreDx()) * static_cast<int64_t>(coreDy());
 }
 
 PlacerBaseVars::PlacerBaseVars()
