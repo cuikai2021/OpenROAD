@@ -140,8 +140,8 @@ private:
 class Pin {
 public:
   Pin();
-  Pin(odb::dbITerm* iTerm);
-  Pin(odb::dbBTerm* bTerm);
+  explicit Pin(odb::dbITerm* iTerm);
+  explicit Pin(odb::dbBTerm* bTerm);
   ~Pin();
 
   odb::dbITerm* dbITerm() const;

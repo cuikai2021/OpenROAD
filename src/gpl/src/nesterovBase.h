@@ -31,8 +31,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef __NESTEROV_BASE__
-#define __NESTEROV_BASE__
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -72,7 +71,7 @@ class GCell
 
  public:
   // instance cell
-  GCell(Instance* inst);
+  explicit GCell(Instance* inst);
 
   // filler cell
   GCell(int cx, int cy, int dx, int dy);
@@ -150,7 +149,7 @@ class GNet
   GNet();
 
  public:
-  GNet(Net* net);
+  explicit GNet(Net* net);
   ~GNet();
 
   Net* net() const { return net_; }
@@ -218,7 +217,7 @@ class GPin
   GPin();
 
  public:
-  GPin(Pin* pin);
+  explicit GPin(Pin* pin);
   ~GPin();
 
   Pin* pin() const;
@@ -364,7 +363,7 @@ class BinGrid
 {
  public:
   BinGrid();
-  BinGrid(Die* die);
+  explicit BinGrid(Die* die);
   ~BinGrid();
 
   void setPlacerBase(const std::shared_ptr<PlacerBase> pb);
@@ -619,5 +618,3 @@ class NesterovBase
 };
 
 }  // namespace gpl
-
-#endif
