@@ -39,6 +39,7 @@
 
 #include "dimension.h"
 #include "point.h"
+#include "rect.h"
 #include "waWirelengthModel.h"
 
 namespace odb {
@@ -65,7 +66,7 @@ class Net;
 class GPin;
 class FFT;
 
-class GCell
+class GCell : public IntRect
 {
   GCell();
 
@@ -74,7 +75,7 @@ class GCell
   explicit GCell(Instance* inst);
 
   // filler cell
-  GCell(const IntPoint& c, int dx, int dy);
+  GCell(const odb::Point& center, int dx, int dy);
   ~GCell();
 
   Instance* instance() const;
@@ -85,25 +86,16 @@ class GCell
   void setInstance(Instance* inst);
   void setFiller();
 
-  // normal coordinates
-  int lx() const { return lx_; }
-  int ly() const { return ly_; }
-  int ux() const { return ux_; }
-  int uy() const { return uy_; }
-  int cx() const { return (lx_ + ux_) / 2; }
-  int cy() const { return (ly_ + uy_) / 2; }
-  int dx() const { return ux_ - lx_; }
-  int dy() const { return uy_ - ly_; }
-
   // virtual density coordinates
-  int dLx() const { return dLx_; }
-  int dLy() const { return dLy_; }
-  int dUx() const { return dUx_; }
-  int dUy() const { return dUy_; }
-  int dCx() const { return (dUx_ + dLx_) / 2; }
-  int dCy() const { return (dUy_ + dLy_) / 2; }
-  int dDx() const { return dUx_ - dLx_; }
-  int dDy() const { return dUy_ - dLy_; }
+  const odb::Rect& dRect() const { return dRect_.rect(); }
+  int dLx() const { return dRect_.lx(); }
+  int dLy() const { return dRect_.ly(); }
+  int dUx() const { return dRect_.ux(); }
+  int dUy() const { return dRect_.uy(); }
+  int dCx() const { return dRect_.cx(); }
+  int dCy() const { return dRect_.cy(); }
+  int dDx() const { return dRect_.dx(); }
+  int dDy() const { return dRect_.dy(); }
 
   void setLocation(int lx, int ly);
   void setCenterLocation(int cx, int cy);
@@ -129,22 +121,15 @@ class GCell
  private:
   Instance* inst_;
   std::vector<GPin*> gPins_;
-  int lx_;
-  int ly_;
-  int ux_;
-  int uy_;
 
-  int dLx_;
-  int dLy_;
-  int dUx_;
-  int dUy_;
+  IntRect dRect_;
 
   float densityScale_;
   float gradientX_;
   float gradientY_;
 };
 
-class GNet
+class GNet : public IntRect
 {
   GNet();
 
@@ -154,11 +139,6 @@ class GNet
 
   Net* net() const { return net_; }
   const std::vector<GPin*>& gPins() const { return gPins_; }
-
-  int lx() const { return lx_; }
-  int ly() const { return ly_; }
-  int ux() const { return ux_; }
-  int uy() const { return uy_; }
 
   void setTimingWeight(float timingWeight);
   void setCustomWeight(float customWeight);
@@ -198,11 +178,6 @@ class GNet
  private:
   Net* net_;
   std::vector<GPin*> gPins_;
-
-  int lx_;
-  int ly_;
-  int ux_;
-  int uy_;
 
   float timingWeight_;
   float customWeight_;
@@ -287,7 +262,7 @@ class GPin
   unsigned char hasMinExpSumY_ : 1;
 };
 
-class Bin
+class Bin : public IntRect
 {
   Bin();
 
@@ -296,29 +271,24 @@ class Bin
 
   ~Bin();
 
-  int x() const { return x_; }
-  int y() const { return y_; }
+  int x() const { return index_.getX(); }
+  int y() const { return index_.getY(); }
 
-  int lx() const { return lx_; }
-  int ly() const { return ly_; }
-  int ux() const { return ux_; }
-  int uy() const { return uy_; }
+  float density() const { return density_; }
+  float targetDensity() const { return targetDensity_; }
 
-  int cx() const { return (ux_ + lx_) / 2; }
-  int cy() const { return (uy_ + ly_) / 2; }
-  int dx() const { return (ux_ - lx_); }
-  int dy() const { return (uy_ - ly_); }
+  float electroForceX() const { return electroForceX_; }
+  float electroForceY() const { return electroForceY_; }
+  float electroPhi() const { return electroPhi_; }
 
-  float electroPhi() const;
-  float electroForceX() const;
-  float electroForceY() const;
-  float targetDensity() const;
-  float density() const;
-
-  void setDensity(float density);
-  void setTargetDensity(float density);
-  void setElectroForce(float electroForceX, float electroForceY);
-  void setElectroPhi(float phi);
+  void setDensity(float density) { density_ = density; }
+  void setTargetDensity(float density) { targetDensity_ = density; }
+  void setElectroForce(float electroForceX, float electroForceY)
+  {
+    electroForceX_ = electroForceX;
+    electroForceY_ = electroForceY;
+  }
+  void setElectroPhi(float phi) { electroPhi_ = phi; }
 
   void setNonPlaceArea(int64_t area) { nonPlaceArea_ = area; }
   void setInstPlacedArea(int64_t area) { instPlacedArea_ = area; }
@@ -328,21 +298,14 @@ class Bin
   void addInstPlacedArea(int64_t area) { instPlacedArea_ += area; }
   void addFillerArea(int64_t area) { fillerArea_ += area; }
 
-  const int64_t binArea() const;
+  const int64_t binArea() const { return rect_.area(); }
   const int64_t nonPlaceArea() const { return nonPlaceArea_; }
   const int64_t instPlacedArea() const { return instPlacedArea_; }
   const int64_t fillerArea() const { return fillerArea_; }
 
  private:
   // index
-  int x_;
-  int y_;
-
-  // coordinate
-  int lx_;
-  int ly_;
-  int ux_;
-  int uy_;
+  odb::Point index_;
 
   int64_t nonPlaceArea_;
   int64_t instPlacedArea_;
@@ -359,7 +322,7 @@ class Bin
 // The bin can be non-uniform because of
 // "integer" coordinates
 //
-class BinGrid
+class BinGrid : public IntRect
 {
  public:
   BinGrid();
@@ -376,17 +339,6 @@ class BinGrid
   void updateBinsGCellDensityArea(const std::vector<GCell*>& cells);
 
   void initBins();
-
-  // lx, ly, ux, uy will hold coreArea
-  int lx() const { return lx_; }
-  int ly() const { return ly_; }
-  int ux() const { return ux_; }
-  int uy() const { return uy_; }
-
-  int cx() const { return (ux_ + lx_) / 2; }
-  int cy() const { return (uy_ + ly_) / 2; }
-  int dx() const { return (ux_ - lx_); }
-  int dy() const { return (uy_ - ly_); }
 
   int binCntX() const { return binCntX_; }
   int binCntY() const { return binCntY_; }
@@ -412,10 +364,7 @@ class BinGrid
   std::vector<Bin*> bins_;
   std::shared_ptr<PlacerBase> pb_;
   utl::Logger* log_;
-  int lx_;
-  int ly_;
-  int ux_;
-  int uy_;
+  // rect_ will hold coreArea
   int binCntX_;
   int binCntY_;
   int binSizeX_;

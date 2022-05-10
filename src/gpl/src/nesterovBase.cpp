@@ -68,15 +68,9 @@ static float fastExp(float exp);
 // GCell
 
 GCell::GCell()
-    : inst_(nullptr),
-      lx_(0),
-      ly_(0),
-      ux_(0),
-      uy_(0),
-      dLx_(0),
-      dLy_(0),
-      dUx_(0),
-      dUy_(0),
+    : IntRect(),
+      inst_(nullptr),
+      dRect_(),
       densityScale_(0),
       gradientX_(0),
       gradientY_(0)
@@ -88,12 +82,14 @@ GCell::GCell(Instance* inst) : GCell()
   setInstance(inst);
 }
 
-GCell::GCell(const IntPoint& c, int dx, int dy) : GCell()
+GCell::GCell(const odb::Point& c, int dx, int dy) : GCell()
 {
-  dLx_ = lx_ = c.x - dx / 2;
-  dLy_ = ly_ = c.y - dy / 2;
-  dUx_ = ux_ = c.x + dx / 2;
-  dUy_ = uy_ = c.y + dy / 2;
+  int lx = c.getX() - dx / 2;
+  int ly = c.getY() - dy / 2;
+  int ux = c.getX() + dx / 2;
+  int uy = c.getY() + dy / 2;
+  dRect_.rect() = rect() = Rect(lx, ly, ux, uy);
+
   setFiller();
 }
 
@@ -106,10 +102,7 @@ void GCell::setInstance(Instance* inst)
   assert(inst);
   inst_ = inst;
   // density coordi has the same center points.
-  dLx_ = lx_ = inst->lx();
-  dLy_ = ly_ = inst->ly();
-  dUx_ = ux_ = inst->ux();
-  dUy_ = uy_ = inst->uy();
+  dRect_.rect() = rect() = inst->rect();
 }
 
 Instance* GCell::instance() const
@@ -130,49 +123,30 @@ void GCell::setFiller()
 
 void GCell::setLocation(int lx, int ly)
 {
-  ux_ = lx + (ux_ - lx_);
-  uy_ = ly + (uy_ - ly_);
-  lx = lx_;
-  ly = ly_;
+  rect().moveTo(lx, ly);
 
   for (auto& gPin : gPins_) {
     gPin->updateLocation(this);
   }
 }
 
-void GCell::setCenterLocation(int cx, int cy)
+void GCell::setCenterLocation(int x, int y)
 {
-  const int halfDx = dx() / 2;
-  const int halfDy = dy() / 2;
-
-  lx_ = cx - halfDx;
-  ly_ = cy - halfDy;
-  ux_ = cx + halfDx;
-  uy_ = cy + halfDy;
+  rect().moveDelta(x - cx(), y - cy());
 
   for (auto& gPin : gPins_) {
     gPin->updateLocation(this);
   }
 }
 
-// changing size and preserve center coordinates
 void GCell::setSize(int dx, int dy)
 {
-  const int centerX = cx();
-  const int centerY = cy();
-
-  lx_ = centerX - dx / 2;
-  ly_ = centerY - dy / 2;
-  ux_ = centerX + dx / 2;
-  uy_ = centerY + dy / 2;
+  resize(dx, dy);
 }
 
 void GCell::setDensityLocation(int dLx, int dLy)
 {
-  dUx_ = dLx + (dUx_ - dLx_);
-  dUy_ = dLy + (dUy_ - dLy_);
-  dLx_ = dLx;
-  dLy_ = dLy;
+  dRect_.rect().moveTo(dLx, dLy);
 
   // assume that density Center change the gPin coordi
   for (auto& gPin : gPins_) {
@@ -180,15 +154,9 @@ void GCell::setDensityLocation(int dLx, int dLy)
   }
 }
 
-void GCell::setDensityCenterLocation(int dCx, int dCy)
+void GCell::setDensityCenterLocation(int x, int y)
 {
-  const int halfDDx = dDx() / 2;
-  const int halfDDy = dDy() / 2;
-
-  dLx_ = dCx - halfDDx;
-  dLy_ = dCy - halfDDy;
-  dUx_ = dCx + halfDDx;
-  dUy_ = dCy + halfDDy;
+  dRect_.rect().moveDelta(x - dCx(), y - dCy());
 
   // assume that density Center change the gPin coordi
   for (auto& gPin : gPins_) {
@@ -196,16 +164,9 @@ void GCell::setDensityCenterLocation(int dCx, int dCy)
   }
 }
 
-// changing size and preserve center coordinates
 void GCell::setDensitySize(int dDx, int dDy)
 {
-  const int dCenterX = dCx();
-  const int dCenterY = dCy();
-
-  dLx_ = dCenterX - dDx / 2;
-  dLy_ = dCenterY - dDy / 2;
-  dUx_ = dCenterX + dDx / 2;
-  dUy_ = dCenterY + dDy / 2;
+  dRect_.resize(dDx, dDy);
 }
 
 void GCell::setDensityScale(float densityScale)
@@ -253,11 +214,8 @@ bool GCell::isStdInstance() const
 // GNet
 
 GNet::GNet()
-    : net_(nullptr),
-      lx_(0),
-      ly_(0),
-      ux_(0),
-      uy_(0),
+    : IntRect(),
+      net_(nullptr),
       timingWeight_(1),
       customWeight_(1),
       isDontCare_(false)
@@ -292,20 +250,18 @@ void GNet::addGPin(GPin* gPin)
 
 void GNet::updateBox()
 {
-  lx_ = ly_ = INT_MAX;
-  ux_ = uy_ = INT_MIN;
-
+  rect_.reset(INT_MAX, INT_MAX, INT_MIN, INT_MIN);
   for (auto& gPin : gPins_) {
-    lx_ = std::min(gPin->cx(), lx_);
-    ly_ = std::min(gPin->cy(), ly_);
-    ux_ = std::max(gPin->cx(), ux_);
-    uy_ = std::max(gPin->cy(), uy_);
+    rect_.reset(std::min(gPin->cx(), lx()),
+                std::min(gPin->cy(), ly()),
+                std::max(gPin->cx(), ux()),
+                std::max(gPin->cy(), uy()));
   }
 }
 
 int64_t GNet::hpwl() const
 {
-  return static_cast<int64_t>((ux_ - lx_) + (uy_ - ly_));
+  return dx() + dy();
 }
 
 void GNet::clearWaVars()
@@ -435,12 +391,7 @@ void GPin::updateDensityLocation(const GCell* gCell)
 // Bin
 
 Bin::Bin()
-    : x_(0),
-      y_(0),
-      lx_(0),
-      ly_(0),
-      ux_(0),
-      uy_(0),
+    : index_(0, 0),
       nonPlaceArea_(0),
       instPlacedArea_(0),
       fillerArea_(0),
@@ -455,83 +406,20 @@ Bin::Bin()
 Bin::Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity)
     : Bin()
 {
-  x_ = x;
-  y_ = y;
-  lx_ = lx;
-  ly_ = ly;
-  ux_ = ux;
-  uy_ = uy;
+  index_.set(x, y);
+  rect_.reset(lx, ly, ux, uy);
   targetDensity_ = targetDensity;
 }
 
 Bin::~Bin()
 {
-  x_ = y_ = 0;
-  lx_ = ly_ = ux_ = uy_ = 0;
-  nonPlaceArea_ = instPlacedArea_ = fillerArea_ = 0;
-  electroPhi_ = electroForceX_ = electroForceY_ = 0;
-  density_ = targetDensity_ = 0;
-}
-
-const int64_t Bin::binArea() const
-{
-  return static_cast<int64_t>(dx()) * static_cast<int64_t>(dy());
-}
-
-float Bin::density() const
-{
-  return density_;
-}
-
-float Bin::targetDensity() const
-{
-  return targetDensity_;
-}
-
-float Bin::electroForceX() const
-{
-  return electroForceX_;
-}
-
-float Bin::electroForceY() const
-{
-  return electroForceY_;
-}
-
-float Bin::electroPhi() const
-{
-  return electroPhi_;
-}
-
-void Bin::setDensity(float density)
-{
-  density_ = density;
-}
-
-void Bin::setTargetDensity(float density)
-{
-  targetDensity_ = density;
-}
-
-void Bin::setElectroForce(float electroForceX, float electroForceY)
-{
-  electroForceX_ = electroForceX;
-  electroForceY_ = electroForceY;
-}
-
-void Bin::setElectroPhi(float phi)
-{
-  electroPhi_ = phi;
 }
 
 ////////////////////////////////////////////////
 // BinGrid
 
 BinGrid::BinGrid()
-    : lx_(0),
-      ly_(0),
-      ux_(0),
-      uy_(0),
+    : IntRect(),
       binCntX_(0),
       binCntY_(0),
       binSizeX_(0),
@@ -552,18 +440,11 @@ BinGrid::~BinGrid()
 {
   binStor_.clear();
   bins_.clear();
-  binCntX_ = binCntY_ = 0;
-  binSizeX_ = binSizeY_ = 0;
-  isSetBinCntX_ = isSetBinCntY_ = 0;
-  overflowArea_ = 0;
 }
 
 void BinGrid::setCorePoints(const Die* die)
 {
-  lx_ = die->coreLx();
-  ly_ = die->coreLy();
-  ux_ = die->coreUx();
-  uy_ = die->coreUy();
+  rect_.reset(die->coreLx(), die->coreLy(), die->coreUx(), die->coreUy());
 }
 
 void BinGrid::setPlacerBase(const std::shared_ptr<PlacerBase> pb)
@@ -601,8 +482,7 @@ void BinGrid::setBinCntY(int binCntY)
 
 void BinGrid::initBins()
 {
-  int64_t totalBinArea
-      = static_cast<int64_t>(ux_ - lx_) * static_cast<int64_t>(uy_ - ly_);
+  int64_t totalBinArea = rect_.area();
 
   int64_t averagePlaceInstArea
       = pb_->placeInstsArea() / pb_->placeInsts().size();
@@ -642,8 +522,8 @@ void BinGrid::initBins()
 
   log_->info(GPL, 28, "BinCnt: {} {}", binCntX_, binCntY_);
 
-  binSizeX_ = ceil(static_cast<float>((ux_ - lx_)) / binCntX_);
-  binSizeY_ = ceil(static_cast<float>((uy_ - ly_)) / binCntY_);
+  binSizeX_ = ceil(static_cast<float>(dx()) / binCntX_);
+  binSizeY_ = ceil(static_cast<float>(dy()) / binCntY_);
 
   log_->info(GPL, 29, "BinSize: {} {}", binSizeX_, binSizeY_);
 
@@ -651,11 +531,11 @@ void BinGrid::initBins()
   size_t binsCnt = binCntX_ * binCntY_;
   binStor_.reserve(binsCnt);
   bins_.reserve(binsCnt);
-  int x = lx_, y = ly_;
+  int x = lx(), y = ly();
   int idxX = 0, idxY = 0;
   for (size_t i = 0; i < binsCnt; ++i) {
-    int sizeX = (x + binSizeX_ > ux_) ? ux_ - x : binSizeX_;
-    int sizeY = (y + binSizeY_ > uy_) ? uy_ - y : binSizeY_;
+    int sizeX = (x + binSizeX_ > ux()) ? ux() - x : binSizeX_;
+    int sizeY = (y + binSizeY_ > uy()) ? uy() - y : binSizeY_;
 
     // cout << "idxX: " << idxX << " idxY: " << idxY
     //  << " x:" << x << " y:" << y
@@ -667,9 +547,9 @@ void BinGrid::initBins()
     x += binSizeX_;
     idxX += 1;
 
-    if (x >= ux_) {
+    if (x >= ux()) {
       y += binSizeY_;
-      x = lx_;
+      x = lx();
 
       idxY++;
       idxX = 0;
@@ -1122,7 +1002,7 @@ void NesterovBase::initFillerGCells()
 
     // place filler cells on random coordi and
     // set size as avgDx and avgDy
-    IntPoint center(randX % pb_->die().coreDx() + pb_->die().coreLx(),
+    odb::Point center(randX % pb_->die().coreDx() + pb_->die().coreLx(),
                     randY % pb_->die().coreDy() + pb_->die().coreLy());
     GCell myGCell(center, fillerDx_, fillerDy_);
 
@@ -1766,31 +1646,13 @@ static int fastModulo(const int input, const int ceil)
 // int64_t is recommended, but float is 2x fast
 static float getOverlapDensityArea(const Bin* bin, const GCell* cell)
 {
-  int rectLx = max(bin->lx(), cell->dLx()),
-      rectLy = max(bin->ly(), cell->dLy()),
-      rectUx = min(bin->ux(), cell->dUx()),
-      rectUy = min(bin->uy(), cell->dUy());
-  float area = 0.0;
-  if (rectLx >= rectUx || rectLy >= rectUy) {
-    area = 0;
-  } else {
-    area = static_cast<float>(rectUx - rectLx)
-           * static_cast<float>(rectUy - rectLy);
-  }
+  auto area = getOverlapArea(bin->rect(), cell->dRect());
   return area * cell->densityScale();
 }
 
 static int64_t getOverlapArea(const Bin* bin, const Instance* inst)
 {
-  int rectLx = max(bin->lx(), inst->lx()), rectLy = max(bin->ly(), inst->ly()),
-      rectUx = min(bin->ux(), inst->ux()), rectUy = min(bin->uy(), inst->uy());
-
-  if (rectLx >= rectUx || rectLy >= rectUy) {
-    return 0;
-  } else {
-    return static_cast<int64_t>(rectUx - rectLx)
-           * static_cast<int64_t>(rectUy - rectLy);
-  }
+  return getOverlapArea(bin->rect(), inst->rect());
 }
 
 //

@@ -24,17 +24,21 @@ class IntRect
   // changing size and preserve center coordinates
   void resize(int dx, int dy);
 
+  odb::Rect& rect() { return rect_; }
+
+  const odb::Rect& rect() const { return rect_; }
+
  protected:
   odb::Rect rect_;
 };
 
 inline void IntRect::resize(int dx, int dy)
 {
-  const int centerX = cx();
-  const int centerY = cy();
-
-  rect_.reset(
-      centerX - dx / 2, centerY - dy / 2, centerX + dx / 2, centerY + dy / 2);
+  const int lx = cx() - dx / 2;
+  const int ly = cy() - dy / 2;
+  const int ux = cx() + dx / 2;
+  const int uy = cy() + dy / 2;
+  rect_.reset(lx, ly, ux, uy);
 }
 
 inline int64_t getOverlapArea(const odb::Rect& a, const odb::Rect& b)
