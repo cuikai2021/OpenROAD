@@ -577,7 +577,10 @@ NesterovPlace::doNesterovPlace(int start_iter) {
       bool update = (iter == 0 || (iter+1) % npVars_.debug_update_iterations == 0);
       if (update) {
         bool pause = (iter == 0 || (iter+1) % npVars_.debug_pause_iterations == 0);
-        graphics_->cellPlot(pause);
+        // FIXME: tmp disable pause here for easy to debug on initial placement.
+        //        should be rolled back to support pause here once initial placement is stable.
+        // graphics_->cellPlot(pause);
+        graphics_->cellPlot(pause && false);
       }
     }
 

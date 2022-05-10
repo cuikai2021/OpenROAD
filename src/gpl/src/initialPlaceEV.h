@@ -60,7 +60,6 @@ class InitialPlaceEV : public InitialPlace
   {
     return placeInsts_;
   }
-  std::size_t placeInstsNum() const { return placeInsts_.size(); }
 
   void setPlaceInsts(const std::vector<Instance*>& insts);
   void resetPlaceInsts();
@@ -69,7 +68,9 @@ class InitialPlaceEV : public InitialPlace
 
   void initAdjGraph(Triplets& aList);
 
-  void initLaplaceMatrix(SparseMatrix& graphL, size_t  vertexNum, Triplets& edges);
+  void createSparseMatrix(size_t vertexNum,
+                         const Triplets& edges,
+                         SparseMatrix& graphL);
 
   struct Snapshot
   {

@@ -44,38 +44,25 @@ namespace gpl {
 class PlacerBase;
 class Graphics;
 
-class InitialPlaceBicgstab : public InitialPlace {
-  public:
-    InitialPlaceBicgstab() {}
-    InitialPlaceBicgstab(InitialPlaceVars ipVars, 
-        std::shared_ptr<PlacerBase> pb,
-        utl::Logger* logger) : InitialPlace(ipVars, pb, logger) {}
-    ~InitialPlaceBicgstab() {}
+class InitialPlaceBicgstab : public InitialPlace
+{
+ public:
+  InitialPlaceBicgstab() {}
+  InitialPlaceBicgstab(InitialPlaceVars ipVars,
+                       std::shared_ptr<PlacerBase> pb,
+                       utl::Logger* logger);
+  ~InitialPlaceBicgstab() {}
 
-    void run();
+  void run();
 
-  protected:
+ protected:
 
-    // Solve two SparseMatrix on X/Y equations here;
-    //
-    // find instLocVec_[X]
-    // s.t. satisfies placeInstForceMatrix_[X] * instLocVec_[X] = fixedInstForceVec_[X]
-    //
-    // instLocVec_[X] : current/target instances' center X coordinates. 1-col vector.
-    //
-    // fixedInstForceVec_[X] : contains fixed instances' forces toward X coordi. 1-col vector.
-    //
-    // placeInstForceMatrix_[X] :
-    //        SparseMatrix that contains connectivity forces on X // B2B model is used
-    // 
-    // Used the interative BiCGSTAB solver to solve matrix eqs.
-    Eigen::VectorXf fixedInstForceVec_[DIMENSION_CNT];
-    SMatrix placeInstForceMatrix_[DIMENSION_CNT];
+  void updatePinInfo();
+  void updatePinInfo(DIMENSION dim);
 
-    void updatePinInfo();
-    void updatePinInfo(DIMENSION dim);
-    void createSparseMatrix();
-    void createSparseMatrix(DIMENSION dim);
+  float bicgSolve(const SMatrix& L,
+                  const Eigen::VectorXf& b,
+                  Eigen::VectorXf& instLocs);
 };
 
-}
+}  // namespace gpl
