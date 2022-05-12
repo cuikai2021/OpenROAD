@@ -9,7 +9,7 @@ class InitialPlaceDef : public InitialPlace {
     InitialPlaceDef(InitialPlaceVars ipVars, 
         std::shared_ptr<PlacerBase> pb,
         utl::Logger* logger) : InitialPlace(ipVars, pb, logger) {}
-    ~InitialPlaceDef() {} ;
+    ~InitialPlaceDef() {}
 
     virtual void run();
 };
