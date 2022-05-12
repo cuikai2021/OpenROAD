@@ -44,13 +44,4 @@ class FloatPoint
   FloatPoint(float ix, float iy) : x(ix), y(iy) {}
 };
 
-class IntPoint
-{
- public:
-  int x;
-  int y;
-  IntPoint() : x(0), y(0) {}
-  IntPoint(int ix, int iy) : x(ix), y(iy) {}
-};
-
 }  // namespace gpl
