@@ -216,8 +216,8 @@ int64_t Instance::area() const
   } else {
     auto master = inst_->getMaster();
     assert(master != nullptr);
-    auto w = master->getWidth();
-    auto h = master->getHeight();
+    int64_t w = master->getWidth();
+    int64_t h = master->getHeight();
     return w * h;
   }
 }
