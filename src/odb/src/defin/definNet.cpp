@@ -435,6 +435,17 @@ void definNet::pathPoint(int x, int y, int ext)
   _wire_encoder.addPoint(_prev_x, _prev_y, dbdist(ext));
 }
 
+void definNet::pathVirtualPoint(int x, int y)
+{
+  if (_wire == NULL)
+	return;
+
+  _prev_x = dbdist(x);
+  _prev_y = dbdist(y);
+
+  _wire_encoder.addVirtualPoint(_prev_x, _prev_y);
+}
+
 void definNet::getUniqueViaName(std::string& viaName)
 {
   if ((_tech->findVia(viaName.c_str()) == NULL)

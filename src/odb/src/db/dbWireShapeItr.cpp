@@ -169,16 +169,17 @@ nextOpCode:
         goto nextOpCode;
       }
 
-      shape.setSegment(_prev_x,
-                       _prev_y,
-                       _prev_ext,
-                       _has_prev_ext,
-                       cur_x,
-                       cur_y,
-                       cur_ext,
-                       has_cur_ext,
-                       _dw,
-                       _layer);
+      if (!(opcode & WOP_VIRTUAL)) // ???
+    	shape.setSegment(_prev_x,
+                         _prev_y,
+                         _prev_ext,
+                         _has_prev_ext,
+                         cur_x,
+                         cur_y,
+                         cur_ext,
+                         has_cur_ext,
+                         _dw,
+                         _layer);
       _prev_x = cur_x;
       _prev_y = cur_y;
       _prev_ext = cur_ext;
@@ -202,16 +203,17 @@ nextOpCode:
         has_cur_ext = false;
       }
 
-      shape.setSegment(_prev_x,
-                       _prev_y,
-                       _prev_ext,
-                       _has_prev_ext,
-                       cur_x,
-                       cur_y,
-                       cur_ext,
-                       has_cur_ext,
-                       _dw,
-                       _layer);
+      if (!(opcode & WOP_VIRTUAL)) // ???
+        shape.setSegment(_prev_x,
+                         _prev_y,
+                         _prev_ext,
+                         _has_prev_ext,
+                         cur_x,
+                         cur_y,
+                         cur_ext,
+                         has_cur_ext,
+                         _dw,
+                         _layer);
       _prev_x = cur_x;
       _prev_y = cur_y;
       _prev_ext = cur_ext;

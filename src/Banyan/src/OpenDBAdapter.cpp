@@ -766,6 +766,17 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
         break;
       }
 
+      case odb::dbWireDecoder::POINT_VIRTUAL: {
+	    int x, y, ext;
+	    decode.getPoint(x, y);
+	    ext = banyan_go::DEFAULT_WIRE_EXT;
+	    prevX = x;
+	    prevY = y;
+	    prevExt = ext;
+	    hasPrevCoor = true;
+	    break;
+	  }
+
       case odb::dbWireDecoder::POINT: {
         int x, y, ext;
         decode.getPoint(x, y);
