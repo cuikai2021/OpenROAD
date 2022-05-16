@@ -94,10 +94,10 @@ class NesterovPlace
     void swap(SLP& ano);
     void clear();
     void shrink_to_fit();
-    std::vector<FloatPoint> Coordi_;
-    std::vector<FloatPoint> WireLengthGrads_;
-    std::vector<FloatPoint> DensityGrads_;
-    std::vector<FloatPoint> SumGrads_;
+    std::vector<FloatPoint> coordi_;
+    std::vector<FloatPoint> wireLengthGrads_;
+    std::vector<FloatPoint> densityGrads_;
+    std::vector<FloatPoint> sumGrads_;
   };
 
   NesterovPlace();

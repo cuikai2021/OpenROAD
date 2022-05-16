@@ -139,34 +139,34 @@ static PlotEnv pe;
 
 void NesterovPlace::SLP::resize(std::size_t sz)
 {
-  Coordi_.resize(sz, FloatPoint());
-  WireLengthGrads_.resize(sz, FloatPoint());
-  DensityGrads_.resize(sz, FloatPoint());
-  SumGrads_.resize(sz, FloatPoint());
+  coordi_.resize(sz, FloatPoint());
+  wireLengthGrads_.resize(sz, FloatPoint());
+  densityGrads_.resize(sz, FloatPoint());
+  sumGrads_.resize(sz, FloatPoint());
 }
 
 void NesterovPlace::SLP::swap(SLP& ano)
 {
-  std::swap(ano.Coordi_, Coordi_);
-  std::swap(ano.WireLengthGrads_, WireLengthGrads_);
-  std::swap(ano.DensityGrads_, DensityGrads_);
-  std::swap(ano.SumGrads_, SumGrads_);
+  std::swap(ano.coordi_, coordi_);
+  std::swap(ano.wireLengthGrads_, wireLengthGrads_);
+  std::swap(ano.densityGrads_, densityGrads_);
+  std::swap(ano.sumGrads_, sumGrads_);
 }
 
 void NesterovPlace::SLP::clear()
 {
-  Coordi_.clear();
-  WireLengthGrads_.clear();
-  DensityGrads_.clear();
-  SumGrads_.clear();
+  coordi_.clear();
+  wireLengthGrads_.clear();
+  densityGrads_.clear();
+  sumGrads_.clear();
 }
 
 void NesterovPlace::SLP::shrink_to_fit()
 {
-  Coordi_.shrink_to_fit();
-  WireLengthGrads_.shrink_to_fit();
-  DensityGrads_.shrink_to_fit();
-  SumGrads_.shrink_to_fit();
+  coordi_.shrink_to_fit();
+  wireLengthGrads_.shrink_to_fit();
+  densityGrads_.shrink_to_fit();
+  sumGrads_.shrink_to_fit();
 }
 
 void NesterovPlace::init()
@@ -183,12 +183,12 @@ void NesterovPlace::init()
   for (auto& gCell : nb_->gCells()) {
     nb_->updateDensityCoordiLayoutInside(gCell);
     int idx = &gCell - &nb_->gCells()[0];
-    curSLP_.Coordi_[idx] = prevSLP_.Coordi_[idx] = curCoordi_[idx]
+    curSLP_.coordi_[idx] = prevSLP_.coordi_[idx] = curCoordi_[idx]
         = initCoordi_[idx] = FloatPoint(gCell->dCx(), gCell->dCy());
   }
 
   // bin
-  nb_->updateGCellDensityCenterLocation(curSLP_.Coordi_);
+  nb_->updateGCellDensityCenterLocation(curSLP_.coordi_);
 
   prevHpwl_ = nb_->getHpwl();
 
@@ -236,7 +236,7 @@ void NesterovPlace::init()
 
   // fill in curSLP_.SumGrads_, curSLP_.WireLengthGrads_, curSLP_.DensityGrads_
   updateGradients(
-      curSLP_.SumGrads_, curSLP_.WireLengthGrads_, curSLP_.DensityGrads_);
+      curSLP_.sumGrads_, curSLP_.wireLengthGrads_, curSLP_.densityGrads_);
 
   if (isDiverged_) {
     return;
@@ -247,13 +247,13 @@ void NesterovPlace::init()
   updateInitialPrevSLPCoordi();
 
   // bin, FFT, wlen update with prevSLPCoordi.
-  nb_->updateGCellDensityCenterLocation(prevSLP_.Coordi_);
+  nb_->updateGCellDensityCenterLocation(prevSLP_.coordi_);
   nb_->updateDensityForceBin();
   nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
 
   // update previSumGrads_, prevSLP_.WireLengthGrads_, prevSLP_.DensityGrads_
   updateGradients(
-      prevSLP_.SumGrads_, prevSLP_.WireLengthGrads_, prevSLP_.DensityGrads_);
+      prevSLP_.sumGrads_, prevSLP_.wireLengthGrads_, prevSLP_.densityGrads_);
 
   if (isDiverged_) {
     return;
@@ -536,8 +536,8 @@ int NesterovPlace::doNesterovPlace(int start_iter)
       // fill in nextCoordinates with given stepLength_
       for (size_t k = 0; k < nb_->gCells().size(); k++) {
         FloatPoint nextCoordi(
-            curSLP_.Coordi_[k].x + stepLength_ * curSLP_.SumGrads_[k].x,
-            curSLP_.Coordi_[k].y + stepLength_ * curSLP_.SumGrads_[k].y);
+            curSLP_.coordi_[k].x + stepLength_ * curSLP_.sumGrads_[k].x,
+            curSLP_.coordi_[k].y + stepLength_ * curSLP_.sumGrads_[k].y);
 
         FloatPoint nextSLPCoordi(
             nextCoordi.x + coeff * (nextCoordi.x - curCoordi_[k].x),
@@ -549,18 +549,18 @@ int NesterovPlace::doNesterovPlace(int start_iter)
             nb_->getDensityCoordiLayoutInsideX(curGCell, nextCoordi.x),
             nb_->getDensityCoordiLayoutInsideY(curGCell, nextCoordi.y));
 
-        nextSLP_.Coordi_[k] = FloatPoint(
+        nextSLP_.coordi_[k] = FloatPoint(
             nb_->getDensityCoordiLayoutInsideX(curGCell, nextSLPCoordi.x),
             nb_->getDensityCoordiLayoutInsideY(curGCell, nextSLPCoordi.y));
       }
 
-      nb_->updateGCellDensityCenterLocation(nextSLP_.Coordi_);
+      nb_->updateGCellDensityCenterLocation(nextSLP_.coordi_);
       nb_->updateDensityForceBin();
       nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
 
-      updateGradients(nextSLP_.SumGrads_,
-                      nextSLP_.WireLengthGrads_,
-                      nextSLP_.DensityGrads_);
+      updateGradients(nextSLP_.sumGrads_,
+                      nextSLP_.wireLengthGrads_,
+                      nextSLP_.densityGrads_);
 
       // NaN or inf is detected in WireLength/Density Coef
       if (isDiverged_) {
@@ -690,8 +690,8 @@ int NesterovPlace::doNesterovPlace(int start_iter)
 
         // revert back the current density penality
         curCoordi_ = snapshotCoordi;
-        curSLP_.Coordi_ = snapshotSLPCoordi;
-        curSLP_.SumGrads_ = snapshotSLPSumGrads;
+        curSLP_.coordi_ = snapshotSLPCoordi;
+        curSLP_.sumGrads_ = snapshotSLPSumGrads;
         curA = snapshotA;
         densityPenalty_ = snapshotDensityPenalty;
         stepLength_ = snapshotStepLength;
@@ -719,8 +719,8 @@ int NesterovPlace::doNesterovPlace(int start_iter)
     if (!isSnapshotSaved && npVars_.routabilityDrivenMode
         && 0.6 >= sumOverflow_) {
       snapshotCoordi = curCoordi_;
-      snapshotSLPCoordi = curSLP_.Coordi_;
-      snapshotSLPSumGrads = curSLP_.SumGrads_;
+      snapshotSLPCoordi = curSLP_.coordi_;
+      snapshotSLPSumGrads = curSLP_.sumGrads_;
       snapshotA = curA;
       snapshotDensityPenalty = densityPenalty_;
       snapshotStepLength = stepLength_;
@@ -746,8 +746,8 @@ int NesterovPlace::doNesterovPlace(int start_iter)
 
         // revert back the current density penality
         curCoordi_ = snapshotCoordi;
-        curSLP_.Coordi_ = snapshotSLPCoordi;
-        curSLP_.SumGrads_ = snapshotSLPSumGrads;
+        curSLP_.coordi_ = snapshotSLPCoordi;
+        curSLP_.sumGrads_ = snapshotSLPSumGrads;
         curA = snapshotA;
         densityPenalty_ = snapshotDensityPenalty;
         stepLength_ = snapshotStepLength;
@@ -815,18 +815,18 @@ void NesterovPlace::updateInitialPrevSLPCoordi()
     GCell* curGCell = nb_->gCells()[i];
 
     float prevCoordiX
-        = curSLP_.Coordi_[i].x
-          - npVars_.initialPrevCoordiUpdateCoef * curSLP_.SumGrads_[i].x;
+        = curSLP_.coordi_[i].x
+          - npVars_.initialPrevCoordiUpdateCoef * curSLP_.sumGrads_[i].x;
 
     float prevCoordiY
-        = curSLP_.Coordi_[i].y
-          - npVars_.initialPrevCoordiUpdateCoef * curSLP_.SumGrads_[i].y;
+        = curSLP_.coordi_[i].y
+          - npVars_.initialPrevCoordiUpdateCoef * curSLP_.sumGrads_[i].y;
 
     FloatPoint newCoordi(
         nb_->getDensityCoordiLayoutInsideX(curGCell, prevCoordiX),
         nb_->getDensityCoordiLayoutInsideY(curGCell, prevCoordiY));
 
-    prevSLP_.Coordi_[i] = newCoordi;
+    prevSLP_.coordi_[i] = newCoordi;
   }
 }
 
@@ -839,10 +839,10 @@ void NesterovPlace::updateNextIter()
   const auto& gCells = nb_->gCells();
   for (size_t k = 0; k < gCells.size(); ++k) {
     if (gCells[k]->isInstance() && gCells[k]->instance()->isLocked()) {
-      nextSLP_.Coordi_[k] = curSLP_.Coordi_[k];
-      nextSLP_.WireLengthGrads_[k] = curSLP_.WireLengthGrads_[k];
-      nextSLP_.DensityGrads_[k] = curSLP_.DensityGrads_[k];
-      nextSLP_.SumGrads_[k] = curSLP_.SumGrads_[k];
+      nextSLP_.coordi_[k] = curSLP_.coordi_[k];
+      nextSLP_.wireLengthGrads_[k] = curSLP_.wireLengthGrads_[k];
+      nextSLP_.densityGrads_[k] = curSLP_.densityGrads_[k];
+      nextSLP_.sumGrads_[k] = curSLP_.sumGrads_[k];
 
       nextCoordi_[k] = curCoordi_[k];
     }
@@ -860,7 +860,7 @@ void NesterovPlace::updateNextIter()
              "replace",
              3,
              "updateNextIter:  Gradient: {:g}",
-             getSecondNorm(curSLP_.SumGrads_));
+             getSecondNorm(curSLP_.sumGrads_));
   debugPrint(
       log_, GPL, "replace", 3, "updateNextIter:  Phi: {:g}", nb_->sumPhi());
   debugPrint(
@@ -890,8 +890,8 @@ void NesterovPlace::updateNextIter()
 
 float NesterovPlace::getStepLength(const SLP& prevSLP, const SLP& curSLP) const
 {
-  float coordiDistance = getDistance(prevSLP.Coordi_, curSLP.Coordi_);
-  float gradDistance = getDistance(prevSLP.SumGrads_, curSLP.SumGrads_);
+  float coordiDistance = getDistance(prevSLP.coordi_, curSLP.coordi_);
+  float gradDistance = getDistance(prevSLP.sumGrads_, curSLP.sumGrads_);
 
   debugPrint(log_,
              GPL,
