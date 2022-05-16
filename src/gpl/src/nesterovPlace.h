@@ -91,8 +91,9 @@ class NesterovPlace
   struct SLP
   {
     void resize(std::size_t sz);
-    void clear();
     void swap(SLP& ano);
+    void clear();
+    void shrink_to_fit();
     std::vector<FloatPoint> Coordi_;
     std::vector<FloatPoint> WireLengthGrads_;
     std::vector<FloatPoint> DensityGrads_;

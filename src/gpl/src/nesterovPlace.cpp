@@ -145,6 +145,14 @@ void NesterovPlace::SLP::resize(std::size_t sz)
   SumGrads_.resize(sz, FloatPoint());
 }
 
+void NesterovPlace::SLP::swap(SLP& ano)
+{
+  std::swap(ano.Coordi_, Coordi_);
+  std::swap(ano.WireLengthGrads_, WireLengthGrads_);
+  std::swap(ano.DensityGrads_, DensityGrads_);
+  std::swap(ano.SumGrads_, SumGrads_);
+}
+
 void NesterovPlace::SLP::clear()
 {
   Coordi_.clear();
@@ -153,12 +161,12 @@ void NesterovPlace::SLP::clear()
   SumGrads_.clear();
 }
 
-void NesterovPlace::SLP::swap(SLP& ano)
+void NesterovPlace::SLP::shrink_to_fit()
 {
-  std::swap(ano.Coordi_, Coordi_);
-  std::swap(ano.WireLengthGrads_, WireLengthGrads_);
-  std::swap(ano.DensityGrads_, DensityGrads_);
-  std::swap(ano.SumGrads_, SumGrads_);
+  Coordi_.shrink_to_fit();
+  WireLengthGrads_.shrink_to_fit();
+  DensityGrads_.shrink_to_fit();
+  SumGrads_.shrink_to_fit();
 }
 
 void NesterovPlace::init()
@@ -318,20 +326,9 @@ void NesterovPlace::reset()
 
   densityPenaltyStor_.clear();
 
-  curSLP_.Coordi_.shrink_to_fit();
-  curSLP_.WireLengthGrads_.shrink_to_fit();
-  curSLP_.DensityGrads_.shrink_to_fit();
-  curSLP_.SumGrads_.shrink_to_fit();
-
-  nextSLP_.Coordi_.shrink_to_fit();
-  nextSLP_.WireLengthGrads_.shrink_to_fit();
-  nextSLP_.DensityGrads_.shrink_to_fit();
-  nextSLP_.SumGrads_.shrink_to_fit();
-
-  prevSLP_.Coordi_.shrink_to_fit();
-  prevSLP_.WireLengthGrads_.shrink_to_fit();
-  prevSLP_.DensityGrads_.shrink_to_fit();
-  prevSLP_.SumGrads_.shrink_to_fit();
+  curSLP_.shrink_to_fit();
+  nextSLP_.shrink_to_fit();
+  prevSLP_.shrink_to_fit();
 
   curCoordi_.shrink_to_fit();
   nextCoordi_.shrink_to_fit();
@@ -936,20 +933,9 @@ void NesterovPlace::updateDb()
 
 void NesterovPlace::cutFillerCoordinates()
 {
-  curSLP_.Coordi_.resize(nb_->fillerCnt());
-  curSLP_.WireLengthGrads_.resize(nb_->fillerCnt());
-  curSLP_.DensityGrads_.resize(nb_->fillerCnt());
-  curSLP_.SumGrads_.resize(nb_->fillerCnt());
-
-  nextSLP_.Coordi_.resize(nb_->fillerCnt());
-  nextSLP_.WireLengthGrads_.resize(nb_->fillerCnt());
-  nextSLP_.DensityGrads_.resize(nb_->fillerCnt());
-  nextSLP_.SumGrads_.resize(nb_->fillerCnt());
-
-  prevSLP_.Coordi_.resize(nb_->fillerCnt());
-  prevSLP_.WireLengthGrads_.resize(nb_->fillerCnt());
-  prevSLP_.DensityGrads_.resize(nb_->fillerCnt());
-  prevSLP_.SumGrads_.resize(nb_->fillerCnt());
+  curSLP_.resize(nb_->fillerCnt());
+  nextSLP_.resize(nb_->fillerCnt());
+  prevSLP_.resize(nb_->fillerCnt());
 
   curCoordi_.resize(nb_->fillerCnt());
   nextCoordi_.resize(nb_->fillerCnt());
