@@ -40,6 +40,7 @@
 #include "fft.h"
 #include "odb/db.h"
 #include "placerBase.h"
+#include "util.h"
 #include "utl/Logger.h"
 
 #define REPLACE_SQRT2 1.414213562373095048801L
@@ -1003,7 +1004,7 @@ void NesterovBase::initFillerGCells()
     // place filler cells on random coordi and
     // set size as avgDx and avgDy
     odb::Point center(randX % pb_->die().coreDx() + pb_->die().coreLx(),
-                    randY % pb_->die().coreDy() + pb_->die().coreLy());
+                      randY % pb_->die().coreDy() + pb_->die().coreLy());
     GCell myGCell(center, fillerDx_, fillerDy_);
 
     gCellStor_.push_back(myGCell);
@@ -1284,24 +1285,10 @@ void NesterovBase::cutFillerCells(int64_t targetFillerArea)
 
 void NesterovBase::updateDensityCoordiLayoutInside(GCell* gCell)
 {
-  float targetLx = gCell->dLx();
-  float targetLy = gCell->dLy();
-
-  if (targetLx < bg_.lx()) {
-    targetLx = bg_.lx();
-  }
-
-  if (targetLy < bg_.ly()) {
-    targetLy = bg_.ly();
-  }
-
-  if (targetLx + gCell->dDx() > bg_.ux()) {
-    targetLx = bg_.ux() - gCell->dDx();
-  }
-
-  if (targetLy + gCell->dDy() > bg_.uy()) {
-    targetLy = bg_.uy() - gCell->dDy();
-  }
+  float targetLx
+      = util::bounded_value(gCell->dLx(), bg_.lx(), bg_.ux() - gCell->dDx());
+  float targetLy
+      = util::bounded_value(gCell->dLy(), bg_.ly(), bg_.uy() - gCell->dDy());
   gCell->setDensityLocation(targetLx, targetLy);
 }
 
@@ -1313,13 +1300,7 @@ float NesterovBase::getDensityCoordiLayoutInsideX(const GCell* gCell,
   //
   auto min = bg_.lx() + gCell->dDx() / 2;
   auto max = bg_.ux() - gCell->dDx() / 2;
-  if (adjVal < min) {
-    adjVal = min;
-  }
-  if (adjVal > max) {
-    adjVal = max;
-  }
-  return adjVal;
+  return util::bounded_value(adjVal, min, max);
 }
 
 float NesterovBase::getDensityCoordiLayoutInsideY(const GCell* gCell,
@@ -1330,13 +1311,7 @@ float NesterovBase::getDensityCoordiLayoutInsideY(const GCell* gCell,
   //
   auto min = bg_.ly() + gCell->dDy() / 2;
   auto max = bg_.uy() - gCell->dDy() / 2;
-  if (adjVal < min) {
-    adjVal = min;
-  }
-  if (adjVal > max) {
-    adjVal = max;
-  }
-  return adjVal;
+  return util::bounded_value(adjVal, min, max);
 }
 
 //
