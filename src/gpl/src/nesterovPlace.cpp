@@ -147,6 +147,7 @@ void NesterovPlace::SLP::resize(std::size_t sz)
 
 void NesterovPlace::SLP::swap(SLP& ano)
 {
+  // swap vector pointers
   std::swap(ano.coordi_, coordi_);
   std::swap(ano.wireLengthGrads_, wireLengthGrads_);
   std::swap(ano.densityGrads_, densityGrads_);
@@ -234,9 +235,7 @@ void NesterovPlace::init()
   // WL update
   nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
 
-  // fill in curSLP_.SumGrads_, curSLP_.WireLengthGrads_, curSLP_.DensityGrads_
-  updateGradients(
-      curSLP_.sumGrads_, curSLP_.wireLengthGrads_, curSLP_.densityGrads_);
+  updateGradients(curSLP_);
 
   if (isDiverged_) {
     return;
@@ -251,9 +250,7 @@ void NesterovPlace::init()
   nb_->updateDensityForceBin();
   nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
 
-  // update previSumGrads_, prevSLP_.WireLengthGrads_, prevSLP_.DensityGrads_
-  updateGradients(
-      prevSLP_.sumGrads_, prevSLP_.wireLengthGrads_, prevSLP_.densityGrads_);
+  updateGradients(prevSLP_);
 
   if (isDiverged_) {
     return;
@@ -360,10 +357,12 @@ void NesterovPlace::reset()
 // nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_); // WL
 // update
 //
-void NesterovPlace::updateGradients(std::vector<FloatPoint>& sumGrads,
-                                    std::vector<FloatPoint>& wireLengthGrads,
-                                    std::vector<FloatPoint>& densityGrads)
+void NesterovPlace::updateGradients(SLP& slp)
 {
+  std::vector<FloatPoint>& sumGrads = slp.sumGrads_;
+  std::vector<FloatPoint>& wireLengthGrads = slp.wireLengthGrads_;
+  std::vector<FloatPoint>& densityGrads = slp.densityGrads_;
+ 
   wireLengthGradSum_ = 0;
   densityGradSum_ = 0;
 
@@ -452,7 +451,7 @@ void NesterovPlace::updateGradients(std::vector<FloatPoint>& sumGrads,
 
     // recursive call again with smaller wirelength coef
     recursionCntWlCoef_++;
-    updateGradients(sumGrads, wireLengthGrads, densityGrads);
+    updateGradients(slp);
   }
 
   // divergence detection on
@@ -558,9 +557,7 @@ int NesterovPlace::doNesterovPlace(int start_iter)
       nb_->updateDensityForceBin();
       nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
 
-      updateGradients(nextSLP_.sumGrads_,
-                      nextSLP_.wireLengthGrads_,
-                      nextSLP_.densityGrads_);
+      updateGradients(nextSLP_);
 
       // NaN or inf is detected in WireLength/Density Coef
       if (isDiverged_) {
@@ -832,7 +829,6 @@ void NesterovPlace::updateInitialPrevSLPCoordi()
 
 void NesterovPlace::updateNextIter()
 {
-  // swap vector pointers
   prevSLP_.swap(curSLP_);
 
   // Prevent locked instances from moving

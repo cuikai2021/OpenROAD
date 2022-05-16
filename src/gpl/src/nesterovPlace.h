@@ -112,9 +112,7 @@ class NesterovPlace
   // return iteration count
   int doNesterovPlace(int start_iter = 0);
 
-  void updateGradients(std::vector<FloatPoint>& sumGrads,
-                       std::vector<FloatPoint>& wireLengthGrads,
-                       std::vector<FloatPoint>& densityGrads);
+  void updateGradients(SLP& slp);
 
   void updateWireLengthCoef(float overflow);
 
