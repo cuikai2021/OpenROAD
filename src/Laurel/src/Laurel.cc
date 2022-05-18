@@ -419,7 +419,7 @@ void Laurel::wireBudgeting()
     logger_->warn(utl::LRL, 1203, "Fail to do wire budgeting");
   else
     logger_->info(utl::LRL, 1308, "Succeed to do wire budgeting");
-  showAllWireBud(&guider);
+  // showAllWireBud(&guider);
 }
 
 uint64 Laurel::getWireBudMaxLen(Vertex* fanin, Vertex* fanout)
