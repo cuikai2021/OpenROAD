@@ -1538,6 +1538,27 @@ FloatPoint NesterovBase::getDensityPreconditioner(const GCell* gCell) const
   return FloatPoint(areaVal, areaVal);
 }
 
+FloatPoint NesterovBase::getSumPreconditioner(const GCell* gCell,
+                                              float densityPenalty,
+                                              float minPreconditioner) const
+{
+  FloatPoint wireLengthPreCondi = getWireLengthPreconditioner(gCell);
+  FloatPoint densityPrecondi = getDensityPreconditioner(gCell);
+
+  FloatPoint sumPrecondi(
+      wireLengthPreCondi.x + densityPenalty * densityPrecondi.x,
+      wireLengthPreCondi.y + densityPenalty * densityPrecondi.y);
+
+  if (sumPrecondi.x <= minPreconditioner) {
+    sumPrecondi.x = minPreconditioner;
+  }
+
+  if (sumPrecondi.y <= minPreconditioner) {
+    sumPrecondi.y = minPreconditioner;
+  }
+  return sumPrecondi;
+}
+
 // get GCells' electroForcePair
 // i.e. get DensityGradient with given GCell
 FloatPoint NesterovBase::getDensityGradient(const GCell* gCell) const

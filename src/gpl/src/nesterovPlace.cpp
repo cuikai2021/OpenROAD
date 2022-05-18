@@ -362,11 +362,6 @@ void NesterovPlace::updateGradients(SLP& slp)
   std::vector<FloatPoint>& sumGrads = slp.sumGrads_;
   std::vector<FloatPoint>& wireLengthGrads = slp.wireLengthGrads_;
   std::vector<FloatPoint>& densityGrads = slp.densityGrads_;
- 
-  wireLengthGradSum_ = 0;
-  densityGradSum_ = 0;
-
-  float gradSum = 0;
 
   debugPrint(log_,
              GPL,
@@ -375,12 +370,36 @@ void NesterovPlace::updateGradients(SLP& slp)
              "updateGrad:  DensityPenalty: {:g}",
              densityPenalty_);
 
+  // update wireLengthGrads for each gCell
   for (size_t i = 0; i < nb_->gCells().size(); i++) {
     GCell* gCell = nb_->gCells().at(i);
     wireLengthGrads[i] = nb_->getWireLengthGradientWA(
         gCell, wireLengthCoefX_, wireLengthCoefY_);
-    densityGrads[i] = nb_->getDensityGradient(gCell);
+  }
 
+  // update densityGrads for each gCell
+  for (size_t i = 0; i < nb_->gCells().size(); i++) {
+    GCell* gCell = nb_->gCells().at(i);
+    densityGrads[i] = nb_->getDensityGradient(gCell);
+  }
+
+  // update sumGrads for each gCell
+  for (size_t i = 0; i < nb_->gCells().size(); i++) {
+    GCell* gCell = nb_->gCells().at(i);
+    sumGrads[i].x = wireLengthGrads[i].x + densityPenalty_ * densityGrads[i].x;
+    sumGrads[i].y = wireLengthGrads[i].y + densityPenalty_ * densityGrads[i].y;
+
+    const FloatPoint& sumPrecondi = nb_->getSumPreconditioner(
+        gCell, densityPenalty_, npVars_.minPreconditioner);
+
+    sumGrads[i].x /= sumPrecondi.x;
+    sumGrads[i].y /= sumPrecondi.y;
+  }
+
+  wireLengthGradSum_ = 0;
+  densityGradSum_ = 0;
+  float gradSum = 0;
+  for (size_t i = 0; i < nb_->gCells().size(); i++) {
     // Different compiler has different results on the following formula.
     // e.g. wireLengthGradSum_ += fabs(~~.x) + fabs(~~.y);
     //
@@ -389,32 +408,10 @@ void NesterovPlace::updateGradients(SLP& slp)
     //
     wireLengthGradSum_ += fabs(wireLengthGrads[i].x);
     wireLengthGradSum_ += fabs(wireLengthGrads[i].y);
-
     densityGradSum_ += fabs(densityGrads[i].x);
     densityGradSum_ += fabs(densityGrads[i].y);
-
-    sumGrads[i].x = wireLengthGrads[i].x + densityPenalty_ * densityGrads[i].x;
-    sumGrads[i].y = wireLengthGrads[i].y + densityPenalty_ * densityGrads[i].y;
-
-    FloatPoint wireLengthPreCondi = nb_->getWireLengthPreconditioner(gCell);
-    FloatPoint densityPrecondi = nb_->getDensityPreconditioner(gCell);
-
-    FloatPoint sumPrecondi(
-        wireLengthPreCondi.x + densityPenalty_ * densityPrecondi.x,
-        wireLengthPreCondi.y + densityPenalty_ * densityPrecondi.y);
-
-    if (sumPrecondi.x <= npVars_.minPreconditioner) {
-      sumPrecondi.x = npVars_.minPreconditioner;
-    }
-
-    if (sumPrecondi.y <= npVars_.minPreconditioner) {
-      sumPrecondi.y = npVars_.minPreconditioner;
-    }
-
-    sumGrads[i].x /= sumPrecondi.x;
-    sumGrads[i].y /= sumPrecondi.y;
-
-    gradSum += fabs(sumGrads[i].x) + fabs(sumGrads[i].y);
+    gradSum += fabs(sumGrads[i].x);
+    gradSum += fabs(sumGrads[i].y);
   }
 
   debugPrint(log_,
