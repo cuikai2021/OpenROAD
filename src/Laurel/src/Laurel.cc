@@ -349,11 +349,11 @@ void Laurel::fixSetup()
 bool Laurel::genAllWireBud(WireBudgeting* guider)
 {
   wire_budget_.clear();
+  wire_budget_rate_.clear();
   WirePairSet pairs = guider->getAllWirePairs();
   bool ret = true;
 
   for (auto wire : pairs) {
-    printf("%s -> %s\n", wire.first.c_str(), wire.second.c_str());
     Vertex* pred = findRealVertex(wire.first);
     Vertex* succ = findRealVertex(wire.second);
 
@@ -362,36 +362,64 @@ bool Laurel::genAllWireBud(WireBudgeting* guider)
     Name fanout_name = sta_->network()->name(fanout_pin);
 
     WirePair pin_wire = WirePair(fanin_name, fanout_name);
-    uint64 wire_length = guider->getNewWireLength(pred, succ);
+    uint64 wire_length = LRL_S_ZERO;
+    Delay bud_rate = LRL_H_ZERO;
+    guider->getNewWireLength(pred, succ, wire_length, bud_rate);
     wire_budget_.insert(pin_wire, wire_length);
+    wire_budget_rate_.insert(pin_wire, bud_rate);
 
-    logger_->info(utl::LRL,
-                  1307,
-                  " {} -> {} : new_wire_length = {}",
-                  fanin_name,
-                  fanout_name,
-                  wire_length);
     if (wire_length == LRL_S_ZERO)
       ret = false;
   }
   return ret;
 }
 
+void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
+{
+  WirePairSet pairs = guider->getAllWirePairs();
+
+  logger_->info(utl::LRL, 1310, "test wire budgeting interface");
+  for (auto wire : pairs) {
+    Vertex* pred = findRealVertex(wire.first);
+    Vertex* succ = findRealVertex(wire.second);
+
+    Pin* fanin_pin = pred->pin();
+    Pin* fanout_pin = findFanoutPin(wire);
+    Name fanin_name = wire.first;
+    Name fanout_name = sta_->network()->name(fanout_pin);
+
+    WirePair pin_wire = WirePair(fanin_name, fanout_name);
+
+    uint64 max_length = getWireBudMaxLen(fanin_pin, fanout_pin);
+    Delay bud_rate = getWireBudRate(fanin_pin, fanout_pin);
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               3,
+               "{} -> {}, max_len = {}, bud_rate = {}",
+               fanin_name,
+               fanout_name,
+               max_length,
+               bud_rate);
+  }
+}
+
 void Laurel::wireBudgeting()
 {
   WireBudgeting guider = WireBudgeting(openroad_, options_);
   guider.initAlgorithm();
-  SetupResult status = guider.resolve();
+  // SetupResult status = guider.resolve();
   bool ret = false;
-  if (status == MinCostFlow::OPTIMAL) {
-    guider.report();
-    if (guider.remap())
-      ret = genAllWireBud(&guider);
-  }
+  // if (status == MinCostFlow::OPTIMAL) {
+  guider.report();
+  // if (guider.remap())
+  ret = genAllWireBud(&guider);
+  // }
   if (!ret)
     logger_->warn(utl::LRL, 1203, "Fail to do wire budgeting");
   else
     logger_->info(utl::LRL, 1308, "Succeed to do wire budgeting");
+  showAllWireBud(&guider);
 }
 
 uint64 Laurel::getWireBudMaxLen(Vertex* fanin, Vertex* fanout)
@@ -412,7 +440,41 @@ uint64 Laurel::getWireBudMaxLen(Pin* fanin, Pin* fanout)
                   fanout_name);
     return LRL_S_ZERO;
   }
-  return wire_budget_.at(pin_wire);
+  uint64 max_length = wire_budget_.at(pin_wire);
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             3,
+             " {} -> {} : max_length = {}",
+             fanin_name,
+             fanout_name,
+             max_length);
+  return max_length;
+}
+
+Delay Laurel::getWireBudRate(Pin* fanin, Pin* fanout)
+{
+  Name fanin_name = sta_->network()->name(fanin);
+  Name fanout_name = sta_->network()->name(fanout);
+  WirePair pin_wire = WirePair(fanin_name, fanout_name);
+  uint64 bud_rate = wire_budget_rate_.at(pin_wire);
+  if (!wire_budget_.hasKey(pin_wire)) {
+    logger_->warn(utl::LRL,
+                  1205,
+                  "not found budget rate for {} -> {}",
+                  fanin_name,
+                  fanout_name);
+    return LRL_S_ZERO;
+  }
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             3,
+             " {} -> {} : bud_rate = {}",
+             fanin_name,
+             fanout_name,
+             bud_rate);
+  return bud_rate;
 }
 
 ////////////////////////////////////////////////////////

@@ -93,7 +93,7 @@ class SetupFixer : public LaurelAdapter
   SetupFixer(OpenRoad* openroad, Options* options);
   virtual ~SetupFixer(){};
 
-  void initAlgorithm();
+  virtual void initAlgorithm();
   SetupResult resolve();
   bool remap();
   Delay getNewDelay(Vertex* vertex);
@@ -156,7 +156,12 @@ class WireBudgeting : public SetupFixer
       : SetupFixer(openroad, options){};
   virtual ~WireBudgeting(){};
 
-  uint64 getNewWireLength(Vertex* pred, Vertex* succ);
+  virtual void initAlgorithm();
+
+  uint64 getNewWireLength(Vertex* pred,
+                          Vertex* succ,
+                          uint64& max_length,
+                          Delay& bud_rate);
   WirePairSet getAllWirePairs() { return opt_wires_; }
 
  protected:
@@ -252,6 +257,7 @@ class Laurel : public LaurelAdapter
   // unit DBU
   uint64 getWireBudMaxLen(Vertex* fanin, Vertex* fanout);
   uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout);
+  Delay getWireBudRate(Pin* fanin, Pin* fanout);
 
   Options* getOptions() { return options_; }
 
@@ -274,10 +280,12 @@ class Laurel : public LaurelAdapter
   bool resizeAllCells(SetupFixer* fixer);
 
   bool genAllWireBud(WireBudgeting* guider);
+  void showAllWireBud(WireBudgeting* guider); //debug
 
   // variable
   Options* options_;
   sta::Map<WirePair, uint64> wire_budget_;
+  sta::Map<WirePair, uint64> wire_budget_rate_;
 };
 
 }  // namespace lrl
