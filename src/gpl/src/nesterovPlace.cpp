@@ -514,7 +514,7 @@ int NesterovPlace::doNesterovPlace(int start_iter)
     float prevA = curA;
 
     // here, prevA is a_(k), curA is a_(k+1)
-    // See, the ePlace-MS paper's Algorithm 1
+    // See, the ePlace paper's Algorithm 2: Nesterov-Solver at kth iteration
     //
     curA = (1.0 + sqrt(4.0 * prevA * prevA + 1.0)) * 0.5;
 
@@ -531,10 +531,12 @@ int NesterovPlace::doNesterovPlace(int start_iter)
     for (numBackTrak = 0; numBackTrak < npVars_.maxBackTrack; numBackTrak++) {
       // fill in nextCoordinates with given stepLength_
       for (size_t k = 0; k < nb_->gCells().size(); k++) {
+        // new solution u_(k+1)
         FloatPoint nextCoordi(
             curSLP_.coordi_[k].x + stepLength_ * curSLP_.sumGrads_[k].x,
             curSLP_.coordi_[k].y + stepLength_ * curSLP_.sumGrads_[k].y);
 
+        // new reference solution v_(k+1)
         FloatPoint nextSLPCoordi(
             nextCoordi.x + coeff * (nextCoordi.x - curCoordi_[k].x),
             nextCoordi.y + coeff * (nextCoordi.y - curCoordi_[k].y));
@@ -692,7 +694,7 @@ int NesterovPlace::doNesterovPlace(int start_iter)
         wireLengthCoefX_ = snapshotWlCoefX;
         wireLengthCoefY_ = snapshotWlCoefY;
 
-        nb_->updateGCellDensityCenterLocation(curCoordi_);
+        nb_->updateGCellDensityCenterLocation(snapshotCoordi);
         nb_->updateDensityForceBin();
         nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
 
@@ -748,7 +750,7 @@ int NesterovPlace::doNesterovPlace(int start_iter)
         wireLengthCoefX_ = snapshotWlCoefX;
         wireLengthCoefY_ = snapshotWlCoefY;
 
-        nb_->updateGCellDensityCenterLocation(curCoordi_);
+        nb_->updateGCellDensityCenterLocation(snapshotCoordi);
         nb_->updateDensityForceBin();
         nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
 
@@ -881,6 +883,9 @@ void NesterovPlace::updateNextIter()
   }
 }
 
+// step-length = 1 / Lipschitz-constant
+// Details is in Algorithm-2 Nesterov-Solver at kth iteration in the ePlace Paper
+// And the step-length α_k = 1/ L_k, where L_k is the equaration (29) in the Paper
 float NesterovPlace::getStepLength(const SLP& prevSLP, const SLP& curSLP) const
 {
   float coordiDistance = getDistance(prevSLP.coordi_, curSLP.coordi_);
@@ -902,6 +907,8 @@ float NesterovPlace::getStepLength(const SLP& prevSLP, const SLP& curSLP) const
   return coordiDistance / gradDistance;
 }
 
+// λ Scaling coef
+// Algorithm-2 in RePlAce paper
 float NesterovPlace::getPhiCoef(float scaledDiffHpwl) const
 {
   debugPrint(log_,
