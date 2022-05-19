@@ -765,6 +765,13 @@ int NesterovPlace::doNesterovPlace(int start_iter)
     if (sumOverflow_ <= npVars_.targetOverflow) {
       log_->report("[NesterovSolve] Finished with Overflow: {:.6f}",
                    sumOverflow_);
+      debugPrint(log_,
+                 GPL,
+                 "replace",
+                 1,
+                 "[NesterovSolve] Finished with Iter={} overflow:={:g} HPWL={}",
+                   iter + 1,
+                   sumOverflow_, nb_->getHpwl());
       break;
     }
   }
@@ -884,8 +891,9 @@ void NesterovPlace::updateNextIter()
 }
 
 // step-length = 1 / Lipschitz-constant
-// Details is in Algorithm-2 Nesterov-Solver at kth iteration in the ePlace Paper
-// And the step-length α_k = 1/ L_k, where L_k is the equaration (29) in the Paper
+// Details is in Algorithm-2 Nesterov-Solver at kth iteration in the ePlace
+// Paper And the step-length α_k = 1/ L_k, where L_k is the equaration (29) in
+// the Paper
 float NesterovPlace::getStepLength(const SLP& prevSLP, const SLP& curSLP) const
 {
   float coordiDistance = getDistance(prevSLP.coordi_, curSLP.coordi_);
