@@ -637,43 +637,75 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
   }
 }
 
+static int lowerBinIdx(int distance, int size)
+{
+  return distance / size;
+}
+
+static int upperBinIdx(int distance, int size)
+{
+  int ret = distance / size;
+  if (fastModulo(distance, size) != 0) {
+    ret += 1;
+  }
+  return ret;
+}
+
 std::pair<int, int> BinGrid::getDensityMinMaxIdxX(const GCell* gcell) const
 {
-  int lowerIdx = (gcell->dLx() - lx()) / binSizeX_;
-  int upperIdx = (fastModulo((gcell->dUx() - lx()), binSizeX_) == 0)
-                     ? (gcell->dUx() - lx()) / binSizeX_
-                     : (gcell->dUx() - lx()) / binSizeX_ + 1;
+  int lowerIdx = lowerBinIdx(gcell->dLx() - lx(), binSizeX_);
+  int upperIdx = upperBinIdx(gcell->dUx() - lx(), binSizeX_);
   return std::make_pair(lowerIdx, upperIdx);
 }
 
 std::pair<int, int> BinGrid::getDensityMinMaxIdxY(const GCell* gcell) const
 {
-  int lowerIdx = (gcell->dLy() - ly()) / binSizeY_;
-  int upperIdx = (fastModulo((gcell->dUy() - ly()), binSizeY_) == 0)
-                     ? (gcell->dUy() - ly()) / binSizeY_
-                     : (gcell->dUy() - ly()) / binSizeY_ + 1;
-
+  int lowerIdx = lowerBinIdx(gcell->dLy() - ly(), binSizeY_);
+  int upperIdx = upperBinIdx(gcell->dUy() - ly(), binSizeY_);
   return std::make_pair(lowerIdx, upperIdx);
 }
 
 std::pair<int, int> BinGrid::getMinMaxIdxX(const Instance* inst) const
 {
-  int lowerIdx = (inst->lx() - lx()) / binSizeX_;
-  int upperIdx = (fastModulo((inst->ux() - lx()), binSizeX_) == 0)
-                     ? (inst->ux() - lx()) / binSizeX_
-                     : (inst->ux() - lx()) / binSizeX_ + 1;
-
+  int lowerIdx = lowerBinIdx(inst->lx() - lx(), binSizeX_);
+  int upperIdx = upperBinIdx(inst->ux() - lx(), binSizeX_);
   return std::make_pair(std::max(lowerIdx, 0), std::min(upperIdx, binCntX_));
 }
 
 std::pair<int, int> BinGrid::getMinMaxIdxY(const Instance* inst) const
 {
-  int lowerIdx = (inst->ly() - ly()) / binSizeY_;
-  int upperIdx = (fastModulo((inst->uy() - ly()), binSizeY_) == 0)
-                     ? (inst->uy() - ly()) / binSizeY_
-                     : (inst->uy() - ly()) / binSizeY_ + 1;
-
+  int lowerIdx = lowerBinIdx(inst->ly() - ly(), binSizeY_);
+  int upperIdx = upperBinIdx(inst->uy() - ly(), binSizeY_);
   return std::make_pair(std::max(lowerIdx, 0), std::min(upperIdx, binCntY_));
+}
+
+std::pair<int, int> BinGrid::getBinCenterCoord(int xIdx, int yIdx) const
+{
+  int x = lx() + (xIdx * binSizeX_ + binSizeX_ / 2);
+  int y = ly() + (yIdx * binSizeY_ + binSizeY_ / 2);
+  if (xIdx < 0) {
+    x = lx();
+  } else if (xIdx >= binCntX_) {
+    x = ux();
+  }
+
+  if (yIdx < 0) {
+    y = ly();
+  } else if (yIdx >= binCntY_) {
+    y = uy();
+  }
+  return std::make_pair(x, y);
+}
+
+IntRect BinGrid::getDensityFieldInterpolationBox(const GCell* gcell) const
+{
+  int lx_ = gcell->dCx() - binSizeX_ / 2;
+  int ly_ = gcell->dCy() - binSizeY_ / 2;
+  int x0 = lx_ > lx() ? lowerBinIdx(lx_ - lx(), binSizeX_) : -1;
+  int y0 = ly_ > ly() ? lowerBinIdx(ly_ - ly(), binSizeY_) : -1;
+  int x1 = x0 + 1;
+  int y1 = y0 + 1;
+  return IntRect(x0, y0, x1, y1);
 }
 
 ////////////////////////////////////////////////
@@ -688,6 +720,7 @@ void NesterovBaseVars::reset()
   targetDensity = 1.0;
   binCntX = binCntY = 0;
   minWireLengthForceBar = -300;
+  cellDensityForceCalPolicy = "";
   isSetBinCntX = isSetBinCntY = 0;
   useUniformTargetDensity = 0;
 }
@@ -1298,8 +1331,8 @@ float NesterovBase::getDensityCoordiLayoutInsideX(const GCell* gCell,
   float adjVal = cx;
   // TODO will change base on each assigned binGrids.
   //
-  auto min = bg_.lx() + gCell->dDx() / 2;
-  auto max = bg_.ux() - gCell->dDx() / 2;
+  float min = bg_.lx() + gCell->dDx() / 2;
+  float max = bg_.ux() - gCell->dDx() / 2;
   return util::bounded_value(adjVal, min, max);
 }
 
@@ -1309,8 +1342,8 @@ float NesterovBase::getDensityCoordiLayoutInsideY(const GCell* gCell,
   float adjVal = cy;
   // TODO will change base on each assigned binGrids.
   //
-  auto min = bg_.ly() + gCell->dDy() / 2;
-  auto max = bg_.uy() - gCell->dDy() / 2;
+  float min = bg_.ly() + gCell->dDy() / 2;
+  float max = bg_.uy() - gCell->dDy() / 2;
   return util::bounded_value(adjVal, min, max);
 }
 
@@ -1559,9 +1592,19 @@ FloatPoint NesterovBase::getSumPreconditioner(const GCell* gCell,
   return sumPrecondi;
 }
 
+FloatPoint NesterovBase::getDensityGradient(const GCell* gCell) const
+{
+  if (nbVars_.cellDensityForceCalPolicy == "field_interpolation") {
+    return getDensityGradientByFieldInterpolation(gCell);
+  } else {
+    return getDensityGradientByCoveredBins(gCell);
+  }
+}
+
 // get GCells' electroForcePair
 // i.e. get DensityGradient with given GCell
-FloatPoint NesterovBase::getDensityGradient(const GCell* gCell) const
+FloatPoint NesterovBase::getDensityGradientByCoveredBins(
+    const GCell* gCell) const
 {
   std::pair<int, int> pairX = bg_.getDensityMinMaxIdxX(gCell);
   std::pair<int, int> pairY = bg_.getDensityMinMaxIdxY(gCell);
@@ -1577,6 +1620,88 @@ FloatPoint NesterovBase::getDensityGradient(const GCell* gCell) const
       electroForce.y += overlapArea * bin->electroForceY();
     }
   }
+  return electroForce;
+}
+
+FloatPoint NesterovBase::getDensityGradientByFieldInterpolation(
+    const GCell* gCell) const
+{
+  auto r = bg_.getDensityFieldInterpolationBox(gCell);
+  std::pair<int, int> binsIdx[2][2] = {
+      std::make_pair(r.lx(), r.ly()),
+      std::make_pair(r.lx(), r.uy()),
+      std::make_pair(r.ux(), r.ly()),
+      std::make_pair(r.ux(), r.uy()),
+  };
+
+  float binsForceX[2][2];
+  float binsForceY[2][2];
+  std::pair<int, int> binsCoords[2][2];
+  for (auto i : {0, 1}) {
+    for (auto j : {0, 1}) {
+      int xIdx = binsIdx[i][j].first;
+      int yIdx = binsIdx[i][j].second;
+      const Bin* bin = nullptr;
+      if (xIdx >= 0 && xIdx < bg_.binCntX() && yIdx >= 0
+          && yIdx < bg_.binCntY()) {
+        bin = bg_.binAt(xIdx, yIdx);
+      }
+      binsForceX[i][j] = bin ? bin->electroForceX() : 0;
+      binsForceY[i][j] = bin ? bin->electroForceY() : 0;
+      binsCoords[i][j] = bg_.getBinCenterCoord(xIdx, yIdx);
+    }
+  }
+
+  const float x = gCell->dCx();
+  const float y = gCell->dCy();
+  const float x0 = binsCoords[0][0].first;
+  const float y0 = binsCoords[0][0].second;
+  const float x1 = binsCoords[1][1].first;
+  const float y1 = binsCoords[1][1].second;
+
+  assert(x1 > x0);
+  assert(y1 > y0);
+  assert(x >= x0 && x <= x1);
+  assert(y >= y0 && y <= y1);
+
+  const float dx0 = (x - x0) / (x1 - x0);
+  const float dx1 = (x1 - x) / (x1 - x0);
+  const float dy0 = (y - y0) / (y1 - y0);
+  const float dy1 = (y1 - y) / (y1 - y0);
+  const float dx[2] = {dx0, dx1};
+  const float dy[2] = {dy0, dy1};
+
+  FloatPoint electroForce;
+  for (auto i : {0, 1}) {
+    for (auto j : {0, 1}) {
+      auto w = dx[(i + 1) % 2] * dy[(j + 1) % 2];
+      electroForce.x += w * binsForceX[i][j];
+      electroForce.y += w * binsForceY[i][j];
+    }
+  }
+
+#ifdef CONSIDER_AREA_IN_CELL_DENSITY_FORCE
+  electroForce.x *= gCell->rect().area();
+  electroForce.y *= gCell->rect().area();
+#endif
+
+#if 0
+  auto cmp = getDensityGradientByCoveredBins(gCell);
+  std::cout << std::endl;
+  std::cout << "binsIndexes: ";
+  for (auto i : {0, 1}) {
+    for (auto j : {0, 1}) {
+      int xIdx = binsIdx[i][j].first;
+      int yIdx = binsIdx[i][j].second;
+      std::cout << "(" << i << ", " << j << ")=" << "(" << xIdx << ", " << yIdx << "); ";
+    }
+  }
+  std::cout << std::endl;
+  std::cout << "x=" << x << ", y=" << y << ", x0=" << x0 << ", y0=" << y0
+            << ", x1=" << x1 << ", y1=" << y1 << std::endl;
+  std::cout << "x.cmp=" << cmp.x << ", x.log=" << electroForce.x << std::endl;
+  std::cout << "y.cmp=" << cmp.x << ", y.log=" << electroForce.y << std::endl;
+#endif
   return electroForce;
 }
 

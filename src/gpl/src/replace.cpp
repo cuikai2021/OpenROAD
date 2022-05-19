@@ -69,6 +69,7 @@ Replace::Replace()
   initialPlaceMaxSolverIter_(100),
   initialPlaceMaxFanout_(200),
   initialPlaceNetWeightScale_(800),
+  cellDensityForceCalPolicy_(""),
   nesterovPlaceMaxIter_(5000),
   binGridCntX_(0), binGridCntY_(0), 
   overflow_(0.1), density_(1.0),
@@ -129,6 +130,7 @@ void Replace::reset() {
   initialPlaceMaxFanout_ = 200;
   initialPlaceNetWeightScale_ = 800;
 
+  cellDensityForceCalPolicy_ = "";
   nesterovPlaceMaxIter_ = 5000;
   binGridCntX_ = binGridCntY_ = 0;
   overflow_ = 0.1;
@@ -295,6 +297,10 @@ void Replace::initNesterovPlace() {
     
     nbVars.useUniformTargetDensity = uniformTargetDensityMode_;
 
+    if (cellDensityForceCalPolicy_ != "") {
+      nbVars.cellDensityForceCalPolicy = cellDensityForceCalPolicy_;
+    }
+
     nb_ = std::make_shared<NesterovBase>(nbVars, pb_, log_);
   }
   
@@ -382,6 +388,11 @@ Replace::setInitialPlaceMaxFanout(int fanout) {
 void
 Replace::setInitialPlaceNetWeightScale(float scale) {
   initialPlaceNetWeightScale_ = scale;
+}
+
+void
+Replace::setCellDensityForceCalPolicy(const char* policy) {
+  cellDensityForceCalPolicy_ = policy !=nullptr ? std::string(policy) : "";
 }
 
 void

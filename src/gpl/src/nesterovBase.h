@@ -354,6 +354,11 @@ class BinGrid : public IntRect
   std::pair<int, int> getMinMaxIdxX(const Instance* inst) const;
   std::pair<int, int> getMinMaxIdxY(const Instance* inst) const;
 
+  // return the bounded box for gcell's density field interpolation
+  IntRect getDensityFieldInterpolationBox(const GCell* gcell) const;
+
+  std::pair<int, int> getBinCenterCoord(int xIdx, int yIdx) const;
+
   const std::vector<Bin*>& bins() const { return bins_; }
   Bin* binAt(int xIdx, int yIdx) const { return bins_[yIdx * binCntX_ + xIdx]; }
 
@@ -382,6 +387,7 @@ class NesterovBaseVars
   int binCntX;
   int binCntY;
   float minWireLengthForceBar;
+  std::string cellDensityForceCalPolicy;
   // temp variables
   unsigned char isSetBinCntX : 1;
   unsigned char isSetBinCntY : 1;
@@ -518,6 +524,9 @@ class NesterovBase
                                   float minPreconditioner) const;
 
   FloatPoint getDensityGradient(const GCell* gCell) const;
+  FloatPoint getDensityGradientByCoveredBins(const GCell* gCell) const;
+  FloatPoint getDensityGradientByFieldInterpolation(const GCell* gCell) const;
+  
 
   int64_t getHpwl();
 

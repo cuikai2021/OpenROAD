@@ -98,6 +98,8 @@ class Replace
     void setInitialPlaceMaxFanout(int fanout);
     void setInitialPlaceNetWeightScale(float scale);
 
+    void setCellDensityForceCalPolicy(const char* policy);
+
     void setNesterovPlaceMaxIter(int iter);
 
     void setBinGridCntX(int binGridCntX);
@@ -170,6 +172,7 @@ class Replace
     int initialPlaceMaxFanout_;
     float initialPlaceNetWeightScale_;
 
+    std::string cellDensityForceCalPolicy_;
     int nesterovPlaceMaxIter_;
     int binGridCntX_;
     int binGridCntY_;

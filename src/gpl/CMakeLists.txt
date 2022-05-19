@@ -76,7 +76,6 @@ target_sources(gpl
     src/routeBase.cpp
     src/timingBase.cpp
     src/graphics.cpp
-    src/util.cpp
 )
 
 messages(TARGET gpl)

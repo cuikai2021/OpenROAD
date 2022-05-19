@@ -45,10 +45,11 @@ sta::define_cmd_args "global_placement" {\
     [-max_phi_coef max_phi_coef]\
     [-reference_hpwl reference_hpwl]\
     [-overflow overflow]\
-    [-initial_place_guide_file initial_place_guide_file]
-    [-initial_place_policy initial_place_policy]
+    [-initial_place_guide_file initial_place_guide_file]\ 
+    [-initial_place_policy initial_place_policy]\ 
     [-initial_place_max_iter initial_place_max_iter]\
     [-initial_place_max_fanout initial_place_max_fanout]\
+    [-cell_density_force_policy cell_density_force_policy]\
     [-routability_check_overflow routability_check_overflow]\
     [-routability_max_density routability_max_density]\
     [-routability_max_bloat_iter routability_max_bloat_iter]\
@@ -70,6 +71,7 @@ proc global_placement { args } {
       -initial_place_guide_file \
       -initial_place_policy \
       -initial_place_max_iter -initial_place_max_fanout \
+      -cell_density_force_policy \ 
       -routability_check_overflow -routability_max_density \
       -routability_max_bloat_iter -routability_max_inflation_iter \
       -routability_target_rc_metric \
@@ -110,6 +112,11 @@ proc global_placement { args } {
   if { [info exists keys(-initial_place_policy)] } { 
     set initial_place_policy $keys(-initial_place_policy)
     gpl::set_initial_place_policy_cmd $initial_place_policy
+  }
+
+  if { [info exists keys(-cell_density_force_policy)] } { 
+    set cell_density_force_policy $keys(-cell_density_force_policy)
+    gpl::set_cell_density_force_policy_cmd $cell_density_force_policy
   }
 
   set timing_driven [info exists flags(-timing_driven)]
