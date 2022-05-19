@@ -1671,6 +1671,7 @@ FloatPoint NesterovBase::getDensityGradientByFieldInterpolation(
   const float dx[2] = {dx0, dx1};
   const float dy[2] = {dy0, dy1};
 
+  // interpolation: f = f00*dx1*dy1 + f01*dx1*dy0 + f10*dx0*dy1 + f11*dx0*dy1
   FloatPoint electroForce;
   for (auto i : {0, 1}) {
     for (auto j : {0, 1}) {
