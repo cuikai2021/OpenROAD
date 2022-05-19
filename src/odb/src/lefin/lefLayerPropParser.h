@@ -38,6 +38,13 @@ namespace utl {
 class Logger;
 }
 namespace odb {
+
+class lefTechLayerSpacingNotchLengthParser
+{
+ public:
+  static void parse(std::string, dbTechLayer*, lefin*);
+};
+
 class lefTechLayerSpacingEolParser
 {
  public:

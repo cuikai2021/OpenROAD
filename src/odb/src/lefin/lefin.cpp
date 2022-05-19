@@ -629,9 +629,25 @@ void lefin::layer(lefiLayer* layer)
     bool valid = true;
     bool supported = true;
     if (type.getValue() == dbTechLayerType::ROUTING) {
-      if (!strcmp(layer->propName(iii), "LEF58_SPACING"))
-        lefTechLayerSpacingEolParser::parse(layer->propValue(iii), l, this);
-      else if (!strcmp(layer->propName(iii), "LEF58_MINSTEP")) {
+      if (!strcmp(layer->propName(iii), "LEF58_SPACING")) {
+    	if (std::string(layer->propValue(iii)).find("ENDOFLINE") != std::string::npos)
+    	  lefTechLayerSpacingEolParser::parse(layer->propValue(iii), l, this);
+    	else if (std::string(layer->propValue(iii)).find("NOTCHLENGTH") != std::string::npos)
+    	  lefTechLayerSpacingNotchLengthParser::parse(layer->propValue(iii), l, this);
+#if 0
+    	else if (std::string(layer->propValue(iii)).find("NOTCHSPAN") != std::string::npos)
+    	  lefTechLayerSpacingNotchSpanParser::parse(layer->propValue(iii), l, this);
+    	else if (std::string(layer->propValue(iii)).find("SAMEMASK") != std::string::npos)
+    	  lefTechLayerSpacingSameMaskParser::parse(layer->propValue(iii), l, this);
+#endif
+    	else {
+    	  warning(256,
+    			  "unsupported {} property for layer {} :\"{}\"",
+				  layer->propName(iii),
+				  layer->name(),
+				  layer->propValue(iii));
+    	}
+      } else if (!strcmp(layer->propName(iii), "LEF58_MINSTEP")) {
         lefTechLayerMinStepParser minStepParser;
         valid = minStepParser.parse(layer->propValue(iii), l, this);
       } else if (!strcmp(layer->propName(iii), "LEF58_CORNERSPACING"))

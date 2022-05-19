@@ -52,6 +52,7 @@ class _dbTechLayerCutClassRule;
 template <class T>
 class dbTable;
 class _dbTechLayerSpacingEolRule;
+class _dbTechLayerSpacingNotchLengthRule;
 class _dbTechLayerCutSpacingRule;
 class _dbTechLayerMinStepRule;
 class _dbTechLayerCornerSpacingRule;
@@ -104,6 +105,8 @@ class _dbTechLayer : public _dbObject
   dbHashTable<_dbTechLayerCutClassRule> cut_class_rules_hash_;
 
   dbTable<_dbTechLayerSpacingEolRule>* spacing_eol_rules_tbl_;
+
+  dbTable<_dbTechLayerSpacingNotchLengthRule>* spacing_notch_length_rules_tbl_;
 
   dbTable<_dbTechLayerCutSpacingRule>* cut_spacing_rules_tbl_;
 
