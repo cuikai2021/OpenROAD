@@ -1685,7 +1685,7 @@ FloatPoint NesterovBase::getDensityGradientByFieldInterpolation(
     }
   }
 
-#define CONSIDER_AREA_IN_CELL_DENSITY_FORCE 1
+// #define CONSIDER_AREA_IN_CELL_DENSITY_FORCE 1
 
 #ifdef CONSIDER_AREA_IN_CELL_DENSITY_FORCE
   electroForce.x *= gCell->rect().area();
