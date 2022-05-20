@@ -340,6 +340,7 @@ void dbObject::getDbName(char name[max_name_length]) const
       case dbTechLayerEolKeepOutRuleObj:
       case dbTechLayerEolExtensionRuleObj:
       case dbTechLayerSpacingNotchLengthRuleObj:
+      case dbTechLayerSpacingTableJogToJogSpacingRuleObj:
         *cptr++ = 'J';
         id = impl->getOID();
         break;
@@ -697,6 +698,7 @@ static const char* name_tbl[] = {"dbDatabase",
                                  "dbTechLayerMinStepRule",
                                  "dbTechLayerCornerSpacingRule",
                                  "dbTechLayerSpacingTablePrlRule",
+								 "dbTechLayerSpacingTableJogToJogSpacingRule",
                                  "dbTechLayerEolKeepOutRule",
                                  "dbTechLayerCutClassRule",
                                  "dbTechLayerCutSpacingRule",

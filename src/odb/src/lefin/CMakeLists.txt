@@ -6,6 +6,7 @@ add_library(lefin
     lefTechLayerMinStepParser.cpp
     lefTechLayerCornerSpacingParser.cpp
     lefTechLayerSpacingTablePrlParser.cpp
+    lefTechLayerSpacingTableJogToJogSpacingParser.cpp
     lefTechLayerRightWayOnGridOnlyParser.cpp
     lefTechLayerRectOnlyParser.cpp
     lefTechLayerCutClassParser.cpp

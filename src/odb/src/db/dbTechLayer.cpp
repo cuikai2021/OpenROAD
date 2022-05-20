@@ -51,6 +51,7 @@
 #include "dbTechLayerSpacingEolRule.h"
 #include "dbTechLayerSpacingNotchLengthRule.h"
 #include "dbTechLayerSpacingTablePrlRule.h"
+#include "dbTechLayerSpacingTableJogToJogSpacingRule.h"
 // User Code Begin Includes
 #include "dbHashTable.hpp"
 #include "dbTech.h"
@@ -478,6 +479,12 @@ _dbTechLayer::_dbTechLayer(_dbDatabase* db)
       (GetObjTbl_t) &_dbTechLayer::getObjectTable,
       dbTechLayerSpacingTablePrlRuleObj);
   ZALLOCATED(spacing_table_prl_rules_tbl_);
+  spacing_table_jogtojog_spacing_rules_tbl_ = new dbTable<_dbTechLayerSpacingTableJogToJogSpacingRule>(
+	  db,
+	  this,
+	  (GetObjTbl_t) &_dbTechLayer::getObjectTable,
+	  dbTechLayerSpacingTableJogToJogSpacingRuleObj);
+  ZALLOCATED(spacing_table_jogtojog_spacing_rules_tbl_);
   cut_spacing_table_orth_tbl_
       = new dbTable<_dbTechLayerCutSpacingTableOrthRule>(
           db,
@@ -617,6 +624,9 @@ _dbTechLayer::_dbTechLayer(_dbDatabase* db, const _dbTechLayer& r)
   spacing_table_prl_rules_tbl_ = new dbTable<_dbTechLayerSpacingTablePrlRule>(
       db, this, *r.spacing_table_prl_rules_tbl_);
   ZALLOCATED(spacing_table_prl_rules_tbl_);
+  spacing_table_jogtojog_spacing_rules_tbl_ = new dbTable<_dbTechLayerSpacingTableJogToJogSpacingRule>(
+	  db, this, *r.spacing_table_jogtojog_spacing_rules_tbl_);
+  ZALLOCATED(spacing_table_jogtojog_spacing_rules_tbl_);
   cut_spacing_table_orth_tbl_
       = new dbTable<_dbTechLayerCutSpacingTableOrthRule>(
           db, this, *r.cut_spacing_table_orth_tbl_);
@@ -829,6 +839,8 @@ dbObjectTable* _dbTechLayer::getObjectTable(dbObjectType type)
       return corner_spacing_rules_tbl_;
     case dbTechLayerSpacingTablePrlRuleObj:
       return spacing_table_prl_rules_tbl_;
+    case dbTechLayerSpacingTableJogToJogSpacingRuleObj:
+      return spacing_table_jogtojog_spacing_rules_tbl_;
     case dbTechLayerCutSpacingTableOrthRuleObj:
       return cut_spacing_table_orth_tbl_;
     case dbTechLayerCutSpacingTableDefRuleObj:
@@ -974,6 +986,14 @@ dbTechLayer::getTechLayerSpacingTablePrlRules() const
   _dbTechLayer* obj = (_dbTechLayer*) this;
   return dbSet<dbTechLayerSpacingTablePrlRule>(
       obj, obj->spacing_table_prl_rules_tbl_);
+}
+
+dbSet<dbTechLayerSpacingTableJogToJogSpacingRule>
+dbTechLayer::getTechLayerSpacingTableJogToJogSpacingRules() const
+{
+  _dbTechLayer* obj = (_dbTechLayer*) this;
+  return dbSet<dbTechLayerSpacingTableJogToJogSpacingRule>(
+      obj, obj->spacing_table_jogtojog_spacing_rules_tbl_);
 }
 
 dbSet<dbTechLayerCutSpacingTableOrthRule>

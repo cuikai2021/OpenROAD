@@ -87,6 +87,12 @@ class lefTechLayerSpacingTablePrlParser
   bool parse(std::string, dbTechLayer*, lefin*);
 };
 
+class lefTechLayerSpacingTableJogToJogSpacingParser
+{
+public:
+  static bool parse(std::string, dbTechLayer*, lefin*);
+};
+
 class lefTechLayerRightWayOnGridOnlyParser
 {
  public:

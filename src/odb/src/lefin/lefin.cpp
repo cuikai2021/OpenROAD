@@ -655,16 +655,18 @@ void lefin::layer(lefiLayer* layer)
             layer->propValue(iii), l, this);
       else if (!strcmp(layer->propName(iii), "LEF58_SPACINGTABLE")) {
         if (std::string(layer->propValue(iii)).find("PARALLELRUNLENGTH")
-            == std::string::npos)
-          warning(256,
-                  "unsupported {} property for layer {} :\"{}\"",
-                  layer->propName(iii),
-                  layer->name(),
-                  layer->propValue(iii));
-        else {
+            != std::string::npos) {
           lefTechLayerSpacingTablePrlParser parser;
-          valid = parser.parse(layer->propValue(iii), l, this);
-        }
+		  valid = parser.parse(layer->propValue(iii), l, this);
+        } else if (std::string(layer->propValue(iii)).find("JOGTOJOGSPACING")
+            != std::string::npos)
+          valid = lefTechLayerSpacingTableJogToJogSpacingParser::parse(layer->propValue(iii), l, this);
+        else
+          warning(256,
+		  "unsupported {} property for layer {} :\"{}\"",
+		  layer->propName(iii),
+		  layer->name(),
+		  layer->propValue(iii));
       } else if (!strcmp(layer->propName(iii), "LEF58_RIGHTWAYONGRIDONLY"))
         valid = lefTechLayerRightWayOnGridOnlyParser::parse(
             layer->propValue(iii), l, this);

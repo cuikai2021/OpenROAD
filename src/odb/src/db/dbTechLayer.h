@@ -57,6 +57,7 @@ class _dbTechLayerCutSpacingRule;
 class _dbTechLayerMinStepRule;
 class _dbTechLayerCornerSpacingRule;
 class _dbTechLayerSpacingTablePrlRule;
+class _dbTechLayerSpacingTableJogToJogSpacingRule;
 class _dbTechLayerCutSpacingTableOrthRule;
 class _dbTechLayerCutSpacingTableDefRule;
 class _dbTechLayerCutEnclosureRule;
@@ -115,6 +116,8 @@ class _dbTechLayer : public _dbObject
   dbTable<_dbTechLayerCornerSpacingRule>* corner_spacing_rules_tbl_;
 
   dbTable<_dbTechLayerSpacingTablePrlRule>* spacing_table_prl_rules_tbl_;
+
+  dbTable<_dbTechLayerSpacingTableJogToJogSpacingRule>* spacing_table_jogtojog_spacing_rules_tbl_;
 
   dbTable<_dbTechLayerCutSpacingTableOrthRule>* cut_spacing_table_orth_tbl_;
 

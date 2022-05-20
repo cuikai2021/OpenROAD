@@ -95,6 +95,7 @@ enum dbObjectType
   dbTechLayerMinStepRuleObj,
   dbTechLayerCornerSpacingRuleObj,
   dbTechLayerSpacingTablePrlRuleObj,
+  dbTechLayerSpacingTableJogToJogSpacingRuleObj,
   dbTechLayerEolKeepOutRuleObj,
   dbTechLayerCutClassRuleObj,
   dbTechLayerCutSpacingRuleObj,
