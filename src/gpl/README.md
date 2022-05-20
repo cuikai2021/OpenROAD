@@ -28,6 +28,7 @@ global_placement
     [-disable_routability_driven]
     [-incremental]
     [-bin_grid_count grid_count]
+    [-nesv_place_iter nesv_place_iter]
     [-density target_density]
     [-init_density_penalty init_density_penalty]
     [-init_wirelength_coef init_wirelength_coef]
@@ -60,6 +61,7 @@ global_placement
 - `-skip_initial_place` : Skip the initial placement (BiCGSTAB solving) before Nesterov placement. IP improves HPWL by ~5% on large designs. Equal to '-initial_place_max_iter 0'
 - `-incremental` : Enable the incremental global placement. Users would need to tune other parameters (e.g., init_density_penalty) with pre-placed solutions.
 - `-bin_grid_count`: set bin grid's counts. Default value is defined by internal heuristic. Allowed values are  `[64,128,256,512,..., int]`.
+- `-nesv_place_iter`: set max iter of nesterov solver
 - `-density`: set target density. Default value is 0.70. Allowed values are `[0-1, float]`.
 - `-init_density_penalty`: set initial density penalty. Default value is 8e-5. Allowed values are `[1e-6 - 1e6, float]`.
 - `-init_wirelength_coef`: set initial wirelength coefficient. Default value is 0.25. Allowed values are `[unlimited, float]`.

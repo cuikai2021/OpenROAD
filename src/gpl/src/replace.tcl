@@ -38,6 +38,7 @@ sta::define_cmd_args "global_placement" {\
     [-routability_driven]\
     [-incremental]\
     [-bin_grid_count grid_count]\
+    [-nesv_place_iter nesv_place_iter]\
     [-density target_density]\
     [-init_density_penalty init_density_penalty]\
     [-init_wirelength_coef init_wirelength_coef]\
@@ -65,6 +66,7 @@ sta::define_cmd_args "global_placement" {\
 proc global_placement { args } {
   sta::parse_key_args "global_placement" args \
     keys {-bin_grid_count -density \
+      -nesv_place_iter \
       -init_density_penalty -init_wirelength_coef \
       -min_phi_coef -max_phi_coef -overflow \
       -reference_hpwl \
@@ -231,6 +233,12 @@ proc global_placement { args } {
     sta::check_positive_integer "-bin_grid_count" $bin_grid_count
     gpl::set_bin_grid_cnt_x_cmd $bin_grid_count
     gpl::set_bin_grid_cnt_y_cmd $bin_grid_count    
+  }
+
+  if { [info exists keys(-nesv_place_iter)] } {
+    set nesv_place_iter  $keys(-nesv_place_iter)
+    sta::check_positive_integer "-nesv_place_iter" $nesv_place_iter
+    gpl::set_nesv_place_iter_cmd $nesv_place_iter 
   }
  
   # overflow 
