@@ -789,6 +789,11 @@ int NesterovPlace::doNesterovPlace(int start_iter)
   return iter;
 }
 
+// wlCoef = 1/γ， where γ is calculated with formula (38)
+// in the ePlace paper
+//    γ = base * pow(10, kτ+b), where τ is the density overflow value.
+//    , set γ(τ=1.0) = base * 10, and γ(τ=1.0) = base * 0.1
+//    , we can get k = 20/9, b = -11/9
 void NesterovPlace::updateWireLengthCoef(float overflow)
 {
   if (overflow > 1.0) {
