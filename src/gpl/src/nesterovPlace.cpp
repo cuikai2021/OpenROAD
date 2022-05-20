@@ -457,8 +457,7 @@ void NesterovPlace::updateGradients(SLP& slp)
 
   // divergence detection on
   // Wirelength / density gradient calculation
-  if (isnan(wireLengthGradSum_) || isinf(wireLengthGradSum_)
-      || isnan(densityGradSum_) || isinf(densityGradSum_)) {
+  if (isinf(densityGradSum_)) {
     isDiverged_ = true;
     divergeMsg_ = "RePlAce diverged at wire/density gradient Sum.";
     divergeCode_ = 306;
@@ -958,7 +957,6 @@ static float getDistance(const vector<FloatPoint>& a,
     sumDistance += (a[i].x - b[i].x) * (a[i].x - b[i].x);
     sumDistance += (a[i].y - b[i].y) * (a[i].y - b[i].y);
   }
-
   return sqrt(sumDistance / (2.0 * a.size()));
 }
 
