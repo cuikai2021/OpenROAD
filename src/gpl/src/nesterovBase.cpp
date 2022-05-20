@@ -921,10 +921,6 @@ void NesterovBase::init()
 // virtual filler GCells
 void NesterovBase::initFillerGCells()
 {
-  if (nbVars_.disableFillerInsertion) {
-    debugPrint(log_, GPL, "replace", 1, "FillerInit is disabled by option -disable_filler_insertion");
-    return;
-  }
   // extract average dx/dy in range (10%, 90%)
   vector<int> dxStor;
   vector<int> dyStor;
@@ -992,6 +988,15 @@ void NesterovBase::initFillerGCells()
                 "Suggested target density: {:.2f}",
                 targetDensity_,
                 uniformTargetDensity_);
+  }
+
+  if (nbVars_.disableFillerInsertion) {
+    debugPrint(log_,
+               GPL,
+               "replace",
+               1,
+               "FillerInit is disabled by option -disable_filler_insertion");
+    totalFillerArea_ = 0;
   }
 
   int fillerCnt = static_cast<int>(
@@ -1662,6 +1667,16 @@ FloatPoint NesterovBase::getDensityGradientByFieldInterpolation(
   const float y0 = binsCoords[0][0].second;
   const float x1 = binsCoords[1][1].first;
   const float y1 = binsCoords[1][1].second;
+#if 0  // debug
+  if (x < x0 || x > x1 || y < y0 || y > y1) {
+    std::cout << std::endl;
+    std::cout << "x=" << x << ", y=" << y << ", x0=" << x0 << ", y0=" << y0
+              << ", x1=" << x1 << ", y1=" << y1 << std::endl;
+    auto inst = gCell->instance()->dbInst();
+    std::cout << "gCell:" << inst->getName() << "," << inst->getObjName() << ","
+              << inst->getConstName() << std::endl;
+  }
+#endif
 
   assert(x1 > x0);
   assert(y1 > y0);
@@ -1685,11 +1700,9 @@ FloatPoint NesterovBase::getDensityGradientByFieldInterpolation(
     }
   }
 
-// #define CONSIDER_AREA_IN_CELL_DENSITY_FORCE 1
-
 #ifdef CONSIDER_AREA_IN_CELL_DENSITY_FORCE
-  electroForce.x *= gCell->rect().area();
-  electroForce.y *= gCell->rect().area();
+  electroForce.x /= gCell->dy();
+  electroForce.y /= gCell->dx();
 #endif
 
 #if 0
