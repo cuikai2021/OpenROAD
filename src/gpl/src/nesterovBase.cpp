@@ -1168,6 +1168,12 @@ int64_t NesterovBase::overflowArea() const
   return bg_.overflowArea();
 }
 
+float NesterovBase::densityOverflow() const
+{
+  return static_cast<float>(overflowArea())
+         / static_cast<float>(nesterovInstsArea());
+}
+
 int NesterovBase::fillerDx() const
 {
   return fillerDx_;

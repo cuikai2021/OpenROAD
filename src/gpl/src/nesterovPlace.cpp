@@ -209,8 +209,7 @@ void NesterovPlace::init()
              "npinit: BaseWireLengthCoef: {:g}",
              baseWireLengthCoef_);
 
-  sumOverflow_ = static_cast<float>(nb_->overflowArea())
-                 / static_cast<float>(nb_->nesterovInstsArea());
+  sumOverflow_ = nb_->densityOverflow();
 
   debugPrint(
       log_, GPL, "replace", 3, "npinit: OverflowArea: {}", nb_->overflowArea());
@@ -279,8 +278,7 @@ void NesterovPlace::init()
              "npinit: InitDensityPenalty {:g}",
              densityPenalty_);
 
-  sumOverflow_ = static_cast<float>(nb_->overflowArea())
-                 / static_cast<float>(nb_->nesterovInstsArea());
+  sumOverflow_ = nb_->densityOverflow();
 
   debugPrint(
       log_, GPL, "replace", 3, "npinit: PrevSumOverflow {:g}", sumOverflow_);
@@ -854,8 +852,7 @@ void NesterovPlace::updateNextIter()
 
   std::swap(curCoordi_, nextCoordi_);
 
-  sumOverflow_ = static_cast<float>(nb_->overflowArea())
-                 / static_cast<float>(nb_->nesterovInstsArea());
+  sumOverflow_ = nb_->densityOverflow();
 
   debugPrint(log_,
              GPL,

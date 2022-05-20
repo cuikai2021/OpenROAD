@@ -445,6 +445,8 @@ class NesterovBase
   int binSizeY() const;
   int64_t overflowArea() const;
 
+  float densityOverflow() const;
+
   const std::vector<Bin*>& bins() const { return bg_.bins(); }
 
   // filler cells / area control
