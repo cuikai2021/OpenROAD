@@ -71,7 +71,7 @@ proc global_placement { args } {
       -initial_place_guide_file \
       -initial_place_policy \
       -initial_place_max_iter -initial_place_max_fanout \
-      -cell_density_force_policy \ 
+      -cell_density_force_policy \
       -routability_check_overflow -routability_max_density \
       -routability_max_bloat_iter -routability_max_inflation_iter \
       -routability_target_rc_metric \
@@ -87,6 +87,7 @@ proc global_placement { args } {
       -disable_timing_driven \
       -disable_routability_driven \
       -skip_io \
+      -disable_filler_insertion \
       -incremental}
 
   # flow control for initial_place
@@ -103,6 +104,9 @@ proc global_placement { args } {
   if { $skip_io } {
     gpl::set_initial_place_max_iter_cmd 0
   }
+
+  set disable_filler_insertion [info exists flags(-disable_filler_insertion)]
+  gpl::set_disable_filler_insertion_cmd $disable_filler_insertion
 
   if { [info exists keys(-initial_place_guide_file)] } { 
     set initial_place_guide_file $keys(-initial_place_guide_file)

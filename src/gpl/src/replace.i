@@ -257,6 +257,13 @@ set_skip_io_mode_cmd(bool mode)
   replace->setSkipIoMode(mode);
 }
 
+void
+set_disable_filler_insertion_cmd(bool mode) 
+{
+  Replace* replace = getReplace();
+  replace->setDisableFillerInsertion(mode);
+}
+
 float
 get_global_placement_uniform_density_cmd() 
 {

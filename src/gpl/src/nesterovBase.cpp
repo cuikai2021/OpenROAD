@@ -921,6 +921,10 @@ void NesterovBase::init()
 // virtual filler GCells
 void NesterovBase::initFillerGCells()
 {
+  if (nbVars_.disableFillerInsertion) {
+    debugPrint(log_, GPL, "replace", 1, "FillerInit is disabled by option -disable_filler_insertion");
+    return;
+  }
   // extract average dx/dy in range (10%, 90%)
   vector<int> dxStor;
   vector<int> dyStor;

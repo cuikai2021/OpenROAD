@@ -388,6 +388,8 @@ class NesterovBaseVars
   int binCntY;
   float minWireLengthForceBar;
   std::string cellDensityForceCalPolicy;
+
+  bool disableFillerInsertion;
   // temp variables
   unsigned char isSetBinCntX : 1;
   unsigned char isSetBinCntY : 1;
