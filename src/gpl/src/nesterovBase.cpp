@@ -1233,22 +1233,16 @@ float NesterovBase::targetDensity() const
 void NesterovBase::updateDensitySize()
 {
   for (auto& gCell : gCells_) {
-    float scaleX = 0, scaleY = 0;
-    float densitySizeX = 0, densitySizeY = 0;
-    if (gCell->dx() < REPLACE_SQRT2 * bg_.binSizeX()) {
-      scaleX = static_cast<float>(gCell->dx())
-               / static_cast<float>(REPLACE_SQRT2 * bg_.binSizeX());
-      densitySizeX = REPLACE_SQRT2 * static_cast<float>(bg_.binSizeX());
-    } else {
+    float densitySizeX = REPLACE_SQRT2 * bg_.binSizeX();
+    float densitySizeY = REPLACE_SQRT2 * bg_.binSizeY();
+    float scaleX = gCell->dx() / densitySizeX;
+    float scaleY = gCell->dy() / densitySizeY;
+    if (gCell->dx() > densitySizeX) {
       scaleX = 1.0;
       densitySizeX = gCell->dx();
     }
 
-    if (gCell->dy() < REPLACE_SQRT2 * bg_.binSizeY()) {
-      scaleY = static_cast<float>(gCell->dy())
-               / static_cast<float>(REPLACE_SQRT2 * bg_.binSizeY());
-      densitySizeY = REPLACE_SQRT2 * static_cast<float>(bg_.binSizeY());
-    } else {
+    if (gCell->dy() > densitySizeY) {
       scaleY = 1.0;
       densitySizeY = gCell->dy();
     }
