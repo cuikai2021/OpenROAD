@@ -607,6 +607,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
     for (int i = pairX.first; i < pairX.second; i++) {
       for (int j = pairY.first; j < pairY.second; j++) {
         Bin* bin = binAt(i, j);
+        // auto area = getOverlapArea(bin->rect(), cell->rect());
         auto area = getOverlapDensityArea(bin, cell);
         if (cell->isMacroInstance()) {
           // macro should have scale-down with target-density
@@ -633,6 +634,13 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
     const float occupiedAllArea = occupiedNonFillerArea + bin->fillerArea();
     const float overflow = occupiedNonFillerArea - binTargetArea;
     bin->setDensity(occupiedAllArea / binTargetArea);
+#if 0
+    if (overflow > 0) {
+      std::cout << "overflow: " << overflow
+                << ", occupiedNonFillerArea=" << occupiedNonFillerArea
+                << ", binTargetArea=" << binTargetArea << std::endl;
+    }
+#endif
     overflowArea_ += std::max(0.0f, overflow);
   }
 }
@@ -1038,6 +1046,7 @@ void NesterovBase::initFillerGCells()
   // rand()'s RAND_MAX is only 32767.
   //
   mt19937 randVal(0);
+  gCellStor_.reserve(gCellStor_.size() + fillerCnt);
   for (int i = 0; i < fillerCnt; i++) {
     // instability problem between g++ and clang++!
     auto randX = randVal();
@@ -1047,9 +1056,8 @@ void NesterovBase::initFillerGCells()
     // set size as avgDx and avgDy
     odb::Point center(randX % pb_->die().coreDx() + pb_->die().coreLx(),
                       randY % pb_->die().coreDy() + pb_->die().coreLy());
-    GCell myGCell(center, fillerDx_, fillerDy_);
 
-    gCellStor_.push_back(myGCell);
+    gCellStor_.emplace_back(center, fillerDx_, fillerDy_);
   }
 }
 
