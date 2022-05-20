@@ -265,8 +265,12 @@ void NesterovPlace::init()
   debugPrint(
       log_, GPL, "replace", 3, "npinit: DensityGradSum {:g}", densityGradSum_);
 
-  densityPenalty_
-      = (wireLengthGradSum_ / densityGradSum_) * npVars_.initDensityPenalty;
+  if (wireLengthGradSum_ == 0) {
+    densityPenalty_ = npVars_.initDensityPenalty;
+  } else {
+    densityPenalty_
+        = (wireLengthGradSum_ / densityGradSum_) * npVars_.initDensityPenalty;
+  }
 
   debugPrint(log_,
              GPL,
@@ -620,11 +624,7 @@ int NesterovPlace::doNesterovPlace(int start_iter)
       if (update) {
         bool pause
             = (iter == 0 || (iter + 1) % npVars_.debug_pause_iterations == 0);
-        // FIXME: tmp disable pause here for easy to debug on initial placement.
-        //        should be rolled back to support pause here once initial
-        //        placement is stable.
-        // graphics_->cellPlot(pause);
-        graphics_->cellPlot(pause && false);
+        graphics_->cellPlot(pause);
       }
     }
 
@@ -770,8 +770,9 @@ int NesterovPlace::doNesterovPlace(int start_iter)
                  "replace",
                  1,
                  "[NesterovSolve] Finished with Iter={} overflow:={:g} HPWL={}",
-                   iter + 1,
-                   sumOverflow_, nb_->getHpwl());
+                 iter + 1,
+                 sumOverflow_,
+                 nb_->getHpwl());
       break;
     }
   }
