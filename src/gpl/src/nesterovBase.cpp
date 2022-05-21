@@ -1708,10 +1708,13 @@ FloatPoint NesterovBase::getDensityGradientByFieldInterpolation(
     }
   }
 
-#ifdef CONSIDER_AREA_IN_CELL_DENSITY_FORCE
+  // According to the OT theory, the field is the density movements
+  // If the size of the cell is w*h, then:
+  //   - move 1 unit on the x-dimension will have 1*h density changes
+  //   - move 1 unit on the y-dimension will introduce 1*w density changes
+  // So, the force on force_x = field_x / h, and forc_y = field / w;
   electroForce.x /= gCell->dy();
   electroForce.y /= gCell->dx();
-#endif
 
 #if 0
   auto cmp = getDensityGradientByCoveredBins(gCell);
