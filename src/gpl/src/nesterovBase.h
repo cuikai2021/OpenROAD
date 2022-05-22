@@ -302,9 +302,7 @@ class Bin : public IntRect
   float targetDensityArea() const { return targetDensityArea_; }
 
   int64_t binArea() const { return rect_.area(); }
-  int64_t nonPlaceArea() const { return nonPlaceArea_; }
-  int64_t instPlacedArea() const { return instPlacedArea_; }
-  int64_t fillerArea() const { return fillerArea_; }
+  int64_t densityArea() const;
 
  private:
   // index

@@ -423,16 +423,20 @@ void Bin::setTargetDensity(float density)
 void Bin::updateDensity()
 {
   const float binTargetArea = targetDensityArea();
-  const float occupiedNonFillerArea = instPlacedArea() + nonPlaceArea();
-  const float occupiedAllArea = occupiedNonFillerArea + fillerArea();
+  const float occupiedNonFillerArea = instPlacedArea_ + nonPlaceArea_;
+  const float occupiedAllArea = occupiedNonFillerArea + fillerArea_;
   float d = occupiedAllArea / binTargetArea;
   density_ = d;
+}
+
+int64_t Bin::densityArea() const {
+  return nonPlaceArea_ + instPlacedArea_ + fillerArea_;
 }
 
 float Bin::oveflowArea() const
 {
   const float binTargetArea = targetDensityArea();
-  const float occupiedNonFillerArea = instPlacedArea() + nonPlaceArea();
+  const float occupiedNonFillerArea = instPlacedArea_ + nonPlaceArea_;
   const float overflow = occupiedNonFillerArea - binTargetArea;
 #if 0
     if (overflow > 0) {
@@ -1797,8 +1801,7 @@ void NesterovBase::updateDensityForceBin()
     bin->setElectroPhi(electroPhi);
 
     sumPhi_ += electroPhi
-               * static_cast<float>(bin->nonPlaceArea() + bin->instPlacedArea()
-                                    + bin->fillerArea());
+               * static_cast<float>(bin->densityArea());
   }
 }
 
