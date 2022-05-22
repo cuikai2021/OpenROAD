@@ -436,7 +436,7 @@ float Bin::overflowArea() const
   const float occupiedNonFillerArea = instPlacedArea_ + nonPlaceArea_;
   const float overflow = occupiedNonFillerArea - binTargetArea;
 #if 0
-    if (occupiedNonFillerArea > 0) {
+    if (overflow > 0) {
       std::cout << "overflow: " << overflow
                 << ", occupiedNonFillerArea=" << occupiedNonFillerArea
                 << ", binTargetArea=" << binTargetArea 
