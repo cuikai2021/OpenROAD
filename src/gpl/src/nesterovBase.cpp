@@ -587,7 +587,8 @@ void BinGrid::updateBinsNonPlaceArea()
 }
 
 // Core Part
-void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
+void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells,
+                                         bool enable_bin_density_normalize)
 {
   // clear the Bin-area info
   for (auto& bin : bins_) {
@@ -632,7 +633,9 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
     const float occupiedAllArea = occupiedNonFillerArea + bin->fillerArea();
     const float overflow = occupiedNonFillerArea - binTargetArea;
     float d = occupiedAllArea / binTargetArea;
-    d /= bin->targetDensity();
+    if (enable_bin_density_normalize) {
+      d /= bin->targetDensity();
+    }
     bin->setDensity(d);
 #if 0
     if (overflow > 0) {
@@ -1125,7 +1128,8 @@ void NesterovBase::updateGCellDensityCenterLocation(
     auto coordi = coordis[idx];
     gCells_[idx]->setDensityCenterLocation(coordi.x, coordi.y);
   }
-  bg_.updateBinsGCellDensityArea(gCells_);
+  bool enable_bin_density_normalize = nbVars_.disableCellDensityScaling;
+  bg_.updateBinsGCellDensityArea(gCells_, enable_bin_density_normalize);
 }
 
 void NesterovBase::setTargetDensity(float density)

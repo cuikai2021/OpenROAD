@@ -336,7 +336,7 @@ class BinGrid : public IntRect
   void setBinCntX(int binCntX);
   void setBinCntY(int binCntY);
   void setTargetDensity(float density);
-  void updateBinsGCellDensityArea(const std::vector<GCell*>& cells);
+  void updateBinsGCellDensityArea(const std::vector<GCell*>& cells, bool enable_bin_density_normalize);
 
   void initBins();
 
