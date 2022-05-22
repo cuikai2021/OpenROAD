@@ -16,6 +16,7 @@ target_sources(Laurel
     HoldFixer.cc
     SetupFixer.cc
     MakeLaurel.cc
+    WireBudgeting.cc
 )
 
 target_include_directories(Laurel

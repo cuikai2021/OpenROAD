@@ -68,6 +68,14 @@ fix_setup_cmd()
   laurel->fixSetup();
 }
 
+void
+wire_budgeting_cmd()
+{
+  ensureLinked();
+  Laurel *laurel = getLaurel();
+  laurel->wireBudgeting();
+}
+
 } // namespace
 
 %} // inline

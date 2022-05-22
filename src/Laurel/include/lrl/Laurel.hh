@@ -68,6 +68,7 @@ class LaurelAdapter : public Resizer
   // common methods
   virtual VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
   virtual Vertex* findRealVertex(Name vertex_name) const;
+  virtual Pin* findFanoutPin(WirePair wire_pair) const;
 
   // constants
   const char* LRL_H_SOLVER = "SCIP";
@@ -83,7 +84,7 @@ class LaurelAdapter : public Resizer
   const int32_t LRL_S_INVALIDE = -1;
   const int32_t LRL_S_ZERO = 0;
   const char* LRL_S_SRC_NAME = "$src$";
-  const Index s_index = LRL_S_ZERO;
+  const Index S_INDEX = LRL_S_ZERO;
 };
 
 class SetupFixer : public LaurelAdapter
@@ -92,6 +93,7 @@ class SetupFixer : public LaurelAdapter
   SetupFixer(OpenRoad* openroad, Options* options);
   virtual ~SetupFixer(){};
 
+  virtual void initAlgorithm();
   SetupResult resolve();
   bool remap();
   Delay getNewDelay(Vertex* vertex);
@@ -101,14 +103,15 @@ class SetupFixer : public LaurelAdapter
   void report();
 
  protected:
-  void initAlgorithm();
   void buildIndexMap(VertexSet ends);
   Index buildIndex(Vertex* vertex);
   void buildAllFaninEdge(VertexSeq fanins);
   void buildALLEdgePO(VertexSet ends);
 
+  virtual Delay costSlope(Vertex* pred, Vertex* succ);
+
   void addConstraintBase(Index pred, Index succ, Cost capacity, Cost cost);
-  void addConstraintEdge(Vertex* pred, Vertex* succ);
+  virtual void addConstraintEdge(Vertex* pred, Vertex* succ);
   void addConstraintPO(Vertex* po);
   void addConstraintPI(Vertex* pi);
 
@@ -131,7 +134,7 @@ class SetupFixer : public LaurelAdapter
   VertexSeq sortVertexSet(VertexSet set) const;
 
   // variables
-  Index index_ = s_index;
+  Index index_ = S_INDEX;
 
   SimpleMinCostFlow solver_;
   IndexSeq start_nodes_;
@@ -144,6 +147,34 @@ class SetupFixer : public LaurelAdapter
   sta::Map<Name, Index> vertex_index_map_;
 
   Options* options_;
+};
+
+class WireBudgeting : public SetupFixer
+{
+ public:
+  WireBudgeting(OpenRoad* openroad, Options* options)
+      : SetupFixer(openroad, options){};
+  virtual ~WireBudgeting(){};
+
+  virtual void initAlgorithm();
+
+  uint64 getNewWireLength(Vertex* pred,
+                          Vertex* succ,
+                          uint64& max_length,
+                          Delay& bud_rate);
+  WirePairSet getAllWirePairs() { return opt_wires_; }
+
+ protected:
+  virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
+  Delay getLowBound(Vertex* pred, Vertex* succ);
+  Delay getHighBound(Vertex* pred, Vertex* succ);
+  virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
+
+  uint64 getTreeDist(Vertex* drvr, Vertex* dst);
+  SteinerPt findNextPt(SteinerTree* tree, SteinerPt drvr_pt, SteinerPt last);
+
+  // variable
+  WirePairSet opt_wires_;
 };
 
 class HoldFixer : public LaurelAdapter
@@ -208,6 +239,7 @@ class Laurel : public LaurelAdapter
  public:
   Laurel() : LaurelAdapter() { options_ = new Options(); }
   virtual ~Laurel() { delete options_; }
+
   void initLaurel(OpenRoad* openroad,
                   Tcl_Interp* interp,
                   Logger* logger,
@@ -219,6 +251,13 @@ class Laurel : public LaurelAdapter
 
   void fixHold();
   void fixSetup();
+  void wireBudgeting();
+
+  // get Wire budgeting result by pin to pin after wireBudgeting()
+  // unit DBU
+  uint64 getWireBudMaxLen(Vertex* fanin, Vertex* fanout);
+  uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout);
+  Delay getWireBudRate(Pin* fanin, Pin* fanout);
 
   // get Wire budgeting result by pin to pin after wireBudgeting()
   // unit DBU
@@ -235,7 +274,6 @@ class Laurel : public LaurelAdapter
   int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
   bool insertBuffer(HoldFixer* fixer, Name vertex_name);
   bool insertAllBuffer(HoldFixer* fixer);
-  Pin* findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const;
   void insertHoldDelay(Vertex* drvr,
                        int buffer_count,
                        PinSeq& load_pins,
@@ -248,8 +286,13 @@ class Laurel : public LaurelAdapter
   bool resizeCell(Vertex* vertex, Delay target_delay);
   bool resizeAllCells(SetupFixer* fixer);
 
+  bool genAllWireBud(WireBudgeting* guider);
+  void showAllWireBud(WireBudgeting* guider); //debug
+
   // variable
   Options* options_;
+  sta::Map<WirePair, uint64> wire_budget_;
+  sta::Map<WirePair, uint64> wire_budget_rate_;
 };
 
 }  // namespace lrl
