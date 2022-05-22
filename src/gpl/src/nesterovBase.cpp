@@ -70,7 +70,7 @@ GCell::GCell()
     : IntRect(),
       inst_(nullptr),
       dRect_(),
-      densityScale_(0),
+      densityScale_(1.0),
       gradientX_(0),
       gradientY_(0)
 {
@@ -1234,6 +1234,16 @@ float NesterovBase::targetDensity() const
 // update densitySize and densityScale in each gCell
 void NesterovBase::updateDensitySize()
 {
+  if (nbVars_.disableCellDensityScaling) {
+    debugPrint(log_,
+               GPL,
+               "replace",
+               1,
+               "cell density scaling is disabled by option "
+               "-disable_cell_density_scaling");
+    return;
+  }
+
   for (auto& gCell : gCells_) {
     float densitySizeX = REPLACE_SQRT2 * bg_.binSizeX();
     float densitySizeY = REPLACE_SQRT2 * bg_.binSizeY();

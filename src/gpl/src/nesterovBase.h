@@ -390,6 +390,8 @@ class NesterovBaseVars
   std::string cellDensityForceCalPolicy;
 
   bool disableFillerInsertion;
+  bool disableCellDensityScaling;
+  
   // temp variables
   unsigned char isSetBinCntX : 1;
   unsigned char isSetBinCntY : 1;

@@ -103,6 +103,7 @@ Replace::Replace()
       padLeft_(0),
       padRight_(0),
       disableFillerInsertion_(false),
+      disableCellDensityScaling_(false),
       gui_debug_(false),
       gui_debug_pause_iterations_(10),
       gui_debug_update_iterations_(10),
@@ -174,6 +175,7 @@ void Replace::reset()
   timingNetWeightOverflows_.shrink_to_fit();
 
   disableFillerInsertion_ = false;
+  disableCellDensityScaling_ = false;
 
   gui_debug_ = false;
   gui_debug_pause_iterations_ = 10;
@@ -320,6 +322,7 @@ void Replace::initNesterovPlace()
     }
 
     nbVars.disableFillerInsertion = disableFillerInsertion_;
+    nbVars.disableCellDensityScaling = disableCellDensityScaling_;
 
     nbVars.useUniformTargetDensity = uniformTargetDensityMode_;
 
@@ -505,6 +508,11 @@ void Replace::setDebug(int pause_iterations,
 void Replace::setDisableFillerInsertion(bool flag)
 {
   disableFillerInsertion_ = flag;
+}
+
+void Replace::setDisableCellDensityScaling(bool flag)
+{
+  disableCellDensityScaling_ = flag;
 }
 
 void Replace::setSkipIoMode(bool mode)

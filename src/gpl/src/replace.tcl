@@ -90,6 +90,7 @@ proc global_placement { args } {
       -disable_routability_driven \
       -skip_io \
       -disable_filler_insertion \
+      -disable_cell_density_scaling \
       -incremental}
 
   # flow control for initial_place
@@ -109,6 +110,9 @@ proc global_placement { args } {
 
   set disable_filler_insertion [info exists flags(-disable_filler_insertion)]
   gpl::set_disable_filler_insertion_cmd $disable_filler_insertion
+
+  set disable_cell_density_scaling [info exists flags(-disable_cell_density_scaling)]
+  gpl::set_disable_cell_density_scaling_cmd $disable_cell_density_scaling
 
   if { [info exists keys(-initial_place_guide_file)] } { 
     set initial_place_guide_file $keys(-initial_place_guide_file)

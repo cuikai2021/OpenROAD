@@ -150,6 +150,7 @@ class Replace
                 bool draw_bins,
                 bool initial);
   void setDisableFillerInsertion(bool flag);
+  void setDisableCellDensityScaling(bool flag);
 
  private:
   odb::dbDatabase* db_;
@@ -209,6 +210,7 @@ class Replace
   int padRight_;
 
   bool disableFillerInsertion_;
+  bool disableCellDensityScaling_;
 
   bool gui_debug_;
   int gui_debug_pause_iterations_;
