@@ -453,6 +453,21 @@ void Bin::addNonPlaceArea(int64_t area)
   nonPlaceArea_ += area * targetDensity();
 }
 
+void Bin::addPlaceArea(const GCell* gcell)
+{
+  auto area = getOverlapDensityArea(this, gcell);
+  if (gcell->isMacroInstance()) {
+    // macro should have scale-down with target-density
+    area *= targetDensity();
+    instPlacedArea_ += (int64_t) area;
+  } else if (gcell->isStdInstance()) {
+    instPlacedArea_ += (int64_t) area;
+  } else {
+    assert(gcell->isFiller());
+    fillerArea_ += (int64_t) area;
+  }
+}
+
 ////////////////////////////////////////////////
 // BinGrid
 
@@ -640,18 +655,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
     for (int i = pairX.first; i < pairX.second; i++) {
       for (int j = pairY.first; j < pairY.second; j++) {
         Bin* bin = binAt(i, j);
-        // auto area = getOverlapArea(bin->rect(), cell->rect());
-        auto area = getOverlapDensityArea(bin, cell);
-        if (cell->isMacroInstance()) {
-          // macro should have scale-down with target-density
-          area *= bin->targetDensity();
-          bin->addInstPlacedArea(area);
-        } else if (cell->isStdInstance()) {
-          bin->addInstPlacedArea(area);
-        } else {
-          assert(cell->isFiller());
-          bin->addFillerArea(area);
-        }
+        bin->addPlaceArea(cell);
       }
     }
   }

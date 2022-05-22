@@ -298,9 +298,8 @@ class Bin : public IntRect
   void setFillerArea(int64_t area) { fillerArea_ = area; }
 
 
+  void addPlaceArea(const GCell* cell);
   void addNonPlaceArea(int64_t area);
-  void addInstPlacedArea(int64_t area) { instPlacedArea_ += area; }
-  void addFillerArea(int64_t area) { fillerArea_ += area; }
 
   float targetDensityArea() const { return targetDensityArea_; }
 
