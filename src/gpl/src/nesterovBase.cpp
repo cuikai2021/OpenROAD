@@ -631,7 +631,9 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
         = bin->instPlacedArea() + bin->nonPlaceArea();
     const float occupiedAllArea = occupiedNonFillerArea + bin->fillerArea();
     const float overflow = occupiedNonFillerArea - binTargetArea;
-    bin->setDensity(occupiedAllArea / binTargetArea);
+    float d = occupiedAllArea / binTargetArea;
+    d /= bin->targetDensity();
+    bin->setDensity(d);
 #if 0
     if (overflow > 0) {
       std::cout << "overflow: " << overflow
