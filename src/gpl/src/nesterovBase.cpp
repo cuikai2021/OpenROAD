@@ -444,6 +444,10 @@ float Bin::oveflowArea() const
   return std::max(0.0f, overflow);
 }
 
+void Bin::resetNonPlaceArea() {
+  nonPlaceArea_ = 0;
+}
+
 // Note that nonPlaceArea should have scale-down with
 // target density.
 // See MS-replace paper
@@ -625,7 +629,7 @@ void BinGrid::initBins()
 void BinGrid::updateBinsNonPlaceArea()
 {
   for (auto& bin : bins_) {
-    bin->setNonPlaceArea(0);
+    bin->resetNonPlaceArea();
   }
 
   for (auto& inst : pb_->nonPlaceInsts()) {

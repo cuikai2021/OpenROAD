@@ -293,7 +293,7 @@ class Bin : public IntRect
   }
   void setElectroPhi(float phi) { electroPhi_ = phi; }
 
-  void setNonPlaceArea(int64_t area) { nonPlaceArea_ = area; }
+  void resetNonPlaceArea();
   void addNonPlaceArea(int64_t area);
 
   void resetPlaceArea();
