@@ -274,15 +274,18 @@ class Bin : public IntRect
   int x() const { return index_.getX(); }
   int y() const { return index_.getY(); }
 
-  float density() const { return density_; }
   float targetDensity() const { return targetDensity_; }
+  void setTargetDensity(float density);
+
+  float density() const { return density_; }
+  void updateDensity();
+
+  float oveflowArea() const;
 
   float electroForceX() const { return electroForceX_; }
   float electroForceY() const { return electroForceY_; }
   float electroPhi() const { return electroPhi_; }
 
-  void setDensity(float density) { density_ = density; }
-  void setTargetDensity(float density);
   void setElectroForce(float electroForceX, float electroForceY)
   {
     electroForceX_ = electroForceX;
@@ -299,7 +302,7 @@ class Bin : public IntRect
   void addFillerArea(int64_t area) { fillerArea_ += area; }
 
   const float targetDensityArea() const { return targetDensityArea_; }
-  
+
   const int64_t binArea() const { return rect_.area(); }
   const int64_t nonPlaceArea() const { return nonPlaceArea_; }
   const int64_t instPlacedArea() const { return instPlacedArea_; }
@@ -339,7 +342,7 @@ class BinGrid : public IntRect
   void setBinCntX(int binCntX);
   void setBinCntY(int binCntY);
   void setTargetDensity(float density);
-  void updateBinsGCellDensityArea(const std::vector<GCell*>& cells, bool enable_bin_density_normalize);
+  void updateBinsGCellDensityArea(const std::vector<GCell*>& cells);
 
   void initBins();
 
@@ -394,7 +397,7 @@ class NesterovBaseVars
 
   bool disableFillerInsertion;
   bool disableCellDensityScaling;
-  
+
   // temp variables
   unsigned char isSetBinCntX : 1;
   unsigned char isSetBinCntY : 1;
@@ -535,7 +538,6 @@ class NesterovBase
   FloatPoint getDensityGradient(const GCell* gCell) const;
   FloatPoint getDensityGradientByCoveredBins(const GCell* gCell) const;
   FloatPoint getDensityGradientByFieldInterpolation(const GCell* gCell) const;
-  
 
   int64_t getHpwl();
 
