@@ -301,12 +301,12 @@ class Bin : public IntRect
   void addInstPlacedArea(int64_t area) { instPlacedArea_ += area; }
   void addFillerArea(int64_t area) { fillerArea_ += area; }
 
-  const float targetDensityArea() const { return targetDensityArea_; }
+  float targetDensityArea() const { return targetDensityArea_; }
 
-  const int64_t binArea() const { return rect_.area(); }
-  const int64_t nonPlaceArea() const { return nonPlaceArea_; }
-  const int64_t instPlacedArea() const { return instPlacedArea_; }
-  const int64_t fillerArea() const { return fillerArea_; }
+  int64_t binArea() const { return rect_.area(); }
+  int64_t nonPlaceArea() const { return nonPlaceArea_; }
+  int64_t instPlacedArea() const { return instPlacedArea_; }
+  int64_t fillerArea() const { return fillerArea_; }
 
  private:
   // index
