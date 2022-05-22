@@ -280,7 +280,7 @@ class Bin : public IntRect
   float density() const { return density_; }
   void updateDensity();
 
-  float oveflowArea() const;
+  float overflowArea() const;
 
   float electroForceX() const { return electroForceX_; }
   float electroForceY() const { return electroForceY_; }

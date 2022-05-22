@@ -430,16 +430,17 @@ int64_t Bin::densityArea() const
   return nonPlaceArea_ + instPlacedArea_ + fillerArea_;
 }
 
-float Bin::oveflowArea() const
+float Bin::overflowArea() const
 {
   const float binTargetArea = targetDensityArea();
   const float occupiedNonFillerArea = instPlacedArea_ + nonPlaceArea_;
   const float overflow = occupiedNonFillerArea - binTargetArea;
 #if 0
-    if (overflow > 0) {
+    if (occupiedNonFillerArea > 0) {
       std::cout << "overflow: " << overflow
                 << ", occupiedNonFillerArea=" << occupiedNonFillerArea
-                << ", binTargetArea=" << binTargetArea << std::endl;
+                << ", binTargetArea=" << binTargetArea 
+                << ", binArea=" << binArea() << std::endl;
     }
 #endif
   return std::max(0.0f, overflow);
@@ -677,7 +678,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
   // for nesterov use and FFT library
   for (auto& bin : bins_) {
     bin->updateDensity();
-    overflowArea_ += bin->oveflowArea();
+    overflowArea_ += bin->overflowArea();
   }
 }
 
