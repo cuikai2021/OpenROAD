@@ -297,7 +297,8 @@ class Bin : public IntRect
   void setInstPlacedArea(int64_t area) { instPlacedArea_ = area; }
   void setFillerArea(int64_t area) { fillerArea_ = area; }
 
-  void addNonPlaceArea(int64_t area) { nonPlaceArea_ += area; }
+
+  void addNonPlaceArea(int64_t area);
   void addInstPlacedArea(int64_t area) { instPlacedArea_ += area; }
   void addFillerArea(int64_t area) { fillerArea_ += area; }
 

@@ -444,6 +444,15 @@ float Bin::oveflowArea() const
   return std::max(0.0f, overflow);
 }
 
+// Note that nonPlaceArea should have scale-down with
+// target density.
+// See MS-replace paper
+//
+void Bin::addNonPlaceArea(int64_t area)
+{
+  nonPlaceArea_ += area * targetDensity();
+}
+
 ////////////////////////////////////////////////
 // BinGrid
 
@@ -606,11 +615,7 @@ void BinGrid::updateBinsNonPlaceArea()
       for (int j = pairY.first; j < pairY.second; j++) {
         Bin* bin = binAt(i, j);
 
-        // Note that nonPlaceArea should have scale-down with
-        // target density.
-        // See MS-replace paper
-        //
-        bin->addNonPlaceArea(getOverlapArea(bin, inst) * bin->targetDensity());
+        bin->addNonPlaceArea(getOverlapArea(bin, inst));
       }
     }
   }
