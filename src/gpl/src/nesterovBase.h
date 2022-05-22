@@ -282,7 +282,7 @@ class Bin : public IntRect
   float electroPhi() const { return electroPhi_; }
 
   void setDensity(float density) { density_ = density; }
-  void setTargetDensity(float density) { targetDensity_ = density; }
+  void setTargetDensity(float density);
   void setElectroForce(float electroForceX, float electroForceY)
   {
     electroForceX_ = electroForceX;
@@ -298,6 +298,8 @@ class Bin : public IntRect
   void addInstPlacedArea(int64_t area) { instPlacedArea_ += area; }
   void addFillerArea(int64_t area) { fillerArea_ += area; }
 
+  const float targetDensityArea() const { return targetDensityArea_; }
+  
   const int64_t binArea() const { return rect_.area(); }
   const int64_t nonPlaceArea() const { return nonPlaceArea_; }
   const int64_t instPlacedArea() const { return instPlacedArea_; }
@@ -313,6 +315,7 @@ class Bin : public IntRect
 
   float density_;
   float targetDensity_;  // will enable bin-wise density screening
+  float targetDensityArea_;
   float electroPhi_;
   float electroForceX_;
   float electroForceY_;

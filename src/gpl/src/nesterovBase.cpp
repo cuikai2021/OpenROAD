@@ -407,11 +407,17 @@ Bin::Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity)
 {
   index_.set(x, y);
   rect_.reset(lx, ly, ux, uy);
-  targetDensity_ = targetDensity;
+  setTargetDensity(targetDensity);
 }
 
 Bin::~Bin()
 {
+}
+
+void Bin::setTargetDensity(float density)
+{
+  targetDensity_ = density;
+  targetDensityArea_ = binArea() * targetDensity_;
 }
 
 ////////////////////////////////////////////////
@@ -627,7 +633,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells,
   // update density and overflowArea
   // for nesterov use and FFT library
   for (auto& bin : bins_) {
-    const float binTargetArea = bin->binArea() * bin->targetDensity();
+    const float binTargetArea = bin->targetDensityArea();
     const float occupiedNonFillerArea
         = bin->instPlacedArea() + bin->nonPlaceArea();
     const float occupiedAllArea = occupiedNonFillerArea + bin->fillerArea();
