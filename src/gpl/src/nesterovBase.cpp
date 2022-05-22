@@ -453,6 +453,11 @@ void Bin::addNonPlaceArea(int64_t area)
   nonPlaceArea_ += area * targetDensity();
 }
 
+void Bin::resetPlaceArea() {
+  instPlacedArea_ = 0;
+  fillerArea_ = 0;
+}
+
 void Bin::addPlaceArea(const GCell* gcell)
 {
   auto area = getOverlapDensityArea(this, gcell);
@@ -641,8 +646,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
 {
   // clear the Bin-area info
   for (auto& bin : bins_) {
-    bin->setInstPlacedArea(0);
-    bin->setFillerArea(0);
+    bin->resetPlaceArea();
   }
 
   for (auto& cell : cells) {
