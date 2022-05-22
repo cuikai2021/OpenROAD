@@ -74,8 +74,8 @@
 [NesterovSolve] Iter: 310 overflow: 0.249749 HPWL: 2798263
 [NesterovSolve] Iter: 320 overflow: 0.216375 HPWL: 2852373
 [NesterovSolve] Iter: 330 overflow: 0.182009 HPWL: 2892521
-[NesterovSolve] Iter: 340 overflow: 0.152551 HPWL: 2935614
-[NesterovSolve] Iter: 350 overflow: 0.131708 HPWL: 2972557
-[NesterovSolve] Iter: 360 overflow: 0.115354 HPWL: 3000498
-[NesterovSolve] Finished with Overflow: 0.099462
+[NesterovSolve] Iter: 340 overflow: 0.152555 HPWL: 2935588
+[NesterovSolve] Iter: 350 overflow: 0.131707 HPWL: 2972534
+[NesterovSolve] Iter: 360 overflow: 0.115347 HPWL: 3000448
+[NesterovSolve] Finished with Overflow: 0.099460
 No differences found.

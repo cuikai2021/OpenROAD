@@ -422,14 +422,11 @@ void Bin::setTargetDensity(float density)
 
 void Bin::updateDensity()
 {
-  const float binTargetArea = targetDensityArea();
-  const float occupiedNonFillerArea = instPlacedArea_ + nonPlaceArea_;
-  const float occupiedAllArea = occupiedNonFillerArea + fillerArea_;
-  float d = occupiedAllArea / binTargetArea;
-  density_ = d;
+  density_ = static_cast<float>(densityArea()) / targetDensityArea();
 }
 
-int64_t Bin::densityArea() const {
+int64_t Bin::densityArea() const
+{
   return nonPlaceArea_ + instPlacedArea_ + fillerArea_;
 }
 
@@ -448,7 +445,8 @@ float Bin::oveflowArea() const
   return std::max(0.0f, overflow);
 }
 
-void Bin::resetNonPlaceArea() {
+void Bin::resetNonPlaceArea()
+{
   nonPlaceArea_ = 0;
 }
 
@@ -461,7 +459,8 @@ void Bin::addNonPlaceArea(int64_t area)
   nonPlaceArea_ += area * targetDensity();
 }
 
-void Bin::resetPlaceArea() {
+void Bin::resetPlaceArea()
+{
   instPlacedArea_ = 0;
   fillerArea_ = 0;
 }
@@ -472,12 +471,12 @@ void Bin::addPlaceArea(const GCell* gcell)
   if (gcell->isMacroInstance()) {
     // macro should have scale-down with target-density
     area *= targetDensity();
-    instPlacedArea_ += (int64_t) area;
+    instPlacedArea_ += static_cast<int64_t>(area);
   } else if (gcell->isStdInstance()) {
-    instPlacedArea_ += (int64_t) area;
+    instPlacedArea_ += static_cast<int64_t>(area);
   } else {
     assert(gcell->isFiller());
-    fillerArea_ += (int64_t) area;
+    fillerArea_ += static_cast<int64_t>(area);
   }
 }
 
@@ -1800,8 +1799,7 @@ void NesterovBase::updateDensityForceBin()
     float electroPhi = fft_->getElectroPhi(bin->x(), bin->y());
     bin->setElectroPhi(electroPhi);
 
-    sumPhi_ += electroPhi
-               * static_cast<float>(bin->densityArea());
+    sumPhi_ += electroPhi * static_cast<float>(bin->densityArea());
   }
 }
 
