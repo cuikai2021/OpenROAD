@@ -258,14 +258,7 @@ class Laurel : public LaurelAdapter
   uint64 getWireBudMaxLen(Vertex* fanin, Vertex* fanout);
   uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout);
   Delay getWireBudRate(Pin* fanin, Pin* fanout);
-
-  // get Wire budgeting result by pin to pin after wireBudgeting()
-  // unit DBU
-  uint64 getWireBudMaxLen(Vertex* fanin, Vertex* fanout){return 0;}
-  uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout){return 0;}
-
-  uint64 getWireLenScalingRate(Pin* fanin, Pin* fanout) { return 0; }
-
+  
   Options* getOptions() { return options_; }
 
  protected:

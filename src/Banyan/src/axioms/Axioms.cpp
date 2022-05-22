@@ -714,6 +714,8 @@ void Axioms::addTableTriples(
 
 void Axioms::initTable()
 {
+  std::vector<banyan_go::table_triple>& tableTriples = dbAdapter_.tableTriples_;
+
   odb::dbTech* tech = db_->getTech();
   for (auto techLayer : tech->getLayers()) {
     if (techLayer->getType().getValue() != odb::dbTechLayerType::ROUTING) {
@@ -723,7 +725,6 @@ void Axioms::initTable()
         = AssertFind(dbAdapter_.layerNameToIdxs_, techLayer->getName());
     std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer;
     getDefaultViasInLayer(techLayer, defaultViasInLayer);
-    auto tableTriples = dbAdapter_.tableTriples_;
     //===============================================================================================
     dbAdapter_.layers_[layerIdx].trunk_min_len_begin = tableTriples.size();
     addTableTriples(

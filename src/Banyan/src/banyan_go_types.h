@@ -130,7 +130,7 @@ struct net
     GoUint64 pin_begin;
     GoUint64 pin_end;
 
-    // col = src pin idx, row = sink pin idx, value = minwirelen / maxwirelen * 100
+    // col = src pin idx, row = sink pin idx, value = maxwirelen / minwirelen  * 100
     GoUint64 wire_budget_begin;
     GoUint64 wire_budget_end;
 
