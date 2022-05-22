@@ -1,4 +1,5 @@
 #include "lrl/Laurel.hh"
+#include "sta/ParasiticsClass.hh"
 
 namespace lrl {
 
@@ -31,6 +32,9 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
   for (auto vertex : fanins) {
     bool is_pi = true;
     buildIndex(vertex);
+    Name vertex_name = vertex->name(sta_->sdcNetwork());
+    name_vertex_map_.insert(vertex_name, vertex);
+    pin_vertex_map_.insert(vertex->pin(), vertex);
     SearchPredNonReg2 pred(sta_);
     BfsBkwdIterator iter(BfsIndex::other, &pred, this);
     iter.enqueueAdjacentVertices(vertex);
@@ -80,105 +84,74 @@ Vertex* WireBudgeting::getRealFanoutVertex(WirePair wire)
   return wire_fanout_map_.findKey(wire);
 }
 
-void WireBudgeting::buildIndexMap(VertexSet ends)
+void WireBudgeting::buildALLEdgePO(VertexSet ends)
 {
-  VertexSet all_ends = getAllRelatedEnds(ends, options_->ignoreClk());
-  VertexSet fanins = findHoldFanins(all_ends);
-  VertexSeq sorted_ends = sortHoldFanins(all_ends);
-  VertexSeq sorted_fanins = sortHoldFanins(fanins);
-
-  // the special node SRC
-  vertex_index_map_.insert(LRL_S_SRC_NAME, index_++);
-
-  buildAllFaninEdge(sorted_ends);
-  buildAllFaninEdge(sorted_fanins);
-  // buildALLEdgePO(all_ends);
+  for (auto node : vertex_index_map_) {
+    Vertex* vertex = name_vertex_map_.findKey(node.first);
+    if (ends.find(vertex) != ends.end())
+      addConstraintPO(vertex);
+  }
 }
 
 Delay WireBudgeting::costSlope(Vertex* pred, Vertex* succ)
 {
   uint64 wire_length = getTreeDist(pred, succ);
-  LibertyPort* drvr_port = sta_->network()->libertyPort(pred->pin());
-  LibertyPort* load_port = sta_->network()->libertyPort(succ->pin());
+  Name succ_name = succ->name(sdc_network_);
   Delay min_delay = LRL_H_ZERO;
   Delay max_delay = LRL_H_ZERO;
-  Slew slew = LRL_H_ZERO;  // unused
-  cellWireDelay(
-      drvr_port, load_port, dbuToMeters(wire_length), min_delay, slew);
-  cellWireDelay(
-      drvr_port, load_port, dbuToMeters(2 * wire_length), max_delay, slew);
-  // printf("len: %lld, max delay: %s , min delay: %s, cell delay: %s\n",
+
+  if (spef_delay_.hasKey(succ_name))
+    min_delay = spef_delay_.at(succ_name);
+  if (spef_delay_factor_.hasKey(succ_name))
+    max_delay = spef_delay_factor_.at(succ_name);
+
+  // printf("len: %lld, max delay: %s , min delay: %s\n",
   //        wire_length,
   //        delayAsString(max_delay, sta_, 3),
-  //        delayAsString(min_delay, sta_, 3),
-  //        delayAsString(getDelay(pred), sta_, 3));
+  //        delayAsString(min_delay, sta_, 3));
   if (max_delay == min_delay)
     return LRL_S_INT_INF;
   return wire_length / (max_delay - min_delay) / LRL_H_STA_SCALING
-         / LRL_H_SCALING;
+         / LRL_H_SCALING / LRL_H_SCALING / LRL_H_SCALING;
 }
 
 Delay WireBudgeting::getLowBound(Vertex* pred, Vertex* succ)
 {
-  uint64 wire_length = getTreeDist(pred, succ);
-  LibertyPort* drvr_port = sta_->network()->libertyPort(pred->pin());
-  LibertyPort* load_port = sta_->network()->libertyPort(succ->pin());
   Delay delay = LRL_H_ZERO;
-  Slew slew = LRL_H_ZERO;  // unused
-  cellWireDelay(drvr_port, load_port, dbuToMeters(wire_length), delay, slew);
+  Name succ_name = succ->name(sta_->sdcNetwork());
+  if (spef_delay_.hasKey(succ_name))
+    delay = spef_delay_.at(succ_name);
   return delay;
 }
 
 Delay WireBudgeting::getHighBound(Vertex* pred, Vertex* succ)
 {
-  uint64 wire_length = getTreeDist(pred, succ);
-  LibertyPort* drvr_port = sta_->network()->libertyPort(pred->pin());
-  LibertyPort* load_port = sta_->network()->libertyPort(succ->pin());
   Delay delay = LRL_H_ZERO;
-  Slew slew = LRL_H_ZERO;  // unused
-  cellWireDelay(
-      drvr_port, load_port, dbuToMeters(2 * wire_length), delay, slew);
+  Name succ_name = succ->name(sta_->sdcNetwork());
+  if (spef_delay_.hasKey(succ_name))
+    delay = spef_delay_factor_.at(succ_name);
   return delay;
 }
 
 void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
 {
-  // Delay delay = getDelay(succ);
-  // Index pred_index = getIndex(pred);
-  // Index succ_index = getIndex(succ);
-  // Cost capacity = delay2Cost(costSlope(pred, succ));
-  // Delay low_bound = getLowBound(pred, succ);
-  // Delay high_bound = getHighBound(pred, succ);
+  Index pred_index = getIndex(pred);
+  Index succ_index = getIndex(succ);
+  Cost capacity = delay2Cost(costSlope(pred, succ));
+  Delay low_bound = getLowBound(pred, succ);
+  Delay high_bound = getHighBound(pred, succ);
+  Delay delay = high_bound;
 
   Name pred_name = pred->name(sta_->sdcNetwork());
   Name succ_name = succ->name(sta_->sdcNetwork());
-  name_vertex_map_.insert(pred_name, pred);
-  name_vertex_map_.insert(succ_name, succ);
-  pin_vertex_map_.insert(pred->pin(), pred);
-  pin_vertex_map_.insert(succ->pin(), succ);
   WirePair wire = WirePair(pred_name, succ_name);
   opt_wires_.insert(getRealWire(wire));
 
-  // addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
-  // addConstraintBase(
-  //     pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
-  // addConstraintBase(
-  //     succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
-}
-
-void WireBudgeting::addConstraintPO(Vertex* po)
-{
-  // const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
-  // Index po_index = getIndex(po);
-  // Required req = sta_->vertexRequired(po, MinMax::max()) + slack_margin;
-  // addConstraintBase(po_index, S_INDEX, LRL_S_INT_INF, delay2Cost(req));
-  // solver_.SetNodeSupply(po_index, -LRL_S_INT_INF);
-}
-
-void WireBudgeting::addConstraintPI(Vertex* pi)
-{
-  // Index pi_index = getIndex(pi);
-  // addConstraintBase(S_INDEX, pi_index, LRL_S_INT_INF, LRL_S_ZERO);
+  addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
+  addConstraintBase(
+      pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
+  addConstraintBase(
+      succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
 }
 
 SteinerTree* WireBudgeting::getTree(Vertex* drvr)
@@ -245,47 +218,76 @@ SteinerPt WireBudgeting::findNextPt(SteinerTree* tree,
   return left;
 }
 
+sta::Map<Name, Delay> WireBudgeting::buildSpefDelayMap()
+{
+  sta_->findRequireds();
+  sta::Map<Name, Delay> spef_delay_map;
+  VertexIterator vertex_iter(sta_->graph());
+  while (vertex_iter.hasNext()) {
+    Vertex* vertex = vertex_iter.next();
+    Delay delay = *sta_->graph()->arrivals(vertex);
+    if (!fuzzyZero(delay)) {
+      Name vertex_name = vertex->name(sta_->sdcNetwork());
+      spef_delay_map.insert(vertex_name, delay);
+    }
+  }
+  return spef_delay_map;
+}
+
+bool WireBudgeting::makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor)
+{
+  const char* filename = options_->spefFileName();
+  bool ret = sta_->readSpef(filename,
+                            sta_->getDbNetwork()->topInstance(),
+                            sta_->cmdCorner(),
+                            MinMaxAll::all(),
+                            false,
+                            false,
+                            false,
+                            factor,
+                            ReducedParasiticType::none,
+                            false,
+                            false);
+  if (ret)
+    map = buildSpefDelayMap();
+
+  return ret;
+}
+
 void WireBudgeting::getNewWireLength(Vertex* pred,
                                      Vertex* succ,
                                      uint64& max_length,
                                      Delay& bud_rate)
 {
-  // Index pred_index = getIndex(pred);
-  // Index succ_index = getIndex(succ);
-  // LibertyPort* drvr_port = sta_->network()->libertyPort(pred->pin());
-  // LibertyPort* load_port = sta_->network()->libertyPort(succ->pin());
+  Index pred_index = getIndex(pred);
+  Index succ_index = getIndex(succ);
+  Name succ_name = succ->name(sta_->sdcNetwork());
+
   uint64 origin_length = getTreeDist(pred, succ);
-  // Delay origin_delay = LRL_H_ZERO;
-  // Slew slew = LRL_H_ZERO;  // unused
+  Delay origin_delay = LRL_H_ZERO;
+  Delay max_delay = LRL_H_ZERO;
+  if (spef_delay_.hasKey(succ_name))
+    origin_delay = spef_delay_.at(succ_name);
+  if (spef_delay_factor_.hasKey(succ_name))
+    max_delay = spef_delay_factor_.at(succ_name);
 
-  // cellWireDelay(drvr_port, load_port, origin_length, origin_delay, slew);
-  // Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
+  Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
 
-  // uint64 aug_length
-  //     = round((new_delay - origin_length) * costSlope(pred, succ));
+  bud_rate = (new_delay - origin_delay) / (max_delay - origin_delay);
+  bud_rate = bud_rate > 1.0f ? 1.0f : bud_rate;
+  uint64 aug_length = round(origin_length * bud_rate);
 
-  uint64 aug_length = LRL_S_ZERO;
-  Slack slack = sta_->vertexSlack(succ, MinMax::max());
-  PathRef path = sta_->vertexWorstSlackPath(succ, max_);
-  Slack period = path.clock(sta_)->period();
-  if (slack >= 0.2 * period) {
-    aug_length = origin_length;
-  }
-
-  // debugPrint(logger_,
-  //            utl::LRL,
-  //            "LRL",
-  //            3,
-  //            "{} -> {}, origin = {}, aug = {}",
-  //            pred->name(sta_->sdcNetwork()),
-  //            succ->name(sta_->sdcNetwork()),
-  //            origin_length,
-  //            aug_length);
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             3,
+             "{} -> {}, origin = {}, aug = {}",
+             pred->name(sta_->sdcNetwork()),
+             succ->name(sta_->sdcNetwork()),
+             origin_length,
+             aug_length);
   max_length = origin_length + aug_length;
-  if (max_length == 0) {
-    bud_rate = LRL_H_INFINITY;
-  } else
-    bud_rate = max_length / origin_length;
+  bud_rate = bud_rate + 1.0f;
 }
 
 bool WireBudgeting::hasWire(WirePair wire)

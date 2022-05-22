@@ -63,6 +63,8 @@ Delay SetupFixer::getDelay(Vertex* vertex)
   Pin* drvr_pin = vertex->pin();
   LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
   PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+  if(!path.vertex(sta_))
+    return LRL_H_ZERO;
   const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
   const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
   return gateDelay(drvr_port, load_cap, dcalc_ap);
@@ -277,7 +279,7 @@ SetupResult SetupFixer::resolve()
         start_nodes_[i], end_nodes_[i], capacities_[i], unit_costs_[i]);
 
   // Add node supplies.
-  solver_.SetNodeSupply(S_INDEX, LRL_S_INT_INF);
+  // solver_.SetNodeSupply(S_INDEX, LRL_S_INT_INF);
 
   return solver_.SolveMaxFlowWithMinCost();
 }
