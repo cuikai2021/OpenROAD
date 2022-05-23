@@ -44,6 +44,13 @@ void Laurel::initLaurel(OpenRoad* openroad,
   evalTclInit(interp, sta::Laurel_tcl_inits);
 }
 
+Laurel::~Laurel()
+{
+  delete options_;
+  if (wire_bud_)
+    delete wire_bud_;
+}
+
 ////////////////////////////////////////////////////////
 //
 //  For fixing hold
@@ -346,33 +353,33 @@ void Laurel::fixSetup()
 //
 ////////////////////////////////////////////////////////
 
-bool Laurel::genAllWireBud(WireBudgeting* guider)
-{
-  wire_budget_.clear();
-  wire_budget_rate_.clear();
-  WirePairSet pairs = guider->getAllWirePairs();
-  bool ret = true;
+// bool Laurel::genAllWireBud(WireBudgeting* guider)
+// {
+//   wire_budget_.clear();
+//   wire_budget_rate_.clear();
+//   WirePairSet pairs = guider->getAllWirePairs();
+//   bool ret = true;
 
-  for (auto wire : pairs) {
-    Vertex* pred = findRealVertex(wire.first);
-    Vertex* succ = findRealVertex(wire.second);
+//   for (auto wire : pairs) {
+//     Vertex* pred = findRealVertex(wire.first);
+//     Vertex* succ = findRealVertex(wire.second);
 
-    Pin* fanout_pin = findFanoutPin(wire);
-    Name fanin_name = wire.first;
-    Name fanout_name = sta_->network()->name(fanout_pin);
+//     Pin* fanout_pin = findFanoutPin(wire);
+//     Name fanin_name = wire.first;
+//     Name fanout_name = sta_->network()->name(fanout_pin);
 
-    WirePair pin_wire = WirePair(fanin_name, fanout_name);
-    uint64 wire_length = LRL_S_ZERO;
-    Delay bud_rate = LRL_H_ZERO;
-    guider->getNewWireLength(pred, succ, wire_length, bud_rate);
-    wire_budget_.insert(pin_wire, wire_length);
-    wire_budget_rate_.insert(pin_wire, bud_rate);
+//     WirePair pin_wire = WirePair(fanin_name, fanout_name);
+//     uint64 wire_length = LRL_S_ZERO;
+//     Delay bud_rate = LRL_H_ZERO;
+//     guider->getNewWireLength(pred, succ, wire_length, bud_rate);
+//     wire_budget_.insert(pin_wire, wire_length);
+//     wire_budget_rate_.insert(pin_wire, bud_rate);
 
-    if (wire_length == LRL_S_ZERO)
-      ret = false;
-  }
-  return ret;
-}
+//     if (wire_length == LRL_S_ZERO)
+//       ret = false;
+//   }
+//   return ret;
+// }
 
 void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
 {
@@ -381,7 +388,7 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
   logger_->info(utl::LRL, 1310, "test wire budgeting interface");
   for (auto wire : pairs) {
     Vertex* pred = findRealVertex(wire.first);
-    Vertex* succ = findRealVertex(wire.second);
+    // Vertex* succ = findRealVertex(wire.second);
 
     Pin* fanin_pin = pred->pin();
     Pin* fanout_pin = findFanoutPin(wire);
@@ -406,20 +413,23 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
 
 void Laurel::wireBudgeting()
 {
-  WireBudgeting guider = WireBudgeting(openroad_, options_);
-  guider.initAlgorithm();
-  // SetupResult status = guider.resolve();
+  if (wire_bud_)
+    delete wire_bud_;
+  wire_bud_ = new WireBudgeting(openroad_, options_);
+  wire_bud_->initAlgorithm();
+  SetupResult status = wire_bud_->resolve();
   bool ret = false;
-  // if (status == MinCostFlow::OPTIMAL) {
-  guider.report();
-  // if (guider.remap())
-  ret = genAllWireBud(&guider);
-  // }
+  if (status == MinCostFlow::OPTIMAL) {
+    wire_bud_->report();
+    if (wire_bud_->remap())
+      ret = true;
+    // ret = genAllWireBud(wire_bud_);
+  }
   if (!ret)
     logger_->warn(utl::LRL, 1203, "Fail to do wire budgeting");
   else
     logger_->info(utl::LRL, 1308, "Succeed to do wire budgeting");
-  // showAllWireBud(&guider);
+  // showAllWireBud(wire_bud_);
 }
 
 uint64 Laurel::getWireBudMaxLen(Vertex* fanin, Vertex* fanout)
@@ -432,7 +442,7 @@ uint64 Laurel::getWireBudMaxLen(Pin* fanin, Pin* fanout)
   Name fanin_name = sta_->network()->name(fanin);
   Name fanout_name = sta_->network()->name(fanout);
   WirePair pin_wire = WirePair(fanin_name, fanout_name);
-  if (!wire_budget_.hasKey(pin_wire)) {
+  if (!wire_bud_->hasWire(pin_wire)) {
     logger_->warn(utl::LRL,
                   1204,
                   "not found budget result for {} -> {}",
@@ -440,7 +450,11 @@ uint64 Laurel::getWireBudMaxLen(Pin* fanin, Pin* fanout)
                   fanout_name);
     return LRL_S_ZERO;
   }
-  uint64 max_length = wire_budget_.at(pin_wire);
+  Vertex* pred = findRealVertex(pin_wire.first);
+  Vertex* succ = findRealVertex(pin_wire.second);
+  uint64 max_length = LRL_S_ZERO;
+  Delay bud_rate = LRL_H_ZERO;  // unused
+  wire_bud_->getNewWireLength(pred, succ, max_length, bud_rate);
   debugPrint(logger_,
              utl::LRL,
              "LRL",
@@ -457,8 +471,7 @@ Delay Laurel::getWireBudRate(Pin* fanin, Pin* fanout)
   Name fanin_name = sta_->network()->name(fanin);
   Name fanout_name = sta_->network()->name(fanout);
   WirePair pin_wire = WirePair(fanin_name, fanout_name);
-  uint64 bud_rate = wire_budget_rate_.at(pin_wire);
-  if (!wire_budget_.hasKey(pin_wire)) {
+  if (!wire_bud_->hasWire(pin_wire)) {
     logger_->warn(utl::LRL,
                   1205,
                   "not found budget rate for {} -> {}",
@@ -466,6 +479,11 @@ Delay Laurel::getWireBudRate(Pin* fanin, Pin* fanout)
                   fanout_name);
     return LRL_S_ZERO;
   }
+  Vertex* pred = findRealVertex(pin_wire.first);
+  Vertex* succ = findRealVertex(pin_wire.second);
+  uint64 max_length = LRL_S_ZERO;  // unused
+  Delay bud_rate = LRL_H_ZERO;
+  wire_bud_->getNewWireLength(pred, succ, max_length, bud_rate);
   debugPrint(logger_,
              utl::LRL,
              "LRL",
