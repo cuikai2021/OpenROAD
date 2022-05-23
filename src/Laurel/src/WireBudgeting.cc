@@ -14,20 +14,31 @@ void WireBudgeting::initAlgorithm()
 {
   VertexSet* ends = sta_->search()->endpoints();
   VertexSet failures;
-
-  logger_->info(utl::LRL, 1402, "Budgeting Ends:");
+  int cnt = 0;
   for (Vertex* vertex : *ends) {
     Slack slack = sta_->vertexSlack(vertex, MinMax::max());
     if (!fuzzyInf(slack)) {
       failures.insert(vertex);
-      logger_->info(utl::LRL,
-                    1403,
-                    "   {} : {}",
-                    delayAsString(slack, sta_, 3),
-                    vertex->name(sta_->sdcNetwork()));
+      cnt++;
     }
   }
+  logger_->info(utl::LRL, 1402, "detected {} Budgeting Ends", cnt);
   buildIndexMap(failures);
+}
+
+void WireBudgeting::buildIndexMap(VertexSet ends)
+{
+  VertexSet all_ends = getAllRelatedEnds(ends, options_->ignoreClk());
+  VertexSet fanins = findHoldFanins(all_ends);
+  VertexSeq sorted_ends = sortHoldFanins(all_ends);
+  VertexSeq sorted_fanins = sortHoldFanins(fanins);
+
+  // the special node SRC
+  vertex_index_map_.insert(LRL_S_SRC_NAME, index_++);
+
+  buildAllFaninEdge(sorted_ends);
+  buildAllFaninEdge(sorted_fanins);
+  // buildALLEdgePO(all_ends);
 }
 
 Delay WireBudgeting::costSlope(Vertex* pred, Vertex* succ)
@@ -95,6 +106,21 @@ void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
   //     pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
   // addConstraintBase(
   //     succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
+}
+
+void WireBudgeting::addConstraintPO(Vertex* po)
+{
+  // const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
+  // Index po_index = getIndex(po);
+  // Required req = sta_->vertexRequired(po, MinMax::max()) + slack_margin;
+  // addConstraintBase(po_index, S_INDEX, LRL_S_INT_INF, delay2Cost(req));
+  // solver_.SetNodeSupply(po_index, -LRL_S_INT_INF);
+}
+
+void WireBudgeting::addConstraintPI(Vertex* pi)
+{
+  // Index pi_index = getIndex(pi);
+  // addConstraintBase(S_INDEX, pi_index, LRL_S_INT_INF, LRL_S_ZERO);
 }
 
 uint64 WireBudgeting::getTreeDist(Vertex* drvr, Vertex* dst)
@@ -176,6 +202,11 @@ uint64 WireBudgeting::getNewWireLength(Vertex* pred,
     bud_rate = LRL_H_INFINITY;
   } else
     bud_rate = max_length / origin_length;
+}
+
+bool WireBudgeting::hasWire(WirePair wire)
+{
+  return opt_wires_.find(wire) != opt_wires_.end();
 }
 
 }  // namespace lrl
