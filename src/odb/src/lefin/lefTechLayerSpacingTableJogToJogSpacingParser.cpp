@@ -83,7 +83,7 @@ bool parse(Iterator first, Iterator last,
     >> lit("JOGTOJOGSPACING") >> (double_ SET1_(setJogToJogSpacing))
     >> lit("JOGWIDTH") >> (double_ SET1_(setJogWidth))
 	>> lit("SHORTJOGSPACING") >> (double_ SET1_(setShortJogSpacing))
-	>> -spacingtable
+	>> spacingtable
     >> -lit(";"));
   bool valid
 	  = qi::phrase_parse(first, last, spacingtableRule, space) && first == last;
