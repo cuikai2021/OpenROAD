@@ -158,7 +158,7 @@ class WireBudgeting : public SetupFixer
 
   virtual void initAlgorithm();
 
-  uint64 getNewWireLength(Vertex* pred,
+  void getNewWireLength(Vertex* pred,
                           Vertex* succ,
                           uint64& max_length,
                           Delay& bud_rate);

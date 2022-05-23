@@ -168,7 +168,7 @@ SteinerPt WireBudgeting::findNextPt(SteinerTree* tree,
   return left;
 }
 
-uint64 WireBudgeting::getNewWireLength(Vertex* pred,
+void WireBudgeting::getNewWireLength(Vertex* pred,
                                        Vertex* succ,
                                        uint64& max_length,
                                        Delay& bud_rate)
