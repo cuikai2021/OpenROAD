@@ -388,14 +388,10 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
   logger_->info(utl::LRL, 1310, "test wire budgeting interface");
   for (auto wire : pairs) {
     Vertex* pred = findRealVertex(wire.first);
-    // Vertex* succ = findRealVertex(wire.second);
+    Vertex* succ = findRealVertex(wire.second);
 
     Pin* fanin_pin = pred->pin();
-    Pin* fanout_pin = findFanoutPin(wire);
-    Name fanin_name = wire.first;
-    Name fanout_name = sta_->network()->name(fanout_pin);
-
-    WirePair pin_wire = WirePair(fanin_name, fanout_name);
+    Pin* fanout_pin = succ->pin();
 
     uint64 max_length = getWireBudMaxLen(fanin_pin, fanout_pin);
     Delay bud_rate = getWireBudRate(fanin_pin, fanout_pin);
@@ -404,8 +400,8 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
                "LRL",
                3,
                "{} -> {}, max_len = {}, bud_rate = {}",
-               fanin_name,
-               fanout_name,
+               wire.first,
+               wire.second,
                max_length,
                bud_rate);
   }
