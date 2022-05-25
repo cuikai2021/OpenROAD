@@ -52,10 +52,12 @@ class _dbTechLayerCutClassRule;
 template <class T>
 class dbTable;
 class _dbTechLayerSpacingEolRule;
+class _dbTechLayerSpacingNotchLengthRule;
 class _dbTechLayerCutSpacingRule;
 class _dbTechLayerMinStepRule;
 class _dbTechLayerCornerSpacingRule;
 class _dbTechLayerSpacingTablePrlRule;
+class _dbTechLayerSpacingTableJogToJogSpacingRule;
 class _dbTechLayerCutSpacingTableOrthRule;
 class _dbTechLayerCutSpacingTableDefRule;
 class _dbTechLayerCutEnclosureRule;
@@ -105,6 +107,8 @@ class _dbTechLayer : public _dbObject
 
   dbTable<_dbTechLayerSpacingEolRule>* spacing_eol_rules_tbl_;
 
+  dbTable<_dbTechLayerSpacingNotchLengthRule>* spacing_notch_length_rules_tbl_;
+
   dbTable<_dbTechLayerCutSpacingRule>* cut_spacing_rules_tbl_;
 
   dbTable<_dbTechLayerMinStepRule>* minstep_rules_tbl_;
@@ -112,6 +116,8 @@ class _dbTechLayer : public _dbObject
   dbTable<_dbTechLayerCornerSpacingRule>* corner_spacing_rules_tbl_;
 
   dbTable<_dbTechLayerSpacingTablePrlRule>* spacing_table_prl_rules_tbl_;
+
+  dbTable<_dbTechLayerSpacingTableJogToJogSpacingRule>* spacing_table_jogtojog_spacing_rules_tbl_;
 
   dbTable<_dbTechLayerCutSpacingTableOrthRule>* cut_spacing_table_orth_tbl_;
 
