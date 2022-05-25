@@ -63,24 +63,24 @@ Using 2 tracks default min distance between IO pins.
 [NesterovSolve] Iter: 90 overflow: 0.57192 HPWL: 25178822
 [NesterovSolve] Iter: 100 overflow: 0.5692 HPWL: 25160338
 [NesterovSolve] Iter: 110 overflow: 0.566288 HPWL: 25147563
-[NesterovSolve] Iter: 120 overflow: 0.562444 HPWL: 25151908
-[NesterovSolve] Iter: 130 overflow: 0.553827 HPWL: 25121517
-[NesterovSolve] Iter: 140 overflow: 0.543226 HPWL: 25087294
-[NesterovSolve] Iter: 150 overflow: 0.52724 HPWL: 24986974
-[NesterovSolve] Iter: 160 overflow: 0.511066 HPWL: 25004834
-[NesterovSolve] Iter: 170 overflow: 0.477436 HPWL: 25083193
-[NesterovSolve] Iter: 180 overflow: 0.443251 HPWL: 25160575
-[NesterovSolve] Iter: 190 overflow: 0.412403 HPWL: 24686672
-[NesterovSolve] Iter: 200 overflow: 0.386795 HPWL: 24837603
-[NesterovSolve] Iter: 210 overflow: 0.336258 HPWL: 25883994
-[NesterovSolve] Iter: 220 overflow: 0.307832 HPWL: 25300127
-[NesterovSolve] Iter: 230 overflow: 0.143222 HPWL: 25581906
-[NesterovSolve] Finished with Overflow: 0.084292
+[NesterovSolve] Iter: 120 overflow: 0.562444 HPWL: 25151911
+[NesterovSolve] Iter: 130 overflow: 0.553825 HPWL: 25121575
+[NesterovSolve] Iter: 140 overflow: 0.543224 HPWL: 25087347
+[NesterovSolve] Iter: 150 overflow: 0.52724 HPWL: 24986991
+[NesterovSolve] Iter: 160 overflow: 0.51106 HPWL: 25004750
+[NesterovSolve] Iter: 170 overflow: 0.477435 HPWL: 25083434
+[NesterovSolve] Iter: 180 overflow: 0.443207 HPWL: 25160135
+[NesterovSolve] Iter: 190 overflow: 0.412679 HPWL: 24685985
+[NesterovSolve] Iter: 200 overflow: 0.386794 HPWL: 24837793
+[NesterovSolve] Iter: 210 overflow: 0.336266 HPWL: 25882813
+[NesterovSolve] Iter: 220 overflow: 0.307824 HPWL: 25300000
+[NesterovSolve] Iter: 230 overflow: 0.143301 HPWL: 25581756
+[NesterovSolve] Finished with Overflow: 0.084340
 [INFO MPL-0005] Found 3 macros.
 [INFO MPL-0009] West pins 11.
 [INFO MPL-0009] East pins 11.
 [INFO MPL-0009] North pins 27.
 [INFO MPL-0009] South pins 26.
-[INFO MPL-0067] Initial weighted wire length 15009.7.
+[INFO MPL-0067] Initial weighted wire length 15009.6.
 [INFO MPL-0068] Placed weighted wire length 15372.4.
 No differences found.
