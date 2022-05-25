@@ -652,11 +652,7 @@ static int lowerBinIdx(int distance, int size)
 
 static int upperBinIdx(int distance, int size)
 {
-  int ret = distance / size;
-  if (fastModulo(distance, size) != 0) {
-    ret += 1;
-  }
-  return ret;
+  return (distance + size - 1) / size;
 }
 
 std::pair<int, int> BinGrid::getDensityMinMaxIdxX(const GCell* gcell) const
