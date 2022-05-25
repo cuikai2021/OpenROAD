@@ -38,6 +38,7 @@ sta::define_cmd_args "global_placement" {\
     [-routability_driven]\
     [-incremental]\
     [-bin_grid_count grid_count]\
+    [-nesv_place_iter nesv_place_iter]\
     [-density target_density]\
     [-init_density_penalty init_density_penalty]\
     [-init_wirelength_coef init_wirelength_coef]\
@@ -45,10 +46,11 @@ sta::define_cmd_args "global_placement" {\
     [-max_phi_coef max_phi_coef]\
     [-reference_hpwl reference_hpwl]\
     [-overflow overflow]\
-    [-initial_place_guide_file initial_place_guide_file]
-    [-initial_place_policy initial_place_policy]
+    [-initial_place_guide_file initial_place_guide_file]\ 
+    [-initial_place_policy initial_place_policy]\ 
     [-initial_place_max_iter initial_place_max_iter]\
     [-initial_place_max_fanout initial_place_max_fanout]\
+    [-cell_density_force_policy cell_density_force_policy]\
     [-routability_check_overflow routability_check_overflow]\
     [-routability_max_density routability_max_density]\
     [-routability_max_bloat_iter routability_max_bloat_iter]\
@@ -64,12 +66,14 @@ sta::define_cmd_args "global_placement" {\
 proc global_placement { args } {
   sta::parse_key_args "global_placement" args \
     keys {-bin_grid_count -density \
+      -nesv_place_iter \
       -init_density_penalty -init_wirelength_coef \
       -min_phi_coef -max_phi_coef -overflow \
       -reference_hpwl \
       -initial_place_guide_file \
       -initial_place_policy \
       -initial_place_max_iter -initial_place_max_fanout \
+      -cell_density_force_policy \
       -routability_check_overflow -routability_max_density \
       -routability_max_bloat_iter -routability_max_inflation_iter \
       -routability_target_rc_metric \
@@ -85,6 +89,7 @@ proc global_placement { args } {
       -disable_timing_driven \
       -disable_routability_driven \
       -skip_io \
+      -disable_filler_insertion \
       -incremental}
 
   # flow control for initial_place
@@ -102,6 +107,9 @@ proc global_placement { args } {
     gpl::set_initial_place_max_iter_cmd 0
   }
 
+  set disable_filler_insertion [info exists flags(-disable_filler_insertion)]
+  gpl::set_disable_filler_insertion_cmd $disable_filler_insertion
+
   if { [info exists keys(-initial_place_guide_file)] } { 
     set initial_place_guide_file $keys(-initial_place_guide_file)
     gpl::set_initial_place_guide_file_cmd $initial_place_guide_file
@@ -110,6 +118,11 @@ proc global_placement { args } {
   if { [info exists keys(-initial_place_policy)] } { 
     set initial_place_policy $keys(-initial_place_policy)
     gpl::set_initial_place_policy_cmd $initial_place_policy
+  }
+
+  if { [info exists keys(-cell_density_force_policy)] } { 
+    set cell_density_force_policy $keys(-cell_density_force_policy)
+    gpl::set_cell_density_force_policy_cmd $cell_density_force_policy
   }
 
   set timing_driven [info exists flags(-timing_driven)]
@@ -220,6 +233,12 @@ proc global_placement { args } {
     sta::check_positive_integer "-bin_grid_count" $bin_grid_count
     gpl::set_bin_grid_cnt_x_cmd $bin_grid_count
     gpl::set_bin_grid_cnt_y_cmd $bin_grid_count    
+  }
+
+  if { [info exists keys(-nesv_place_iter)] } {
+    set nesv_place_iter  $keys(-nesv_place_iter)
+    sta::check_positive_integer "-nesv_place_iter" $nesv_place_iter
+    gpl::set_nesv_place_iter_cmd $nesv_place_iter 
   }
  
   # overflow 

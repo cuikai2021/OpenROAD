@@ -38,6 +38,7 @@
 #include <iostream>
 
 #include "nesterovBase.h"
+#include "util.h"
 #include "utl/Logger.h"
 
 namespace gpl {
@@ -45,8 +46,6 @@ namespace gpl {
 using namespace odb;
 using namespace std;
 using utl::GPL;
-
-static int fastModulo(const int input, const int ceil);
 
 static std::pair<int, int> getMinMaxIdx(int ll,
                                         int uu,
@@ -65,7 +64,8 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst);
 // Instance
 
 Instance::Instance()
-    : IntRect(), inst_(nullptr),
+    : IntRect(),
+      inst_(nullptr),
       extId_(INT_MIN),
       is_macro_(false),
       is_locked_(false)
@@ -1018,12 +1018,6 @@ void PlacerBase::unlockAll()
   }
 }
 
-// https://stackoverflow.com/questions/33333363/built-in-mod-vs-custom-mod-function-improve-the-performance-of-modulus-op
-static int fastModulo(const int input, const int ceil)
-{
-  return input >= ceil ? input % ceil : input;
-}
-
 static std::pair<int, int> getMinMaxIdx(int ll,
                                         int uu,
                                         int coreLL,
@@ -1032,7 +1026,7 @@ static std::pair<int, int> getMinMaxIdx(int ll,
                                         int maxIdx)
 {
   int lowerIdx = (ll - coreLL) / siteSize;
-  int upperIdx = (fastModulo((uu - coreLL), siteSize) == 0)
+  int upperIdx = (util::fastModulo((uu - coreLL), siteSize) == 0)
                      ? (uu - coreLL) / siteSize
                      : (uu - coreLL) / siteSize + 1;
   return std::make_pair(std::max(minIdx, lowerIdx), std::min(maxIdx, upperIdx));

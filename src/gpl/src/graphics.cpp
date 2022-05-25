@@ -1,8 +1,9 @@
+#include "graphics.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <limits>
 
-#include "graphics.h"
 #include "nesterovBase.h"
 #include "nesterovPlace.h"
 #include "placerBase.h"
@@ -10,8 +11,7 @@
 
 namespace gpl {
 
-Graphics::Graphics(utl::Logger* logger,
-                   std::shared_ptr<PlacerBase> pb)
+Graphics::Graphics(utl::Logger* logger, std::shared_ptr<PlacerBase> pb)
     : pb_(pb),
       nb_(),
       np_(nullptr),
@@ -171,7 +171,9 @@ void Graphics::reportSelected()
     return;
   }
   auto instance = selected_->instance();
-  logger_->report("Inst: {}", instance->dbInst()->getName());
+  if (instance && instance->dbInst()) {
+    logger_->report("Inst: {}", instance->dbInst()->getName());
+  }
 
   if (np_) {
     auto wlCoeffX = np_->getWireLengthCoefX();
@@ -212,7 +214,8 @@ void Graphics::cellPlot(bool pause)
   }
 }
 
-gui::SelectionSet Graphics::select(odb::dbTechLayer* layer, const odb::Rect& region)
+gui::SelectionSet Graphics::select(odb::dbTechLayer* layer,
+                                   const odb::Rect& region)
 {
   selected_ = nullptr;
 
@@ -229,7 +232,8 @@ gui::SelectionSet Graphics::select(odb::dbTechLayer* layer, const odb::Rect& reg
     int xh = gcx + cell->dx() / 2;
     int yh = gcy + cell->dy() / 2;
 
-    if (region.xMax() < xl || region.yMax() < yl || region.xMin() > xh || region.yMin() > yh) {
+    if (region.xMax() < xl || region.yMax() < yl || region.xMin() > xh
+        || region.yMin() > yh) {
       continue;
     }
 
