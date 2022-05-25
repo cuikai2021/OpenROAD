@@ -52,8 +52,6 @@ using utl::GPL;
 using namespace std;
 using namespace odb;
 
-static int fastModulo(const int input, const int ceil);
-
 static int64_t getOverlapArea(const Bin* bin, const Instance* inst);
 
 // Note that
@@ -1783,12 +1781,6 @@ int64_t NesterovBase::getHpwl()
     hpwl += gNet->hpwl();
   }
   return hpwl;
-}
-
-// https://stackoverflow.com/questions/33333363/built-in-mod-vs-custom-mod-function-improve-the-performance-of-modulus-op
-static int fastModulo(const int input, const int ceil)
-{
-  return input >= ceil ? input % ceil : input;
 }
 
 // int64_t is recommended, but float is 2x fast
