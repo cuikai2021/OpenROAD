@@ -8,7 +8,7 @@ namespace util {
 template<typename T>
 T bounded_value(T v, T min, T max)
 {
-  assert(min < max);
+  assert(min <= max);
   if (v < min) {
     return min;
   }
