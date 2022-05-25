@@ -43,7 +43,7 @@ inline void IntRect::resize(int dx, int dy)
 
 inline int64_t getOverlapArea(const odb::Rect& a, const odb::Rect& b)
 {
-  return a.intersect(b).area();
+  return a.intersects(b) ? a.intersect(b).area() : 0;
 }
 
 }  // namespace gpl

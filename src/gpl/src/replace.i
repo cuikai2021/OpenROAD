@@ -73,6 +73,12 @@ set_initial_place_policy_cmd(const char* policy) {
 }
 
 void
+set_cell_density_force_policy_cmd(const char* policy) {
+  Replace* replace = getReplace();
+  replace->setCellDensityForceCalPolicy(policy); 
+}
+
+void
 set_initial_place_max_iter_cmd(int iter)
 {
   Replace* replace = getReplace();
@@ -249,6 +255,13 @@ set_skip_io_mode_cmd(bool mode)
 {
   Replace* replace = getReplace();
   replace->setSkipIoMode(mode);
+}
+
+void
+set_disable_filler_insertion_cmd(bool mode) 
+{
+  Replace* replace = getReplace();
+  replace->setDisableFillerInsertion(mode);
 }
 
 float
