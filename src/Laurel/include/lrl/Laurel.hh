@@ -296,6 +296,8 @@ class Laurel : public LaurelAdapter
   bool resizeCell(Vertex* vertex, Delay target_delay);
   bool resizeAllCells(SetupFixer* fixer);
 
+  bool checkVertexBudgeted(Vertex* pred, Vertex* succ);
+
   // bool genAllWireBud(WireBudgeting* guider);
   void showAllWireBud(WireBudgeting* guider);  // debug
 

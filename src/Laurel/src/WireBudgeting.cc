@@ -250,8 +250,8 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
                                      uint64& max_length,
                                      Delay& bud_rate)
 {
-  Index pred_index = getIndex(pred);
-  Index succ_index = getIndex(succ);
+  // Index pred_index = getIndex(pred);
+  // Index succ_index = getIndex(succ);
   // LibertyPort* drvr_port = sta_->network()->libertyPort(pred->pin());
   // LibertyPort* load_port = sta_->network()->libertyPort(succ->pin());
   uint64 origin_length = getTreeDist(pred, succ);

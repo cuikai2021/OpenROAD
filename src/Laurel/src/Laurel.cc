@@ -388,19 +388,35 @@ void Laurel::wireBudgeting()
   else
     logger_->info(utl::LRL, 1308, "Succeed to do wire budgeting");
   // showAllWireBud(wire_bud_);
+  // WirePair wire("auth_mode_in", "sink FE_OFC441_auth_mode_in/I");
+  // Vertex* pred = findRealVertex(wire.first);
+  // Vertex* succ = findRealVertex(wire.second);
+  // Delay bud_rate = getWireBudRate(pred, succ);
+}
+
+bool Laurel::checkVertexBudgeted(Vertex* pred, Vertex* succ)
+{
+  if (pred && succ) {
+    Name fanin_name = pred->name(sta_->sdcNetwork());
+    Name fanout_name = succ->name(sta_->sdcNetwork());
+    WirePair pin_wire = WirePair(fanin_name, fanout_name);
+    if (!wire_bud_->hasWire(pin_wire)) {
+      logger_->warn(utl::LRL,
+                    1204,
+                    "not found budget len result for vertex {} -> {}",
+                    fanin_name,
+                    fanout_name);
+      return false;
+    }
+    return true;
+  }
+  logger_->warn(utl::LRL, 1205, "not found vertex (nullptr) in wire bud");
+  return false;
 }
 
 uint64 Laurel::getWireBudMaxLen(Vertex* fanin, Vertex* fanout)
 {
-  Name fanin_name = fanin->name(sta_->sdcNetwork());
-  Name fanout_name = fanout->name(sta_->sdcNetwork());
-  WirePair pin_wire = WirePair(fanin_name, fanout_name);
-  if (!wire_bud_->hasWire(pin_wire)) {
-    logger_->warn(utl::LRL,
-                  1204,
-                  "not found budget len result for vertex {} -> {}",
-                  fanin_name,
-                  fanout_name);
+  if (!checkVertexBudgeted(fanin, fanout)) {
     return LRL_S_ZERO;
   }
   uint64 max_length = LRL_S_ZERO;
@@ -413,28 +429,12 @@ uint64 Laurel::getWireBudMaxLen(Pin* fanin, Pin* fanout)
 {
   Vertex* pred = wire_bud_->getVertex(fanin);
   Vertex* succ = wire_bud_->getVertex(fanout);
-  if (!fanin || !fanout) {
-    logger_->warn(utl::LRL,
-                  1206,
-                  "not found budget len result for pin {} -> {}",
-                  sta_->network()->name(fanin),
-                  sta_->network()->name(fanout));
-    return LRL_S_ZERO;
-  }
   return getWireBudMaxLen(pred, succ);
 }
 
 Delay Laurel::getWireBudRate(Vertex* fanin, Vertex* fanout)
 {
-  Name fanin_name = fanin->name(sta_->sdcNetwork());
-  Name fanout_name = fanout->name(sta_->sdcNetwork());
-  WirePair pin_wire = WirePair(fanin_name, fanout_name);
-  if (!wire_bud_->hasWire(pin_wire)) {
-    logger_->warn(utl::LRL,
-                  1205,
-                  "not found budget rate result for vertex {} -> {}",
-                  fanin_name,
-                  fanout_name);
+  if (!checkVertexBudgeted(fanin, fanout)) {
     return LRL_S_ZERO;
   }
   uint64 max_length = LRL_H_ZERO;  // unused
@@ -447,14 +447,6 @@ Delay Laurel::getWireBudRate(Pin* fanin, Pin* fanout)
 {
   Vertex* pred = wire_bud_->getVertex(fanin);
   Vertex* succ = wire_bud_->getVertex(fanout);
-  if (!fanin || !fanout) {
-    logger_->warn(utl::LRL,
-                  1207,
-                  "not found budget rate result for pin {} -> {}",
-                  sta_->network()->name(fanin),
-                  sta_->network()->name(fanout));
-    return LRL_S_ZERO;
-  }
   return getWireBudRate(pred, succ);
 }
 
