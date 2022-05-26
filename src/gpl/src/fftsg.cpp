@@ -757,17 +757,16 @@ void makeipt(int nw, int *ip) {
   }
 }
 
+// table of c[j] = cos((j*π/2/N), where j is in [1, N-1]
+// c[0] is always equal to sqrt(2)/2;
 void makect(int nc, int *ip, float *c) {
-  int j, nch;
-  float delta;
-
   ip[1] = nc;
   if(nc > 1) {
-    nch = nc >> 1;
-    delta = atan(1.0) / nch;
-    c[0] = cos(delta * nch);
-    c[nch] = 0.5 * c[0];
-    for(j = 1; j < nch; j++) {
+    const float PI = atan(1.0) * 4;
+    const int nch = nc >> 1;
+    const float delta = PI / (nc << 1); 
+    c[0] = sqrt(2) / 2; 
+    for(int j = 1; j <= nch; ++j) {
       c[j] = 0.5 * cos(delta * j);
       c[nc - j] = 0.5 * sin(delta * j);
     }
