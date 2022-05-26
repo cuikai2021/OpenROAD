@@ -163,7 +163,10 @@ class WireBudgeting : public SetupFixer
                         uint64& max_length,
                         Delay& bud_rate);
   WirePairSet getAllWirePairs() { return opt_wires_; }
+
   bool hasWire(WirePair wire);
+  Vertex* getVertex(Pin* pin) { return pin_vertex_map_.findKey(pin); }
+  Vertex* getVertex(Name name) { return name_vertex_map_.findKey(name); }
 
  protected:
   virtual void buildIndexMap(VertexSet ends) override;
@@ -186,6 +189,8 @@ class WireBudgeting : public SetupFixer
   WirePairSet opt_wires_;
   sta::Map<Vertex*, SteinerTree*> drvr_tree_map_;
   sta::Map<WirePair, Vertex*> wire_fanout_map_;
+  sta::Map<Name, Vertex*> name_vertex_map_;
+  sta::Map<Pin*, Vertex*> pin_vertex_map_;
 };
 
 class HoldFixer : public LaurelAdapter
@@ -268,6 +273,7 @@ class Laurel : public LaurelAdapter
   // unit DBU
   uint64 getWireBudMaxLen(Vertex* fanin, Vertex* fanout);
   uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout);
+  Delay getWireBudRate(Vertex* fanin, Vertex* fanout);
   Delay getWireBudRate(Pin* fanin, Pin* fanout);
 
   Options* getOptions() { return options_; }

@@ -152,6 +152,10 @@ void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
 
   Name pred_name = pred->name(sta_->sdcNetwork());
   Name succ_name = succ->name(sta_->sdcNetwork());
+  name_vertex_map_.insert(pred_name, pred);
+  name_vertex_map_.insert(succ_name, succ);
+  pin_vertex_map_.insert(pred->pin(), pred);
+  pin_vertex_map_.insert(succ->pin(), succ);
   WirePair wire = WirePair(pred_name, succ_name);
   opt_wires_.insert(getRealWire(wire));
 
@@ -261,15 +265,15 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
   //     = round((new_delay - origin_length) * costSlope(pred, succ));
   uint64 aug_length = origin_length;  // debug
 
-  debugPrint(logger_,
-             utl::LRL,
-             "LRL",
-             3,
-             "{} -> {}, origin = {}, aug = {}",
-             pred->name(sta_->sdcNetwork()),
-             succ->name(sta_->sdcNetwork()),
-             origin_length,
-             aug_length);
+  // debugPrint(logger_,
+  //            utl::LRL,
+  //            "LRL",
+  //            3,
+  //            "{} -> {}, origin = {}, aug = {}",
+  //            pred->name(sta_->sdcNetwork()),
+  //            succ->name(sta_->sdcNetwork()),
+  //            origin_length,
+  //            aug_length);
   max_length = origin_length + aug_length;
   if (max_length == 0) {
     bud_rate = LRL_H_INFINITY;
