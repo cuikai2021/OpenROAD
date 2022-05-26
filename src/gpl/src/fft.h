@@ -40,6 +40,8 @@ namespace gpl {
 
 class FFT {
   public:
+    enum { DCT = -1, IDCT = 1 };
+
     FFT();
     FFT(int binCntX, int binCntY, int binSizeX, int binSizeY);
     ~FFT();

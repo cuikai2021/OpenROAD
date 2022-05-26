@@ -148,7 +148,7 @@ using namespace std;
 
 void
 FFT::doFFT() {
-  ddct2d(binCntX_, binCntY_, -1, binDensity_, 
+  ddct2d(binCntX_, binCntY_, FFT::DCT, binDensity_, 
       NULL, (int*) &workArea_[0], (float*)&csTable_[0]);
   
   for(int i = 0; i < binCntX_; i++) {
@@ -203,13 +203,13 @@ FFT::doFFT() {
     }
   }
   // Inverse DCT
-  ddct2d(binCntX_, binCntY_, 1, 
+  ddct2d(binCntX_, binCntY_, FFT::IDCT, 
       electroPhi_, NULL, 
       (int*) &workArea_[0], (float*) &csTable_[0]);
-  ddsct2d(binCntX_, binCntY_, 1, 
+  ddsct2d(binCntX_, binCntY_, FFT::IDCT, 
       electroForceX_, NULL, 
       (int*) &workArea_[0], (float*) &csTable_[0]);
-  ddcst2d(binCntX_, binCntY_, 1, 
+  ddcst2d(binCntX_, binCntY_, FFT::IDCT, 
       electroForceY_, NULL, 
       (int*) &workArea_[0], (float*) &csTable_[0]);
 }
