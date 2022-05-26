@@ -71,7 +71,7 @@ class Axioms
 
   uint64_t getCutSpacingFromVia(odb::dbTechVia* viaX,
                                 odb::dbTechVia* viaY,
-                                bool isSameNet);
+                                bool isSameNet, bool isPrl);
 
   uint64_t getRoutingEOLSpacing(odb::dbTechLayer* layer, bool isSameNet);
 
