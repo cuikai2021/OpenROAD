@@ -250,8 +250,8 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
                                      uint64& max_length,
                                      Delay& bud_rate)
 {
-  // Index pred_index = getIndex(pred);
-  // Index succ_index = getIndex(succ);
+  Index pred_index = getIndex(pred);
+  Index succ_index = getIndex(succ);
   // LibertyPort* drvr_port = sta_->network()->libertyPort(pred->pin());
   // LibertyPort* load_port = sta_->network()->libertyPort(succ->pin());
   uint64 origin_length = getTreeDist(pred, succ);
@@ -265,15 +265,15 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
   //     = round((new_delay - origin_length) * costSlope(pred, succ));
   uint64 aug_length = origin_length;  // debug
 
-  // debugPrint(logger_,
-  //            utl::LRL,
-  //            "LRL",
-  //            3,
-  //            "{} -> {}, origin = {}, aug = {}",
-  //            pred->name(sta_->sdcNetwork()),
-  //            succ->name(sta_->sdcNetwork()),
-  //            origin_length,
-  //            aug_length);
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             3,
+             "{} -> {}, origin = {}, aug = {}",
+             pred->name(sta_->sdcNetwork()),
+             succ->name(sta_->sdcNetwork()),
+             origin_length,
+             aug_length);
   max_length = origin_length + aug_length;
   if (max_length == 0) {
     bud_rate = LRL_H_INFINITY;
