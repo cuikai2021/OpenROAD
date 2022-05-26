@@ -543,8 +543,7 @@ void OpenDBAdapter::getWireBugdeting()
     bynet.wire_budget_begin = tableTriples_.size();
     for (size_t i = 0; i < sinks.size(); i++) {
       auto sink = sinks.at(i);
-      int rate = (int) laurel_->getWireBudRate(src, sink) * 100;
-      assert(rate > 0);
+      int rate = (int) (laurel_->getWireBudRate(src, sink) * 100);
       tableTriples_.push_back({srcIdx, sinkIdxes[i], rate});
     }
     bynet.wire_budget_end = tableTriples_.size();
