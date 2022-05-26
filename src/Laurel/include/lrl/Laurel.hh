@@ -105,7 +105,7 @@ class SetupFixer : public LaurelAdapter
  protected:
   virtual void buildIndexMap(VertexSet ends);
   Index buildIndex(Vertex* vertex);
-  void buildAllFaninEdge(VertexSeq fanins);
+  virtual void buildAllFaninEdge(VertexSeq fanins);
   void buildALLEdgePO(VertexSet ends);
 
   virtual Delay costSlope(Vertex* pred, Vertex* succ);
@@ -158,15 +158,19 @@ class WireBudgeting : public SetupFixer
 
   virtual void initAlgorithm();
 
-  uint64 getNewWireLength(Vertex* pred,
-                          Vertex* succ,
-                          uint64& max_length,
-                          Delay& bud_rate);
+  void getNewWireLength(Vertex* pred,
+                        Vertex* succ,
+                        uint64& max_length,
+                        Delay& bud_rate);
   WirePairSet getAllWirePairs() { return opt_wires_; }
+
   bool hasWire(WirePair wire);
+  Vertex* getVertex(Pin* pin) { return pin_vertex_map_.findKey(pin); }
+  Vertex* getVertex(Name name) { return name_vertex_map_.findKey(name); }
 
  protected:
   virtual void buildIndexMap(VertexSet ends) override;
+  virtual void buildAllFaninEdge(VertexSeq fanins) override;
 
   virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
   Delay getLowBound(Vertex* pred, Vertex* succ);
@@ -175,11 +179,18 @@ class WireBudgeting : public SetupFixer
   virtual void addConstraintPO(Vertex* po) override;
   virtual void addConstraintPI(Vertex* pi) override;
 
+  SteinerTree* getTree(Vertex* drvr);
   uint64 getTreeDist(Vertex* drvr, Vertex* dst);
   SteinerPt findNextPt(SteinerTree* tree, SteinerPt drvr_pt, SteinerPt last);
+  WirePair getRealWire(WirePair wire);
+  Vertex* getRealFanoutVertex(WirePair wire);
 
   // variable
   WirePairSet opt_wires_;
+  sta::Map<Vertex*, SteinerTree*> drvr_tree_map_;
+  sta::Map<WirePair, Vertex*> wire_fanout_map_;
+  sta::Map<Name, Vertex*> name_vertex_map_;
+  sta::Map<Pin*, Vertex*> pin_vertex_map_;
 };
 
 class HoldFixer : public LaurelAdapter
@@ -262,6 +273,7 @@ class Laurel : public LaurelAdapter
   // unit DBU
   uint64 getWireBudMaxLen(Vertex* fanin, Vertex* fanout);
   uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout);
+  Delay getWireBudRate(Vertex* fanin, Vertex* fanout);
   Delay getWireBudRate(Pin* fanin, Pin* fanout);
   
   Options* getOptions() { return options_; }
