@@ -362,7 +362,7 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
     Vertex* pred = guider->getVertex(wire.first);
     Vertex* succ = guider->getVertex(wire.second);
 
-    // uint64 max_length = getWireBudMaxLen(pred, succ);
+    uint64 max_length = getWireBudMaxLen(pred, succ);
     Delay bud_rate = getWireBudRate(pred, succ);
     cnt++;
   }
@@ -398,7 +398,7 @@ uint64 Laurel::getWireBudMaxLen(Vertex* fanin, Vertex* fanout)
   if (!wire_bud_->hasWire(pin_wire)) {
     logger_->warn(utl::LRL,
                   1204,
-                  "not found budget result for {} -> {}",
+                  "not found budget len result for vertex {} -> {}",
                   fanin_name,
                   fanout_name);
     return LRL_S_ZERO;
@@ -413,6 +413,14 @@ uint64 Laurel::getWireBudMaxLen(Pin* fanin, Pin* fanout)
 {
   Vertex* pred = wire_bud_->getVertex(fanin);
   Vertex* succ = wire_bud_->getVertex(fanout);
+  if (!fanin || !fanout) {
+    logger_->warn(utl::LRL,
+                  1206,
+                  "not found budget len result for pin {} -> {}",
+                  sta_->network()->name(fanin),
+                  sta_->network()->name(fanout));
+    return LRL_S_ZERO;
+  }
   return getWireBudMaxLen(pred, succ);
 }
 
@@ -424,13 +432,13 @@ Delay Laurel::getWireBudRate(Vertex* fanin, Vertex* fanout)
   if (!wire_bud_->hasWire(pin_wire)) {
     logger_->warn(utl::LRL,
                   1205,
-                  "not found budget result for {} -> {}",
+                  "not found budget rate result for vertex {} -> {}",
                   fanin_name,
                   fanout_name);
     return LRL_S_ZERO;
   }
-  uint64 max_length = LRL_H_ZERO;
-  Delay bud_rate = LRL_H_ZERO;  // unused
+  uint64 max_length = LRL_H_ZERO;  // unused
+  Delay bud_rate = LRL_H_ZERO;
   wire_bud_->getNewWireLength(fanin, fanout, max_length, bud_rate);
   return bud_rate;
 }
@@ -439,6 +447,14 @@ Delay Laurel::getWireBudRate(Pin* fanin, Pin* fanout)
 {
   Vertex* pred = wire_bud_->getVertex(fanin);
   Vertex* succ = wire_bud_->getVertex(fanout);
+  if (!fanin || !fanout) {
+    logger_->warn(utl::LRL,
+                  1207,
+                  "not found budget rate result for pin {} -> {}",
+                  sta_->network()->name(fanin),
+                  sta_->network()->name(fanout));
+    return LRL_S_ZERO;
+  }
   return getWireBudRate(pred, succ);
 }
 
