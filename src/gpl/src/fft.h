@@ -81,8 +81,10 @@ class FFT
   std::vector<float> wy_;
   std::vector<float> wySquare_;
 
-  // work area for bit reversal (prev: ip)
-  // length: round(sqrt( max(binCntX_, binCntY_) )) + 2
+  // work area for bit reversal (int * ip)
+  // length of ip >= 2+sqrt(n)
+  // (n = max(binCntX_/2, binCntY_/2))
+  // ip[0],ip[1] are pointers of the cos/sin table.
   std::vector<int> workArea_;
 
   int binCntX_;
