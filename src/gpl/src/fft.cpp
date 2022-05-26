@@ -112,7 +112,7 @@ void FFT::init()
   wy_.resize(binCntY_, 0);
   wySquare_.resize(binCntY_, 0);
 
-  workArea_.resize(round(sqrt(std::max(binCntX_/2, binCntY_/2))) + 2, 0);
+  workArea_.resize(round(sqrt(std::max(binCntX_/2, binCntY_/2))), 0);
 
   for (int i = 0; i < binCntX_; i++) {
     wx_[i]

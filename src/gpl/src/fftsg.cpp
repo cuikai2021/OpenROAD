@@ -739,18 +739,29 @@ void makewt(int nw, int *ip, float *w) {
   }
 }
 
+// ip.size < sqrt(2*nw)
+// so, ip.size < sqrt(n/2) when nw=N/4
+// 
+// Proof: ip.size < sqrt(2*nw)
+//    def: n is the number of the out-most loop iteration
+//    then, l = nw / (4^(n-1)), m = 2^n
+//    l > 32, so n < log(4, nw/32) + 1
+//    log(4, nw/32) = log(4, nw) - 2.5 = log(2, nw) / 2 - 2.5
+//    m = 2^n, so m < 2^(log(4, nw/32) + 1)
+//    2^(log(4, nw/32) + 1) = 2^(log(2, nw) / 2 - 2.5 + 1) = 2^(log(2, nw) / 2 - 1.5)
+//    so ip.size = 4*m < 2^(log(2, nw) / 2 - 1.5 + 2) = 2^(log(2, nw) / 2 + 0.5) = 2^((log(2, l) + 1)/2) = sqrt(2*l)
+//    so ip.size < sqrt(2*nw)
 void makeipt(int nw, int *ip) {
   int j, l, m, m2, p, q;
 
   ip[2] = 0;
   ip[3] = 16;
-  m = 2;
-  for(l = nw; l > 32; l >>= 2) {
+  for (m = 2, l = nw; l > 32; m <<= 1, l >>= 2) {
     m2 = m << 1;
     q = m2 << 3;
     for(j = m; j < m2; j++) {
       p = ip[j] << 2;
-      ip[m + j] = p;
+      ip[m + j]  = p;
       ip[m2 + j] = p + q;
     }
     m = m2;

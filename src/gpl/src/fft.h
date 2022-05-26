@@ -81,8 +81,8 @@ class FFT
   std::vector<float> wySquare_;
 
   // work area for bit reversal (int * ip)
-  // length of ip >= 2+sqrt(n)
-  // (n = max(binCntX_/2, binCntY_/2))
+  // length of ip < sqrt(n), where n = max(binCntX_/2, binCntY_/2)
+  //    refer the Proof of ip.size in function makeipt
   // ip[0],ip[1] are pointers of the cos/sin table.
   std::vector<int> workArea_;
 
