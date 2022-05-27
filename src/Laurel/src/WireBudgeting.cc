@@ -263,17 +263,24 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
 
   // uint64 aug_length
   //     = round((new_delay - origin_length) * costSlope(pred, succ));
-  uint64 aug_length = origin_length;  // debug
 
-  debugPrint(logger_,
-             utl::LRL,
-             "LRL",
-             3,
-             "{} -> {}, origin = {}, aug = {}",
-             pred->name(sta_->sdcNetwork()),
-             succ->name(sta_->sdcNetwork()),
-             origin_length,
-             aug_length);
+  uint64 aug_length = LRL_S_ZERO;
+  Slack slack = sta_->vertexSlack(succ, MinMax::max());
+  PathRef path = sta_->vertexWorstSlackPath(succ, max_);
+  Slack period = path.clock(sta_)->period();
+  if (slack >= 0.2 * period) {
+    aug_length = origin_length;
+  }
+
+  // debugPrint(logger_,
+  //            utl::LRL,
+  //            "LRL",
+  //            3,
+  //            "{} -> {}, origin = {}, aug = {}",
+  //            pred->name(sta_->sdcNetwork()),
+  //            succ->name(sta_->sdcNetwork()),
+  //            origin_length,
+  //            aug_length);
   max_length = origin_length + aug_length;
   if (max_length == 0) {
     bud_rate = LRL_H_INFINITY;
