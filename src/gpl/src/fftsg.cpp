@@ -768,7 +768,7 @@ void makeipt(int nw, int *ip) {
   }
 }
 
-// table of c[j] = cos((j*π/2/N), where j is in [1, N-1]
+// table of c[j] = 0.5 * cos((j*π/2/N), where j is in [1, N-1]
 // c[0] is always equal to sqrt(2)/2;
 void makect(int nc, int *ip, float *c) {
   ip[1] = nc;
