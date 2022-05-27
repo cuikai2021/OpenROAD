@@ -388,10 +388,6 @@ void Laurel::wireBudgeting()
   else
     logger_->info(utl::LRL, 1308, "Succeed to do wire budgeting");
   // showAllWireBud(wire_bud_);
-  // WirePair wire("auth_mode_in", "sink FE_OFC441_auth_mode_in/I");
-  // Vertex* pred = findRealVertex(wire.first);
-  // Vertex* succ = findRealVertex(wire.second);
-  // Delay bud_rate = getWireBudRate(pred, succ);
 }
 
 bool Laurel::checkVertexBudgeted(Vertex* pred, Vertex* succ)
