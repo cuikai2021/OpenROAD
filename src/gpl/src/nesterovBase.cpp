@@ -70,7 +70,7 @@ GCell::GCell()
     : IntRect(),
       inst_(nullptr),
       dRect_(),
-      densityScale_(0),
+      densityScale_(1.0),
       gradientX_(0),
       gradientY_(0)
 {
@@ -407,11 +407,78 @@ Bin::Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity)
 {
   index_.set(x, y);
   rect_.reset(lx, ly, ux, uy);
-  targetDensity_ = targetDensity;
+  setTargetDensity(targetDensity);
 }
 
 Bin::~Bin()
 {
+}
+
+void Bin::setTargetDensity(float density)
+{
+  targetDensity_ = density;
+  targetDensityArea_ = binArea() * targetDensity_;
+}
+
+void Bin::updateDensity()
+{
+  density_ = static_cast<float>(densityArea()) / targetDensityArea();
+}
+
+int64_t Bin::densityArea() const
+{
+  return nonPlaceArea_ + instPlacedArea_ + fillerArea_;
+}
+
+float Bin::overflowArea() const
+{
+  const float binTargetArea = targetDensityArea();
+  const float occupiedNonFillerArea = instPlacedArea_ + nonPlaceArea_;
+  const float overflow = occupiedNonFillerArea - binTargetArea;
+#if 0
+    if (overflow > 0) {
+      std::cout << "overflow: " << overflow
+                << ", occupiedNonFillerArea=" << occupiedNonFillerArea
+                << ", binTargetArea=" << binTargetArea 
+                << ", binArea=" << binArea() << std::endl;
+    }
+#endif
+  return std::max(0.0f, overflow);
+}
+
+void Bin::resetNonPlaceArea()
+{
+  nonPlaceArea_ = 0;
+}
+
+// Note that nonPlaceArea should have scale-down with
+// target density.
+// See MS-replace paper
+//
+void Bin::addNonPlaceArea(int64_t area)
+{
+  nonPlaceArea_ += area * targetDensity();
+}
+
+void Bin::resetPlaceArea()
+{
+  instPlacedArea_ = 0;
+  fillerArea_ = 0;
+}
+
+void Bin::addPlaceArea(const GCell* gcell)
+{
+  auto area = getOverlapDensityArea(this, gcell);
+  if (gcell->isMacroInstance()) {
+    // macro should have scale-down with target-density
+    area *= targetDensity();
+    instPlacedArea_ += static_cast<int64_t>(area);
+  } else if (gcell->isStdInstance()) {
+    instPlacedArea_ += static_cast<int64_t>(area);
+  } else {
+    assert(gcell->isFiller());
+    fillerArea_ += static_cast<int64_t>(area);
+  }
 }
 
 ////////////////////////////////////////////////
@@ -566,7 +633,7 @@ void BinGrid::initBins()
 void BinGrid::updateBinsNonPlaceArea()
 {
   for (auto& bin : bins_) {
-    bin->setNonPlaceArea(0);
+    bin->resetNonPlaceArea();
   }
 
   for (auto& inst : pb_->nonPlaceInsts()) {
@@ -576,11 +643,7 @@ void BinGrid::updateBinsNonPlaceArea()
       for (int j = pairY.first; j < pairY.second; j++) {
         Bin* bin = binAt(i, j);
 
-        // Note that nonPlaceArea should have scale-down with
-        // target density.
-        // See MS-replace paper
-        //
-        bin->addNonPlaceArea(getOverlapArea(bin, inst) * bin->targetDensity());
+        bin->addNonPlaceArea(getOverlapArea(bin, inst));
       }
     }
   }
@@ -591,8 +654,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
 {
   // clear the Bin-area info
   for (auto& bin : bins_) {
-    bin->setInstPlacedArea(0);
-    bin->setFillerArea(0);
+    bin->resetPlaceArea();
   }
 
   for (auto& cell : cells) {
@@ -605,18 +667,7 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
     for (int i = pairX.first; i < pairX.second; i++) {
       for (int j = pairY.first; j < pairY.second; j++) {
         Bin* bin = binAt(i, j);
-        // auto area = getOverlapArea(bin->rect(), cell->rect());
-        auto area = getOverlapDensityArea(bin, cell);
-        if (cell->isMacroInstance()) {
-          // macro should have scale-down with target-density
-          area *= bin->targetDensity();
-          bin->addInstPlacedArea(area);
-        } else if (cell->isStdInstance()) {
-          bin->addInstPlacedArea(area);
-        } else {
-          assert(cell->isFiller());
-          bin->addFillerArea(area);
-        }
+        bin->addPlaceArea(cell);
       }
     }
   }
@@ -626,20 +677,8 @@ void BinGrid::updateBinsGCellDensityArea(const std::vector<GCell*>& cells)
   // update density and overflowArea
   // for nesterov use and FFT library
   for (auto& bin : bins_) {
-    const float binTargetArea = bin->binArea() * bin->targetDensity();
-    const float occupiedNonFillerArea
-        = bin->instPlacedArea() + bin->nonPlaceArea();
-    const float occupiedAllArea = occupiedNonFillerArea + bin->fillerArea();
-    const float overflow = occupiedNonFillerArea - binTargetArea;
-    bin->setDensity(occupiedAllArea / binTargetArea);
-#if 0
-    if (overflow > 0) {
-      std::cout << "overflow: " << overflow
-                << ", occupiedNonFillerArea=" << occupiedNonFillerArea
-                << ", binTargetArea=" << binTargetArea << std::endl;
-    }
-#endif
-    overflowArea_ += std::max(0.0f, overflow);
+    bin->updateDensity();
+    overflowArea_ += bin->overflowArea();
   }
 }
 
@@ -1232,6 +1271,16 @@ float NesterovBase::targetDensity() const
 // update densitySize and densityScale in each gCell
 void NesterovBase::updateDensitySize()
 {
+  if (nbVars_.disableCellDensityScaling) {
+    debugPrint(log_,
+               GPL,
+               "replace",
+               1,
+               "cell density scaling is disabled by option "
+               "-disable_cell_density_scaling");
+    return;
+  }
+
   for (auto& gCell : gCells_) {
     float densitySizeX = REPLACE_SQRT2 * bg_.binSizeX();
     float densitySizeY = REPLACE_SQRT2 * bg_.binSizeY();
@@ -1751,9 +1800,7 @@ void NesterovBase::updateDensityForceBin()
     float electroPhi = fft_->getElectroPhi(bin->x(), bin->y());
     bin->setElectroPhi(electroPhi);
 
-    sumPhi_ += electroPhi
-               * static_cast<float>(bin->nonPlaceArea() + bin->instPlacedArea()
-                                    + bin->fillerArea());
+    sumPhi_ += electroPhi * static_cast<float>(bin->densityArea());
   }
 }
 

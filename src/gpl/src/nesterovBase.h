@@ -274,15 +274,18 @@ class Bin : public IntRect
   int x() const { return index_.getX(); }
   int y() const { return index_.getY(); }
 
-  float density() const { return density_; }
   float targetDensity() const { return targetDensity_; }
+  void setTargetDensity(float density);
+
+  float density() const { return density_; }
+  void updateDensity();
+
+  float overflowArea() const;
 
   float electroForceX() const { return electroForceX_; }
   float electroForceY() const { return electroForceY_; }
   float electroPhi() const { return electroPhi_; }
 
-  void setDensity(float density) { density_ = density; }
-  void setTargetDensity(float density) { targetDensity_ = density; }
   void setElectroForce(float electroForceX, float electroForceY)
   {
     electroForceX_ = electroForceX;
@@ -290,18 +293,16 @@ class Bin : public IntRect
   }
   void setElectroPhi(float phi) { electroPhi_ = phi; }
 
-  void setNonPlaceArea(int64_t area) { nonPlaceArea_ = area; }
-  void setInstPlacedArea(int64_t area) { instPlacedArea_ = area; }
-  void setFillerArea(int64_t area) { fillerArea_ = area; }
+  void resetNonPlaceArea();
+  void addNonPlaceArea(int64_t area);
 
-  void addNonPlaceArea(int64_t area) { nonPlaceArea_ += area; }
-  void addInstPlacedArea(int64_t area) { instPlacedArea_ += area; }
-  void addFillerArea(int64_t area) { fillerArea_ += area; }
+  void resetPlaceArea();
+  void addPlaceArea(const GCell* cell);
 
-  const int64_t binArea() const { return rect_.area(); }
-  const int64_t nonPlaceArea() const { return nonPlaceArea_; }
-  const int64_t instPlacedArea() const { return instPlacedArea_; }
-  const int64_t fillerArea() const { return fillerArea_; }
+  float targetDensityArea() const { return targetDensityArea_; }
+
+  int64_t binArea() const { return rect_.area(); }
+  int64_t densityArea() const;
 
  private:
   // index
@@ -313,6 +314,7 @@ class Bin : public IntRect
 
   float density_;
   float targetDensity_;  // will enable bin-wise density screening
+  float targetDensityArea_;
   float electroPhi_;
   float electroForceX_;
   float electroForceY_;
@@ -390,6 +392,8 @@ class NesterovBaseVars
   std::string cellDensityForceCalPolicy;
 
   bool disableFillerInsertion;
+  bool disableCellDensityScaling;
+
   // temp variables
   unsigned char isSetBinCntX : 1;
   unsigned char isSetBinCntY : 1;
@@ -530,7 +534,6 @@ class NesterovBase
   FloatPoint getDensityGradient(const GCell* gCell) const;
   FloatPoint getDensityGradientByCoveredBins(const GCell* gCell) const;
   FloatPoint getDensityGradientByFieldInterpolation(const GCell* gCell) const;
-  
 
   int64_t getHpwl();
 

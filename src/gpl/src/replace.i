@@ -264,6 +264,13 @@ set_disable_filler_insertion_cmd(bool mode)
   replace->setDisableFillerInsertion(mode);
 }
 
+void
+set_disable_cell_density_scaling_cmd(bool mode) 
+{
+  Replace* replace = getReplace();
+  replace->setDisableCellDensityScaling(mode);
+}
+
 float
 get_global_placement_uniform_density_cmd() 
 {
