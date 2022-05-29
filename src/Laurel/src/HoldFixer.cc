@@ -150,6 +150,7 @@ void HoldFixer::makeVarAllModes()
   sta_->forEachSdc([&]() {
     sdc_ = sta_->sdc();
     sta_->findRequireds();
+    init();
     VertexSet hold_failures = getHoldViolations();
     hold_failures = getAllRelatedEnds(hold_failures, options_->ignoreClk());
     if (!hold_failures.empty()) {
