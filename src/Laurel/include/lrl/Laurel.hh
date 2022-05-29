@@ -174,6 +174,9 @@ class HoldFixer : public LaurelAdapter
   Delay getDelay(Name vertex_name) const;
   Delay getCriLongArrival(Vertex* end) const;
 
+  void getRealVertexName();
+  virtual Vertex* findRealVertex(Name vertex_name) const override;
+
   bool hasHoldViolation(Vertex* vertex) const;
   VertexSet getHoldViolations();  // should run findHoldVioNaemMM before
 
@@ -183,6 +186,7 @@ class HoldFixer : public LaurelAdapter
   Delay zoomIn(Delay ori) const { return ori * LRL_H_SCALING; }
   Delay zoomOut(Delay ori) const { return ori / LRL_H_SCALING; }
 
+  void confirmAllPI();
   bool isPI(Name vertex_name) const;
 
   // variables
@@ -199,6 +203,8 @@ class HoldFixer : public LaurelAdapter
   sta::Map<Name, Delay> delay_map_;
   VertexNameSet vio_ends_name_;
   VertexNameSet complete_vio_ends_;
+  sta::Map<Name, Vertex*> sdc_name_vertex_map_;
+  VertexNameSet pi_name_set_;
 
   Options* options_;
 };

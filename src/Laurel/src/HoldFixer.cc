@@ -144,6 +144,23 @@ VertexSet HoldFixer::getHoldViolations()
   return hold_failures;
 }
 
+void HoldFixer::getRealVertexName()
+{
+  if (!sdc_name_vertex_map_.empty())
+    sdc_name_vertex_map_.clear();
+  VertexIterator vertex_iter(sta_->graph());
+  while (vertex_iter.hasNext()) {
+    Vertex* vertex = vertex_iter.next();
+    Name vertex_name = vertex->name(sta_->sdcNetwork());
+    sdc_name_vertex_map_.insert(vertex_name, vertex);
+  }
+}
+
+Vertex* HoldFixer::findRealVertex(Name vertex_name) const
+{
+  return sdc_name_vertex_map_.findKey(vertex_name);
+}
+
 void HoldFixer::makeVarAllModes()
 {
   findHoldVioNameMM();
@@ -151,6 +168,7 @@ void HoldFixer::makeVarAllModes()
     sdc_ = sta_->sdc();
     sta_->findRequireds();
     init();
+    getRealVertexName();
     VertexSet hold_failures = getHoldViolations();
     hold_failures = getAllRelatedEnds(hold_failures, options_->ignoreClk());
     if (!hold_failures.empty()) {
@@ -159,22 +177,32 @@ void HoldFixer::makeVarAllModes()
       VertexSeq sorted_hold_failures = sortHoldFanins(hold_failures);
       makeVarFanins(sorted_fanins);
       makeVarFanins(sorted_hold_failures);
+      confirmAllPI();
       genPOConstraints(&hold_failures);
       genPIConstraints();
     }
   });
 }
 
+void HoldFixer::confirmAllPI()
+{
+  VertexNameSet pi;
+  VertexNameSet not_pi;
+  for (auto w : wire_) {
+    Name pred = w.first.first;
+    Name succ = w.first.second;
+    not_pi.insert(succ);
+    if (pi.hasKey(succ))
+      pi.erase(succ);
+    if (not_pi.hasKey(pred))
+      pi.insert(pred);
+  }
+  pi_name_set_ = pi;
+}
+
 bool HoldFixer::isPI(Name vertex_name) const
 {
-  bool ret = false;
-  for (auto w : wire_) {
-    if (!vertex_name.compare(w.first.second))
-      return false;
-    else if (!vertex_name.compare(w.first.first))
-      ret = true;
-  }
-  return ret;
+  return pi_name_set_.hasKey(vertex_name);
 }
 
 VertexNameSeq HoldFixer::getSortedNameSeq(VertexMPVarMap* mp_var_map)
@@ -225,6 +253,8 @@ void HoldFixer::makeDelay(Vertex* vertex)
   if (!delay_map_.hasKey(vertex_name)) {
     Delay load_delay = LRL_H_ZERO;
     PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+    if (!path.vertex(sta_))
+      return;
     PathExpanded expanded(&path, sta_);
     const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
     int start_index = expanded.startIndex();
