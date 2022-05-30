@@ -167,7 +167,7 @@ void HoldFixer::makeVarAllModes()
   sta_->forEachSdc([&]() {
     sdc_ = sta_->sdc();
     sta_->findRequireds();
-    init();
+    // init();
     getRealVertexName();
     VertexSet hold_failures = getHoldViolations();
     hold_failures = getAllRelatedEnds(hold_failures, options_->ignoreClk());
@@ -194,7 +194,7 @@ void HoldFixer::confirmAllPI()
     not_pi.insert(succ);
     if (pi.hasKey(succ))
       pi.erase(succ);
-    if (not_pi.hasKey(pred))
+    if (!not_pi.hasKey(pred))
       pi.insert(pred);
   }
   pi_name_set_ = pi;
