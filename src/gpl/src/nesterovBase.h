@@ -36,6 +36,7 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <string>
 
 #include "dimension.h"
 #include "point.h"

@@ -83,11 +83,12 @@ messages(TARGET gpl)
 target_include_directories(gpl
   PUBLIC
     include
-    "/usr/include/octave-5.2.0/"
+    ${OCTAVE_INCLUDE_DIR}
 )
 
-LINK_DIRECTORIES(/usr/lib /usr/local/lib
-/usr/lib/x86_64-linux-gnu/octave/5.2.0
+LINK_DIRECTORIES(
+    /usr/lib
+    /usr/local/lib
 )
 
 target_link_libraries(gpl
@@ -100,8 +101,7 @@ target_link_libraries(gpl
     stt
     rsz
     grt
-    octave
-    octinterp
+    ${OCTAVE_LIBRARY}
 )
 
 # CIMG_USE case
