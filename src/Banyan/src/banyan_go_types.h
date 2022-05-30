@@ -8,8 +8,8 @@ enum {
     interface_version_3 = 0x00,
     interface_version_4 = 0x20,
     interface_version_5 = 0x22,
-    interface_version_6 = 0x04,
-    interface_version_7 = 0x25,
+    interface_version_6 = 0x05,
+    interface_version_7 = 0x30,
 };
 
 // POD types that can be consumed by go code
@@ -103,6 +103,7 @@ struct pin
     const char *name;
     
     int use;
+    int min_dist_from_src;
 
     // index into the box array
     GoUint64 box_begin;

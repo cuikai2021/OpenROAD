@@ -1,5 +1,7 @@
 
 #include <assert.h>
+#include <lemon/dijkstra.h>
+#include <lemon/list_graph.h>
 
 #include <cmath>
 #include <utility>
@@ -13,7 +15,9 @@
 #include "odb/dbTransform.h"
 #include "odb/dbWireCodec.h"
 #include "odb/geom.h"
+#include "rsz/SteinerTree.hh"
 #include "sta/Network.hh"
+#include "stt/SteinerTreeBuilder.h"
 #include "utl/Logger.h"
 
 namespace banyan {
@@ -494,6 +498,84 @@ void OpenDBAdapter::getNetsFromOpenDB()
   }
 }
 
+std::map<const sta::Pin*, int> OpenDBAdapter::getDistFromSrcForSinks(
+    sta::Pin* src,
+    std::vector<sta::Pin*> sinks)
+{
+  auto network = laurel_->getDbNetwork();
+  std::map<const sta::Pin*, int> results;
+  if (sinks.size() <= 0) {
+    return results;
+  }
+
+  if (sinks.size() == 1) {
+    odb::Point srcLoc = network->location(src);
+    auto sink = sinks.at(0);
+    odb::Point sinkLoc = network->location(sink);
+    results[sink] = odb::Point::manhattanDistance(srcLoc, sinkLoc);
+    return results;
+  }
+
+  typedef lemon::ListGraph Graph;
+  typedef Graph::Node Node;
+  typedef Graph::Edge Edge;
+  typedef Graph::EdgeMap<int> LengthMap;
+
+  Graph graph;
+  std::map<int, Node> idx2node;
+  LengthMap lenMap(graph);
+
+  rsz::SteinerTree* tree
+      = rsz::makeSteinerTree(src, true, 10000, sttBuilder_, network, logger_);
+
+  int srcPt = tree->drvrPt(network);
+  int branch_count = tree->branchCount();
+  for (int branch = 0; branch < branch_count; branch++) {
+    odb::Point parent;
+    odb::Point child;
+    int parentPt;
+    int childPt;
+    int wireLen;
+
+    tree->branch(branch, parent, parentPt, child, childPt, wireLen);
+    if (parentPt == childPt) {
+      continue;
+    }
+    if (idx2node.find(parentPt) == idx2node.end()) {
+      Node pn = graph.addNode();
+      idx2node[parentPt] = pn;
+    }
+    if (idx2node.find(childPt) == idx2node.end()) {
+      Node cn = graph.addNode();
+      idx2node[childPt] = cn;
+    }
+
+    Edge e = graph.addEdge(idx2node[parentPt], idx2node[childPt]);
+    lenMap.set(e, wireLen);
+  }
+
+  lemon::Dijkstra<Graph, LengthMap> dijkstra(graph, lenMap);
+  dijkstra.run(idx2node[srcPt]);
+  // tree->report(logger_, network);
+
+  for (int branch = 0; branch < branch_count; branch++) {
+    auto nodePt = branch;
+    if (nodePt == srcPt) {
+      continue;
+    }
+    const sta::PinSeq* pins = tree->pins(nodePt);
+
+    if (pins) {
+      for (int i = 0; i < pins->size(); i++) {
+        const sta::Pin* pin = pins->at(i);
+        results[pin] = dijkstra.dist(idx2node[nodePt]);
+      }
+    }
+  }
+
+  return results;
+}
+
 sta::Pin* OpenDBAdapter::getStaPin(const char* name)
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
@@ -519,7 +601,7 @@ void OpenDBAdapter::getWireBugdeting()
     auto bynetIndex = AssertFind(netNameToIdxs_, net->getName());
     auto bynet = nets_.at(bynetIndex);
 
-    if (bynet.pin_begin == bynet.pin_end - 1) {
+    if (net->isSpecial() || bynet.pin_begin == bynet.pin_end - 1) {
       continue;
     }
 
@@ -539,12 +621,14 @@ void OpenDBAdapter::getWireBugdeting()
         sinkIdxes.push_back(i);
       }
     }
+    auto distmap = getDistFromSrcForSinks(src, sinks);
 
     bynet.wire_budget_begin = tableTriples_.size();
     for (size_t i = 0; i < sinks.size(); i++) {
       auto sink = sinks.at(i);
       int rate = (int) (laurel_->getWireBudRate(src, sink) * 100);
       tableTriples_.push_back({srcIdx, sinkIdxes[i], rate});
+      pins_.at(sinkIdxes[i]).min_dist_from_src = distmap[sink];
     }
     bynet.wire_budget_end = tableTriples_.size();
     nets_.at(bynetIndex) = bynet;
@@ -955,6 +1039,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
       strs_.emplace_back(bTerm->getName());
       pins_.push_back({strs_.back().c_str(),
                        use,
+                       0,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -995,6 +1080,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
       strs_.emplace_back(inst->getName() + "/" + mTerm->getName());
       pins_.push_back({strs_.back().c_str(),
                        use,
+                       0,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -1010,6 +1096,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
       strs_.emplace_back(nName + "/wire");
       pins_.push_back({strs_.back().c_str(),
                        banyan_go::PIN_WIRE,
+                       0,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -1032,6 +1119,7 @@ void OpenDBAdapter::getPinsFromOpenDB()
         strs_.emplace_back(nName + "/specialwire");
         pins_.push_back({strs_.back().c_str(),
                          banyan_go::PIN_WIRE,
+                         0,
                          boxIndexBegin,
                          boxes_.size(),
                          viaIndexBegin,
@@ -1125,6 +1213,7 @@ void OpenDBAdapter::getObsFromOpenDB()
     }
     pins_.push_back({"obs",
                      use,
+                     0,
                      boxIndexBegin,
                      boxes_.size(),
                      viaIndexBegin,
@@ -1196,6 +1285,7 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       strs_.emplace_back(inst->getName() + "/inst_unused");
       pins_.push_back({strs_.back().c_str(),
                        banyan_go::PIN_INST_UNUSED,
+                       0,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,
@@ -1216,6 +1306,7 @@ void OpenDBAdapter::getInstsObsFromOpenDB()
       strs_.emplace_back(inst->getName() + "/inst_obs");
       pins_.push_back({strs_.back().c_str(),
                        banyan_go::PIN_INST_OBS,
+                       0,
                        boxIndexBegin,
                        boxes_.size(),
                        viaIndexBegin,

@@ -42,6 +42,8 @@ target_link_libraries(Banyan
     dl
     odb
     utl
+    rsz
+    stt
     Laurel
     OpenSTA
     dbSta
