@@ -45,10 +45,14 @@ proc laurel { args } {
     lrl::set_slack_margin $keys(-slack_margin)
   }
 
+  set rsz_cnt 0
+  set buf_cnt 0
+
   if { [info exists flags(-setup)] } {
-    lrl::fix_setup_cmd
+    set rsz_cnt [lrl::fix_setup_cmd]
   }
   if { [info exists flags(-hold)] } {
-    lrl::fix_hold_cmd
+    set buf_cnt [lrl::fix_hold_cmd]
   }
+  return [expr $rsz_cnt + $buf_cnt]
 }
