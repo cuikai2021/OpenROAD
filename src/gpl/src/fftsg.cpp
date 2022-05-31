@@ -739,35 +739,45 @@ void makewt(int nw, int *ip, float *w) {
   }
 }
 
+// ip.size < sqrt(2*nw)
+// so, ip.size < sqrt(n/2) when nw=N/4
+// 
+// Proof: ip.size < sqrt(2*nw)
+//    def: n is the number of the out-most loop iteration
+//    then, l = nw / (4^(n-1)), m = 2^n
+//    l > 32, so n < log(4, nw/32) + 1
+//    log(4, nw/32) = log(4, nw) - 2.5 = log(2, nw) / 2 - 2.5
+//    m = 2^n, so m < 2^(log(4, nw/32) + 1)
+//    2^(log(4, nw/32) + 1) = 2^(log(2, nw) / 2 - 2.5 + 1) = 2^(log(2, nw) / 2 - 1.5)
+//    so ip.size = 4*m < 2^(log(2, nw) / 2 - 1.5 + 2) = 2^(log(2, nw) / 2 + 0.5) = 2^((log(2, l) + 1)/2) = sqrt(2*l)
+//    so ip.size < sqrt(2*nw)
 void makeipt(int nw, int *ip) {
   int j, l, m, m2, p, q;
 
   ip[2] = 0;
   ip[3] = 16;
-  m = 2;
-  for(l = nw; l > 32; l >>= 2) {
+  for (m = 2, l = nw; l > 32; m <<= 1, l >>= 2) {
     m2 = m << 1;
     q = m2 << 3;
     for(j = m; j < m2; j++) {
       p = ip[j] << 2;
-      ip[m + j] = p;
+      ip[m + j]  = p;
       ip[m2 + j] = p + q;
     }
     m = m2;
   }
 }
 
+// table of c[j] = 0.5 * cos((j*π/2/N), where j is in [1, N-1]
+// c[0] is always equal to sqrt(2)/2;
 void makect(int nc, int *ip, float *c) {
-  int j, nch;
-  float delta;
-
   ip[1] = nc;
   if(nc > 1) {
-    nch = nc >> 1;
-    delta = atan(1.0) / nch;
-    c[0] = cos(delta * nch);
-    c[nch] = 0.5 * c[0];
-    for(j = 1; j < nch; j++) {
+    const float PI = atan(1.0) * 4;
+    const int nch = nc >> 1;
+    const float delta = PI / (nc << 1); 
+    c[0] = sqrt(2) / 2; 
+    for(int j = 1; j <= nch; ++j) {
       c[j] = 0.5 * cos(delta * j);
       c[nc - j] = 0.5 * sin(delta * j);
     }
