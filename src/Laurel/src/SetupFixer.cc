@@ -395,7 +395,7 @@ VertexSet SetupFixer::getResizeVertex()
     if (name.compare(LRL_S_SRC_NAME)) {
       Vertex* vertex = findRealVertex(name);
       Delay resize_value = getResizeValue(vertex);
-      if (!fuzzyZero(resize_value))
+      if (delay2Cost(resize_value) != 0)
         resize_vertex.insert(vertex);
     }
   }
