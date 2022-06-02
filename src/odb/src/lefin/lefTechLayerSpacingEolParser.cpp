@@ -471,13 +471,6 @@ void lefTechLayerSpacingEolParser::parse(std::string s,
     boost::algorithm::trim(rule);
     if (rule.empty())
       continue;
-    if (rule.find("ENDOFLINE") == std::string::npos) {
-      l->warning(254,
-                 "unsupported LEF58_SPACING property for layer {} :\"{}\"",
-                 layer->getName(),
-                 rule);
-      continue;
-    }
     if (!lefTechLayerSpacingEol::parse(rule.begin(), rule.end(), layer, l))
       l->warning(
           255,

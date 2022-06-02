@@ -38,6 +38,13 @@ namespace utl {
 class Logger;
 }
 namespace odb {
+
+class lefTechLayerSpacingNotchLengthParser
+{
+ public:
+  static void parse(std::string, dbTechLayer*, lefin*);
+};
+
 class lefTechLayerSpacingEolParser
 {
  public:
@@ -78,6 +85,12 @@ class lefTechLayerSpacingTablePrlParser
   std::vector<std::tuple<int, int, int>> influence_tbl;
   int curWidthIdx = -1;
   bool parse(std::string, dbTechLayer*, lefin*);
+};
+
+class lefTechLayerSpacingTableJogToJogSpacingParser
+{
+public:
+  static bool parse(std::string, dbTechLayer*, lefin*);
 };
 
 class lefTechLayerRightWayOnGridOnlyParser

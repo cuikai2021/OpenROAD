@@ -91,9 +91,11 @@ enum dbObjectType
   // Generator Code Begin DbObjectType
   dbTechLayerObj,
   dbTechLayerSpacingEolRuleObj,
+  dbTechLayerSpacingNotchLengthRuleObj,
   dbTechLayerMinStepRuleObj,
   dbTechLayerCornerSpacingRuleObj,
   dbTechLayerSpacingTablePrlRuleObj,
+  dbTechLayerSpacingTableJogToJogSpacingRuleObj,
   dbTechLayerEolKeepOutRuleObj,
   dbTechLayerCutClassRuleObj,
   dbTechLayerCutSpacingRuleObj,

@@ -56,9 +56,15 @@ target_sources(gpl
     src/replace.cpp
     src/initialPlace.cpp
     src/initialPlaceBicgstab.cpp
-    src/initialPlaceGuide.cpp
     src/initialPlaceEV.cpp
     src/initialPlaceEVBicg.cpp
+    src/initialPlaceDirichlet.cpp
+    src/initialPlaceDef.cpp
+    src/initialPlaceGuide.cpp
+    src/netModel.cpp
+    src/netModelB2B.cpp
+    src/netModelStar.cpp
+    src/eigs.cpp
     src/maxDensity.cpp
     src/nesterovPlace.cpp
     src/placerBase.cpp
@@ -66,7 +72,6 @@ target_sources(gpl
     src/fft.cpp
     src/fftsg.cpp
     src/fftsg2d.cpp
-    src/point.cpp
     src/plot.cpp
     src/routeBase.cpp
     src/timingBase.cpp

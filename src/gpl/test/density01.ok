@@ -154,10 +154,10 @@ pad : 2 -> 0.597
 [NesterovSolve] Iter: 150 overflow: 0.287857 HPWL: 4757315
 [NesterovSolve] Iter: 160 overflow: 0.248484 HPWL: 4790059
 [NesterovSolve] Iter: 170 overflow: 0.216312 HPWL: 4826861
-[NesterovSolve] Iter: 180 overflow: 0.186742 HPWL: 4863936
-[NesterovSolve] Iter: 190 overflow: 0.158555 HPWL: 4896172
-[NesterovSolve] Iter: 200 overflow: 0.134324 HPWL: 4929702
-[NesterovSolve] Iter: 210 overflow: 0.11621 HPWL: 4946331
-[NesterovSolve] Iter: 220 overflow: 0.102917 HPWL: 4982302
-[NesterovSolve] Finished with Overflow: 0.098219
+[NesterovSolve] Iter: 180 overflow: 0.186741 HPWL: 4863954
+[NesterovSolve] Iter: 190 overflow: 0.158559 HPWL: 4896168
+[NesterovSolve] Iter: 200 overflow: 0.134318 HPWL: 4929711
+[NesterovSolve] Iter: 210 overflow: 0.116209 HPWL: 4946322
+[NesterovSolve] Iter: 220 overflow: 0.10292 HPWL: 4982331
+[NesterovSolve] Finished with Overflow: 0.098216
 No differences found.

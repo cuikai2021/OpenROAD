@@ -31,26 +31,17 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef __REPLACE_COORDI__
-#define __REPLACE_COORDI__
+#pragma once
 
 namespace gpl {
 
-class FloatPoint {
-  public:
+class FloatPoint
+{
+ public:
   float x;
   float y;
-  FloatPoint();
-  FloatPoint(float x, float y);
+  FloatPoint() : x(0), y(0) {}
+  FloatPoint(float ix, float iy) : x(ix), y(iy) {}
 };
 
-class IntPoint {
-  public:
-  int x;
-  int y;
-  IntPoint();
-  IntPoint(int x, int y);
-};
-}
-
-#endif
+}  // namespace gpl

@@ -13,7 +13,6 @@ global_placement
     [-overflow overflow]
     [-initial_place_max_iter max_iter]
     [-initial_place_max_fanout max_fanout]
-    [-verbose_level verbose_level]
 
 ```
 
@@ -28,9 +27,6 @@ global_placement
 * __min_phi_coef__ : Set pcof_min(µ_k Lower Bound). Default: 0.95 [0.95-1.05, float]
 * __max_phi_coef__ : Set pcof_max(µ_k Upper Bound). Default: 1.05 [1.00-1.20, float]
 * __overflow__ : Set target overflow for termination condition. Default: 0.1 [0-1, float]
-
-## Other Options
-* __verbose_level__ [0-10, int] : Set verbose level for RePlAce. Default: 1
 
 Note that all of the TCL commands are defined in the
 [../src/replace.tcl](https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/gpl/src/replace.tcl)

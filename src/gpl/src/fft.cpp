@@ -159,9 +159,10 @@ FFT::doFFT() {
     binDensity_[0][i] *= 0.5;
   }
 
+  auto f = 4.0 / binCntX_ / binCntY_;
   for(int i = 0; i < binCntX_; i++) {
     for(int j = 0; j < binCntY_; j++) {
-      binDensity_[i][j] *= 4.0 / binCntX_ / binCntY_;
+      binDensity_[i][j] *= f;
     }
   }
 

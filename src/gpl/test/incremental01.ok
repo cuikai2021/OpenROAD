@@ -41,16 +41,16 @@
 [INFO GPL-0029] BinSize: 3872 3850
 [INFO GPL-0030] NumBins: 256
 [NesterovSolve] Iter: 1 overflow: 0.184609 HPWL: 4905260
-[NesterovSolve] Iter: 10 overflow: 0.387895 HPWL: 4711262
-[NesterovSolve] Iter: 20 overflow: 0.348875 HPWL: 4687605
-[NesterovSolve] Iter: 30 overflow: 0.308802 HPWL: 4701670
-[NesterovSolve] Iter: 40 overflow: 0.283079 HPWL: 4746321
-[NesterovSolve] Iter: 50 overflow: 0.249025 HPWL: 4789750
-[NesterovSolve] Iter: 60 overflow: 0.217552 HPWL: 4825595
-[NesterovSolve] Iter: 70 overflow: 0.185018 HPWL: 4858488
-[NesterovSolve] Iter: 80 overflow: 0.156018 HPWL: 4893661
-[NesterovSolve] Iter: 90 overflow: 0.132795 HPWL: 4927920
-[NesterovSolve] Iter: 100 overflow: 0.116595 HPWL: 4960721
-[NesterovSolve] Iter: 110 overflow: 0.100002 HPWL: 4983740
-[NesterovSolve] Finished with Overflow: 0.098539
+[NesterovSolve] Iter: 10 overflow: 0.387897 HPWL: 4711250
+[NesterovSolve] Iter: 20 overflow: 0.348869 HPWL: 4687626
+[NesterovSolve] Iter: 30 overflow: 0.308798 HPWL: 4701654
+[NesterovSolve] Iter: 40 overflow: 0.283085 HPWL: 4746344
+[NesterovSolve] Iter: 50 overflow: 0.24903 HPWL: 4789777
+[NesterovSolve] Iter: 60 overflow: 0.217551 HPWL: 4825618
+[NesterovSolve] Iter: 70 overflow: 0.185018 HPWL: 4858536
+[NesterovSolve] Iter: 80 overflow: 0.156019 HPWL: 4893665
+[NesterovSolve] Iter: 90 overflow: 0.132802 HPWL: 4927933
+[NesterovSolve] Iter: 100 overflow: 0.116596 HPWL: 4960736
+[NesterovSolve] Iter: 110 overflow: 0.0999997 HPWL: 4983743
+[NesterovSolve] Finished with Overflow: 0.100000
 No differences found.
