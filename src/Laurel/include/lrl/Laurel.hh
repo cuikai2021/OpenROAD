@@ -106,7 +106,7 @@ class SetupFixer : public LaurelAdapter
   virtual void buildIndexMap(VertexSet ends);
   Index buildIndex(Vertex* vertex);
   virtual void buildAllFaninEdge(VertexSeq fanins);
-  void buildALLEdgePO(VertexSet ends);
+  virtual void buildALLEdgePO(VertexSet ends);
 
   virtual Delay costSlope(Vertex* pred, Vertex* succ);
 
@@ -158,6 +158,9 @@ class WireBudgeting : public SetupFixer
 
   virtual void initAlgorithm();
 
+  bool makeDelaySpef() { return makeDelaySpefCore(spef_delay_, 1.0); }
+  bool makeDelaySpefFct() { return makeDelaySpefCore(spef_delay_factor_, 2.0); }
+
   void getNewWireLength(Vertex* pred,
                         Vertex* succ,
                         uint64& max_length,
@@ -169,15 +172,17 @@ class WireBudgeting : public SetupFixer
   Vertex* getVertex(Name name) { return name_vertex_map_.findKey(name); }
 
  protected:
-  virtual void buildIndexMap(VertexSet ends) override;
+  virtual void buildALLEdgePO(VertexSet ends) override;
+
+  // virtual void buildIndexMap(VertexSet ends) override;
   virtual void buildAllFaninEdge(VertexSeq fanins) override;
 
   virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
   Delay getLowBound(Vertex* pred, Vertex* succ);
   Delay getHighBound(Vertex* pred, Vertex* succ);
   virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
-  virtual void addConstraintPO(Vertex* po) override;
-  virtual void addConstraintPI(Vertex* pi) override;
+  // virtual void addConstraintPO(Vertex* po) override;
+  // virtual void addConstraintPI(Vertex* pi) override;
 
   SteinerTree* getTree(Vertex* drvr);
   uint64 getTreeDist(Vertex* drvr, Vertex* dst);
@@ -185,12 +190,18 @@ class WireBudgeting : public SetupFixer
   WirePair getRealWire(WirePair wire);
   Vertex* getRealFanoutVertex(WirePair wire);
 
+  sta::Map<Name, Delay> buildSpefDelayMap();
+  bool makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor);
+
   // variable
   WirePairSet opt_wires_;
   sta::Map<Vertex*, SteinerTree*> drvr_tree_map_;
   sta::Map<WirePair, Vertex*> wire_fanout_map_;
   sta::Map<Name, Vertex*> name_vertex_map_;
   sta::Map<Pin*, Vertex*> pin_vertex_map_;
+
+  sta::Map<Name, Delay> spef_delay_;
+  sta::Map<Name, Delay> spef_delay_factor_;
 };
 
 class HoldFixer : public LaurelAdapter

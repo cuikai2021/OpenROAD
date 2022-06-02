@@ -364,9 +364,18 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
 
     uint64 max_length = getWireBudMaxLen(pred, succ);
     Delay bud_rate = getWireBudRate(pred, succ);
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               1,
+               "{} -> {}, max_length = {}, bud_rate = {}",
+               pred->name(sta_->sdcNetwork()),
+               succ->name(sta_->sdcNetwork()),
+               max_length,
+               bud_rate);
     cnt++;
   }
-  printf("iterated %d connections", cnt);
+  printf("iterated %d connections\n", cnt);
 }
 
 void Laurel::wireBudgeting()
@@ -374,14 +383,15 @@ void Laurel::wireBudgeting()
   if (wire_bud_)
     delete wire_bud_;
   wire_bud_ = new WireBudgeting(openroad_, options_);
-  wire_bud_->initAlgorithm();
-  SetupResult status = wire_bud_->resolve();
   bool ret = false;
-  if (status == MinCostFlow::OPTIMAL) {
-    wire_bud_->report();
-    if (wire_bud_->remap())
-      ret = true;
-    // ret = genAllWireBud(wire_bud_);
+  if (wire_bud_->makeDelaySpefFct() && wire_bud_->makeDelaySpef()) {
+    wire_bud_->initAlgorithm();
+    SetupResult status = wire_bud_->resolve();
+    if (status == MinCostFlow::OPTIMAL) {
+      wire_bud_->report();
+      if (wire_bud_->remap())
+        ret = true;
+    }
   }
   if (!ret)
     logger_->warn(utl::LRL, 1203, "Fail to do wire budgeting");

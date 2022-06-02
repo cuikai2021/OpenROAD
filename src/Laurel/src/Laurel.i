@@ -61,6 +61,14 @@ analyze_clk()
 }
 
 void
+set_spef_file(const char* filename)
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->setSpefFile(filename);
+}
+
+void
 fix_setup_cmd()
 {
   ensureLinked();
