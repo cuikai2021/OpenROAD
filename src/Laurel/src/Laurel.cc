@@ -357,6 +357,7 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
 {
   WirePairSet pairs = guider->getAllWirePairs();
   int cnt = 0;
+  int slack_cnt = 0;
   logger_->info(utl::LRL, 1310, "test wire budgeting interface");
   for (auto wire : pairs) {
     Vertex* pred = guider->getVertex(wire.first);
@@ -373,31 +374,42 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
                succ->name(sta_->sdcNetwork()),
                max_length,
                bud_rate);
+    if (bud_rate > 1.0)
+      slack_cnt++;
     cnt++;
   }
   printf("iterated %d connections\n", cnt);
+  printf("slacked %d connections\n", cnt);
 }
 
-void Laurel::wireBudgeting()
+void Laurel::wireBudgetingCore()
 {
-  if (wire_bud_)
-    delete wire_bud_;
-  wire_bud_ = new WireBudgeting(openroad_, options_);
   bool ret = false;
-  if (wire_bud_->makeDelaySpefFct() && wire_bud_->makeDelaySpef()) {
-    wire_bud_->initAlgorithm();
-    SetupResult status = wire_bud_->resolve();
-    if (status == MinCostFlow::OPTIMAL) {
-      wire_bud_->report();
-      if (wire_bud_->remap())
-        ret = true;
-    }
+  wire_bud_->initAlgorithm();
+  SetupResult status = wire_bud_->resolve();
+  if (status == MinCostFlow::OPTIMAL) {
+    wire_bud_->report();
+    if (wire_bud_->remap())
+      ret = true;
   }
   if (!ret)
     logger_->warn(utl::LRL, 1203, "Fail to do wire budgeting");
   else
     logger_->info(utl::LRL, 1308, "Succeed to do wire budgeting");
   // showAllWireBud(wire_bud_);
+}
+
+void Laurel::wireBudgeting()
+{
+  wireBudgeting(2.0);
+}
+
+void Laurel::wireBudgeting(float factor)
+{
+  if (wire_bud_)
+    delete wire_bud_;
+  wire_bud_ = new WireBudgetingFake(openroad_, options_, factor);
+  wireBudgetingCore();
 }
 
 bool Laurel::checkVertexBudgeted(Vertex* pred, Vertex* succ)
