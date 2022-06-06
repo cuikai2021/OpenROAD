@@ -61,6 +61,14 @@ analyze_clk()
 }
 
 void
+debug_report()
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->debugReport();
+}
+
+void
 set_spef_file(const char* filename)
 {
   Laurel *laurel = getLaurel();
