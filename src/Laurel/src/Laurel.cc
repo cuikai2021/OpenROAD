@@ -374,7 +374,7 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
                succ->name(sta_->sdcNetwork()),
                max_length,
                bud_rate);
-    if (bud_rate > 1.0)
+    if (bud_rate > 1.5)
       slack_cnt++;
     cnt++;
   }
@@ -396,12 +396,13 @@ void Laurel::wireBudgetingCore()
     logger_->warn(utl::LRL, 1203, "Fail to do wire budgeting");
   else
     logger_->info(utl::LRL, 1308, "Succeed to do wire budgeting");
-  // showAllWireBud(wire_bud_);
+  if (options_->getDebugReport())
+    showAllWireBud(wire_bud_);
 }
 
 void Laurel::wireBudgeting()
 {
-  wireBudgeting(2.0);
+  wireBudgeting(0.2);
 }
 
 void Laurel::wireBudgeting(float factor)

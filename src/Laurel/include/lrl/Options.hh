@@ -10,6 +10,7 @@ class Options
   float slackMargin() { return slack_margin_; }
 
   bool ignoreClk() { return ignore_clk_; }
+  bool getDebugReport() { return debug_report_; }
 
   const char* spefFileName() { return spef_file; }
 
@@ -18,6 +19,7 @@ class Options
   void setSlackMargin(float slack_margin) { slack_margin_ = slack_margin; }
 
   void analyzeClk() { ignore_clk_ = false; }
+  void debugReport() { debug_report_ = true; }
 
   void setSpefFile(const char* file_name) { spef_file = file_name; }
 
@@ -26,6 +28,8 @@ class Options
   float slack_margin_ = 0.0f;
 
   bool ignore_clk_ = true;
+  bool debug_report_ = false;
+
   const char* spef_file;
 };
 
