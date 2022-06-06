@@ -161,10 +161,10 @@ class WireBudgeting : public SetupFixer
   bool makeDelaySpef() { return makeDelaySpefCore(spef_delay_, 1.0); }
   bool makeDelaySpefFct() { return makeDelaySpefCore(spef_delay_factor_, 2.0); }
 
-  void getNewWireLength(Vertex* pred,
-                        Vertex* succ,
-                        uint64& max_length,
-                        Delay& bud_rate);
+  virtual void getNewWireLength(Vertex* pred,
+                                Vertex* succ,
+                                uint64& max_length,
+                                Delay& bud_rate);
   WirePairSet getAllWirePairs() { return opt_wires_; }
 
   bool hasWire(WirePair wire);
@@ -181,8 +181,6 @@ class WireBudgeting : public SetupFixer
   Delay getLowBound(Vertex* pred, Vertex* succ);
   Delay getHighBound(Vertex* pred, Vertex* succ);
   virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
-  // virtual void addConstraintPO(Vertex* po) override;
-  // virtual void addConstraintPI(Vertex* pi) override;
 
   SteinerTree* getTree(Vertex* drvr);
   uint64 getTreeDist(Vertex* drvr, Vertex* dst);
@@ -202,6 +200,29 @@ class WireBudgeting : public SetupFixer
 
   sta::Map<Name, Delay> spef_delay_;
   sta::Map<Name, Delay> spef_delay_factor_;
+};
+
+class WireBudgetingFake : public WireBudgeting
+{
+ public:
+  WireBudgetingFake(OpenRoad* openroad, Options* options, float factor)
+      : WireBudgeting(openroad, options), factor_(factor){};
+  virtual ~WireBudgetingFake(){};
+
+  virtual void initAlgorithm();
+  virtual void getNewWireLength(Vertex* pred,
+                                Vertex* succ,
+                                uint64& max_length,
+                                Delay& bud_rate);
+
+ protected:
+  // virtual void buildALLEdgePO(VertexSet ends) override;
+  virtual void addConstraintPO(Vertex* po) override;
+  virtual void addConstraintPI(Vertex* pi) override;
+
+  virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
+
+  float factor_;
 };
 
 class HoldFixer : public LaurelAdapter
@@ -285,6 +306,7 @@ class Laurel : public LaurelAdapter
   void fixHold();
   void fixSetup();
   void wireBudgeting();
+  void wireBudgeting(float factor);
 
   // get Wire budgeting result by pin to pin after wireBudgeting()
   // unit DBU
@@ -317,6 +339,8 @@ class Laurel : public LaurelAdapter
 
   // bool genAllWireBud(WireBudgeting* guider);
   void showAllWireBud(WireBudgeting* guider);  // debug
+
+  void wireBudgetingCore();
 
   // variable
   Options* options_;

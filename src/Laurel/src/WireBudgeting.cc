@@ -9,22 +9,24 @@ using namespace sta;
 //
 //  class WireBudgeting
 //
-////////////////////////////////////////////////////////s
+////////////////////////////////////////////////////////
 
 void WireBudgeting::initAlgorithm()
 {
-  VertexSet* ends = sta_->search()->endpoints();
-  VertexSet failures;
-  int cnt = 0;
-  for (Vertex* vertex : *ends) {
-    Slack slack = sta_->vertexSlack(vertex, MinMax::max());
-    if (!fuzzyInf(slack)) {
-      failures.insert(vertex);
-      cnt++;
+  if (makeDelaySpef() && makeDelaySpefFct()) {
+    VertexSet* ends = sta_->search()->endpoints();
+    VertexSet failures;
+    int cnt = 0;
+    for (Vertex* vertex : *ends) {
+      Slack slack = sta_->vertexSlack(vertex, MinMax::max());
+      if (!fuzzyInf(slack)) {
+        failures.insert(vertex);
+        cnt++;
+      }
     }
+    logger_->info(utl::LRL, 1402, "detected {} Budgeting Ends", cnt);
+    buildIndexMap(failures);
   }
-  logger_->info(utl::LRL, 1402, "detected {} Budgeting Ends", cnt);
-  buildIndexMap(failures);
 }
 
 void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
@@ -293,6 +295,77 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
 bool WireBudgeting::hasWire(WirePair wire)
 {
   return opt_wires_.find(wire) != opt_wires_.end();
+}
+
+////////////////////////////////////////////////////////
+//
+//  class WireBudgetingFake
+//
+////////////////////////////////////////////////////////
+
+void WireBudgetingFake::initAlgorithm()
+{
+  VertexSet* ends = sta_->search()->endpoints();
+  VertexSet failures;
+  int cnt = 0;
+  for (Vertex* vertex : *ends) {
+    Slack slack = sta_->vertexSlack(vertex, MinMax::max());
+    if (!fuzzyInf(slack)) {
+      failures.insert(vertex);
+      cnt++;
+    }
+  }
+  logger_->info(utl::LRL, 1403, "detected {} Budgeting Ends", cnt);
+  buildIndexMap(failures);
+}
+
+void WireBudgetingFake::getNewWireLength(Vertex* pred,
+                                         Vertex* succ,
+                                         uint64& max_length,
+                                         Delay& bud_rate)
+{
+  uint64 origin_length = getTreeDist(pred, succ);
+  uint64 aug_length = LRL_S_ZERO;
+  Slack slack = sta_->vertexSlack(succ, MinMax::max());
+  PathRef path = sta_->vertexWorstSlackPath(succ, max_);
+  Slack period = path.clock(sta_)->period();
+  if (slack >= factor_ * period) {
+    aug_length = origin_length;
+  }
+
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             3,
+             "{} -> {}, origin = {}, aug = {}",
+             pred->name(sta_->sdcNetwork()),
+             succ->name(sta_->sdcNetwork()),
+             origin_length,
+             aug_length);
+  max_length = origin_length + aug_length;
+  if (max_length == 0) {
+    bud_rate = LRL_H_INFINITY;
+  } else
+    bud_rate = max_length / origin_length;
+}
+
+void WireBudgetingFake::addConstraintEdge(Vertex* pred, Vertex* succ)
+{
+  Name pred_name = pred->name(sta_->sdcNetwork());
+  Name succ_name = succ->name(sta_->sdcNetwork());
+  name_vertex_map_.insert(pred_name, pred);
+  name_vertex_map_.insert(succ_name, succ);
+  pin_vertex_map_.insert(pred->pin(), pred);
+  pin_vertex_map_.insert(succ->pin(), succ);
+  WirePair wire = WirePair(pred_name, succ_name);
+  opt_wires_.insert(getRealWire(wire));
+}
+
+void WireBudgetingFake::addConstraintPO(Vertex* po)
+{
+}
+void WireBudgetingFake::addConstraintPI(Vertex* pi)
+{
 }
 
 }  // namespace lrl
