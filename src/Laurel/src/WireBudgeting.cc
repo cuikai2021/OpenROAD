@@ -44,7 +44,7 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
       Vertex* fanin = iter.next();
       if (!fanin->isDriver(sta_->network())) {
         BfsBkwdIterator fanin_iter(BfsIndex::other, &pred, this);
-        fanin_iter.enqueueAdjacentVertices(vertex);
+        fanin_iter.enqueueAdjacentVertices(fanin);
         while (fanin_iter.hasNext()) {
           Vertex* pred = fanin_iter.next();
           if (pred->isDriver(sta_->network())) {
@@ -107,7 +107,8 @@ Delay WireBudgeting::costSlope(Vertex* pred, Vertex* succ)
   if (spef_delay_factor_.hasKey(succ_name))
     max_delay = spef_delay_factor_.at(succ_name);
 
-  // printf("len: %lld, max delay: %s , min delay: %s\n",
+  // printf("%s  len: %lld, max delay: %s , min delay: %s\n",
+  //        succ_name.c_str(),
   //        wire_length,
   //        delayAsString(max_delay, sta_, 3),
   //        delayAsString(min_delay, sta_, 3));
@@ -276,7 +277,7 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
   Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
 
   bud_rate = std::max(LRL_H_ZERO,
-                 (new_delay - origin_delay) / (max_delay - origin_delay));
+                      (new_delay - origin_delay) / (max_delay - origin_delay));
   bud_rate = std::min(1.0f, bud_rate);
   uint64 aug_length = round(origin_length * bud_rate);
 
