@@ -379,7 +379,7 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
     cnt++;
   }
   printf("iterated %d connections\n", cnt);
-  printf("slacked %d connections\n", cnt);
+  printf("slacked %d connections\n", slack_cnt);
 }
 
 void Laurel::wireBudgetingCore()
@@ -402,7 +402,12 @@ void Laurel::wireBudgetingCore()
 
 void Laurel::wireBudgeting()
 {
-  wireBudgeting(0.2);
+  if (wire_bud_)
+    delete wire_bud_;
+  if (!options_->hasSpefFile())
+    return wireBudgeting(0.2);
+  wire_bud_ = new WireBudgeting(openroad_, options_);
+  wireBudgetingCore();
 }
 
 void Laurel::wireBudgeting(float factor)
