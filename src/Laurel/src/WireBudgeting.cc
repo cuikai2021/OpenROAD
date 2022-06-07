@@ -53,6 +53,8 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
             is_pi = false;
             Name pred_name = pred->name(sta_->sdcNetwork());
             Name succ_name = vertex->name(sta_->sdcNetwork());
+            name_vertex_map_.insert(fanin->name(sdc_network_), fanin);
+            pin_vertex_map_.insert(fanin->pin(), fanin);
             wire_fanout_map_.insert(WirePair(pred_name, succ_name), fanin);
           }
         }
