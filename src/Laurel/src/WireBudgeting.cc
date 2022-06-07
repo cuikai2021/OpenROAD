@@ -275,8 +275,9 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
 
   Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
 
-  bud_rate = (new_delay - origin_delay) / (max_delay - origin_delay);
-  bud_rate = bud_rate > 1.0f ? 1.0f : bud_rate;
+  bud_rate = std::max(LRL_H_ZERO,
+                 (new_delay - origin_delay) / (max_delay - origin_delay));
+  bud_rate = std::min(1.0f, bud_rate);
   uint64 aug_length = round(origin_length * bud_rate);
 
   debugPrint(logger_,

@@ -12,7 +12,7 @@ class Options
   bool ignoreClk() { return ignore_clk_; }
   bool getDebugReport() { return debug_report_; }
 
-  const char* spefFileName() { return spef_file; }
+  const char* spefFileName() { return spef_file_; }
 
   // setter
   void setUncertainty(float uncertainty) { uncertainty_ = uncertainty; }
@@ -21,7 +21,10 @@ class Options
   void analyzeClk() { ignore_clk_ = false; }
   void debugReport() { debug_report_ = true; }
 
-  void setSpefFile(const char* file_name) { spef_file = file_name; }
+  void setSpefFile(const char* file_name) { spef_file_ = file_name; }
+
+  // checkers
+  bool hasSpefFile() { return spef_file_; }
 
  private:
   float uncertainty_ = 0.1f;
@@ -30,7 +33,7 @@ class Options
   bool ignore_clk_ = true;
   bool debug_report_ = false;
 
-  const char* spef_file;
+  const char* spef_file_ = nullptr;
 };
 
 }  // namespace lrl
