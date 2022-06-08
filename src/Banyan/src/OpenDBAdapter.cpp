@@ -595,7 +595,10 @@ sta::Pin* OpenDBAdapter::getStaPin(const char* name)
 
 void OpenDBAdapter::getWireBugdeting()
 {
-  laurel_->wireBudgeting();
+  if (timingDriven_) {
+    laurel_->wireBudgeting();
+  }
+
   odb::dbBlock* block = db_->getChip()->getBlock();
   for (auto net : block->getNets()) {
     auto bynetIndex = AssertFind(netNameToIdxs_, net->getName());
@@ -626,7 +629,9 @@ void OpenDBAdapter::getWireBugdeting()
     bynet.wire_budget_begin = tableTriples_.size();
     for (size_t i = 0; i < sinks.size(); i++) {
       auto sink = sinks.at(i);
-      int rate = (int) (laurel_->getWireBudRate(src, sink) * 100);
+      int rate = timingDriven_
+                     ? (int) (laurel_->getWireBudRate(src, sink) * 100)
+                     : 0;
       tableTriples_.push_back({srcIdx, sinkIdxes[i], rate});
       pins_.at(sinkIdxes[i]).min_dist_from_src = distmap[sink];
     }
@@ -830,6 +835,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
       // assert(x1 == x2);
       break;
     }
+    
     case odb::dbSBox::OCTILINEAR: {
       logger_->error(utl::BY,
                      703,

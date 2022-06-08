@@ -12,13 +12,14 @@ sta::define_cmd_args "banyan_route" {
     [-baby_banyan]
     [-pa_mcf]
     [-report_benchmark_json]
+    [-timing_driven]
 }
 
 
 proc banyan_route { args } {
   sta::parse_key_args "banyan_route" args \
       keys {-log_level -debug_output -max_via_stack -min_layer -max_layer -enable_route -enable_maze_top -report_route_json -baby_banyan -pa_mcf -report_benchmark_json} \
-      flags {-debug_save_txt -cts}
+      flags {-debug_save_txt -cts -timing_driven}
 
   sta::check_argc_eq0 "banyan_route" $args
 
@@ -55,7 +56,9 @@ proc banyan_route { args } {
     set max_layer ""
   }
 
-  set cts [info exists flags(-cts)]  
+  set cts [info exists flags(-cts)] 
+
+  set timing_driven [info exists flags(-timing_driven)] 
 
   if { [info exists keys(-enable_route)] } {
     check_bool "-enable_route" $keys(-enable_route)
@@ -95,7 +98,7 @@ proc banyan_route { args } {
     set pa_mcf "true"
   }
 
-  banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack $min_layer $max_layer $cts $enable_route $enable_maze_top $report_route_json $report_benchmark_json $baby_banyan $pa_mcf
+  banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack $min_layer $max_layer $cts $enable_route $enable_maze_top $report_route_json $report_benchmark_json $baby_banyan $pa_mcf $timing_driven
 }
 
 

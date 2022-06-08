@@ -22,7 +22,8 @@ void banyan_route(
   const char* report_route_json,
   const char* report_benchmark_json,
   const char* baby_banyan,
-  const char* pa_mcf)
+  const char* pa_mcf,
+  bool timing_driven)
 {
   std::map<std::string, std::string> options;
   options["log_level"] = log_level;
@@ -38,6 +39,7 @@ void banyan_route(
   options["report_benchmark_json"] = report_benchmark_json;
   options["baby_banyan"] = baby_banyan;
   options["pa_mcf"] = pa_mcf;
+  if (timing_driven) options["timing_driven"] = "";
   ord::OpenRoad::openRoad()->getBanyan()->main(options);
 }
 

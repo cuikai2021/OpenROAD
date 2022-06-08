@@ -105,6 +105,7 @@ class OpenDBAdapter : public DBAdapter
   stt::SteinerTreeBuilder* sttBuilder_;
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
+  bool timingDriven_ = false;
   int maxViaStack_;
   std::string minLayer_ = "";
   std::string maxLayer_ = "";
@@ -180,14 +181,16 @@ class OpenDBAdapter : public DBAdapter
                 lrl::Laurel* laurel,
                 int maxViaStack,
                 std::string minLayer,
-                std::string maxLayer)
+                std::string maxLayer,
+                bool timingDriven)
       : db_(db),
         sttBuilder_(sttBuilder_),
         logger_(logger),
         laurel_(laurel),
         maxViaStack_(maxViaStack),
         minLayer_(minLayer),
-        maxLayer_(maxLayer)
+        maxLayer_(maxLayer),
+        timingDriven_(timingDriven)
   {
     getDesignFromOpenDB();
     getLayersFromOpenDB();

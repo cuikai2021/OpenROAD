@@ -79,6 +79,7 @@ int Banyan::main(const std::map<std::string, std::string>& options)
     return -1;
   }
 
+  bool timingDriven = false;
   int maxViaStack = 100000;
   std::string minLayer;
   std::string maxLayer;
@@ -99,14 +100,25 @@ int Banyan::main(const std::map<std::string, std::string>& options)
     if (kv.first == "max_layer") {
       maxLayer = kv.second;
     }
+
+    if (kv.first == "timing_driven") {
+      timingDriven = true;
+    }
   }
-  OpenDBAdapter bdAdapter(
-      db_, stt_builder_, logger_, laurel_, maxViaStack, minLayer, maxLayer);
+
+  OpenDBAdapter bdAdapter(db_,
+                          stt_builder_,
+                          logger_,
+                          laurel_,
+                          maxViaStack,
+                          minLayer,
+                          maxLayer,
+                          timingDriven);
+
   Axioms axioms(bdAdapter);
 
   banyan_go::route_ret ret;
   ::memset(&ret, 0, sizeof(ret));
-
   long long err = banyan_route(banyan_go::to_slice(options_vec),
                                bdAdapter.getDesign(),
                                banyan_go::to_slice(bdAdapter.getLayers()),
