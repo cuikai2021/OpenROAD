@@ -41,13 +41,13 @@
 #include <queue>
 #include <set>
 
+#include "eigs.h"
 #include "graphics.h"
 #include "maxDensity.h"
-#include "octave/dColVector.h"
-#include "octave/eigs-base.h"
 #include "odb/dbTypes.h"
 #include "placerBase.h"
 #include "utl/Logger.h"
+#include "netModelStar.h"
 
 using namespace maxDensity;
 
@@ -55,104 +55,6 @@ namespace gpl {
 using namespace std;
 
 namespace {
-/*
-the @var{k} eigenvalues closest to @var{sigma} are returned.
-return:
-  eig_vec: eigen vectors
-  eig_val: eigen values
-  nconv: number of Ritz values that satisfy convergence
-*/
-int eigs(Matrix& eig_vec,
-         ColumnVector& eig_val,
-         const SparseMatrix& A,
-         const SparseMatrix& B,
-         octave_idx_type k,
-         double sigma = 0.0)
-{
-  assert(A.issymmetric());
-
-  /*
-  The number of @nospell{Lanczos} basis vectors to use.  More vectors will
-  result in faster convergence, but a greater use of memory.  The optimal
-  value of @code{p} is problem dependent and should be in the range
-  @code{@var{k} + 1} to @var{n}.  The default value is @code{2 * @var{k}}.
-  */
-  octave_idx_type p = 2 * k;
-
-  // return value, 0 means success
-  octave_idx_type info = 0;
-
-  /*
-  ## @item permB
-  ## The permutation vector of the Cholesky@tie{}factorization for @var{B} if
-  ## @code{cholB} is true.  It is obtained by
-  ## @code{[R, ~, permB] = chol (@var{B}, @qcode{"vector"})}.  The default is
-  ## @code{1:@var{n}}.
-  */
-  ColumnVector permB;
-
-  // ResidualVectors = A * Evectors - B * Evectors * Evalues
-  ColumnVector resid;
-
-  std::ostream& os = std::cout;
-  // Defines the required convergence tolerance,
-  // calculated as tol * norm (A)}.  The default is @code{eps}.
-  double tol = 0;
-
-  bool rvec = true;
-
-  // If the generalized eigenvalue problem is being calculated, this flag
-  // (true/false) specifies whether the @var{B} input represents
-  // @code{chol (@var{B})} or simply the matrix @var{B}.  The default is false.
-  bool cholB = false;
-
-  // The level of diagnostic printout (0|1|2).  If @code{disp} is 0 then
-  // diagnostics are disabled.  The default value is 0.
-  int disp = 0;
-
-  // The maximum number of iterations.  The default is 300.
-  int maxit = 300;
-
-  auto nconv = EigsRealSymmetricMatrixShift(A,
-                                            sigma,
-                                            k,
-                                            p,
-                                            info,
-                                            eig_vec,
-                                            eig_val,
-                                            B,
-                                            permB,
-                                            resid,
-                                            os,
-                                            tol,
-                                            rvec,
-                                            cholB,
-                                            disp,
-                                            maxit);
-  std::cout << "eig_val:\n" << eig_val << std::endl;
-  return nconv;
-}
-
-bool isSourcePin(Pin* pin)
-{
-  if (pin->isITerm()) {
-    return pin->dbITerm()->getIoType() != odb::dbIoType::INPUT;
-  } else {
-    return pin->dbBTerm()->getIoType() != odb::dbIoType::OUTPUT;
-  }
-}
-
-Pin* getSourcePin(Net* net)
-{
-  auto pins = net->pins();
-  for (auto& pin : pins) {
-    if (isSourcePin(pin)) {
-      return pin;
-    }
-  }
-  assert(0 && "net must have a source pin");
-  return nullptr;
-}
 
 void reposition(std::vector<double>& X)
 {
@@ -179,34 +81,15 @@ void normalize(SparseMatrix& B, octave_idx_type placeCnt)
 }
 
 // update inst(cell) locations with eig_vec
-void updateInstLoc(const Matrix& eig_vecs,
-                   int dim,
-                   int delta,
-                   int centerLoc,
-                   const octave_idx_type placeCnt,
-                   Eigen::VectorXf& instLocVec)
+Eigen::VectorXf updateInstLoc(const Matrix& eig_vecs,
+                              int dim,
+                              const std::pair<int, int>& minmax)
 {
   const auto K = eig_vecs.columns();
   assert(K == 4);
-  const auto ev_idx = K - 2 - dim;
+  const auto ev_idx = K - 1 - dim;
   const auto& evec = eig_vecs.column(ev_idx);
-  const int minLoc = centerLoc - (delta / 2);
-  instLocVec.resize(placeCnt);
-  {
-    std::vector<double> vecX;
-    vecX.reserve(evec.numel());
-    for (octave_idx_type i = 0; i < evec.numel(); ++i) {
-      vecX.push_back(evec(i));
-    }
-    auto minmax = std::minmax_element(vecX.begin(), vecX.end());
-    auto min_val = *minmax.first;
-    auto max_val = *minmax.second;
-    auto scale = delta / (max_val - min_val);
-    for (size_t i = 0; i < vecX.size(); ++i) {
-      auto c = (vecX[i] - min_val) * scale + minLoc;
-      instLocVec(i) = c;
-    }
-  }
+  return gpl::eigvec2locs(evec, minmax.first, minmax.second);
 }
 
 // find the connected components of a graph
@@ -304,7 +187,7 @@ std::vector<std::vector<size_t>> components(const InitialPlace::Triplets& edges,
       res.emplace_back(vec);
     }
   }
-  
+
   for (auto& g : groups) {
     g.release();
   }
@@ -331,7 +214,7 @@ void InitialPlaceEV::run()
   }
 
   SparseMatrix graphL;
-  initLaplaceMatrix(graphL, placeInstsNum(), aList);
+  createSparseMatrix(placeInstsNum(), aList, graphL);
 
 #ifndef NDEBUG
   dumpMatrixAB(aList, "initial.mtx");
@@ -431,56 +314,15 @@ void InitialPlaceEV::resetPlaceInsts()
 // matrix of the connectivity graph
 void InitialPlaceEV::initAdjGraph(Triplets& aList)
 {
-  const size_t placeCnt = placeInstsNum();
-  aList.clear();
-  aList.reserve(2 * placeCnt);
-  std::map<size_t, float> m;
-  for (auto& net : pb_->nets()) {
-    auto sigT = net->dbNet()->getSigType();
-    if (sigT != odb::dbSigType::SIGNAL && sigT != odb::dbSigType::CLOCK
-        && sigT != odb::dbSigType::RESET) {
-      continue;
-    }
-    // skip for small nets.
-    if (net->pins().size() <= 1) {
-      continue;
-    }
-
-    // escape long time cals on huge fanout.
-    if (net->pins().size() >= ipVars_.maxFanout) {
-      // continue;
-    }
-
-    // foreach two pins in single nets.
-    auto pin_from = getSourcePin(net);
-    if (!pin_from->isPlaceInstConnected()) {
-      continue;
-    }
-
-    for (auto& pin_to : net->pins()) {
-      if (pin_to != pin_from && pin_to->isPlaceInstConnected()) {
-        auto row = pin_from->instance()->extId();
-        auto col = pin_to->instance()->extId();
-        if (row > col) {
-          std::swap(row, col);
-        }
-        auto k = row * placeCnt + col;
-        ++m[k];
-      }
-    }
-  }
-
-  for (auto const& [k, v] : m) {
-    auto row = k / placeCnt;
-    auto col = k % placeCnt;
-    aList.push_back(T(row, col, v));
-  }
+  NetModelStar model(
+      ipVars_.maxFanout, ipVars_.netWeightScale, pb_->nets(), placeInsts());
+  aList = model.getMatrixATriplets(X);
 }
 
 // construct the laplace matrix of the connectivity graph
-void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
-                                       size_t vertexNum,
-                                       Triplets& edges)
+void InitialPlaceEV::createSparseMatrix(size_t vertexNum,
+                                       const Triplets& edges,
+                                       SparseMatrix& graphL)
 {
   graphL = SparseMatrix(
       vertexNum, vertexNum, octave_idx_type(2 * edges.size() + vertexNum));
@@ -488,10 +330,10 @@ void InitialPlaceEV::initLaplaceMatrix(SparseMatrix& graphL,
     graphL(i, i) = 0;
   }
   for (auto& t : edges) {
-    graphL(t.row(), t.col()) = -t.value();
-    graphL(t.col(), t.row()) = -t.value();
-    graphL(t.row(), t.row()) += t.value();
-    graphL(t.col(), t.col()) += t.value();
+    graphL(t.row(), t.col()) = 0;
+  }
+  for (auto& t : edges) {
+    graphL(t.row(), t.col()) += t.value();
   }
 }
 
@@ -519,7 +361,7 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
     ColumnVector eig_vals;
     eigs(eig_vecs, eig_vals, graphL, B, K);
 
-    int ev_min_idx = K - 2;  // the 1st smallest eigen value who is not 0 or nan
+    int ev_min_idx = K - 1;  // the 1st smallest eigen value who is not 0 or nan
     for (; ev_min_idx >= 0; --ev_min_idx) {
       auto eval_min = eig_vals.elem(ev_min_idx);
       if (!std::isnan(eval_min) && std::abs(eval_min) > 1e-7) {
@@ -609,7 +451,8 @@ void InitialPlaceEV::tuneVertexWeights(const SparseMatrix& graphL,
 
     if (iter - snap.iter > 50) {
       log_->report(
-          "[InitialPlace/EVPlace] no convergence in the latest 50 iterations");
+          "[InitialPlace/EVPlace] no convergence in the latest 50 "
+          "iterations");
       break;
     }
 
@@ -653,21 +496,8 @@ void InitialPlaceEV::updateEdgeWeights(const SparseMatrix& vertexWeights,
 
 void InitialPlaceEV::updateInstLocs(const Matrix& eig_vecs)
 {
-  const double scale
-      = sqrt(double(pb_->placeInstsArea()) / pb_->die().coreArea());
-
-  updateInstLoc(eig_vecs,
-                X,
-                scale * pb_->die().coreDx(),
-                pb_->die().coreCx(),
-                placeInstsNum(),
-                instLocVec_[X]);
-  updateInstLoc(eig_vecs,
-                Y,
-                scale * pb_->die().coreDy(),
-                pb_->die().coreCy(),
-                placeInstsNum(),
-                instLocVec_[Y]);
+  instLocVec_[X] = updateInstLoc(eig_vecs, X, minmaxLoc(X));
+  instLocVec_[Y] = updateInstLoc(eig_vecs, Y, minmaxLoc(Y));
 
   updateCoordi();
 }

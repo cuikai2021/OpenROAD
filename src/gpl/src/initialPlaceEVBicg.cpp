@@ -105,7 +105,7 @@ void InitialPlaceEV::updateInstLocs(const IdSolver& idSolver,
   for (size_t id = 0; id < N; ++id) {
     auto oid = idSolver.new2old(id);
     auto inst = placeInsts()[oid];
-    inst->dbSetCenterLocation( aInstLocs[X](id), aInstLocs[Y](id) );
+    inst->dbSetCenterLocation(aInstLocs[X](id), aInstLocs[Y](id));
   }
 }
 

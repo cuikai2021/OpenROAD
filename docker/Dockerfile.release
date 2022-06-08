@@ -30,6 +30,12 @@ ARG JOBS_NUM=8
 RUN  make -j ${JOBS_NUM}
 
 FROM deps_stage
+ADD ./klayout_0.26.6-1_amd64.deb .
+RUN \
+  set -eu; \
+  apt-get update && apt-get install -y klayout time libreadline-dev pkg-config imagemagick ssh; \
+  dpkg -i klayout_0.26.6-1_amd64.deb; \
+  rm -f klayout_0.26.6-1_amd64.deb;
 RUN mkdir -p /usr/local/share/yosys
 ADD ./ossutil64 /usr/local/bin/ossutil64
 ADD modules/release/tools/start_logtail.sh /Eden-flow/start_logtail.sh

@@ -38,6 +38,7 @@ sta::define_cmd_args "global_placement" {\
     [-routability_driven]\
     [-incremental]\
     [-bin_grid_count grid_count]\
+    [-nesv_place_iter nesv_place_iter]\
     [-density target_density]\
     [-init_density_penalty init_density_penalty]\
     [-init_wirelength_coef init_wirelength_coef]\
@@ -45,10 +46,11 @@ sta::define_cmd_args "global_placement" {\
     [-max_phi_coef max_phi_coef]\
     [-reference_hpwl reference_hpwl]\
     [-overflow overflow]\
-    [-initial_place_guide_file initial_place_guide_file]
-    [-initial_place_policy initial_place_policy]
+    [-initial_place_guide_file initial_place_guide_file]\ 
+    [-initial_place_policy initial_place_policy]\ 
     [-initial_place_max_iter initial_place_max_iter]\
     [-initial_place_max_fanout initial_place_max_fanout]\
+    [-cell_density_force_policy cell_density_force_policy]\
     [-routability_check_overflow routability_check_overflow]\
     [-routability_max_density routability_max_density]\
     [-routability_max_bloat_iter routability_max_bloat_iter]\
@@ -59,18 +61,19 @@ sta::define_cmd_args "global_placement" {\
     [-routability_rc_coefficients routability_rc_coefficients]\
     [-pad_left pad_left]\
     [-pad_right pad_right]\
-    [-verbose_level level]\
 }
 
 proc global_placement { args } {
   sta::parse_key_args "global_placement" args \
     keys {-bin_grid_count -density \
+      -nesv_place_iter \
       -init_density_penalty -init_wirelength_coef \
       -min_phi_coef -max_phi_coef -overflow \
       -reference_hpwl \
       -initial_place_guide_file \
       -initial_place_policy \
       -initial_place_max_iter -initial_place_max_fanout \
+      -cell_density_force_policy \
       -routability_check_overflow -routability_max_density \
       -routability_max_bloat_iter -routability_max_inflation_iter \
       -routability_target_rc_metric \
@@ -78,8 +81,7 @@ proc global_placement { args } {
       -routability_max_inflation_ratio \
       -routability_rc_coefficients \
       -timing_driven_net_reweight_overflow \
-      -pad_left -pad_right \
-      -verbose_level} \
+      -pad_left -pad_right} \
     flags {-skip_initial_place \
       -skip_nesterov_place \
       -timing_driven \
@@ -87,6 +89,8 @@ proc global_placement { args } {
       -disable_timing_driven \
       -disable_routability_driven \
       -skip_io \
+      -disable_filler_insertion \
+      -disable_cell_density_scaling \
       -incremental}
 
   # flow control for initial_place
@@ -104,6 +108,12 @@ proc global_placement { args } {
     gpl::set_initial_place_max_iter_cmd 0
   }
 
+  set disable_filler_insertion [info exists flags(-disable_filler_insertion)]
+  gpl::set_disable_filler_insertion_cmd $disable_filler_insertion
+
+  set disable_cell_density_scaling [info exists flags(-disable_cell_density_scaling)]
+  gpl::set_disable_cell_density_scaling_cmd $disable_cell_density_scaling
+
   if { [info exists keys(-initial_place_guide_file)] } { 
     set initial_place_guide_file $keys(-initial_place_guide_file)
     gpl::set_initial_place_guide_file_cmd $initial_place_guide_file
@@ -112,6 +122,11 @@ proc global_placement { args } {
   if { [info exists keys(-initial_place_policy)] } { 
     set initial_place_policy $keys(-initial_place_policy)
     gpl::set_initial_place_policy_cmd $initial_place_policy
+  }
+
+  if { [info exists keys(-cell_density_force_policy)] } { 
+    set cell_density_force_policy $keys(-cell_density_force_policy)
+    gpl::set_cell_density_force_policy_cmd $cell_density_force_policy
   }
 
   set timing_driven [info exists flags(-timing_driven)]
@@ -223,6 +238,12 @@ proc global_placement { args } {
     gpl::set_bin_grid_cnt_x_cmd $bin_grid_count
     gpl::set_bin_grid_cnt_y_cmd $bin_grid_count    
   }
+
+  if { [info exists keys(-nesv_place_iter)] } {
+    set nesv_place_iter  $keys(-nesv_place_iter)
+    sta::check_positive_integer "-nesv_place_iter" $nesv_place_iter
+    gpl::set_nesv_place_iter_cmd $nesv_place_iter 
+  }
  
   # overflow 
   if { [info exists keys(-overflow)] } {
@@ -282,13 +303,6 @@ proc global_placement { args } {
     set k4 [lindex $rc_coefficients 3]
     gpl::set_routability_rc_coefficients_cmd $k1 $k2 $k3 $k4
   }
-
-  if { [info exists keys(-verbose_level)] } {
-    set verbose_level $keys(-verbose_level)
-    sta::check_positive_integer "-verbose_level" $verbose_level
-    gpl::set_verbose_level_cmd $verbose_level
-  } 
-
 
   # temp code. 
   if { [info exists keys(-pad_left)] } {
@@ -362,7 +376,7 @@ proc get_global_placement_uniform_density { args } {
   gpl::set_initial_place_max_iter_cmd 0
   gpl::set_routability_driven_mode 0
   gpl::set_timing_driven_mode 0
-  gpl::set_verbose_level 0
+
 
   
   # pad setting
