@@ -178,8 +178,8 @@ class WireBudgeting : public SetupFixer
   virtual void buildAllFaninEdge(VertexSeq fanins) override;
 
   virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
-  Delay getLowBound(Vertex* pred, Vertex* succ);
-  Delay getHighBound(Vertex* pred, Vertex* succ);
+  virtual Delay getLowBound(Vertex* pred, Vertex* succ);
+  virtual Delay getHighBound(Vertex* pred, Vertex* succ);
   virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
 
   SteinerTree* getTree(Vertex* drvr);
@@ -223,6 +223,36 @@ class WireBudgetingFake : public WireBudgeting
   virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
 
   float factor_;
+};
+
+class WireBudgetingRC : public WireBudgeting
+{
+ public:
+  WireBudgetingRC(OpenRoad* openroad, Options* options)
+      : WireBudgeting(openroad, options){};
+  virtual ~WireBudgetingRC(){};
+
+  virtual void initAlgorithm();
+  // virtual void getNewWireLength(Vertex* pred,
+  //                               Vertex* succ,
+  //                               uint64& max_length,
+  //                               Delay& bud_rate);
+
+ protected:
+  // virtual void buildALLEdgePO(VertexSet ends) override;
+  // virtual void addConstraintPO(Vertex* po) override;
+  // virtual void addConstraintPI(Vertex* pi) override;
+
+  // virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
+  virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
+  virtual Delay getLowBound(Vertex* pred, Vertex* succ) override;
+  virtual Delay getHighBound(Vertex* pred, Vertex* succ) override;
+
+  Delay getDrvrSlope(Vertex* pred, Vertex* succ);
+  Delay getCellDelay(Vertex* vertex);
+
+  sta::Map<Name, Delay> drvr_slope_map_;
+  sta::Map<Name, Delay> delay_map_;
 };
 
 class HoldFixer : public LaurelAdapter

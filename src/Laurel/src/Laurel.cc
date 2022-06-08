@@ -406,6 +406,10 @@ void Laurel::wireBudgeting()
     delete wire_bud_;
   if (!options_->hasSpefFile())
     return wireBudgeting(0.2);
+  // {
+  //   wire_bud_ = new WireBudgetingRC(openroad_, options_);
+  //   return wireBudgetingCore();
+  // }
   wire_bud_ = new WireBudgeting(openroad_, options_);
   wireBudgetingCore();
 }

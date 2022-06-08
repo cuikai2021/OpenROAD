@@ -32,11 +32,15 @@ SetupFixer::SetupFixer(OpenRoad* openroad, Options* options)
 
 Cost SetupFixer::delay2Cost(Delay delay)
 {
+  if(fuzzyLessEqual(LRL_H_INFINITY, delay))
+    return LRL_S_INT_INF;
   Delay scaled_delay = std::stof(delayAsString(delay, sta_, 3));
   return round(scaled_delay * LRL_H_SCALING);
 }
 Delay SetupFixer::cost2Delay(Cost cost) const
 {
+  if(fuzzyLessEqual(LRL_S_INT_INF, cost))
+    return LRL_H_INFINITY;
   return ((Delay) cost) / LRL_H_SCALING / LRL_H_STA_SCALING;
 }
 
