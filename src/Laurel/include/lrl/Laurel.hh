@@ -197,6 +197,7 @@ class WireBudgeting : public SetupFixer
   sta::Map<WirePair, Vertex*> wire_fanout_map_;
   sta::Map<Name, Vertex*> name_vertex_map_;
   sta::Map<Pin*, Vertex*> pin_vertex_map_;
+  sta::Map<WirePair, uint64> distance_map_;
 
   sta::Map<Name, Delay> spef_delay_;
   sta::Map<Name, Delay> spef_delay_factor_;
@@ -216,7 +217,6 @@ class WireBudgetingFake : public WireBudgeting
                                 Delay& bud_rate);
 
  protected:
-  // virtual void buildALLEdgePO(VertexSet ends) override;
   virtual void addConstraintPO(Vertex* po) override;
   virtual void addConstraintPI(Vertex* pi) override;
 
@@ -233,26 +233,17 @@ class WireBudgetingRC : public WireBudgeting
   virtual ~WireBudgetingRC(){};
 
   virtual void initAlgorithm();
-  // virtual void getNewWireLength(Vertex* pred,
-  //                               Vertex* succ,
-  //                               uint64& max_length,
-  //                               Delay& bud_rate);
 
  protected:
-  // virtual void buildALLEdgePO(VertexSet ends) override;
-  // virtual void addConstraintPO(Vertex* po) override;
-  // virtual void addConstraintPI(Vertex* pi) override;
-
-  // virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
   virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
   virtual Delay getLowBound(Vertex* pred, Vertex* succ) override;
   virtual Delay getHighBound(Vertex* pred, Vertex* succ) override;
 
-  Delay getDrvrSlope(Vertex* pred, Vertex* succ);
+  Delay getDrvrSlope();
   Delay getCellDelay(Vertex* vertex);
 
-  sta::Map<Name, Delay> drvr_slope_map_;
   sta::Map<Name, Delay> delay_map_;
+  Delay wire_slope_ = LRL_H_ZERO;
 };
 
 class HoldFixer : public LaurelAdapter
@@ -331,6 +322,7 @@ class Laurel : public LaurelAdapter
   void fixSetup();
   void wireBudgeting();
   void wireBudgeting(float factor);
+  void wireBudgetingRC();
 
   // get Wire budgeting result by pin to pin after wireBudgeting()
   // unit DBU

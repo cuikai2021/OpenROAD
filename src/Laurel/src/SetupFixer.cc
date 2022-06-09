@@ -32,14 +32,14 @@ SetupFixer::SetupFixer(OpenRoad* openroad, Options* options)
 
 Cost SetupFixer::delay2Cost(Delay delay)
 {
-  if(fuzzyLessEqual(LRL_H_INFINITY, delay))
+  if (fuzzyLessEqual(LRL_H_INFINITY, delay))
     return LRL_S_INT_INF;
   Delay scaled_delay = std::stof(delayAsString(delay, sta_, 3));
   return round(scaled_delay * LRL_H_SCALING);
 }
 Delay SetupFixer::cost2Delay(Cost cost) const
 {
-  if(fuzzyLessEqual(LRL_S_INT_INF, cost))
+  if (fuzzyLessEqual(LRL_S_INT_INF, cost))
     return LRL_H_INFINITY;
   return ((Delay) cost) / LRL_H_SCALING / LRL_H_STA_SCALING;
 }
@@ -67,7 +67,7 @@ Delay SetupFixer::getDelay(Vertex* vertex)
   Pin* drvr_pin = vertex->pin();
   LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
   PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
-  if(!path.vertex(sta_))
+  if (!path.vertex(sta_))
     return LRL_H_ZERO;
   const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
   const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
@@ -146,6 +146,13 @@ Index SetupFixer::buildIndex(Vertex* vertex)
   Name vertex_name = vertex->name(sta_->sdcNetwork());
   if (!vertex_index_map_.hasKey(vertex_name))
     vertex_index_map_.insert(vertex_name, index_++);
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             4,
+             "{} , id = {}",
+             vertex_name.c_str(),
+             getIndex(vertex));
   return vertex_index_map_[vertex_name];
 }
 
@@ -209,8 +216,8 @@ void SetupFixer::addConstraintBase(Index pred,
              "LRL",
              4,
              "cst: {} -> {} , cap = {}, cost = {}",
-             getNodeVertexName(pred),
-             getNodeVertexName(succ),
+             pred,
+             succ,
              isInf(capacity) ? "INF" : std::to_string(capacity),
              std::to_string(cost));
 }
@@ -242,7 +249,7 @@ void SetupFixer::addConstraintPO(Vertex* po)
   Index po_index = getIndex(po);
   Required req = sta_->vertexRequired(po, MinMax::max()) + slack_margin;
   addConstraintBase(po_index, S_INDEX, LRL_S_INT_INF, delay2Cost(req));
-  solver_.SetNodeSupply(po_index, -LRL_S_INT_INF);
+  // solver_.SetNodeSupply(po_index, -LRL_S_INT_INF);
 }
 
 void SetupFixer::addConstraintPI(Vertex* pi)
@@ -425,8 +432,8 @@ void SetupFixer::report()
                "LRL",
                3,
                "{} -> {}, flow = {}/{}, cost = {}",
-               getNodeVertexName(pred),
-               getNodeVertexName(succ),
+               pred,
+               succ,
                isInf(flow) ? "INF" : std::to_string(flow),
                isInf(cap) ? "INF" : std::to_string(cap),
                std::to_string(cost));

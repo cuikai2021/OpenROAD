@@ -11,6 +11,7 @@ class Options
 
   bool ignoreClk() { return ignore_clk_; }
   bool getDebugReport() { return debug_report_; }
+  bool isWireBudModeRC() { return wire_bud_mode_rc_; }
 
   const char* spefFileName() { return spef_file_; }
 
@@ -20,6 +21,8 @@ class Options
 
   void analyzeClk() { ignore_clk_ = false; }
   void debugReport() { debug_report_ = true; }
+  void setWireBudModeRC() { wire_bud_mode_rc_ = true; }
+  void resetWireBudMode() { wire_bud_mode_rc_ = false;}
 
   void setSpefFile(const char* file_name) { spef_file_ = file_name; }
 
@@ -32,6 +35,7 @@ class Options
 
   bool ignore_clk_ = true;
   bool debug_report_ = false;
+  bool wire_bud_mode_rc_ = false;
 
   const char* spef_file_ = nullptr;
 };

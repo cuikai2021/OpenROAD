@@ -42,6 +42,9 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
     iter.enqueueAdjacentVertices(vertex);
     while (iter.hasNext()) {
       Vertex* fanin = iter.next();
+      Name fanin_name = fanin->name(sta_->sdcNetwork());
+      name_vertex_map_.insert(fanin_name, fanin);
+      pin_vertex_map_.insert(fanin->pin(), fanin);
       if (!fanin->isDriver(sta_->network())) {
         BfsBkwdIterator fanin_iter(BfsIndex::other, &s_pred, this);
         fanin_iter.enqueueAdjacentVertices(fanin);
@@ -51,11 +54,12 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
             buildIndex(pred);
             is_pi = false;
             Name pred_name = pred->name(sta_->sdcNetwork());
-            Name fanin_name = fanin->name(sta_->sdcNetwork());
-            name_vertex_map_.insert(fanin_name, fanin);
-            pin_vertex_map_.insert(fanin->pin(), fanin);
+            name_vertex_map_.insert(pred_name, pred);
+            pin_vertex_map_.insert(pred->pin(), pred);
             WirePair wire(pred_name, fanin_name);
+            WirePair cal_wire(pred_name, vertex_name);
             wire_fanout_map_.insert(wire, vertex);
+            distance_map_.insert(cal_wire, getTreeDist(pred, fanin));
             addConstraintEdge(pred, vertex);
             opt_wires_.insert(wire);
           }
@@ -63,9 +67,7 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
       } else {
         buildIndex(fanin);
         is_pi = false;
-        Name pred_name = fanin->name(sta_->sdcNetwork());
-        Name succ_name = vertex->name(sta_->sdcNetwork());
-        WirePair wire(pred_name, succ_name);
+        WirePair wire(fanin_name, vertex_name);
         wire_fanout_map_.insert(wire, vertex);
         addConstraintEdge(fanin, vertex);
         opt_wires_.insert(wire);
@@ -151,16 +153,11 @@ void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
   Delay high_bound = getHighBound(pred, succ);
   Delay delay = high_bound;
 
-  Name pred_name = pred->name(sta_->sdcNetwork());
-  Name succ_name = succ->name(sta_->sdcNetwork());
-  WirePair wire = WirePair(pred_name, succ_name);
-  opt_wires_.insert(getRealWire(wire));
-
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
   addConstraintBase(
       pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
-  addConstraintBase(
-      succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
+  // addConstraintBase(
+  //     succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
 }
 
 SteinerTree* WireBudgeting::getTree(Vertex* drvr)
@@ -180,41 +177,38 @@ SteinerTree* WireBudgeting::getTree(Vertex* drvr)
 
 uint64 WireBudgeting::getTreeDist(Vertex* drvr, Vertex* dst)
 {
-  uint64 wire_length = LRL_S_ZERO;
-  Vertex* load;
-  if (dst->isDriver(sta_->network())) {
-    Name drvr_name = drvr->name(sta_->sdcNetwork());
-    Name dst_name = dst->name(sta_->sdcNetwork());
-    WirePair wire(drvr_name, dst_name);
-    load = getRealFanoutVertex(wire);
-  } else {
-    load = dst;
-  }
-  SteinerTree* tree = getTree(drvr);
-  if (tree) {
-    SteinerPt cur = tree->drvrPt(sta_->network());
-    SteinerPt last = SteinerTree::null_pt;
-    SteinerPt next = findNextPt(tree, cur, last);
-    Point dst_pt = sta_->getDbNetwork()->location(load->pin());
-    while (dst_pt != tree->location(cur)) {
-      if (next == SteinerTree::null_pt)
-        break;
-      Point cur_pt = tree->location(cur);
-      Point next_pt = tree->location(next);
-      wire_length += Point::manhattanDistance(cur_pt, next_pt);
-      last = cur;
-      cur = next;
-      next = findNextPt(tree, cur, last);
+  Name drvr_name = drvr->name(sdc_network_);
+  Name dst_name = dst->name(sdc_network_);
+  WirePair wire(drvr_name, dst_name);
+  if (!distance_map_.hasKey(wire)) {
+    uint64 wire_length = LRL_S_ZERO;
+    SteinerTree* tree = getTree(drvr);
+    if (tree) {
+      SteinerPt cur = tree->drvrPt(sta_->network());
+      SteinerPt last = SteinerTree::null_pt;
+      SteinerPt next = findNextPt(tree, cur, last);
+      Point dst_pt = sta_->getDbNetwork()->location(dst->pin());
+      while (dst_pt != tree->location(cur)) {
+        if (next == SteinerTree::null_pt)
+          break;
+        Point cur_pt = tree->location(cur);
+        Point next_pt = tree->location(next);
+        wire_length += Point::manhattanDistance(cur_pt, next_pt);
+        last = cur;
+        cur = next;
+        next = findNextPt(tree, cur, last);
+      }
     }
+    if (wire_length == LRL_S_ZERO) {
+      // if pin count < 2, it would not create a steiner tree
+      // use manhattan distance directly
+      Point drvr_pt = sta_->getDbNetwork()->location(drvr->pin());
+      Point dst_pt = sta_->getDbNetwork()->location(dst->pin());
+      wire_length = Point::manhattanDistance(drvr_pt, dst_pt);
+    }
+    distance_map_.insert(wire, wire_length);
   }
-  if (wire_length == LRL_S_ZERO) {
-    // if pin count < 2, it would not create a steiner tree
-    // use manhattan distance directly
-    Point drvr_pt = sta_->getDbNetwork()->location(drvr->pin());
-    Point dst_pt = sta_->getDbNetwork()->location(dst->pin());
-    return Point::manhattanDistance(drvr_pt, dst_pt);
-  }
-  return wire_length;
+  return distance_map_.at(wire);
 }
 
 SteinerPt WireBudgeting::findNextPt(SteinerTree* tree,
@@ -268,17 +262,16 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
                                      uint64& max_length,
                                      Delay& bud_rate)
 {
-  Index pred_index = getIndex(pred);
-  Index succ_index = getIndex(succ);
+  Name pred_name = pred->name(sta_->sdcNetwork());
   Name succ_name = succ->name(sta_->sdcNetwork());
 
+  Vertex* fanout = getRealFanoutVertex(WirePair(pred_name, succ_name));
+  Index pred_index = getIndex(pred);
+  Index succ_index = getIndex(fanout);
+
   uint64 origin_length = getTreeDist(pred, succ);
-  Delay origin_delay = LRL_H_ZERO;
-  Delay max_delay = LRL_H_ZERO;
-  if (spef_delay_.hasKey(succ_name))
-    origin_delay = spef_delay_.at(succ_name);
-  if (spef_delay_factor_.hasKey(succ_name))
-    max_delay = spef_delay_factor_.at(succ_name);
+  Delay origin_delay = getLowBound(pred, fanout);
+  Delay max_delay = getHighBound(pred, fanout);
 
   Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
 
@@ -396,117 +389,32 @@ void WireBudgetingRC::initAlgorithm()
 
 Delay WireBudgetingRC::costSlope(Vertex* pred, Vertex* succ)
 {
-  // uint64 wire_length = getTreeDist(pred, succ);
-  // Name succ_name = succ->name(sdc_network_);
-  // Name pred_name = succ->name(sdc_network_);
-  // WirePair wire(pred_name, succ_name);
-  // Vertex* fanout = getRealFanoutVertex(wire);
-  // Delay min_delay = LRL_H_ZERO;
-  // Delay max_delay = getDelay(succ);
-  // Delay skew = LRL_H_ZERO;  // unused
-  // LibertyPort* drvr_port = network_->libertyPort(fanout->pin());
-  // LibertyPort* load_port = network_->libertyPort(succ->pin());
-  // cellWireDelay(drvr_port, load_port, wire_length, min_delay, skew);
-  // // cellWireDelay(drvr_port, load_port, 2 * wire_length, max_delay, skew);
-  // // = *sta_->graph()->arrivals(succ) - *sta_->graph()->arrivals(pred);
-
-  // printf("%s  len: %lld, max delay: %s , min delay: %s\n",
-  //        succ_name.c_str(),
-  //        wire_length,
-  //        delayAsString(max_delay, sta_, 3),
-  //        delayAsString(min_delay, sta_, 3));
-  // if (fuzzyLessEqual(max_delay, min_delay))
-  //   return LRL_H_INF;
-  // return wire_length / (max_delay - min_delay) / LRL_H_STA_SCALING
-  //        / LRL_H_SCALING / LRL_H_SCALING / LRL_H_SCALING;
-  Delay slope = getDrvrSlope(pred, succ);
-  if (fuzzyEqual(slope, LRL_H_INFINITY))
-    return LRL_H_ZERO;
-  return slope / LRL_H_STA_SCALING / LRL_H_SCALING / LRL_H_SCALING
-         / LRL_H_SCALING;
+  return cost2Delay(100);
 }
 
 Delay WireBudgetingRC::getLowBound(Vertex* pred, Vertex* succ)
 {
-  // Name succ_name = succ->name(sdc_network_);
-  // Name pred_name = succ->name(sdc_network_);
-  // WirePair wire(pred_name, succ_name);
-  // Vertex* fanout = getRealFanoutVertex(wire);
-  // Delay min_delay = LRL_H_ZERO;
-  // Delay max_delay = getDelay(succ);
-  // Delay skew = LRL_H_ZERO;  // unused
-  // LibertyPort* drvr_port = network_->libertyPort(fanout->pin());
-  // LibertyPort* load_port = network_->libertyPort(succ->pin());
-  // cellWireDelay(drvr_port, load_port, LRL_H_ZERO, min_delay, skew);
-  // return max_delay - min_delay;
-  return std::max(getCellDelay(succ), getCellDelay(pred));
+  return getCellDelay(succ);
 }
 
 Delay WireBudgetingRC::getHighBound(Vertex* pred, Vertex* succ)
 {
-  // Delay diff = std::abs(getDelay(pred) - getCellDelay(pred));
-  return getLowBound(pred, succ) * 1.2;
+  double length = dbuToMeters(getTreeDist(pred, succ));
+  return getLowBound(pred, succ) + getDrvrSlope() * length;
 }
 
-Delay WireBudgetingRC::getDrvrSlope(Vertex* pred, Vertex* succ)
+Delay WireBudgetingRC::getDrvrSlope()
 {
-  Name vertex_name = pred->name(sta_->sdcNetwork());
-  if (!drvr_slope_map_.hasKey(vertex_name)) {
-    Slack pred_slack = sta_->vertexSlack(pred, MinMax::max());
-    Delay pred_arrival = *sta_->graph()->arrivals(pred);
-    VertexOutEdgeIterator pred_edge_iter(pred, graph_);
-    Delay wire_delay = LRL_H_ZERO;
-    while (pred_edge_iter.hasNext()) {
-      Edge* edge = pred_edge_iter.next();
-      Vertex* fanout = edge->to(graph_);
-      Slack fanout_slack = sta_->vertexSlack(fanout, MinMax::max());
-      if (fuzzyEqual(fanout_slack, pred_slack)) {
-        ArcDelayCalc* arc_delay_calc = sta_->arcDelayCalc();
-        Slew load_slew;
-        arc_delay_calc->loadDelay(pred->pin(), wire_delay, load_slew);
-        // if (!sta_->search()->isEndpoint(fanout)) {
-        //   VertexOutEdgeIterator next_edge_iter(fanout, graph_);
-        //   while (next_edge_iter.hasNext()) {
-        //     Edge* next_edge = next_edge_iter.next();
-        //     Vertex* next = next_edge->to(graph_);
-        //     Slack next_slack = sta_->vertexSlack(next, MinMax::max());
-        //     if (fuzzyEqual(pred_slack, next_slack)) {
-        printf(
-            "%s -> %s\n", pred->name(sdc_network_), fanout->name(sdc_network_));
-        //       Delay next_arrival = *sta_->graph()->arrivals(next);
-        //       Delay pred_arrival_diff = pred_arrival - next_arrival;
-        //       Delay next_delay = getCellDelay(next);
-        //       wire_delay = pred_arrival_diff - next_delay;
-        //       break;
-        //     }
-        //   }
-        // }
-        // } else {
-        //   VertexOutEdgeIterator fanout_edge_iter(pred, graph_);
-        //   while (fanout_edge_iter.hasNext())
-        // }
-      }
-    }
-    Delay rate = LRL_H_INFINITY;
-    // Delay pred_delay = getDelay(pred);
-    Delay pred_delay = getCellDelay(pred);
-    Delay succ_delay = getCellDelay(succ);
-    uint64 wire_length = getTreeDist(pred, succ);
-    printf(
-        "%s  len: %lld, pred delay: %s, succ delay: %s, wire_delay: "
-        "%s\n",
-        vertex_name.c_str(),
-        wire_length,
-        delayAsString(pred_delay, sta_, 3),
-        delayAsString(succ_delay, sta_, 3),
-        delayAsString(wire_delay, sta_, 3));
-    if (!fuzzyEqual(LRL_H_ZERO, pred_delay))
-      rate = wire_length / getCellDelay(succ);
-    else
-      rate = wire_length / getCellDelay(pred);
-    drvr_slope_map_.insert(vertex_name, rate);
+  if (fuzzyEqual(wire_slope_, LRL_H_ZERO)) {
+    double wire_cap
+        = openroad_->getResizer()->wireSignalCapacitance(sta_->cmdCorner());
+    double wire_res
+        = openroad_->getResizer()->wireSignalResistance(sta_->cmdCorner());
+    wire_slope_ = wire_cap * wire_res;
+    logger_->info(
+        utl::LRL, 1405, "rc slope is {}", delayAsString(wire_slope_, sta_, 3));
   }
-  return drvr_slope_map_.at(vertex_name);
+  return wire_slope_;
 }
 
 Delay WireBudgetingRC::getCellDelay(Vertex* vertex)

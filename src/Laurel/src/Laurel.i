@@ -69,6 +69,22 @@ debug_report()
 }
 
 void
+set_wire_bud_mode_rc()
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->setWireBudModeRC();
+}
+
+void
+reset_wire_bud_mode()
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->resetWireBudMode();
+}
+
+void
 set_spef_file(const char* filename)
 {
   Laurel *laurel = getLaurel();
