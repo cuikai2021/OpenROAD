@@ -418,7 +418,7 @@ void Laurel::wireBudgeting()
   return wireBudgeting(0.2);
 }
 
-void Laurel::wireBudgeting()
+void Laurel::wireBudgetingRC()
 {
   options_->setWireBudModeRC();
   wireBudgeting();
