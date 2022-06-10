@@ -36,12 +36,15 @@ proc laurel_fix_setup { args } {
 sta::define_cmd_args "laurel" {[-slack_margin slack_margin] \
                                 [-spef spef] \
                                 [-setup] [-hold] [-wire_budgeting] \
-                                [[-debug_report]]}
+                                [-debug_report] \
+                                [-rc]}
 
 proc laurel { args } {
   sta::parse_key_args "laurel" args \
     keys {-slack_margin -spef} \
-    flags {-setup -hold -wire_budgeting -debug_report}
+    flags {-setup -hold \
+            -wire_budgeting -debug_report \
+            -rc}
   
   if { [info exists keys(-slack_margin)] } {
     lrl::set_slack_margin $keys(-slack_margin)
@@ -49,6 +52,10 @@ proc laurel { args } {
 
   if { [info exists flags(-debug_report)] } {
     lrl::debug_report 
+  }
+  
+  if { [info exists flags(-rc)] } {
+    lrl::set_wire_bud_mode_rc
   }
 
   if { [info exists keys(-spef)] } {

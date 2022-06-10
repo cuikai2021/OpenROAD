@@ -374,7 +374,7 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
                succ->name(sta_->sdcNetwork()),
                max_length,
                bud_rate);
-    if (bud_rate > 1.5)
+    if (bud_rate > 1.0)
       slack_cnt++;
     cnt++;
   }
@@ -404,14 +404,25 @@ void Laurel::wireBudgeting()
 {
   if (wire_bud_)
     delete wire_bud_;
-  if (!options_->hasSpefFile())
-    return wireBudgeting(0.2);
-  // {
-  //   wire_bud_ = new WireBudgetingRC(openroad_, options_);
-  //   return wireBudgetingCore();
-  // }
-  wire_bud_ = new WireBudgeting(openroad_, options_);
-  wireBudgetingCore();
+
+  if (options_->hasSpefFile()) {
+    wire_bud_ = new WireBudgeting(openroad_, options_);
+    return wireBudgetingCore();
+  }
+
+  if (options_->isWireBudModeRC()) {
+    wire_bud_ = new WireBudgetingRC(openroad_, options_);
+    return wireBudgetingCore();
+  }
+
+  return wireBudgeting(0.2);
+}
+
+void Laurel::wireBudgeting()
+{
+  options_->setWireBudModeRC();
+  wireBudgeting();
+  options_->resetWireBudMode();
 }
 
 void Laurel::wireBudgeting(float factor)
