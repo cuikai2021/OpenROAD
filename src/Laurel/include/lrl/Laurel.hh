@@ -145,6 +145,7 @@ class SetupFixer : public LaurelAdapter
   sta::Map<Index, Arrival> arrival_map_;
 
   sta::Map<Name, Index> vertex_index_map_;
+  sta::Map<Name, Vertex*> name_vertex_map_;
 
   Options* options_;
 };
@@ -172,7 +173,7 @@ class WireBudgeting : public SetupFixer
   Vertex* getVertex(Name name) { return name_vertex_map_.findKey(name); }
 
  protected:
-  virtual void buildALLEdgePO(VertexSet ends) override;
+  // virtual void buildALLEdgePO(VertexSet ends) override;
 
   // virtual void buildIndexMap(VertexSet ends) override;
   virtual void buildAllFaninEdge(VertexSeq fanins) override;
@@ -195,7 +196,6 @@ class WireBudgeting : public SetupFixer
   WirePairSet opt_wires_;
   sta::Map<Vertex*, SteinerTree*> drvr_tree_map_;
   sta::Map<WirePair, Vertex*> wire_fanout_map_;
-  sta::Map<Name, Vertex*> name_vertex_map_;
   sta::Map<Pin*, Vertex*> pin_vertex_map_;
   sta::Map<WirePair, uint64> distance_map_;
 

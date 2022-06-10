@@ -144,8 +144,10 @@ Delay SetupFixer::getHighBound(Vertex* vertex)
 Index SetupFixer::buildIndex(Vertex* vertex)
 {
   Name vertex_name = vertex->name(sta_->sdcNetwork());
-  if (!vertex_index_map_.hasKey(vertex_name))
+  if (!vertex_index_map_.hasKey(vertex_name)) {
     vertex_index_map_.insert(vertex_name, index_++);
+    name_vertex_map_.insert(vertex_name, vertex);
+  }
   debugPrint(logger_,
              utl::LRL,
              "LRL",
@@ -181,7 +183,7 @@ void SetupFixer::buildAllFaninEdge(VertexSeq fanins)
 void SetupFixer::buildALLEdgePO(VertexSet ends)
 {
   for (auto node : vertex_index_map_) {
-    Vertex* vertex = findRealVertex(node.first);
+    Vertex* vertex = name_vertex_map_.findKey(node.first);
     if (ends.find(vertex) != ends.end())
       addConstraintPO(vertex);
   }
@@ -340,7 +342,8 @@ bool SetupFixer::updateArrivalMap(const IdEdgeWeightSet bellman_graph)
     Arrival new_arrival = pred_arrival + weight;
     if (!(fuzzyEqual(LRL_H_INFINITY, pred_arrival)
           && fuzzyLess(LRL_H_ZERO, weight))
-        && fuzzyLess(new_arrival, succ_arrival)) {
+        && fuzzyLess(new_arrival, succ_arrival)
+        && fuzzyLess(new_arrival, 20)) {
       arrival_map_[succ] = new_arrival;
       changed = true;
     }
@@ -404,7 +407,7 @@ VertexSet SetupFixer::getResizeVertex()
   for (auto node : vertex_index_map_) {
     Name name = node.first;
     if (name.compare(LRL_S_SRC_NAME)) {
-      Vertex* vertex = findRealVertex(name);
+      Vertex* vertex = name_vertex_map_.findKey(name);
       Delay resize_value = getResizeValue(vertex);
       if (delay2Cost(resize_value) != 0)
         resize_vertex.insert(vertex);
