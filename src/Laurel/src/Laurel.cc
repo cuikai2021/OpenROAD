@@ -54,20 +54,25 @@ LibertyCell* Laurel::findHoldBuffer(Delay min_limit)
 {
   LibertyCell* max_buffer = nullptr;
   Delay max_delay = INF;
+  const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
   for (LibertyCell* buffer : buffer_cells_) {
     Delay buffer_min_delay = bufferHoldDelay(buffer);
-    if ((max_buffer == nullptr || buffer_min_delay < max_delay)
-        && fuzzyLess(min_limit, buffer_min_delay)) {
+    // if ((max_buffer == nullptr || buffer_min_delay < max_delay)
+    //     && fuzzyLess(min_limit, buffer_min_delay)) {
+    if (fuzzyLess(min_limit, buffer_min_delay)
+        && fuzzyLess(buffer_min_delay, min_limit + uncertainty)) {
       max_buffer = buffer;
       max_delay = buffer_min_delay;
     }
   }
   if (max_buffer)
-    logger_->info(utl::LRL,
-                  1108,
-                  "choose buffer {}, delay {}",
-                  max_buffer->name(),
-                  delayAsString(max_delay, this, 3));
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               4,
+               "choose buffer {}, delay {}",
+               max_buffer->name(),
+               delayAsString(max_delay, this, 3));
   return max_buffer;
 }
 
@@ -193,6 +198,7 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
   }
 
   const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
+  Delay padding = max_padding;
   if (!fuzzyLess(max_padding - min_padding, uncertainty)) {
     logger_->warn(
         utl::LRL,
@@ -200,11 +206,10 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
         "padding diff in all {} fanout from {} higher then uncertainty",
         load_pins.size(),
         insert_from->name(sta_->sdcNetwork()));
-    return false;
+    // return false;
+    padding = min_padding;
   }
 
-  findBuffers();
-  Delay padding = max_padding;
   int buffer_count = 1;
   LibertyCell* buffer_cell = findHoldBuffer(max_padding);
   while (!buffer_cell) {
@@ -216,8 +221,12 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
   if (buffer_cell != nullptr && !load_pins.empty()) {
     insertHoldDelay(
         insert_from, buffer_count, load_pins, loads_have_out_port, buffer_cell);
-    logger_->info(
-        utl::LRL, 1109, "inserted {} buffer ", std::to_string(buffer_count));
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               4,
+               "inserted {} buffer ",
+               std::to_string(buffer_count));
   }
   return true;
 }
@@ -225,6 +234,7 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
 bool Laurel::insertAllBuffer(HoldFixer* fixer)
 {
   bool ret = true;
+  findBuffers();
   VertexNameSet vio_pred_set = fixer->getNonZeroPaddingPred();
   for (auto vertex_name : vio_pred_set) {
     if (!insertBuffer(fixer, vertex_name))
