@@ -135,7 +135,7 @@ class OpenDBAdapter : public DBAdapter
   void addNet(odb::dbNet* net);
   void addWire(odb::dbWire* wire);
   void addSpecialPath(odb::dbSBox* sbox);
-  void addVia(odb::dbSBox* box);
+  void addVia(odb::dbBox* box);
   void addVia(std::string viaName, int x, int y);
 
   void getObsFromOpenDB();

@@ -8,6 +8,7 @@
 #include "GroupedRange.hpp"
 #include "odb/ZException.h"
 #include "odb/db.h"
+#include "odb/dbShape.h"
 #include "odb/dbTransform.h"
 #include "odb/dbWireCodec.h"
 #include "odb/geom.h"
@@ -15,7 +16,7 @@
 
 namespace banyan {
 
-std::string getViaNameFromViaBox(odb::dbSBox* box)
+std::string getViaNameFromViaBox(odb::dbBox* box)
 {
   assert(box->isVia());
   auto techVia = box->getTechVia();
@@ -162,7 +163,8 @@ void OpenDBAdapter::getLayersFromOpenDB()
   } else {
     design_.max_layer = layers_.size() - 1;
     if (design_.max_layer > belowRoutingLayerMaxIndex_ + 7) {
-      design_.max_layer = belowRoutingLayerMaxIndex_ + 7;  // M6 at most by default
+      design_.max_layer
+          = belowRoutingLayerMaxIndex_ + 7;  // M6 at most by default
     }
   }
 }
@@ -572,8 +574,13 @@ void OpenDBAdapter::addBox(std::string layerName,
     //        layerIdx, layerName);
   }
 
-  boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom,
-                    banyan_go::DEFAULT_WIRE_EXT, banyan_go::DEFAULT_WIRE_EXT});
+  boxes_.push_back({layerIdx,
+                    left,
+                    bottom,
+                    right - left,
+                    top - bottom,
+                    banyan_go::DEFAULT_WIRE_EXT,
+                    banyan_go::DEFAULT_WIRE_EXT});
 }
 
 void OpenDBAdapter::addWireBox(const std::string& layerName,
@@ -584,8 +591,8 @@ void OpenDBAdapter::addWireBox(const std::string& layerName,
                                int startExt,
                                int endExt)
 {
-  assert((startExt == banyan_go::DEFAULT_WIRE_EXT || startExt >= 0) &&
-         (endExt == banyan_go::DEFAULT_WIRE_EXT || endExt >= 0));
+  assert((startExt == banyan_go::DEFAULT_WIRE_EXT || startExt >= 0)
+         && (endExt == banyan_go::DEFAULT_WIRE_EXT || endExt >= 0));
   int layerIdx = AssertFind(layerNameToIdxs_, layerName);
   if (layerIdx < 0) {
     // logger_->info(utl::BY,
@@ -593,10 +600,11 @@ void OpenDBAdapter::addWireBox(const std::string& layerName,
     //        "box on layer[{}] {}",
     //        layerIdx, layerName);
   }
-  boxes_.push_back({layerIdx, left, bottom, right - left, top - bottom, startExt, endExt});
+  boxes_.push_back(
+      {layerIdx, left, bottom, right - left, top - bottom, startExt, endExt});
 }
 
-void OpenDBAdapter::addVia(odb::dbSBox* box)
+void OpenDBAdapter::addVia(odb::dbBox* box)
 {
   int x;
   int y;
@@ -707,14 +715,24 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
                   box->getTechLayer()->getName());
   }
 
-  boxes_.push_back(
-      {layerIdx, defdist(x1), defdist(y1), defdist(dx), defdist(dy),
-       banyan_go::DEFAULT_WIRE_EXT, banyan_go::DEFAULT_WIRE_EXT});
+  boxes_.push_back({layerIdx,
+                    defdist(x1),
+                    defdist(y1),
+                    defdist(dx),
+                    defdist(dy),
+                    banyan_go::DEFAULT_WIRE_EXT,
+                    banyan_go::DEFAULT_WIRE_EXT});
 }
 
 void OpenDBAdapter::addWire(odb::dbWire* wire)
 {
-  auto doAddWire = [&](const std::string& layerName, int x1, int y1, int ext1, int x2, int y2, int ext2) {
+  auto doAddWire = [&](const std::string& layerName,
+                       int x1,
+                       int y1,
+                       int ext1,
+                       int x2,
+                       int y2,
+                       int ext2) {
     int beginX = defdist(x1);
     int beginY = defdist(y1);
     int beginExt = defdist(ext1);
@@ -731,17 +749,18 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
     addWireBox(layerName, beginX, beginY, endX, endY, beginExt, endExt);
   };
 
-  auto doAddRect = [&](const std::string& layerName, int x, int y, int deltaX1, int deltaY1, int deltaX2, int deltaY2) {
-        int x1 = x + deltaX1;
-        int y1 = y + deltaY1;
-        int x2 = x + deltaX2;
-        int y2 = y + deltaY2;
-        addBox(layerName,
-               defdist(x1),
-               defdist(y1),
-               defdist(x2),
-               defdist(y2));
-
+  auto doAddRect = [&](const std::string& layerName,
+                       int x,
+                       int y,
+                       int deltaX1,
+                       int deltaY1,
+                       int deltaX2,
+                       int deltaY2) {
+    int x1 = x + deltaX1;
+    int y1 = y + deltaY1;
+    int x2 = x + deltaX2;
+    int y2 = y + deltaY2;
+    addBox(layerName, defdist(x1), defdist(y1), defdist(x2), defdist(y2));
   };
 
   auto doAddVia = [&](const std::string& name, int x, int y) {
@@ -767,15 +786,15 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
       }
 
       case odb::dbWireDecoder::POINT_VIRTUAL: {
-	    int x, y, ext;
-	    decode.getPoint(x, y);
-	    ext = banyan_go::DEFAULT_WIRE_EXT;
-	    prevX = x;
-	    prevY = y;
-	    prevExt = ext;
-	    hasPrevCoor = true;
-	    break;
-	  }
+        int x, y, ext;
+        decode.getPoint(x, y);
+        ext = banyan_go::DEFAULT_WIRE_EXT;
+        prevX = x;
+        prevY = y;
+        prevExt = ext;
+        hasPrevCoor = true;
+        break;
+      }
 
       case odb::dbWireDecoder::POINT: {
         int x, y, ext;
@@ -783,7 +802,8 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
         ext = banyan_go::DEFAULT_WIRE_EXT;
 
         if (hasPrevCoor) {
-          doAddWire(decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, ext);
+          doAddWire(
+              decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, ext);
         }
         prevX = x;
         prevY = y;
@@ -796,7 +816,8 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
         int x, y, ext;
         decode.getPoint(x, y, ext);
         if (hasPrevCoor) {
-          doAddWire(decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, ext);
+          doAddWire(
+              decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, ext);
         }
         prevX = x;
         prevY = y;
@@ -821,8 +842,8 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
         assert(hasPrevCoor);
 
         int deltaX1;
-        int deltaY1; 
-        int deltaX2; 
+        int deltaY1;
+        int deltaX2;
         int deltaY2;
         decode.getRect(deltaX1, deltaY1, deltaX2, deltaY2);
         doAddRect(decode.getLayer()->getName(),
@@ -852,21 +873,17 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
 void OpenDBAdapter::getPinsFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
-  size_t boxIndexBegin = boxes_.size();
-  size_t viaIndexBegin = vias_.size();
 
   auto nets = block->getNets();
-  for (auto net : nets) {
-    const auto nName = net->getName();
+  for (odb::dbNet* net : nets) {
     size_t pinIndexBegin = pins_.size();
-    int netIdx = AssertFind(netNameToIdxs_, nName);
-    // netNameToBTerms.erase(nName);
-    // netNameToITerms.erase(nName);
 
-    const auto netBTerms = net->getBTerms();
-    for (auto bTerm : netBTerms) {
-      boxIndexBegin = boxes_.size();
-      viaIndexBegin = vias_.size();
+    const auto nName = net->getName();
+    int netIdx = AssertFind(netNameToIdxs_, nName);
+
+    for (auto bTerm : net->getBTerms()) {
+      auto boxIndexBegin = boxes_.size();
+      auto viaIndexBegin = vias_.size();
 
       for (auto bPin : bTerm->getBPins()) {
         for (auto box : bPin->getBoxes()) {
@@ -890,11 +907,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
                        viaIndexBegin,
                        vias_.size()});
     }
+    for (auto iTerm : net->getITerms()) {
+      auto boxIndexBegin = boxes_.size();
+      auto viaIndexBegin = vias_.size();
 
-    const auto netITerms = net->getITerms();
-    for (auto iTerm : netITerms) {
-      boxIndexBegin = boxes_.size();
-      viaIndexBegin = vias_.size();
       auto inst = iTerm->getInst();
       auto mTerm = iTerm->getMTerm();
 
@@ -905,17 +921,15 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
       for (auto mPin : mTerm->getMPins()) {
         for (auto box : mPin->getGeometry()) {
-          odb::dbTechLayer* techLayer = box->getTechLayer();
-          // if (techLayer->getType().getValue()
-          //     != odb::dbTechLayerType::ROUTING) {
-          //   continue;
-          // }
-
-          odb::Rect rect;
-          box->getBox(rect);
-          transform.apply(rect);
-          assert(!box->isVia());
-          addBox(techLayer->getName(), rect);
+          if (box->isVia()) {
+            addVia(box);
+          } else {
+            odb::dbTechLayer* techLayer = box->getTechLayer();
+            odb::Rect rect;
+            box->getBox(rect);
+            transform.apply(rect);
+            addBox(techLayer->getName(), rect);
+          }
         }
       }
 
@@ -933,8 +947,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
-      boxIndexBegin = boxes_.size();
-      viaIndexBegin = vias_.size();
+      auto boxIndexBegin = boxes_.size();
+      auto viaIndexBegin = vias_.size();
       addWire(net->getWire());
 
       strs_.emplace_back(nName + "/wire");
@@ -947,8 +961,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
     }
 
     if (net->isSpecial()) {
-      boxIndexBegin = boxes_.size();
-      viaIndexBegin = vias_.size();
+      auto boxIndexBegin = boxes_.size();
+      auto viaIndexBegin = vias_.size();
       for (auto swire : net->getSWires()) {
         for (auto box : swire->getWires()) {
           if (!box->isVia()) {
