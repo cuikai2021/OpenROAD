@@ -164,6 +164,8 @@ void SetupFixer::buildAllFaninEdge(VertexSeq fanins)
     bool is_pi = true;
     buildIndex(vertex);
     SearchPredNonReg2 pred(sta_);
+    bellman_max_iter_num_
+        = std::max(vertex->level() / 20, bellman_max_iter_num_);
     BfsBkwdIterator iter(BfsIndex::other, &pred, this);
     iter.enqueueAdjacentVertices(vertex);
     while (iter.hasNext()) {
@@ -342,8 +344,7 @@ bool SetupFixer::updateArrivalMap(const IdEdgeWeightSet bellman_graph)
     Arrival new_arrival = pred_arrival + weight;
     if (!(fuzzyEqual(LRL_H_INFINITY, pred_arrival)
           && fuzzyLess(LRL_H_ZERO, weight))
-        && fuzzyLess(new_arrival, succ_arrival)
-        && fuzzyLess(new_arrival, 20)) {
+        && fuzzyLess(new_arrival, succ_arrival)) {
       arrival_map_[succ] = new_arrival;
       changed = true;
     }
@@ -357,7 +358,7 @@ bool SetupFixer::remap()
   bool changed = true;
   IdEdgeWeightSet bellman_graph = buildBellmanGraph();
   initArrivalMap();
-  for (size_t iter = 0; iter <= arrival_map_.size() && changed; ++iter)
+  for (size_t iter = 0; iter <= bellman_max_iter_num_ && changed; ++iter)
     changed = updateArrivalMap(bellman_graph);
 
   if (changed)

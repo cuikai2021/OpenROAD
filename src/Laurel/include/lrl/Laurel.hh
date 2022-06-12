@@ -142,6 +142,8 @@ class SetupFixer : public LaurelAdapter
   CostSeq capacities_;
   CostSeq unit_costs_;
 
+  int bellman_max_iter_num_ = 0;
+
   sta::Map<Index, Arrival> arrival_map_;
 
   sta::Map<Name, Index> vertex_index_map_;
