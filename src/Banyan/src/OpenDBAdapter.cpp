@@ -12,6 +12,7 @@
 #include "lrl/Laurel.hh"
 #include "odb/ZException.h"
 #include "odb/db.h"
+#include "odb/dbShape.h"
 #include "odb/dbTransform.h"
 #include "odb/dbWireCodec.h"
 #include "odb/geom.h"
@@ -22,7 +23,7 @@
 
 namespace banyan {
 
-std::string getViaNameFromViaBox(odb::dbSBox* box)
+std::string getViaNameFromViaBox(odb::dbBox* box)
 {
   assert(box->isVia());
   auto techVia = box->getTechVia();
@@ -815,7 +816,7 @@ void OpenDBAdapter::addWireBox(const std::string& layerName,
       {layerIdx, left, bottom, right - left, top - bottom, startExt, endExt});
 }
 
-void OpenDBAdapter::addVia(odb::dbSBox* box)
+void OpenDBAdapter::addVia(odb::dbBox* box)
 {
   int x;
   int y;
@@ -1085,21 +1086,17 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
 void OpenDBAdapter::getPinsFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
-  size_t boxIndexBegin = boxes_.size();
-  size_t viaIndexBegin = vias_.size();
 
   auto nets = block->getNets();
-  for (auto net : nets) {
-    const auto nName = net->getName();
+  for (odb::dbNet* net : nets) {
     size_t pinIndexBegin = pins_.size();
-    int netIdx = AssertFind(netNameToIdxs_, nName);
-    // netNameToBTerms.erase(nName);
-    // netNameToITerms.erase(nName);
 
-    const auto netBTerms = net->getBTerms();
-    for (auto bTerm : netBTerms) {
-      boxIndexBegin = boxes_.size();
-      viaIndexBegin = vias_.size();
+    const auto nName = net->getName();
+    int netIdx = AssertFind(netNameToIdxs_, nName);
+
+    for (auto bTerm : net->getBTerms()) {
+      auto boxIndexBegin = boxes_.size();
+      auto viaIndexBegin = vias_.size();
 
       for (auto bPin : bTerm->getBPins()) {
         for (auto box : bPin->getBoxes()) {
@@ -1124,11 +1121,10 @@ void OpenDBAdapter::getPinsFromOpenDB()
                        viaIndexBegin,
                        vias_.size()});
     }
+    for (auto iTerm : net->getITerms()) {
+      auto boxIndexBegin = boxes_.size();
+      auto viaIndexBegin = vias_.size();
 
-    const auto netITerms = net->getITerms();
-    for (auto iTerm : netITerms) {
-      boxIndexBegin = boxes_.size();
-      viaIndexBegin = vias_.size();
       auto inst = iTerm->getInst();
       auto mTerm = iTerm->getMTerm();
 
@@ -1139,17 +1135,15 @@ void OpenDBAdapter::getPinsFromOpenDB()
 
       for (auto mPin : mTerm->getMPins()) {
         for (auto box : mPin->getGeometry()) {
-          odb::dbTechLayer* techLayer = box->getTechLayer();
-          // if (techLayer->getType().getValue()
-          //     != odb::dbTechLayerType::ROUTING) {
-          //   continue;
-          // }
-
-          odb::Rect rect;
-          box->getBox(rect);
-          transform.apply(rect);
-          assert(!box->isVia());
-          addBox(techLayer->getName(), rect);
+          if (box->isVia()) {
+            addVia(box);
+          } else {
+            odb::dbTechLayer* techLayer = box->getTechLayer();
+            odb::Rect rect;
+            box->getBox(rect);
+            transform.apply(rect);
+            addBox(techLayer->getName(), rect);
+          }
         }
       }
 
@@ -1168,8 +1162,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
     }
 
     if (!net->isSpecial() && net->getWire() != nullptr) {
-      boxIndexBegin = boxes_.size();
-      viaIndexBegin = vias_.size();
+      auto boxIndexBegin = boxes_.size();
+      auto viaIndexBegin = vias_.size();
       addWire(net->getWire());
 
       strs_.emplace_back(nName + "/wire");
@@ -1183,8 +1177,8 @@ void OpenDBAdapter::getPinsFromOpenDB()
     }
 
     if (net->isSpecial()) {
-      boxIndexBegin = boxes_.size();
-      viaIndexBegin = vias_.size();
+      auto boxIndexBegin = boxes_.size();
+      auto viaIndexBegin = vias_.size();
       for (auto swire : net->getSWires()) {
         for (auto box : swire->getWires()) {
           if (!box->isVia()) {
