@@ -148,6 +148,8 @@ class SetupFixer : public LaurelAdapter
 
   sta::Map<Name, Index> vertex_index_map_;
   sta::Map<Name, Vertex*> name_vertex_map_;
+  sta::Map<Name, Delay> vertex_high_bound_map_;
+  sta::Map<Name, Delay> vertex_low_bound_map_;
 
   Options* options_;
 };

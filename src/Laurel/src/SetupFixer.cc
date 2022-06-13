@@ -109,8 +109,8 @@ Delay SetupFixer::getBound(Vertex* vertex, const MinMax* min_max)
   int lib_ap = dcalc_ap->libertyIndex();
   Delay extreme_delay = INF;
   if (!equiv_cells) {
-    debugPrint(logger_, utl::LRL, "LRL", 3, "no equiv_cells");
-    return LRL_H_ZERO;
+    debugPrint(logger_, utl::LRL, "LRL", 3, "no equiv_cells for get bound");
+    return getDelay(vertex);
   }
   for (LibertyCell* equiv : *equiv_cells) {
     LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
@@ -132,13 +132,22 @@ Delay SetupFixer::getBound(Vertex* vertex, const MinMax* min_max)
 
 Delay SetupFixer::getLowBound(Vertex* vertex)
 {
-  return getBound(vertex, MinMax::min());
+  Name vertex_name = vertex->name(sta_->sdcNetwork());
+  if (!vertex_low_bound_map_.hasKey(vertex_name)) {
+    Delay low_bound = getBound(vertex, MinMax::min());
+    vertex_low_bound_map_.insert(vertex_name, low_bound);
+  }
+  return vertex_low_bound_map_.at(vertex_name);
 }
 
 Delay SetupFixer::getHighBound(Vertex* vertex)
 {
-  // todo
-  return getBound(vertex, MinMax::max());
+  Name vertex_name = vertex->name(sta_->sdcNetwork());
+  if (!vertex_high_bound_map_.hasKey(vertex_name)) {
+    Delay high_bound = getBound(vertex, MinMax::max());
+    vertex_high_bound_map_.insert(vertex_name, high_bound);
+  }
+  return vertex_high_bound_map_.at(vertex_name);
 }
 
 Index SetupFixer::buildIndex(Vertex* vertex)
@@ -228,8 +237,54 @@ void SetupFixer::addConstraintBase(Index pred,
 
 Delay SetupFixer::costSlope(Vertex* pred, Vertex* succ)
 {
-  // todo
-  return 1.0f;
+  Vertex* vertex = succ;
+  if (!vertex->isDriver(sta_->network()))
+    return LRL_H_INFINITY;
+  Pin* drvr_pin = vertex->pin();
+  LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
+  LibertyCell* cell = drvr_port->libertyCell();
+  LibertyCellSeq* equiv_cells = sta_->equivCells(cell);
+  PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+  const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
+  const char* drvr_port_name = drvr_port->name();
+  const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
+  int lib_ap = dcalc_ap->libertyIndex();
+  Delay min_delay = INF;
+  Delay max_delay = INF;
+  Delay min_area = INF;
+  Delay max_area = INF;
+  if (!equiv_cells) {
+    debugPrint(logger_, utl::LRL, "LRL", 3, "no equiv_cells");
+    return cost2Delay(100);
+  }
+  for (LibertyCell* equiv : *equiv_cells) {
+    LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
+    LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
+    Delay equiv_delay = gateDelay(equiv_drvr, load_cap, dcalc_ap);
+    if ((fuzzyLess(equiv_delay, min_delay)) || fuzzyInf(min_delay)) {
+      min_delay = equiv_delay;
+      min_area = equiv->area();
+    }
+    if ((fuzzyLess(max_delay, equiv_delay)) || fuzzyInf(max_delay)) {
+      max_delay = equiv_delay;
+      max_area = equiv->area();
+    }
+  }
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             3,
+             "{} : max area = {}, min area = {}",
+             vertex->name(sta_->sdcNetwork()),
+             delayAsString(max_area, sta_, 3),
+             delayAsString(min_area, sta_, 3));
+  Delay slope = min_delay
+                + (max_area - min_area) / (max_delay - min_delay)
+                      / LRL_H_PRIORITY / LRL_H_STA_SCALING / LRL_H_SCALING
+                      / LRL_H_SCALING;
+  if (slope < LRL_H_ZERO)
+    return INF;
+  return slope;
 }
 
 void SetupFixer::addConstraintEdge(Vertex* pred, Vertex* succ)
@@ -237,7 +292,7 @@ void SetupFixer::addConstraintEdge(Vertex* pred, Vertex* succ)
   Delay delay = getDelay(succ);
   Index pred_index = getIndex(pred);
   Index succ_index = getIndex(succ);
-  Cost capacity = delay2Cost(costSlope(pred, succ) * delay);
+  Cost capacity = delay2Cost(costSlope(pred, succ));
   Delay low_bound = getLowBound(succ);
   Delay high_bound = getHighBound(succ);
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
@@ -369,7 +424,7 @@ bool SetupFixer::remap()
 
 Delay SetupFixer::getNewDelay(Vertex* vertex)
 {
-  Delay shortest_delay = LRL_H_INFINITY;
+  Delay shortest_delay = LRL_H_ZERO;
   VertexInEdgeIterator edge_iter(vertex, sta_->graph());
   while (edge_iter.hasNext()) {
     Edge* edge = edge_iter.next();
@@ -389,8 +444,14 @@ Delay SetupFixer::getNewDelay(Vertex* vertex)
       }
     }
   }
-  if (shortest_delay == LRL_H_INFINITY)
-    shortest_delay = LRL_H_ZERO;
+  if (vertex_low_bound_map_.hasKey(vertex->name(sta_->sdcNetwork()))) {
+    Delay low_bound = getLowBound(vertex);
+    Delay high_bound = getHighBound(vertex);
+    if (fuzzyLessEqual(shortest_delay, low_bound))
+      shortest_delay = low_bound;
+    else if (fuzzyLessEqual(high_bound, shortest_delay))
+      shortest_delay = high_bound;
+  }
   return shortest_delay;
 }
 

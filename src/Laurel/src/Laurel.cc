@@ -268,14 +268,14 @@ LibertyCell* Laurel::findResizeCell(Vertex* vertex, Delay target_delay)
   const char* drvr_port_name = drvr_port->name();
   const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
   int lib_ap = dcalc_ap->libertyIndex();
-  Delay extreme_delay = INF;
+  Delay extreme_delay = LRL_H_ZERO;
   LibertyCell* resize_cell = nullptr;
   for (LibertyCell* equiv : *equiv_cells) {
     LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
     LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
     Delay equiv_delay = gateDelay(equiv_drvr, load_cap, dcalc_ap);
-    if (fuzzyLess(equiv_delay, extreme_delay)
-        && fuzzyLess(target_delay, equiv_delay)) {
+    if (fuzzyLessEqual(equiv_delay, target_delay)
+        && fuzzyLess(extreme_delay, equiv_delay)) {
       extreme_delay = equiv_delay;
       resize_cell = equiv;
     }
@@ -289,11 +289,13 @@ bool Laurel::resizeCell(Vertex* vertex, Delay target_delay)
   if (resize_cell) {
     Instance* drvr = network_->instance(vertex->pin());
     if (replaceCell(drvr, resize_cell, true)) {
-      logger_->info(utl::LRL,
-                    1304,
-                    "resize cell {} -> {}",
-                    vertex->name(sta_->sdcNetwork()),
-                    resize_cell->name());
+      debugPrint(logger_,
+                 utl::LRL,
+                 "LRL",
+                 3,
+                 "resize cell {} -> {}",
+                 vertex->name(sta_->sdcNetwork()),
+                 resize_cell->name());
       resize_count_++;
       return true;
     }
@@ -313,12 +315,14 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
   for (auto vertex : changed_vertex) {
     Delay resize = fixer->getResizeValue(vertex);
     Delay new_delay = fixer->getNewDelay(vertex);
-    logger_->info(utl::LRL,
-                  1301,
-                  " {} : {} (new_delay = {})",
-                  vertex->name(sta_->sdcNetwork()),
-                  delayAsString(resize, sta_, 3),
-                  delayAsString(new_delay, sta_, 3));
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               4,
+               " {} : {} (new_delay = {})",
+               vertex->name(sta_->sdcNetwork()),
+               delayAsString(resize, sta_, 3),
+               delayAsString(new_delay, sta_, 3));
     if (!resizeCell(vertex, new_delay))
       ret = false;
   }
@@ -337,9 +341,8 @@ void Laurel::fixSetup()
   bool ret = false;
   if (status == MinCostFlow::OPTIMAL) {
     fixer.report();
-    if (fixer.remap()) {
-      ret = resizeAllCells(&fixer);
-    }
+    ret = fixer.remap();
+    ret = resizeAllCells(&fixer);
   }
   if (!ret)
     logger_->warn(utl::LRL, 1202, "Fail to resize all cells");
