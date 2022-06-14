@@ -28,6 +28,7 @@ global_placement
     [-disable_routability_driven]
     [-incremental]
     [-bin_grid_count grid_count]
+    [-nesv_place_iter nesv_place_iter]
     [-density target_density]
     [-init_density_penalty init_density_penalty]
     [-init_wirelength_coef init_wirelength_coef]
@@ -36,8 +37,10 @@ global_placement
     [-overflow overflow]
     [-initial_place_guide_file initial_place_guide_file]
     [-initial_place_policy initial_place_policy]
+    [-cell_density_force_policy cell_density_force_policy]
     [-initial_place_max_iter initial_place_max_iter]
     [-initial_place_max_fanout initial_place_max_fanout]
+    [-cell_density_force_policy cell_density_force_policy]
     [-routability_check_overflow routability_check_overflow]
     [-routability_max_density routability_max_density]
     [-routability_max_bloat_iter routability_max_bloat_iter]
@@ -50,7 +53,6 @@ global_placement
     [-timing_driven_net_reweight_overflow]
     [-pad_left pad_left]
     [-pad_right pad_right]
-    [-verbose_level level]
 ```
 
 ### Tuning Parameters
@@ -59,6 +61,7 @@ global_placement
 - `-skip_initial_place` : Skip the initial placement (BiCGSTAB solving) before Nesterov placement. IP improves HPWL by ~5% on large designs. Equal to '-initial_place_max_iter 0'
 - `-incremental` : Enable the incremental global placement. Users would need to tune other parameters (e.g., init_density_penalty) with pre-placed solutions.
 - `-bin_grid_count`: set bin grid's counts. Default value is defined by internal heuristic. Allowed values are  `[64,128,256,512,..., int]`.
+- `-nesv_place_iter`: set max iter of nesterov solver
 - `-density`: set target density. Default value is 0.70. Allowed values are `[0-1, float]`.
 - `-init_density_penalty`: set initial density penalty. Default value is 8e-5. Allowed values are `[1e-6 - 1e6, float]`.
 - `-init_wirelength_coef`: set initial wirelength coefficient. Default value is 0.25. Allowed values are `[unlimited, float]`.
@@ -67,10 +70,10 @@ global_placement
 - `-overflow`: set target overflow for termination condition. Default value is 0.1. Allowed values are `[0-1, float]`.
 - `initial_place_guide_file`: a guide file which contails cells' initial positions to start the gpl
 - `initial_place_policy`: set the policy to initialize positions to start the gpl
+- `cell_density_force_policy`: set the policy on cell density force calculation
 - `-initial_place_max_iter`: set maximum iterations in initial place. Default value is 20. Allowed values are `[0-MAX_INT, int]`.
 - `-initial_place_max_fanout`: set net escape condition in initial place when 'fanout >= initial_place_max_fanout'. Default value is 200. Allowed values are `[1-MAX_INT, int]`.
 - `-timing_driven_net_reweight_overflow`: set overflow threshold for timing-driven net reweighting. Allowed values are `tcl list of [0-100, int]`.
-- `-verbose_level`: set verbose level for RePlAce. Default value is 1. Allowed values are `[0-5, int]`.
 
 
 `-timing_driven` does a virtual `repair_design` to find slacks and

@@ -73,6 +73,12 @@ set_initial_place_policy_cmd(const char* policy) {
 }
 
 void
+set_cell_density_force_policy_cmd(const char* policy) {
+  Replace* replace = getReplace();
+  replace->setCellDensityForceCalPolicy(policy); 
+}
+
+void
 set_initial_place_max_iter_cmd(int iter)
 {
   Replace* replace = getReplace();
@@ -154,13 +160,6 @@ replace_incremental_place_cmd()
 {
   Replace* replace = getReplace();
   replace->doIncrementalPlace();
-}
-
-void
-set_verbose_level_cmd(int verbose)
-{
-  Replace* replace = getReplace();
-  replace->setVerboseLevel(verbose);
 }
 
 void
@@ -256,6 +255,20 @@ set_skip_io_mode_cmd(bool mode)
 {
   Replace* replace = getReplace();
   replace->setSkipIoMode(mode);
+}
+
+void
+set_disable_filler_insertion_cmd(bool mode) 
+{
+  Replace* replace = getReplace();
+  replace->setDisableFillerInsertion(mode);
+}
+
+void
+set_disable_cell_density_scaling_cmd(bool mode) 
+{
+  Replace* replace = getReplace();
+  replace->setDisableCellDensityScaling(mode);
 }
 
 float

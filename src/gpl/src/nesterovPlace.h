@@ -31,20 +31,19 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef __REPLACE_NESTEROV_PLACE__
-#define __REPLACE_NESTEROV_PLACE__
+#pragma once
+
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "point.h"
-#include <memory>
-#include <vector>
-#include <string>
 
 namespace utl {
 class Logger;
 }
 
-namespace gpl 
-{
+namespace gpl {
 
 class PlacerBase;
 class Instance;
@@ -53,23 +52,24 @@ class RouteBase;
 class TimingBase;
 class Graphics;
 
-class NesterovPlaceVars {
-  public:
+class NesterovPlaceVars
+{
+ public:
   int maxNesterovIter;
   int maxBackTrack;
-  float initDensityPenalty; // INIT_LAMBDA
-  float initWireLengthCoef; // base_wcof
-  float targetOverflow; // overflow
-  float minPhiCoef; // pcof_min
-  float maxPhiCoef; // pcof_max
-  float minPreconditioner; // MIN_PRE
-  float initialPrevCoordiUpdateCoef; // z_ref_alpha
-  float referenceHpwl; // refDeltaHpwl
+  float initDensityPenalty;           // INIT_LAMBDA
+  float initWireLengthCoef;           // base_wcof
+  float targetOverflow;               // overflow
+  float minPhiCoef;                   // pcof_min
+  float maxPhiCoef;                   // pcof_max
+  float minPreconditioner;            // MIN_PRE
+  float initialPrevCoordiUpdateCoef;  // z_ref_alpha
+  float referenceHpwl;                // refDeltaHpwl
   float routabilityCheckOverflow;
 
   int routabilityMaxBloatIter;
   int routabilityMaxInflationIter;
-  
+
   static const int maxRecursionWlCoef = 10;
   static const int maxRecursionInitSLPCoef = 10;
 
@@ -84,34 +84,41 @@ class NesterovPlaceVars {
   void reset();
 };
 
-class NesterovPlace {
-public:
+class NesterovPlace
+{
+ public:
+  // SLP is Step Length Prediction.
+  struct SLP
+  {
+    void resize(std::size_t sz);
+    void swap(SLP& ano);
+    void clear();
+    void shrink_to_fit();
+    std::vector<FloatPoint> coordi_;
+    std::vector<FloatPoint> wireLengthGrads_;
+    std::vector<FloatPoint> densityGrads_;
+    std::vector<FloatPoint> sumGrads_;
+  };
+
   NesterovPlace();
   NesterovPlace(NesterovPlaceVars npVars,
-      std::shared_ptr<PlacerBase> pb,
-      std::shared_ptr<NesterovBase> nb,
-      std::shared_ptr<RouteBase> rb,
-      std::shared_ptr<TimingBase> tb,
-      utl::Logger* log);
+                std::shared_ptr<PlacerBase> pb,
+                std::shared_ptr<NesterovBase> nb,
+                std::shared_ptr<RouteBase> rb,
+                std::shared_ptr<TimingBase> tb,
+                utl::Logger* log);
   ~NesterovPlace();
 
   // return iteration count
   int doNesterovPlace(int start_iter = 0);
 
-  void updateGradients(
-      std::vector<FloatPoint>& sumGrads,
-      std::vector<FloatPoint>& wireLengthGrads,
-      std::vector<FloatPoint>& densityGrads );
+  void updateGradients(SLP& slp);
 
   void updateWireLengthCoef(float overflow);
 
   void updateInitialPrevSLPCoordi();
 
-  float getStepLength(
-      const std::vector<FloatPoint>& prevCoordi_,
-      const std::vector<FloatPoint>& prevSumGrads_,
-      const std::vector<FloatPoint>& curCoordi_,
-      const std::vector<FloatPoint>& curSumGrads_ );
+  float getStepLength(const SLP& prevSLP, const SLP& curSLP) const;
 
   void updateNextIter();
   float getPhiCoef(float scaledDiffHpwl) const;
@@ -125,7 +132,7 @@ public:
   void setTargetOverflow(float overflow) { npVars_.targetOverflow = overflow; }
   void setMaxIters(int limit) { npVars_.maxNesterovIter = limit; }
 
-private:
+ private:
 #ifdef ENABLE_CIMG_LIB
   void plot(const std::string& title, int iteration);
 #endif
@@ -136,26 +143,16 @@ private:
   std::shared_ptr<TimingBase> tb_;
   NesterovPlaceVars npVars_;
   std::unique_ptr<Graphics> graphics_;
-  
-  // SLP is Step Length Prediction.
+
   //
   // y_st, y_dst, y_wdst, w_pdst
-  std::vector<FloatPoint> curSLPCoordi_;
-  std::vector<FloatPoint> curSLPWireLengthGrads_;
-  std::vector<FloatPoint> curSLPDensityGrads_;
-  std::vector<FloatPoint> curSLPSumGrads_;
+  SLP curSLP_;
 
   // y0_st, y0_dst, y0_wdst, y0_pdst
-  std::vector<FloatPoint> nextSLPCoordi_;
-  std::vector<FloatPoint> nextSLPWireLengthGrads_;
-  std::vector<FloatPoint> nextSLPDensityGrads_;
-  std::vector<FloatPoint> nextSLPSumGrads_;
+  SLP nextSLP_;
 
   // z_st, z_dst, z_wdst, z_pdst
-  std::vector<FloatPoint> prevSLPCoordi_;
-  std::vector<FloatPoint> prevSLPWireLengthGrads_;
-  std::vector<FloatPoint> prevSLPDensityGrads_;
-  std::vector<FloatPoint> prevSLPSumGrads_;
+  SLP prevSLP_;
 
   // x_st and x0_st
   std::vector<FloatPoint> curCoordi_;
@@ -193,7 +190,7 @@ private:
   float isRoutabilityNeed_;
 
   std::string divergeMsg_;
-  int divergeCode_; 
+  int divergeCode_;
 
   int recursionCntWlCoef_;
   int recursionCntInitSLPCoef_;
@@ -202,8 +199,5 @@ private:
 
   void init();
   void reset();
-
 };
-}
-
-#endif
+}  // namespace gpl

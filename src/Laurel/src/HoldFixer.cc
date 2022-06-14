@@ -98,22 +98,29 @@ void HoldFixer::makeVarFanins(VertexSeq fanins)
 void HoldFixer::findHoldVioNameMM()
 {
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
+  int mode_cnt = 0;
+  int cnt = 0;
   sta_->forEachSdc([&]() {
+    mode_cnt++;
     sdc_ = sta_->sdc();
     sta_->findRequireds();
     VertexSet* ends = sta_->search()->endpoints();
     for (auto vertex : *ends) {
       Slack slack = sta_->vertexSlack(vertex, MinMax::min());
-      if (fuzzyLess(slack, slack_margin))
+      if (fuzzyLess(slack, slack_margin)) {
         vio_ends_name_.insert(vertex->name(sta_->sdcNetwork()));
+        cnt++;
+      }
     }
   });
   logger_->info(utl::LRL,
                 1100,
-                "vio ends: (slack_margin = {}) ",
+                "found {} vio ends in {} mode: (slack_margin = {}) ",
+                cnt,
+                mode_cnt,
                 delayAsString(slack_margin, sta_, 3));
   for (auto name : vio_ends_name_)
-    logger_->info(utl::LRL, 1101, "   {}", name);
+    debugPrint(logger_, utl::LRL, "LRL", 4, "   {}", name);
 }
 
 bool HoldFixer::hasHoldViolation(Vertex* vertex) const
@@ -144,12 +151,31 @@ VertexSet HoldFixer::getHoldViolations()
   return hold_failures;
 }
 
+void HoldFixer::getRealVertexName()
+{
+  if (!sdc_name_vertex_map_.empty())
+    sdc_name_vertex_map_.clear();
+  VertexIterator vertex_iter(sta_->graph());
+  while (vertex_iter.hasNext()) {
+    Vertex* vertex = vertex_iter.next();
+    Name vertex_name = vertex->name(sta_->sdcNetwork());
+    sdc_name_vertex_map_.insert(vertex_name, vertex);
+  }
+}
+
+Vertex* HoldFixer::findRealVertex(Name vertex_name) const
+{
+  return sdc_name_vertex_map_.findKey(vertex_name);
+}
+
 void HoldFixer::makeVarAllModes()
 {
   findHoldVioNameMM();
   sta_->forEachSdc([&]() {
     sdc_ = sta_->sdc();
     sta_->findRequireds();
+    init();
+    getRealVertexName();
     VertexSet hold_failures = getHoldViolations();
     hold_failures = getAllRelatedEnds(hold_failures, options_->ignoreClk());
     if (!hold_failures.empty()) {
@@ -158,22 +184,32 @@ void HoldFixer::makeVarAllModes()
       VertexSeq sorted_hold_failures = sortHoldFanins(hold_failures);
       makeVarFanins(sorted_fanins);
       makeVarFanins(sorted_hold_failures);
+      confirmAllPI();
       genPOConstraints(&hold_failures);
       genPIConstraints();
     }
   });
 }
 
+void HoldFixer::confirmAllPI()
+{
+  VertexNameSet pi;
+  VertexNameSet not_pi;
+  for (auto w : wire_) {
+    Name pred = w.first.first;
+    Name succ = w.first.second;
+    not_pi.insert(succ);
+    if (pi.hasKey(succ))
+      pi.erase(succ);
+    if (!not_pi.hasKey(pred))
+      pi.insert(pred);
+  }
+  pi_name_set_ = pi;
+}
+
 bool HoldFixer::isPI(Name vertex_name) const
 {
-  bool ret = false;
-  for (auto w : wire_) {
-    if (!vertex_name.compare(w.first.second))
-      return false;
-    else if (!vertex_name.compare(w.first.first))
-      ret = true;
-  }
-  return ret;
+  return pi_name_set_.hasKey(vertex_name);
 }
 
 VertexNameSeq HoldFixer::getSortedNameSeq(VertexMPVarMap* mp_var_map)
@@ -224,6 +260,8 @@ void HoldFixer::makeDelay(Vertex* vertex)
   if (!delay_map_.hasKey(vertex_name)) {
     Delay load_delay = LRL_H_ZERO;
     PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+    if (!path.vertex(sta_))
+      return;
     PathExpanded expanded(&path, sta_);
     const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
     int start_index = expanded.startIndex();
@@ -293,13 +331,16 @@ void HoldFixer::genPOConstraints(VertexSet* ends)
   for (auto vertex_name : sorted_vertex) {
     Vertex* vertex = findRealVertex(vertex_name);
     if (ends->hasKey(vertex)) {
-      Delay critical_long_arrival = getCriLongArrival(vertex);
+      Delay critical_long_arrival_value = getCriLongArrival(vertex);
+      Delay max_required_value = sta_->vertexRequired(vertex, MinMax::max())
+                                 - std::max(LRL_H_ZERO, sdc_worst_slack_);
+      Delay critical_long_arrival
+          = std::max(critical_long_arrival_value, max_required_value);
       Delay min_required = sta_->vertexRequired(vertex, MinMax::min());
       // what if whole path don't satisfy hold bound
-      if (fuzzyLess(critical_long_arrival, min_required)
+      if (fuzzyLess(critical_long_arrival_value, min_required)
           || complete_vio_ends_.find(vertex_name) != complete_vio_ends_.end()) {
-        critical_long_arrival
-            = sta_->vertexRequired(vertex, MinMax::max()) - sdc_worst_slack_;
+        critical_long_arrival = max_required_value;
         complete_vio_ends_.insert(vertex_name);
       }
       debugPrint(logger_,
@@ -375,12 +416,14 @@ HoldResult HoldFixer::resolve()
 Delay HoldFixer::getWirePadding(WirePair wire_pair) const
 {
   Delay padding = zoomOut(wire_.findKey(wire_pair)->solution_value());
-  logger_->info(utl::LRL,
-                1106,
-                "padding between {} -> {} : {}",
-                wire_pair.first.c_str(),
-                wire_pair.second.c_str(),
-                delayAsString(padding, sta_, 3));
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             4,
+             "padding between {} -> {} : {}",
+             wire_pair.first.c_str(),
+             wire_pair.second.c_str(),
+             delayAsString(padding, sta_, 3));
   return padding;
 }
 
@@ -404,12 +447,14 @@ VertexNameSet HoldFixer::getNonZeroPaddingPred() const
     Name pred = wire_pair.first;
     Delay padding = zoomOut(w.second->solution_value());
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
-      logger_->info(utl::LRL,
-                    1107,
-                    "non zero padding between {} -> {} : {}",
-                    wire_pair.first.c_str(),
-                    wire_pair.second.c_str(),
-                    delayAsString(padding, sta_, 3));
+      debugPrint(logger_,
+                 utl::LRL,
+                 "LRL",
+                 4,
+                 "non zero padding between {} -> {} : {}",
+                 wire_pair.first.c_str(),
+                 wire_pair.second.c_str(),
+                 delayAsString(padding, sta_, 3));
       if (vio_pred_set.find(pred) == vio_pred_set.end())
         vio_pred_set.insert(pred);
     }

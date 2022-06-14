@@ -9,12 +9,15 @@ sta::define_cmd_args "banyan_route" {
     [-max_layer]
     [-cts]
     [-report_route_json]
+    [-baby_banyan]
+    [-pa_mcf]
+    [-report_benchmark_json]
 }
 
 
 proc banyan_route { args } {
   sta::parse_key_args "banyan_route" args \
-      keys {-log_level -debug_output -max_via_stack -min_layer -max_layer -enable_route -enable_maze_top -report_route_json} \
+      keys {-log_level -debug_output -max_via_stack -min_layer -max_layer -enable_route -enable_maze_top -report_route_json -baby_banyan -pa_mcf -report_benchmark_json} \
       flags {-debug_save_txt -cts}
 
   sta::check_argc_eq0 "banyan_route" $args
@@ -73,8 +76,26 @@ proc banyan_route { args } {
   } else {
     set report_route_json ""
   }
+
+  if { [info exists keys(-report_benchmark_json)] } {
+    set report_benchmark_json $keys(-report_benchmark_json)
+  } else {
+    set report_benchmark_json ""
+  }
   
-  banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack $min_layer $max_layer $cts $enable_route $enable_maze_top $report_route_json
+  if { [info exists keys(-baby_banyan)] } {
+    set baby_banyan $keys(-baby_banyan)
+  } else {
+    set baby_banyan ""
+  }
+
+  if { [info exists keys(-pa_mcf)] } {
+    set pa_mcf $keys(-pa_mcf)
+  } else {
+    set pa_mcf "true"
+  }
+
+  banyan::banyan_route $log_level $debug_output $debug_save_txt $max_via_stack $min_layer $max_layer $cts $enable_route $enable_maze_top $report_route_json $report_benchmark_json $baby_banyan $pa_mcf
 }
 
 

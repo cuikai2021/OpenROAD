@@ -1,10 +1,12 @@
 add_library(lefin
     lefin.cpp
     reader.cpp
+    lefTechLayerSpacingNotchLengthParser.cpp
     lefTechLayerSpacingEolParser.cpp
     lefTechLayerMinStepParser.cpp
     lefTechLayerCornerSpacingParser.cpp
     lefTechLayerSpacingTablePrlParser.cpp
+    lefTechLayerSpacingTableJogToJogSpacingParser.cpp
     lefTechLayerRightWayOnGridOnlyParser.cpp
     lefTechLayerRectOnlyParser.cpp
     lefTechLayerCutClassParser.cpp
