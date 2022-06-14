@@ -325,10 +325,16 @@ class Laurel : public LaurelAdapter
                   GlobalRouter* global_router);
 
   void fixHold();
+  bool fixHoldNoInsertion();
   void fixSetup();
   void wireBudgeting();
   void wireBudgeting(float factor);
   void wireBudgetingRC();
+
+  // run fixHold fixHoldNoInsertion, than it is able to check which vertex we
+  // inserted or going to insert buffers
+  bool hasHoldVio(Vertex* drvr);
+  bool hasHoldVio(Pin* drvr_pin);
 
   // get Wire budgeting result by pin to pin after wireBudgeting()
   // unit DBU
@@ -369,6 +375,7 @@ class Laurel : public LaurelAdapter
   // sta::Map<WirePair, uint64> wire_budget_;
   // sta::Map<WirePair, uint64> wire_budget_rate_;
   WireBudgeting* wire_bud_ = nullptr;
+  VertexNameSet vio_pred_set_;
 };
 
 }  // namespace lrl

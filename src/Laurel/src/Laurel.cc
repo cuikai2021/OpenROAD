@@ -221,8 +221,8 @@ bool Laurel::insertAllBuffer(HoldFixer* fixer)
 {
   bool ret = true;
   findBuffers();
-  VertexNameSet vio_pred_set = fixer->getNonZeroPaddingPred();
-  for (auto vertex_name : vio_pred_set) {
+  vio_pred_set_ = fixer->getNonZeroPaddingPred();
+  for (auto vertex_name : vio_pred_set_) {
     if (!insertBuffer(fixer, vertex_name))
       ret = false;
   }
@@ -259,6 +259,31 @@ void Laurel::fixHold()
   if (!ret) {
     logger_->warn(utl::LRL, 1002, "fail to fix all hold violations");
   }
+}
+
+bool Laurel::fixHoldNoInsertion()
+{
+  bool ret = false;
+  init();
+  HoldFixer* fixer = new HoldFixer(openroad_, options_);
+  HoldResult result = fixer->resolve();
+  if (result == MPSolver::ResultStatus::OPTIMAL) {
+    ret = true;
+    vio_pred_set_ = fixer->getNonZeroPaddingPred();
+  }
+  return ret;
+}
+
+bool Laurel::hasHoldVio(Vertex* drvr)
+{
+  Name vertex_name = drvr->name(sta_->sdcNetwork());
+  return vio_pred_set_.hasKey(vertex_name);
+}
+
+bool Laurel::hasHoldVio(Pin* drvr_pin)
+{
+  Name vertex_name = sta_->network()->name(drvr_pin);
+  return vio_pred_set_.hasKey(vertex_name);
 }
 
 ////////////////////////////////////////////////////////
