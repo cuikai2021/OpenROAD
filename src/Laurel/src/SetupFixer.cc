@@ -287,6 +287,36 @@ Delay SetupFixer::costSlope(Vertex* pred, Vertex* succ)
   return slope;
 }
 
+Delay SetupFixer::getCellDelay(Vertex* vertex)
+{
+  Delay load_delay = LRL_H_ZERO;
+  PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+  PathExpanded expanded(&path, sta_);
+  const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
+  int start_index = expanded.startIndex();
+  int path_length = expanded.size();
+  for (int i = start_index; i < path_length; i++) {
+    PathRef* path = expanded.path(i);
+    Vertex* path_vertex = path->vertex(sta_);
+    if (vertex == path_vertex) {
+      TimingArc* prev_arc = expanded.prevArc(i);
+      Edge* prev_edge = path->prevEdge(prev_arc, sta_);
+      if (!prev_edge)
+        continue;
+      load_delay
+          = sta_->graph()->arcDelay(prev_edge, prev_arc, dcalc_ap->index());
+      debugPrint(logger_,
+                 utl::LRL,
+                 "LRL",
+                 4,
+                 "{} load_delay = {}",
+                 path_vertex->name(sta_->network()),
+                 delayAsString(load_delay, sta_, 3));
+    }
+  }
+  return load_delay;
+}
+
 void SetupFixer::addConstraintEdge(Vertex* pred, Vertex* succ)
 {
   Delay delay = getDelay(succ);
@@ -314,7 +344,8 @@ void SetupFixer::addConstraintPO(Vertex* po)
 void SetupFixer::addConstraintPI(Vertex* pi)
 {
   Index pi_index = getIndex(pi);
-  addConstraintBase(S_INDEX, pi_index, LRL_S_INT_INF, LRL_S_ZERO);
+  Arrival pi_arrival = getArrivalMax(pi);
+  addConstraintBase(S_INDEX, pi_index, LRL_S_INT_INF, -delay2Cost(pi_arrival));
 }
 
 void SetupFixer::initAlgorithm()
@@ -322,22 +353,28 @@ void SetupFixer::initAlgorithm()
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
   VertexSet* ends = sta_->search()->endpoints();
   VertexSet failures;
-
-  logger_->info(utl::LRL,
-                1302,
-                "Violated Ends: (slack_margin = {})",
-                delayAsString(slack_margin, sta_, 3));
+  int cnt = 0;
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             2,
+             "Violated Ends: (slack_margin = {})",
+             delayAsString(slack_margin, sta_, 3));
   for (Vertex* vertex : *ends) {
     Slack slack = sta_->vertexSlack(vertex, MinMax::max());
     if (!fuzzyInf(slack) && fuzzyLess(slack, slack_margin)) {
       failures.insert(vertex);
-      logger_->info(utl::LRL,
-                    1303,
-                    "   {} : {}",
-                    delayAsString(slack, sta_, 3),
-                    vertex->name(sta_->sdcNetwork()));
+      cnt++;
+      debugPrint(logger_,
+                 utl::LRL,
+                 "LRL",
+                 2,
+                 "   {} : {}",
+                 delayAsString(slack, sta_, 3),
+                 vertex->name(sta_->sdcNetwork()));
     }
   }
+  logger_->info(utl::LRL, 1303, "totally found {} vio ends", cnt);
   buildIndexMap(failures);
 }
 
@@ -363,6 +400,12 @@ IdEdgeWeightSet SetupFixer::buildBellmanGraph() const
     Index pred = solver_.Tail(i);
     Index succ = solver_.Head(i);
     Delay delay = -cost2Delay(solver_.UnitCost(i));
+
+    // // if the succ is pi, use its arrival as delay
+    // if (pred == S_INDEX) {
+    //   delay = pi_arrival_map_.at(succ);
+    //   printf("%d arrival = %s\n", succ, delayAsString(delay, sta_, 3));
+    // }
 
     // build Bellman Graph with KKT condition for edge (i,j)
     // A(i) + w(i,j) >= A(j); f(i,j) < c(i,j)

@@ -69,6 +69,7 @@ class LaurelAdapter : public Resizer
   virtual VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
   virtual Vertex* findRealVertex(Name vertex_name) const;
   virtual Pin* findFanoutPin(WirePair wire_pair) const;
+  virtual Delay getArrivalMax(Vertex* vertex) const;
 
   // constants
   const char* LRL_H_SOLVER = "SCIP";
@@ -126,6 +127,7 @@ class SetupFixer : public LaurelAdapter
   Index getIndex(Vertex* vertex) const;
   Name getNodeVertexName(Index index) const;
   Delay getDelay(Vertex* vertex);
+  Delay getCellDelay(Vertex* vertex);
   const char* getInPortName(Vertex* pred, Vertex* succ) const;
   Delay getBound(Vertex* vertex, const MinMax* min_max);
   Delay getLowBound(Vertex* vertex);
@@ -145,8 +147,9 @@ class SetupFixer : public LaurelAdapter
   int bellman_max_iter_num_ = 0;
 
   sta::Map<Index, Arrival> arrival_map_;
+  sta::Map<Index, Arrival> pi_arrival_map_;
 
-  sta::Map<Name, Index> vertex_index_map_;
+      sta::Map<Name, Index> vertex_index_map_;
   sta::Map<Name, Vertex*> name_vertex_map_;
   sta::Map<Name, Delay> vertex_high_bound_map_;
   sta::Map<Name, Delay> vertex_low_bound_map_;
@@ -274,7 +277,7 @@ class HoldFixer : public LaurelAdapter
   void genPOConstraints(VertexSet* ends);
   void genWireConstraints(WirePair wire);
 
-  Delay getArrivalMax(Vertex* vertex) const;
+  // Delay getArrivalMax(Vertex* vertex) const;
   Delay getDelay(Name vertex_name) const;
   Delay getCriLongArrival(Vertex* end) const;
 
