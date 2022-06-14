@@ -271,6 +271,7 @@ bool Laurel::fixHoldNoInsertion()
     ret = true;
     vio_pred_set_ = fixer->getNonZeroPaddingPred();
   }
+  delete fixer;
   return ret;
 }
 
