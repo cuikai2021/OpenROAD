@@ -278,10 +278,8 @@ Delay SetupFixer::costSlope(Vertex* pred, Vertex* succ)
              vertex->name(sta_->sdcNetwork()),
              delayAsString(max_area, sta_, 3),
              delayAsString(min_area, sta_, 3));
-  Delay slope = min_delay
-                + (max_area - min_area) / (max_delay - min_delay)
-                      / LRL_H_PRIORITY / LRL_H_STA_SCALING / LRL_H_SCALING
-                      / LRL_H_SCALING;
+  Delay slope = cost2Delay(10000) + (max_area - min_area) / (max_delay - min_delay) / LRL_H_PRIORITY
+                / LRL_H_STA_SCALING / LRL_H_SCALING;
   if (slope < LRL_H_ZERO)
     return INF;
   return slope;
@@ -400,12 +398,6 @@ IdEdgeWeightSet SetupFixer::buildBellmanGraph() const
     Index pred = solver_.Tail(i);
     Index succ = solver_.Head(i);
     Delay delay = -cost2Delay(solver_.UnitCost(i));
-
-    // // if the succ is pi, use its arrival as delay
-    // if (pred == S_INDEX) {
-    //   delay = pi_arrival_map_.at(succ);
-    //   printf("%d arrival = %s\n", succ, delayAsString(delay, sta_, 3));
-    // }
 
     // build Bellman Graph with KKT condition for edge (i,j)
     // A(i) + w(i,j) >= A(j); f(i,j) < c(i,j)

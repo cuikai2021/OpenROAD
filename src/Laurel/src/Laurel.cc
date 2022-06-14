@@ -268,16 +268,16 @@ LibertyCell* Laurel::findResizeCell(Vertex* vertex, Delay target_delay)
   const char* drvr_port_name = drvr_port->name();
   const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
   int lib_ap = dcalc_ap->libertyIndex();
-  // Delay extreme_delay = LRL_H_ZERO;
-  Delay extreme_delay = LRL_H_INFINITY;
+  Delay extreme_delay = LRL_H_ZERO;
+  // Delay extreme_delay = LRL_H_INFINITY;
   LibertyCell* resize_cell = nullptr;
   for (LibertyCell* equiv : *equiv_cells) {
     LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
     LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
     Delay equiv_delay = gateDelay(equiv_drvr, load_cap, dcalc_ap);
-    // if (fuzzyLessEqual(equiv_delay, target_delay)
-    //     && fuzzyLess(equiv_delay, extreme_delay)) {
-    if (fuzzyLess(equiv_delay, extreme_delay)) {
+    if (fuzzyLessEqual(equiv_delay, target_delay)
+        && fuzzyLess(extreme_delay, equiv_delay)) {
+    // if (fuzzyLess(equiv_delay, extreme_delay)) {
       extreme_delay = equiv_delay;
       resize_cell = equiv;
     }
