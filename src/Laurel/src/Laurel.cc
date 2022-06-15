@@ -257,7 +257,7 @@ void Laurel::fixHold()
 //
 ////////////////////////////////////////////////////////
 
-LibertyCell* Laurel::findResizeCell(Vertex* vertex, Delay target_delay)
+LibertyCell* SetupFixer::findResizeCell(Vertex* vertex, Delay target_delay)
 {
   Pin* drvr_pin = vertex->pin();
   LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
@@ -271,24 +271,26 @@ LibertyCell* Laurel::findResizeCell(Vertex* vertex, Delay target_delay)
   Delay extreme_delay = LRL_H_ZERO;
   // Delay extreme_delay = LRL_H_INFINITY;
   LibertyCell* resize_cell = nullptr;
-  for (LibertyCell* equiv : *equiv_cells) {
-    LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
-    LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
-    Delay equiv_delay = gateDelay(equiv_drvr, load_cap, dcalc_ap);
-    if (fuzzyLessEqual(equiv_delay, target_delay)
-        && fuzzyLess(extreme_delay, equiv_delay)) {
-    // if (fuzzyLess(equiv_delay, extreme_delay)) {
-      extreme_delay = equiv_delay;
-      resize_cell = equiv;
+  if (equiv_cells) {
+    for (LibertyCell* equiv : *equiv_cells) {
+      LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
+      LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
+      Delay equiv_delay
+          = gateDelay(equiv_drvr, load_cap, dcalc_ap);
+      if (fuzzyLessEqual(equiv_delay, target_delay + LRL_H_ROUNDING_LIMIT)
+          && fuzzyLess(extreme_delay, equiv_delay)) {
+        // if (fuzzyLess(equiv_delay, extreme_delay)) {
+        extreme_delay = equiv_delay;
+        resize_cell = equiv;
+      }
     }
   }
-  // printf("%s\n", delayAsString(extreme_delay, sta_, 3));
   return resize_cell;
 }
 
-bool Laurel::resizeCell(Vertex* vertex, Delay target_delay)
+bool Laurel::resizeCell(SetupFixer* fixer, Vertex* vertex, Delay target_delay)
 {
-  LibertyCell* resize_cell = findResizeCell(vertex, target_delay);
+  LibertyCell* resize_cell = fixer->findResizeCell(vertex, target_delay);
   if (resize_cell) {
     Instance* drvr = network_->instance(vertex->pin());
     if (replaceCell(drvr, resize_cell, true)) {
@@ -326,7 +328,7 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
                vertex->name(sta_->sdcNetwork()),
                delayAsString(resize, sta_, 3),
                delayAsString(new_delay, sta_, 3));
-    if (!resizeCell(vertex, new_delay))
+    if (!resizeCell(fixer, vertex, new_delay))
       ret = false;
   }
   logger_->info(utl::LRL,

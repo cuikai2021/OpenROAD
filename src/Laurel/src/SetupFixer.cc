@@ -281,7 +281,7 @@ Delay SetupFixer::costSlope(Vertex* pred, Vertex* succ)
   Delay slope = cost2Delay(10000) + (max_area - min_area) / (max_delay - min_delay) / LRL_H_PRIORITY
                 / LRL_H_STA_SCALING / LRL_H_SCALING;
   if (slope < LRL_H_ZERO)
-    return INF;
+    return LRL_H_ZERO;
   return slope;
 }
 
@@ -303,13 +303,6 @@ Delay SetupFixer::getCellDelay(Vertex* vertex)
         continue;
       load_delay
           = sta_->graph()->arcDelay(prev_edge, prev_arc, dcalc_ap->index());
-      debugPrint(logger_,
-                 utl::LRL,
-                 "LRL",
-                 4,
-                 "{} load_delay = {}",
-                 path_vertex->name(sta_->network()),
-                 delayAsString(load_delay, sta_, 3));
     }
   }
   return load_delay;
@@ -460,32 +453,35 @@ bool SetupFixer::remap()
 Delay SetupFixer::getNewDelay(Vertex* vertex)
 {
   Delay shortest_delay = LRL_H_ZERO;
-  VertexInEdgeIterator edge_iter(vertex, sta_->graph());
-  while (edge_iter.hasNext()) {
-    Edge* edge = edge_iter.next();
-    Vertex* fanin = edge->from(sta_->graph());
-    VertexInEdgeIterator pred_edge_iter(fanin, sta_->graph());
-    while (pred_edge_iter.hasNext()) {
-      Edge* pred_edge = pred_edge_iter.next();
-      Vertex* pred = pred_edge->from(sta_->graph());
-      if (vertex_index_map_.hasKey(pred->name(sta_->sdcNetwork()))) {
-        Index pred_index = getIndex(pred);
-        Index succ_index = getIndex(vertex);
-        if (pred_index != S_INDEX) {
-          Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
-          if (fuzzyLess(new_delay, shortest_delay))
-            shortest_delay = new_delay;
+  if (vertex->isDriver(sta_->network())) {
+    VertexInEdgeIterator edge_iter(vertex, sta_->graph());
+    while (edge_iter.hasNext()) {
+      Edge* edge = edge_iter.next();
+      Vertex* fanin = edge->from(sta_->graph());
+      VertexInEdgeIterator pred_edge_iter(fanin, sta_->graph());
+      while (pred_edge_iter.hasNext()) {
+        Edge* pred_edge = pred_edge_iter.next();
+        Vertex* pred = pred_edge->from(sta_->graph());
+        if (vertex_index_map_.hasKey(pred->name(sta_->sdcNetwork()))) {
+          Index pred_index = getIndex(pred);
+          Index succ_index = getIndex(vertex);
+          if (pred_index != S_INDEX) {
+            Delay new_delay
+                = arrival_map_[succ_index] - arrival_map_[pred_index];
+            if (fuzzyLess(new_delay, shortest_delay))
+              shortest_delay = new_delay;
+          }
         }
       }
     }
-  }
-  if (vertex_low_bound_map_.hasKey(vertex->name(sta_->sdcNetwork()))) {
-    Delay low_bound = getLowBound(vertex);
-    Delay high_bound = getHighBound(vertex);
-    if (fuzzyLessEqual(shortest_delay, low_bound))
-      shortest_delay = low_bound;
-    else if (fuzzyLessEqual(high_bound, shortest_delay))
-      shortest_delay = high_bound;
+    if (vertex_low_bound_map_.hasKey(vertex->name(sta_->sdcNetwork()))) {
+      Delay low_bound = getLowBound(vertex);
+      Delay high_bound = getHighBound(vertex);
+      if (fuzzyLessEqual(shortest_delay, low_bound))
+        shortest_delay = low_bound;
+      else if (fuzzyLessEqual(high_bound, shortest_delay))
+        shortest_delay = high_bound;
+    }
   }
   return shortest_delay;
 }
@@ -506,7 +502,9 @@ VertexSet SetupFixer::getResizeVertex()
     if (name.compare(LRL_S_SRC_NAME)) {
       Vertex* vertex = name_vertex_map_.findKey(name);
       Delay resize_value = getResizeValue(vertex);
-      if (delay2Cost(resize_value) != 0)
+      // if (delay2Cost(resize_value) != 0)
+      if (fuzzyLessEqual(resize_value, LRL_H_ZERO - LRL_H_ROUNDING_LIMIT)
+          || fuzzyLessEqual(LRL_H_ZERO + LRL_H_ROUNDING_LIMIT, resize_value))
         resize_vertex.insert(vertex);
     }
   }

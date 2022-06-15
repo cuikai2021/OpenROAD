@@ -100,6 +100,8 @@ class SetupFixer : public LaurelAdapter
   Delay getNewDelay(Vertex* vertex);
   Delay getResizeValue(Vertex* vertex);
   VertexSet getResizeVertex();
+  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
+  Delay getDelay(Vertex* vertex);
 
   void report();
 
@@ -126,7 +128,6 @@ class SetupFixer : public LaurelAdapter
 
   Index getIndex(Vertex* vertex) const;
   Name getNodeVertexName(Index index) const;
-  Delay getDelay(Vertex* vertex);
   Delay getCellDelay(Vertex* vertex);
   const char* getInPortName(Vertex* pred, Vertex* succ) const;
   Delay getBound(Vertex* vertex, const MinMax* min_max);
@@ -149,7 +150,7 @@ class SetupFixer : public LaurelAdapter
   sta::Map<Index, Arrival> arrival_map_;
   sta::Map<Index, Arrival> pi_arrival_map_;
 
-      sta::Map<Name, Index> vertex_index_map_;
+  sta::Map<Name, Index> vertex_index_map_;
   sta::Map<Name, Vertex*> name_vertex_map_;
   sta::Map<Name, Delay> vertex_high_bound_map_;
   sta::Map<Name, Delay> vertex_low_bound_map_;
@@ -354,8 +355,8 @@ class Laurel : public LaurelAdapter
 
   LibertyCell* findHoldBuffer(Delay min_limit);
 
-  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
-  bool resizeCell(Vertex* vertex, Delay target_delay);
+  // LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
+  bool resizeCell(SetupFixer* fixer, Vertex* vertex, Delay target_delay);
   bool resizeAllCells(SetupFixer* fixer);
 
   bool checkVertexBudgeted(Vertex* pred, Vertex* succ);
