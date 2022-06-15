@@ -50,6 +50,18 @@ void Laurel::initLaurel(OpenRoad* openroad,
 //
 ////////////////////////////////////////////////////////
 
+sta::Map<Name, Vertex*> Laurel::makeNameVertexMap()
+{
+  sta::Map<Name, Vertex*> name_vertex_map;
+  VertexIterator vertex_iter(sta_->graph());
+  while (vertex_iter.hasNext()) {
+    Vertex* vertex = vertex_iter.next();
+    Name name = vertex->name(sta_->sdcNetwork());
+    name_vertex_map.insert(name, vertex);
+  }
+  return name_vertex_map;
+}
+
 LibertyCell* Laurel::findHoldBuffer(Delay min_limit)
 {
   LibertyCell* max_buffer = nullptr;
@@ -150,10 +162,8 @@ void Laurel::insertHoldDelay(Vertex* drvr,
   // resizeToTargetSlew(buffer_out_pin, false);
 }
 
-Pin* Laurel::findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const
+Pin* Laurel::findFanoutPin(HoldFixer* fixer, Vertex* pred, Vertex* succ) const
 {
-  Vertex* pred = findRealVertex(wire_pair.first);
-  Vertex* succ = findRealVertex(wire_pair.second);
   if (!succ->isDriver(sta_->network()))
     return succ->pin();
   VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
@@ -171,18 +181,21 @@ Pin* Laurel::findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const
   return nullptr;
 }
 
-bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
+bool Laurel::insertBuffer(HoldFixer* fixer,
+                          Name vertex_name,
+                          sta::Map<Name, Vertex*> name_vertex_map)
 {
   WirePairSet wire_pair_set = fixer->getAllWirePairFrom(vertex_name);
   PinSeq load_pins;
-  Vertex* insert_from = findRealVertex(vertex_name);
+  Vertex* insert_from = name_vertex_map.at(vertex_name);
   bool loads_have_out_port = false;
   Delay max_padding = LRL_H_ZERO;
   Delay min_padding = INF;
   for (auto wire_pair : wire_pair_set) {
     Delay padding = fixer->getWirePadding(wire_pair);
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
-      Pin* fanout_pin = findFanoutPin(fixer, wire_pair);
+      Vertex* fanout = name_vertex_map.at(wire_pair.second);
+      Pin* fanout_pin = findFanoutPin(fixer, insert_from, fanout);
       if (fanout_pin != nullptr) {
         load_pins.push_back(fanout_pin);
         if (sta_->network()->direction(fanout_pin)->isAnyOutput()
@@ -235,9 +248,10 @@ bool Laurel::insertAllBuffer(HoldFixer* fixer)
 {
   bool ret = true;
   findBuffers();
+  sta::Map<Name, Vertex*> name_vertex_map = makeNameVertexMap();
   VertexNameSet vio_pred_set = fixer->getNonZeroPaddingPred();
   for (auto vertex_name : vio_pred_set) {
-    if (!insertBuffer(fixer, vertex_name))
+    if (!insertBuffer(fixer, vertex_name, name_vertex_map))
       ret = false;
   }
   logger_->info(

@@ -232,9 +232,11 @@ class Laurel : public LaurelAdapter
   bool fixHoldCore();
 
   int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
-  bool insertBuffer(HoldFixer* fixer, Name vertex_name);
+  bool insertBuffer(HoldFixer* fixer,
+                    Name vertex_name,
+                    sta::Map<Name, Vertex*> name_vertex_map);
   bool insertAllBuffer(HoldFixer* fixer);
-  Pin* findFanoutPin(HoldFixer* fixer, WirePair wire_pair) const;
+  Pin* findFanoutPin(HoldFixer* fixer, Vertex* pred, Vertex* succ) const;
   void insertHoldDelay(Vertex* drvr,
                        int buffer_count,
                        PinSeq& load_pins,
@@ -246,6 +248,8 @@ class Laurel : public LaurelAdapter
   LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
   bool resizeCell(Vertex* vertex, Delay target_delay);
   bool resizeAllCells(SetupFixer* fixer);
+
+  sta::Map<Name, Vertex*> makeNameVertexMap();
 
   // variable
   Options* options_;
