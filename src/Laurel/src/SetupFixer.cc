@@ -278,8 +278,9 @@ Delay SetupFixer::costSlope(Vertex* pred, Vertex* succ)
              vertex->name(sta_->sdcNetwork()),
              delayAsString(max_area, sta_, 3),
              delayAsString(min_area, sta_, 3));
-  Delay slope = cost2Delay(10000) + (max_area - min_area) / (max_delay - min_delay) / LRL_H_PRIORITY
-                / LRL_H_STA_SCALING / LRL_H_SCALING;
+  Delay slope = cost2Delay(10000)
+                + (max_area - min_area) / (max_delay - min_delay)
+                      / LRL_H_PRIORITY / LRL_H_STA_SCALING / LRL_H_SCALING;
   if (slope < LRL_H_ZERO)
     return LRL_H_ZERO;
   return slope;
@@ -509,6 +510,64 @@ VertexSet SetupFixer::getResizeVertex()
     }
   }
   return resize_vertex;
+}
+
+LibertyCell* SetupFixer::findResizeCell(Vertex* vertex, Delay target_delay)
+{
+  Pin* drvr_pin = vertex->pin();
+  LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
+  LibertyCell* cell = drvr_port->libertyCell();
+  LibertyCellSeq* equiv_cells = sta_->equivCells(cell);
+  PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+  const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
+  const char* drvr_port_name = drvr_port->name();
+  const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
+  int lib_ap = dcalc_ap->libertyIndex();
+  Delay extreme_delay = LRL_H_ZERO;
+  // Delay extreme_delay = LRL_H_INFINITY;
+  LibertyCell* resize_cell = nullptr;
+  if (equiv_cells) {
+    for (LibertyCell* equiv : *equiv_cells) {
+      LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
+      LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
+      Delay equiv_delay = gateDelay(equiv_drvr, load_cap, dcalc_ap);
+      if (fuzzyLessEqual(equiv_delay, target_delay + LRL_H_ROUNDING_LIMIT)
+          && fuzzyLess(extreme_delay, equiv_delay)) {
+        // if (fuzzyLess(equiv_delay, extreme_delay)) {
+        extreme_delay = equiv_delay;
+        resize_cell = equiv;
+      }
+    }
+  }
+  return resize_cell;
+}
+
+sta::Map<Vertex*, LibertyCell*> SetupFixer::getResizeQueue()
+{
+  sta::Map<Vertex*, LibertyCell*> queue;
+  VertexSet changed_vertex = getResizeVertex();
+  for (auto vertex : changed_vertex) {
+    Delay resize = getResizeValue(vertex);
+    Delay new_delay = getNewDelay(vertex);
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               4,
+               " {} : {} (new_delay = {})",
+               vertex->name(sta_->sdcNetwork()),
+               delayAsString(resize, sta_, 3),
+               delayAsString(new_delay, sta_, 3));
+    LibertyCell* resize_cell = findResizeCell(vertex, new_delay);
+    if (resize_cell)
+      queue.insert(vertex, resize_cell);
+    else
+      logger_->warn(utl::LRL,
+                    1201,
+                    "not found resize cell ({} -> {})",
+                    vertex->name(sta_->sdcNetwork()),
+                    delayAsString(new_delay, sta_, 3));
+  }
+  return queue;
 }
 
 void SetupFixer::report()

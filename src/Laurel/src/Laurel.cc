@@ -257,79 +257,23 @@ void Laurel::fixHold()
 //
 ////////////////////////////////////////////////////////
 
-LibertyCell* SetupFixer::findResizeCell(Vertex* vertex, Delay target_delay)
-{
-  Pin* drvr_pin = vertex->pin();
-  LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
-  LibertyCell* cell = drvr_port->libertyCell();
-  LibertyCellSeq* equiv_cells = sta_->equivCells(cell);
-  PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
-  const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
-  const char* drvr_port_name = drvr_port->name();
-  const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
-  int lib_ap = dcalc_ap->libertyIndex();
-  Delay extreme_delay = LRL_H_ZERO;
-  // Delay extreme_delay = LRL_H_INFINITY;
-  LibertyCell* resize_cell = nullptr;
-  if (equiv_cells) {
-    for (LibertyCell* equiv : *equiv_cells) {
-      LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
-      LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
-      Delay equiv_delay
-          = gateDelay(equiv_drvr, load_cap, dcalc_ap);
-      if (fuzzyLessEqual(equiv_delay, target_delay + LRL_H_ROUNDING_LIMIT)
-          && fuzzyLess(extreme_delay, equiv_delay)) {
-        // if (fuzzyLess(equiv_delay, extreme_delay)) {
-        extreme_delay = equiv_delay;
-        resize_cell = equiv;
-      }
-    }
-  }
-  return resize_cell;
-}
-
-bool Laurel::resizeCell(SetupFixer* fixer, Vertex* vertex, Delay target_delay)
-{
-  LibertyCell* resize_cell = fixer->findResizeCell(vertex, target_delay);
-  if (resize_cell) {
-    Instance* drvr = network_->instance(vertex->pin());
-    if (replaceCell(drvr, resize_cell, true)) {
-      debugPrint(logger_,
-                 utl::LRL,
-                 "LRL",
-                 3,
-                 "resize cell {} -> {}",
-                 vertex->name(sta_->sdcNetwork()),
-                 resize_cell->name());
-      resize_count_++;
-      return true;
-    }
-  }
-  logger_->warn(utl::LRL,
-                1201,
-                "cannot resize cell ({} -> {})",
-                vertex->name(sta_->sdcNetwork()),
-                delayAsString(target_delay, sta_, 3));
-  return false;
-}
-
 bool Laurel::resizeAllCells(SetupFixer* fixer)
 {
   bool ret = true;
-  VertexSet changed_vertex = fixer->getResizeVertex();
-  for (auto vertex : changed_vertex) {
-    Delay resize = fixer->getResizeValue(vertex);
-    Delay new_delay = fixer->getNewDelay(vertex);
-    debugPrint(logger_,
-               utl::LRL,
-               "LRL",
-               4,
-               " {} : {} (new_delay = {})",
-               vertex->name(sta_->sdcNetwork()),
-               delayAsString(resize, sta_, 3),
-               delayAsString(new_delay, sta_, 3));
-    if (!resizeCell(fixer, vertex, new_delay))
+  sta::Map<Vertex*, LibertyCell*> queue = fixer->getResizeQueue();
+  for (auto q : queue) {
+    Vertex* vertex = q.first;
+    Instance* drvr = sta_->network()->instance(vertex->pin());
+    LibertyCell* resize_cell = q.second;
+    if (!replaceCell(drvr, resize_cell, true)) {
       ret = false;
+      logger_->warn(utl::LRL,
+                    1206,
+                    "cannot resize cell ({})",
+                    vertex->name(sta_->sdcNetwork()));
+      continue;
+    }
+    resize_count_++;
   }
   logger_->info(utl::LRL,
                 1305,

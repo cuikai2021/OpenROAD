@@ -97,11 +97,7 @@ class SetupFixer : public LaurelAdapter
   virtual void initAlgorithm();
   SetupResult resolve();
   bool remap();
-  Delay getNewDelay(Vertex* vertex);
-  Delay getResizeValue(Vertex* vertex);
-  VertexSet getResizeVertex();
-  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
-  Delay getDelay(Vertex* vertex);
+  sta::Map<Vertex*, LibertyCell*> getResizeQueue();
 
   void report();
 
@@ -128,11 +124,17 @@ class SetupFixer : public LaurelAdapter
 
   Index getIndex(Vertex* vertex) const;
   Name getNodeVertexName(Index index) const;
+  Delay getDelay(Vertex* vertex);
   Delay getCellDelay(Vertex* vertex);
   const char* getInPortName(Vertex* pred, Vertex* succ) const;
   Delay getBound(Vertex* vertex, const MinMax* min_max);
   Delay getLowBound(Vertex* vertex);
   Delay getHighBound(Vertex* vertex);
+
+  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
+  Delay getNewDelay(Vertex* vertex);
+  Delay getResizeValue(Vertex* vertex);
+  VertexSet getResizeVertex();
 
   VertexSeq sortVertexSet(VertexSet set) const;
 
@@ -218,11 +220,11 @@ class WireBudgetingFake : public WireBudgeting
       : WireBudgeting(openroad, options), factor_(factor){};
   virtual ~WireBudgetingFake(){};
 
-  virtual void initAlgorithm();
+  virtual void initAlgorithm() override;
   virtual void getNewWireLength(Vertex* pred,
                                 Vertex* succ,
                                 uint64& max_length,
-                                Delay& bud_rate);
+                                Delay& bud_rate) override;
 
  protected:
   virtual void addConstraintPO(Vertex* po) override;
@@ -240,7 +242,7 @@ class WireBudgetingRC : public WireBudgeting
       : WireBudgeting(openroad, options){};
   virtual ~WireBudgetingRC(){};
 
-  virtual void initAlgorithm();
+  virtual void initAlgorithm() override;
 
  protected:
   virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
@@ -355,21 +357,17 @@ class Laurel : public LaurelAdapter
 
   LibertyCell* findHoldBuffer(Delay min_limit);
 
-  // LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
-  bool resizeCell(SetupFixer* fixer, Vertex* vertex, Delay target_delay);
   bool resizeAllCells(SetupFixer* fixer);
 
   bool checkVertexBudgeted(Vertex* pred, Vertex* succ);
 
-  // bool genAllWireBud(WireBudgeting* guider);
   void showAllWireBud(WireBudgeting* guider);  // debug
 
   void wireBudgetingCore();
 
   // variable
   Options* options_;
-  // sta::Map<WirePair, uint64> wire_budget_;
-  // sta::Map<WirePair, uint64> wire_budget_rate_;
+
   WireBudgeting* wire_bud_ = nullptr;
 };
 
