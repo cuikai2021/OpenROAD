@@ -231,7 +231,7 @@ class Laurel : public LaurelAdapter
  protected:
   bool fixHoldCore();
 
-  int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
+  // int findInsertBufferCell(Delay max_padding, LibertyCell* buffer_cell);
   bool insertBuffer(HoldFixer* fixer,
                     Name vertex_name,
                     sta::Map<Name, Vertex*> name_vertex_map);
@@ -243,7 +243,7 @@ class Laurel : public LaurelAdapter
                        bool loads_have_out_port,
                        LibertyCell* buffer_cell);
 
-  LibertyCell* findHoldBuffer(Delay min_limit);
+  LibertyCell* findHoldBuffer(Delay min_limit, int& count);
 
   LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
   bool resizeCell(Vertex* vertex, Delay target_delay);

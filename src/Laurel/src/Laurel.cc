@@ -62,19 +62,24 @@ sta::Map<Name, Vertex*> Laurel::makeNameVertexMap()
   return name_vertex_map;
 }
 
-LibertyCell* Laurel::findHoldBuffer(Delay min_limit)
+LibertyCell* Laurel::findHoldBuffer(Delay min_limit, int& count)
 {
   LibertyCell* max_buffer = nullptr;
   Delay max_delay = INF;
   const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
+  count = LRL_S_INT_INF;
   for (LibertyCell* buffer : buffer_cells_) {
     Delay buffer_min_delay = bufferHoldDelay(buffer);
+    int min_count = std::ceil(min_limit / buffer_min_delay);
+    Delay fixed_delay = buffer_min_delay * (Delay) (min_count);
     // if ((max_buffer == nullptr || buffer_min_delay < max_delay)
     //     && fuzzyLess(min_limit, buffer_min_delay)) {
-    if (fuzzyLess(min_limit, buffer_min_delay)
-        && fuzzyLess(buffer_min_delay, min_limit + uncertainty)) {
+    if (fuzzyLess(min_limit, fixed_delay)
+        && fuzzyLess(fixed_delay, min_limit + uncertainty)
+        && min_count < count) {
       max_buffer = buffer;
       max_delay = buffer_min_delay;
+      count = min_count;
     }
   }
   if (max_buffer)
@@ -224,11 +229,12 @@ bool Laurel::insertBuffer(HoldFixer* fixer,
   }
 
   int buffer_count = 1;
-  LibertyCell* buffer_cell = findHoldBuffer(max_padding);
+  LibertyCell* buffer_cell = findHoldBuffer(max_padding, buffer_count);
   while (!buffer_cell) {
-    buffer_count *= LRL_H_BUFFER_SPILIT;
-    padding /= LRL_H_BUFFER_SPILIT;
-    buffer_cell = findHoldBuffer(padding);
+    // buffer_count *= LRL_H_BUFFER_SPILIT;
+    // padding /= LRL_H_BUFFER_SPILIT;
+    // buffer_cell = findHoldBuffer(padding);
+    return false;
   }
 
   if (buffer_cell != nullptr && !load_pins.empty()) {
