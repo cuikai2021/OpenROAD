@@ -61,7 +61,7 @@ pad : 0 -> 0.597
 [INFO GPL-0019] Util(%): 59.73
 [INFO GPL-0020] StdInstsArea: 2279088000
 [INFO GPL-0021] MacroInstsArea: 0
-[INFO GPL-0031] FillerInit: NumGCells: 458
+[INFO GPL-0031] FillerInit: NumGCells: 507
 [INFO GPL-0032] FillerInit: NumGNets: 364
 [INFO GPL-0033] FillerInit: NumGPins: 1122
 [INFO GPL-0023] TargetDensity: 1.00
@@ -93,7 +93,7 @@ pad : 1 -> 0.597
 [INFO GPL-0019] Util(%): 59.73
 [INFO GPL-0020] StdInstsArea: 2279088000
 [INFO GPL-0021] MacroInstsArea: 0
-[INFO GPL-0031] FillerInit: NumGCells: 428
+[INFO GPL-0031] FillerInit: NumGCells: 507
 [INFO GPL-0032] FillerInit: NumGNets: 364
 [INFO GPL-0033] FillerInit: NumGPins: 1122
 [INFO GPL-0023] TargetDensity: 1.00

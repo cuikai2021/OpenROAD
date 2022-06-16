@@ -92,6 +92,13 @@ Instance::Instance(odb::dbInst* inst,
     ux_ += padRight;
   }
   rect_.reset(lx_, ly_, ux_, uy_);
+  {
+    auto master = inst_->getMaster();
+    assert(master != nullptr);
+    int64_t w = master->getWidth();
+    int64_t h = master->getHeight();
+    resize(w, h);
+  }
 
   // Masters more than row_limit rows tall are treated as macros
   constexpr int row_limit = 6;
@@ -211,15 +218,7 @@ void Instance::dbSetCenterLocation(int x, int y)
 
 int64_t Instance::area() const
 {
-  if (inst_ == nullptr) {  // dummy instance
-    return rect_.area();
-  } else {
-    auto master = inst_->getMaster();
-    assert(master != nullptr);
-    int64_t w = master->getWidth();
-    int64_t h = master->getHeight();
-    return w * h;
-  }
+  return rect_.area();
 }
 
 void Instance::addPin(Pin* pin)
