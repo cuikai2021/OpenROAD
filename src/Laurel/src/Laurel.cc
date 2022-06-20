@@ -229,7 +229,7 @@ bool Laurel::insertBuffer(HoldFixer* fixer,
   }
 
   int buffer_count = 1;
-  LibertyCell* buffer_cell = findHoldBuffer(max_padding, buffer_count);
+  LibertyCell* buffer_cell = findHoldBuffer(padding, buffer_count);
   while (!buffer_cell) {
     // buffer_count *= LRL_H_BUFFER_SPILIT;
     // padding /= LRL_H_BUFFER_SPILIT;
