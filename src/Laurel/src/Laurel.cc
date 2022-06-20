@@ -393,10 +393,8 @@ void Laurel::wireBudgeting()
   if (wire_bud_)
     delete wire_bud_;
 
-  if (options_->hasSpefFile()) {
-    wire_bud_ = new WireBudgeting(openroad_, options_);
-    return wireBudgetingCore();
-  }
+  if (options_->hasSpefFile())
+    return wireBudgetingSpef(options_->spefFileName());
 
   if (options_->isWireBudModeRC()) {
     wire_bud_ = new WireBudgetingRC(openroad_, options_);
@@ -411,6 +409,15 @@ void Laurel::wireBudgetingRC()
   options_->setWireBudModeRC();
   wireBudgeting();
   options_->resetWireBudMode();
+}
+
+void Laurel::wireBudgetingSpef(const char* filename)
+{
+  if (wire_bud_)
+    delete wire_bud_;
+  options_->setSpefFile(filename);
+  wire_bud_ = new WireBudgeting(openroad_, options_);
+  wireBudgetingCore();
 }
 
 void Laurel::wireBudgeting(float factor)

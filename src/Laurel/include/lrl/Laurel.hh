@@ -339,6 +339,7 @@ class Laurel : public LaurelAdapter
   void fixSetup();
   void wireBudgeting();
   void wireBudgeting(float factor);
+  void wireBudgetingSpef(const char* filename);
   void wireBudgetingRC();
 
   // run fixHold fixHoldNoInsertion, than it is able to check which vertex we
