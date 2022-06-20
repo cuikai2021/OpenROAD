@@ -125,7 +125,7 @@ class SetupFixer : public LaurelAdapter
   Index getIndex(Vertex* vertex) const;
   Name getNodeVertexName(Index index) const;
   Delay getDelay(Vertex* vertex);
-  Delay getCellDelay(Vertex* vertex);
+  virtual Delay getCellDelay(Vertex* vertex);
   const char* getInPortName(Vertex* pred, Vertex* succ) const;
   Delay getBound(Vertex* vertex, const MinMax* min_max);
   Delay getLowBound(Vertex* vertex);
@@ -250,7 +250,7 @@ class WireBudgetingRC : public WireBudgeting
   virtual Delay getHighBound(Vertex* pred, Vertex* succ) override;
 
   Delay getDrvrSlope();
-  Delay getCellDelay(Vertex* vertex);
+  virtual Delay getCellDelay(Vertex* vertex) override;
 
   sta::Map<Name, Delay> delay_map_;
   Delay wire_slope_ = LRL_H_ZERO;

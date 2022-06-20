@@ -290,6 +290,8 @@ Delay SetupFixer::getCellDelay(Vertex* vertex)
 {
   Delay load_delay = LRL_H_ZERO;
   PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+  if (!path.vertex(sta_))
+    return LRL_H_ZERO;
   PathExpanded expanded(&path, sta_);
   const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
   int start_index = expanded.startIndex();
