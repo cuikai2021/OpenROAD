@@ -94,14 +94,6 @@ Vertex* WireBudgeting::getRealFanoutVertex(WirePair wire)
   return wire_fanout_map_.findKey(wire);
 }
 
-void WireBudgeting::buildALLEdgePO(VertexSet ends)
-{
-  for (auto node : vertex_index_map_) {
-    Vertex* vertex = name_vertex_map_.findKey(node.first);
-    if (ends.find(vertex) != ends.end())
-      addConstraintPO(vertex);
-  }
-}
 
 Delay WireBudgeting::costSlope(Vertex* pred, Vertex* succ)
 {
