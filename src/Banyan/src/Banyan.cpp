@@ -2,8 +2,8 @@
 
 #include <dlfcn.h>
 
-#include "DBAdapter.h"
-#include "axioms/Axioms.h"
+#include "DBAdapter.hpp"
+#include "axioms/Axioms.hpp"
 #include "banyan_go.h"
 #include "sta/StaMain.hh"
 #include "utl/Logger.h"
@@ -82,20 +82,27 @@ int Banyan::main(const std::map<std::string, std::string>& options)
   for (auto& kv : options) {
     logger_->info(
         utl::BY, 200, "banyan route option: {}={}", kv.first, kv.second);
-    options_vec.push_back({kv.first.c_str(), kv.second.c_str()});
 
-    if (kv.first == "max_via_stack" && !kv.second.empty()) {
-      maxViaStack = atoi(kv.second.c_str());
+    if (kv.first == "max_via_stack") {
+      if (!kv.second.empty()) {
+        maxViaStack = atoi(kv.second.c_str());
+      }
+      continue;
     }
 
     if (kv.first == "min_layer") {
       minLayer = kv.second;
+      continue;
     }
 
     if (kv.first == "max_layer") {
       maxLayer = kv.second;
+      continue;
     }
+
+    options_vec.push_back({kv.first.c_str(), kv.second.c_str()});
   }
+
   OpenDBAdapter bdAdapter(db_, logger_, maxViaStack, minLayer, maxLayer);
   Axioms axioms(bdAdapter);
 
@@ -111,7 +118,7 @@ int Banyan::main(const std::map<std::string, std::string>& options)
                                banyan_go::to_slice(bdAdapter.getBoxes()),
                                banyan_go::to_slice(bdAdapter.getVias()),
                                banyan_go::to_slice(bdAdapter.getViadefs()),
-                               banyan_go::to_slice(axioms.getTableTriples()),
+                               banyan_go::to_slice(bdAdapter.getTableTriples()),
                                &ret);
 
   if (err == 0) {

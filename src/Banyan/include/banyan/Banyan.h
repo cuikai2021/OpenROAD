@@ -3,9 +3,9 @@
 
 #include <tcl.h>
 
+#include <map>
 #include <memory>
 #include <string>
-#include <map>
 
 namespace odb {
 class dbDatabase;
@@ -23,13 +23,13 @@ class Banyan
   Banyan();
   ~Banyan();
   void init(Tcl_Interp* tcl_interp, odb::dbDatabase* db, utl::Logger* logger);
-  int main(const std::map<std::string, std::string> &options);
+  int main(const std::map<std::string, std::string>& options);
 
  protected:
   odb::dbDatabase* db_;
   utl::Logger* logger_;
-}; // class Banyan
+};  // class Banyan
 
-} // namespace banyan
+}  // namespace banyan
 
 #endif

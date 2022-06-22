@@ -17,8 +17,11 @@ sta::define_cmd_args "banyan_route" {
 
 proc banyan_route { args } {
   sta::parse_key_args "banyan_route" args \
-      keys {-log_level -debug_output -max_via_stack -min_layer -max_layer -enable_route -enable_maze_top -report_route_json -baby_banyan -pa_mcf -report_benchmark_json} \
-      flags {-debug_save_txt -cts}
+      keys {-log_level -debug_output -debug_save_txt \
+      -max_via_stack -min_layer -max_layer \
+      -enable_route -enable_maze_top -report_route_json \
+      -baby_banyan -pa_mcf -report_benchmark_json  -cts} \
+
 
   sta::check_argc_eq0 "banyan_route" $args
 
@@ -41,7 +44,12 @@ proc banyan_route { args } {
     set max_via_stack ""
   }
 
-  set debug_save_txt [info exists flags(-debug_save_txt)]  
+  if { [info exists keys(-debug_save_txt)] } {
+    check_bool "-debug_save_txt" $keys(-debug_save_txt)
+    set debug_save_txt $keys(-debug_save_txt)
+  } else {
+    set debug_save_txt ""
+  }
 
   if { [info exists keys(-min_layer)] } {
     set min_layer $keys(-min_layer)
@@ -55,7 +63,12 @@ proc banyan_route { args } {
     set max_layer ""
   }
 
-  set cts [info exists flags(-cts)]  
+  if { [info exists keys(-cts)] } {
+    check_bool "-cts" $keys(-cts)
+    set cts $keys(-cts)
+  } else {
+    set cts ""
+  }
 
   if { [info exists keys(-enable_route)] } {
     check_bool "-enable_route" $keys(-enable_route)

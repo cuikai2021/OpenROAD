@@ -7,25 +7,7 @@
 #include "banyan_go.h"
 #include "string.h"
 #include "utl/Logger.h"
-
-namespace odb {
-class dbDatabase;
-class dbBlock;
-class dbObject;
-class dbTechLayer;
-class dbNet;
-class dbBox;
-class dbSBox;
-class dbWire;
-class dbVia;
-class dbTechVia;
-class dbTechNonDefaultRule;
-class Rect;
-}  // namespace odb
-
-namespace utl {
-class Logger;
-}
+#include "db.h"
 
 #define AssertFind(mmap, key) \
   assertFind(mmap, key, __FILE__, __LINE__, __func__)
@@ -83,6 +65,7 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::track> tracks_;
   std::vector<banyan_go::ndr_layer> ndrlayers_;
   std::vector<banyan_go::ndr> ndrs_;
+  std::vector<banyan_go::table_triple> tableTriples_;
   banyan_go::design design_;
 
  protected:
@@ -130,7 +113,13 @@ class OpenDBAdapter : public DBAdapter
   void addBox(odb::dbBox* box);
   void addBox(std::string layerName, const odb::Rect& rect);
   void addBox(std::string layerName, int left, int bottom, int right, int top);
-  void addWireBox(const std::string& layerName, int left, int bottom, int right, int top, int startExt, int endExt);
+  void addWireBox(const std::string& layerName,
+                  int left,
+                  int bottom,
+                  int right,
+                  int top,
+                  int startExt,
+                  int endExt);
 
   void addNet(odb::dbNet* net);
   void addWire(odb::dbWire* wire);
@@ -181,11 +170,9 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::layer>& getLayers() override { return layers_; }
   std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }
   std::vector<banyan_go::track>& getTracks() override { return tracks_; }
-  std::vector<banyan_go::ndr_layer>& getNDRLayers() override
-  {
-    return ndrlayers_;
-  }
+  std::vector<banyan_go::ndr_layer>& getNDRLayers() override { return ndrlayers_; }
   std::vector<banyan_go::ndr>& getNDRs() override { return ndrs_; }
+  std::vector<banyan_go::table_triple>& getTableTriples() { return tableTriples_; }
   banyan_go::design getDesign() override { return design_; }
 };
 

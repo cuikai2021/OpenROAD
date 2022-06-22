@@ -1,10 +1,11 @@
 
+#include "DBAdapter.hpp"
+
 #include <assert.h>
 
 #include <cmath>
 #include <utility>
 
-#include "DBAdapter.h"
 #include "GroupedRange.hpp"
 #include "odb/ZException.h"
 #include "odb/db.h"
@@ -15,20 +16,6 @@
 #include "utl/Logger.h"
 
 namespace banyan {
-
-std::string getViaNameFromViaBox(odb::dbBox* box)
-{
-  assert(box->isVia());
-  auto techVia = box->getTechVia();
-  if (techVia != nullptr) {
-    return techVia->getName();
-  }
-  auto blockVia = box->getBlockVia();
-  if (blockVia != nullptr) {
-    return blockVia->getName();
-  }
-  assert(false);
-}
 
 struct TrackLayerName
 {
@@ -48,19 +35,11 @@ struct BoxLayerName
   }
 };
 
-struct ViaTopLayer
-{
-  typedef std::string value_type;
-  value_type operator()(odb::dbVia* via) const
-  {
-    return via->getTopLayer()->getName();
-  }
-};
-
 int OpenDBAdapter::calLayerPitch(odb::dbTechLayer* layer)
 {
-  return (int) (layer->getPitchX() > 0 ? layer->getPitchX()
-                                       : layer->getPitchY());
+  return (int) (layer->getDirection() == odb::dbTechLayerDir::VERTICAL
+                    ? layer->getPitchX()
+                    : layer->getPitchY());
 }
 
 int OpenDBAdapter::defdist(int x)
@@ -184,6 +163,8 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
                      banyan_go::DIR_NONE,
                      (int) layer->getWidth(),
                      calLayerPitch(layer),
+                     0,
+                     0,
                      minStep,
                      minStepMaxEdges,
                      minStepMaxLength,
@@ -205,15 +186,14 @@ void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
 {
   assert(!hasAddedCutLayer_);
   auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
-  layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0});
+  layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
   belowRoutingLayerMaxIndex_++;
 }
 
 void OpenDBAdapter::addImplantLayer(odb::dbTechLayer* layer)
 {
-  assert(!hasAddedCutLayer_);
   auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
-  layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0});
+  layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
   belowRoutingLayerMaxIndex_++;
 }
 
@@ -221,19 +201,23 @@ void OpenDBAdapter::getTracksFromOpenDB()
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
   const auto tracks = block->getTrackGrids();
-  for (auto group :
-       utl::group_by(tracks.begin(), tracks.end(), TrackLayerName())) {
-    int layerIdx = layerNameToIdxs_.find(group.value)->second;
+
+  for (auto groups :
+       utl::GroupBy(tracks.begin(), tracks.end(), TrackLayerName())) {
+    int layerIdx = layerNameToIdxs_.find(groups.value)->second;
     if (layerIdx < 0) {
-      logger_->info(
-          utl::BY, 800, "ignore tracks on layer[{}] {}", layerIdx, group.value);
+      logger_->info(utl::BY,
+                    800,
+                    "ignore tracks on layer[{}] {}",
+                    layerIdx,
+                    groups.value);
       continue;
     }
 
     size_t laTrackBegin = tracks_.size();
     std::vector<int> grid;
     int dir = banyan_go::DIR_NONE, tmin = 0, tmax = 0;
-    for (auto track : group.range) {
+    for (auto track : groups.range) {
       if (track->getTechLayer()->getDirection()
           == odb::dbTechLayerDir::HORIZONTAL) {
         track->getGridY(grid);
@@ -256,7 +240,7 @@ void OpenDBAdapter::getTracksFromOpenDB()
                     805,
                     "ignore tracks on layer[{}] {} with dir NONE",
                     layerIdx,
-                    group.value);
+                    groups.value);
     }
 
     for (auto line : grid) {
@@ -396,6 +380,8 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
   struct banyan_go::box botBox;
   struct banyan_go::box topBox;
 
+  int viaBoxBegin = boxes_.size();
+
   int cutNums = 0;
 
   if (viaHasParams && (rule != nullptr)) {
@@ -449,9 +435,9 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
     // currY + topTranformY + yTopEnc};
   } else {
     int cnt = 0;
-    for (auto group :
-         utl::group_by(boxes.begin(), boxes.end(), BoxLayerName())) {
-      for (auto box : group.range) {
+    for (auto groups :
+         utl::GroupBy(boxes.begin(), boxes.end(), BoxLayerName())) {
+      for (auto box : groups.range) {
         switch (cnt) {
           case 0:
             botBox = {botLayerIdx,
@@ -461,6 +447,7 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
                       defdist(box->getDY())};
             break;
           case 1:
+            addBox(box);
             cutNums++;
             break;
           case 2:
@@ -480,7 +467,12 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
   }
   auto it
       = viaDefNameToIdxs_.insert(make_pair(vname, (int) viadefs_.size())).first;
-  viadefs_.push_back({it->first.c_str(), topBox, botBox, cutNums});
+  viadefs_.push_back({it->first.c_str(),
+                      topBox,
+                      botBox,
+                      (banyan_go::GoUint64) viaBoxBegin,
+                      (banyan_go::GoUint64) boxes_.size(),
+                      cutNums});
 }
 
 void OpenDBAdapter::getNetsFromOpenDB()
@@ -606,6 +598,19 @@ void OpenDBAdapter::addWireBox(const std::string& layerName,
 
 void OpenDBAdapter::addVia(odb::dbBox* box)
 {
+  auto getViaNameFromViaBox = [](odb::dbBox* box) -> std::string {
+    assert(box->isVia());
+    auto techVia = box->getTechVia();
+    if (techVia != nullptr) {
+      return techVia->getName();
+    }
+    auto blockVia = box->getBlockVia();
+    if (blockVia != nullptr) {
+      return blockVia->getName();
+    }
+    assert(false);
+  };
+
   int x;
   int y;
   box->getViaXY(x, y);
