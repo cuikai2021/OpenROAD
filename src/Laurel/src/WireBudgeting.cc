@@ -1,4 +1,5 @@
 #include "lrl/Laurel.hh"
+#include "lrl/SpefReader.hh"
 #include "sta/ParasiticsClass.hh"
 
 namespace lrl {
@@ -235,17 +236,19 @@ sta::Map<Name, Delay> WireBudgeting::buildSpefDelayMap()
 bool WireBudgeting::makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor)
 {
   const char* filename = options_->spefFileName();
-  bool ret = sta_->readSpef(filename,
-                            sta_->getDbNetwork()->topInstance(),
-                            sta_->cmdCorner(),
-                            MinMaxAll::all(),
-                            false,
-                            false,
-                            false,
-                            factor,
-                            ReducedParasiticType::none,
-                            false,
-                            false);
+  bool ret = sta::readSpefFct(filename,
+                              sta_->getDbNetwork()->topInstance(),
+                              sta_->cmdCorner(),
+                              MinMaxAll::all(),
+                              false,
+                              false,
+                              false,
+                              1.0,
+                              ReducedParasiticType::none,
+                              false,
+                              false,
+                              factor,
+                              sta_);
   if (ret)
     map = buildSpefDelayMap();
 
