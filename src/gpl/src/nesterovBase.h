@@ -229,6 +229,9 @@ class GPin
   void updateLocation(const GCell* gCell);
   void updateDensityLocation(const GCell* gCell);
 
+  int offsetCx() const { return offsetCx_; }
+  int offsetCy() const { return offsetCy_; }
+
  private:
   Pin* pin_;
   GCell* gCell_;
@@ -435,12 +438,6 @@ class NesterovBase
   GPin* dbToNb(odb::dbITerm* pin) const;
   GPin* dbToNb(odb::dbBTerm* pin) const;
   GNet* dbToNb(odb::dbNet* net) const;
-
-  // update gCells with lx, ly
-  void updateGCellLocation(const std::vector<FloatPoint>& points);
-
-  // update gCells with cx, cy
-  void updateGCellCenterLocation(const std::vector<FloatPoint>& points);
 
   void updateGCellDensityCenterLocation(const std::vector<FloatPoint>& points);
 

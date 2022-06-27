@@ -154,6 +154,10 @@ add_compile_options(
   $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
 )
 
+IF(USE_LINDEN_DEBUG_LIBS)
+  add_link_options(--coverage -fsanitize=address)
+ENDIF(USE_LINDEN_DEBUG_LIBS)
+
 ################################################################
 
 swig_lib(NAME      openroad_swig

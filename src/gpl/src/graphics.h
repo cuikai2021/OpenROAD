@@ -8,6 +8,12 @@ namespace utl {
 class Logger;
 }
 
+namespace linden {
+namespace db {
+class Database;
+}
+}  // namespace linden
+
 namespace gpl {
 
 class InitialPlace;
@@ -21,8 +27,7 @@ class Graphics : public gui::Renderer
 {
  public:
   // Debug InitialPlace
-  Graphics(utl::Logger* logger,
-           std::shared_ptr<PlacerBase> pb);
+  Graphics(utl::Logger* logger, std::shared_ptr<PlacerBase> pb);
 
   // Debug NesterovPlace
   Graphics(utl::Logger* logger,
@@ -30,6 +35,11 @@ class Graphics : public gui::Renderer
            std::shared_ptr<PlacerBase> pb,
            std::shared_ptr<NesterovBase> nb,
            bool draw_bins);
+
+  // Debug linden::gpl::Placer
+  Graphics(utl::Logger* logger,
+           std::shared_ptr<linden::db::Database> linden_db_,
+           std::shared_ptr<PlacerBase> pb);
 
   // Draw the graphics; optionally pausing afterwards
   void cellPlot(bool pause = false);
@@ -49,10 +59,12 @@ class Graphics : public gui::Renderer
   std::shared_ptr<PlacerBase> pb_;
   std::shared_ptr<NesterovBase> nb_;
   NesterovPlace* np_;
+  std::shared_ptr<linden::db::Database> linden_db_;
   GCell* selected_;
   bool draw_bins_;
   utl::Logger* logger_;
 
+  void drawLinden(gui::Painter& painter);
   void drawNesterov(gui::Painter& painter);
   void drawInitial(gui::Painter& painter);
   void drawBounds(gui::Painter& painter);

@@ -7,6 +7,7 @@
 #include "nesterovBase.h"
 #include "nesterovPlace.h"
 #include "placerBase.h"
+#include "linden/db/db.hpp"
 #include "utl/Logger.h"
 
 namespace gpl {
@@ -15,6 +16,7 @@ Graphics::Graphics(utl::Logger* logger, std::shared_ptr<PlacerBase> pb)
     : pb_(pb),
       nb_(),
       np_(nullptr),
+      linden_db_(nullptr),
       selected_(nullptr),
       draw_bins_(false),
       logger_(logger)
@@ -30,8 +32,23 @@ Graphics::Graphics(utl::Logger* logger,
     : pb_(pb),
       nb_(nb),
       np_(np),
+      linden_db_(nullptr),
       selected_(nullptr),
       draw_bins_(draw_bins),
+      logger_(logger)
+{
+  gui::Gui::get()->registerRenderer(this);
+}
+
+Graphics::Graphics(utl::Logger* logger,
+                   std::shared_ptr<linden::db::Database> linden_db,
+                   std::shared_ptr<PlacerBase> pb)
+    : pb_(pb),
+      nb_(),
+      np_(nullptr),
+      linden_db_(linden_db),
+      selected_(nullptr),
+      draw_bins_(false),
       logger_(logger)
 {
   gui::Gui::get()->registerRenderer(this);
@@ -63,6 +80,41 @@ void Graphics::drawInitial(gui::Painter& painter)
     color.a = 180;
     painter.setBrush(color);
     painter.drawRect({lx, ly, ux, uy});
+  }
+}
+
+void Graphics::drawLinden(gui::Painter& painter)
+{
+  drawBounds(painter);
+  // Draw the placeable objects
+  painter.setPen(gui::Painter::white);
+  for (auto& cell : linden_db_->cells()) {
+    if (cell.is_instance()) {
+      odb::dbInst* inst = static_cast<odb::dbInst*>(cell.odb_instance());
+      inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+      const linden::geom::Rect& r = cell.rect();
+      // pad awareness on X coordinates
+      inst->setLocation(r.lx() + pb_->siteSizeX() * pb_->padLeft(), r.ly());
+    }
+  }
+  for (auto& cell : linden_db_->cells()) {
+    gui::Painter::Color color;
+    if (cell.odb_instance()) {
+      color
+          = cell.locked() ? gui::Painter::dark_cyan : gui::Painter::dark_green;
+    } else if (cell.is_virtual() && !cell.fixed()) {  // filler
+      color = gui::Painter::dark_magenta;
+    }
+#if 0 // TODO: support select on linden-cell
+    if (cell == selected_) {
+      color = gui::Painter::yellow;
+    }
+#endif
+
+    color.a = 180;
+    painter.setBrush(color);
+    auto const& r = cell.rect();
+    painter.drawRect({r.lx(), r.ly(), r.ux(), r.uy()});
   }
 }
 
@@ -160,6 +212,8 @@ void Graphics::drawObjects(gui::Painter& painter)
 {
   if (nb_) {
     drawNesterov(painter);
+  } else if (linden_db_) {
+    drawLinden(painter);
   } else {
     drawInitial(painter);
   }

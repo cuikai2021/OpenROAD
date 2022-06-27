@@ -726,6 +726,19 @@ void PlacerBase::init()
   // nets fill
   dbSet<dbNet> nets = block->getNets();
   netStor_.reserve(nets.size());
+
+  size_t pin_cnt = 0;
+  for (dbNet* net : nets) {
+    dbSigType netType = net->getSigType();
+    // escape nets with VDD/VSS/reset nets
+    if (netType == dbSigType::SIGNAL || netType == dbSigType::CLOCK) {
+      pin_cnt += net->getITerms().size();
+      if (pbVars_.skipIoMode == false) {
+        pin_cnt += net->getBTerms().size();
+      }
+    }
+  }
+  pinStor_.reserve(pin_cnt);
   for (dbNet* net : nets) {
     dbSigType netType = net->getSigType();
 
@@ -735,65 +748,44 @@ void PlacerBase::init()
       netStor_.push_back(myNet);
 
       // this is safe because of "reserve"
-      Net* myNetPtr = &netStor_[netStor_.size() - 1];
+      Net* myNetPtr = &netStor_.back();
       netMap_[net] = myNetPtr;
 
       for (dbITerm* iTerm : net->getITerms()) {
-        Pin myPin(iTerm);
-        myPin.setNet(myNetPtr);
-        myPin.setInstance(dbToPb(iTerm->getInst()));
-        pinStor_.push_back(myPin);
+        // note that, DB's ITerm can have
+        // VDD/VSS pins.
+        //
+        // Escape those pins
+        pinStor_.emplace_back(iTerm);
+        Pin* pin = &pinStor_.back();
+        pin->setNet(myNetPtr);
+        auto inst = dbToPb(iTerm->getInst());
+        pin->setInstance(inst);
+        pinMap_[(void*) iTerm] = pin;
+        inst->addPin(pin);
+        myNetPtr->addPin(pin);
       }
 
       if (pbVars_.skipIoMode == false) {
         for (dbBTerm* bTerm : net->getBTerms()) {
-          Pin myPin(bTerm);
-          myPin.setNet(myNetPtr);
-          pinStor_.push_back(myPin);
+          pinStor_.emplace_back(bTerm);
+          Pin* pin = &pinStor_.back();
+          pin->setNet(myNetPtr);
+          pinMap_[(void*) bTerm] = pin;
+          myNetPtr->addPin(pin);
         }
       }
     }
   }
+  assert(pinStor_.size() == pin_cnt);
 
-  // pinMap_ and pins_ update
   pins_.reserve(pinStor_.size());
   for (auto& pin : pinStor_) {
-    if (pin.isITerm()) {
-      pinMap_[(void*) pin.dbITerm()] = &pin;
-    } else if (pin.isBTerm()) {
-      pinMap_[(void*) pin.dbBTerm()] = &pin;
-    }
     pins_.push_back(&pin);
   }
 
-  // instStor_'s pins_ fill
-  for (auto& inst : instStor_) {
-    if (!inst.isInstance()) {
-      continue;
-    }
-    for (dbITerm* iTerm : inst.dbInst()->getITerms()) {
-      // note that, DB's ITerm can have
-      // VDD/VSS pins.
-      //
-      // Escape those pins
-      Pin* curPin = dbToPb(iTerm);
-      if (curPin) {
-        inst.addPin(curPin);
-      }
-    }
-  }
-
-  // nets' pin update
   nets_.reserve(netStor_.size());
   for (auto& net : netStor_) {
-    for (dbITerm* iTerm : net.dbNet()->getITerms()) {
-      net.addPin(dbToPb(iTerm));
-    }
-    if (pbVars_.skipIoMode == false) {
-      for (dbBTerm* bTerm : net.dbNet()->getBTerms()) {
-        net.addPin(dbToPb(bTerm));
-      }
-    }
     nets_.push_back(&net);
   }
 

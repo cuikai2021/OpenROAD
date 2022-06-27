@@ -58,24 +58,25 @@
 [NesterovSolve] Iter: 150 overflow: 0.929106 HPWL: 659302
 [NesterovSolve] Iter: 160 overflow: 0.899875 HPWL: 757809
 [NesterovSolve] Iter: 170 overflow: 0.855672 HPWL: 967592
-[NesterovSolve] Iter: 180 overflow: 0.840314 HPWL: 1078165
-[NesterovSolve] Iter: 190 overflow: 0.800343 HPWL: 1243976
-[NesterovSolve] Iter: 200 overflow: 0.767987 HPWL: 1390755
-[NesterovSolve] Iter: 210 overflow: 0.725043 HPWL: 1550308
-[NesterovSolve] Iter: 220 overflow: 0.681011 HPWL: 1717736
-[NesterovSolve] Iter: 230 overflow: 0.635947 HPWL: 1876371
-[NesterovSolve] Iter: 240 overflow: 0.584379 HPWL: 2026619
-[NesterovSolve] Iter: 250 overflow: 0.536795 HPWL: 2183898
-[NesterovSolve] Iter: 260 overflow: 0.482784 HPWL: 2336302
-[NesterovSolve] Iter: 270 overflow: 0.425581 HPWL: 2458718
-[NesterovSolve] Iter: 280 overflow: 0.374481 HPWL: 2586892
-[NesterovSolve] Iter: 290 overflow: 0.326094 HPWL: 2665317
-[NesterovSolve] Iter: 300 overflow: 0.287375 HPWL: 2737236
-[NesterovSolve] Iter: 310 overflow: 0.249749 HPWL: 2798263
-[NesterovSolve] Iter: 320 overflow: 0.216375 HPWL: 2852373
-[NesterovSolve] Iter: 330 overflow: 0.182009 HPWL: 2892521
-[NesterovSolve] Iter: 340 overflow: 0.152555 HPWL: 2935588
-[NesterovSolve] Iter: 350 overflow: 0.131707 HPWL: 2972534
-[NesterovSolve] Iter: 360 overflow: 0.115347 HPWL: 3000448
-[NesterovSolve] Finished with Overflow: 0.099460
+[NesterovSolve] Iter: 180 overflow: 0.840315 HPWL: 1078143
+[NesterovSolve] Iter: 190 overflow: 0.800333 HPWL: 1243965
+[NesterovSolve] Iter: 200 overflow: 0.767981 HPWL: 1390741
+[NesterovSolve] Iter: 210 overflow: 0.725044 HPWL: 1550298
+[NesterovSolve] Iter: 220 overflow: 0.681015 HPWL: 1717729
+[NesterovSolve] Iter: 230 overflow: 0.635943 HPWL: 1876407
+[NesterovSolve] Iter: 240 overflow: 0.584378 HPWL: 2026643
+[NesterovSolve] Iter: 250 overflow: 0.536795 HPWL: 2183893
+[NesterovSolve] Iter: 260 overflow: 0.482788 HPWL: 2336280
+[NesterovSolve] Iter: 270 overflow: 0.425581 HPWL: 2458703
+[NesterovSolve] Iter: 280 overflow: 0.374466 HPWL: 2586931
+[NesterovSolve] Iter: 290 overflow: 0.326094 HPWL: 2665297
+[NesterovSolve] Iter: 300 overflow: 0.287376 HPWL: 2737233
+[NesterovSolve] Iter: 310 overflow: 0.249755 HPWL: 2798253
+[NesterovSolve] Iter: 320 overflow: 0.216368 HPWL: 2852437
+[NesterovSolve] Iter: 330 overflow: 0.182007 HPWL: 2892647
+[NesterovSolve] Iter: 340 overflow: 0.152808 HPWL: 2935760
+[NesterovSolve] Iter: 350 overflow: 0.131511 HPWL: 2973342
+[NesterovSolve] Iter: 360 overflow: 0.114964 HPWL: 3000025
+[NesterovSolve] Iter: 370 overflow: 0.0985116 HPWL: 3032083
+[NesterovSolve] Finished with Overflow: 0.098512
 No differences found.

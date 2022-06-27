@@ -13,3 +13,6 @@
 [submodule "fassert"]
 	path = fassert
 	url = git@github.com:TimeExceed/fancy_assert.git
+[submodule "linden"]
+	path = src/linden/gpl
+	url = git@github.com:ICBench/linden-integrate.git
