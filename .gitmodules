@@ -7,3 +7,9 @@
 [submodule "src/abc"]
 	path = third-party/abc
 	url = https://github.com/The-OpenROAD-Project/abc.git
+[submodule "testa"]
+	path = testa
+	url = git@github.com:TimeExceed/testa.git
+[submodule "fassert"]
+	path = fassert
+	url = git@github.com:TimeExceed/fancy_assert.git
