@@ -18,8 +18,8 @@ sta::define_cmd_args "banyan_route" {
 
 proc banyan_route { args } {
   sta::parse_key_args "banyan_route" args \
-      keys {-log_level -debug_output -max_via_stack -min_layer -max_layer -enable_route -enable_maze_top -report_route_json -baby_banyan -pa_mcf -report_benchmark_json} \
-      flags {-debug_save_txt -cts -timing_driven}
+      keys {-log_level -debug_output -max_via_stack -min_layer -max_layer -enable_route -enable_maze_top -report_route_json -baby_banyan -pa_mcf -report_benchmark_json -debug_save_txt  -timing_driven} \
+      flags {-cts}
 
   sta::check_argc_eq0 "banyan_route" $args
 
@@ -42,7 +42,11 @@ proc banyan_route { args } {
     set max_via_stack ""
   }
 
-  set debug_save_txt [info exists flags(-debug_save_txt)]  
+  if { [info exists keys(-debug_save_txt)] } {
+    set debug_save_txt $keys(-debug_save_txt)
+  } else {
+    set debug_save_txt ""
+  }
 
   if { [info exists keys(-min_layer)] } {
     set min_layer $keys(-min_layer)
@@ -58,7 +62,11 @@ proc banyan_route { args } {
 
   set cts [info exists flags(-cts)] 
 
-  set timing_driven [info exists flags(-timing_driven)] 
+  if { [info exists keys(-timing_driven)] } {
+    set timing_driven $keys(-timing_driven)
+  } else {
+    set timing_driven ""
+  }
 
   if { [info exists keys(-enable_route)] } {
     check_bool "-enable_route" $keys(-enable_route)

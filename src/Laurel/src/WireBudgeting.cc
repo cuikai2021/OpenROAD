@@ -1,4 +1,5 @@
 #include "lrl/Laurel.hh"
+#include "lrl/SpefReader.hh"
 #include "sta/ParasiticsClass.hh"
 
 namespace lrl {
@@ -94,15 +95,6 @@ Vertex* WireBudgeting::getRealFanoutVertex(WirePair wire)
   return wire_fanout_map_.findKey(wire);
 }
 
-void WireBudgeting::buildALLEdgePO(VertexSet ends)
-{
-  for (auto node : vertex_index_map_) {
-    Vertex* vertex = name_vertex_map_.findKey(node.first);
-    if (ends.find(vertex) != ends.end())
-      addConstraintPO(vertex);
-  }
-}
-
 Delay WireBudgeting::costSlope(Vertex* pred, Vertex* succ)
 {
   uint64 wire_length = getTreeDist(pred, succ);
@@ -115,13 +107,17 @@ Delay WireBudgeting::costSlope(Vertex* pred, Vertex* succ)
   if (spef_delay_factor_.hasKey(succ_name))
     max_delay = spef_delay_factor_.at(succ_name);
 
-  // printf("%s  len: %lld, max delay: %s , min delay: %s\n",
-  //        succ_name.c_str(),
-  //        wire_length,
-  //        delayAsString(max_delay, sta_, 3),
-  //        delayAsString(min_delay, sta_, 3));
-  if (max_delay == min_delay)
-    return LRL_S_INT_INF;
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             3,
+             "{}  len: {}, max delay: {} , min delay: {}",
+             succ_name.c_str(),
+             wire_length,
+             delayAsString(max_delay, sta_, 3),
+             delayAsString(min_delay, sta_, 3));
+  if (fuzzyZero(max_delay) || fuzzyLessEqual(max_delay, min_delay))
+    return LRL_H_INFINITY;
   return wire_length / (max_delay - min_delay) / LRL_H_STA_SCALING
          / LRL_H_SCALING / LRL_H_SCALING / LRL_H_SCALING;
 }
@@ -156,8 +152,8 @@ void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
   addConstraintBase(
       pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
-  // addConstraintBase(
-  //     succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
+  addConstraintBase(
+      succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
 }
 
 SteinerTree* WireBudgeting::getTree(Vertex* drvr)
@@ -228,8 +224,8 @@ sta::Map<Name, Delay> WireBudgeting::buildSpefDelayMap()
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
     Vertex* vertex = vertex_iter.next();
-    Delay delay = getDelay(vertex);
-    if (!fuzzyZero(delay)) {
+    if (!vertex->isRoot() && vertex->isDriver(sta_->network())) {
+      Delay delay = getCellDelay(vertex);
       Name vertex_name = vertex->name(sta_->sdcNetwork());
       spef_delay_map.insert(vertex_name, delay);
     }
@@ -240,17 +236,19 @@ sta::Map<Name, Delay> WireBudgeting::buildSpefDelayMap()
 bool WireBudgeting::makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor)
 {
   const char* filename = options_->spefFileName();
-  bool ret = sta_->readSpef(filename,
-                            sta_->getDbNetwork()->topInstance(),
-                            sta_->cmdCorner(),
-                            MinMaxAll::all(),
-                            false,
-                            false,
-                            false,
-                            factor,
-                            ReducedParasiticType::none,
-                            false,
-                            false);
+  bool ret = sta::readSpefFct(filename,
+                              sta_->getDbNetwork()->topInstance(),
+                              sta_->cmdCorner(),
+                              MinMaxAll::all(),
+                              false,
+                              false,
+                              false,
+                              1.0,
+                              ReducedParasiticType::none,
+                              false,
+                              false,
+                              factor,
+                              sta_);
   if (ret)
     map = buildSpefDelayMap();
 

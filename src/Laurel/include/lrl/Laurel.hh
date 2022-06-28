@@ -69,6 +69,7 @@ class LaurelAdapter : public Resizer
   virtual VertexSet getAllRelatedEnds(VertexSet ends, bool ignore_clk);
   virtual Vertex* findRealVertex(Name vertex_name) const;
   virtual Pin* findFanoutPin(WirePair wire_pair) const;
+  virtual Delay getArrivalMax(Vertex* vertex) const;
 
   // constants
   const char* LRL_H_SOLVER = "SCIP";
@@ -96,9 +97,7 @@ class SetupFixer : public LaurelAdapter
   virtual void initAlgorithm();
   SetupResult resolve();
   bool remap();
-  Delay getNewDelay(Vertex* vertex);
-  Delay getResizeValue(Vertex* vertex);
-  VertexSet getResizeVertex();
+  sta::Map<Vertex*, LibertyCell*> getResizeQueue();
 
   void report();
 
@@ -126,10 +125,16 @@ class SetupFixer : public LaurelAdapter
   Index getIndex(Vertex* vertex) const;
   Name getNodeVertexName(Index index) const;
   Delay getDelay(Vertex* vertex);
+  virtual Delay getCellDelay(Vertex* vertex);
   const char* getInPortName(Vertex* pred, Vertex* succ) const;
   Delay getBound(Vertex* vertex, const MinMax* min_max);
   Delay getLowBound(Vertex* vertex);
   Delay getHighBound(Vertex* vertex);
+
+  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
+  Delay getNewDelay(Vertex* vertex);
+  Delay getResizeValue(Vertex* vertex);
+  VertexSet getResizeVertex();
 
   VertexSeq sortVertexSet(VertexSet set) const;
 
@@ -142,9 +147,15 @@ class SetupFixer : public LaurelAdapter
   CostSeq capacities_;
   CostSeq unit_costs_;
 
+  int bellman_max_iter_num_ = 0;
+
   sta::Map<Index, Arrival> arrival_map_;
+  sta::Map<Index, Arrival> pi_arrival_map_;
 
   sta::Map<Name, Index> vertex_index_map_;
+  sta::Map<Name, Vertex*> name_vertex_map_;
+  sta::Map<Name, Delay> vertex_high_bound_map_;
+  sta::Map<Name, Delay> vertex_low_bound_map_;
 
   Options* options_;
 };
@@ -172,7 +183,7 @@ class WireBudgeting : public SetupFixer
   Vertex* getVertex(Name name) { return name_vertex_map_.findKey(name); }
 
  protected:
-  virtual void buildALLEdgePO(VertexSet ends) override;
+  // virtual void buildALLEdgePO(VertexSet ends) override;
 
   // virtual void buildIndexMap(VertexSet ends) override;
   virtual void buildAllFaninEdge(VertexSeq fanins) override;
@@ -195,7 +206,6 @@ class WireBudgeting : public SetupFixer
   WirePairSet opt_wires_;
   sta::Map<Vertex*, SteinerTree*> drvr_tree_map_;
   sta::Map<WirePair, Vertex*> wire_fanout_map_;
-  sta::Map<Name, Vertex*> name_vertex_map_;
   sta::Map<Pin*, Vertex*> pin_vertex_map_;
   sta::Map<WirePair, uint64> distance_map_;
 
@@ -210,11 +220,11 @@ class WireBudgetingFake : public WireBudgeting
       : WireBudgeting(openroad, options), factor_(factor){};
   virtual ~WireBudgetingFake(){};
 
-  virtual void initAlgorithm();
+  virtual void initAlgorithm() override;
   virtual void getNewWireLength(Vertex* pred,
                                 Vertex* succ,
                                 uint64& max_length,
-                                Delay& bud_rate);
+                                Delay& bud_rate) override;
 
  protected:
   virtual void addConstraintPO(Vertex* po) override;
@@ -232,7 +242,7 @@ class WireBudgetingRC : public WireBudgeting
       : WireBudgeting(openroad, options){};
   virtual ~WireBudgetingRC(){};
 
-  virtual void initAlgorithm();
+  virtual void initAlgorithm() override;
 
  protected:
   virtual Delay costSlope(Vertex* pred, Vertex* succ) override;
@@ -240,7 +250,7 @@ class WireBudgetingRC : public WireBudgeting
   virtual Delay getHighBound(Vertex* pred, Vertex* succ) override;
 
   Delay getDrvrSlope();
-  Delay getCellDelay(Vertex* vertex);
+  virtual Delay getCellDelay(Vertex* vertex) override;
 
   sta::Map<Name, Delay> delay_map_;
   Delay wire_slope_ = LRL_H_ZERO;
@@ -270,7 +280,7 @@ class HoldFixer : public LaurelAdapter
   void genPOConstraints(VertexSet* ends);
   void genWireConstraints(WirePair wire);
 
-  Delay getArrivalMax(Vertex* vertex) const;
+  // Delay getArrivalMax(Vertex* vertex) const;
   Delay getDelay(Name vertex_name) const;
   Delay getCriLongArrival(Vertex* end) const;
 
@@ -325,10 +335,17 @@ class Laurel : public LaurelAdapter
                   GlobalRouter* global_router);
 
   void fixHold();
+  bool fixHoldNoInsertion();
   void fixSetup();
   void wireBudgeting();
   void wireBudgeting(float factor);
+  void wireBudgetingSpef(const char* filename);
   void wireBudgetingRC();
+
+  // run fixHold fixHoldNoInsertion, than it is able to check which vertex we
+  // inserted or going to insert buffers
+  bool hasHoldVio(Vertex* drvr);
+  bool hasHoldVio(Pin* drvr_pin);
 
   // get Wire budgeting result by pin to pin after wireBudgeting()
   // unit DBU
@@ -353,22 +370,19 @@ class Laurel : public LaurelAdapter
 
   LibertyCell* findHoldBuffer(Delay min_limit);
 
-  LibertyCell* findResizeCell(Vertex* vertex, Delay target_delay);
-  bool resizeCell(Vertex* vertex, Delay target_delay);
   bool resizeAllCells(SetupFixer* fixer);
 
   bool checkVertexBudgeted(Vertex* pred, Vertex* succ);
 
-  // bool genAllWireBud(WireBudgeting* guider);
   void showAllWireBud(WireBudgeting* guider);  // debug
 
   void wireBudgetingCore();
 
   // variable
   Options* options_;
-  // sta::Map<WirePair, uint64> wire_budget_;
-  // sta::Map<WirePair, uint64> wire_budget_rate_;
+
   WireBudgeting* wire_bud_ = nullptr;
+  VertexNameSet vio_pred_set_;
 };
 
 }  // namespace lrl

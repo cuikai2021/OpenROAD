@@ -12,7 +12,7 @@
 void banyan_route(
   const char *log_level,
   const char* debug_output,
-  bool debug_save_txt,
+  const char* debug_save_txt,
   const char* max_via_stack,
   const char* min_layer,
   const char* max_layer,
@@ -23,12 +23,12 @@ void banyan_route(
   const char* report_benchmark_json,
   const char* baby_banyan,
   const char* pa_mcf,
-  bool timing_driven)
+  const char* timing_driven)
 {
   std::map<std::string, std::string> options;
   options["log_level"] = log_level;
   options["debug_output"] = debug_output;
-  if (debug_save_txt) options["debug_save_txt"] = "";
+  options["debug_save_txt"] = debug_save_txt;
   options["max_via_stack"] = max_via_stack;
   options["min_layer"] = min_layer;
   options["max_layer"] = max_layer;
@@ -39,7 +39,7 @@ void banyan_route(
   options["report_benchmark_json"] = report_benchmark_json;
   options["baby_banyan"] = baby_banyan;
   options["pa_mcf"] = pa_mcf;
-  if (timing_driven) options["timing_driven"] = "";
+  options["timing_driven"] = timing_driven;
   ord::OpenRoad::openRoad()->getBanyan()->main(options);
 }
 

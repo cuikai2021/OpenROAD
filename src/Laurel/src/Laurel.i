@@ -34,6 +34,7 @@ fix_hold_cmd()
   ensureLinked();
   Laurel *laurel = getLaurel();
   laurel->fixHold();
+  // laurel->fixHoldNoInsertion();
 }
 
 void

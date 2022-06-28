@@ -596,7 +596,7 @@ sta::Pin* OpenDBAdapter::getStaPin(const char* name)
 void OpenDBAdapter::getWireBugdeting()
 {
   if (timingDriven_) {
-    laurel_->wireBudgeting();
+    laurel_->wireBudgetingRC();
   }
 
   odb::dbBlock* block = db_->getChip()->getBlock();

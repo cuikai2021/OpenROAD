@@ -61,20 +61,25 @@ LibertyCell* Laurel::findHoldBuffer(Delay min_limit)
 {
   LibertyCell* max_buffer = nullptr;
   Delay max_delay = INF;
+  const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
   for (LibertyCell* buffer : buffer_cells_) {
     Delay buffer_min_delay = bufferHoldDelay(buffer);
-    if ((max_buffer == nullptr || buffer_min_delay < max_delay)
-        && fuzzyLess(min_limit, buffer_min_delay)) {
+    // if ((max_buffer == nullptr || buffer_min_delay < max_delay)
+    //     && fuzzyLess(min_limit, buffer_min_delay)) {
+    if (fuzzyLess(min_limit, buffer_min_delay)
+        && fuzzyLess(buffer_min_delay, min_limit + uncertainty)) {
       max_buffer = buffer;
       max_delay = buffer_min_delay;
     }
   }
   if (max_buffer)
-    logger_->info(utl::LRL,
-                  1108,
-                  "choose buffer {}, delay {}",
-                  max_buffer->name(),
-                  delayAsString(max_delay, this, 3));
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               4,
+               "choose buffer {}, delay {}",
+               max_buffer->name(),
+               delayAsString(max_delay, this, 3));
   return max_buffer;
 }
 
@@ -179,6 +184,7 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
   }
 
   const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
+  Delay padding = max_padding;
   if (!fuzzyLess(max_padding - min_padding, uncertainty)) {
     logger_->warn(
         utl::LRL,
@@ -186,11 +192,10 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
         "padding diff in all {} fanout from {} higher then uncertainty",
         load_pins.size(),
         insert_from->name(sta_->sdcNetwork()));
-    return false;
+    // return false;
+    padding = min_padding;
   }
 
-  findBuffers();
-  Delay padding = max_padding;
   int buffer_count = 1;
   LibertyCell* buffer_cell = findHoldBuffer(max_padding);
   while (!buffer_cell) {
@@ -202,8 +207,12 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
   if (buffer_cell != nullptr && !load_pins.empty()) {
     insertHoldDelay(
         insert_from, buffer_count, load_pins, loads_have_out_port, buffer_cell);
-    logger_->info(
-        utl::LRL, 1109, "inserted {} buffer ", std::to_string(buffer_count));
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               4,
+               "inserted {} buffer ",
+               std::to_string(buffer_count));
   }
   return true;
 }
@@ -211,8 +220,9 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
 bool Laurel::insertAllBuffer(HoldFixer* fixer)
 {
   bool ret = true;
-  VertexNameSet vio_pred_set = fixer->getNonZeroPaddingPred();
-  for (auto vertex_name : vio_pred_set) {
+  findBuffers();
+  vio_pred_set_ = fixer->getNonZeroPaddingPred();
+  for (auto vertex_name : vio_pred_set_) {
     if (!insertBuffer(fixer, vertex_name))
       ret = false;
   }
@@ -251,76 +261,55 @@ void Laurel::fixHold()
   }
 }
 
+bool Laurel::fixHoldNoInsertion()
+{
+  bool ret = false;
+  init();
+  HoldFixer* fixer = new HoldFixer(openroad_, options_);
+  HoldResult result = fixer->resolve();
+  if (result == MPSolver::ResultStatus::OPTIMAL) {
+    ret = true;
+    vio_pred_set_ = fixer->getNonZeroPaddingPred();
+  }
+  delete fixer;
+  return ret;
+}
+
+bool Laurel::hasHoldVio(Vertex* drvr)
+{
+  Name vertex_name = drvr->name(sta_->sdcNetwork());
+  return vio_pred_set_.hasKey(vertex_name);
+}
+
+bool Laurel::hasHoldVio(Pin* drvr_pin)
+{
+  Name vertex_name = sta_->network()->name(drvr_pin);
+  return vio_pred_set_.hasKey(vertex_name);
+}
+
 ////////////////////////////////////////////////////////
 //
 //  For fixing Setup
 //
 ////////////////////////////////////////////////////////
 
-LibertyCell* Laurel::findResizeCell(Vertex* vertex, Delay target_delay)
-{
-  Pin* drvr_pin = vertex->pin();
-  LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
-  LibertyCell* cell = drvr_port->libertyCell();
-  LibertyCellSeq* equiv_cells = sta_->equivCells(cell);
-  PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
-  const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
-  const char* drvr_port_name = drvr_port->name();
-  const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
-  int lib_ap = dcalc_ap->libertyIndex();
-  Delay extreme_delay = INF;
-  LibertyCell* resize_cell = nullptr;
-  for (LibertyCell* equiv : *equiv_cells) {
-    LibertyCell* equiv_corner = equiv->cornerCell(lib_ap);
-    LibertyPort* equiv_drvr = equiv_corner->findLibertyPort(drvr_port_name);
-    Delay equiv_delay = gateDelay(equiv_drvr, load_cap, dcalc_ap);
-    if (fuzzyLess(equiv_delay, extreme_delay)
-        && fuzzyLess(target_delay, equiv_delay)) {
-      extreme_delay = equiv_delay;
-      resize_cell = equiv;
-    }
-  }
-  return resize_cell;
-}
-
-bool Laurel::resizeCell(Vertex* vertex, Delay target_delay)
-{
-  LibertyCell* resize_cell = findResizeCell(vertex, target_delay);
-  if (resize_cell) {
-    Instance* drvr = network_->instance(vertex->pin());
-    if (replaceCell(drvr, resize_cell, true)) {
-      logger_->info(utl::LRL,
-                    1304,
-                    "resize cell {} -> {}",
-                    vertex->name(sta_->sdcNetwork()),
-                    resize_cell->name());
-      resize_count_++;
-      return true;
-    }
-  }
-  logger_->warn(utl::LRL,
-                1201,
-                "cannot resize cell ({} -> {})",
-                vertex->name(sta_->sdcNetwork()),
-                delayAsString(target_delay, sta_, 3));
-  return false;
-}
-
 bool Laurel::resizeAllCells(SetupFixer* fixer)
 {
   bool ret = true;
-  VertexSet changed_vertex = fixer->getResizeVertex();
-  for (auto vertex : changed_vertex) {
-    Delay resize = fixer->getResizeValue(vertex);
-    Delay new_delay = fixer->getNewDelay(vertex);
-    logger_->info(utl::LRL,
-                  1301,
-                  " {} : {} (new_delay = {})",
-                  vertex->name(sta_->sdcNetwork()),
-                  delayAsString(resize, sta_, 3),
-                  delayAsString(new_delay, sta_, 3));
-    if (!resizeCell(vertex, new_delay))
+  sta::Map<Vertex*, LibertyCell*> queue = fixer->getResizeQueue();
+  for (auto q : queue) {
+    Vertex* vertex = q.first;
+    Instance* drvr = sta_->network()->instance(vertex->pin());
+    LibertyCell* resize_cell = q.second;
+    if (!replaceCell(drvr, resize_cell, true)) {
       ret = false;
+      logger_->warn(utl::LRL,
+                    1206,
+                    "cannot resize cell ({})",
+                    vertex->name(sta_->sdcNetwork()));
+      continue;
+    }
+    resize_count_++;
   }
   logger_->info(utl::LRL,
                 1305,
@@ -337,9 +326,8 @@ void Laurel::fixSetup()
   bool ret = false;
   if (status == MinCostFlow::OPTIMAL) {
     fixer.report();
-    if (fixer.remap()) {
-      ret = resizeAllCells(&fixer);
-    }
+    ret = fixer.remap();
+    ret = resizeAllCells(&fixer);
   }
   if (!ret)
     logger_->warn(utl::LRL, 1202, "Fail to resize all cells");
@@ -405,10 +393,8 @@ void Laurel::wireBudgeting()
   if (wire_bud_)
     delete wire_bud_;
 
-  if (options_->hasSpefFile()) {
-    wire_bud_ = new WireBudgeting(openroad_, options_);
-    return wireBudgetingCore();
-  }
+  if (options_->hasSpefFile())
+    return wireBudgetingSpef(options_->spefFileName());
 
   if (options_->isWireBudModeRC()) {
     wire_bud_ = new WireBudgetingRC(openroad_, options_);
@@ -423,6 +409,15 @@ void Laurel::wireBudgetingRC()
   options_->setWireBudModeRC();
   wireBudgeting();
   options_->resetWireBudMode();
+}
+
+void Laurel::wireBudgetingSpef(const char* filename)
+{
+  if (wire_bud_)
+    delete wire_bud_;
+  options_->setSpefFile(filename);
+  wire_bud_ = new WireBudgeting(openroad_, options_);
+  wireBudgetingCore();
 }
 
 void Laurel::wireBudgeting(float factor)
@@ -547,6 +542,19 @@ Pin* LaurelAdapter::findFanoutPin(WirePair wire_pair) const
     }
   }
   return nullptr;
+}
+
+Delay LaurelAdapter::getArrivalMax(Vertex* vertex) const
+{
+  Delay max_arrival = LRL_H_ZERO;
+  VertexPathIterator path_iter(vertex, sta_);
+  while (path_iter.hasNext()) {
+    Path* path = path_iter.next();
+    Delay arrival = path->arrival(sta_);
+    if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
+      max_arrival = arrival;
+  }
+  return max_arrival;
 }
 
 }  // namespace lrl

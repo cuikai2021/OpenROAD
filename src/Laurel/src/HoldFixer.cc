@@ -98,22 +98,29 @@ void HoldFixer::makeVarFanins(VertexSeq fanins)
 void HoldFixer::findHoldVioNameMM()
 {
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
+  int mode_cnt = 0;
+  int cnt = 0;
   sta_->forEachSdc([&]() {
+    mode_cnt++;
     sdc_ = sta_->sdc();
     sta_->findRequireds();
     VertexSet* ends = sta_->search()->endpoints();
     for (auto vertex : *ends) {
       Slack slack = sta_->vertexSlack(vertex, MinMax::min());
-      if (fuzzyLess(slack, slack_margin))
+      if (fuzzyLess(slack, slack_margin)) {
         vio_ends_name_.insert(vertex->name(sta_->sdcNetwork()));
+        cnt++;
+      }
     }
   });
   logger_->info(utl::LRL,
                 1100,
-                "vio ends: (slack_margin = {}) ",
+                "found {} vio ends in {} mode: (slack_margin = {}) ",
+                cnt,
+                mode_cnt,
                 delayAsString(slack_margin, sta_, 3));
   for (auto name : vio_ends_name_)
-    logger_->info(utl::LRL, 1101, "   {}", name);
+    debugPrint(logger_, utl::LRL, "LRL", 4, "   {}", name);
 }
 
 bool HoldFixer::hasHoldViolation(Vertex* vertex) const
@@ -215,18 +222,18 @@ VertexNameSeq HoldFixer::getSortedNameSeq(VertexMPVarMap* mp_var_map)
   return name_seq;
 }
 
-Delay HoldFixer::getArrivalMax(Vertex* vertex) const
-{
-  Delay max_arrival = LRL_H_ZERO;
-  VertexPathIterator path_iter(vertex, sta_);
-  while (path_iter.hasNext()) {
-    Path* path = path_iter.next();
-    Delay arrival = path->arrival(sta_);
-    if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
-      max_arrival = arrival;
-  }
-  return max_arrival;
-}
+// Delay HoldFixer::getArrivalMax(Vertex* vertex) const
+// {
+//   Delay max_arrival = LRL_H_ZERO;
+//   VertexPathIterator path_iter(vertex, sta_);
+//   while (path_iter.hasNext()) {
+//     Path* path = path_iter.next();
+//     Delay arrival = path->arrival(sta_);
+//     if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
+//       max_arrival = arrival;
+//   }
+//   return max_arrival;
+// }
 
 Delay HoldFixer::getCriLongArrival(Vertex* end) const
 {
@@ -324,13 +331,16 @@ void HoldFixer::genPOConstraints(VertexSet* ends)
   for (auto vertex_name : sorted_vertex) {
     Vertex* vertex = findRealVertex(vertex_name);
     if (ends->hasKey(vertex)) {
-      Delay critical_long_arrival = getCriLongArrival(vertex);
+      Delay critical_long_arrival_value = getCriLongArrival(vertex);
+      Delay max_required_value = sta_->vertexRequired(vertex, MinMax::max())
+                                 - std::max(LRL_H_ZERO, sdc_worst_slack_);
+      Delay critical_long_arrival
+          = std::max(critical_long_arrival_value, max_required_value);
       Delay min_required = sta_->vertexRequired(vertex, MinMax::min());
       // what if whole path don't satisfy hold bound
-      if (fuzzyLess(critical_long_arrival, min_required)
+      if (fuzzyLess(critical_long_arrival_value, min_required)
           || complete_vio_ends_.find(vertex_name) != complete_vio_ends_.end()) {
-        critical_long_arrival
-            = sta_->vertexRequired(vertex, MinMax::max()) - sdc_worst_slack_;
+        critical_long_arrival = max_required_value;
         complete_vio_ends_.insert(vertex_name);
       }
       debugPrint(logger_,
@@ -406,12 +416,14 @@ HoldResult HoldFixer::resolve()
 Delay HoldFixer::getWirePadding(WirePair wire_pair) const
 {
   Delay padding = zoomOut(wire_.findKey(wire_pair)->solution_value());
-  logger_->info(utl::LRL,
-                1106,
-                "padding between {} -> {} : {}",
-                wire_pair.first.c_str(),
-                wire_pair.second.c_str(),
-                delayAsString(padding, sta_, 3));
+  debugPrint(logger_,
+             utl::LRL,
+             "LRL",
+             4,
+             "padding between {} -> {} : {}",
+             wire_pair.first.c_str(),
+             wire_pair.second.c_str(),
+             delayAsString(padding, sta_, 3));
   return padding;
 }
 
@@ -435,12 +447,14 @@ VertexNameSet HoldFixer::getNonZeroPaddingPred() const
     Name pred = wire_pair.first;
     Delay padding = zoomOut(w.second->solution_value());
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
-      logger_->info(utl::LRL,
-                    1107,
-                    "non zero padding between {} -> {} : {}",
-                    wire_pair.first.c_str(),
-                    wire_pair.second.c_str(),
-                    delayAsString(padding, sta_, 3));
+      debugPrint(logger_,
+                 utl::LRL,
+                 "LRL",
+                 4,
+                 "non zero padding between {} -> {} : {}",
+                 wire_pair.first.c_str(),
+                 wire_pair.second.c_str(),
+                 delayAsString(padding, sta_, 3));
       if (vio_pred_set.find(pred) == vio_pred_set.end())
         vio_pred_set.insert(pred);
     }
