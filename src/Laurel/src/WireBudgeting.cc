@@ -34,6 +34,8 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
 {
   for (auto vertex : fanins) {
     bool is_pi = true;
+    bellman_max_iter_num_
+        = std::max(vertex->level() / 20, bellman_max_iter_num_);
     buildIndex(vertex);
     Name vertex_name = vertex->name(sta_->sdcNetwork());
     name_vertex_map_.insert(vertex_name, vertex);
@@ -152,8 +154,8 @@ void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
   addConstraintBase(
       pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
-  addConstraintBase(
-      succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
+  // addConstraintBase(
+  //     succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
 }
 
 SteinerTree* WireBudgeting::getTree(Vertex* drvr)
@@ -398,7 +400,7 @@ Delay WireBudgetingRC::getLowBound(Vertex* pred, Vertex* succ)
 Delay WireBudgetingRC::getHighBound(Vertex* pred, Vertex* succ)
 {
   double length = dbuToMeters(getTreeDist(pred, succ));
-  return getLowBound(pred, succ) + getDrvrSlope() * length;
+  return getLowBound(pred, succ) + getDrvrSlope() * length * length;
 }
 
 Delay WireBudgetingRC::getDrvrSlope()

@@ -85,7 +85,9 @@ class LaurelAdapter : public Resizer
   const int32_t LRL_S_INVALIDE = -1;
   const int32_t LRL_S_ZERO = 0;
   const char* LRL_S_SRC_NAME = "$src$";
+  const char* LRL_S_SNK_NAME = "$snk$";
   const Index S_INDEX = LRL_S_ZERO;
+  const Index T_INDEX = S_INDEX + 1;
 };
 
 class SetupFixer : public LaurelAdapter
@@ -156,6 +158,7 @@ class SetupFixer : public LaurelAdapter
   sta::Map<Name, Vertex*> name_vertex_map_;
   sta::Map<Name, Delay> vertex_high_bound_map_;
   sta::Map<Name, Delay> vertex_low_bound_map_;
+  sta::Set<Index> pi_index_set_;
 
   Options* options_;
 };
