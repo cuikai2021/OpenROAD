@@ -330,8 +330,8 @@ Delay SetupFixer::costSlope(Vertex* pred, Vertex* succ)
              vertex->name(sta_->sdcNetwork()),
              delayAsString(max_area, sta_, 3),
              delayAsString(min_area, sta_, 3));
-  Delay slope = (max_area - min_area) / (max_delay - min_delay)
-                      / LRL_H_PRIORITY / LRL_H_STA_SCALING / LRL_H_SCALING;
+  Delay slope = (max_area - min_area) / (max_delay - min_delay) / LRL_H_PRIORITY
+                / LRL_H_STA_SCALING / LRL_H_SCALING;
   if (fuzzyLessEqual(LRL_H_ZERO, slope))
     return cost2Delay(100);
   slope += cost2Delay(10000);
@@ -368,14 +368,16 @@ Delay SetupFixer::getCellDelay(Vertex* vertex)
 void SetupFixer::addConstraintEdge(Vertex* pred, Vertex* succ)
 {
   Delay delay = getCellDelay(succ);
+  Delay gate_delay = getDelay(succ);
+  Delay diff = delay - gate_delay;
   Index pred_index = getIndex(pred);
   Index succ_index = getIndex(succ);
   Cost capacity = delay2Cost(costSlope(pred, succ));
-  Delay low_bound = getLowBound(succ);
-  Delay high_bound = getHighBound(succ);
+  Delay low_bound = getLowBound(succ) + diff;
+  // Delay high_bound = getHighBound(succ) + diff;
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
-  // addConstraintBase(
-  //     pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
+  addConstraintBase(
+      pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
   // addConstraintBase(
   //     succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
 }
@@ -394,6 +396,7 @@ void SetupFixer::addConstraintPI(Vertex* pi)
   Index pi_index = getIndex(pi);
   Arrival pi_arrival = getArrivalMax(pi);
   addConstraintBase(S_INDEX, pi_index, LRL_S_INT_INF, -delay2Cost(pi_arrival));
+  pi_index_set_.insert(pi_index);
 }
 
 void SetupFixer::initAlgorithm()
@@ -436,7 +439,6 @@ SetupResult SetupFixer::resolve()
   // Add node supplies.
   solver_.SetNodeSupply(S_INDEX, LRL_S_INT_INF);
   solver_.SetNodeSupply(T_INDEX, -LRL_S_INT_INF);
-
   return solver_.SolveMaxFlowWithMinCost();
   // return solver_.Solve();
 }
@@ -486,8 +488,7 @@ bool SetupFixer::updateArrivalMap(const IdEdgeWeightSet bellman_graph)
     Arrival pred_arrival = arrival_map_[pred];
     Arrival succ_arrival = arrival_map_[succ];
     Arrival new_arrival = pred_arrival + weight;
-    if (!(fuzzyEqual(LRL_H_INFINITY, pred_arrival)
-          && fuzzyLess(LRL_H_ZERO, weight))
+    if (!(fuzzyEqual(LRL_H_INFINITY, pred_arrival) && !fuzzyZero(weight))
         && fuzzyLess(new_arrival, succ_arrival)) {
       arrival_map_[succ] = new_arrival;
       changed = true;
@@ -513,7 +514,7 @@ bool SetupFixer::remap()
 
 Delay SetupFixer::getNewDelay(Vertex* vertex)
 {
-  Delay shortest_delay = LRL_H_ZERO;
+  Delay shortest_delay = INF;
   if (vertex->isDriver(sta_->network())) {
     VertexInEdgeIterator edge_iter(vertex, sta_->graph());
     while (edge_iter.hasNext()) {
@@ -536,11 +537,16 @@ Delay SetupFixer::getNewDelay(Vertex* vertex)
       }
     }
     if (vertex_low_bound_map_.hasKey(vertex->name(sta_->sdcNetwork()))) {
+      Delay delay = getCellDelay(vertex);
+      Delay gate_delay = getDelay(vertex);
+      Delay diff = delay - gate_delay;
+      shortest_delay -= diff;
       Delay low_bound = getLowBound(vertex);
-      Delay high_bound = getHighBound(vertex);
-      if (fuzzyLessEqual(shortest_delay, low_bound))
+      // Delay high_bound = getHighBound(vertex);
+      Delay high_bound = gate_delay;
+      if (fuzzyLess(shortest_delay, low_bound))
         shortest_delay = low_bound;
-      else if (fuzzyLessEqual(high_bound, shortest_delay))
+      else if (fuzzyLess(high_bound, shortest_delay))
         shortest_delay = high_bound;
     }
   }
@@ -550,7 +556,7 @@ Delay SetupFixer::getNewDelay(Vertex* vertex)
 Delay SetupFixer::getResizeValue(Vertex* vertex)
 {
   Delay new_delay = getNewDelay(vertex);
-  if (fuzzyZero(new_delay))
+  if (fuzzyZero(new_delay) || fuzzyInf(new_delay))
     return LRL_H_ZERO;
   return new_delay - getDelay(vertex);
 }
@@ -560,7 +566,9 @@ VertexSet SetupFixer::getResizeVertex()
   VertexSet resize_vertex;
   for (auto node : vertex_index_map_) {
     Name name = node.first;
-    if (name.compare(LRL_S_SRC_NAME) && name.compare(LRL_S_SNK_NAME)) {
+    Index index = node.second;
+    if (name.compare(LRL_S_SRC_NAME) && name.compare(LRL_S_SNK_NAME)
+        && !pi_index_set_.hasKey(index)) {
       Vertex* vertex = name_vertex_map_.findKey(name);
       Delay resize_value = getResizeValue(vertex);
       // if (delay2Cost(resize_value) != 0)
