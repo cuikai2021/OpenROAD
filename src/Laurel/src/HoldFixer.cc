@@ -222,18 +222,18 @@ VertexNameSeq HoldFixer::getSortedNameSeq(VertexMPVarMap* mp_var_map)
   return name_seq;
 }
 
-Delay HoldFixer::getArrivalMax(Vertex* vertex) const
-{
-  Delay max_arrival = LRL_H_ZERO;
-  VertexPathIterator path_iter(vertex, sta_);
-  while (path_iter.hasNext()) {
-    Path* path = path_iter.next();
-    Delay arrival = path->arrival(sta_);
-    if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
-      max_arrival = arrival;
-  }
-  return max_arrival;
-}
+// Delay HoldFixer::getArrivalMax(Vertex* vertex) const
+// {
+//   Delay max_arrival = LRL_H_ZERO;
+//   VertexPathIterator path_iter(vertex, sta_);
+//   while (path_iter.hasNext()) {
+//     Path* path = path_iter.next();
+//     Delay arrival = path->arrival(sta_);
+//     if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
+//       max_arrival = arrival;
+//   }
+//   return max_arrival;
+// }
 
 Delay HoldFixer::getCriLongArrival(Vertex* end) const
 {

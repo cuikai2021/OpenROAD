@@ -34,6 +34,7 @@ fix_hold_cmd()
   ensureLinked();
   Laurel *laurel = getLaurel();
   laurel->fixHold();
+  // laurel->fixHoldNoInsertion();
 }
 
 void
@@ -61,11 +62,51 @@ analyze_clk()
 }
 
 void
+debug_report()
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->debugReport();
+}
+
+void
+set_wire_bud_mode_rc()
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->setWireBudModeRC();
+}
+
+void
+reset_wire_bud_mode()
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->resetWireBudMode();
+}
+
+void
+set_spef_file(const char* filename)
+{
+  Laurel *laurel = getLaurel();
+  Options *options = laurel->getOptions();
+  options->setSpefFile(filename);
+}
+
+void
 fix_setup_cmd()
 {
   ensureLinked();
   Laurel *laurel = getLaurel();
   laurel->fixSetup();
+}
+
+void
+wire_budgeting_cmd()
+{
+  ensureLinked();
+  Laurel *laurel = getLaurel();
+  laurel->wireBudgeting();
 }
 
 } // namespace
