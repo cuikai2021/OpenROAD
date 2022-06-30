@@ -15,11 +15,16 @@ jobs:
           echo "head_sha ${{ github.event.pull_request.head.sha }}"
           echo "base_ref ${{ github.event.pull_request.base.ref }}"
 
+      - name: 2. set pr number
+        run: |
+          PR_NUMBER=$(echo $GITHUB_REF | awk 'BEGIN { FS = "/" } ; { print $3 }')
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+
       - name: 2. invoke workflow
         uses: benc-uk/workflow-dispatch@v1.1
         with:
           repo: ${{ github.event.pull_request.base.repo.owner.login }}/bamboo
           ref: master
-          workflow: release eden regressions docker
+          workflow: eden regression
           token: ${{ secrets.DEVOPS_GITHUB_ACCESSTOKEN }}
-          inputs: '{ "base_owner": "${{ github.event.pull_request.base.repo.owner.login }}","head_sha": "${{ github.event.pull_request.head.sha }}","head_ref": "${{ github.event.pull_request.head.ref }}","head_owner": "${{ github.event.pull_request.head.repo.owner.login }}"}'
+          inputs: '{ "base_owner": "${{ github.event.pull_request.base.repo.owner.login }}","head_sha": "${{ github.event.pull_request.head.sha }}","head_ref": "${{ github.event.pull_request.head.ref }}","head_owner": "${{ github.event.pull_request.head.repo.owner.login }}", "pr_number": "${{ env.PR_NUMBER }}", "pr_title": "${{ github.event.pull_request.title }}"}'

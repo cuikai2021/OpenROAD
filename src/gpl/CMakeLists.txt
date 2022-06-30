@@ -46,12 +46,14 @@ find_package(Eigen3 REQUIRED)
 
 swig_lib(NAME      gpl
          NAMESPACE gpl
-         I_FILE    src/replace.i
-         SCRIPTS   src/replace.tcl
+         I_FILE    src/gpl.i
+         SCRIPTS   src/replace.tcl src/lindengp.tcl
 )
 
 target_sources(gpl
   PRIVATE
+    src/MakeLindenGlobalPlace.cpp
+    src/lindengp.cpp
     src/MakeReplace.cpp
     src/replace.cpp
     src/initialPlace.cpp
@@ -83,11 +85,12 @@ messages(TARGET gpl)
 target_include_directories(gpl
   PUBLIC
     include
-    "/usr/include/octave-5.2.0/"
+    ${OCTAVE_INCLUDE_DIR}
 )
 
-LINK_DIRECTORIES(/usr/lib /usr/local/lib
-/usr/lib/x86_64-linux-gnu/octave/5.2.0
+LINK_DIRECTORIES(
+    /usr/lib
+    /usr/local/lib
 )
 
 target_link_libraries(gpl
@@ -100,8 +103,8 @@ target_link_libraries(gpl
     stt
     rsz
     grt
-    octave
-    octinterp
+    linden
+    ${OCTAVE_LIBRARY}
 )
 
 # CIMG_USE case

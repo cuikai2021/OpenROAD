@@ -337,9 +337,9 @@ class Laurel : public LaurelAdapter
                   SteinerTreeBuilder* stt_builder,
                   GlobalRouter* global_router);
 
-  void fixHold();
+  int fixHold();
   bool fixHoldNoInsertion();
-  void fixSetup();
+  int fixSetup();
   void wireBudgeting();
   void wireBudgeting(float factor);
   void wireBudgetingSpef(const char* filename);

@@ -1,8 +1,8 @@
-ARG DEPS_IMAGE_TAG
+ARG EDEN_BUILD_IMAGE
 ARG EDEN_GIT_SHA1
 ARG JOBS_NUM
 
-FROM ${DEPS_IMAGE_TAG} AS maple_build_stage
+FROM ${EDEN_BUILD_IMAGE} AS maple_build_stage
 COPY ./maple /maple
 RUN \
     cd maple \
@@ -10,16 +10,15 @@ RUN \
     bash etc/Build.sh
 WORKDIR /maple
 
-FROM ${DEPS_IMAGE_TAG} AS eden_build_stage
+FROM ${EDEN_BUILD_IMAGE} AS eden_build_stage
 COPY ./Eden-src /Eden
 WORKDIR /Eden
 ARG EDEN_GIT_SHA1
 ARG JOBS_NUM=8
 RUN cmake -DEDEN_GIT_DESCRIBE=${EDEN_GIT_SHA1} -B build . && cmake --build build -j ${JOBS_NUM}
 
-
-ARG DEPS_IMAGE_TAG
-FROM ${DEPS_IMAGE_TAG} AS deps_stage
+ARG EDEN_BUILD_IMAGE
+FROM ${EDEN_BUILD_IMAGE} AS deps_stage
 ADD ./Eden-src/src/Banyan/banyan-integrate/*.so /Eden-flow/flow/libs/
 ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
 

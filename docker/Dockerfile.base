@@ -1,0 +1,9 @@
+ARG ubuntuVersion=20.04
+
+ARG fromImage=ubuntu:${ubuntuVersion}
+FROM $fromImage
+USER root
+
+COPY ./etc/DependencyInstaller.sh /tmp
+RUN bash /tmp/DependencyInstaller.sh -dev
+RUN rm -f /tmp/DependencyInstaller.sh

@@ -1453,6 +1453,8 @@ void defout_impl::writeWire(dbWire* wire)
         break;
       }
 
+      case dbWireDecoder::POINT_VIRTUAL:
+        fprintf(_out, " VIRTUAL");
       case dbWireDecoder::POINT: {
         int x, y;
         decode.getPoint(x, y);

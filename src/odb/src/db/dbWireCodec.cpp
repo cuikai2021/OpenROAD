@@ -203,6 +203,64 @@ void dbWireEncoder::append(dbWire* wire)
 
 #define DB_WIRE_ENCODER_NON_ORTHOGANAL_SEGMENT 0
 
+int dbWireEncoder::addVirtualPoint(int x, int y, uint property)
+{
+  int jct_id = _idx;
+
+  if (_non_default_rule == 0) {
+	if (_point_cnt == 0) {
+	  addOp(WOP_X | WOP_DEFAULT_WIDTH, x);
+	  addOp(WOP_Y | WOP_VIRTUAL | WOP_DEFAULT_WIDTH, y);
+	  _x = x;
+	  _y = y;
+	  _point_cnt++;
+	  jct_id++;
+	} else if ((_x == x) && (_y == y)) {
+	  addOp(WOP_COLINEAR | WOP_VIRTUAL | WOP_DEFAULT_WIDTH, 0);
+	} else if (_y == y) {
+	  addOp(WOP_X | WOP_VIRTUAL | WOP_DEFAULT_WIDTH, x);
+	  _x = x;
+	  _point_cnt++;
+	} else if (_x == x) {
+	  addOp(WOP_Y | WOP_VIRTUAL | WOP_DEFAULT_WIDTH, y);
+	  _y = y;
+	  _point_cnt++;
+	} else {
+	  ZASSERT(DB_WIRE_ENCODER_NON_ORTHOGANAL_SEGMENT);
+	}
+  } else {
+	if (_point_cnt == 0) {
+	  addOp(WOP_X, x);
+	  addOp(WOP_Y | WOP_VIRTUAL, y);
+	  _x = x;
+	  _y = y;
+	  _point_cnt++;
+	  jct_id++;
+	} else if ((_x == x) && (_y == y)) {
+	  addOp(WOP_COLINEAR | WOP_VIRTUAL, 0);
+	} else if (_y == y) {
+	  addOp(WOP_X | WOP_VIRTUAL, x);
+	  _x = x;
+	  _point_cnt++;
+	} else if (_x == x) {
+	  addOp(WOP_Y | WOP_VIRTUAL, y);
+	  _y = y;
+	  _point_cnt++;
+	} else {
+	  ZASSERT(DB_WIRE_ENCODER_NON_ORTHOGANAL_SEGMENT);
+	}
+
+	if (_point_cnt
+		&& ((_point_cnt & (WOP_NON_DEFAULT_WIDTH_POINT_CNT - 1)) == 0))
+	  addOp(_rule_opcode, _non_default_rule);
+  }
+  if (_point_cnt != 1)
+	addOp(WOP_PROPERTY, property);
+
+  _prev_extended_colinear_pnt = false;
+  return jct_id;
+}
+
 int dbWireEncoder::addPoint(int x, int y, uint property)
 {
   int jct_id = _idx;
@@ -707,7 +765,8 @@ nextOpCode:
     case WOP_COLINEAR:
       if (opcode & WOP_EXTENSION)
         return POINT_EXT;
-
+      if (opcode & WOP_VIRTUAL)
+    	return POINT_VIRTUAL;
       return POINT;
 
     case WOP_VIA:
@@ -862,6 +921,9 @@ nextOpCode:
           return _opcode = POINT_EXT;
         }
 
+        if (opcode & WOP_VIRTUAL)
+          return _opcode = POINT_VIRTUAL;
+
         return _opcode = POINT;
       }
 
@@ -870,7 +932,9 @@ nextOpCode:
       if (opcode & WOP_EXTENSION) {
         nextOp(_operand2);
         _opcode = POINT_EXT;
-      } else
+      } else if (opcode & WOP_VIRTUAL)
+        _opcode = POINT_VIRTUAL;
+      else
         _opcode = POINT;
 
       // if ( peekOp() == WOP_PROPERTY )
@@ -893,7 +957,9 @@ nextOpCode:
       if (opcode & WOP_EXTENSION) {
         nextOp(_operand2);
         _opcode = POINT_EXT;
-      } else
+      } else if (opcode & WOP_VIRTUAL)
+        _opcode = POINT_VIRTUAL;
+      else
         _opcode = POINT;
 
       // if ( peekOp() == WOP_PROPERTY )
@@ -914,7 +980,9 @@ nextOpCode:
       if (opcode & WOP_EXTENSION) {
         _operand2 = _operand;
         _opcode = POINT_EXT;
-      } else
+      } else if (opcode & WOP_VIRTUAL)
+        _opcode = POINT_VIRTUAL;
+      else
         _opcode = POINT;
 
       // if ( peekOp() == WOP_PROPERTY )
@@ -1031,7 +1099,7 @@ dbTechLayerRule* dbWireDecoder::getRule() const
 
 void dbWireDecoder::getPoint(int& x, int& y) const
 {
-  ZASSERT(_opcode == POINT);
+  ZASSERT(_opcode == POINT || _opcode == POINT_VIRTUAL);
   x = _x;
   y = _y;
 }
@@ -1046,7 +1114,7 @@ void dbWireDecoder::getPoint(int& x, int& y, int& ext) const
 
 uint dbWireDecoder::getProperty() const
 {
-  ZASSERT(((_opcode == POINT) || (_opcode == POINT_EXT)) && (_point_cnt > 1));
+  ZASSERT(((_opcode == POINT) || (_opcode == POINT_EXT) || _opcode == POINT_VIRTUAL) && (_point_cnt > 1));
   return _property;
 }
 
@@ -1203,25 +1271,29 @@ void dumpDecoder4Net(dbNet* innet)
                          x,
                          y,
                          ext);
-        } else if (opcode == dbWireDecoder::POINT) {
+        } else if (opcode == dbWireDecoder::POINT ||
+        		   opcode == dbWireDecoder::POINT_VIRTUAL) {
           opcode = decoder.next();
           decoder.getPoint(x, y);
+          const char* isVirtual = opcode == dbWireDecoder::POINT_VIRTUAL ? "virtual " : "";
           if (lyr_rule)
             logger->info(
                 utl::ODB,
                 70,
-                "{} New path at junction {}, point {} {}, with rule {}",
+                "{} New path at junction {}, {}point {} {}, with rule {}",
                 prfx,
                 jct,
+				isVirtual,
                 x,
                 y,
                 lyr_rule->getNonDefaultRule()->getName());
           else
             logger->info(utl::ODB,
                          71,
-                         "{} New path at junction {}, point {} {}",
+                         "{} New path at junction {}, {}point {} {}",
                          prfx,
                          jct,
+						 isVirtual,
                          x,
                          y);
 
@@ -1279,9 +1351,11 @@ void dumpDecoder4Net(dbNet* innet)
         break;
       }
 
+      case dbWireDecoder::POINT_VIRTUAL:
       case dbWireDecoder::POINT: {
         decoder.getPoint(x, y);
-        logger->info(utl::ODB, 77, "{} Found point {} {}", prfx, x, y);
+        const char* isVirtual = opcode == dbWireDecoder::POINT_VIRTUAL ? "virtual " : "";
+        logger->info(utl::ODB, 77, "{} Found {}point {} {}", prfx, isVirtual, x, y);
         break;
       }
 

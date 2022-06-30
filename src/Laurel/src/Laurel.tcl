@@ -61,14 +61,17 @@ proc laurel { args } {
   if { [info exists keys(-spef)] } {
     lrl::set_spef_file $keys(-spef)
   }
+  set rsz_cnt 0
+  set buf_cnt 0
 
   if { [info exists flags(-setup)] } {
-    lrl::fix_setup_cmd
+    set rsz_cnt [lrl::fix_setup_cmd]
   }
   if { [info exists flags(-hold)] } {
-    lrl::fix_hold_cmd
+    set buf_cnt [lrl::fix_hold_cmd]
   }
   if { [info exists flags(-wire_budgeting)] } {
     lrl::wire_budgeting_cmd
   }
+  return [expr $rsz_cnt + $buf_cnt]
 }

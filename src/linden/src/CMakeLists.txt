@@ -7,9 +7,30 @@ target_sources(linden
     lindendp.cc
 )
 
+set (LINDEN_LIBS_DIR "../gpl/lib")
+
+message(STATUS "LINDEN_LIBS_DIR is set to " ${LINDEN_LIBS_DIR})
+
+find_library(LINDENGP
+    lindengp
+    HINTS
+      ${LINDEN_LIBS_DIR}
+    NO_DEFAULT_PATH
+)
+
+message(STATUS "LINDENGP is set to " ${LINDENGP})
+
+find_library(FINUFFT
+    finufft
+    HINTS
+      ${LINDEN_LIBS_DIR}
+    NO_DEFAULT_PATH
+)
+
 target_include_directories(linden
   PUBLIC
     ../include
+    ../gpl/include
     ${OPENROAD_HOME}/include
 )
 
@@ -17,4 +38,8 @@ target_link_libraries(linden
   PRIVATE
     odb
     utl
+    ${LINDENGP}
+    fassert
+    prettyprint
+    ${FINUFFT} legendre_rule_fast fftw3 fftw3_omp fftw3f fftw3f_omp
 )

@@ -278,6 +278,18 @@ void print_encoding(dbWire* wire)
         break;
       }
 
+      case dbWireDecoder::POINT_VIRTUAL: {
+		  if (jct_id != -1) {
+			jct_id = -1;
+			break;
+		  }
+
+		  int x, y;
+		  decoder.getPoint(x, y);
+		  int j = decoder.getJunctionId();
+		  notice(0, "Virtual J%d (%d %d)\n", j, x, y);
+		  break;
+		}
       case dbWireDecoder::POINT: {
         if (jct_id != -1) {
           jct_id = -1;

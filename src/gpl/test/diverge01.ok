@@ -42,6 +42,6 @@
 [INFO GPL-0030] NumBins: 256
 [NesterovSolve] Iter: 1 overflow: 0.96303 HPWL: 3009901
 [NesterovSolve] Iter: 10 overflow: 0.415529 HPWL: 13218098
-[NesterovSolve] Iter: 20 overflow: 0.12168 HPWL: 8021160
-[NesterovSolve] Finished with Overflow: 0.099776
+[NesterovSolve] Iter: 20 overflow: 0.121687 HPWL: 8021168
+[NesterovSolve] Finished with Overflow: 0.099792
 

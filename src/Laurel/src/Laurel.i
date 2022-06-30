@@ -28,13 +28,12 @@ using ord::ensureLinked;
 
 namespace lrl {
 
-void
+int
 fix_hold_cmd()
 {
   ensureLinked();
   Laurel *laurel = getLaurel();
-  laurel->fixHold();
-  // laurel->fixHoldNoInsertion();
+  return laurel->fixHold();
 }
 
 void
@@ -93,12 +92,12 @@ set_spef_file(const char* filename)
   options->setSpefFile(filename);
 }
 
-void
+int
 fix_setup_cmd()
 {
   ensureLinked();
   Laurel *laurel = getLaurel();
-  laurel->fixSetup();
+  return laurel->fixSetup();
 }
 
 void

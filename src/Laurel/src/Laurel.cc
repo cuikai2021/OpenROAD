@@ -288,7 +288,7 @@ bool Laurel::fixHoldCore()
   return ret;
 }
 
-void Laurel::fixHold()
+int Laurel::fixHold()
 {
   init();
   inserted_buffer_count_ = 0;
@@ -300,6 +300,7 @@ void Laurel::fixHold()
   if (!ret) {
     logger_->warn(utl::LRL, 1002, "fail to fix all hold violations");
   }
+  return inserted_buffer_count_;
 }
 
 bool Laurel::fixHoldNoInsertion()
@@ -359,8 +360,9 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
   return ret;
 }
 
-void Laurel::fixSetup()
+int Laurel::fixSetup()
 {
+  resize_count_ = 0;
   SetupFixer fixer = SetupFixer(openroad_, options_);
   fixer.initAlgorithm();
   SetupResult status = fixer.resolve();
@@ -374,6 +376,7 @@ void Laurel::fixSetup()
     logger_->warn(utl::LRL, 1202, "Fail to resize all cells");
   else
     logger_->info(utl::LRL, 1306, "Succeed to resize all cells");
+  return resize_count_;
 }
 
 ////////////////////////////////////////////////////////

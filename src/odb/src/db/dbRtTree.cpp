@@ -544,6 +544,7 @@ void dbRtTree::decode(dbWire* wire, bool decode_bterms_iterms)
         break;
       }
 
+      case dbWireDecoder::POINT_VIRTUAL: // ???
       case dbWireDecoder::POINT: {
         int x, y;
         decoder.getPoint(x, y);
