@@ -107,14 +107,14 @@ class SetupFixer : public LaurelAdapter
   virtual void buildIndexMap(VertexSet ends);
   Index buildIndex(Vertex* vertex);
   virtual void buildAllFaninEdge(VertexSeq fanins);
-  virtual void buildALLEdgePO(VertexSet ends);
+  virtual void buildALLEdgePrimeOut(VertexSet ends);
 
   virtual Delay costSlope(Vertex* pred, Vertex* succ);
 
   void addConstraintBase(Index pred, Index succ, Cost capacity, Cost cost);
   virtual void addConstraintEdge(Vertex* pred, Vertex* succ);
-  virtual void addConstraintPO(Vertex* po);
-  virtual void addConstraintPI(Vertex* pi);
+  virtual void addConstraintPrimeOut(Vertex* po);
+  virtual void addConstraintPrimeIn(Vertex* pi);
 
   IdEdgeWeightSet buildBellmanGraph() const;
   void initArrivalMap();
@@ -186,7 +186,7 @@ class WireBudgeting : public SetupFixer
   Vertex* getVertex(Name name) { return name_vertex_map_.findKey(name); }
 
  protected:
-  // virtual void buildALLEdgePO(VertexSet ends) override;
+  // virtual void buildALLEdgePrimeOut(VertexSet ends) override;
 
   // virtual void buildIndexMap(VertexSet ends) override;
   virtual void buildAllFaninEdge(VertexSeq fanins) override;
@@ -230,8 +230,8 @@ class WireBudgetingFake : public WireBudgeting
                                 Delay& bud_rate) override;
 
  protected:
-  virtual void addConstraintPO(Vertex* po) override;
-  virtual void addConstraintPI(Vertex* pi) override;
+  virtual void addConstraintPrimeOut(Vertex* po) override;
+  virtual void addConstraintPrimeIn(Vertex* pi) override;
 
   virtual void addConstraintEdge(Vertex* pred, Vertex* succ) override;
 
@@ -279,8 +279,8 @@ class HoldFixer : public LaurelAdapter
   void findHoldVioNameMM();
 
   int addConstraints(Delay low_bound, Delay high_bound);
-  void genPIConstraints();
-  void genPOConstraints(VertexSet* ends);
+  void genPrimeInConstraints();
+  void genPrimeOutConstraints(VertexSet* ends);
   void genWireConstraints(WirePair wire);
 
   // Delay getArrivalMax(Vertex* vertex) const;
@@ -299,8 +299,8 @@ class HoldFixer : public LaurelAdapter
   Delay zoomIn(Delay ori) const { return ori * LRL_H_SCALING; }
   Delay zoomOut(Delay ori) const { return ori / LRL_H_SCALING; }
 
-  void confirmAllPI();
-  bool isPI(Name vertex_name) const;
+  void confirmAllPrimeIn();
+  bool isPrimeIn(Name vertex_name) const;
 
   // variables
   int ct_index_ = 0;

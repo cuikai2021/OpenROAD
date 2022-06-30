@@ -77,7 +77,7 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
       }
     }
     if (is_pi)
-      addConstraintPI(vertex);
+      addConstraintPrimeIn(vertex);
   }
 }
 
@@ -358,10 +358,10 @@ void WireBudgetingFake::addConstraintEdge(Vertex* pred, Vertex* succ)
 {
 }
 
-void WireBudgetingFake::addConstraintPO(Vertex* po)
+void WireBudgetingFake::addConstraintPrimeOut(Vertex* po)
 {
 }
-void WireBudgetingFake::addConstraintPI(Vertex* pi)
+void WireBudgetingFake::addConstraintPrimeIn(Vertex* pi)
 {
 }
 

@@ -184,14 +184,14 @@ void HoldFixer::makeVarAllModes()
       VertexSeq sorted_hold_failures = sortHoldFanins(hold_failures);
       makeVarFanins(sorted_fanins);
       makeVarFanins(sorted_hold_failures);
-      confirmAllPI();
-      genPOConstraints(&hold_failures);
-      genPIConstraints();
+      confirmAllPrimeIn();
+      genPrimeOutConstraints(&hold_failures);
+      genPrimeInConstraints();
     }
   });
 }
 
-void HoldFixer::confirmAllPI()
+void HoldFixer::confirmAllPrimeIn()
 {
   VertexNameSet pi;
   VertexNameSet not_pi;
@@ -207,7 +207,7 @@ void HoldFixer::confirmAllPI()
   pi_name_set_ = pi;
 }
 
-bool HoldFixer::isPI(Name vertex_name) const
+bool HoldFixer::isPrimeIn(Name vertex_name) const
 {
   return pi_name_set_.hasKey(vertex_name);
 }
@@ -246,7 +246,7 @@ Delay HoldFixer::getCriLongArrival(Vertex* end) const
     PathRef* path = expanded.path(i);
     Vertex* vertex = path->vertex(sta_);
     Name vertex_name = vertex->name(sta_->sdcNetwork());
-    if (isPI(vertex_name))
+    if (isPrimeIn(vertex_name))
       sum += getArrivalMax(vertex);
     else
       sum += getDelay(vertex->name(sta_->sdcNetwork()));
@@ -296,12 +296,12 @@ Delay HoldFixer::getDelay(Name vertex_name) const
   return delay_map_.at(vertex_name);
 }
 
-void HoldFixer::genPIConstraints()
+void HoldFixer::genPrimeInConstraints()
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
   VertexNameSeq sorted_vertex = getSortedNameSeq(map);
   for (auto vertex_name : sorted_vertex) {
-    if (isPI(vertex_name)) {
+    if (isPrimeIn(vertex_name)) {
       Vertex* vertex = findRealVertex(vertex_name);
       Delay arrival = zoomIn(getArrivalMax(vertex));
       // Delay delay = zoomIn(getDelay(vertex_name));
@@ -324,7 +324,7 @@ void HoldFixer::genPIConstraints()
   }
 }
 
-void HoldFixer::genPOConstraints(VertexSet* ends)
+void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
   VertexNameSeq sorted_vertex = getSortedNameSeq(map);

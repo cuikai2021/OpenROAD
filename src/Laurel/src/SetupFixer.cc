@@ -237,15 +237,15 @@ void SetupFixer::buildAllFaninEdge(VertexSeq fanins)
       }
     }
     if (is_pi)
-      addConstraintPI(vertex);
+      addConstraintPrimeIn(vertex);
   }
 }
-void SetupFixer::buildALLEdgePO(VertexSet ends)
+void SetupFixer::buildALLEdgePrimeOut(VertexSet ends)
 {
   for (auto node : vertex_index_map_) {
     Vertex* vertex = name_vertex_map_.findKey(node.first);
     if (ends.find(vertex) != ends.end())
-      addConstraintPO(vertex);
+      addConstraintPrimeOut(vertex);
   }
 }
 
@@ -263,7 +263,7 @@ void SetupFixer::buildIndexMap(VertexSet ends)
 
   buildAllFaninEdge(sorted_ends);
   buildAllFaninEdge(sorted_fanins);
-  buildALLEdgePO(all_ends);
+  buildALLEdgePrimeOut(all_ends);
 }
 
 void SetupFixer::addConstraintBase(Index pred,
@@ -382,7 +382,7 @@ void SetupFixer::addConstraintEdge(Vertex* pred, Vertex* succ)
   //     succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
 }
 
-void SetupFixer::addConstraintPO(Vertex* po)
+void SetupFixer::addConstraintPrimeOut(Vertex* po)
 {
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
   Index po_index = getIndex(po);
@@ -391,7 +391,7 @@ void SetupFixer::addConstraintPO(Vertex* po)
   // solver_.SetNodeSupply(po_index, -LRL_S_INT_INF);
 }
 
-void SetupFixer::addConstraintPI(Vertex* pi)
+void SetupFixer::addConstraintPrimeIn(Vertex* pi)
 {
   Index pi_index = getIndex(pi);
   Arrival pi_arrival = getArrivalMax(pi);
