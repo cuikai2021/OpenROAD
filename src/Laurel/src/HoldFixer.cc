@@ -33,10 +33,10 @@ HoldFixer::HoldFixer(OpenRoad* openroad, Options* options)
 
 HoldFixer::~HoldFixer()
 {
-  for (auto A : arrival_max_)
-    delete A.second;
-  for (auto a : arrival_min_)
-    delete a.second;
+  for (auto a_max : arrival_max_)
+    delete a_max.second;
+  for (auto a_min : arrival_min_)
+    delete a_min.second;
 }
 
 void HoldFixer::makeVar(Name vertex_name, MMVertexMPVarMap& arrival)
