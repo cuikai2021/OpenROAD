@@ -106,7 +106,7 @@ int Banyan::main(const std::map<std::string, std::string>& options)
     }
 
     if (kv.first == "timing_driven") {
-      timingDriven = true;
+      timingDriven = kv.second == "true";
     }
     options_vec.push_back({kv.first.c_str(), kv.second.c_str()});
   }

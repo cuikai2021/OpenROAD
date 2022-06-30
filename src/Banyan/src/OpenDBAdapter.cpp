@@ -595,9 +595,16 @@ sta::Pin* OpenDBAdapter::getStaPin(const char* name)
 
 void OpenDBAdapter::getWireBugdeting()
 {
+  bool hasHoldVio = false;
   if (timingDriven_) {
+    hasHoldVio = laurel_->fixHoldNoInsertion();
     laurel_->wireBudgetingRC();
   }
+  logger_->info(utl::BY, 888, "hasHoldVio {}", hasHoldVio);
+
+  auto hasHoldVioFn = [=](sta::Pin* pin) -> bool {
+    return hasHoldVio && laurel_->hasHoldVio(pin);
+  };
 
   odb::dbBlock* block = db_->getChip()->getBlock();
   for (auto net : block->getNets()) {
@@ -632,6 +639,20 @@ void OpenDBAdapter::getWireBugdeting()
       int rate = timingDriven_
                      ? (int) (laurel_->getWireBudRate(src, sink) * 100)
                      : 0;
+      logger_->info(utl::BY,
+                    886,
+                    "src {} sink {} wirebudget {}",
+                    pins_[srcIdx].name,
+                    pins_[sinkIdxes[i]].name,
+                    rate);
+      if (hasHoldVioFn(sink)) {
+        logger_->info(utl::BY,
+                      666,
+                      "sink {} rate {} has hold vios",
+                      pins_[sinkIdxes[i]].name,
+                      rate);
+        rate += 50;
+      }
       tableTriples_.push_back({srcIdx, sinkIdxes[i], rate});
       pins_.at(sinkIdxes[i]).min_dist_from_src = distmap[sink];
     }
@@ -835,7 +856,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
       // assert(x1 == x2);
       break;
     }
-    
+
     case odb::dbSBox::OCTILINEAR: {
       logger_->error(utl::BY,
                      703,
