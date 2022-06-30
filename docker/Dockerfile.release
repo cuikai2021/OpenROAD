@@ -17,6 +17,11 @@ ARG EDEN_GIT_SHA1
 ARG JOBS_NUM=8
 RUN cmake -DEDEN_GIT_DESCRIBE=${EDEN_GIT_SHA1} -B build . && cmake --build build -j ${JOBS_NUM}
 
+ARG EDEN_BUILD_IMAGE
+FROM ${EDEN_BUILD_IMAGE} AS deps_stage
+ADD ./Eden-src/src/Banyan/banyan-integrate/*.so /Eden-flow/flow/libs/
+ENV LD_LIBRARY_PATH=/Eden-flow/flow/libs/
+
 FROM deps_stage AS yosys_build_stage
 COPY ./yosys /yosys
 WORKDIR /yosys

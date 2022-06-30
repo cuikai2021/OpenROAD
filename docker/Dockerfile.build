@@ -1,5 +1,6 @@
 ARG eden_base_image
 FROM ${eden_base_image}
 
-COPY BuildDependencyInstaller.sh /tmp/.
-RUN /tmp/BuildDependencyInstaller.sh && rm -f /tmp/BuildDependencyInstaller.sh
+COPY . /Eden
+RUN cd /Eden; ./etc/BuildDependencyInstaller.sh 
+RUN rm /Eden -r
