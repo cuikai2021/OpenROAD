@@ -149,7 +149,7 @@ void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
   Cost capacity = delay2Cost(costSlope(pred, succ));
   Delay low_bound = getLowBound(pred, succ);
   Delay high_bound = getHighBound(pred, succ);
-  Delay delay = high_bound;
+  Delay& delay = high_bound;
 
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
   addConstraintBase(
@@ -406,9 +406,9 @@ Delay WireBudgetingRC::getHighBound(Vertex* pred, Vertex* succ)
 Delay WireBudgetingRC::getDrvrSlope()
 {
   if (fuzzyEqual(wire_slope_, LRL_H_ZERO)) {
-    double wire_cap
+    const double& wire_cap
         = openroad_->getResizer()->wireSignalCapacitance(sta_->cmdCorner());
-    double wire_res
+    const double& wire_res
         = openroad_->getResizer()->wireSignalResistance(sta_->cmdCorner());
     wire_slope_ = wire_cap * wire_res;
     logger_->info(

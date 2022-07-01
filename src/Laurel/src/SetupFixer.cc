@@ -468,7 +468,7 @@ void SetupFixer::initArrivalMap()
 {
   arrival_map_.clear();
   for (auto& node : vertex_index_map_) {
-    Index index = node.second;
+    const Index& index = node.second;
     if (index == S_INDEX || index == T_INDEX)
       arrival_map_.insert(index, LRL_H_ZERO);
     else
@@ -480,13 +480,13 @@ bool SetupFixer::updateArrivalMap(const IdEdgeWeightSet bellman_graph)
 {
   bool changed = false;
   for (auto& edge : bellman_graph) {
-    Index pred = edge.first.first;
-    Index succ = edge.first.second;
+    const Index& pred = edge.first.first;
+    const Index& succ = edge.first.second;
     if (succ == S_INDEX || succ == T_INDEX)
       continue;
-    Delay weight = edge.second;
-    Arrival pred_arrival = arrival_map_[pred];
-    Arrival succ_arrival = arrival_map_[succ];
+    const Delay& weight = edge.second;
+    const Arrival& pred_arrival = arrival_map_[pred];
+    const Arrival& succ_arrival = arrival_map_[succ];
     Arrival new_arrival = pred_arrival + weight;
     if (!(fuzzyEqual(LRL_H_INFINITY, pred_arrival) && !fuzzyZero(weight))
         && fuzzyLess(new_arrival, succ_arrival)) {
@@ -565,8 +565,8 @@ VertexSet SetupFixer::getResizeVertex()
 {
   VertexSet resize_vertex;
   for (auto& node : vertex_index_map_) {
-    Name name = node.first;
-    Index index = node.second;
+    const Name& name = node.first;
+    const Index& index = node.second;
     if (name.compare(LRL_S_SRC_NAME) && name.compare(LRL_S_SNK_NAME)
         && !pi_index_set_.hasKey(index)) {
       Vertex* vertex = name_vertex_map_.findKey(name);

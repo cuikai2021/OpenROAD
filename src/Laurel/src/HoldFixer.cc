@@ -196,8 +196,8 @@ void HoldFixer::confirmAllPrimeIn()
   VertexNameSet pi;
   VertexNameSet not_pi;
   for (auto& w : wire_) {
-    Name pred = w.first.first;
-    Name succ = w.first.second;
+    const Name& pred = w.first.first;
+    const Name& succ = w.first.second;
     not_pi.insert(succ);
     if (pi.hasKey(succ))
       pi.erase(succ);
@@ -365,8 +365,8 @@ void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
 
 void HoldFixer::genWireConstraints(WirePair wire)
 {
-  Name pred = wire.first;
-  Name succ = wire.second;
+  const Name& pred = wire.first;
+  const Name& succ = wire.second;
   VertexMPVarMap* a_max = arrival_max_.findKey(sta_->sdc());
   VertexMPVarMap* a_min = arrival_min_.findKey(sta_->sdc());
   MPVariable* w_var = wire_.findKey(wire);
@@ -443,8 +443,8 @@ VertexNameSet HoldFixer::getNonZeroPaddingPred() const
 {
   VertexNameSet vio_pred_set;
   for (auto& w : wire_) {
-    WirePair wire_pair = w.first;
-    Name pred = wire_pair.first;
+    const WirePair& wire_pair = w.first;
+    const Name& pred = wire_pair.first;
     Delay padding = zoomOut(w.second->solution_value());
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
       debugPrint(logger_,
