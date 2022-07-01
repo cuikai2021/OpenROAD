@@ -30,7 +30,7 @@ void WireBudgeting::initAlgorithm()
   }
 }
 
-void WireBudgeting::buildAllFaninEdge(const VertexSeq& fanins)
+void WireBudgeting::buildAllFaninEdge(const VertexSet& fanins)
 {
   for (auto& vertex : fanins) {
     bool is_pi = true;
@@ -219,10 +219,9 @@ SteinerPt WireBudgeting::findNextPt(SteinerTree* tree,
   return left;
 }
 
-sta::Map<Name, Delay> WireBudgeting::buildSpefDelayMap()
+void WireBudgeting::buildSpefDelayMap(sta::Map<Name, Delay>& spef_delay_map)
 {
   sta_->findRequireds();
-  sta::Map<Name, Delay> spef_delay_map;
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
     Vertex* vertex = vertex_iter.next();
@@ -232,13 +231,11 @@ sta::Map<Name, Delay> WireBudgeting::buildSpefDelayMap()
       spef_delay_map.insert(vertex_name, delay);
     }
   }
-  return spef_delay_map;
 }
 
 bool WireBudgeting::makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor)
 {
-  const char* filename = options_->spefFileName();
-  bool ret = sta::readSpefFct(filename,
+  bool ret = sta::readSpefFct(options_->spefFileName(),
                               sta_->getDbNetwork()->topInstance(),
                               sta_->cmdCorner(),
                               MinMaxAll::all(),
@@ -251,8 +248,10 @@ bool WireBudgeting::makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor)
                               false,
                               factor,
                               sta_);
-  if (ret)
-    map = buildSpefDelayMap();
+  if (ret){
+    map.clear();
+    buildSpefDelayMap(map);
+  }
 
   return ret;
 }
@@ -333,7 +332,7 @@ void WireBudgetingFake::getNewWireLength(Vertex* pred,
 
   Slack slack = sta_->vertexSlack(fanout, MinMax::max());
   PathRef path = sta_->vertexWorstSlackPath(fanout, max_);
-  Slack period = path.clock(sta_)->period();
+  const Slack& period = path.clock(sta_)->period();
   if (slack >= factor_ * period) {
     aug_length = origin_length;
   }

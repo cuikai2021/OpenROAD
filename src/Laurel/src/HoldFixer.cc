@@ -70,7 +70,7 @@ int HoldFixer::addConstraints(Delay low_bound, Delay high_bound)
   return index;
 }
 
-void HoldFixer::makeVarFanins(const VertexSeq& fanins)
+void HoldFixer::makeVarFanins(const VertexSet& fanins)
 {
   for (auto& vertex : fanins) {
     Name vertex_name = vertex->name(sta_->sdcNetwork());
@@ -132,10 +132,9 @@ bool HoldFixer::hasHoldViolation(Vertex* vertex) const
   return false;
 }
 
-VertexSet HoldFixer::getHoldViolations()
+void HoldFixer::getHoldViolations(VertexSet& hold_failures)
 {
   VertexSet* ends = sta_->search()->endpoints();
-  VertexSet hold_failures;
   Vertex* worst_vertex;
   sta_->worstSlack(max_, sdc_worst_slack_, worst_vertex);
   debugPrint(logger_,
@@ -148,7 +147,6 @@ VertexSet HoldFixer::getHoldViolations()
   for (Vertex* vertex : *ends)
     if (hasHoldViolation(vertex))
       hold_failures.insert(vertex);
-  return hold_failures;
 }
 
 void HoldFixer::getRealVertexName()
@@ -176,14 +174,14 @@ void HoldFixer::makeVarAllModes()
     sta_->findRequireds();
     init();
     getRealVertexName();
-    VertexSet hold_failures = getHoldViolations();
-    hold_failures = getAllRelatedEnds(hold_failures, options_->ignoreClk());
+    VertexSet hold_failures_end;
+    VertexSet hold_failures;
+    getHoldViolations(hold_failures_end);
+    getAllRelatedEnds(hold_failures_end, options_->ignoreClk(), hold_failures);
     if (!hold_failures.empty()) {
       VertexSet fanins = findHoldFanins(hold_failures);
-      VertexSeq sorted_fanins = sortHoldFanins(fanins);
-      VertexSeq sorted_hold_failures = sortHoldFanins(hold_failures);
-      makeVarFanins(sorted_fanins);
-      makeVarFanins(sorted_hold_failures);
+      makeVarFanins(fanins);
+      makeVarFanins(hold_failures);
       confirmAllPrimeIn();
       genPrimeOutConstraints(&hold_failures);
       genPrimeInConstraints();
@@ -193,33 +191,22 @@ void HoldFixer::makeVarAllModes()
 
 void HoldFixer::confirmAllPrimeIn()
 {
-  VertexNameSet pi;
+  pi_name_set_.clear();
   VertexNameSet not_pi;
   for (auto& w : wire_) {
     const Name& pred = w.first.first;
     const Name& succ = w.first.second;
     not_pi.insert(succ);
-    if (pi.hasKey(succ))
-      pi.erase(succ);
+    if (pi_name_set_.hasKey(succ))
+      pi_name_set_.erase(succ);
     if (!not_pi.hasKey(pred))
-      pi.insert(pred);
+      pi_name_set_.insert(pred);
   }
-  pi_name_set_ = pi;
 }
 
 bool HoldFixer::isPrimeIn(const Name& vertex_name) const
 {
   return pi_name_set_.hasKey(vertex_name);
-}
-
-VertexNameSeq HoldFixer::getSortedNameSeq(VertexMPVarMap* mp_var_map)
-{
-  VertexNameSeq name_seq;
-  for (auto& pair : *mp_var_map) {
-    name_seq.push_back(pair.first);
-  }
-  std::sort(name_seq.begin(), name_seq.end());
-  return name_seq;
 }
 
 // Delay HoldFixer::getArrivalMax(Vertex* vertex) const
@@ -299,8 +286,8 @@ Delay HoldFixer::getDelay(const Name& vertex_name) const
 void HoldFixer::genPrimeInConstraints()
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-  VertexNameSeq sorted_vertex = getSortedNameSeq(map);
-  for (auto& vertex_name : sorted_vertex) {
+  for (auto& vv : *map) {
+    const Name& vertex_name = vv.first;
     if (isPrimeIn(vertex_name)) {
       Vertex* vertex = findRealVertex(vertex_name);
       Delay arrival = zoomIn(getArrivalMax(vertex));
@@ -327,8 +314,8 @@ void HoldFixer::genPrimeInConstraints()
 void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
-  VertexNameSeq sorted_vertex = getSortedNameSeq(map);
-  for (auto& vertex_name : sorted_vertex) {
+  for (auto& vv : *map) {
+    const Name& vertex_name = vv.first;
     Vertex* vertex = findRealVertex(vertex_name);
     if (ends->hasKey(vertex)) {
       Delay critical_long_arrival_value = getCriLongArrival(vertex);
@@ -427,21 +414,19 @@ Delay HoldFixer::getWirePadding(const WirePair& wire_pair) const
   return padding;
 }
 
-WirePairSet HoldFixer::getAllWirePairFrom(const Name& vertex_name) const
+void HoldFixer::getAllWirePairFrom(const Name& vertex_name,
+                                   WirePairSet& wire_pair_set)
 {
-  WirePairSet wire_pair_set;
   for (auto& w : wire_) {
     WirePair wire_pair = w.first;
     if (!vertex_name.compare(wire_pair.first)) {
       wire_pair_set.insert(wire_pair);
     }
   }
-  return wire_pair_set;
 }
 
-VertexNameSet HoldFixer::getNonZeroPaddingPred() const
+void HoldFixer::getNonZeroPaddingPred(VertexNameSet& vio_pred_set)
 {
-  VertexNameSet vio_pred_set;
   for (auto& w : wire_) {
     const WirePair& wire_pair = w.first;
     const Name& pred = wire_pair.first;
@@ -459,7 +444,6 @@ VertexNameSet HoldFixer::getNonZeroPaddingPred() const
         vio_pred_set.insert(pred);
     }
   }
-  return vio_pred_set;
 }
 
 }  // namespace lrl

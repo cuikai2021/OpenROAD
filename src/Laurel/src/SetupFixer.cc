@@ -216,7 +216,7 @@ Index SetupFixer::buildIndex(Vertex* vertex)
   return vertex_index_map_[vertex_name];
 }
 
-void SetupFixer::buildAllFaninEdge(const VertexSeq& fanins)
+void SetupFixer::buildAllFaninEdge(const VertexSet& fanins)
 {
   for (auto& vertex : fanins) {
     bool is_pi = true;
@@ -251,18 +251,17 @@ void SetupFixer::buildALLEdgePrimeOut(const VertexSet& ends)
 
 void SetupFixer::buildIndexMap(const VertexSet& ends)
 {
-  VertexSet all_ends = getAllRelatedEnds(ends, options_->ignoreClk());
+  VertexSet all_ends;
+  getAllRelatedEnds(ends, options_->ignoreClk(), all_ends);
   VertexSet fanins = findHoldFanins(all_ends);
-  VertexSeq sorted_ends = sortHoldFanins(all_ends);
-  VertexSeq sorted_fanins = sortHoldFanins(fanins);
 
   // the special node SRC
   vertex_index_map_.insert(LRL_S_SRC_NAME, index_++);
   // the special node SNK
   vertex_index_map_.insert(LRL_S_SNK_NAME, index_++);
 
-  buildAllFaninEdge(sorted_ends);
-  buildAllFaninEdge(sorted_fanins);
+  buildAllFaninEdge(all_ends);
+  buildAllFaninEdge(fanins);
   buildALLEdgePrimeOut(all_ends);
 }
 
@@ -443,9 +442,8 @@ SetupResult SetupFixer::resolve()
   // return solver_.Solve();
 }
 
-IdEdgeWeightSet SetupFixer::buildBellmanGraph() const
+void SetupFixer::buildBellmanGraph(IdEdgeWeightSet& bellman_graph)
 {
-  IdEdgeWeightSet bellman_graph;
   for (std::size_t i = 0; i < solver_.NumArcs(); ++i) {
     Cost flow = solver_.Flow(i);
     Cost capacity = solver_.Capacity(i);
@@ -461,7 +459,6 @@ IdEdgeWeightSet SetupFixer::buildBellmanGraph() const
     if (flow < capacity || isInf(capacity))
       bellman_graph.insert(IdEdgeWeight(IdEdge(succ, pred), -delay));
   }
-  return bellman_graph;
 }
 
 void SetupFixer::initArrivalMap()
@@ -501,7 +498,8 @@ bool SetupFixer::remap()
 {
   // Bellman Ford Shortest Path Algorithm
   bool changed = true;
-  IdEdgeWeightSet bellman_graph = buildBellmanGraph();
+  IdEdgeWeightSet bellman_graph;
+  buildBellmanGraph(bellman_graph);
   initArrivalMap();
   for (size_t iter = 0; iter <= bellman_max_iter_num_ && changed; ++iter)
     changed = updateArrivalMap(bellman_graph);
@@ -561,9 +559,8 @@ Delay SetupFixer::getResizeValue(Vertex* vertex)
   return new_delay - getDelay(vertex);
 }
 
-VertexSet SetupFixer::getResizeVertex()
+void SetupFixer::getResizeVertex(VertexSet& resize_vertex)
 {
-  VertexSet resize_vertex;
   for (auto& node : vertex_index_map_) {
     const Name& name = node.first;
     const Index& index = node.second;
@@ -577,7 +574,6 @@ VertexSet SetupFixer::getResizeVertex()
         resize_vertex.insert(vertex);
     }
   }
-  return resize_vertex;
 }
 
 LibertyCell* SetupFixer::findResizeCell(Vertex* vertex, Delay target_delay)
@@ -610,10 +606,10 @@ LibertyCell* SetupFixer::findResizeCell(Vertex* vertex, Delay target_delay)
   return resize_cell;
 }
 
-sta::Map<Vertex*, LibertyCell*> SetupFixer::getResizeQueue()
+void SetupFixer::getResizeQueue(sta::Map<Vertex*, LibertyCell*>& queue)
 {
-  sta::Map<Vertex*, LibertyCell*> queue;
-  VertexSet changed_vertex = getResizeVertex();
+  VertexSet changed_vertex;
+  getResizeVertex(changed_vertex);
   for (auto& vertex : changed_vertex) {
     Delay resize = getResizeValue(vertex);
     Delay new_delay = getNewDelay(vertex);
@@ -635,7 +631,6 @@ sta::Map<Vertex*, LibertyCell*> SetupFixer::getResizeQueue()
                     vertex->name(sta_->sdcNetwork()),
                     delayAsString(new_delay, sta_, 3));
   }
-  return queue;
 }
 
 void SetupFixer::report()
