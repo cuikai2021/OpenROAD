@@ -33,9 +33,9 @@ HoldFixer::HoldFixer(OpenRoad* openroad, Options* options)
 
 HoldFixer::~HoldFixer()
 {
-  for (auto a_max : arrival_max_)
+  for (auto& a_max : arrival_max_)
     delete a_max.second;
-  for (auto a_min : arrival_min_)
+  for (auto& a_min : arrival_min_)
     delete a_min.second;
 }
 
@@ -72,7 +72,7 @@ int HoldFixer::addConstraints(Delay low_bound, Delay high_bound)
 
 void HoldFixer::makeVarFanins(VertexSeq fanins)
 {
-  for (auto vertex : fanins) {
+  for (auto& vertex : fanins) {
     Name vertex_name = vertex->name(sta_->sdcNetwork());
     makeVar(vertex_name, arrival_max_);
     makeVar(vertex_name, arrival_min_);
@@ -105,7 +105,7 @@ void HoldFixer::findHoldVioNameMM()
     sdc_ = sta_->sdc();
     sta_->findRequireds();
     VertexSet* ends = sta_->search()->endpoints();
-    for (auto vertex : *ends) {
+    for (auto& vertex : *ends) {
       Slack slack = sta_->vertexSlack(vertex, MinMax::min());
       if (fuzzyLess(slack, slack_margin)) {
         vio_ends_name_.insert(vertex->name(sta_->sdcNetwork()));
@@ -119,7 +119,7 @@ void HoldFixer::findHoldVioNameMM()
                 cnt,
                 mode_cnt,
                 delayAsString(slack_margin, sta_, 3));
-  for (auto name : vio_ends_name_)
+  for (auto& name : vio_ends_name_)
     debugPrint(logger_, utl::LRL, "LRL", 4, "   {}", name);
 }
 
@@ -195,7 +195,7 @@ void HoldFixer::confirmAllPrimeIn()
 {
   VertexNameSet pi;
   VertexNameSet not_pi;
-  for (auto w : wire_) {
+  for (auto& w : wire_) {
     Name pred = w.first.first;
     Name succ = w.first.second;
     not_pi.insert(succ);
@@ -215,7 +215,7 @@ bool HoldFixer::isPrimeIn(Name vertex_name) const
 VertexNameSeq HoldFixer::getSortedNameSeq(VertexMPVarMap* mp_var_map)
 {
   VertexNameSeq name_seq;
-  for (auto pair : *mp_var_map) {
+  for (auto& pair : *mp_var_map) {
     name_seq.push_back(pair.first);
   }
   std::sort(name_seq.begin(), name_seq.end());
@@ -300,7 +300,7 @@ void HoldFixer::genPrimeInConstraints()
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
   VertexNameSeq sorted_vertex = getSortedNameSeq(map);
-  for (auto vertex_name : sorted_vertex) {
+  for (auto& vertex_name : sorted_vertex) {
     if (isPrimeIn(vertex_name)) {
       Vertex* vertex = findRealVertex(vertex_name);
       Delay arrival = zoomIn(getArrivalMax(vertex));
@@ -328,7 +328,7 @@ void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
 {
   VertexMPVarMap* map = arrival_max_.findKey(sdc_);
   VertexNameSeq sorted_vertex = getSortedNameSeq(map);
-  for (auto vertex_name : sorted_vertex) {
+  for (auto& vertex_name : sorted_vertex) {
     Vertex* vertex = findRealVertex(vertex_name);
     if (ends->hasKey(vertex)) {
       Delay critical_long_arrival_value = getCriLongArrival(vertex);
@@ -394,7 +394,7 @@ void HoldFixer::genWireConstraints(WirePair wire)
 HoldResult HoldFixer::resolve()
 {
   MPObjective* const objective = solver_->MutableObjective();
-  for (auto w : wire_) {
+  for (auto& w : wire_) {
     Vertex* pred = findRealVertex(w.first.first);
     int priority = LRL_H_PRIORITY + pred->level();
     objective->SetCoefficient(w.second, priority);
@@ -430,7 +430,7 @@ Delay HoldFixer::getWirePadding(WirePair wire_pair) const
 WirePairSet HoldFixer::getAllWirePairFrom(Name vertex_name) const
 {
   WirePairSet wire_pair_set;
-  for (auto w : wire_) {
+  for (auto& w : wire_) {
     WirePair wire_pair = w.first;
     if (!vertex_name.compare(wire_pair.first)) {
       wire_pair_set.insert(wire_pair);
@@ -442,7 +442,7 @@ WirePairSet HoldFixer::getAllWirePairFrom(Name vertex_name) const
 VertexNameSet HoldFixer::getNonZeroPaddingPred() const
 {
   VertexNameSet vio_pred_set;
-  for (auto w : wire_) {
+  for (auto& w : wire_) {
     WirePair wire_pair = w.first;
     Name pred = wire_pair.first;
     Delay padding = zoomOut(w.second->solution_value());

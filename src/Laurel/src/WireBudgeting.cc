@@ -32,7 +32,7 @@ void WireBudgeting::initAlgorithm()
 
 void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
 {
-  for (auto vertex : fanins) {
+  for (auto& vertex : fanins) {
     bool is_pi = true;
     bellman_max_iter_num_
         = std::max(vertex->level() / 20, bellman_max_iter_num_);

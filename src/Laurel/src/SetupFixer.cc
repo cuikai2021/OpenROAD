@@ -54,7 +54,7 @@ Index SetupFixer::getIndex(Vertex* vertex) const
 
 Name SetupFixer::getNodeVertexName(Index index) const
 {
-  for (auto row : vertex_index_map_)
+  for (auto& row : vertex_index_map_)
     if (row.second == index)
       return row.first;
   return "unknown_node_name";
@@ -218,7 +218,7 @@ Index SetupFixer::buildIndex(Vertex* vertex)
 
 void SetupFixer::buildAllFaninEdge(VertexSeq fanins)
 {
-  for (auto vertex : fanins) {
+  for (auto& vertex : fanins) {
     bool is_pi = true;
     buildIndex(vertex);
     SearchPredNonReg2 pred(sta_);
@@ -242,7 +242,7 @@ void SetupFixer::buildAllFaninEdge(VertexSeq fanins)
 }
 void SetupFixer::buildALLEdgePrimeOut(VertexSet ends)
 {
-  for (auto node : vertex_index_map_) {
+  for (auto& node : vertex_index_map_) {
     Vertex* vertex = name_vertex_map_.findKey(node.first);
     if (ends.find(vertex) != ends.end())
       addConstraintPrimeOut(vertex);
@@ -467,7 +467,7 @@ IdEdgeWeightSet SetupFixer::buildBellmanGraph() const
 void SetupFixer::initArrivalMap()
 {
   arrival_map_.clear();
-  for (auto node : vertex_index_map_) {
+  for (auto& node : vertex_index_map_) {
     Index index = node.second;
     if (index == S_INDEX || index == T_INDEX)
       arrival_map_.insert(index, LRL_H_ZERO);
@@ -479,7 +479,7 @@ void SetupFixer::initArrivalMap()
 bool SetupFixer::updateArrivalMap(const IdEdgeWeightSet bellman_graph)
 {
   bool changed = false;
-  for (auto edge : bellman_graph) {
+  for (auto& edge : bellman_graph) {
     Index pred = edge.first.first;
     Index succ = edge.first.second;
     if (succ == S_INDEX || succ == T_INDEX)
@@ -564,7 +564,7 @@ Delay SetupFixer::getResizeValue(Vertex* vertex)
 VertexSet SetupFixer::getResizeVertex()
 {
   VertexSet resize_vertex;
-  for (auto node : vertex_index_map_) {
+  for (auto& node : vertex_index_map_) {
     Name name = node.first;
     Index index = node.second;
     if (name.compare(LRL_S_SRC_NAME) && name.compare(LRL_S_SNK_NAME)
@@ -614,7 +614,7 @@ sta::Map<Vertex*, LibertyCell*> SetupFixer::getResizeQueue()
 {
   sta::Map<Vertex*, LibertyCell*> queue;
   VertexSet changed_vertex = getResizeVertex();
-  for (auto vertex : changed_vertex) {
+  for (auto& vertex : changed_vertex) {
     Delay resize = getResizeValue(vertex);
     Delay new_delay = getNewDelay(vertex);
     debugPrint(logger_,

@@ -203,7 +203,7 @@ bool Laurel::insertBuffer(HoldFixer* fixer,
   bool loads_have_out_port = false;
   Delay max_padding = LRL_H_ZERO;
   Delay min_padding = INF;
-  for (auto wire_pair : wire_pair_set) {
+  for (auto& wire_pair : wire_pair_set) {
     Delay padding = fixer->getWirePadding(wire_pair);
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
       Vertex* fanout = name_vertex_map.at(wire_pair.second);
@@ -263,7 +263,7 @@ bool Laurel::insertAllBuffer(HoldFixer* fixer)
   findBuffers();
   sta::Map<Name, Vertex*> name_vertex_map = makeNameVertexMap();
   VertexNameSet vio_pred_set = fixer->getNonZeroPaddingPred();
-  for (auto vertex_name : vio_pred_set) {
+  for (auto& vertex_name : vio_pred_set) {
     if (!insertBuffer(fixer, vertex_name, name_vertex_map))
       ret = false;
   }
@@ -339,7 +339,7 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
 {
   bool ret = true;
   sta::Map<Vertex*, LibertyCell*> queue = fixer->getResizeQueue();
-  for (auto q : queue) {
+  for (auto& q : queue) {
     Vertex* vertex = q.first;
     Instance* drvr = sta_->network()->instance(vertex->pin());
     LibertyCell* resize_cell = q.second;
@@ -391,7 +391,7 @@ void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
   int cnt = 0;
   int slack_cnt = 0;
   logger_->info(utl::LRL, 1310, "test wire budgeting interface");
-  for (auto wire : pairs) {
+  for (auto& wire : pairs) {
     Vertex* pred = guider->getVertex(wire.first);
     Vertex* succ = guider->getVertex(wire.second);
 
