@@ -46,18 +46,17 @@ Delay SetupFixer::cost2Delay(Cost cost) const
 
 Index SetupFixer::getIndex(Vertex* vertex) const
 {
-  Name vertex_name = vertex->name(sta_->sdcNetwork());
-  if (!vertex_index_map_.hasKey(vertex_name))
+  if (!vertex_index_map_.hasKey(vertex))
     return LRL_S_INVALIDE;
-  return vertex_index_map_.at(vertex_name);
+  return vertex_index_map_.at(vertex);
 }
 
-Name SetupFixer::getNodeVertexName(Index index) const
+Vertex* SetupFixer::getNodeVertex(Index index) const
 {
   for (auto& row : vertex_index_map_)
     if (row.second == index)
       return row.first;
-  return "unknown_node_name";
+  return nullptr;
 }
 
 Delay SetupFixer::getDelay(Vertex* vertex)
@@ -181,39 +180,35 @@ Delay SetupFixer::getBound(Vertex* vertex, const MinMax* min_max)
 
 Delay SetupFixer::getLowBound(Vertex* vertex)
 {
-  Name vertex_name = vertex->name(sta_->sdcNetwork());
-  if (!vertex_low_bound_map_.hasKey(vertex_name)) {
+  if (!vertex_low_bound_map_.hasKey(vertex)) {
     Delay low_bound = getBound(vertex, MinMax::min());
-    vertex_low_bound_map_.insert(vertex_name, low_bound);
+    vertex_low_bound_map_.insert(vertex, low_bound);
   }
-  return vertex_low_bound_map_.at(vertex_name);
+  return vertex_low_bound_map_.at(vertex);
 }
 
 Delay SetupFixer::getHighBound(Vertex* vertex)
 {
-  Name vertex_name = vertex->name(sta_->sdcNetwork());
-  if (!vertex_high_bound_map_.hasKey(vertex_name)) {
+  if (!vertex_high_bound_map_.hasKey(vertex)) {
     Delay high_bound = getBound(vertex, MinMax::max());
-    vertex_high_bound_map_.insert(vertex_name, high_bound);
+    vertex_high_bound_map_.insert(vertex, high_bound);
   }
-  return vertex_high_bound_map_.at(vertex_name);
+  return vertex_high_bound_map_.at(vertex);
 }
 
 Index SetupFixer::buildIndex(Vertex* vertex)
 {
-  Name vertex_name = vertex->name(sta_->sdcNetwork());
-  if (!vertex_index_map_.hasKey(vertex_name)) {
-    vertex_index_map_.insert(vertex_name, index_++);
-    name_vertex_map_.insert(vertex_name, vertex);
-  }
+  if (!vertex_index_map_.hasKey(vertex))
+    vertex_index_map_.insert(vertex, index_++);
+
   debugPrint(logger_,
              utl::LRL,
              "LRL",
              4,
              "{} , id = {}",
-             vertex_name.c_str(),
+             vertex->name(sta_->sdcNetwork()),
              getIndex(vertex));
-  return vertex_index_map_[vertex_name];
+  return vertex_index_map_[vertex];
 }
 
 void SetupFixer::buildAllFaninEdge(const VertexSet& fanins)
@@ -243,7 +238,7 @@ void SetupFixer::buildAllFaninEdge(const VertexSet& fanins)
 void SetupFixer::buildALLEdgePrimeOut(const VertexSet& ends)
 {
   for (auto& node : vertex_index_map_) {
-    Vertex* vertex = name_vertex_map_.findKey(node.first);
+    Vertex* vertex = node.first;
     if (ends.find(vertex) != ends.end())
       addConstraintPrimeOut(vertex);
   }
@@ -254,11 +249,6 @@ void SetupFixer::buildIndexMap(const VertexSet& ends)
   VertexSet all_ends;
   getAllRelatedEnds(ends, options_->ignoreClk(), all_ends);
   VertexSet fanins = findHoldFanins(all_ends);
-
-  // the special node SRC
-  vertex_index_map_.insert(LRL_S_SRC_NAME, index_++);
-  // the special node SNK
-  vertex_index_map_.insert(LRL_S_SNK_NAME, index_++);
 
   buildAllFaninEdge(all_ends);
   buildAllFaninEdge(fanins);
@@ -464,12 +454,15 @@ void SetupFixer::buildBellmanGraph(IdEdgeWeightSet& bellman_graph)
 void SetupFixer::initArrivalMap()
 {
   arrival_map_.clear();
+
+  // the special node SRC
+  arrival_map_.insert(S_INDEX, LRL_H_ZERO);
+  // the special node SNK
+  arrival_map_.insert(T_INDEX, LRL_H_ZERO);
+
   for (auto& node : vertex_index_map_) {
     const Index& index = node.second;
-    if (index == S_INDEX || index == T_INDEX)
-      arrival_map_.insert(index, LRL_H_ZERO);
-    else
-      arrival_map_.insert(index, LRL_H_INFINITY);
+    arrival_map_.insert(index, LRL_H_INFINITY);
   }
 }
 
@@ -522,7 +515,7 @@ Delay SetupFixer::getNewDelay(Vertex* vertex)
       while (pred_edge_iter.hasNext()) {
         Edge* pred_edge = pred_edge_iter.next();
         Vertex* pred = pred_edge->from(sta_->graph());
-        if (vertex_index_map_.hasKey(pred->name(sta_->sdcNetwork()))) {
+        if (vertex_index_map_.hasKey(pred)) {
           Index pred_index = getIndex(pred);
           Index succ_index = getIndex(vertex);
           if (pred_index != S_INDEX) {
@@ -534,14 +527,14 @@ Delay SetupFixer::getNewDelay(Vertex* vertex)
         }
       }
     }
-    if (vertex_low_bound_map_.hasKey(vertex->name(sta_->sdcNetwork()))) {
+    if (vertex_low_bound_map_.hasKey(vertex)) {
       Delay delay = getCellDelay(vertex);
       Delay gate_delay = getDelay(vertex);
       Delay diff = delay - gate_delay;
       shortest_delay -= diff;
       Delay low_bound = getLowBound(vertex);
       // Delay high_bound = getHighBound(vertex);
-      Delay high_bound = gate_delay;
+      Delay& high_bound = gate_delay;
       if (fuzzyLess(shortest_delay, low_bound))
         shortest_delay = low_bound;
       else if (fuzzyLess(high_bound, shortest_delay))
@@ -562,11 +555,9 @@ Delay SetupFixer::getResizeValue(Vertex* vertex)
 void SetupFixer::getResizeVertex(VertexSet& resize_vertex)
 {
   for (auto& node : vertex_index_map_) {
-    const Name& name = node.first;
     const Index& index = node.second;
-    if (name.compare(LRL_S_SRC_NAME) && name.compare(LRL_S_SNK_NAME)
-        && !pi_index_set_.hasKey(index)) {
-      Vertex* vertex = name_vertex_map_.findKey(name);
+    if (!pi_index_set_.hasKey(index)) {
+      Vertex* vertex = node.first;
       Delay resize_value = getResizeValue(vertex);
       // if (delay2Cost(resize_value) != 0)
       if (fuzzyLessEqual(resize_value, LRL_H_ZERO - LRL_H_ROUNDING_LIMIT)

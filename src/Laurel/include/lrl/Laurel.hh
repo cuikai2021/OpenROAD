@@ -59,6 +59,9 @@ typedef std::pair<Index, Index> IdEdge;
 typedef std::pair<std::pair<Index, Index>, Delay> IdEdgeWeight;
 typedef sta::Set<IdEdgeWeight> IdEdgeWeightSet;
 
+typedef std::pair<Vertex*, Vertex*> VertexPair;
+typedef sta::Set<VertexPair> VertexPairSet;
+
 typedef MPSolver::ResultStatus HoldResult;
 typedef int32_t SetupResult;
 
@@ -127,7 +130,7 @@ class SetupFixer : public LaurelAdapter
   bool isInf(Cost cost) const { return cost == LRL_S_INT_INF; }
 
   Index getIndex(Vertex* vertex) const;
-  Name getNodeVertexName(Index index) const;  // unused
+  Vertex* getNodeVertex(Index index) const;  // unused
   Delay getDelay(Vertex* vertex);
   virtual Delay getCellDelay(Vertex* vertex);
   const char* getInPortName(Vertex* pred, Vertex* succ) const;  // unused
@@ -140,10 +143,8 @@ class SetupFixer : public LaurelAdapter
   Delay getResizeValue(Vertex* vertex);
   void getResizeVertex(VertexSet& resize_vertex);
 
-  // VertexSeq sortVertexSet(VertexSet set) const;
-
   // variables
-  Index index_ = S_INDEX;
+  Index index_ = T_INDEX + 1;
 
   SimpleMinCostFlow solver_;
   IndexSeq start_nodes_;
@@ -156,10 +157,9 @@ class SetupFixer : public LaurelAdapter
   sta::Map<Index, Arrival> arrival_map_;
   sta::Map<Index, Arrival> pi_arrival_map_;
 
-  sta::Map<Name, Index> vertex_index_map_;
-  sta::Map<Name, Vertex*> name_vertex_map_;
-  sta::Map<Name, Delay> vertex_high_bound_map_;
-  sta::Map<Name, Delay> vertex_low_bound_map_;
+  sta::Map<Vertex*, Index> vertex_index_map_;
+  sta::Map<Vertex*, Delay> vertex_high_bound_map_;
+  sta::Map<Vertex*, Delay> vertex_low_bound_map_;
   sta::Set<Index> pi_index_set_;
 
   Options* options_;
@@ -181,11 +181,10 @@ class WireBudgeting : public SetupFixer
                                 Vertex* succ,
                                 uint64& max_length,
                                 Delay& bud_rate);
-  WirePairSet& getAllWirePairs() { return opt_wires_; }
+  VertexPairSet& getAllWirePairs() { return opt_wires_; }
 
-  bool hasWire(const WirePair& wire);
+  bool hasWire(const VertexPair& wire);
   Vertex* getVertex(Pin* pin) { return pin_vertex_map_.findKey(pin); }
-  Vertex* getVertex(const Name& name) { return name_vertex_map_.findKey(name); }
 
  protected:
   // virtual void buildALLEdgePrimeOut(VertexSet ends) override;
@@ -203,21 +202,21 @@ class WireBudgeting : public SetupFixer
   SteinerPt findNextPt(SteinerTree* tree,
                        const SteinerPt& drvr_pt,
                        const SteinerPt& last);
-  WirePair getRealWire(const WirePair& wire);  // unused
-  Vertex* getRealFanoutVertex(const WirePair& wire);
+  VertexPair getRealWire(const VertexPair& wire);  // unused
+  Vertex* getRealFanoutVertex(const VertexPair& wire);
 
-  void buildSpefDelayMap(sta::Map<Name, Delay>& spef_delay_map);
-  bool makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor);
+  void buildSpefDelayMap(sta::Map<Vertex*, Delay>& spef_delay_map);
+  bool makeDelaySpefCore(sta::Map<Vertex*, Delay>& map, double factor);
 
   // variable
-  WirePairSet opt_wires_;
+  VertexPairSet opt_wires_;
   sta::Map<Vertex*, SteinerTree*> drvr_tree_map_;
-  sta::Map<WirePair, Vertex*> wire_fanout_map_;
+  sta::Map<VertexPair, Vertex*> wire_fanout_map_;
   sta::Map<Pin*, Vertex*> pin_vertex_map_;
-  sta::Map<WirePair, uint64> distance_map_;
+  sta::Map<VertexPair, uint64> distance_map_;
 
-  sta::Map<Name, Delay> spef_delay_;
-  sta::Map<Name, Delay> spef_delay_factor_;
+  sta::Map<Vertex*, Delay> spef_delay_;
+  sta::Map<Vertex*, Delay> spef_delay_factor_;
 };
 
 class WireBudgetingFake : public WireBudgeting
@@ -259,7 +258,7 @@ class WireBudgetingRC : public WireBudgeting
   Delay getDrvrSlope();
   virtual Delay getCellDelay(Vertex* vertex) override;
 
-  sta::Map<Name, Delay> delay_map_;
+  sta::Map<Vertex*, Delay> delay_map_;
   Delay wire_slope_ = LRL_H_ZERO;
 };
 

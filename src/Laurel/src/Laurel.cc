@@ -390,13 +390,13 @@ int Laurel::fixSetup()
 
 void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
 {
-  const WirePairSet& pairs = guider->getAllWirePairs();
+  const VertexPairSet& pairs = guider->getAllWirePairs();
   int cnt = 0;
   int slack_cnt = 0;
   logger_->info(utl::LRL, 1310, "test wire budgeting interface");
   for (auto& wire : pairs) {
-    Vertex* pred = guider->getVertex(wire.first);
-    Vertex* succ = guider->getVertex(wire.second);
+    Vertex* pred = wire.first;
+    Vertex* succ = wire.second;
 
     uint64 max_length = getWireBudMaxLen(pred, succ);
     Delay bud_rate = getWireBudRate(pred, succ);
@@ -478,15 +478,13 @@ void Laurel::wireBudgeting(float factor)
 bool Laurel::checkVertexBudgeted(Vertex* pred, Vertex* succ)
 {
   if (pred && succ) {
-    Name fanin_name = pred->name(sta_->sdcNetwork());
-    Name fanout_name = succ->name(sta_->sdcNetwork());
-    WirePair pin_wire = WirePair(fanin_name, fanout_name);
+    VertexPair pin_wire = VertexPair(pred, succ);
     if (!wire_bud_->hasWire(pin_wire)) {
       logger_->warn(utl::LRL,
                     1204,
                     "not found budget len result for vertex {} -> {}",
-                    fanin_name,
-                    fanout_name);
+                    pred->name(sta_->sdcNetwork()),
+                    succ->name(sta_->sdcNetwork()));
       return false;
     }
     return true;

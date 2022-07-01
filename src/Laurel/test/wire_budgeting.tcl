@@ -23,6 +23,6 @@ set spef_file [make_result_file gcd.spef]
 write_spef $spef_file -nets $test_nets
 
 
-laurel -wire_budgeting -spef $spef_file -debug_report
+laurel -wire_budgeting -spef $spef_file
 
 
