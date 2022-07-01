@@ -194,8 +194,8 @@ Pin* Laurel::findFanoutPin(HoldFixer* fixer, Vertex* pred, Vertex* succ) const
 }
 
 bool Laurel::insertBuffer(HoldFixer* fixer,
-                          Name vertex_name,
-                          sta::Map<Name, Vertex*> name_vertex_map)
+                          const Name& vertex_name,
+                          const sta::Map<Name, Vertex*>& name_vertex_map)
 {
   WirePairSet wire_pair_set = fixer->getAllWirePairFrom(vertex_name);
   PinSeq load_pins;
@@ -556,7 +556,7 @@ VertexSet LaurelAdapter::getAllRelatedEnds(VertexSet ends, bool ignore_clk)
   return related_ends;
 }
 
-Vertex* LaurelAdapter::findRealVertex(Name vertex_name) const
+Vertex* LaurelAdapter::findRealVertex(const Name& vertex_name) const
 {
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
@@ -567,7 +567,7 @@ Vertex* LaurelAdapter::findRealVertex(Name vertex_name) const
   return nullptr;
 }
 
-Pin* LaurelAdapter::findFanoutPin(WirePair wire_pair) const
+Pin* LaurelAdapter::findFanoutPin(const WirePair& wire_pair) const
 {
   Vertex* pred = findRealVertex(wire_pair.first);
   Vertex* succ = findRealVertex(wire_pair.second);

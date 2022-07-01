@@ -39,7 +39,7 @@ HoldFixer::~HoldFixer()
     delete a_min.second;
 }
 
-void HoldFixer::makeVar(Name vertex_name, MMVertexMPVarMap& arrival)
+void HoldFixer::makeVar(const Name& vertex_name, MMVertexMPVarMap& arrival)
 {
   if (!arrival.hasKey(sdc_))
     arrival.insert(sdc_, new VertexMPVarMap());
@@ -50,7 +50,7 @@ void HoldFixer::makeVar(Name vertex_name, MMVertexMPVarMap& arrival)
             LRL_H_ZERO, LRL_H_INFINITY, std::to_string(var_index_++)));
 }
 
-void HoldFixer::makeWire(Name pred, Name succ)
+void HoldFixer::makeWire(const Name& pred, const Name& succ)
 {
   WirePair wire(pred, succ);
   if (!wire_.hasKey(wire))
@@ -70,7 +70,7 @@ int HoldFixer::addConstraints(Delay low_bound, Delay high_bound)
   return index;
 }
 
-void HoldFixer::makeVarFanins(VertexSeq fanins)
+void HoldFixer::makeVarFanins(const VertexSeq& fanins)
 {
   for (auto& vertex : fanins) {
     Name vertex_name = vertex->name(sta_->sdcNetwork());
@@ -163,7 +163,7 @@ void HoldFixer::getRealVertexName()
   }
 }
 
-Vertex* HoldFixer::findRealVertex(Name vertex_name) const
+Vertex* HoldFixer::findRealVertex(const Name& vertex_name) const
 {
   return sdc_name_vertex_map_.findKey(vertex_name);
 }
@@ -207,7 +207,7 @@ void HoldFixer::confirmAllPrimeIn()
   pi_name_set_ = pi;
 }
 
-bool HoldFixer::isPrimeIn(Name vertex_name) const
+bool HoldFixer::isPrimeIn(const Name& vertex_name) const
 {
   return pi_name_set_.hasKey(vertex_name);
 }
@@ -289,7 +289,7 @@ void HoldFixer::makeDelay(Vertex* vertex)
   }
 }
 
-Delay HoldFixer::getDelay(Name vertex_name) const
+Delay HoldFixer::getDelay(const Name& vertex_name) const
 {
   if (!delay_map_.hasKey(vertex_name))
     return LRL_H_ZERO;
@@ -363,7 +363,7 @@ void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
   }
 }
 
-void HoldFixer::genWireConstraints(WirePair wire)
+void HoldFixer::genWireConstraints(const WirePair& wire)
 {
   const Name& pred = wire.first;
   const Name& succ = wire.second;
@@ -413,7 +413,7 @@ HoldResult HoldFixer::resolve()
   return result;
 }
 
-Delay HoldFixer::getWirePadding(WirePair wire_pair) const
+Delay HoldFixer::getWirePadding(const WirePair& wire_pair) const
 {
   Delay padding = zoomOut(wire_.findKey(wire_pair)->solution_value());
   debugPrint(logger_,
@@ -427,7 +427,7 @@ Delay HoldFixer::getWirePadding(WirePair wire_pair) const
   return padding;
 }
 
-WirePairSet HoldFixer::getAllWirePairFrom(Name vertex_name) const
+WirePairSet HoldFixer::getAllWirePairFrom(const Name& vertex_name) const
 {
   WirePairSet wire_pair_set;
   for (auto& w : wire_) {

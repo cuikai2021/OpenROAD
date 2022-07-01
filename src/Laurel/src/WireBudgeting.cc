@@ -30,7 +30,7 @@ void WireBudgeting::initAlgorithm()
   }
 }
 
-void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
+void WireBudgeting::buildAllFaninEdge(const VertexSeq& fanins)
 {
   for (auto& vertex : fanins) {
     bool is_pi = true;
@@ -81,7 +81,7 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
   }
 }
 
-WirePair WireBudgeting::getRealWire(WirePair wire)
+WirePair WireBudgeting::getRealWire(const WirePair& wire)
 {
   if (!wire_fanout_map_.hasKey(wire))
     return wire;
@@ -90,7 +90,7 @@ WirePair WireBudgeting::getRealWire(WirePair wire)
   return WirePair(wire.first, fanout_name);
 }
 
-Vertex* WireBudgeting::getRealFanoutVertex(WirePair wire)
+Vertex* WireBudgeting::getRealFanoutVertex(const WirePair& wire)
 {
   if (!wire_fanout_map_.hasKey(wire))
     return getVertex(wire.second);
@@ -210,8 +210,8 @@ uint64 WireBudgeting::getTreeDist(Vertex* drvr, Vertex* dst)
 }
 
 SteinerPt WireBudgeting::findNextPt(SteinerTree* tree,
-                                    SteinerPt drvr_pt,
-                                    SteinerPt last)
+                                    const SteinerPt& drvr_pt,
+                                    const SteinerPt& last)
 {
   SteinerPt left = tree->left(drvr_pt);
   if (left == last)
@@ -293,7 +293,7 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
   bud_rate = bud_rate + 1.0f;
 }
 
-bool WireBudgeting::hasWire(WirePair wire)
+bool WireBudgeting::hasWire(const WirePair& wire)
 {
   return opt_wires_.find(wire) != opt_wires_.end();
 }

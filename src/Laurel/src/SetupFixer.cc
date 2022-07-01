@@ -216,7 +216,7 @@ Index SetupFixer::buildIndex(Vertex* vertex)
   return vertex_index_map_[vertex_name];
 }
 
-void SetupFixer::buildAllFaninEdge(VertexSeq fanins)
+void SetupFixer::buildAllFaninEdge(const VertexSeq& fanins)
 {
   for (auto& vertex : fanins) {
     bool is_pi = true;
@@ -240,7 +240,7 @@ void SetupFixer::buildAllFaninEdge(VertexSeq fanins)
       addConstraintPrimeIn(vertex);
   }
 }
-void SetupFixer::buildALLEdgePrimeOut(VertexSet ends)
+void SetupFixer::buildALLEdgePrimeOut(const VertexSet& ends)
 {
   for (auto& node : vertex_index_map_) {
     Vertex* vertex = name_vertex_map_.findKey(node.first);
@@ -249,7 +249,7 @@ void SetupFixer::buildALLEdgePrimeOut(VertexSet ends)
   }
 }
 
-void SetupFixer::buildIndexMap(VertexSet ends)
+void SetupFixer::buildIndexMap(const VertexSet& ends)
 {
   VertexSet all_ends = getAllRelatedEnds(ends, options_->ignoreClk());
   VertexSet fanins = findHoldFanins(all_ends);
@@ -476,7 +476,7 @@ void SetupFixer::initArrivalMap()
   }
 }
 
-bool SetupFixer::updateArrivalMap(const IdEdgeWeightSet bellman_graph)
+bool SetupFixer::updateArrivalMap(const IdEdgeWeightSet& bellman_graph)
 {
   bool changed = false;
   for (auto& edge : bellman_graph) {
