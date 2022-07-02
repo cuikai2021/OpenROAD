@@ -44,10 +44,10 @@ int OpenDBAdapter::calLayerPitch(odb::dbTechLayer* layer)
 
 int OpenDBAdapter::defdist(int x)
 {
-  odb::dbBlock* block = db_->getChip()->getBlock();
-
-  return x * (double) block->getDefUnits()
-         / (double) block->getDbUnitsPerMicron();
+  // odb::dbBlock* block = db_->getChip()->getBlock();
+  // return x * (double) block->getDefUnits()
+  //        / (double) block->getDbUnitsPerMicron();
+  return x;
 }
 
 int64_t OpenDBAdapter::defArea(double area)
@@ -287,15 +287,20 @@ void getLayerNameToViasMap(
 
 void OpenDBAdapter::getViaDefsFromOpenDB()
 {
-  odb::dbTech* tech = db_->getTech();
-  const auto techVias = tech->getVias();
   std::map<std::string, std::vector<odb::dbTechVia*>> layerNameToTechVias;
-  getLayerNameToTechViasMap(techVias, layerNameToTechVias);
 
-  odb::dbBlock* block = db_->getChip()->getBlock();
-  const auto vias = block->getVias();
+  if (auto tech = db_->getTech(); tech != nullptr) {
+    const auto techVias = tech->getVias();
+    getLayerNameToTechViasMap(techVias, layerNameToTechVias);
+  }
+
   std::map<std::string, std::vector<odb::dbVia*>> layerNameToDefVias;
-  getLayerNameToViasMap(vias, layerNameToDefVias);
+  if (auto chip = db_->getChip(); chip != nullptr) {
+    if (auto block = chip->getBlock(); block != nullptr) {
+      const auto vias = block->getVias();
+      getLayerNameToViasMap(vias, layerNameToDefVias);
+    }
+  }
 
   for (const auto& iter : layerNameToIdxs_) {
     auto layerName = iter.first;
@@ -1273,6 +1278,26 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
 
     _wire_encoder.end();
   }
+}
+
+void OpenDBAdapter::printDB()
+{
+  printer.print("BanyanDB");
+  printer.print("\nDesign:");
+  printer.print("\tName: ", design_.name);
+  printer.print("\tCoreRegion: ",
+                design_.xmin,
+                " ",
+                design_.ymin,
+                " ",
+                design_.xmax,
+                " ",
+                design_.ymax);
+  printer.print("\tManufacturingGrid: ", design_.manufacturing_grid);
+  printer.print("\tDatabaseMicrons: ", design_.database_microns);
+  printer.print("\tMaxViaStack: ", design_.max_via_stack);
+  printer.print("\tMinLayer: ", design_.min_layer);
+  printer.print("\tMaxLayer: ", design_.max_layer);
 }
 
 }  // namespace banyan

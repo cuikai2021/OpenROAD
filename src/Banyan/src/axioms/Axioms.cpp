@@ -1,7 +1,6 @@
 #include "axioms/Axioms.hpp"
 
 #include <assert.h>
-#include <limits.h>
 
 #include <algorithm>
 #include <cmath>
@@ -14,7 +13,6 @@
 
 namespace banyan {
 
-pprint::PrettyPrinter printer = pprint::PrettyPrinter();
 
 void Axioms::initViaMap()
 {
@@ -127,44 +125,45 @@ void Axioms::initRules()
         break;
     }
   }
-#ifndef NDEBUG
-  printer.print("CUT Class Rules:");
-  for (auto [_, rules] : CutClassRule::laToCutClassRules) {
-    for (auto [_, rule] : rules) {
-      printer.print(*rule);
+
+ if (debugActive_) {
+    printer.print("\nCUT Class Rules:");
+    for (auto [_, rules] : CutClassRule::laToCutClassRules) {
+      for (auto [_, rule] : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nCUT SPACING Rules:");
+    for (auto [_, rules] : laToCutSpacingRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nCUT SPACINGTABLE Rules:");
+    for (auto [_, rules] : laToCutSpacingTableRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nSPACING Rules:");
+    for (auto [_, rules] : laToRoutingSpacingRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nSPACINGTABLE Rules:");
+    for (auto [_, rules] : laToRoutingSpacingTableRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nEOL SPACING Rules:");
+    for (auto [_, rules] : laToRoutingEOLSpacingRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
     }
   }
-  printer.print("CUT SPACING Rules:");
-  for (auto [_, rules] : laToCutSpacingRules) {
-    for (auto rule : rules) {
-      printer.print(*rule);
-    }
-  }
-  printer.print("CUT SPACINGTABLE Rules:");
-  for (auto [_, rules] : laToCutSpacingTableRules) {
-    for (auto rule : rules) {
-      printer.print(*rule);
-    }
-  }
-  printer.print("SPACING Rules:");
-  for (auto [_, rules] : laToRoutingSpacingRules) {
-    for (auto rule : rules) {
-      printer.print(*rule);
-    }
-  }
-  printer.print("SPACINGTABLE Rules:");
-  for (auto [_, rules] : laToRoutingSpacingTableRules) {
-    for (auto rule : rules) {
-      printer.print(*rule);
-    }
-  }
-  printer.print("EOL SPACING Rules:");
-  for (auto [_, rules] : laToRoutingEOLSpacingRules) {
-    for (auto rule : rules) {
-      printer.print(*rule);
-    }
-  }
-#endif
 }
 
 void Axioms::getViasInLayer(
@@ -262,7 +261,7 @@ uint64_t Axioms::getMaxRoutingPrlSpacing(odb::dbTechLayer* layer,
     auto subRule = rule->getSubRule();
     if (subRule.has_value()) {
       std::visit(overloaded{
-                     [width, rule, &spacing](RoutingSpacingRuleRange& range) {
+                     [width, rule, &spacing](RoutingSpacingRange& range) {
                        if (range.getMinWidth() <= width
                            && width <= range.getMaxWidth()) {
                          spacing
@@ -276,6 +275,9 @@ uint64_t Axioms::getMaxRoutingPrlSpacing(odb::dbTechLayer* layer,
                        }
                      },
                      [rule](RoutingSpacingNotchLength&) {
+
+                     },
+                     [rule](RoutingSpacingLengthThreshold&) {
 
                      },
                  },

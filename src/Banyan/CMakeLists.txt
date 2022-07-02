@@ -26,6 +26,7 @@ target_sources(Banyan
     src/Banyan.cpp
     src/MakeBanyan.cpp
     src/DBAdapter.cpp
+    src/Global.cpp
     src/axioms/Axioms.cpp
     src/axioms/Via.cpp
     src/axioms/CutSpacingRule.cpp

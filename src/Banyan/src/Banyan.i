@@ -2,43 +2,38 @@
 
 #include "ord/OpenRoad.hh"
 #include "banyan/Banyan.h"
- 
+
+using std::string;
+using std::vector;
 %}
 
 %include "../../Exception.i"
 
-%inline %{
+%typemap(in) std::vector<std::string> {
+  std::vector<std::string> args;
+  int var_size;
+  Tcl_Obj** vars_objs;
+  if (Tcl_ListObjGetElements(interp, $input, &var_size, &vars_objs) == TCL_OK) {
+    for (int i = 0; i < var_size; i++) {
+      std::string var = Tcl_GetString(vars_objs[i]);
+      args.push_back(var);
+    }
+  }
+  $1 = args;
+}
 
-void banyan_route(
-  const char *log_level,
-  const char* debug_output,
-  const char* debug_save_txt,
-  const char* max_via_stack,
-  const char* min_layer,
-  const char* max_layer,
-  const char* cts,
-  const char* enable_route,
-  const char* enable_maze_top,
-  const char* report_route_json,
-  const char* report_benchmark_json,
-  const char* baby_banyan,
-  const char* pa_mcf)
+%inline %{
+namespace banyan {
+
+void banyan_route_cmd(std::vector<std::string> args)
 {
-  std::map<std::string, std::string> options;
-  options["log_level"] = log_level;
-  options["debug_output"] = debug_output;
-  options["debug_save_txt"] = debug_save_txt;
-  options["max_via_stack"] = max_via_stack;
-  options["min_layer"] = min_layer;
-  options["max_layer"] = max_layer;
-  options["cts"] = cts;
-  options["enable_route"] = enable_route;
-  options["enable_maze_top"] = enable_maze_top;
-  options["report_route_json"] = report_route_json;
-  options["report_benchmark_json"] = report_benchmark_json;
-  options["baby_banyan"] = baby_banyan;
-  options["pa_mcf"] = pa_mcf;
-  ord::OpenRoad::openRoad()->getBanyan()->main(options);
+     ord::OpenRoad::openRoad()->getBanyan()->main(args);
+}
+
 }
 
 %} // inline
+
+
+
+

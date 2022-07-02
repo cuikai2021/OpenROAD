@@ -14,7 +14,7 @@
 #include "axioms/Via.hpp"
 #include "banyan_go.h"
 #include "odb/db.h"
-#include "pprint.hpp"
+#include "Global.hpp"
 
 #define CALL_MEMBER_FN(object, ptrToMember) ((object).*(ptrToMember))
 #define CAST_AXIOMS_CALC_FN(ptrToMember)          \
@@ -35,7 +35,6 @@ using LayerRules = std::vector<std::shared_ptr<T>>;
 template <typename T>
 using LayerRulesMap = std::map<odb::dbTechLayer*, LayerRules<T>>;
 
-extern pprint::PrettyPrinter printer;
 
 const int NULL_VIA_IDX = -1;
 
@@ -101,6 +100,8 @@ class Axioms
   LayerRulesMap<RoutingSpacingRule> laToRoutingSpacingRules;
   LayerRulesMap<RoutingSpacingTableRule> laToRoutingSpacingTableRules;
 
+  bool debugActive_;
+
  protected:
   OpenDBAdapter& dbAdapter_;
   odb::dbDatabase* db_;
@@ -161,10 +162,9 @@ class Axioms
       = [](int viaXId, int viaYId) -> bool { return true; });
 
  public:
-  const std::string VIA_NULL = "null";
 
-  Axioms(OpenDBAdapter& dbAdapter)
-      : dbAdapter_(dbAdapter), db_(dbAdapter.db_), logger_(dbAdapter.logger_)
+  Axioms(OpenDBAdapter& dbAdapter,bool debugActive = false)
+      : dbAdapter_(dbAdapter), db_(dbAdapter.db_), logger_(dbAdapter.logger_),debugActive_(debugActive)
   {
     initViaMap();
     initCutClasses();

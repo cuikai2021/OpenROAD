@@ -4,10 +4,11 @@
 #include <list>
 #include <map>
 
+#include "Global.hpp"
 #include "banyan_go.h"
+#include "db.h"
 #include "string.h"
 #include "utl/Logger.h"
-#include "db.h"
 
 #define AssertFind(mmap, key) \
   assertFind(mmap, key, __FILE__, __LINE__, __func__)
@@ -56,6 +57,7 @@ class Axioms;
 class OpenDBAdapter : public DBAdapter
 {
  private:
+  bool debugActive_;
   std::vector<banyan_go::net> nets_;
   std::vector<banyan_go::pin> pins_;
   std::vector<banyan_go::boxx> boxes_;
@@ -71,7 +73,7 @@ class OpenDBAdapter : public DBAdapter
  protected:
   odb::dbDatabase* db_;
   utl::Logger* logger_;
-  int maxViaStack_;
+  uint32_t maxViaStack_;
   std::string minLayer_ = "";
   std::string maxLayer_ = "";
 
@@ -105,6 +107,7 @@ class OpenDBAdapter : public DBAdapter
 
   void getTracksFromOpenDB();
   void getViaDefsFromOpenDB();
+
   void addViaDef(odb::dbObject* odbvia);
 
   void getNDRsFromOpenDB();
@@ -139,25 +142,32 @@ class OpenDBAdapter : public DBAdapter
                 utl::Logger* logger,
                 int maxViaStack,
                 std::string minLayer,
-                std::string maxLayer)
+                std::string maxLayer,
+                bool debugActive = false)
       : db_(db),
         logger_(logger),
         maxViaStack_(maxViaStack),
         minLayer_(minLayer),
-        maxLayer_(maxLayer)
+        maxLayer_(maxLayer),
+        debugActive_(debugActive)
   {
-    getDesignFromOpenDB();
     getLayersFromOpenDB();
-    getTracksFromOpenDB();
     getViaDefsFromOpenDB();
-    getNDRsFromOpenDB();
-    getNetsFromOpenDB();
-    getPinsFromOpenDB();
-    getObsFromOpenDB();
-    getInstsObsFromOpenDB();
+    if (db->getChip() == nullptr || db->getChip()->getBlock() == nullptr) {
+      printer.print("Empty block, def file is not read");
+    } else {
+      getDesignFromOpenDB();
+      getTracksFromOpenDB();
+      getNDRsFromOpenDB();
+      getNetsFromOpenDB();
+      getPinsFromOpenDB();
+      getObsFromOpenDB();
+      getInstsObsFromOpenDB();
+    }
   }
 
   ~OpenDBAdapter() {}
+  void printDB();
 
   void updateDB(std::vector<banyan_go::layer>& layers,
                 std::vector<banyan_go::net>& nets,
@@ -170,9 +180,15 @@ class OpenDBAdapter : public DBAdapter
   std::vector<banyan_go::layer>& getLayers() override { return layers_; }
   std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }
   std::vector<banyan_go::track>& getTracks() override { return tracks_; }
-  std::vector<banyan_go::ndr_layer>& getNDRLayers() override { return ndrlayers_; }
+  std::vector<banyan_go::ndr_layer>& getNDRLayers() override
+  {
+    return ndrlayers_;
+  }
   std::vector<banyan_go::ndr>& getNDRs() override { return ndrs_; }
-  std::vector<banyan_go::table_triple>& getTableTriples() { return tableTriples_; }
+  std::vector<banyan_go::table_triple>& getTableTriples()
+  {
+    return tableTriples_;
+  }
   banyan_go::design getDesign() override { return design_; }
 };
 

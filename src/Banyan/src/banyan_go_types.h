@@ -255,7 +255,7 @@ struct design
   int manufacturing_grid;
   int database_microns;
 
-  int max_via_stack;
+  GoUint64 max_via_stack;
   int min_layer;
   int max_layer;
 };  // struct design
