@@ -13,7 +13,6 @@
 
 namespace banyan {
 
-
 void Axioms::initViaMap()
 {
   for (auto techVia : db_->getTech()->getVias()) {
@@ -126,7 +125,7 @@ void Axioms::initRules()
     }
   }
 
- if (debugActive_) {
+  if (debugActive_) {
     printer.print("\nCUT Class Rules:");
     for (auto [_, rules] : CutClassRule::laToCutClassRules) {
       for (auto [_, rule] : rules) {
@@ -249,6 +248,17 @@ uint64_t Axioms::getMinSpacing(odb::dbTechLayer* layer)
   return std::max(minSpacing,
                   ruleTbls.size() > 0 ? ruleTbls[0]->getMinSpacing() : 0);
 }
+std::optional<uint32_t> Axioms::findLengthThreshold(odb::dbTechLayer* layer)
+{
+  auto rules = laToRoutingSpacingRules[layer];
+  for (auto rule : rules) {
+    auto lengthThreshold = rule->getLengthThreshold();
+    if (lengthThreshold.has_value()) {
+      return lengthThreshold;
+    }
+  }
+  return std::nullopt;
+}
 
 uint64_t Axioms::getMaxRoutingPrlSpacing(odb::dbTechLayer* layer,
                                          bool isSameNet)
@@ -257,31 +267,45 @@ uint64_t Axioms::getMaxRoutingPrlSpacing(odb::dbTechLayer* layer,
   uint64_t sameNetSpacing = 0;
   uint64_t spacing = getMinSpacing(layer);
 
-  for (auto rule : laToRoutingSpacingRules[layer]) {
+  auto lengthThreshold = findLengthThreshold(layer);
+
+  auto rules = laToRoutingSpacingRules[layer];
+  for (auto rule : rules) {
     auto subRule = rule->getSubRule();
     if (subRule.has_value()) {
-      std::visit(overloaded{
-                     [width, rule, &spacing](RoutingSpacingRange& range) {
-                       if (range.getMinWidth() <= width
-                           && width <= range.getMaxWidth()) {
-                         spacing
-                             = std::max(spacing, (uint64_t) rule->getSpacing());
-                       }
-                     },
-                     [rule, &sameNetSpacing](RoutingSpacingSameNet& sameNet) {
-                       if (!sameNet.getIsPGOnly()) {
-                         sameNetSpacing = std::max(
-                             sameNetSpacing, (uint64_t) rule->getSpacing());
-                       }
-                     },
-                     [rule](RoutingSpacingNotchLength&) {
+      std::visit(
+          overloaded{
+              [width, rule, &spacing, &lengthThreshold](
+                  RoutingSpacingRange& range) {
+                auto [minWidth, maxWidth, prl]
+                    = range.getMinMaxWidthAndPrl(lengthThreshold);
+                if (minWidth <= width && width <= maxWidth) {
+                  spacing = std::max(spacing, (uint64_t) rule->getSpacing());
+                }
+              },
+              [rule, &sameNetSpacing](RoutingSpacingSameNet& sameNet) {
+                if (!sameNet.getIsPGOnly()) {
+                  sameNetSpacing
+                      = std::max(sameNetSpacing, (uint64_t) rule->getSpacing());
+                }
+              },
+              [rule](RoutingSpacingNotchLength&) {
 
-                     },
-                     [rule](RoutingSpacingLengthThreshold&) {
-
-                     },
-                 },
-                 subRule.value());
+              },
+              [width, rule, &spacing](
+                  RoutingSpacingLengthThreshold& lengthThreshold) {
+                auto rangeOrNull = lengthThreshold.getMinMaxWidth();
+                if (rangeOrNull.has_value()) {
+                  auto [minWidth, maxWidth] = rangeOrNull.value();
+                  if (minWidth <= width && width <= maxWidth) {
+                    spacing = std::max(spacing, (uint64_t) rule->getSpacing());
+                  }
+                } else {
+                  spacing = std::max(spacing, (uint64_t) rule->getSpacing());
+                }
+              },
+          },
+          subRule.value());
     } else {
       spacing = std::max(spacing, (uint64_t) rule->getSpacing());
     }
@@ -908,14 +932,9 @@ void Axioms::calcAxiomsRules()
 void Axioms::calcSpacingTable()
 {
   std::vector<banyan_go::table_triple>& triples = dbAdapter_.tableTriples_;
-  for (auto layer : db_->getTech()->getLayers()) {
-    if (layer->getType() != odb::dbTechLayerType::ROUTING) {
-      continue;
-    }
-    int layerIdx = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
-    dbAdapter_.layers_[layerIdx].spacing_begin = triples.size();
 
-    auto routingTblRules = laToRoutingSpacingTableRules[layer];
+  auto getTableFromTblRules = [&](LayerRules<RoutingSpacingTableRule>&
+                                      routingTblRules) {
     assert(routingTblRules.size() <= 1);
     for (auto rule : routingTblRules) {
       rule->widthAndPrlToSpacing([&triples](uint32_t width,
@@ -924,7 +943,75 @@ void Axioms::calcSpacingTable()
         triples.push_back({(int) prl + 1, (int) width + 1, (uint64_t) spacing});
       });
     }
+  };
 
+  auto getTableFromSpacingRules = [&](odb::dbTechLayer* layer,
+                                      LayerRules<RoutingSpacingRule>&
+                                          spacingRules) {
+    auto lengthThreshold = findLengthThreshold(layer);
+    auto width = layer->getWidth();
+    for (auto rule : spacingRules) {
+      auto subRule = rule->getSubRule();
+      if (subRule.has_value()) {
+        std::visit(
+            overloaded{
+                [&](RoutingSpacingRange& range) {
+                  auto [minWidth, maxWidth, prl]
+                      = range.getMinMaxWidthAndPrl(lengthThreshold);
+                  triples.push_back({(int) prl,
+                                     (int) minWidth,
+                                     (uint64_t) rule->getSpacing()});
+                },
+                [](RoutingSpacingSameNet&) {},
+                [](RoutingSpacingNotchLength&) {},
+                [&](RoutingSpacingLengthThreshold& lengthThreshold) {
+                  auto rangeOrNull = lengthThreshold.getMinMaxWidth();
+                  if (rangeOrNull.has_value()) {
+                    auto [minWidth, maxWidth] = rangeOrNull.value();
+                    triples.push_back({(int) lengthThreshold.getMaxLength(),
+                                       (int) minWidth,
+                                       (uint64_t) rule->getSpacing() + 1});
+                  } else {
+                    triples.push_back({(int) lengthThreshold.getMaxLength(),
+                                       (int) 0,
+                                       (uint64_t) rule->getSpacing() + 1});
+                  }
+                },
+            },
+            subRule.value());
+      } else {
+        triples.push_back({(int) 0, (int) 0, (uint64_t) rule->getSpacing()});
+      }
+    }
+  };
+
+  for (auto layer : db_->getTech()->getLayers()) {
+    if (layer->getType() != odb::dbTechLayerType::ROUTING) {
+      continue;
+    }
+    int layerIdx = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
+    int triplesBenginIdx = triples.size();
+
+    auto routingTblRules = laToRoutingSpacingTableRules[layer];
+    if (routingTblRules.size() > 0) {
+      getTableFromTblRules(routingTblRules);
+    } else {
+      auto routingRules = laToRoutingSpacingRules[layer];
+      getTableFromSpacingRules(layer, routingRules);
+    }
+#ifdef DEBUG_SPACINGTABLE
+    printer.print(layer->getName(), " SPACINGTABLE");
+    for (auto i = triplesBenginIdx; i < triples.size(); i++) {
+      auto triple = triples[i];
+      printer.print("\t PRL ",
+                    triple.col,
+                    " WIDTH ",
+                    triple.row,
+                    " SPACING ",
+                    triple.val);
+    }
+#endif
+    dbAdapter_.layers_[layerIdx].spacing_begin = triplesBenginIdx;
     dbAdapter_.layers_[layerIdx].spacing_end = triples.size();
   }
 }

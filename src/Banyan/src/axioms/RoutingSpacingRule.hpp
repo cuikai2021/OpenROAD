@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <inttypes.h>
 
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <optional>
 #include <utility>
@@ -51,13 +52,17 @@ class RoutingSpacingSameNet
 class RoutingSpacingRangeRange
 {
  private:
-  uint64_t minWidth;
-  uint64_t maxWidth;
+  uint32_t minWidth;
+  uint32_t maxWidth;
 
  public:
   RoutingSpacingRangeRange(uint32_t minWidth, uint32_t maxWidth)
       : minWidth(minWidth), maxWidth(maxWidth){};
   ~RoutingSpacingRangeRange(){};
+  std::pair<uint32_t, uint32_t> getRange() const
+  {
+    return std::make_pair(minWidth, maxWidth);
+  }
   friend std::ostream& operator<<(std::ostream& out,
                                   const RoutingSpacingRangeRange& obj)
   {
@@ -81,15 +86,19 @@ class RoutingSpacingRangeUseLengthThreshold
 class RoutingSpacingRangeInfluence
 {
  private:
-  uint64_t influenceLength;
-  std::optional<std::pair<uint64_t, uint64_t>> stubMinMaxWidth;
+  uint32_t influenceLength;
+  std::optional<std::pair<uint32_t, uint32_t>> stubMinMaxWidth;
 
  public:
   RoutingSpacingRangeInfluence(
-      uint64_t influenceLength,
-      std::optional<std::pair<uint64_t, uint64_t>> stubMinMaxWidth)
+      uint32_t influenceLength,
+      std::optional<std::pair<uint32_t, uint32_t>> stubMinMaxWidth)
       : influenceLength(influenceLength), stubMinMaxWidth(stubMinMaxWidth){};
   ~RoutingSpacingRangeInfluence(){};
+  std::optional<std::pair<uint32_t, uint32_t>> getStubMinMaxWidth() const
+  {
+    return stubMinMaxWidth;
+  }
   friend std::ostream& operator<<(std::ostream& out,
                                   const RoutingSpacingRangeInfluence& obj)
   {
@@ -141,6 +150,9 @@ class RoutingSpacingRange
 
   ~RoutingSpacingRange(){};
 
+  std::tuple<uint32_t, uint32_t, uint32_t> getMinMaxWidthAndPrl(
+      std::optional<uint32_t> lengthThreshold);
+
   uint32_t getMinWidth() const { return minWidth; }
 
   uint32_t getMaxWidth() const { return maxWidth; }
@@ -149,7 +161,6 @@ class RoutingSpacingRange
                                   const RoutingSpacingRange& obj)
   {
     out << " RANGE " << obj.minWidth << " " << obj.maxWidth;
-
     if (obj.subRule.has_value()) {
       auto srValue = obj.subRule.value();
       std::visit(
@@ -173,15 +184,23 @@ class RoutingSpacingRange
 class RoutingSpacingLengthThreshold
 {
  private:
-  uint64_t maxLength;
-  std::optional<std::pair<uint64_t, uint64_t>> minMaxWidth;
+  uint32_t maxLength;
+  std::optional<std::pair<uint32_t, uint32_t>> minMaxWidth;
 
  public:
   RoutingSpacingLengthThreshold(
-      uint64_t maxLength,
-      std::optional<std::pair<uint64_t, uint64_t>> minMaxWidth)
+      uint32_t maxLength,
+      std::optional<std::pair<uint32_t, uint32_t>> minMaxWidth)
       : maxLength(maxLength), minMaxWidth(minMaxWidth){};
   ~RoutingSpacingLengthThreshold(){};
+
+  uint32_t getMaxLength() const { return maxLength; }
+
+  std::optional<std::pair<uint32_t, uint32_t>> getMinMaxWidth() const
+  {
+    return minMaxWidth;
+  }
+  
   friend std::ostream& operator<<(std::ostream& out,
                                   const RoutingSpacingLengthThreshold& obj)
   {
@@ -230,13 +249,13 @@ class RoutingSpacingRule
 
       uint lengthInfluence;
       if (rule->getInfluence(lengthInfluence)) {
-        std::optional<std::pair<uint64_t, uint64_t>> influenceMinMax;
+        std::optional<std::pair<uint32_t, uint32_t>> influenceMinMax;
 
         uint influenceMin;
         uint influenceMax;
         if (rule->getInfluenceRange(influenceMin, influenceMax)) {
           influenceMinMax = std::make_optional(
-              std::make_pair((uint64_t) influenceMin, (uint64_t) influenceMax));
+              std::make_pair((uint32_t) influenceMin, (uint32_t) influenceMax));
         }
         subRule = std::make_optional(RoutingSpacingRange(
             minRange,
@@ -264,13 +283,13 @@ class RoutingSpacingRule
     if (rule->hasLengthThreshold()) {
       uint lengthThreshold;
       if (rule->getLengthThreshold(lengthThreshold)) {
-        std::optional<std::pair<uint64_t, uint64_t>> lenThresholdMinMax;
+        std::optional<std::pair<uint32_t, uint32_t>> lenThresholdMinMax;
 
         uint lenThresholdMin;
         uint lenThresholdMax;
         if (rule->getLengthThresholdRange(lenThresholdMin, lenThresholdMax)) {
           lenThresholdMinMax = std::make_optional(std::make_pair(
-              (uint64_t) lenThresholdMin, (uint64_t) lenThresholdMax));
+              (uint32_t) lenThresholdMin, (uint32_t) lenThresholdMax));
         }
         subRule = std::make_optional(
             RoutingSpacingLengthThreshold(lengthThreshold, lenThresholdMinMax));
@@ -288,6 +307,8 @@ class RoutingSpacingRule
   {
     return subRule;
   }
+
+  std::optional<uint32_t> getLengthThreshold();
 
   uint32_t getSpacing() const { return spacing; }
 

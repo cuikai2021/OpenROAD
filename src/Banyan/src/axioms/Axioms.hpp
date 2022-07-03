@@ -28,6 +28,7 @@
 #define DEBUG_VIAVIATRUNKLENGTH 0
 #define DEBUG_VIAVIATRACKLENGTH 0
 #define DEBUG_VIATRACKLENGTH 0
+#define DEBUG_SPACINGTABLE 1
 
 namespace banyan {
 template <typename T>
@@ -142,6 +143,7 @@ class Axioms
                                              std::shared_ptr<Via> via2,
                                              bool isSameNet);
 
+  std::optional<uint32_t> findLengthThreshold(odb::dbTechLayer* layer);
   // return isCenterToCenter, prl, spacing
   std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>>
   getCutSpacings(std::shared_ptr<Via> via1,
