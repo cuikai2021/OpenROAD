@@ -35,6 +35,7 @@
 
 #include <iostream>
 
+#include "graphics.h"
 #include "initialPlace.h"
 #include "initialPlaceBicgstab.h"
 #include "initialPlaceDef.h"
@@ -203,12 +204,7 @@ void Replace::setLogger(utl::Logger* logger)
 
 void Replace::doIncrementalPlace()
 {
-  PlacerBaseVars pbVars;
-  pbVars.padLeft = padLeft_;
-  pbVars.padRight = padRight_;
-  pbVars.skipIoMode = skipIoMode_;
-
-  pb_ = std::make_shared<PlacerBase>(db_, pbVars, log_);
+  initPlacerBase();
 
   // Lock down already placed objects
   int locked_cnt = 0;
@@ -296,7 +292,7 @@ void Replace::doInitialPlace()
   ip_->run();
 }
 
-void Replace::initNesterovPlace()
+void Replace::initPlacerBase()
 {
   if (!pb_) {
     PlacerBaseVars pbVars;
@@ -306,6 +302,11 @@ void Replace::initNesterovPlace()
 
     pb_ = std::make_shared<PlacerBase>(db_, pbVars, log_);
   }
+}
+
+void Replace::initNesterovPlace()
+{
+  initPlacerBase();
 
   if (!nb_) {
     NesterovBaseVars nbVars;
@@ -376,7 +377,7 @@ void Replace::initNesterovPlace()
         new NesterovPlace(npVars, pb_, nb_, rb_, tb_, log_));
     np_ = std::move(np);
   }
-}
+}  // namespace gpl
 
 int Replace::doNesterovPlace(int start_iter)
 {

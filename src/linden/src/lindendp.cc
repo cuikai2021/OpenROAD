@@ -144,6 +144,7 @@ void exec(
     const string& outdef)
 {
     deque<string> args;
+    args.push_back("--cell-only");
     args.push_back("--lef");
     args.push_back(tech);
     for(const auto& x: libs) {

@@ -107,6 +107,7 @@ class MacroPlacer2;
 
 namespace gpl {
 class Replace;
+class LindenGlobalPlace;
 }
 
 namespace rcx {
@@ -186,6 +187,7 @@ public:
   triton_route::TritonRoute *getTritonRoute() { return detailed_router_; }
   banyan::Banyan *getBanyan() { return banyan_; }
   gpl::Replace* getReplace() { return replace_; }
+  gpl::LindenGlobalPlace* getLindenGlobalPlace() { return lindengp_; }
   psm::PDNSim* getPDNSim() { return pdnsim_; }
   grt::GlobalRouter* getGlobalRouter() { return global_router_; }
   par::PartitionMgr *getPartitionMgr() { return partitionMgr_; }
@@ -285,6 +287,7 @@ private:
   banyan::Banyan *banyan_;
   ant::AntennaChecker *antenna_checker_;
   gpl::Replace *replace_;
+  gpl::LindenGlobalPlace *lindengp_;
   psm::PDNSim *pdnsim_; 
   par::PartitionMgr *partitionMgr_;
   pdn::PdnGen *pdngen_;

@@ -25,7 +25,7 @@ puts "-----------------\nreport func2 b4repair \n-----------------"
 report_checks -sdc func2 -path_delay min
 report_worst_slack -max
 
-laurel -hold
+puts [laurel -hold]
 
 puts "-----------------\nreport scan after repair \n-----------------"
 report_checks -sdc scan -path_delay min

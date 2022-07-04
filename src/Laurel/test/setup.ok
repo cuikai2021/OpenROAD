@@ -8,88 +8,12 @@
 end reading sdc
 
 [WARNING RSZ-0014] wire capacitance for corner default is zero. Use the set_wire_rc command to set wire resistance and capacitance.
------------------
-report func1 b4repair 
------------------
-Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
-Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
-Path Group: clk
-Path Type: max
-
-  Delay    Time   Description
----------------------------------------------------------
-   0.00    0.00   clock clk (rise edge)
-   0.00    0.00   clock network delay (propagated)
-   0.00    0.00 ^ r2/CLK (sky130_fd_sc_hd__sdfxtp_1)
-   0.94    0.94 v r2/Q (sky130_fd_sc_hd__sdfxtp_1)
-   0.28    1.23 v b2/X (sky130_fd_sc_hd__buf_1)
-   0.26    1.49 v b3/X (sky130_fd_sc_hd__buf_1)
-   1.38    2.87 v b4/X (sky130_fd_sc_hd__dlymetal6s6s_1)
-   0.28    3.15 v b5/X (sky130_fd_sc_hd__buf_1)
-   0.26    3.41 v b6/X (sky130_fd_sc_hd__buf_1)
-   0.76    4.17 v u2/X (sky130_fd_sc_hd__and2_2)
-   0.00    4.17 v r3/D (sky130_fd_sc_hd__sdfxtp_1)
-           4.17   data arrival time
-
-   5.50    5.50   clock clk (rise edge)
-   0.00    5.50   clock network delay (propagated)
-   0.00    5.50   clock reconvergence pessimism
-           5.50 ^ r3/CLK (sky130_fd_sc_hd__sdfxtp_1)
-  -1.35    4.15   library setup time
-           4.15   data required time
----------------------------------------------------------
-           4.15   data required time
-          -4.17   data arrival time
----------------------------------------------------------
-          -0.03   slack (VIOLATED)
-
-
-[INFO LRL-1302] Violated Ends: (slack_margin = 0.000)
-[INFO LRL-1303]    -0.025 : r3/D
-[INFO LRL-1301]  b1/X : 0.664 (new_delay = 2.108)
-[WARNING LRL-1201] cannot resize cell (b1/X -> 2.108)
-[INFO LRL-1301]  b3/X : -0.001 (new_delay = 0.417)
-[INFO LRL-1304] resize cell b3/X -> sky130_fd_sc_hd__buf_4
-[INFO LRL-1301]  b4/X : -0.786 (new_delay = 0.666)
-[INFO LRL-1304] resize cell b4/X -> sky130_fd_sc_hd__bufbuf_8
-[INFO LRL-1301]  u2/X : -0.248 (new_delay = 0.596)
-[INFO LRL-1304] resize cell u2/X -> sky130_fd_sc_hd__and2_2
-[INFO LRL-1305] Totally resized 3 cells
-[WARNING LRL-1202] Fail to resize all cells
+worst slack -0.03
+Design area 100 u^2 100% utilization.
+[INFO LRL-1303] totally found 1 vio ends
+[INFO LRL-1305] Totally resized 2 cells
+[INFO LRL-1306] Succeed to resize all cells
+2
 end repair timing
------------------
-report func2 after repair 
------------------
-Startpoint: r2 (rising edge-triggered flip-flop clocked by clk)
-Endpoint: r3 (rising edge-triggered flip-flop clocked by clk)
-Path Group: clk
-Path Type: max
-
-  Delay    Time   Description
----------------------------------------------------------
-   0.00    0.00   clock clk (rise edge)
-   0.00    0.00   clock network delay (propagated)
-   0.00    0.00 ^ r2/CLK (sky130_fd_sc_hd__sdfxtp_1)
-   0.94    0.94 v r2/Q (sky130_fd_sc_hd__sdfxtp_1)
-   0.29    1.23 v b2/X (sky130_fd_sc_hd__buf_1)
-   0.45    1.68 v b3/X (sky130_fd_sc_hd__buf_4)
-   0.81    2.49 v b4/X (sky130_fd_sc_hd__bufbuf_8)
-   0.27    2.77 v b5/X (sky130_fd_sc_hd__buf_1)
-   0.26    3.03 v b6/X (sky130_fd_sc_hd__buf_1)
-   0.76    3.79 v u2/X (sky130_fd_sc_hd__and2_2)
-   0.00    3.79 v r3/D (sky130_fd_sc_hd__sdfxtp_1)
-           3.79   data arrival time
-
-   5.50    5.50   clock clk (rise edge)
-   0.00    5.50   clock network delay (propagated)
-   0.00    5.50   clock reconvergence pessimism
-           5.50 ^ r3/CLK (sky130_fd_sc_hd__sdfxtp_1)
-  -1.35    4.15   library setup time
-           4.15   data required time
----------------------------------------------------------
-           4.15   data required time
-          -3.79   data arrival time
----------------------------------------------------------
-           0.36   slack (MET)
-
-
+worst slack 1.35
+Design area 90 u^2 100% utilization.

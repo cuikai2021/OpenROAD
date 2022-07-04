@@ -73,6 +73,7 @@
 #include "mpl/MakeMacroPlacer.h"
 #include "mpl2/MakeMacroPlacer.h"
 #include "gpl/MakeReplace.h"
+#include "gpl/MakeLindenGlobalPlace.h"
 #include "grt/MakeGlobalRouter.h"
 #include "cts/MakeTritoncts.h"
 #include "rmp/MakeRestructure.h"
@@ -145,6 +146,7 @@ OpenRoad::OpenRoad()
     banyan_(nullptr),
     antenna_checker_(nullptr),
     replace_(nullptr),
+    lindengp_(nullptr),
     pdnsim_(nullptr),
     partitionMgr_(nullptr),
     pdngen_(nullptr),
@@ -175,6 +177,7 @@ OpenRoad::~OpenRoad()
   deleteTritonRoute(detailed_router_);
   deleteBanyan(banyan_);
   deleteReplace(replace_);
+  deleteLindenGlobalPlace(lindengp_);
   deleteFinale(finale_);
   deleteAntennaChecker(antenna_checker_);
   odb::dbDatabase::destroy(db_);
@@ -241,6 +244,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   detailed_router_ = makeTritonRoute();
   banyan_ = makeBanyan();
   replace_ = makeReplace();
+  lindengp_ = makeLindenGlobalPlace();
   pdnsim_ = makePDNSim();
   antenna_checker_ = makeAntennaChecker();
   partitionMgr_ = makePartitionMgr();
@@ -263,6 +267,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initDbVerilogNetwork(this);
   initIoplacer(this);
   initReplace(this);
+  initLindenGlobalPlace(this);
   initOpendp(this);
   initOptdp(this);
   initFinale(this);

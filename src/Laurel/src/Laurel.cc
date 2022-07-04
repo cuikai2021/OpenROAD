@@ -57,19 +57,34 @@ Laurel::~Laurel()
 //
 ////////////////////////////////////////////////////////
 
-LibertyCell* Laurel::findHoldBuffer(Delay min_limit)
+void Laurel::makeNameVertexMap(sta::Map<Name, Vertex*>& name_vertex_map)
+{
+  VertexIterator vertex_iter(sta_->graph());
+  while (vertex_iter.hasNext()) {
+    Vertex* vertex = vertex_iter.next();
+    Name name = vertex->name(sta_->sdcNetwork());
+    name_vertex_map.insert(name, vertex);
+  }
+}
+
+LibertyCell* Laurel::findHoldBuffer(Delay min_limit, int& count)
 {
   LibertyCell* max_buffer = nullptr;
   Delay max_delay = INF;
   const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
+  count = LRL_S_INT_INF;
   for (LibertyCell* buffer : buffer_cells_) {
     Delay buffer_min_delay = bufferHoldDelay(buffer);
+    int min_count = std::ceil(min_limit / buffer_min_delay);
+    Delay fixed_delay = buffer_min_delay * (Delay) (min_count);
     // if ((max_buffer == nullptr || buffer_min_delay < max_delay)
     //     && fuzzyLess(min_limit, buffer_min_delay)) {
-    if (fuzzyLess(min_limit, buffer_min_delay)
-        && fuzzyLess(buffer_min_delay, min_limit + uncertainty)) {
+    if (fuzzyLess(min_limit, fixed_delay)
+        && fuzzyLess(fixed_delay, min_limit + uncertainty)
+        && min_count < count) {
       max_buffer = buffer;
       max_delay = buffer_min_delay;
+      count = min_count;
     }
   }
   if (max_buffer)
@@ -157,18 +172,41 @@ void Laurel::insertHoldDelay(Vertex* drvr,
   // resizeToTargetSlew(buffer_out_pin, false);
 }
 
-bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
+Pin* Laurel::findFanoutPin(HoldFixer* fixer, Vertex* pred, Vertex* succ) const
 {
-  WirePairSet wire_pair_set = fixer->getAllWirePairFrom(vertex_name);
+  if (!succ->isDriver(sta_->network()))
+    return succ->pin();
+  VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
+  while (pred_edge_iter.hasNext()) {
+    Edge* pred_edge = pred_edge_iter.next();
+    Vertex* fanout = pred_edge->to(sta_->graph());
+    VertexInEdgeIterator succ_edge_iter(succ, sta_->graph());
+    while (succ_edge_iter.hasNext()) {
+      Edge* succ_edge = succ_edge_iter.next();
+      Vertex* fanin = succ_edge->from(sta_->graph());
+      if (fanin == fanout)
+        return fanin->pin();
+    }
+  }
+  return nullptr;
+}
+
+bool Laurel::insertBuffer(HoldFixer* fixer,
+                          const Name& vertex_name,
+                          const sta::Map<Name, Vertex*>& name_vertex_map)
+{
+  WirePairSet wire_pair_set;
+  fixer->getAllWirePairFrom(vertex_name, wire_pair_set);
   PinSeq load_pins;
-  Vertex* insert_from = findRealVertex(vertex_name);
+  Vertex* insert_from = name_vertex_map.at(vertex_name);
   bool loads_have_out_port = false;
   Delay max_padding = LRL_H_ZERO;
   Delay min_padding = INF;
-  for (auto wire_pair : wire_pair_set) {
+  for (auto& wire_pair : wire_pair_set) {
     Delay padding = fixer->getWirePadding(wire_pair);
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
-      Pin* fanout_pin = findFanoutPin(wire_pair);
+      Vertex* fanout = name_vertex_map.at(wire_pair.second);
+      Pin* fanout_pin = findFanoutPin(fixer, insert_from, fanout);
       if (fanout_pin != nullptr) {
         load_pins.push_back(fanout_pin);
         if (sta_->network()->direction(fanout_pin)->isAnyOutput()
@@ -197,11 +235,12 @@ bool Laurel::insertBuffer(HoldFixer* fixer, Name vertex_name)
   }
 
   int buffer_count = 1;
-  LibertyCell* buffer_cell = findHoldBuffer(max_padding);
+  LibertyCell* buffer_cell = findHoldBuffer(padding, buffer_count);
   while (!buffer_cell) {
-    buffer_count *= LRL_H_BUFFER_SPILIT;
-    padding /= LRL_H_BUFFER_SPILIT;
-    buffer_cell = findHoldBuffer(padding);
+    // buffer_count *= LRL_H_BUFFER_SPILIT;
+    // padding /= LRL_H_BUFFER_SPILIT;
+    // buffer_cell = findHoldBuffer(padding);
+    return false;
   }
 
   if (buffer_cell != nullptr && !load_pins.empty()) {
@@ -221,9 +260,12 @@ bool Laurel::insertAllBuffer(HoldFixer* fixer)
 {
   bool ret = true;
   findBuffers();
-  vio_pred_set_ = fixer->getNonZeroPaddingPred();
-  for (auto vertex_name : vio_pred_set_) {
-    if (!insertBuffer(fixer, vertex_name))
+  sta::Map<Name, Vertex*> name_vertex_map;
+  makeNameVertexMap(name_vertex_map);
+  VertexNameSet vio_pred_set;
+  fixer->getNonZeroPaddingPred(vio_pred_set);
+  for (auto& vertex_name : vio_pred_set) {
+    if (!insertBuffer(fixer, vertex_name, name_vertex_map))
       ret = false;
   }
   logger_->info(
@@ -247,7 +289,7 @@ bool Laurel::fixHoldCore()
   return ret;
 }
 
-void Laurel::fixHold()
+int Laurel::fixHold()
 {
   init();
   inserted_buffer_count_ = 0;
@@ -259,32 +301,20 @@ void Laurel::fixHold()
   if (!ret) {
     logger_->warn(utl::LRL, 1002, "fail to fix all hold violations");
   }
+  return inserted_buffer_count_;
 }
 
-bool Laurel::fixHoldNoInsertion()
+Slack Laurel::getHoldSlack(Vertex* drvr)
 {
-  bool ret = false;
-  init();
-  HoldFixer* fixer = new HoldFixer(openroad_, options_);
-  HoldResult result = fixer->resolve();
-  if (result == MPSolver::ResultStatus::OPTIMAL) {
-    ret = true;
-    vio_pred_set_ = fixer->getNonZeroPaddingPred();
-  }
-  delete fixer;
-  return ret;
+  return sta_->vertexSlack(drvr, MinMax::min());
 }
 
-bool Laurel::hasHoldVio(Vertex* drvr)
+Slack Laurel::getHoldSlack(Pin* drvr_pin)
 {
-  Name vertex_name = drvr->name(sta_->sdcNetwork());
-  return vio_pred_set_.hasKey(vertex_name);
-}
-
-bool Laurel::hasHoldVio(Pin* drvr_pin)
-{
-  Name vertex_name = sta_->network()->name(drvr_pin);
-  return vio_pred_set_.hasKey(vertex_name);
+  if (!wire_bud_)
+    return LRL_S_ZERO;
+  Vertex* vertex = wire_bud_->getVertex(drvr_pin);
+  return getHoldSlack(vertex);
 }
 
 ////////////////////////////////////////////////////////
@@ -296,8 +326,9 @@ bool Laurel::hasHoldVio(Pin* drvr_pin)
 bool Laurel::resizeAllCells(SetupFixer* fixer)
 {
   bool ret = true;
-  sta::Map<Vertex*, LibertyCell*> queue = fixer->getResizeQueue();
-  for (auto q : queue) {
+  sta::Map<Vertex*, LibertyCell*> queue;
+  fixer->getResizeQueue(queue);
+  for (auto& q : queue) {
     Vertex* vertex = q.first;
     Instance* drvr = sta_->network()->instance(vertex->pin());
     LibertyCell* resize_cell = q.second;
@@ -318,8 +349,9 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
   return ret;
 }
 
-void Laurel::fixSetup()
+int Laurel::fixSetup()
 {
+  resize_count_ = 0;
   SetupFixer fixer = SetupFixer(openroad_, options_);
   fixer.initAlgorithm();
   SetupResult status = fixer.resolve();
@@ -333,6 +365,7 @@ void Laurel::fixSetup()
     logger_->warn(utl::LRL, 1202, "Fail to resize all cells");
   else
     logger_->info(utl::LRL, 1306, "Succeed to resize all cells");
+  return resize_count_;
 }
 
 ////////////////////////////////////////////////////////
@@ -343,13 +376,13 @@ void Laurel::fixSetup()
 
 void Laurel::showAllWireBud(WireBudgeting* guider)  // interface debug function
 {
-  WirePairSet pairs = guider->getAllWirePairs();
+  const VertexPairSet& pairs = guider->getAllWirePairs();
   int cnt = 0;
   int slack_cnt = 0;
   logger_->info(utl::LRL, 1310, "test wire budgeting interface");
-  for (auto wire : pairs) {
-    Vertex* pred = guider->getVertex(wire.first);
-    Vertex* succ = guider->getVertex(wire.second);
+  for (auto& wire : pairs) {
+    Vertex* pred = wire.first;
+    Vertex* succ = wire.second;
 
     uint64 max_length = getWireBudMaxLen(pred, succ);
     Delay bud_rate = getWireBudRate(pred, succ);
@@ -431,15 +464,13 @@ void Laurel::wireBudgeting(float factor)
 bool Laurel::checkVertexBudgeted(Vertex* pred, Vertex* succ)
 {
   if (pred && succ) {
-    Name fanin_name = pred->name(sta_->sdcNetwork());
-    Name fanout_name = succ->name(sta_->sdcNetwork());
-    WirePair pin_wire = WirePair(fanin_name, fanout_name);
+    VertexPair pin_wire = VertexPair(pred, succ);
     if (!wire_bud_->hasWire(pin_wire)) {
       logger_->warn(utl::LRL,
                     1204,
                     "not found budget len result for vertex {} -> {}",
-                    fanin_name,
-                    fanout_name);
+                    pred->name(sta_->sdcNetwork()),
+                    succ->name(sta_->sdcNetwork()));
       return false;
     }
     return true;
@@ -490,10 +521,12 @@ Delay Laurel::getWireBudRate(Pin* fanin, Pin* fanout)
 //
 ////////////////////////////////////////////////////////
 
-VertexSet LaurelAdapter::getAllRelatedEnds(VertexSet ends, bool ignore_clk)
+void LaurelAdapter::getAllRelatedEnds(VertexSet ends,
+                                      bool ignore_clk,
+                                      VertexSet& related_ends)
 {
   VertexSet fanin_roots = findFaninRoots(ends);
-  VertexSet related_ends = ends;
+  related_ends = ends;
   sta::SearchPredNonLatch2 pred(sta_);
   BfsFwdIterator iter(BfsIndex::other, &pred, this);
   for (Vertex* reg_out : fanin_roots)
@@ -509,10 +542,9 @@ VertexSet LaurelAdapter::getAllRelatedEnds(VertexSet ends, bool ignore_clk)
     } else
       iter.enqueueAdjacentVertices(vertex);
   }
-  return related_ends;
 }
 
-Vertex* LaurelAdapter::findRealVertex(Name vertex_name) const
+Vertex* LaurelAdapter::findRealVertex(const Name& vertex_name) const
 {
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
@@ -523,7 +555,7 @@ Vertex* LaurelAdapter::findRealVertex(Name vertex_name) const
   return nullptr;
 }
 
-Pin* LaurelAdapter::findFanoutPin(WirePair wire_pair) const
+Pin* LaurelAdapter::findFanoutPin(const WirePair& wire_pair) const
 {
   Vertex* pred = findRealVertex(wire_pair.first);
   Vertex* succ = findRealVertex(wire_pair.second);

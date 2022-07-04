@@ -254,6 +254,8 @@ class dbWireEncoder
   ///
   int addPoint(int x, int y, uint property = 0);
 
+  int addVirtualPoint(int x, int y, uint property = 0);
+
   ///
   /// Add a path-point with an extension. The junction-id of this point is
   /// returned.
@@ -499,6 +501,7 @@ class dbWireDecoder
             /// wire from previous point to first point of path
     POINT,  /// A point on a path.
     POINT_EXT,  /// A point on a path with an extension.
+	POINT_VIRTUAL, /// A point virtual connect to the previous
     VIA,        /// A VIA instance on a path.
     TECH_VIA,   /// A TECH-VIA instance on a path with an extension.
     RECT,       /// A rect / patch wire
@@ -580,7 +583,7 @@ class dbWireDecoder
   void getPoint(int& x, int& y, int& ext) const;
 
   ///
-  /// Get the property of this POINT, POINT_EXT
+  /// Get the property of this POINT, POINT_EXT, POINT_VIRTUAL
   ///
   uint getProperty() const;
 

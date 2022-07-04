@@ -30,23 +30,19 @@ void WireBudgeting::initAlgorithm()
   }
 }
 
-void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
+void WireBudgeting::buildAllFaninEdge(const VertexSet& fanins)
 {
-  for (auto vertex : fanins) {
+  for (auto& vertex : fanins) {
     bool is_pi = true;
     bellman_max_iter_num_
         = std::max(vertex->level() / 20, bellman_max_iter_num_);
     buildIndex(vertex);
-    Name vertex_name = vertex->name(sta_->sdcNetwork());
-    name_vertex_map_.insert(vertex_name, vertex);
     pin_vertex_map_.insert(vertex->pin(), vertex);
     SearchPredNonReg2 s_pred(sta_);
     BfsBkwdIterator iter(BfsIndex::other, &s_pred, this);
     iter.enqueueAdjacentVertices(vertex);
     while (iter.hasNext()) {
       Vertex* fanin = iter.next();
-      Name fanin_name = fanin->name(sta_->sdcNetwork());
-      name_vertex_map_.insert(fanin_name, fanin);
       pin_vertex_map_.insert(fanin->pin(), fanin);
       if (!fanin->isDriver(sta_->network())) {
         BfsBkwdIterator fanin_iter(BfsIndex::other, &s_pred, this);
@@ -56,11 +52,9 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
           if (pred->isDriver(sta_->network())) {
             buildIndex(pred);
             is_pi = false;
-            Name pred_name = pred->name(sta_->sdcNetwork());
-            name_vertex_map_.insert(pred_name, pred);
             pin_vertex_map_.insert(pred->pin(), pred);
-            WirePair wire(pred_name, fanin_name);
-            WirePair cal_wire(pred_name, vertex_name);
+            VertexPair wire(pred, fanin);
+            VertexPair cal_wire(pred, vertex);
             wire_fanout_map_.insert(wire, vertex);
             distance_map_.insert(cal_wire, getTreeDist(pred, fanin));
             addConstraintEdge(pred, vertex);
@@ -70,51 +64,49 @@ void WireBudgeting::buildAllFaninEdge(VertexSeq fanins)
       } else {
         buildIndex(fanin);
         is_pi = false;
-        WirePair wire(fanin_name, vertex_name);
+        VertexPair wire(fanin, vertex);
         wire_fanout_map_.insert(wire, vertex);
         addConstraintEdge(fanin, vertex);
         opt_wires_.insert(wire);
       }
     }
     if (is_pi)
-      addConstraintPI(vertex);
+      addConstraintPrimeIn(vertex);
   }
 }
 
-WirePair WireBudgeting::getRealWire(WirePair wire)
+VertexPair WireBudgeting::getRealWire(const VertexPair& wire)
 {
   if (!wire_fanout_map_.hasKey(wire))
     return wire;
   Vertex* fanout = wire_fanout_map_.findKey(wire);
-  Name fanout_name = fanout->name(sta_->sdcNetwork());
-  return WirePair(wire.first, fanout_name);
+  return VertexPair(wire.first, fanout);
 }
 
-Vertex* WireBudgeting::getRealFanoutVertex(WirePair wire)
+Vertex* WireBudgeting::getRealFanoutVertex(const VertexPair& wire)
 {
   if (!wire_fanout_map_.hasKey(wire))
-    return getVertex(wire.second);
+    return wire.second;
   return wire_fanout_map_.findKey(wire);
 }
 
 Delay WireBudgeting::costSlope(Vertex* pred, Vertex* succ)
 {
   uint64 wire_length = getTreeDist(pred, succ);
-  Name succ_name = succ->name(sdc_network_);
   Delay min_delay = LRL_H_ZERO;
   Delay max_delay = LRL_H_ZERO;
 
-  if (spef_delay_.hasKey(succ_name))
-    min_delay = spef_delay_.at(succ_name);
-  if (spef_delay_factor_.hasKey(succ_name))
-    max_delay = spef_delay_factor_.at(succ_name);
+  if (spef_delay_.hasKey(succ))
+    min_delay = spef_delay_.at(succ);
+  if (spef_delay_factor_.hasKey(succ))
+    max_delay = spef_delay_factor_.at(succ);
 
   debugPrint(logger_,
              utl::LRL,
              "LRL",
              3,
              "{}  len: {}, max delay: {} , min delay: {}",
-             succ_name.c_str(),
+             succ->name(sdc_network_),
              wire_length,
              delayAsString(max_delay, sta_, 3),
              delayAsString(min_delay, sta_, 3));
@@ -127,18 +119,16 @@ Delay WireBudgeting::costSlope(Vertex* pred, Vertex* succ)
 Delay WireBudgeting::getLowBound(Vertex* pred, Vertex* succ)
 {
   Delay delay = LRL_H_ZERO;
-  Name succ_name = succ->name(sta_->sdcNetwork());
-  if (spef_delay_.hasKey(succ_name))
-    delay = spef_delay_.at(succ_name);
+  if (spef_delay_.hasKey(succ))
+    delay = spef_delay_.at(succ);
   return delay;
 }
 
 Delay WireBudgeting::getHighBound(Vertex* pred, Vertex* succ)
 {
   Delay delay = LRL_H_ZERO;
-  Name succ_name = succ->name(sta_->sdcNetwork());
-  if (spef_delay_.hasKey(succ_name))
-    delay = spef_delay_factor_.at(succ_name);
+  if (spef_delay_.hasKey(succ))
+    delay = spef_delay_factor_.at(succ);
   return delay;
 }
 
@@ -149,7 +139,7 @@ void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
   Cost capacity = delay2Cost(costSlope(pred, succ));
   Delay low_bound = getLowBound(pred, succ);
   Delay high_bound = getHighBound(pred, succ);
-  Delay delay = high_bound;
+  Delay& delay = high_bound;
 
   addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
   addConstraintBase(
@@ -175,9 +165,7 @@ SteinerTree* WireBudgeting::getTree(Vertex* drvr)
 
 uint64 WireBudgeting::getTreeDist(Vertex* drvr, Vertex* dst)
 {
-  Name drvr_name = drvr->name(sdc_network_);
-  Name dst_name = dst->name(sdc_network_);
-  WirePair wire(drvr_name, dst_name);
+  VertexPair wire(drvr, dst);
   if (!distance_map_.hasKey(wire)) {
     uint64 wire_length = LRL_S_ZERO;
     SteinerTree* tree = getTree(drvr);
@@ -210,8 +198,8 @@ uint64 WireBudgeting::getTreeDist(Vertex* drvr, Vertex* dst)
 }
 
 SteinerPt WireBudgeting::findNextPt(SteinerTree* tree,
-                                    SteinerPt drvr_pt,
-                                    SteinerPt last)
+                                    const SteinerPt& drvr_pt,
+                                    const SteinerPt& last)
 {
   SteinerPt left = tree->left(drvr_pt);
   if (left == last)
@@ -219,26 +207,22 @@ SteinerPt WireBudgeting::findNextPt(SteinerTree* tree,
   return left;
 }
 
-sta::Map<Name, Delay> WireBudgeting::buildSpefDelayMap()
+void WireBudgeting::buildSpefDelayMap(sta::Map<Vertex*, Delay>& spef_delay_map)
 {
   sta_->findRequireds();
-  sta::Map<Name, Delay> spef_delay_map;
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
     Vertex* vertex = vertex_iter.next();
     if (!vertex->isRoot() && vertex->isDriver(sta_->network())) {
       Delay delay = getCellDelay(vertex);
-      Name vertex_name = vertex->name(sta_->sdcNetwork());
-      spef_delay_map.insert(vertex_name, delay);
+      spef_delay_map.insert(vertex, delay);
     }
   }
-  return spef_delay_map;
 }
 
-bool WireBudgeting::makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor)
+bool WireBudgeting::makeDelaySpefCore(sta::Map<Vertex*, Delay>& map, double factor)
 {
-  const char* filename = options_->spefFileName();
-  bool ret = sta::readSpefFct(filename,
+  bool ret = sta::readSpefFct(options_->spefFileName(),
                               sta_->getDbNetwork()->topInstance(),
                               sta_->cmdCorner(),
                               MinMaxAll::all(),
@@ -251,8 +235,10 @@ bool WireBudgeting::makeDelaySpefCore(sta::Map<Name, Delay>& map, double factor)
                               false,
                               factor,
                               sta_);
-  if (ret)
-    map = buildSpefDelayMap();
+  if (ret){
+    map.clear();
+    buildSpefDelayMap(map);
+  }
 
   return ret;
 }
@@ -262,10 +248,7 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
                                      uint64& max_length,
                                      Delay& bud_rate)
 {
-  Name pred_name = pred->name(sta_->sdcNetwork());
-  Name succ_name = succ->name(sta_->sdcNetwork());
-
-  Vertex* fanout = getRealFanoutVertex(WirePair(pred_name, succ_name));
+  Vertex* fanout = getRealFanoutVertex(VertexPair(pred, succ));
   Index pred_index = getIndex(pred);
   Index succ_index = getIndex(fanout);
 
@@ -293,7 +276,7 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
   bud_rate = bud_rate + 1.0f;
 }
 
-bool WireBudgeting::hasWire(WirePair wire)
+bool WireBudgeting::hasWire(const VertexPair& wire)
 {
   return opt_wires_.find(wire) != opt_wires_.end();
 }
@@ -327,13 +310,11 @@ void WireBudgetingFake::getNewWireLength(Vertex* pred,
 {
   uint64 origin_length = getTreeDist(pred, succ);
   uint64 aug_length = LRL_S_ZERO;
-  Name pred_name = pred->name(sta_->sdcNetwork());
-  Name succ_name = succ->name(sta_->sdcNetwork());
-  Vertex* fanout = getRealFanoutVertex(WirePair(pred_name, succ_name));
+  Vertex* fanout = getRealFanoutVertex(VertexPair(pred, succ));
 
   Slack slack = sta_->vertexSlack(fanout, MinMax::max());
   PathRef path = sta_->vertexWorstSlackPath(fanout, max_);
-  Slack period = path.clock(sta_)->period();
+  const Slack& period = path.clock(sta_)->period();
   if (slack >= factor_ * period) {
     aug_length = origin_length;
   }
@@ -358,10 +339,10 @@ void WireBudgetingFake::addConstraintEdge(Vertex* pred, Vertex* succ)
 {
 }
 
-void WireBudgetingFake::addConstraintPO(Vertex* po)
+void WireBudgetingFake::addConstraintPrimeOut(Vertex* po)
 {
 }
-void WireBudgetingFake::addConstraintPI(Vertex* pi)
+void WireBudgetingFake::addConstraintPrimeIn(Vertex* pi)
 {
 }
 
@@ -406,9 +387,9 @@ Delay WireBudgetingRC::getHighBound(Vertex* pred, Vertex* succ)
 Delay WireBudgetingRC::getDrvrSlope()
 {
   if (fuzzyEqual(wire_slope_, LRL_H_ZERO)) {
-    double wire_cap
+    const double& wire_cap
         = openroad_->getResizer()->wireSignalCapacitance(sta_->cmdCorner());
-    double wire_res
+    const double& wire_res
         = openroad_->getResizer()->wireSignalResistance(sta_->cmdCorner());
     wire_slope_ = wire_cap * wire_res;
     logger_->info(
@@ -419,8 +400,7 @@ Delay WireBudgetingRC::getDrvrSlope()
 
 Delay WireBudgetingRC::getCellDelay(Vertex* vertex)
 {
-  Name vertex_name = vertex->name(sta_->sdcNetwork());
-  if (!delay_map_.hasKey(vertex_name)) {
+  if (!delay_map_.hasKey(vertex)) {
     Delay load_delay = LRL_H_ZERO;
     PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
     if (!path.vertex(sta_))
@@ -448,9 +428,9 @@ Delay WireBudgetingRC::getCellDelay(Vertex* vertex)
                    delayAsString(load_delay, sta_, 3));
       }
     }
-    delay_map_.insert(vertex_name, load_delay);
+    delay_map_.insert(vertex, load_delay);
   }
-  return delay_map_.at(vertex_name);
+  return delay_map_.at(vertex);
 }
 
 }  // namespace lrl

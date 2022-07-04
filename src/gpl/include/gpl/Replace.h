@@ -30,12 +30,14 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
+#pragma once
 
 #ifndef __REPLACE_HEADER__
 #define __REPLACE_HEADER__
 
 #include <memory>
 #include <vector>
+#include <string>
 
 namespace odb {
 class dbDatabase;
@@ -85,6 +87,8 @@ class Replace
 
   void doIncrementalPlace();
   void doInitialPlace();
+
+  void initPlacerBase();
 
   void initNesterovPlace();
   int doNesterovPlace(int start_iter = 0);

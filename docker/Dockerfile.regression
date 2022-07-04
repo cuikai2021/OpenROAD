@@ -1,5 +1,5 @@
-ARG FROM_IMAGE_TAG
-FROM ${FROM_IMAGE_TAG}
+ARG eden_build_image
+FROM ${eden_build_image}
 
 ARG EDEN_GIT_SHA1
 

@@ -103,6 +103,9 @@ endif()
 # Do not use REQUIRED because it also requires TK.
 find_package(TCL)
 
+# This calls cmake/FindOctave.cmake
+find_package(Octave)
+
 # check for tclReadline
 set(TCL_READLINE_POSSIBLE_NAMES tclreadline-2.1.0
     tclreadline-2.3.2 tclreadline-2.3.6 tclreadline-2.3.7 tclreadline-2.3.8
@@ -150,6 +153,10 @@ add_compile_options(
   $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
   $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
 )
+
+IF(USE_LINDEN_DEBUG_LIBS)
+  add_link_options(--coverage -fsanitize=address)
+ENDIF(USE_LINDEN_DEBUG_LIBS)
 
 ################################################################
 

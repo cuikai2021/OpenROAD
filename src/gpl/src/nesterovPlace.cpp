@@ -46,6 +46,7 @@
 using namespace std;
 
 #include "graphics.h"
+#include "ord/Version.hh"
 #include "plot.h"
 
 namespace gpl {
@@ -766,10 +767,12 @@ int NesterovPlace::doNesterovPlace(int start_iter)
                  GPL,
                  "replace",
                  1,
-                 "[NesterovSolve] Finished with Iter={} overflow:={:g} HPWL={}",
+                 "[NesterovSolve] Finished with Iter={} overflow:={:g} "
+                 "HPWL={}, eden_version={}",
                  iter + 1,
                  sumOverflow_,
-                 nb_->getHpwl());
+                 nb_->getHpwl(),
+                 EDEN_VERSION);
       break;
     }
   }

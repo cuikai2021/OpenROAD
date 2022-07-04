@@ -170,7 +170,8 @@ _installUbuntuDev() {
         tcllib \
         wget \
         zlib1g-dev \
-        liboctave-dev
+        liboctave-dev \
+        libfftw3-dev
 }
 
 _installUbuntuRuntime() {

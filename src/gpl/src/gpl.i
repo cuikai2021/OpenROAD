@@ -1,6 +1,7 @@
 %{
 #include "ord/OpenRoad.hh"
 #include "gpl/Replace.h"
+#include "gpl/lindengp.h"
 
 namespace ord {
 OpenRoad*
@@ -9,17 +10,23 @@ getOpenRoad();
 gpl::Replace*
 getReplace();
 
+gpl::LindenGlobalPlace*
+getLindenGlobalPlace();
+
 }
 
 using ord::getOpenRoad;
 using ord::getReplace;
 using gpl::Replace;
 
+using ord::getLindenGlobalPlace;
+using gpl::LindenGlobalPlace;
+
 %}
 
 %include "../../Exception.i"
 
-%inline %{
+%inline %{ // replace
 
 void 
 replace_reset_cmd() 
@@ -303,4 +310,51 @@ set_plot_path_cmd(const char* path)
   replace->setPlottingPath(path);
 }
 
-%} // inline
+%} // inline replace
+
+%inline %{ // lindengp
+
+void 
+lindengp_run_cmd()
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->run();
+}
+
+void
+set_linden_density_cmd(float density)
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setTargetDensity(density);
+}
+
+void
+set_linden_overflow_cmd(float overflow)
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setTargetOverflow(overflow);
+}
+
+void
+set_linden_pad_left_cmd(int pad) 
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setPadLeft(pad);
+}
+
+void
+set_linden_pad_right_cmd(int pad) 
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setPadRight(pad);
+}
+
+void
+set_linden_debug_cmd(int pause_iterations,
+              int update_iterations)
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setDebug(pause_iterations, update_iterations);
+}
+
+%} // inline lindengp
