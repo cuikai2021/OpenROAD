@@ -3,6 +3,8 @@
 #include <ortools/graph/min_cost_flow.h>
 #include <ortools/linear_solver/linear_solver.h>
 
+#include <unordered_map>
+
 #include "lrl/Options.hh"
 #include "rsz/Resizer.hh"
 #include "sta/ArcDelayCalc.hh"
@@ -46,7 +48,7 @@ typedef std::string Name;
 
 typedef std::pair<Name, Name> WirePair;
 typedef sta::Set<WirePair> WirePairSet;
-typedef sta::Map<Name, MPVariable*> VertexMPVarMap;
+typedef std::unordered_map<Name, MPVariable*> VertexMPVarMap;
 typedef sta::Map<Sdc*, VertexMPVarMap*> MMVertexMPVarMap;
 typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
 typedef sta::Map<Index, MPConstraint*> MPConstraintMap;
@@ -315,10 +317,10 @@ class HoldFixer : public LaurelAdapter
   WireMPVarMap wire_;             // w
   MPConstraintMap constraint_;
 
-  sta::Map<Name, Delay> delay_map_;
+  std::unordered_map<Name, Delay> delay_map_;
   VertexNameSet vio_ends_name_;
   VertexNameSet complete_vio_ends_;
-  sta::Map<Name, Vertex*> sdc_name_vertex_map_;
+  std::unordered_map<Name, Vertex*> sdc_name_vertex_map_;
   VertexNameSet pi_name_set_;
 
   Options* options_;
