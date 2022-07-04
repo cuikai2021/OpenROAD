@@ -168,6 +168,7 @@ class OpenDBAdapter : public DBAdapter
   void getNetsFromOpenDB();
   void getPinsFromOpenDB();
   void getWireBugdeting();
+  double getWorstHoldSlack();
   sta::Pin* getStaPin(const char* name);
   std::map<const sta::Pin*, int> getDistFromSrcForSinks(
       sta::Pin* src,

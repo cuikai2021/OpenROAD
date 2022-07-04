@@ -576,6 +576,31 @@ std::map<const sta::Pin*, int> OpenDBAdapter::getDistFromSrcForSinks(
   return results;
 }
 
+double OpenDBAdapter::getWorstHoldSlack()
+{
+  double worstHoldSlack = 0;
+  odb::dbBlock* block = db_->getChip()->getBlock();
+
+  for (auto net : block->getNets()) {
+    auto bynetIndex = AssertFind(netNameToIdxs_, net->getName());
+    auto bynet = nets_.at(bynetIndex);
+
+    if (net->isSpecial() || bynet.pin_begin == bynet.pin_end - 1) {
+      continue;
+    }
+    for (int i = bynet.pin_begin; i < bynet.pin_end; i++) {
+      auto bypin = pins_.at(i);
+      if (bypin.use == banyan_go::PIN_SOURCE) {
+        auto src = getStaPin(bypin.name);
+        worstHoldSlack
+            = std::min(worstHoldSlack, (double) laurel_->getHoldSlack(src));
+        break;
+      }
+    }
+  }
+  return worstHoldSlack;
+}
+
 sta::Pin* OpenDBAdapter::getStaPin(const char* name)
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
@@ -595,15 +620,30 @@ sta::Pin* OpenDBAdapter::getStaPin(const char* name)
 
 void OpenDBAdapter::getWireBugdeting()
 {
+  double worstHoldSlack = 0;
   bool hasHoldVio = false;
   if (timingDriven_) {
-    hasHoldVio = laurel_->fixHoldNoInsertion();
     laurel_->wireBudgetingRC();
+    worstHoldSlack = getWorstHoldSlack();
+    if (worstHoldSlack < 0) {
+      hasHoldVio = true;
+    }
   }
-  logger_->info(utl::BY, 888, "hasHoldVio {}", hasHoldVio);
+  logger_->info(utl::BY,
+                888,
+                "hasHoldVio {} worstHoldSlack {}",
+                hasHoldVio,
+                worstHoldSlack);
 
-  auto hasHoldVioFn = [=](sta::Pin* pin) -> bool {
-    return hasHoldVio && laurel_->hasHoldVio(pin);
+  auto getHoldSlackRate = [=](sta::Pin* src) -> double {
+    if (!hasHoldVio) {
+      return 0;
+    }
+    auto holdSlack = laurel_->getHoldSlack(src);
+    if (holdSlack >= 0) {
+      return 0;
+    }
+    return holdSlack / worstHoldSlack * 100;
   };
 
   odb::dbBlock* block = db_->getChip()->getBlock();
@@ -632,27 +672,23 @@ void OpenDBAdapter::getWireBugdeting()
       }
     }
     auto distmap = getDistFromSrcForSinks(src, sinks);
-
+    auto holdSlackRate = getHoldSlackRate(src);
     bynet.wire_budget_begin = tableTriples_.size();
     for (size_t i = 0; i < sinks.size(); i++) {
       auto sink = sinks.at(i);
       int rate = timingDriven_
                      ? (int) (laurel_->getWireBudRate(src, sink) * 100)
                      : 0;
+      if (rate >= 150 && holdSlackRate > 0) {
+        rate += holdSlackRate;
+      }
       logger_->info(utl::BY,
                     886,
-                    "src {} sink {} wirebudget {}",
+                    "src {} sink {} hold {} wirebudget {}",
                     pins_[srcIdx].name,
                     pins_[sinkIdxes[i]].name,
+                    holdSlackRate,
                     rate);
-      if (hasHoldVioFn(sink)) {
-        logger_->info(utl::BY,
-                      666,
-                      "sink {} rate {} has hold vios",
-                      pins_[sinkIdxes[i]].name,
-                      rate);
-        rate += 50;
-      }
       tableTriples_.push_back({srcIdx, sinkIdxes[i], rate});
       pins_.at(sinkIdxes[i]).min_dist_from_src = distmap[sink];
     }
@@ -957,15 +993,15 @@ void OpenDBAdapter::addWire(odb::dbWire* wire)
       }
 
       case odb::dbWireDecoder::POINT_VIRTUAL: {
-	    int x, y, ext;
-	    decode.getPoint(x, y);
-	    ext = banyan_go::DEFAULT_WIRE_EXT;
-	    prevX = x;
-	    prevY = y;
-	    prevExt = ext;
-	    hasPrevCoor = true;
-	    break;
-	  }
+        int x, y, ext;
+        decode.getPoint(x, y);
+        ext = banyan_go::DEFAULT_WIRE_EXT;
+        prevX = x;
+        prevY = y;
+        prevExt = ext;
+        hasPrevCoor = true;
+        break;
+      }
 
       case odb::dbWireDecoder::POINT: {
         int x, y, ext;
