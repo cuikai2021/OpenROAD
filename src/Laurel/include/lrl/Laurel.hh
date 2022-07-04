@@ -342,17 +342,15 @@ class Laurel : public LaurelAdapter
                   GlobalRouter* global_router);
 
   int fixHold();
-  bool fixHoldNoInsertion();
   int fixSetup();
   void wireBudgeting();
   void wireBudgeting(float factor);
   void wireBudgetingSpef(const char* filename);
   void wireBudgetingRC();
 
-  // run fixHold fixHoldNoInsertion, than it is able to check which vertex we
-  // inserted or going to insert buffers
-  bool hasHoldVio(Vertex* drvr);
-  bool hasHoldVio(Pin* drvr_pin);
+  // easy to get the hold slack
+  Slack getHoldSlack(Vertex* drvr);
+  Slack getHoldSlack(Pin* drvr_pin);
 
   // get Wire budgeting result by pin to pin after wireBudgeting()
   // unit DBU
@@ -393,7 +391,6 @@ class Laurel : public LaurelAdapter
   Options* options_;
 
   WireBudgeting* wire_bud_ = nullptr;
-  VertexNameSet vio_pred_set_;
 };
 
 }  // namespace lrl

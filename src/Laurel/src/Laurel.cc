@@ -304,31 +304,17 @@ int Laurel::fixHold()
   return inserted_buffer_count_;
 }
 
-bool Laurel::fixHoldNoInsertion()
+Slack Laurel::getHoldSlack(Vertex* drvr)
 {
-  bool ret = false;
-  init();
-  HoldFixer* fixer = new HoldFixer(openroad_, options_);
-  HoldResult result = fixer->resolve();
-  if (result == MPSolver::ResultStatus::OPTIMAL) {
-    ret = true;
-    vio_pred_set_.clear();
-    fixer->getNonZeroPaddingPred(vio_pred_set_);
-  }
-  delete fixer;
-  return ret;
+  return sta_->vertexSlack(drvr, MinMax::min());
 }
 
-bool Laurel::hasHoldVio(Vertex* drvr)
+Slack Laurel::getHoldSlack(Pin* drvr_pin)
 {
-  Name vertex_name = drvr->name(sta_->sdcNetwork());
-  return vio_pred_set_.hasKey(vertex_name);
-}
-
-bool Laurel::hasHoldVio(Pin* drvr_pin)
-{
-  Name vertex_name = sta_->network()->name(drvr_pin);
-  return vio_pred_set_.hasKey(vertex_name);
+  if (!wire_bud_)
+    return LRL_S_ZERO;
+  Vertex* vertex = wire_bud_->getVertex(drvr_pin);
+  return getHoldSlack(vertex);
 }
 
 ////////////////////////////////////////////////////////
