@@ -312,8 +312,10 @@ Slack Laurel::getHoldSlack(Vertex* drvr)
 Slack Laurel::getHoldSlack(Pin* drvr_pin)
 {
   if (!wire_bud_)
-    return LRL_S_ZERO;
+    return INF;
   Vertex* vertex = wire_bud_->getVertex(drvr_pin);
+  if (!vertex)
+    return INF;
   return getHoldSlack(vertex);
 }
 
