@@ -349,7 +349,7 @@ void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
   int botLayerIdx;
   int topLayerIdx;
   odb::dbTechViaGenerateRule* rule;
-  bool viaHasParams;
+  bool viaHasParams = false;
   odb::dbViaParams viaParams;
   odb::dbSet<odb::dbBox> boxes;
 
@@ -655,8 +655,8 @@ void OpenDBAdapter::getWireBugdeting()
       continue;
     }
 
-    sta::Pin* src;
-    int srcIdx;
+    sta::Pin* src = nullptr;
+    int srcIdx = -1;
     std::vector<sta::Pin*> sinks;
     std::vector<int> sinkIdxes;
 
@@ -671,6 +671,7 @@ void OpenDBAdapter::getWireBugdeting()
         sinkIdxes.push_back(i);
       }
     }
+    assert(src != nullptr && srcIdx != -1);
     auto distmap = getDistFromSrcForSinks(src, sinks);
     auto holdSlackRate = getHoldSlackRate(src);
     bynet.wire_budget_begin = tableTriples_.size();
@@ -689,7 +690,8 @@ void OpenDBAdapter::getWireBugdeting()
                     pins_[sinkIdxes[i]].name,
                     holdSlackRate,
                     rate);
-      tableTriples_.push_back({srcIdx, sinkIdxes[i], rate});
+      tableTriples_.push_back(
+          {srcIdx, sinkIdxes[i], (banyan_go::GoUint64) rate});
       pins_.at(sinkIdxes[i]).min_dist_from_src = distmap[sink];
     }
     bynet.wire_budget_end = tableTriples_.size();
@@ -834,7 +836,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
   int y2 = box->yMax();
   uint dx = x2 - x1;
   uint dy = y2 - y1;
-  uint w;
+  // uint w;
 
   switch (box->getDirection()) {
     case odb::dbSBox::UNDEFINED: {
@@ -843,26 +845,26 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
 
       if (dx_even && dy_even) {
         if (dy < dx) {
-          w = dy;
+          // w = dy;
           uint dw = dy >> 1;
           y1 += dw;
           y2 -= dw;
           assert(y1 == y2);
         } else {
-          w = dx;
+          // w = dx;
           uint dw = dx >> 1;
           x1 += dw;
           x2 -= dw;
           assert(x1 == x2);
         }
       } else if (dx_even) {
-        w = dx;
+        // w = dx;
         uint dw = dx >> 1;
         x1 += dw;
         x2 -= dw;
         assert(x1 == x2);
       } else if (dy_even) {
-        w = dy;
+        // w = dy;
         uint dw = dy >> 1;
         y1 += dw;
         y2 -= dw;
@@ -905,7 +907,7 @@ void OpenDBAdapter::addSpecialPath(odb::dbSBox* box)
       y1 = oct.getCenterLow().getY();
       x2 = oct.getCenterHigh().getX();
       y2 = oct.getCenterHigh().getY();
-      w = oct.getWidth();
+      // w = oct.getWidth();
       break;
     }
     default:
@@ -1415,14 +1417,14 @@ void OpenDBAdapter::updateDB(std::vector<banyan_go::layer>& layers,
       auto box = ret.rboxes[i];
       auto layer = layers[box.la];
       auto layerInOpenDB = tech->findLayer(layer.name);
-      int width = layerInOpenDB->getWidth();
+      // int width = layerInOpenDB->getWidth();
       // TODO: pathSeg->isTapered()
       if (!netInOpenDB->getNonDefaultRule()) {
         _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
       } else {
         auto ndrLayerRule
             = netInOpenDB->getNonDefaultRule()->getLayerRule(layerInOpenDB);
-        width = ndrLayerRule->getWidth();
+        // width = ndrLayerRule->getWidth();
         _wire_encoder.newPath(
             layerInOpenDB, odb::dbWireType("ROUTED"), ndrLayerRule);
       }

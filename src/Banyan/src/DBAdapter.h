@@ -105,10 +105,10 @@ class OpenDBAdapter : public DBAdapter
   stt::SteinerTreeBuilder* sttBuilder_;
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
-  bool timingDriven_ = false;
   int maxViaStack_;
   std::string minLayer_ = "";
   std::string maxLayer_ = "";
+  bool timingDriven_ = false;
 
   bool hasAddedCutLayer_ = false;
   int belowRoutingLayerMaxIndex_ = -1;
