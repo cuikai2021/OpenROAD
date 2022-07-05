@@ -39,19 +39,19 @@ HoldFixer::~HoldFixer()
     delete a_min.second;
 }
 
-void HoldFixer::makeVar(const Name& vertex_name, MMVertexMPVarMap& arrival)
+void HoldFixer::makeVar(const Index& vertex_index, MMVertexMPVarMap& arrival)
 {
   if (!arrival.hasKey(sdc_))
     arrival.insert(sdc_, new VertexMPVarMap());
   VertexMPVarMap* map = arrival.findKey(sdc_);
-  if (map->find(vertex_name) == map->end())
+  if (map->find(vertex_index) == map->end())
     map->insert(
-        {vertex_name,
+        {vertex_index,
          solver_->MakeNumVar(
              LRL_H_ZERO, LRL_H_INFINITY, std::to_string(var_index_++))});
 }
 
-void HoldFixer::makeWire(const Name& pred, const Name& succ)
+void HoldFixer::makeWire(const Index& pred, const Index& succ)
 {
   WirePair wire(pred, succ);
   if (!wire_.hasKey(wire))
@@ -74,9 +74,9 @@ int HoldFixer::addConstraints(Delay low_bound, Delay high_bound)
 void HoldFixer::makeVarFanins(const VertexSet& fanins)
 {
   for (auto& vertex : fanins) {
-    Name vertex_name = vertex->name(sta_->sdcNetwork());
-    makeVar(vertex_name, arrival_max_);
-    makeVar(vertex_name, arrival_min_);
+    const Index& vertex_index = sdc_vertex_index_map_.at(vertex);
+    makeVar(vertex_index, arrival_max_);
+    makeVar(vertex_index, arrival_min_);
     makeDelay(vertex);
     SearchPredNonReg2 pred(sta_);
     BfsBkwdIterator iter(BfsIndex::other, &pred, this);
@@ -86,11 +86,11 @@ void HoldFixer::makeVarFanins(const VertexSet& fanins)
       if (!fanin->isDriver(sta_->network()))
         iter.enqueueAdjacentVertices(fanin);
       else {
-        Name fanin_name = fanin->name(sta_->sdcNetwork());
-        makeVar(fanin_name, arrival_max_);
-        makeVar(fanin_name, arrival_min_);
+        const Index& fanin_index = sdc_vertex_index_map_.at(fanin);
+        makeVar(fanin_index, arrival_max_);
+        makeVar(fanin_index, arrival_min_);
         makeDelay(fanin);
-        makeWire(fanin_name, vertex_name);
+        makeWire(fanin_index, vertex_index);
       }
     }
   }
@@ -104,6 +104,7 @@ void HoldFixer::findHoldVioNameMM()
   sta_->forEachSdc([&]() {
     mode_cnt++;
     sdc_ = sta_->sdc();
+    openroad_->getResizer()->estimateWireParasitics();
     sta_->findRequireds();
     VertexSet* ends = sta_->search()->endpoints();
     for (auto& vertex : *ends) {
@@ -154,17 +155,34 @@ void HoldFixer::getRealVertexName()
 {
   if (!sdc_name_vertex_map_.empty())
     sdc_name_vertex_map_.clear();
+  if (!sdc_vertex_index_map_.empty())
+    sdc_vertex_index_map_.clear();
+
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
     Vertex* vertex = vertex_iter.next();
     Name vertex_name = vertex->name(sta_->sdcNetwork());
-    sdc_name_vertex_map_.insert({vertex_name, vertex});
+
+    if (vertex_name_index_map_.find(vertex_name)
+        == vertex_name_index_map_.end()) {
+      vertex_name_index_map_.insert({vertex_name, vertex_index_++});
+      debugPrint(logger_,
+                 utl::LRL,
+                 "LRL",
+                 4,
+                 "Assign {} id = {}",
+                 vertex_name.c_str(),
+                 vertex_index_ - 1);
+    }
+    const Index& vertex_index = vertex_name_index_map_.at(vertex_name);
+    sdc_name_vertex_map_.insert({vertex_index, vertex});
+    sdc_vertex_index_map_.insert({vertex, vertex_index});
   }
 }
 
-Vertex* HoldFixer::findRealVertex(const Name& vertex_name) const
+Vertex* HoldFixer::findRealVertex(const Index& vertex_index) const
 {
-  const auto& find_iter = sdc_name_vertex_map_.find(vertex_name);
+  const auto& find_iter = sdc_name_vertex_map_.find(vertex_index);
   if (find_iter != sdc_name_vertex_map_.end())
     return find_iter->second;
   else
@@ -176,6 +194,7 @@ void HoldFixer::makeVarAllModes()
   findHoldVioNameMM();
   sta_->forEachSdc([&]() {
     sdc_ = sta_->sdc();
+    openroad_->getResizer()->estimateWireParasitics();
     sta_->findRequireds();
     init();
     getRealVertexName();
@@ -197,10 +216,10 @@ void HoldFixer::makeVarAllModes()
 void HoldFixer::confirmAllPrimeIn()
 {
   pi_name_set_.clear();
-  VertexNameSet not_pi;
+  VertexIndexSet not_pi;
   for (auto& w : wire_) {
-    const Name& pred = w.first.first;
-    const Name& succ = w.first.second;
+    const Index& pred = w.first.first;
+    const Index& succ = w.first.second;
     not_pi.insert(succ);
     if (pi_name_set_.hasKey(succ))
       pi_name_set_.erase(succ);
@@ -209,9 +228,9 @@ void HoldFixer::confirmAllPrimeIn()
   }
 }
 
-bool HoldFixer::isPrimeIn(const Name& vertex_name) const
+bool HoldFixer::isPrimeIn(const Index& vertex_index) const
 {
-  return pi_name_set_.hasKey(vertex_name);
+  return pi_name_set_.hasKey(vertex_index);
 }
 
 // Delay HoldFixer::getArrivalMax(Vertex* vertex) const
@@ -237,19 +256,19 @@ Delay HoldFixer::getCriLongArrival(Vertex* end) const
   for (int i = start_index; i < path_length; i++) {
     PathRef* path = expanded.path(i);
     Vertex* vertex = path->vertex(sta_);
-    Name vertex_name = vertex->name(sta_->sdcNetwork());
-    if (isPrimeIn(vertex_name))
+    const Index& vertex_index = sdc_vertex_index_map_.at(vertex);
+    if (isPrimeIn(vertex_index))
       sum += getArrivalMax(vertex);
     else
-      sum += getDelay(vertex->name(sta_->sdcNetwork()));
+      sum += getDelay(sdc_vertex_index_map_.at(vertex));
   }
   return sum;
 }
 
 void HoldFixer::makeDelay(Vertex* vertex)
 {
-  Name vertex_name = vertex->name(sta_->sdcNetwork());
-  if (delay_map_.find(vertex_name) == delay_map_.end()) {
+  const Index& vertex_index = sdc_vertex_index_map_.at(vertex);
+  if (delay_map_.find(vertex_index) == delay_map_.end()) {
     Delay load_delay = LRL_H_ZERO;
     PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
     if (!path.vertex(sta_))
@@ -277,15 +296,15 @@ void HoldFixer::makeDelay(Vertex* vertex)
                    delayAsString(load_delay, sta_, 3));
       }
     }
-    delay_map_.insert({vertex_name, load_delay});
+    delay_map_.insert({vertex_index, load_delay});
   }
 }
 
-Delay HoldFixer::getDelay(const Name& vertex_name) const
+Delay HoldFixer::getDelay(const Index& vertex_index) const
 {
-  if (delay_map_.find(vertex_name) == delay_map_.end())
+  if (delay_map_.find(vertex_index) == delay_map_.end())
     return LRL_H_ZERO;
-  return delay_map_.at(vertex_name);
+  return delay_map_.at(vertex_index);
 }
 
 void HoldFixer::genPrimeInConstraints()
@@ -293,11 +312,11 @@ void HoldFixer::genPrimeInConstraints()
   VertexMPVarMap* map_max = arrival_max_.findKey(sdc_);
   VertexMPVarMap* map_min = arrival_min_.findKey(sdc_);
   for (auto& vv : *map_max) {
-    const Name& vertex_name = vv.first;
-    if (isPrimeIn(vertex_name)) {
+    const Index& vertex_index = vv.first;
+    if (isPrimeIn(vertex_index)) {
       MPVariable* a_max_var = vv.second;
-      MPVariable* a_min_var = map_min->at(vertex_name);
-      Vertex* vertex = findRealVertex(vertex_name);
+      MPVariable* a_min_var = map_min->at(vertex_index);
+      Vertex* vertex = findRealVertex(vertex_index);
       Delay arrival = zoomIn(getArrivalMax(vertex));
       // Delay delay = zoomIn(getDelay(vertex_name));
       debugPrint(logger_,
@@ -323,11 +342,11 @@ void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
   VertexMPVarMap* map_max = arrival_max_.findKey(sdc_);
   VertexMPVarMap* map_min = arrival_min_.findKey(sdc_);
   for (auto& vv : *map_max) {
-    const Name& vertex_name = vv.first;
-    Vertex* vertex = findRealVertex(vertex_name);
+    const Index& vertex_index = vv.first;
+    Vertex* vertex = findRealVertex(vertex_index);
     if (ends->hasKey(vertex)) {
       MPVariable* a_max_var = vv.second;
-      MPVariable* a_min_var = map_min->at(vertex_name);
+      MPVariable* a_min_var = map_min->at(vertex_index);
       Delay critical_long_arrival_value = getCriLongArrival(vertex);
       Delay max_required_value = sta_->vertexRequired(vertex, MinMax::max())
                                  - std::max(LRL_H_ZERO, sdc_worst_slack_);
@@ -336,9 +355,10 @@ void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
       Delay min_required = sta_->vertexRequired(vertex, MinMax::min());
       // what if whole path don't satisfy hold bound
       if (fuzzyLess(critical_long_arrival_value, min_required)
-          || complete_vio_ends_.find(vertex_name) != complete_vio_ends_.end()) {
+          || complete_vio_ends_.find(vertex_index)
+                 != complete_vio_ends_.end()) {
         critical_long_arrival = max_required_value;
-        complete_vio_ends_.insert(vertex_name);
+        complete_vio_ends_.insert(vertex_index);
       }
       debugPrint(logger_,
                  utl::LRL,
@@ -361,8 +381,8 @@ void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
 
 void HoldFixer::genWireConstraints(const WirePair& wire)
 {
-  const Name& pred = wire.first;
-  const Name& succ = wire.second;
+  const Index& pred = wire.first;
+  const Index& succ = wire.second;
   VertexMPVarMap* a_max = arrival_max_.findKey(sta_->sdc());
   VertexMPVarMap* a_min = arrival_min_.findKey(sta_->sdc());
   MPVariable* w_var = wire_.findKey(wire);
@@ -372,8 +392,8 @@ void HoldFixer::genWireConstraints(const WirePair& wire)
              "LRL",
              4,
              "delay between {} -> {} : {}",
-             pred.c_str(),
-             succ.c_str(),
+             pred,
+             succ,
              delayAsString(delay, sta_, 3));
   // Aj >= Ai + wij + delay  -->  -Ai + Aj - wij >= delay
   int index = addConstraints(zoomIn(delay), LRL_H_INFINITY);
@@ -417,28 +437,28 @@ Delay HoldFixer::getWirePadding(const WirePair& wire_pair) const
              "LRL",
              4,
              "padding between {} -> {} : {}",
-             wire_pair.first.c_str(),
-             wire_pair.second.c_str(),
+             wire_pair.first,
+             wire_pair.second,
              delayAsString(padding, sta_, 3));
   return padding;
 }
 
-void HoldFixer::getAllWirePairFrom(const Name& vertex_name,
+void HoldFixer::getAllWirePairFrom(const Index& vertex_index,
                                    WirePairSet& wire_pair_set)
 {
   for (auto& w : wire_) {
-    WirePair wire_pair = w.first;
-    if (!vertex_name.compare(wire_pair.first)) {
+    const WirePair& wire_pair = w.first;
+    if (vertex_index == wire_pair.first) {
       wire_pair_set.insert(wire_pair);
     }
   }
 }
 
-void HoldFixer::getNonZeroPaddingPred(VertexNameSet& vio_pred_set)
+void HoldFixer::getNonZeroPaddingPred(VertexIndexSet& vio_pred_set)
 {
   for (auto& w : wire_) {
     const WirePair& wire_pair = w.first;
-    const Name& pred = wire_pair.first;
+    const Index& pred = wire_pair.first;
     Delay padding = zoomOut(w.second->solution_value());
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
       debugPrint(logger_,
@@ -446,13 +466,221 @@ void HoldFixer::getNonZeroPaddingPred(VertexNameSet& vio_pred_set)
                  "LRL",
                  4,
                  "non zero padding between {} -> {} : {}",
-                 wire_pair.first.c_str(),
-                 wire_pair.second.c_str(),
+                 wire_pair.first,
+                 wire_pair.second,
                  delayAsString(padding, sta_, 3));
       if (vio_pred_set.find(pred) == vio_pred_set.end())
         vio_pred_set.insert(pred);
     }
   }
+}
+
+////////////////////////////////////////////////////////
+//
+//  insert buffers
+//
+////////////////////////////////////////////////////////
+
+LibertyCell* HoldFixer::findHoldBuffer(Delay min_limit, int& count)
+{
+  LibertyCell* max_buffer = nullptr;
+  Delay max_delay = INF;
+  const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
+  count = LRL_S_INT_INF;
+  for (LibertyCell* buffer : buffer_cells_) {
+    Delay buffer_min_delay = bufferHoldDelay(buffer);
+    int min_count = std::ceil(min_limit / buffer_min_delay);
+    Delay fixed_delay = buffer_min_delay * (Delay) (min_count);
+    // if ((max_buffer == nullptr || buffer_min_delay < max_delay)
+    //     && fuzzyLess(min_limit, buffer_min_delay)) {
+    if (fuzzyLess(min_limit, fixed_delay)
+        && fuzzyLess(fixed_delay, min_limit + uncertainty)
+        && min_count < count) {
+      max_buffer = buffer;
+      max_delay = buffer_min_delay;
+      count = min_count;
+    }
+  }
+  if (max_buffer)
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               4,
+               "choose buffer {}, delay {}",
+               max_buffer->name(),
+               delayAsString(max_delay, this, 3));
+  return max_buffer;
+}
+
+// function copied and updated from OpenRoad/Resizer
+void HoldFixer::insertHoldDelay(Vertex* drvr,
+                                int buffer_count,
+                                PinSeq& load_pins,
+                                bool loads_have_out_port,
+                                LibertyCell* buffer_cell)
+{
+  Pin* drvr_pin = drvr->pin();
+  Instance* parent = sta_->getDbNetwork()->topInstance();
+  Net* drvr_net
+      = sta_->network()->isTopLevelPort(drvr_pin)
+            ? sta_->getDbNetwork()->net(sta_->getDbNetwork()->term(drvr_pin))
+            : sta_->getDbNetwork()->net(drvr_pin);
+  Net *in_net, *out_net;
+  if (loads_have_out_port) {
+    // Verilog uses nets as ports, so the net connected to an output port has
+    // to be preserved.
+    // Move the driver pin over to gensym'd net.
+    in_net = makeUniqueNet();
+    Port* drvr_port = sta_->network()->port(drvr_pin);
+    Instance* drvr_inst = sta_->network()->instance(drvr_pin);
+    sta_->disconnectPin(drvr_pin);
+    sta_->connectPin(drvr_inst, drvr_port, in_net);
+    out_net = drvr_net;
+  } else {
+    in_net = drvr_net;
+    out_net = makeUniqueNet();
+  }
+
+  parasiticsInvalid(in_net);
+  // Spread buffers between driver and load center.
+  Point drvr_loc = sta_->getDbNetwork()->location(drvr_pin);
+  Point load_center = findCenter(load_pins);
+  int dx = (load_center.x() - drvr_loc.x()) / (buffer_count + 1);
+  int dy = (load_center.y() - drvr_loc.y()) / (buffer_count + 1);
+
+  Net* buf_in_net = in_net;
+  Instance* buffer = nullptr;
+  LibertyPort *input, *output;
+  buffer_cell->bufferPorts(input, output);
+  // drvr_pin->in_net->hold_buffer1->net2->hold_buffer2->out_net...->load_pins
+  for (int i = 0; i < buffer_count; i++) {
+    Net* buf_out_net = (i == buffer_count - 1) ? out_net : makeUniqueNet();
+    // drvr_pin->drvr_net->hold_buffer->net2->load_pins
+    string buffer_name = makeUniqueInstName("hold");
+    buffer = sta_->getDbNetwork()->makeInstance(
+        buffer_cell, buffer_name.c_str(), parent);
+    journalMakeBuffer(buffer);
+    inserted_buffer_count_++;
+    designAreaIncr(area(sta_->getDbNetwork()->cell(buffer_cell)));
+
+    sta_->connectPin(buffer, input, buf_in_net);
+    sta_->connectPin(buffer, output, buf_out_net);
+    Point buffer_loc(drvr_loc.x() + dx * i, drvr_loc.y() + dy * i);
+    setLocation(buffer, buffer_loc);
+    buf_in_net = buf_out_net;
+    parasiticsInvalid(buf_out_net);
+  }
+
+  for (Pin* load_pin : load_pins) {
+    Net* load_net = sta_->network()->isTopLevelPort(load_pin)
+                        ? sta_->network()->net(sta_->network()->term(load_pin))
+                        : sta_->network()->net(load_pin);
+    if (load_net != out_net) {
+      Instance* load = sta_->getDbNetwork()->instance(load_pin);
+      Port* load_port = sta_->getDbNetwork()->port(load_pin);
+      sta_->disconnectPin(load_pin);
+      sta_->connectPin(load, load_port, out_net);
+    }
+  }
+  // Pin* buffer_out_pin = sta_->network()->findPin(buffer, output);
+  // resizeToTargetSlew(buffer_out_pin, false);
+}
+
+Pin* HoldFixer::findFanoutPin(Vertex* pred, Vertex* succ) const
+{
+  if (!succ->isDriver(sta_->network()))
+    return succ->pin();
+  VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
+  while (pred_edge_iter.hasNext()) {
+    Edge* pred_edge = pred_edge_iter.next();
+    Vertex* fanout = pred_edge->to(sta_->graph());
+    VertexInEdgeIterator succ_edge_iter(succ, sta_->graph());
+    while (succ_edge_iter.hasNext()) {
+      Edge* succ_edge = succ_edge_iter.next();
+      Vertex* fanin = succ_edge->from(sta_->graph());
+      if (fanin == fanout)
+        return fanin->pin();
+    }
+  }
+  return nullptr;
+}
+
+bool HoldFixer::insertBuffer(const Index& vertex_index)
+{
+  WirePairSet wire_pair_set;
+  getAllWirePairFrom(vertex_index, wire_pair_set);
+  PinSeq load_pins;
+  Vertex* insert_from = sdc_name_vertex_map_.at(vertex_index);
+  bool loads_have_out_port = false;
+  Delay max_padding = LRL_H_ZERO;
+  Delay min_padding = INF;
+  for (auto& wire_pair : wire_pair_set) {
+    Delay padding = getWirePadding(wire_pair);
+    if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
+      Vertex* fanout = sdc_name_vertex_map_.at(wire_pair.second);
+      Pin* fanout_pin = findFanoutPin(insert_from, fanout);
+      if (fanout_pin != nullptr) {
+        load_pins.push_back(fanout_pin);
+        if (sta_->network()->direction(fanout_pin)->isAnyOutput()
+            && sta_->network()->isTopLevelPort(fanout_pin))
+          loads_have_out_port = true;
+
+        if (fuzzyLess(max_padding, padding))
+          max_padding = padding;
+        if (fuzzyLess(padding, min_padding) || fuzzyInf(min_padding))
+          min_padding = padding;
+      }
+    }
+  }
+
+  const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
+  Delay padding = max_padding;
+  if (!fuzzyLess(max_padding - min_padding, uncertainty)) {
+    logger_->warn(
+        utl::LRL,
+        1000,
+        "padding diff in all {} fanout from {} higher then uncertainty",
+        load_pins.size(),
+        insert_from->name(sta_->sdcNetwork()));
+    // return false;
+    padding = min_padding;
+  }
+
+  int buffer_count = 1;
+  LibertyCell* buffer_cell = findHoldBuffer(padding, buffer_count);
+  while (!buffer_cell) {
+    // buffer_count *= LRL_H_BUFFER_SPILIT;
+    // padding /= LRL_H_BUFFER_SPILIT;
+    // buffer_cell = findHoldBuffer(padding);
+    return false;
+  }
+
+  if (buffer_cell != nullptr && !load_pins.empty()) {
+    insertHoldDelay(
+        insert_from, buffer_count, load_pins, loads_have_out_port, buffer_cell);
+    debugPrint(logger_,
+               utl::LRL,
+               "LRL",
+               4,
+               "inserted {} buffer ",
+               std::to_string(buffer_count));
+  }
+  return true;
+}
+
+bool HoldFixer::insertAllBuffer()
+{
+  bool ret = true;
+  findBuffers();
+  VertexIndexSet vio_pred_set;
+  getNonZeroPaddingPred(vio_pred_set);
+  for (auto& vertex_index : vio_pred_set) {
+    if (!insertBuffer(vertex_index))
+      ret = false;
+  }
+  logger_->info(
+      utl::LRL, 1110, "Totally inserted {} buffers", inserted_buffer_count_);
+  return ret;
 }
 
 }  // namespace lrl

@@ -51,14 +51,6 @@ Index SetupFixer::getIndex(Vertex* vertex) const
   return vertex_index_map_.at(vertex);
 }
 
-Vertex* SetupFixer::getNodeVertex(Index index) const
-{
-  for (auto& row : vertex_index_map_)
-    if (row.second == index)
-      return row.first;
-  return nullptr;
-}
-
 Delay SetupFixer::getDelay(Vertex* vertex)
 {
   if (!vertex->isDriver(sta_->network()))
@@ -71,75 +63,6 @@ Delay SetupFixer::getDelay(Vertex* vertex)
   const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
   const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
   return gateDelay(drvr_port, load_cap, dcalc_ap);
-}
-
-// Delay SetupFixer::getDelay(Vertex* vertex)
-// {
-//   if (!vertex->isDriver(sta_->network()))
-//     return LRL_H_ZERO;
-//   PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
-//   if (!path.vertex(sta_))
-//     return LRL_H_ZERO;
-//   PathExpanded expanded(&path, sta_);
-//   int start_index = expanded.startIndex();
-//   int path_length = expanded.size();
-//   for (int i = start_index; i < path_length; i++) {
-//     int drvr_index = i;
-//     PathRef* path = expanded.path(drvr_index);
-//     Vertex* path_vertex = path->vertex(sta_);
-
-//     if (vertex == path_vertex) {
-//       TimingArc* prev_arc = expanded.prevArc(drvr_index);
-//       Edge* prev_edge = path->prevEdge(prev_arc, sta_);
-//       if (!prev_edge)
-//         continue;
-
-//       int in_index = drvr_index - 1;
-//       PathRef* in_path = expanded.path(in_index);
-//       Pin* in_pin = in_path->pin(sta_);
-//       LibertyPort* in_port = network_->libertyPort(in_pin);
-//       float prev_drive;
-//       if (drvr_index >= 2) {
-//         int prev_drvr_index = drvr_index - 2;
-//         PathRef* prev_drvr_path = expanded.path(prev_drvr_index);
-//         Pin* prev_drvr_pin = prev_drvr_path->pin(sta_);
-//         prev_drive = 0.0;
-//         LibertyPort* prev_drvr_port = network_->libertyPort(prev_drvr_pin);
-//         if (prev_drvr_port) {
-//           prev_drive = prev_drvr_port->driveResistance();
-//         }
-//       } else
-//         prev_drive = 0.0;
-//       Pin* drvr_pin = vertex->pin();
-//       const DcalcAnalysisPt* dcalc_ap = path->dcalcAnalysisPt(sta_);
-//       const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
-//       LibertyPort* drvr_port = network_->libertyPort(drvr_pin);
-//       int lib_ap = dcalc_ap->libertyIndex();
-//       return gateDelay(drvr_port, load_cap, dcalc_ap)
-//              + prev_drive * in_port->cornerPort(lib_ap)->capacitance();
-//     }
-//   }
-//   return LRL_H_ZERO;
-// }
-
-const char* SetupFixer::getInPortName(Vertex* pred, Vertex* succ) const
-{
-  VertexOutEdgeIterator pred_edge_iter(pred, sta_->graph());
-  while (pred_edge_iter.hasNext()) {
-    Edge* pred_edge = pred_edge_iter.next();
-    Vertex* fanout = pred_edge->to(sta_->graph());
-    VertexInEdgeIterator succ_edge_iter(succ, sta_->graph());
-    while (succ_edge_iter.hasNext()) {
-      Edge* succ_edge = succ_edge_iter.next();
-      Vertex* fanin = succ_edge->from(sta_->graph());
-      if (fanin == fanout) {
-        Pin* pin = fanin->pin();
-        LibertyPort* port = sta_->network()->libertyPort(pin);
-        return port->name();
-      }
-    }
-  }
-  return nullptr;
 }
 
 Delay SetupFixer::getBound(Vertex* vertex, const MinMax* min_max)
