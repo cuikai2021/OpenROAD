@@ -75,14 +75,6 @@ void WireBudgeting::buildAllFaninEdge(const VertexSet& fanins)
   }
 }
 
-VertexPair WireBudgeting::getRealWire(const VertexPair& wire)
-{
-  if (!wire_fanout_map_.hasKey(wire))
-    return wire;
-  Vertex* fanout = wire_fanout_map_.findKey(wire);
-  return VertexPair(wire.first, fanout);
-}
-
 Vertex* WireBudgeting::getRealFanoutVertex(const VertexPair& wire)
 {
   if (!wire_fanout_map_.hasKey(wire))
@@ -220,7 +212,8 @@ void WireBudgeting::buildSpefDelayMap(sta::Map<Vertex*, Delay>& spef_delay_map)
   }
 }
 
-bool WireBudgeting::makeDelaySpefCore(sta::Map<Vertex*, Delay>& map, double factor)
+bool WireBudgeting::makeDelaySpefCore(sta::Map<Vertex*, Delay>& map,
+                                      double factor)
 {
   bool ret = sta::readSpefFct(options_->spefFileName(),
                               sta_->getDbNetwork()->topInstance(),
@@ -235,7 +228,7 @@ bool WireBudgeting::makeDelaySpefCore(sta::Map<Vertex*, Delay>& map, double fact
                               false,
                               factor,
                               sta_);
-  if (ret){
+  if (ret) {
     map.clear();
     buildSpefDelayMap(map);
   }

@@ -1,4 +1,3 @@
-set_debug_level LRL "LRL" 1
 
 source helpers.tcl
 
@@ -23,6 +22,6 @@ set spef_file [make_result_file gcd.spef]
 write_spef $spef_file -nets $test_nets
 
 
-laurel -wire_budgeting -spef $spef_file
+laurel -wire_budgeting -spef $spef_file -debug_report
 
 
