@@ -274,7 +274,7 @@ class HoldFixer : public LaurelAdapter
   void makeVarFanins(const VertexSet& fanins);
   void makeVarAllModes();
   void makeDelay(Vertex* vertex);
-  void findHoldVioNameMM();
+  void findHoldVioNameMM(VertexNameSet& vio_ends_name);
 
   int addConstraints(Delay low_bound, Delay high_bound);
   void genPrimeInConstraints();
@@ -287,9 +287,11 @@ class HoldFixer : public LaurelAdapter
   void getRealVertexName();
   Vertex* findRealVertex(const Index& vertex_index) const;
 
-  bool hasHoldViolation(Vertex* vertex) const;
-  void getHoldViolations(
-      VertexSet& hold_failures);  // should run findHoldVioNaemMM before
+  bool hasHoldViolation(Vertex* vertex,
+                        const VertexNameSet& vio_ends_name) const;
+  // should run findHoldVioNaemMM before
+  void getHoldViolations(const VertexNameSet& vio_ends_name,
+                         VertexSet& hold_failures);
 
   // can not do lp for 10^-10, should zoom in
   Delay zoomIn(Delay ori) const { return ori * LRL_H_SCALING; }
@@ -326,11 +328,10 @@ class HoldFixer : public LaurelAdapter
 
   std::unordered_map<Name, Index> vertex_name_index_map_;
   std::unordered_map<Index, Delay> delay_map_;
-  VertexNameSet vio_ends_name_;
   VertexIndexSet complete_vio_ends_;
-  std::unordered_map<Index, Vertex*> sdc_name_vertex_map_;
-  std::unordered_map<Vertex*, Index> sdc_vertex_index_map_;
-  VertexIndexSet pi_name_set_;
+  std::unordered_map<Index, Vertex*> sdc_id_vertex_map_;
+  std::unordered_map<Vertex*, Index> sdc_vertex_id_map_;
+  VertexIndexSet pi_set_;
 
   Options* options_;
 };

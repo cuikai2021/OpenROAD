@@ -66,7 +66,7 @@ int HoldFixer::addConstraints(Delay low_bound, Delay high_bound)
 void HoldFixer::makeVarFanins(const VertexSet& fanins)
 {
   for (auto& vertex : fanins) {
-    const Index& vertex_index = sdc_vertex_index_map_.at(vertex);
+    const Index& vertex_index = sdc_vertex_id_map_.at(vertex);
     makeVar(vertex_index, arrival_max_);
     makeVar(vertex_index, arrival_min_);
     makeDelay(vertex);
@@ -78,7 +78,7 @@ void HoldFixer::makeVarFanins(const VertexSet& fanins)
       if (!fanin->isDriver(sta_->network()))
         iter.enqueueAdjacentVertices(fanin);
       else {
-        const Index& fanin_index = sdc_vertex_index_map_.at(fanin);
+        const Index& fanin_index = sdc_vertex_id_map_.at(fanin);
         makeVar(fanin_index, arrival_max_);
         makeVar(fanin_index, arrival_min_);
         makeDelay(fanin);
@@ -88,7 +88,7 @@ void HoldFixer::makeVarFanins(const VertexSet& fanins)
   }
 }
 
-void HoldFixer::findHoldVioNameMM()
+void HoldFixer::findHoldVioNameMM(VertexNameSet& vio_ends_name)
 {
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
   int mode_cnt = 0;
@@ -102,7 +102,7 @@ void HoldFixer::findHoldVioNameMM()
     for (auto& vertex : *ends) {
       Slack slack = sta_->vertexSlack(vertex, MinMax::min());
       if (fuzzyLess(slack, slack_margin)) {
-        vio_ends_name_.insert(vertex->name(sta_->sdcNetwork()));
+        vio_ends_name.insert(vertex->name(sta_->sdcNetwork()));
         cnt++;
       }
     }
@@ -113,20 +113,22 @@ void HoldFixer::findHoldVioNameMM()
                 cnt,
                 mode_cnt,
                 delayAsString(slack_margin, sta_, 3));
-  for (auto& name : vio_ends_name_)
+  for (auto& name : vio_ends_name)
     debugPrint(logger_, utl::LRL, "LRL", 4, "   {}", name);
 }
 
-bool HoldFixer::hasHoldViolation(Vertex* vertex) const
+bool HoldFixer::hasHoldViolation(Vertex* vertex,
+                                 const VertexNameSet& vio_ends_name) const
 {
   Name name = vertex->name(sta_->sdcNetwork());
   Slack slack = sta_->vertexSlack(vertex, MinMax::min());
-  if (!fuzzyInf(slack) && vio_ends_name_.find(name) != vio_ends_name_.end())
+  if (!fuzzyInf(slack) && vio_ends_name.find(name) != vio_ends_name.end())
     return true;
   return false;
 }
 
-void HoldFixer::getHoldViolations(VertexSet& hold_failures)
+void HoldFixer::getHoldViolations(const VertexNameSet& vio_ends_name,
+                                  VertexSet& hold_failures)
 {
   VertexSet* ends = sta_->search()->endpoints();
   Vertex* worst_vertex;
@@ -139,16 +141,16 @@ void HoldFixer::getHoldViolations(VertexSet& hold_failures)
              worst_vertex->name(sta_->network()),
              delayAsString(sdc_worst_slack_, sta_, 3));
   for (Vertex* vertex : *ends)
-    if (hasHoldViolation(vertex))
+    if (hasHoldViolation(vertex, vio_ends_name))
       hold_failures.insert(vertex);
 }
 
 void HoldFixer::getRealVertexName()
 {
-  if (!sdc_name_vertex_map_.empty())
-    sdc_name_vertex_map_.clear();
-  if (!sdc_vertex_index_map_.empty())
-    sdc_vertex_index_map_.clear();
+  if (!sdc_id_vertex_map_.empty())
+    sdc_id_vertex_map_.clear();
+  if (!sdc_vertex_id_map_.empty())
+    sdc_vertex_id_map_.clear();
 
   VertexIterator vertex_iter(sta_->graph());
   while (vertex_iter.hasNext()) {
@@ -167,15 +169,15 @@ void HoldFixer::getRealVertexName()
                  vertex_index_ - 1);
     }
     const Index& vertex_index = vertex_name_index_map_.at(vertex_name);
-    sdc_name_vertex_map_.insert({vertex_index, vertex});
-    sdc_vertex_index_map_.insert({vertex, vertex_index});
+    sdc_id_vertex_map_.insert({vertex_index, vertex});
+    sdc_vertex_id_map_.insert({vertex, vertex_index});
   }
 }
 
 Vertex* HoldFixer::findRealVertex(const Index& vertex_index) const
 {
-  const auto& find_iter = sdc_name_vertex_map_.find(vertex_index);
-  if (find_iter != sdc_name_vertex_map_.end())
+  const auto& find_iter = sdc_id_vertex_map_.find(vertex_index);
+  if (find_iter != sdc_id_vertex_map_.end())
     return find_iter->second;
   else
     return nullptr;
@@ -183,7 +185,8 @@ Vertex* HoldFixer::findRealVertex(const Index& vertex_index) const
 
 void HoldFixer::makeVarAllModes()
 {
-  findHoldVioNameMM();
+  VertexNameSet vio_ends_name;
+  findHoldVioNameMM(vio_ends_name);
   sta_->forEachSdc([&]() {
     sdc_ = sta_->sdc();
     openroad_->getResizer()->estimateWireParasitics();
@@ -192,7 +195,7 @@ void HoldFixer::makeVarAllModes()
     getRealVertexName();
     VertexSet hold_failures_end;
     VertexSet hold_failures;
-    getHoldViolations(hold_failures_end);
+    getHoldViolations(vio_ends_name, hold_failures_end);
     getAllRelatedEnds(hold_failures_end, options_->ignoreClk(), hold_failures);
     if (!hold_failures.empty()) {
       VertexSet fanins = findHoldFanins(hold_failures);
@@ -207,22 +210,22 @@ void HoldFixer::makeVarAllModes()
 
 void HoldFixer::confirmAllPrimeIn()
 {
-  pi_name_set_.clear();
+  pi_set_.clear();
   VertexIndexSet not_pi;
   for (auto& w : wire_) {
     const Index& pred = w.first.first;
     const Index& succ = w.first.second;
     not_pi.insert(succ);
-    if (pi_name_set_.hasKey(succ))
-      pi_name_set_.erase(succ);
+    if (pi_set_.hasKey(succ))
+      pi_set_.erase(succ);
     if (!not_pi.hasKey(pred))
-      pi_name_set_.insert(pred);
+      pi_set_.insert(pred);
   }
 }
 
 bool HoldFixer::isPrimeIn(const Index& vertex_index) const
 {
-  return pi_name_set_.hasKey(vertex_index);
+  return pi_set_.hasKey(vertex_index);
 }
 
 Delay HoldFixer::getCriLongArrival(Vertex* end) const
@@ -235,18 +238,18 @@ Delay HoldFixer::getCriLongArrival(Vertex* end) const
   for (int i = start_index; i < path_length; i++) {
     PathRef* path = expanded.path(i);
     Vertex* vertex = path->vertex(sta_);
-    const Index& vertex_index = sdc_vertex_index_map_.at(vertex);
+    const Index& vertex_index = sdc_vertex_id_map_.at(vertex);
     if (isPrimeIn(vertex_index))
       sum += getArrivalMax(vertex);
     else
-      sum += getDelay(sdc_vertex_index_map_.at(vertex));
+      sum += getDelay(sdc_vertex_id_map_.at(vertex));
   }
   return sum;
 }
 
 void HoldFixer::makeDelay(Vertex* vertex)
 {
-  const Index& vertex_index = sdc_vertex_index_map_.at(vertex);
+  const Index& vertex_index = sdc_vertex_id_map_.at(vertex);
   if (delay_map_.find(vertex_index) == delay_map_.end()) {
     Delay load_delay = LRL_H_ZERO;
     PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
@@ -589,14 +592,14 @@ bool HoldFixer::insertBuffer(const Index& vertex_index)
   WirePairSet wire_pair_set;
   getAllWirePairFrom(vertex_index, wire_pair_set);
   PinSeq load_pins;
-  Vertex* insert_from = sdc_name_vertex_map_.at(vertex_index);
+  Vertex* insert_from = sdc_id_vertex_map_.at(vertex_index);
   bool loads_have_out_port = false;
   Delay max_padding = LRL_H_ZERO;
   Delay min_padding = INF;
   for (auto& wire_pair : wire_pair_set) {
     Delay padding = getWirePadding(wire_pair);
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, padding)) {
-      Vertex* fanout = sdc_name_vertex_map_.at(wire_pair.second);
+      Vertex* fanout = sdc_id_vertex_map_.at(wire_pair.second);
       Pin* fanout_pin = findFanoutPin(insert_from, fanout);
       if (fanout_pin != nullptr) {
         load_pins.push_back(fanout_pin);
