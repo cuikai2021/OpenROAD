@@ -12,15 +12,13 @@ puts "end reading sdc\n"
 
 estimate_parasitics -placement
 
-puts "-----------------\nreport func1 b4repair \n-----------------"
-report_checks
-
-laurel -setup
-
+report_worst_slack -max
+report_design_area
+puts [laurel -setup]
 puts "end repair timing"
+report_worst_slack -max
+report_design_area
 
-puts "-----------------\nreport func2 after repair \n-----------------"
-report_checks
 
 write_verilog results/setup.result.v
 
