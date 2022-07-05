@@ -31,19 +31,11 @@ HoldFixer::HoldFixer(OpenRoad* openroad, Options* options)
   makeVarAllModes();
 }
 
-HoldFixer::~HoldFixer()
-{
-  for (auto& a_max : arrival_max_)
-    delete a_max.second;
-  for (auto& a_min : arrival_min_)
-    delete a_min.second;
-}
-
 void HoldFixer::makeVar(const Index& vertex_index, MMVertexMPVarMap& arrival)
 {
   if (!arrival.hasKey(sdc_))
-    arrival.insert(sdc_, new VertexMPVarMap());
-  VertexMPVarMap* map = arrival.findKey(sdc_);
+    arrival.insert(sdc_, std::make_shared<VertexMPVarMap>());
+  const auto& map = arrival.findKey(sdc_);
   if (map->find(vertex_index) == map->end())
     map->insert(
         {vertex_index,
@@ -233,19 +225,6 @@ bool HoldFixer::isPrimeIn(const Index& vertex_index) const
   return pi_name_set_.hasKey(vertex_index);
 }
 
-// Delay HoldFixer::getArrivalMax(Vertex* vertex) const
-// {
-//   Delay max_arrival = LRL_H_ZERO;
-//   VertexPathIterator path_iter(vertex, sta_);
-//   while (path_iter.hasNext()) {
-//     Path* path = path_iter.next();
-//     Delay arrival = path->arrival(sta_);
-//     if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
-//       max_arrival = arrival;
-//   }
-//   return max_arrival;
-// }
-
 Delay HoldFixer::getCriLongArrival(Vertex* end) const
 {
   Delay sum = LRL_H_ZERO;
@@ -309,8 +288,8 @@ Delay HoldFixer::getDelay(const Index& vertex_index) const
 
 void HoldFixer::genPrimeInConstraints()
 {
-  VertexMPVarMap* map_max = arrival_max_.findKey(sdc_);
-  VertexMPVarMap* map_min = arrival_min_.findKey(sdc_);
+  const auto& map_max = arrival_max_.findKey(sdc_);
+  const auto& map_min = arrival_min_.findKey(sdc_);
   for (auto& vv : *map_max) {
     const Index& vertex_index = vv.first;
     if (isPrimeIn(vertex_index)) {
@@ -339,8 +318,8 @@ void HoldFixer::genPrimeInConstraints()
 
 void HoldFixer::genPrimeOutConstraints(VertexSet* ends)
 {
-  VertexMPVarMap* map_max = arrival_max_.findKey(sdc_);
-  VertexMPVarMap* map_min = arrival_min_.findKey(sdc_);
+  const auto& map_max = arrival_max_.findKey(sdc_);
+  const auto& map_min = arrival_min_.findKey(sdc_);
   for (auto& vv : *map_max) {
     const Index& vertex_index = vv.first;
     Vertex* vertex = findRealVertex(vertex_index);
@@ -383,8 +362,8 @@ void HoldFixer::genWireConstraints(const WirePair& wire)
 {
   const Index& pred = wire.first;
   const Index& succ = wire.second;
-  VertexMPVarMap* a_max = arrival_max_.findKey(sta_->sdc());
-  VertexMPVarMap* a_min = arrival_min_.findKey(sta_->sdc());
+  const auto& a_max = arrival_max_.findKey(sta_->sdc());
+  const auto& a_min = arrival_min_.findKey(sta_->sdc());
   MPVariable* w_var = wire_.findKey(wire);
   Delay delay = getDelay(succ);
   debugPrint(logger_,

@@ -49,7 +49,7 @@ typedef std::string Name;
 typedef std::pair<Index, Index> WirePair;
 typedef sta::Set<WirePair> WirePairSet;
 typedef std::unordered_map<Index, MPVariable*> VertexMPVarMap;
-typedef sta::Map<Sdc*, VertexMPVarMap*> MMVertexMPVarMap;
+typedef sta::Map<Sdc*, std::shared_ptr<VertexMPVarMap>> MMVertexMPVarMap;
 typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
 typedef sta::Map<Index, MPConstraint*> MPConstraintMap;
 typedef sta::Vector<Name> VertexNameSeq;
@@ -261,7 +261,6 @@ class HoldFixer : public LaurelAdapter
 {
  public:
   HoldFixer(OpenRoad* openroad, Options* options);
-  virtual ~HoldFixer();
 
   HoldResult resolve();
   Delay getWirePadding(const WirePair& wire_pair) const;
@@ -339,7 +338,7 @@ class HoldFixer : public LaurelAdapter
 class Laurel : public LaurelAdapter
 {
  public:
-  Laurel() : LaurelAdapter() { options_ = new Options(); }
+  Laurel() : LaurelAdapter() { options_ = std::make_shared<Options>(); }
   virtual ~Laurel();
 
   void initLaurel(OpenRoad* openroad,
@@ -369,7 +368,7 @@ class Laurel : public LaurelAdapter
   Delay getWireBudRate(Vertex* fanin, Vertex* fanout);
   Delay getWireBudRate(Pin* fanin, Pin* fanout);
 
-  Options* getOptions() { return options_; }
+  Options* getOptions() { return options_.get(); }
 
  protected:
   bool fixHoldCore();
@@ -381,7 +380,7 @@ class Laurel : public LaurelAdapter
   void wireBudgetingCore();
 
   // variable
-  Options* options_;
+  std::shared_ptr<Options> options_;
 
   WireBudgeting* wire_bud_ = nullptr;
 };

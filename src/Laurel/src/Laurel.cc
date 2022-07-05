@@ -46,7 +46,6 @@ void Laurel::initLaurel(OpenRoad* openroad,
 
 Laurel::~Laurel()
 {
-  delete options_;
   if (wire_bud_)
     delete wire_bud_;
 }
@@ -59,18 +58,17 @@ Laurel::~Laurel()
 
 bool Laurel::fixHoldCore()
 {
-  HoldFixer* fixer = new HoldFixer(openroad_, options_);
-  HoldResult result = fixer->resolve();
+  HoldFixer fixer(openroad_, options_.get());
+  HoldResult result = fixer.resolve();
   bool ret = true;
   if (result != MPSolver::ResultStatus::OPTIMAL) {
     logger_->warn(
         utl::LRL, 1001, "Linear Programming failed, return {}", result);
     ret = false;
   } else {
-    ret = fixer->insertAllBuffer();
+    ret = fixer.insertAllBuffer();
   }
-  inserted_buffer_count_ = fixer->getInsertedBufferCnt();
-  delete fixer;
+  inserted_buffer_count_ = fixer.getInsertedBufferCnt();
   return ret;
 }
 
@@ -139,7 +137,7 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
 int Laurel::fixSetup()
 {
   resize_count_ = 0;
-  SetupFixer fixer = SetupFixer(openroad_, options_);
+  SetupFixer fixer = SetupFixer(openroad_, options_.get());
   fixer.initAlgorithm();
   SetupResult status = fixer.resolve();
   bool ret = false;
@@ -217,7 +215,7 @@ void Laurel::wireBudgeting()
     return wireBudgetingSpef(options_->spefFileName());
 
   if (options_->isWireBudModeRC()) {
-    wire_bud_ = new WireBudgetingRC(openroad_, options_);
+    wire_bud_ = new WireBudgetingRC(openroad_, options_.get());
     return wireBudgetingCore();
   }
 
@@ -236,7 +234,7 @@ void Laurel::wireBudgetingSpef(const char* filename)
   if (wire_bud_)
     delete wire_bud_;
   options_->setSpefFile(filename);
-  wire_bud_ = new WireBudgeting(openroad_, options_);
+  wire_bud_ = new WireBudgeting(openroad_, options_.get());
   wireBudgetingCore();
 }
 
@@ -244,7 +242,7 @@ void Laurel::wireBudgeting(float factor)
 {
   if (wire_bud_)
     delete wire_bud_;
-  wire_bud_ = new WireBudgetingFake(openroad_, options_, factor);
+  wire_bud_ = new WireBudgetingFake(openroad_, options_.get(), factor);
   wireBudgetingCore();
 }
 
