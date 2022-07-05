@@ -52,8 +52,6 @@ typedef std::unordered_map<Index, MPVariable*> VertexMPVarMap;
 typedef sta::Map<Sdc*, std::shared_ptr<VertexMPVarMap>> MMVertexMPVarMap;
 typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
 typedef sta::Map<Index, MPConstraint*> MPConstraintMap;
-typedef sta::Vector<Name> VertexNameSeq;
-typedef sta::Set<Name> VertexNameSet;
 typedef sta::Set<Index> VertexIndexSet;
 
 typedef sta::Vector<Index> IndexSeq;
@@ -269,6 +267,8 @@ class HoldFixer : public LaurelAdapter
   int getInsertedBufferCnt() const { return inserted_buffer_count_; }
 
  protected:
+  typedef sta::Set<Name> VertexNameSet;
+
   void makeVar(const Index& vertex_index, MMVertexMPVarMap& arrival);
   void makeWire(const Index& pred, const Index& succ);
   void makeVarFanins(const VertexSet& fanins);

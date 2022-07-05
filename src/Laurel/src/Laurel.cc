@@ -311,7 +311,7 @@ void LaurelAdapter::getAllRelatedEnds(VertexSet ends,
                                       VertexSet& related_ends)
 {
   VertexSet fanin_roots = findFaninRoots(ends);
-  related_ends = ends;
+  related_ends.insert(ends.begin(), ends.end());
   sta::SearchPredNonLatch2 pred(sta_);
   BfsFwdIterator iter(BfsIndex::other, &pred, this);
   for (Vertex* reg_out : fanin_roots)
