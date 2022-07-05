@@ -104,6 +104,7 @@ void HoldFixer::findHoldVioNameMM()
   sta_->forEachSdc([&]() {
     mode_cnt++;
     sdc_ = sta_->sdc();
+    openroad_->getResizer()->estimateWireParasitics();
     sta_->findRequireds();
     VertexSet* ends = sta_->search()->endpoints();
     for (auto& vertex : *ends) {
@@ -193,6 +194,7 @@ void HoldFixer::makeVarAllModes()
   findHoldVioNameMM();
   sta_->forEachSdc([&]() {
     sdc_ = sta_->sdc();
+    openroad_->getResizer()->estimateWireParasitics();
     sta_->findRequireds();
     init();
     getRealVertexName();
