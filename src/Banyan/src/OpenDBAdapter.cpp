@@ -203,14 +203,12 @@ void OpenDBAdapter::addRoutingLayer(odb::dbTechLayer* layer)
 void OpenDBAdapter::addCutLayer(odb::dbTechLayer* layer)
 {
   assert(layers_.size() > 0);
-
   layerNameToIdxs_.insert(make_pair(layer->getName(), -(int) layers_.size()));
   hasAddedCutLayer_ = true;
 }
 
 void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
 {
-  assert(!hasAddedCutLayer_);
   auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
   layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0});
   belowRoutingLayerMaxIndex_++;
@@ -218,7 +216,6 @@ void OpenDBAdapter::addMasterSliceLayer(odb::dbTechLayer* layer)
 
 void OpenDBAdapter::addImplantLayer(odb::dbTechLayer* layer)
 {
-  assert(!hasAddedCutLayer_);
   auto it = layerNameToIdxs_.insert(make_pair(layer->getName(), 0)).first;
   layers_.push_back({it->first.c_str(), 0, 0, 0, 0, 0, 0, 0, 0, 0});
   belowRoutingLayerMaxIndex_++;
@@ -502,8 +499,11 @@ std::map<const sta::Pin*, int> OpenDBAdapter::getDistFromSrcForSinks(
     sta::Pin* src,
     std::vector<sta::Pin*> sinks)
 {
-  auto network = laurel_->getDbNetwork();
   std::map<const sta::Pin*, int> results;
+  if (src == nullptr || sinks.size() <= 0) {
+    return results;
+  }
+  auto network = laurel_->getDbNetwork();
   if (sinks.size() <= 0) {
     return results;
   }
@@ -628,12 +628,12 @@ void OpenDBAdapter::getWireBugdeting()
     if (worstHoldSlack < 0) {
       hasHoldVio = true;
     }
+    logger_->info(utl::BY,
+                  888,
+                  "hasHoldVio {} worstHoldSlack {}",
+                  hasHoldVio,
+                  worstHoldSlack);
   }
-  logger_->info(utl::BY,
-                888,
-                "hasHoldVio {} worstHoldSlack {}",
-                hasHoldVio,
-                worstHoldSlack);
 
   auto getHoldSlackRate = [=](sta::Pin* src) -> double {
     if (!hasHoldVio) {
@@ -671,31 +671,34 @@ void OpenDBAdapter::getWireBugdeting()
         sinkIdxes.push_back(i);
       }
     }
-    assert(src != nullptr && srcIdx != -1);
-    auto distmap = getDistFromSrcForSinks(src, sinks);
-    auto holdSlackRate = getHoldSlackRate(src);
-    bynet.wire_budget_begin = tableTriples_.size();
-    for (size_t i = 0; i < sinks.size(); i++) {
-      auto sink = sinks.at(i);
-      int rate = timingDriven_
-                     ? (int) (laurel_->getWireBudRate(src, sink) * 100)
-                     : 0;
-      if (rate >= 150 && holdSlackRate > 0) {
-        rate += holdSlackRate;
+
+    if (src != nullptr && srcIdx != -1) {
+      bynet.wire_budget_begin = tableTriples_.size();
+
+      auto distmap = getDistFromSrcForSinks(src, sinks);
+      auto holdSlackRate = getHoldSlackRate(src);
+      for (size_t i = 0; i < sinks.size(); i++) {
+        auto sink = sinks.at(i);
+        int rate = timingDriven_
+                       ? (int) (laurel_->getWireBudRate(src, sink) * 100)
+                       : 0;
+        if (rate >= 150 && holdSlackRate > 0) {
+          rate += holdSlackRate;
+        }
+        // logger_->info(utl::BY,
+        //               886,
+        //               "src {} sink {} hold {} wirebudget {}",
+        //               pins_[srcIdx].name,
+        //               pins_[sinkIdxes[i]].name,
+        //               holdSlackRate,
+        //               rate);
+        tableTriples_.push_back(
+            {srcIdx, sinkIdxes[i], (banyan_go::GoUint64) rate});
+        pins_.at(sinkIdxes[i]).min_dist_from_src = distmap[sink];
       }
-      logger_->info(utl::BY,
-                    886,
-                    "src {} sink {} hold {} wirebudget {}",
-                    pins_[srcIdx].name,
-                    pins_[sinkIdxes[i]].name,
-                    holdSlackRate,
-                    rate);
-      tableTriples_.push_back(
-          {srcIdx, sinkIdxes[i], (banyan_go::GoUint64) rate});
-      pins_.at(sinkIdxes[i]).min_dist_from_src = distmap[sink];
+      bynet.wire_budget_end = tableTriples_.size();
+      nets_.at(bynetIndex) = bynet;
     }
-    bynet.wire_budget_end = tableTriples_.size();
-    nets_.at(bynetIndex) = bynet;
   }
 }
 
