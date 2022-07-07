@@ -38,8 +38,9 @@ std::vector<banyan_go::option> banyanOptionVec(const BanyanOptions& byOptions)
   vec.push_back({"debug_output", byOptions.debugOutput.c_str()});
   vec.push_back({"debug_save_txt", byOptions.debugSaveTxt ? "true" : ""});
   vec.push_back({"cts", byOptions.cts ? "true" : ""});
-  vec.push_back({"enable_route", byOptions.enableRoute ? "true" : ""});
-  vec.push_back({"enable_maze_top", byOptions.enableMazeTop ? "true" : ""});
+  vec.push_back({"enable_route", byOptions.disableRoute ? "" : "true"});
+  vec.push_back({"enable_maze_top", byOptions.disableMazeTop ? "" : "true"});
+  vec.push_back({"pa_mcf", byOptions.disablePAMcf ? "" : "true"});
   vec.push_back({"baby_banyan", byOptions.babyBanyan ? "true" : ""});
   vec.push_back({"report_route_json", byOptions.reportRouteJson.c_str()});
   vec.push_back(
@@ -60,12 +61,10 @@ void printBanyanOptions(const BanyanOptions& byOptions)
   printer.print("\tmaxLayer:            ", "\t", byOptions.maxLayer);
   printer.print("\tmaxViaStack:         ", "\t", byOptions.maxViaStack);
   printer.print("\tcts:                 ", "\t", byOptions.cts);
-  // printer.print("\tenableRouteUsed:  ","\t", byOptions.enableRouteUsed);
-  printer.print("\tenableRoute:         ", "\t", byOptions.enableRoute);
-  // printer.print("\tenableMazeTopUsed:","\t", byOptions.enableMazeTopUsed);
-  printer.print("\tenableMazeTop:       ", "\t", byOptions.enableMazeTop);
+  printer.print("\tdisableRoute:        ", "\t", byOptions.disableRoute);
+  printer.print("\tdisableMazeTop:      ", "\t", byOptions.disableMazeTop);
+  printer.print("\tdisablePAMcf:        ", "\t", byOptions.disablePAMcf);
   printer.print("\tbabyBanyan:          ", "\t", byOptions.babyBanyan);
-  printer.print("\tpaMcf:               ", "\t", byOptions.paMcf);
   // printer.print("\treportRouteJsonUsed:","\t",
   // byOptions.reportRouteJsonUsed);
   printer.print("\treportRouteJson:     ", "\t", byOptions.reportRouteJson);
@@ -83,9 +82,6 @@ int Banyan::main(std::vector<std::string> args)
   {
     gOptions.logLevel = BanyanLogLevel::INFO;
     gOptions.maxViaStack = std::numeric_limits<uint32_t>::max();
-    gOptions.enableRoute = true;
-    gOptions.enableMazeTop = true;
-    gOptions.paMcf = true;
   }
 
   auto argsToStrFn = [](const std::vector<std::string>& vec) -> std::string {
@@ -100,6 +96,7 @@ int Banyan::main(std::vector<std::string> args)
     content += "]";
     return content;
   };
+
   auto strToLogLevelFn = [&](const std::string& str) {
     auto castRst = magic_enum::enum_cast<BanyanLogLevel>(str);
     if (!castRst) {
@@ -108,6 +105,7 @@ int Banyan::main(std::vector<std::string> args)
     }
     gOptions.logLevel = castRst.value();
   };
+
   auto strToMaxViaStackFn = [&](const std::string& str) {
     std::optional<uint32_t> castRst = getnum(str);
 
@@ -117,6 +115,7 @@ int Banyan::main(std::vector<std::string> args)
     }
     gOptions.maxViaStack = castRst.value();
   };
+
   auto printErrorIfRepeatedFn = [&](int argIdx) {
     logger_->info(utl::BY,
                   argIdx,
@@ -191,24 +190,22 @@ int Banyan::main(std::vector<std::string> args)
              .if_missing(printErrorIfMissing)
              .if_blocked(printErrorIfBlocked)
              .if_conflicted(printErrorIfConflicted),
-         option("-enable_route").set(gOptions.enableRouteUsed, true)
-             & value("run route", gOptions.enableRoute)
-                   .if_repeated(printErrorIfRepeatedFn)
-                   .if_missing(printErrorIfMissing)
-                   .if_blocked(printErrorIfBlocked)
-                   .if_conflicted(printErrorIfConflicted),
-         option("-enable_maze_top").set(gOptions.enableMazeTopUsed, true)
-             & value("run maze top", gOptions.enableMazeTop)
-                   .if_repeated(printErrorIfRepeatedFn)
-                   .if_missing(printErrorIfMissing)
-                   .if_blocked(printErrorIfBlocked)
-                   .if_conflicted(printErrorIfConflicted),
-         option("-pa_mcf")
-             & value("run MCF for pin access", gOptions.paMcf)
-                   .if_repeated(printErrorIfRepeatedFn)
-                   .if_missing(printErrorIfMissing)
-                   .if_blocked(printErrorIfBlocked)
-                   .if_conflicted(printErrorIfConflicted),
+         option("-disable_route")
+             .set(gOptions.disableRoute, true)
+             .if_repeated(printErrorIfRepeatedFn)
+             .if_missing(printErrorIfMissing)
+             .if_blocked(printErrorIfBlocked)
+             .if_conflicted(printErrorIfConflicted),
+         option("-disable_maze_top")
+             .if_repeated(printErrorIfRepeatedFn)
+             .if_missing(printErrorIfMissing)
+             .if_blocked(printErrorIfBlocked)
+             .if_conflicted(printErrorIfConflicted),
+         option("-disable_pa_mcf")
+             .if_repeated(printErrorIfRepeatedFn)
+             .if_missing(printErrorIfMissing)
+             .if_blocked(printErrorIfBlocked)
+             .if_conflicted(printErrorIfConflicted),
          option("-cts")
              .set(gOptions.cts, true)
              .if_repeated(printErrorIfRepeatedFn)

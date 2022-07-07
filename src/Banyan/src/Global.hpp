@@ -21,12 +21,10 @@ struct BanyanOptions
   std::string maxLayer;
   uint32_t maxViaStack;
   bool cts;
-  bool enableRouteUsed;
-  bool enableRoute;
-  bool enableMazeTopUsed;
-  bool enableMazeTop;
+  bool disableRoute;
+  bool disableMazeTop;
+  bool disablePAMcf;
   bool babyBanyan;
-  bool paMcf;
   bool reportRouteJsonUsed;
   std::string reportRouteJson;
   bool reportBenchmarkJsonUsed;
