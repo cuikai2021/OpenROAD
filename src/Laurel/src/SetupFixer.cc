@@ -74,6 +74,8 @@ Delay SetupFixer::getBound(Vertex* vertex, const MinMax* min_max)
   LibertyCell* cell = drvr_port->libertyCell();
   LibertyCellSeq* equiv_cells = sta_->equivCells(cell);
   PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+  if (!path.vertex(sta_))
+    return LRL_H_ZERO;
   const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
   const char* drvr_port_name = drvr_port->name();
   const Delay load_cap = graph_delay_calc_->loadCap(drvr_pin, dcalc_ap);
