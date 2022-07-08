@@ -146,6 +146,7 @@ int Laurel::fixSetup()
     ret = fixer.remap();
     ret = resizeAllCells(&fixer);
   }
+  openroad_->getResizer()->estimateWireParasitics();
   if (!ret)
     logger_->warn(utl::LRL, 1202, "Fail to resize all cells");
   else
