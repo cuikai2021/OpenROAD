@@ -644,8 +644,11 @@ void PlacerBase::init()
   odb::Rect dieRect;
   block->getDieArea(dieRect);
 
-  if (!dieRect.contains(coreRect))
+  if (!dieRect.contains(coreRect)) {
+    coreRect.print("coreRect:");
+    dieRect.print("dieRect:");
     log_->error(GPL, 118, "core area outside of die.");
+  }
 
   die_ = Die(dieRect, coreRect);
 
