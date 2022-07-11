@@ -282,7 +282,7 @@ class CutSpacingTableRule
           : rule->isSameMetal()
               ? std::make_optional(CutSpacingValidCondition::SAMEMETAL)
           : rule->isSameVia()
-              ? std::make_optional(CutSpacingValidCondition::SAMEMETAL)
+              ? std::make_optional(CutSpacingValidCondition::SAMEVIA)
               : std::nullopt;
 
     subRule = CutSpacingTableDefault(
