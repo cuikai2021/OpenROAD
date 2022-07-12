@@ -82,7 +82,6 @@ int Banyan::main(const std::map<std::string, std::string>& options)
   for (auto& kv : options) {
     logger_->info(
         utl::BY, 200, "banyan route option: {}={}", kv.first, kv.second);
-    options_vec.push_back({kv.first.c_str(), kv.second.c_str()});
 
     if (kv.first == "max_via_stack") {
       if (!kv.second.empty()) {
@@ -100,6 +99,8 @@ int Banyan::main(const std::map<std::string, std::string>& options)
       maxLayer = kv.second;
       continue;
     }
+
+    options_vec.push_back({kv.first.c_str(), kv.second.c_str()});
   }
   OpenDBAdapter bdAdapter(db_, logger_, maxViaStack, minLayer, maxLayer);
   Axioms axioms(bdAdapter);
