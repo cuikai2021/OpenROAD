@@ -162,6 +162,13 @@ getReplace()
   return openroad->getReplace();
 }
 
+gpl::LindenGlobalPlace*
+getLindenGlobalPlace()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getLindenGlobalPlace();
+}
+
 rcx::Ext *
 getOpenRCX()
 {

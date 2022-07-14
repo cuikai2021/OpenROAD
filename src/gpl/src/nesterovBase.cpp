@@ -166,11 +166,28 @@ void GCell::setDensityCenterLocation(int x, int y)
 void GCell::setDensitySize(int dDx, int dDy)
 {
   dRect_.resize(dDx, dDy);
+#if 0
+  if (this->isInstance()) {
+    std::cout << this->instance()->dbInst()->getName() << " eden:(dx, dy)=("
+              << dRect_.dx() << ", " << dRect_.dy() << "),  "
+              << ":(cx, cy)=(" << dRect_.cx() << ", " << dRect_.cy() << ")"
+              << ", (dDx, dDy)=(" << dDx << ", " << dDy << ")"
+              << ", (lx, ly)=(" << dRect_.lx() << ", " << dRect_.ly() << ")"
+              << ", (ux, uy)=(" << dRect_.ux() << ", " << dRect_.uy() << ")"
+              << std::endl;
+  }
+#endif
 }
 
 void GCell::setDensityScale(float densityScale)
 {
   densityScale_ = densityScale;
+#if 0
+  if (this->isInstance()) {
+    std::cout << this->instance()->dbInst()->getName() << ":densityScale_=" << densityScale_
+              << std::endl;
+  }
+#endif
 }
 
 void GCell::setGradientX(float gradientX)
@@ -436,12 +453,16 @@ float Bin::overflowArea() const
   const float occupiedNonFillerArea = instPlacedArea_ + nonPlaceArea_;
   const float overflow = occupiedNonFillerArea - binTargetArea;
 #if 0
-    if (overflow > 0) {
-      std::cout << "overflow: " << overflow
-                << ", occupiedNonFillerArea=" << occupiedNonFillerArea
-                << ", binTargetArea=" << binTargetArea 
-                << ", binArea=" << binArea() << std::endl;
-    }
+  if (overflow > 0) {
+    std::cout << "  Eden Bin(" << x() << "," << y()
+              << "): binTargetArea=" << binTargetArea
+              << ", instPlacedArea_=" << instPlacedArea_
+              << ", nonPlaceArea_=" << nonPlaceArea_
+              << ", occupiedNonFillerArea=" << occupiedNonFillerArea
+              << ", overflow=" << overflow 
+              << ", binArea=" << binArea()
+              << std::endl;
+  }
 #endif
   return std::max(0.0f, overflow);
 }
@@ -1136,25 +1157,6 @@ GNet* NesterovBase::dbToNb(odb::dbNet* net) const
   return pbToNb(pbNet);
 }
 
-// gcell update
-void NesterovBase::updateGCellLocation(const std::vector<FloatPoint>& coordis)
-{
-  for (size_t idx = 0; idx < coordis.size(); ++idx) {
-    auto coordi = coordis[idx];
-    gCells_[idx]->setLocation(coordi.x, coordi.y);
-  }
-}
-
-// gcell update
-void NesterovBase::updateGCellCenterLocation(
-    const std::vector<FloatPoint>& coordis)
-{
-  for (size_t idx = 0; idx < coordis.size(); ++idx) {
-    auto coordi = coordis[idx];
-    gCells_[idx]->setCenterLocation(coordi.x, coordi.y);
-  }
-}
-
 void NesterovBase::updateGCellDensityCenterLocation(
     const std::vector<FloatPoint>& coordis)
 {
@@ -1424,7 +1426,21 @@ void NesterovBase::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY)
 
   for (auto& gNet : gNets_) {
     gNet->updateBox();
-
+#if 0  // debug
+    if (gNet->net()->dbNet()->getName() == "HCLK") {
+      std::cout << "Eden net: {name: " << gNet->net()->dbNet()->getName() << "}"
+                <<", bbox: Rect{"
+                    << "ll: (" << gNet->lx() << ", "
+                    << gNet->ly() << ")"
+                    << "ur: (" << gNet->ux() << ", "
+                    << gNet->uy() << ")"
+                    << "}"
+                << "}"
+                << std::endl;
+      std::cout << "Eden wlCoeffX: " << wlCoeffX << std::endl;
+      std::cout << "Eden wlCoeffY: " << wlCoeffY << std::endl;
+    }
+#endif
     for (auto& gPin : gNet->gPins()) {
       // The WA terms are shift invariant:
       //
@@ -1438,9 +1454,64 @@ void NesterovBase::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY)
       float expMinY = (gNet->ly() - gPin->cy()) * wlCoeffY;
       float expMaxY = (gPin->cy() - gNet->uy()) * wlCoeffY;
 
+#if 0
+      if (gNet->net()->dbNet()->getName() == "HCLK") {
+        auto pin = *gPin->pin();
+        auto cell = gPin->gCell();
+
+        std::cout << "Eden Pin{odb_term:"
+                  << (pin.isBTerm() ? (uintptr_t) pin.dbBTerm()
+                                    : (uintptr_t) pin.dbITerm())
+                  << ", term_type:"
+                  << (pin.isBTerm() ? "ODB_BTERM" : "ODB_ITERM")
+                  << ", name:" << pin.name();
+        if (cell) {
+          auto cell_rect = cell->rect();
+          std::cout << ", cell: Cell{rect: Rect{"
+                    << "ll: (" << cell_rect.ll().getX() << ", "
+                    << cell_rect.ll().getY() << ")"
+                    << "ur: (" << cell_rect.ur().getX() << ", "
+                    << cell_rect.ur().getY() << ")"
+                    << "}"
+                    << ", pins.size(): " << cell->gPins().size()
+                    << ", odb_instance: " << cell->instance()->dbInst()
+                    << ", inst_area: " << cell->instance()->area()
+                    << ", name: " << cell->instance()->dbInst()->getName()
+                    << "}";
+
+        } else {
+          std::cout << ", cell: nullptr";
+        }
+        std::cout << ", net: Net{odb_net:" << (uintptr_t) gNet->net()->dbNet()
+                  << ", name:" << gNet->net()->dbNet()->getName()
+                  << ", pins.size(): " << gNet->gPins().size() << "}"
+                  << ", center: (" << gPin->cx() << "," << gPin->cy()
+                  << "), offset: (" << gPin->offsetCx() << ","
+                  << gPin->offsetCy() << ")}" << std::endl;
+
+        std::cout << "expMinX:" << expMinX
+                  << "fastExp(expMinX): " << fastExp(expMinX) << std::endl;
+        std::cout << "expMaxX:" << expMaxX
+                  << "fastExp(expMaxX): " << fastExp(expMaxX) << std::endl;
+        std::cout << "expMinY:" << expMinY
+                  << "fastExp(expMinY): " << fastExp(expMinY) << std::endl;
+        std::cout << "expMaxY:" << expMaxY
+                  << "fastExp(expMaxY): " << fastExp(expMaxY) << std::endl;
+        std::cout << std::endl;
+      }
+#endif
       // min x
       if (expMinX > nbVars_.minWireLengthForceBar) {
         gPin->setMinExpSumX(fastExp(expMinX));
+#if 0
+        if (gPin->minExpSumX() == 0) {
+          std::cout << "(gPin->minExpSumX()):" << (gPin->minExpSumX())
+                    << "(expMinX):" << (expMinX)
+                    << "(fastExp(expMinX)):" << (fastExp(expMinX)) << std::endl;
+          assert(gPin->minExpSumX() != 0);
+        }
+#endif
+
         gNet->addWaExpMinSumX(gPin->minExpSumX());
         gNet->addWaXExpMinSumX(gPin->cx() * gPin->minExpSumX());
         if (gPin->gCell() && gPin->gCell()->isInstance()) {
@@ -1502,6 +1573,16 @@ void NesterovBase::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY)
         }
       }
     }
+#if 0  // debug
+    if (gNet->net()->dbNet()->getName() == "HCLK") {
+      std::cout << "netname: " << gNet->net()->dbNet()->getName()
+                << "gNet->waExpMinSumX()" << gNet->waExpMinSumX()
+                << "gNet->waExpMinSumY()" << gNet->waExpMinSumY() << std::endl;
+    }
+#endif
+    assert(gNet->waExpMinSumX() != 0);
+    assert(gNet->waExpMinSumY() != 0);
+
     // cout << gNet->lx() << " " << gNet->ly() << " "
     //  << gNet->ux() << " " << gNet->uy() << endl;
   }

@@ -88,6 +88,8 @@ class Replace
   void doIncrementalPlace();
   void doInitialPlace();
 
+  void initPlacerBase();
+
   void initNesterovPlace();
   int doNesterovPlace(int start_iter = 0);
 

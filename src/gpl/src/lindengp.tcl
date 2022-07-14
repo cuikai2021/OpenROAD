@@ -1,0 +1,72 @@
+sta::define_cmd_args "linden_global_placement" {\
+    [-density target_density]\
+    [-overflow overflow]\
+    [-pad_left pad_left]\
+    [-pad_right pad_right]\
+}
+
+proc linden_global_placement { args } {
+  sta::parse_key_args "linden_global_placement" args \
+    keys {\
+      -density \
+      -overflow \
+      -pad_left -pad_right} \
+    flags {}
+  
+  set target_density 0.7
+  if { [info exists keys(-density)] } {
+    set target_density $keys(-density) 
+    sta::check_positive_float "-density" $target_density
+  }
+  gpl::set_linden_density_cmd $target_density 
+
+  set overflow 0.1
+  if { [info exists keys(-overflow)] } {
+    set overflow $keys(-overflow)
+    sta::check_positive_float "-overflow" $overflow
+  }
+  gpl::set_linden_overflow_cmd $overflow
+
+  set pad_left 0
+  set pad_right 0
+  if { [info exists keys(-pad_left)] } {
+    set pad_left $keys(-pad_left)
+  }
+  if { [info exists keys(-pad_right)] } {
+    set pad_right $keys(-pad_right)
+  }
+  sta::check_positive_integer "-pad_left" $pad_left
+  sta::check_positive_integer "-pad_right" $pad_right
+  gpl::set_linden_pad_left_cmd $pad_left
+  gpl::set_linden_pad_right_cmd $pad_right
+
+  if { [ord::db_has_rows] } {
+    sta::check_argc_eq0 "linden_global_placement" $args
+    gpl::lindengp_run_cmd
+  } else {
+    utl::error GPL 1130 "No rows defined in design. Use initialize_floorplan to add rows."
+  }
+}
+
+
+namespace eval gpl {
+proc linden_global_placement_debug { args } {
+  sta::parse_key_args "linden_global_placement_debug" args \
+      keys {-pause -update} \
+      flags {-draw_bins -initial}
+
+  set pause 10
+  if { [info exists keys(-pause)] } {
+    set pause $keys(-pause)
+    sta::check_positive_integer "-pause" $pause
+  }
+
+  set update 10
+  if { [info exists keys(-update)] } {
+    set update $keys(-update)
+    sta::check_positive_integer "-update" $update
+  }
+  gpl::set_linden_debug_cmd $pause $update
+}
+
+}
