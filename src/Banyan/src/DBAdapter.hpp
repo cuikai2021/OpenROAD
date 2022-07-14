@@ -144,12 +144,12 @@ class OpenDBAdapter : public DBAdapter
                 std::string minLayer,
                 std::string maxLayer,
                 bool debugActive = false)
-      : db_(db),
+      : debugActive_(debugActive),
+        db_(db),
         logger_(logger),
         maxViaStack_(maxViaStack),
         minLayer_(minLayer),
-        maxLayer_(maxLayer),
-        debugActive_(debugActive)
+        maxLayer_(maxLayer)
   {
     getLayersFromOpenDB();
     getViaDefsFromOpenDB();

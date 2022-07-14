@@ -93,6 +93,31 @@ void Axioms::initRules()
                   "\taxioms skip routing spacing rule with notchlength");
               continue;
             }
+            uint width = 0;
+            uint within = 0;
+            bool parallelEdge = false;
+            uint parallelSpace = 0;
+            uint parallelWithin = 0;
+            bool twoEdges = false;
+            if (spacingRule->getEol(width,
+                                    within,
+                                    parallelEdge,
+                                    parallelSpace,
+                                    parallelWithin,
+                                    twoEdges)) {
+              routingEOLSpacingRules.push_back(
+                  std::make_shared<RoutingEOLSpacingRule>(
+                      RoutingEOLSpacingRule(layer,
+                                            spacingRule->getSpacing(),
+                                            width,
+                                            within,
+                                            parallelEdge,
+                                            parallelSpace,
+                                            parallelWithin,
+                                            twoEdges)));
+              continue;
+            }
+
             routingSpacingRules.push_back(std::make_shared<RoutingSpacingRule>(
                 RoutingSpacingRule(layer, spacingRule)));
           }
@@ -248,6 +273,7 @@ uint64_t Axioms::getMinSpacing(odb::dbTechLayer* layer)
   return std::max(minSpacing,
                   ruleTbls.size() > 0 ? ruleTbls[0]->getMinSpacing() : 0);
 }
+
 std::optional<uint32_t> Axioms::findLengthThreshold(odb::dbTechLayer* layer)
 {
   auto rules = laToRoutingSpacingRules[layer];
@@ -432,10 +458,15 @@ Axioms::getCutSpacings(std::shared_ptr<Via> via1,
                   if (spacing.conditionValid(isSameNet,
                                              mainVia->getViaLayer(),
                                              subVia->getViaLayer())) {
-                    if (spacing.isSameNetRule()) {
+                    if (spacing.isAdjacentcutsRule()) {
+                    } else if (spacing.isSameNetRule()) {
                       sameNetSpacings.push_back({spacing.getCenterToCenter(),
                                                  std::nullopt,
                                                  rule->getSpacing()});
+                    } else if (spacing.isParallelOverlapRule()) {
+                      defSpacings.push_back({spacing.getCenterToCenter(),
+                                             std::make_optional(0),
+                                             rule->getSpacing()});
                     } else {
                       defSpacings.push_back({spacing.getCenterToCenter(),
                                              std::nullopt,
@@ -723,7 +754,7 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* layer,
   if (metalBoxPair.has_value()) {
     auto [metalBox1, metalBox2] = metalBoxPair.value();
     auto metalSpacing = getMaxRoutingPrlSpacing(layer, isSameNet);
-    int64_t perfMetalSpacing;
+    int64_t perfMetalSpacing = 0;
     int64_t trackMetalDist
         = pitch
           - (isHorizontal ? getBoxCenterToTopEdge(metalBox1)
@@ -746,7 +777,10 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* layer,
       updateCTCSpacing(perfMetalSpacing);
     }
     if (DEBUG_VIAVIATRACKLENGTH) {
-      printer.print("\tPerfMetalSpacing ", perfMetalSpacing);
+      printer.print("\tMetalSpacing",
+                    metalSpacing,
+                    " PerfMetalSpacing ",
+                    perfMetalSpacing);
     }
   }
 
@@ -767,36 +801,45 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* layer,
 
   for (auto [isCenterToCenter, prlOptional, spacing] :
        getCutSpacings(viaX, viaY, isSameNet)) {
-    int64_t perfCutSpacing;
-    auto prl = prlOptional.has_value() ? prlOptional.value() : 0;
+    int64_t perfCutSpacing = 0;
+    // auto prl = prlOptional.has_value() ? prlOptional.value() : 0;
     if (isCenterToCenter) {
       if (trackCutDist < 0) {
-        perfCutSpacing = (-trackCutDist < prl)
-                             ? lineCutBBoxPadding
-                             : std::max(spacing, lineCutBBoxPadding);
+        perfCutSpacing
+            = (prlOptional.has_value() && -trackCutDist < prlOptional.value())
+                  ? lineCutBBoxPadding
+                  : std::max(spacing, lineCutBBoxPadding);
       } else {
         if (spacing <= pitch) {
           perfCutSpacing = 0;
         } else {
           perfCutSpacing
               = std::ceil(std::sqrt(std::pow(spacing, 2) - std::pow(pitch, 2)));
-          perfCutSpacing
-              = std::min(perfCutSpacing, ((int64_t) lineCutBBoxPadding) - prl);
+          perfCutSpacing = prlOptional.has_value()
+                               ? std::min(perfCutSpacing,
+                                          ((int64_t) lineCutBBoxPadding)
+                                              - prlOptional.value())
+                               : perfCutSpacing;
         }
       }
     } else {
       if (trackCutDist < 0) {
-        perfCutSpacing = (-trackCutDist < prl) ? lineCutBBoxPadding
-                                               : spacing + lineCutBBoxPadding;
+        perfCutSpacing
+            = (prlOptional.has_value() && -trackCutDist < prlOptional.value())
+                  ? lineCutBBoxPadding
+                  : spacing + lineCutBBoxPadding;
       } else {
         if (spacing <= trackCutDist) {
           perfCutSpacing = 0;
         } else {
           perfCutSpacing = std::ceil(
               std::sqrt(std::pow(spacing, 2) - std::pow(trackCutDist, 2)));
-          perfCutSpacing
-              = std::min((int64_t) (perfCutSpacing + lineCutBBoxPadding),
-                         ((int64_t) lineCutBBoxPadding) - prl);
+          perfCutSpacing = (int64_t) (perfCutSpacing + lineCutBBoxPadding);
+          perfCutSpacing = prlOptional.has_value()
+                               ? std::min(perfCutSpacing,
+                                          ((int64_t) lineCutBBoxPadding)
+                                              - prlOptional.value())
+                               : perfCutSpacing;
         }
       }
     }

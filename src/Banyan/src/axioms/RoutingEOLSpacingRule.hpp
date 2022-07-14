@@ -220,10 +220,8 @@ class RoutingEOLSpacingRule
                         uint32_t prlSpace,
                         uint32_t prlWithin,
                         bool twoEdge)
-      : layer(layer)
+      : layer(layer), eolSpace(eolSpace), eolWidth(eolWidth)
   {
-    eolSpace = eolSpace;
-    eolWidth = eolWidth;
     subRule = RoutingEOLSpacingRuleWithin(
         eolWithin,
         std::nullopt,

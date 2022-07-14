@@ -116,6 +116,7 @@ class CutSpacingParallelOverlap
   friend std::ostream& operator<<(std::ostream& out,
                                   const CutSpacingParallelOverlap& obj)
   {
+    out << " PARALLELOVERLAP ";
     if (obj.exceptType.has_value()) {
       out << " " << magic_enum::enum_name(obj.exceptType.value()) << " ";
     }
@@ -171,6 +172,10 @@ class CutSpacing
   bool getCenterToCenter() const { return centerToCenter; }
 
   bool isSameNetRule();
+
+  bool isParallelOverlapRule();
+
+  bool isAdjacentcutsRule();
 
   std::optional<CutSpacingValidCondition> getValidCondition() const
   {
@@ -228,23 +233,24 @@ class CutSpacingRule
     spacing = rule->getSpacing();
     auto centerToCenter = rule->getCutCenterToCenter();
     auto sameNet = rule->getCutSameNet();
+    auto validCondition = sameNet ? std::make_optional(CutSpacingValidCondition::SAMENET)
+                  : (std::nullopt);
 
-    odb::dbTechLayer* toLayer;
+    odb::dbTechLayer* toLayer = nullptr;
     auto hasToLayer = rule->getCutLayer4Spacing(toLayer);
     if (hasToLayer) {
       auto stack = rule->getCutStacking();
       subRule = CutSpacing(
           centerToCenter,
-          sameNet ? std::make_optional(CutSpacingValidCondition::SAMENET)
-                  : (std::nullopt),
+          validCondition,
           std::make_optional(CutSpacingLayerStack(toLayer, stack)));
       return;
     }
 
-    uint numcuts;
-    uint within;
-    uint adjCutsSpacing;
-    bool execptSamePGNet;
+    uint numcuts = 0;
+    uint within = 0;
+    uint adjCutsSpacing = 0;
+    bool execptSamePGNet = false;
     auto hasAdjacentcuts = rule->getAdjacentCuts(
         numcuts, within, adjCutsSpacing, execptSamePGNet);
     assert(execptSamePGNet == false);
@@ -252,8 +258,7 @@ class CutSpacingRule
       spacing = adjCutsSpacing;
       subRule = CutSpacing(
           centerToCenter,
-          sameNet ? std::make_optional(CutSpacingValidCondition::SAMENET)
-                  : (std::nullopt),
+          validCondition,
           std::make_optional(
               CutSpacingAdjacentCuts(AdjacentCutsNum(numcuts), within)));
       return;
@@ -263,8 +268,7 @@ class CutSpacingRule
     if (prlOverlap) {
       subRule = CutSpacing(
           centerToCenter,
-          sameNet ? std::make_optional(CutSpacingValidCondition::SAMENET)
-                  : (std::nullopt),
+          validCondition,
           std::make_optional(CutSpacingParallelOverlap()));
       return;
     }

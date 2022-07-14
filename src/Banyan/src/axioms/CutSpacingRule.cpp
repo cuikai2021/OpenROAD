@@ -2,6 +2,16 @@
 
 namespace banyan {
 
+bool CutSpacing::isParallelOverlapRule()
+{
+  return subRule.has_value() && subRule.value().index() == 2;
+}
+
+bool CutSpacing::isAdjacentcutsRule()
+{
+  return subRule.has_value() && subRule.value().index() == 1;
+}
+
 bool CutSpacing::isSameNetRule()
 {
   return validCondition.has_value()
@@ -31,7 +41,7 @@ bool CutSpacing::conditionValid(bool isSameNet,
                  != toLayer)) {
     isValid = false;
   }
-
+  
   return isValid;
 }
 }  // namespace banyan
