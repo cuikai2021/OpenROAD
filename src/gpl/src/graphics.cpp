@@ -89,7 +89,7 @@ void Graphics::drawLinden(gui::Painter& painter)
   // Draw the placeable objects
   painter.setPen(gui::Painter::white);
   for (auto& cell : linden_db_->cells()) {
-    if (cell.is_instance()) {
+    if (cell.movable() && cell.is_instance()) {
       odb::dbInst* inst = static_cast<odb::dbInst*>(cell.odb_instance());
       inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
       const linden::geom::Rect& r = cell.rect();

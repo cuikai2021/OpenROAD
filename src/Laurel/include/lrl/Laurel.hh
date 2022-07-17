@@ -49,11 +49,9 @@ typedef std::string Name;
 typedef std::pair<Index, Index> WirePair;
 typedef sta::Set<WirePair> WirePairSet;
 typedef std::unordered_map<Index, MPVariable*> VertexMPVarMap;
-typedef sta::Map<Sdc*, VertexMPVarMap*> MMVertexMPVarMap;
+typedef sta::Map<Sdc*, std::shared_ptr<VertexMPVarMap>> MMVertexMPVarMap;
 typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
 typedef sta::Map<Index, MPConstraint*> MPConstraintMap;
-typedef sta::Vector<Name> VertexNameSeq;
-typedef sta::Set<Name> VertexNameSet;
 typedef sta::Set<Index> VertexIndexSet;
 
 typedef sta::Vector<Index> IndexSeq;
@@ -261,7 +259,6 @@ class HoldFixer : public LaurelAdapter
 {
  public:
   HoldFixer(OpenRoad* openroad, Options* options);
-  virtual ~HoldFixer();
 
   HoldResult resolve();
   Delay getWirePadding(const WirePair& wire_pair) const;
@@ -270,12 +267,14 @@ class HoldFixer : public LaurelAdapter
   int getInsertedBufferCnt() const { return inserted_buffer_count_; }
 
  protected:
+  typedef sta::Set<Name> VertexNameSet;
+
   void makeVar(const Index& vertex_index, MMVertexMPVarMap& arrival);
   void makeWire(const Index& pred, const Index& succ);
   void makeVarFanins(const VertexSet& fanins);
   void makeVarAllModes();
   void makeDelay(Vertex* vertex);
-  void findHoldVioNameMM();
+  void findHoldVioNameMM(VertexNameSet& vio_ends_name);
 
   int addConstraints(Delay low_bound, Delay high_bound);
   void genPrimeInConstraints();
@@ -288,9 +287,11 @@ class HoldFixer : public LaurelAdapter
   void getRealVertexName();
   Vertex* findRealVertex(const Index& vertex_index) const;
 
-  bool hasHoldViolation(Vertex* vertex) const;
-  void getHoldViolations(
-      VertexSet& hold_failures);  // should run findHoldVioNaemMM before
+  bool hasHoldViolation(Vertex* vertex,
+                        const VertexNameSet& vio_ends_name) const;
+  // should run findHoldVioNaemMM before
+  void getHoldViolations(const VertexNameSet& vio_ends_name,
+                         VertexSet& hold_failures);
 
   // can not do lp for 10^-10, should zoom in
   Delay zoomIn(Delay ori) const { return ori * LRL_H_SCALING; }
@@ -327,11 +328,10 @@ class HoldFixer : public LaurelAdapter
 
   std::unordered_map<Name, Index> vertex_name_index_map_;
   std::unordered_map<Index, Delay> delay_map_;
-  VertexNameSet vio_ends_name_;
   VertexIndexSet complete_vio_ends_;
-  std::unordered_map<Index, Vertex*> sdc_name_vertex_map_;
-  std::unordered_map<Vertex*, Index> sdc_vertex_index_map_;
-  VertexIndexSet pi_name_set_;
+  std::unordered_map<Index, Vertex*> sdc_id_vertex_map_;
+  std::unordered_map<Vertex*, Index> sdc_vertex_id_map_;
+  VertexIndexSet pi_set_;
 
   Options* options_;
 };
@@ -339,7 +339,7 @@ class HoldFixer : public LaurelAdapter
 class Laurel : public LaurelAdapter
 {
  public:
-  Laurel() : LaurelAdapter() { options_ = new Options(); }
+  Laurel() : LaurelAdapter() { options_ = std::make_shared<Options>(); }
   virtual ~Laurel();
 
   void initLaurel(OpenRoad* openroad,
@@ -368,8 +368,8 @@ class Laurel : public LaurelAdapter
   uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout);
   Delay getWireBudRate(Vertex* fanin, Vertex* fanout);
   Delay getWireBudRate(Pin* fanin, Pin* fanout);
-  
-  Options* getOptions() { return options_; }
+
+  Options* getOptions() { return options_.get(); }
 
  protected:
   bool fixHoldCore();
@@ -381,7 +381,7 @@ class Laurel : public LaurelAdapter
   void wireBudgetingCore();
 
   // variable
-  Options* options_;
+  std::shared_ptr<Options> options_;
 
   WireBudgeting* wire_bud_ = nullptr;
 };
