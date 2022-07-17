@@ -37,6 +37,8 @@
 sta::define_cmd_args "tapcell" {[-tapcell_master tapcell_master]\
                                 [-tap_prefix tap_prefix]\
                                 [-endcap_master endcap_master]\
+				[-endcap_right_master endcap_right_master]\
+				[-endcap_left_master endcap_left_master]\
                                 [-endcap_cpp endcap_cpp]\
                                 [-endcap_prefix endcap_prefix]\
                                 [-distance dist]\
@@ -60,8 +62,9 @@ sta::define_cmd_args "tapcell" {[-tapcell_master tapcell_master]\
 # Main function. It will run tapcell given the correct parameters
 proc tapcell { args } {
   sta::parse_key_args "tapcell" args \
-    keys {-tapcell_master -endcap_master -endcap_cpp -distance -halo_width_x \
-            -halo_width_y -tap_nwin2_master -tap_nwin3_master -tap_nwout2_master \
+    keys {-tapcell_master -endcap_master -endcap_right_master -endcap_left_master \
+              -endcap_cpp -distance -halo_width_x -halo_width_y \
+              -tap_nwin2_master -tap_nwin3_master -tap_nwout2_master \
               -tap_nwout3_master -tap_nwintie_master -tap_nwouttie_master \
               -cnrcap_nwin_master -cnrcap_nwout_master -incnrcap_nwin_master \
               -incnrcap_nwout_master -tbtie_cpp -tap_prefix -endcap_prefix} \
@@ -191,19 +194,46 @@ proc tapcell { args } {
    }
 
 
-  set endcap_master "NULL"
+  set endcap_right_master "NULL"
+  set endcap_left_master  "NULL"
   if { [info exists keys(-endcap_master)] } {
+    if { [info exists keys(-endcap_right_master)] || [info exists keys(-endcap_left_master)] } {
+      utl::error TAP 110 "Cannot use -endcap_master with -endcap_right_master, -endcap_left_master.";
+    }
     set endcap_master_name $keys(-endcap_master)
     set endcap_master [$db findMaster $endcap_master_name]
+    set endcap_right_master $endcap_master
     if { $endcap_master == "NULL" } {
       utl::error TAP 11 "Master $endcap_master_name not found."
+    }
+  }
+
+  if { [info exists keys(-endcap_right_master)] || [info exists keys(-endcap_left_master)] } {
+    if { ![info exists keys(-endcap_right_master)] || ![info exists keys(-endcap_left_master)]} {
+      utl::error TAP 111 "-endcap_right_master and -endcap_left_master must be used together.";
+    }
+  }
+	
+  if { [info exists keys(-endcap_right_master)] } {
+    set endcap_master_name $keys(-endcap_right_master)
+    set endcap_right_master [$db findMaster $endcap_master_name]
+    if { $endcap_right_master == "NULL" } {
+      utl::error TAP 112 "Master $endcap_master_name not found."
+    }
+  }
+	
+  if { [info exists keys(-endcap_left_master)] } {
+    set endcap_master_name $keys(-endcap_left_master)
+    set endcap_left_master [$db findMaster $endcap_master_name]
+    if { $endcap_left_master == "NULL" } {
+      utl::error TAP 113 "Master $endcap_master_name not found."
     }
   }
 
   tap::clear
   tap::set_tap_prefix $tap_prefix
   tap::set_endcap_prefix $endcap_prefix
-  tap::run $endcap_master $halo_x $halo_y $cnrcap_nwin_master $cnrcap_nwout_master $add_boundary_cell $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $incnrcap_nwin_master $incnrcap_nwout_master $tapcell_master $dist
+  tap::run $endcap_right_master $endcap_left_master $halo_x $halo_y $cnrcap_nwin_master $cnrcap_nwout_master $add_boundary_cell $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $incnrcap_nwin_master $incnrcap_nwout_master $tapcell_master $dist
 }
 
 sta::define_cmd_args "tapcell_ripup" {[-tap_prefix tap_prefix]\

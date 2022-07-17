@@ -64,7 +64,8 @@
     getTapcell()->setEndcapPrefix(endcap_prefix);
   }
 
-  void run(odb::dbMaster* endcap_master,
+  void run(odb::dbMaster* endcap_right_master,
+           odb::dbMaster* endcap_left_master,
            int halo_x,
            int halo_y,
            const char* cnrcap_nwin_master,
@@ -81,7 +82,8 @@
            odb::dbMaster* tapcell_master,
            int dist)
   {
-    getTapcell()->run(endcap_master,
+    getTapcell()->run(endcap_right_master,
+                      endcap_left_master,
                       halo_x,
                       halo_y,
                       cnrcap_nwin_master,
@@ -133,12 +135,13 @@
                            min_row_width);
   }
 
-  void cut_rows(odb::dbMaster* endcap_master,
+  void cut_rows(odb::dbMaster* endcap_right_master,
+                odb::dbMaster* endcap_left_master,
                 std::vector<odb::dbBox*>& blockages,
                 int halo_x,
                 int halo_y)
   {
-    getTapcell()->cutRows(endcap_master, blockages, halo_x, halo_y);
+    getTapcell()->cutRows(endcap_right_master, endcap_left_master, blockages, halo_x, halo_y);
   }
 
   int remove_cells(const char* prefix)

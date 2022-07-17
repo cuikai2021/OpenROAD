@@ -67,7 +67,8 @@ class Tapcell
   void setTapPrefix(const std::string& tap_prefix);
   void setEndcapPrefix(const std::string& endcap_prefix);
   void clear();
-  void run(odb::dbMaster* endcap_master,
+  void run(odb::dbMaster* endcap_right_master,
+		   odb::dbMaster* endcap_left_master,
            int halo_x,
            int halo_y,
            const std::string& cnrcap_nwin_master,
@@ -94,7 +95,8 @@ class Tapcell
                 odb::dbOrientType& orient,
                 odb::dbRowDir& direction,
                 int min_row_width);
-  void cutRows(odb::dbMaster* endcap_master,
+  void cutRows(odb::dbMaster* endcap_right_master,
+		       odb::dbMaster* endcap_left_master,
                const std::vector<odb::dbBox*>& blockages,
                int halo_x,
                int halo_y);
@@ -178,7 +180,8 @@ class Tapcell
   std::map<std::pair<int, int>, std::vector<int>> getMacroOutlines(
       const std::vector<std::vector<odb::dbRow*>>& rows);
   int insertEndcaps(const std::vector<std::vector<odb::dbRow*>>& rows,
-                    odb::dbMaster* endcap_master,
+                    odb::dbMaster* endcap_right_master,
+					odb::dbMaster* endcap_left_master,
                     const CornercapMasters& masters);
   std::vector<std::vector<odb::dbRow*>> organizeRows();
   int insertTapcells(const std::vector<std::vector<odb::dbRow*>>& rows,

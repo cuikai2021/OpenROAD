@@ -100,7 +100,8 @@ void Tapcell::clear()
   reset();
 }
 
-void Tapcell::run(odb::dbMaster* endcap_master,
+void Tapcell::run(odb::dbMaster* endcap_right_master,
+				  odb::dbMaster* endcap_left_master,
                   int halo_x,
                   int halo_y,
                   const string& cnrcap_nwin_master,
@@ -118,14 +119,14 @@ void Tapcell::run(odb::dbMaster* endcap_master,
                   int dist)
 {
   vector<odb::dbBox*> blockages = findBlockages();
-  cutRows(endcap_master, blockages, halo_x, halo_y);
+  cutRows(endcap_right_master, endcap_left_master, blockages, halo_x, halo_y);
   vector<vector<odb::dbRow*>> rows = organizeRows();
   CornercapMasters masters;
   masters.nwin_master = cnrcap_nwin_master;
   masters.nwout_master = cnrcap_nwout_master;
 
-  if (endcap_master != nullptr) {
-    insertEndcaps(rows, endcap_master, masters);
+  if (endcap_right_master != nullptr) {
+    insertEndcaps(rows, endcap_right_master, endcap_left_master, masters);
   }
   if (add_boundary_cell) {
     vector<string> tap_nw_masters;
@@ -162,17 +163,21 @@ void Tapcell::run(odb::dbMaster* endcap_master,
   filled_sites_.clear();
 }
 
-void Tapcell::cutRows(odb::dbMaster* endcap_master,
+void Tapcell::cutRows(odb::dbMaster* endcap_right_master,
+		              odb::dbMaster* endcap_left_master,
                       const vector<odb::dbBox*>& blockages,
                       int halo_x,
                       int halo_y)
 {
+  if (endcap_left_master == nullptr)
+	endcap_left_master = endcap_right_master;
   odb::dbBlock* block = db_->getChip()->getBlock();
   const int rows_count = (block->getRows()).size();
   const int block_count = blockages.size();
 
   const int min_row_width
-      = (endcap_master != nullptr) ? 2 * endcap_master->getWidth() : 0;
+      = ((endcap_right_master != nullptr) ? endcap_right_master->getWidth() : 0)
+	   +((endcap_left_master  != nullptr) ? endcap_left_master->getWidth()  : 0);
 
   // Gather rows needing to be cut up front
   vector<odb::dbRow*> blocked_rows;
@@ -265,9 +270,15 @@ void Tapcell::cutRow(odb::dbBlock* block,
 }
 
 int Tapcell::insertEndcaps(const vector<vector<odb::dbRow*>>& rows,
-                           odb::dbMaster* endcap_master,
+                           odb::dbMaster* endcap_right_master,
+						   odb::dbMaster* endcap_left_master,
                            const CornercapMasters& masters)
 {
+  bool right_rotation_needed = true;
+  if (endcap_left_master == nullptr)
+    endcap_left_master = endcap_right_master;
+  else
+	right_rotation_needed = false;
   int start_phy_idx = phy_idx_;
   odb::dbBlock* block = db_->getChip()->getBlock();
   odb::dbMaster* cnrcap_nwin_master;
@@ -302,9 +313,12 @@ int Tapcell::insertEndcaps(const vector<vector<odb::dbRow*>>& rows,
 
   for (int cur_row = bottom_row; cur_row <= top_row; cur_row++) {
     for (odb::dbRow* subrow : rows[cur_row]) {
-      if (!(checkSymmetry(endcap_master, subrow->getOrient()))) {
+      if (!(checkSymmetry(endcap_right_master, subrow->getOrient()))) {
         continue;
       }
+      if (!(checkSymmetry(endcap_left_master,  subrow->getOrient()))) {
+	    continue;
+	  }
       odb::Rect row_bb;
       subrow->getBBox(row_bb);
       auto row_ori = subrow->getOrient();
@@ -321,15 +335,23 @@ int Tapcell::insertEndcaps(const vector<vector<odb::dbRow*>>& rows,
                                          row_ori,
                                          cnrcap_nwin_master,
                                          cnrcap_nwout_master,
-                                         endcap_master);
-          right_master = left_master;
+                                         endcap_left_master);
+          right_master = pickCornerMaster(BelowMacro,
+                                          row_ori,
+                                          cnrcap_nwin_master,
+                                          cnrcap_nwout_master,
+                                          endcap_right_master);
         } else if (cur_row == bottom_row) {
           left_master = pickCornerMaster(AboveMacro,
                                          row_ori,
                                          cnrcap_nwin_master,
                                          cnrcap_nwout_master,
-                                         endcap_master);
-          right_master = left_master;
+                                         endcap_left_master);
+          right_master = pickCornerMaster(AboveMacro,
+                                          row_ori,
+                                          cnrcap_nwin_master,
+                                          cnrcap_nwout_master,
+                                          endcap_right_master);
         } else {
           auto rows_above = rows[cur_row + 1];
           auto rows_below = rows[cur_row - 1];
@@ -338,17 +360,17 @@ int Tapcell::insertEndcaps(const vector<vector<odb::dbRow*>>& rows,
                                  row_ori,
                                  cnrcap_nwin_master,
                                  cnrcap_nwout_master,
-                                 endcap_master);
+                                 endcap_left_master);
           right_master
               = pickCornerMaster(getLocationType(urx, rows_above, rows_below),
                                  row_ori,
                                  cnrcap_nwin_master,
                                  cnrcap_nwout_master,
-                                 endcap_master);
+                                 endcap_right_master);
         }
       } else {
-        left_master = endcap_master;
-        right_master = left_master;
+        left_master  = endcap_left_master;
+        right_master = endcap_right_master;
       }
 
       if ((left_master->getWidth()) > (urx - llx)) {
@@ -373,10 +395,12 @@ int Tapcell::insertEndcaps(const vector<vector<odb::dbRow*>>& rows,
       }
 
       odb::dbOrientType right_ori = row_ori;
-      if (row_ori == odb::dbOrientType::MX) {
-        right_ori = odb::dbOrientType::R180;
-      } else if (row_ori == odb::dbOrientType::R0) {
-        right_ori = odb::dbOrientType::MY;
+      if (right_rotation_needed) {
+        if (row_ori == odb::dbOrientType::MX) {
+          right_ori = odb::dbOrientType::R180;
+        } else if (row_ori == odb::dbOrientType::R0) {
+          right_ori = odb::dbOrientType::MY;
+        }
       }
       makeInstance(
           block, right_master, right_ori, loc_2_x, loc_2_y, endcap_prefix_);
