@@ -27,6 +27,13 @@ find_library(FINUFFT
     NO_DEFAULT_PATH
 )
 
+find_library(LEGENDRE_RULE_FAST
+    legendre_rule_fast
+    HINTS
+      ${LINDEN_LIBS_DIR}
+    NO_DEFAULT_PATH
+)
+
 target_include_directories(linden
   PUBLIC
     ../include
@@ -41,5 +48,5 @@ target_link_libraries(linden
     ${LINDENGP}
     fassert
     prettyprint
-    ${FINUFFT} legendre_rule_fast fftw3 fftw3_omp fftw3f fftw3f_omp
+    ${FINUFFT} ${LEGENDRE_RULE_FAST} fftw3 fftw3_omp fftw3f fftw3f_omp
 )
