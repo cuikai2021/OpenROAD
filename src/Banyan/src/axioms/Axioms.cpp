@@ -438,6 +438,9 @@ Axioms::getCutSpacings(std::shared_ptr<Via> via1,
     std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>> defSpacings;
     std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>>
         sameNetSpacings;
+    std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>>
+        exceptSameNetSpacings;
+
     for (auto rule : this->laToCutSpacingRules[mainVia->getViaLayer()]) {
       auto subRule = rule->getSubRule();
       if (subRule.has_value()) {
@@ -451,25 +454,32 @@ Axioms::getCutSpacings(std::shared_ptr<Via> via1,
                 },
                 [&defSpacings,
                  &sameNetSpacings,
+                 &exceptSameNetSpacings,
                  rule,
                  isSameNet,
                  &mainVia,
                  &subVia](CutSpacing& spacing) {
-                  if (spacing.conditionValid(isSameNet,
-                                             mainVia->getViaLayer(),
-                                             subVia->getViaLayer())) {
+                  if (spacing.constrained(mainVia->getViaLayer(),
+                                          subVia->getViaLayer())) {
                     if (spacing.isAdjacentcutsRule()) {
                     } else if (spacing.isSameNetRule()) {
                       sameNetSpacings.push_back({spacing.getCenterToCenter(),
-                                                 std::nullopt,
+                                                 spacing.isParallelOverlapRule()
+                                                     ? std::make_optional(0)
+                                                     : std::nullopt,
                                                  rule->getSpacing()});
-                    } else if (spacing.isParallelOverlapRule()) {
-                      defSpacings.push_back({spacing.getCenterToCenter(),
-                                             std::make_optional(0),
-                                             rule->getSpacing()});
+                    } else if (spacing.isExceptSameNetRule()) {
+                      exceptSameNetSpacings.push_back(
+                          {spacing.getCenterToCenter(),
+                           spacing.isParallelOverlapRule()
+                               ? std::make_optional(0)
+                               : std::nullopt,
+                           rule->getSpacing()});
                     } else {
                       defSpacings.push_back({spacing.getCenterToCenter(),
-                                             std::nullopt,
+                                             spacing.isParallelOverlapRule()
+                                                 ? std::make_optional(0)
+                                                 : std::nullopt,
                                              rule->getSpacing()});
                     }
                   }
@@ -483,17 +493,24 @@ Axioms::getCutSpacings(std::shared_ptr<Via> via1,
     }
 
     for (auto rule : laToCutSpacingTableRules[mainVia->getViaLayer()]) {
-      auto spacings = rule->getCutSpacings(mainVia, subVia, false);
-      defSpacings.insert(defSpacings.end(), spacings.begin(), spacings.end());
       if (isSameNet) {
-        spacings = rule->getCutSpacings(mainVia, subVia, true);
+        auto spacings = rule->getCutSpacings(mainVia, subVia, true);
         sameNetSpacings.insert(
+            sameNetSpacings.end(), spacings.begin(), spacings.end());
+      } else {
+        auto spacings = rule->getCutSpacings(mainVia, subVia, false);
+        exceptSameNetSpacings.insert(
             sameNetSpacings.end(), spacings.begin(), spacings.end());
       }
     }
+
     if (isSameNet && sameNetSpacings.size() > 0) {
       results.insert(
           results.end(), sameNetSpacings.begin(), sameNetSpacings.end());
+    } else if (!isSameNet && exceptSameNetSpacings.size() > 0) {
+      results.insert(results.end(),
+                     exceptSameNetSpacings.begin(),
+                     exceptSameNetSpacings.end());
     } else {
       results.insert(results.end(), defSpacings.begin(), defSpacings.end());
     }

@@ -2,6 +2,16 @@
 
 namespace banyan {
 
+bool CutSpacingParallelOverlap::isExceptSameNet()
+{
+  if (exceptType.has_value()
+      && exceptType.value()
+             == CutSpacingParallelOverlapExceptType::EXCEPTSAMENET) {
+    return true;
+  }
+  return false;
+}
+
 bool CutSpacing::isParallelOverlapRule()
 {
   return subRule.has_value() && subRule.value().index() == 2;
@@ -19,15 +29,19 @@ bool CutSpacing::isSameNetRule()
              || validCondition.value() == CutSpacingValidCondition::SAMEMETAL);
 }
 
-bool CutSpacing::conditionValid(bool isSameNet,
-                                odb::dbTechLayer* fromLayer,
-                                odb::dbTechLayer* toLayer)
+bool CutSpacing::isExceptSameNetRule()
+{
+  if (subRule.has_value() && subRule.value().index() == 2) {
+    return std::get<CutSpacingParallelOverlap>(subRule.value())
+        .isExceptSameNet();
+  }
+  return false;
+}
+
+bool CutSpacing::constrained(odb::dbTechLayer* fromLayer,
+                             odb::dbTechLayer* toLayer)
 {
   auto isValid = true;
-
-  if (!isSameNet && isSameNetRule()) {
-    isValid = false;
-  }
 
   if (subRule.has_value() && subRule.value().index() == 0
       && std::get<CutSpacingLayerStack>(subRule.value()).getToLayer()
@@ -41,7 +55,7 @@ bool CutSpacing::conditionValid(bool isSameNet,
                  != toLayer)) {
     isValid = false;
   }
-  
+
   return isValid;
 }
 }  // namespace banyan

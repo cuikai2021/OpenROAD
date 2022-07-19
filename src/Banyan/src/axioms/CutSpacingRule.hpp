@@ -7,9 +7,9 @@
 #include <optional>
 #include <variant>
 
-#include "utils.hpp"
 #include "magic_enum.hpp"
 #include "odb/db.h"
+#include "utils.hpp"
 
 namespace banyan {
 
@@ -113,6 +113,8 @@ class CutSpacingParallelOverlap
       : exceptType(exceptType){};
   ~CutSpacingParallelOverlap(){};
 
+  bool isExceptSameNet();
+
   friend std::ostream& operator<<(std::ostream& out,
                                   const CutSpacingParallelOverlap& obj)
   {
@@ -173,6 +175,8 @@ class CutSpacing
 
   bool isSameNetRule();
 
+  bool isExceptSameNetRule();
+
   bool isParallelOverlapRule();
 
   bool isAdjacentcutsRule();
@@ -191,8 +195,7 @@ class CutSpacing
     return subRule;
   }
 
-  bool conditionValid(bool isSameNet,
-                      odb::dbTechLayer* fromLayer,
+  bool constrained(odb::dbTechLayer* fromLayer,
                       odb::dbTechLayer* toLayer);
 
   friend std::ostream& operator<<(std::ostream& out, const CutSpacing& obj)
@@ -233,7 +236,8 @@ class CutSpacingRule
     spacing = rule->getSpacing();
     auto centerToCenter = rule->getCutCenterToCenter();
     auto sameNet = rule->getCutSameNet();
-    auto validCondition = sameNet ? std::make_optional(CutSpacingValidCondition::SAMENET)
+    auto validCondition
+        = sameNet ? std::make_optional(CutSpacingValidCondition::SAMENET)
                   : (std::nullopt);
 
     odb::dbTechLayer* toLayer = nullptr;
@@ -256,20 +260,18 @@ class CutSpacingRule
     assert(execptSamePGNet == false);
     if (hasAdjacentcuts) {
       spacing = adjCutsSpacing;
-      subRule = CutSpacing(
-          centerToCenter,
-          validCondition,
-          std::make_optional(
-              CutSpacingAdjacentCuts(AdjacentCutsNum(numcuts), within)));
+      subRule = CutSpacing(centerToCenter,
+                           validCondition,
+                           std::make_optional(CutSpacingAdjacentCuts(
+                               AdjacentCutsNum(numcuts), within)));
       return;
     }
 
     auto prlOverlap = rule->getCutParallelOverlap();
     if (prlOverlap) {
-      subRule = CutSpacing(
-          centerToCenter,
-          validCondition,
-          std::make_optional(CutSpacingParallelOverlap()));
+      subRule = CutSpacing(centerToCenter,
+                           validCondition,
+                           std::make_optional(CutSpacingParallelOverlap()));
       return;
     }
 
@@ -331,11 +333,17 @@ class CutSpacingRule
         assert(!rule->isSameMask());
         break;
       case odb::dbTechLayerCutSpacingRule::PARALLELOVERLAP:
-        subRule = CutSpacing(rule->isCenterToCenter(),
-                             validConditionMapFn(rule),
-                             std::make_optional(CutSpacingParallelOverlap()));
+        subRule = CutSpacing(
+            rule->isCenterToCenter(),
+            validConditionMapFn(rule),
+            std::make_optional(
+                rule->isExceptSameNet()
+                    ? CutSpacingParallelOverlap(std::make_optional(
+                        CutSpacingParallelOverlapExceptType::EXCEPTSAMENET))
+                    : CutSpacingParallelOverlap()));
+
         assert(!rule->isExceptSameMetal() && !rule->isExceptSameMetalOverlap()
-               && !rule->isExceptSameNet() && !rule->isExceptSameVia());
+               && !rule->isExceptSameVia());
         break;
       case odb::dbTechLayerCutSpacingRule::PARALLELWITHIN:
         assert(false);
