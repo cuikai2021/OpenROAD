@@ -16,3 +16,6 @@
 [submodule "linden"]
 	path = src/linden/gpl
 	url = git@github.com:ICBench/linden-integrate.git
+[submodule "tomlpp"]
+	path = tomlpp
+	url = git@github.com:marzer/tomlplusplus.git

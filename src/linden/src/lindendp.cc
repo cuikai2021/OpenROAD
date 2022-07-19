@@ -1,4 +1,5 @@
 #include "linden/linden.hpp"
+#include "toml++/toml.h"
 #include "odb/db.h"
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
@@ -12,6 +13,8 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <functional>
+#include <optional>
 #include <tcl.h>
 #include <cstdlib>
 
@@ -31,7 +34,7 @@ void delete_ldp(ClientData data);
 
 namespace linden {
 
-const char sTclCmd[] = "lindendp";
+const char sTclCmd[] = "linden_detailed_placement";
 
 class DetailedPlacer
 {
@@ -39,7 +42,7 @@ public:
     explicit DetailedPlacer(::ord::OpenRoad& ord);
     ~DetailedPlacer();
 
-    void go();
+    void go(Tcl_Interp&, deque<reference_wrapper<Tcl_Obj>>&& args);
 
 private:
     ::ord::OpenRoad& openroad_;
@@ -138,22 +141,15 @@ string outputDefName(const string& basename) {
 }
 
 void exec(
-    const string& tech,
-    const deque<string>& libs,
-    const string& indef,
+    const string& input_cfg,
     const string& outdef)
 {
     deque<string> args;
-    args.push_back("--cell-only");
-    args.push_back("--lef");
-    args.push_back(tech);
-    for(const auto& x: libs) {
-        args.push_back(x);
-    }
-    args.push_back("--def");
-    args.push_back(indef);
+    args.push_back("--input-config");
+    args.push_back(input_cfg);
     args.push_back("--to");
     args.push_back(outdef);
+    args.push_back("--cell-only");
     string exe = std::move(getExe());
     int ec = boost::process::system(exe, boost::process::args(args));
     if (ec != 0) {
@@ -162,16 +158,120 @@ void exec(
     }
 }
 
+struct InputArgs
+{
+    deque<string> lefs;
+    string def;
+    optional<deque<string>> selected_fillers;
+};
+
+string writeInputConfig(
+    const InputArgs& args,
+    const string& basename)
+{
+    auto root = toml::table{
+        {"version", "1.0"},
+    };
+    {
+        toml::array lefs;
+        for(auto const& lef: args.lefs) {
+            lefs.push_back(lef);
+        }
+        root.emplace("lefs", lefs);
+    }
+    {
+        toml::array defs;
+        defs.push_back(args.def);
+        root.emplace("defs", defs);
+    }
+    if (args.selected_fillers) {
+        toml::array fillers;
+        for(auto const& f: *args.selected_fillers) {
+            fillers.push_back(f);
+        }
+        auto mid = toml::table{
+            {"list", fillers},
+        };
+        root.emplace("fillers", mid);
+    }
+
+    string filename = basename;
+    filename.append(".toml");
+    ofstream fout(filename);
+    fout << root;
+    fout.close();
+    cout << "input-cfg: " << filename << endl;
+    return filename;
+}
+
 } // namespace
 
-void DetailedPlacer::go() {
+void DetailedPlacer::go(
+    Tcl_Interp& interp,
+    deque<reference_wrapper<Tcl_Obj>>&& args)
+{
+    InputArgs input_cfg;
+    optional<const char*> filler_include = nullopt;
+    optional<const char*> filler_exclude = nullopt;
+    args.pop_front(); // `linden_detailed_placement` itself
+    for(; !args.empty(); ) {
+        char* s = Tcl_GetString(&args.front().get());
+        if (strcmp(s, "--filler-include-names") == 0) {
+            args.pop_front();
+            if (args.empty()) {
+                cout << "Required a regexp for \"--filler-include-names\"." << endl;
+                throw std::runtime_error("Required a regexp for \"--filler-include-names\".");
+            }
+            filler_include = std::move(Tcl_GetString(&args.front().get()));
+            args.pop_front();
+        } else if (strcmp(s, "--filler-exclude-names") == 0) {
+            args.pop_front();
+            if (args.empty()) {
+                cout << "Required a regexp for \"--filler-exclude-names\"." << endl;
+                throw std::runtime_error("Required a regexp for \"--filler-exclude-names\".");
+            }
+            filler_exclude = std::move(Tcl_GetString(&args.front().get()));
+            args.pop_front();
+        } else {
+            args.pop_front();
+        }
+    }
+
+    if (filler_include || filler_exclude) {
+        //
+        // It seems TCL regex accepts the same syntax as that in Rust.
+        // But I cannot prove it.
+        // So, in order to provide a native user-experience for TCL users,
+        // I filter names of std-cells by TCL API, although there is a little bit
+        // performance penality.
+        //
+        deque<string> selected_fillers;
+        for(auto const& lib: openroad_.getDb()->getLibs()) {
+            for(auto const& model: lib->getMasters()) {
+                auto const& name = model->getName();
+                if (filler_include
+                    && !Tcl_RegExpMatch(&interp, name.c_str(), *filler_include)) {
+                    continue;
+                }
+                if (filler_exclude
+                    && Tcl_RegExpMatch(&interp, name.c_str(), *filler_exclude)) {
+                    continue;
+                }
+                selected_fillers.push_back(name);
+            }
+        }
+        input_cfg.selected_fillers = std::move(selected_fillers);
+    }
+
     string basename = std::move(genBaseFilename());
 
-    string indef = std::move(writeDef(openroad_, basename));
+    input_cfg.def = std::move(writeDef(openroad_, basename));
     string tech = std::move(writeTech(openroad_, basename));
-    deque<string> libs = std::move(writeLib(openroad_, basename));
+    input_cfg.lefs = std::move(writeLib(openroad_, basename));
+    input_cfg.lefs.push_front(tech);
+    string input_cfg_fn = std::move(writeInputConfig(input_cfg, basename));
     string outdef = std::move(outputDefName(basename));
-    exec(tech, libs, indef, outdef);
+    exec(input_cfg_fn, outdef);
     openroad_.readDef(outdef.c_str(), false, false, true);
 }
 
@@ -186,7 +286,11 @@ int ldp(
     Tcl_Obj* const argv[])
 {
     linden::DetailedPlacer* dp = reinterpret_cast<linden::DetailedPlacer*>(data);
-    dp->go();
+    deque<reference_wrapper<Tcl_Obj>> args;
+    for(int i = 0; i < objc; ++i) {
+        args.push_back(std::ref(*argv[i]));
+    }
+    dp->go(*interp, std::move(args));
     return 0;
 }
 

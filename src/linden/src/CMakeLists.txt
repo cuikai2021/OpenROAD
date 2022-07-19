@@ -46,6 +46,7 @@ target_link_libraries(linden
     odb
     utl
     ${LINDENGP}
+    tomlpp
     fassert
     prettyprint
     ${FINUFFT} ${LEGENDRE_RULE_FAST} fftw3 fftw3_omp fftw3f fftw3f_omp
