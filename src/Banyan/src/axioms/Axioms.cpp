@@ -1,782 +1,1092 @@
-#include "axioms/Axioms.h"
+#include "axioms/Axioms.hpp"
 
 #include <assert.h>
-#include <limits.h>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <list>
 #include <map>
+#include <memory>
 #include <utility>
-
-#include "odb/db.h"
+#include <utils.hpp>
 
 namespace banyan {
 
-void Axioms::initDefaultViaMap()
+void Axioms::initViaMap()
+{
+  for (auto techVia : db_->getTech()->getVias()) {
+    if (!techVia->isDefault()) {
+      continue;
+    }
+    viaMap[techVia->getName()] = std::make_shared<Via>(Via(techVia));
+  }
+
+#ifndef NDEBUG
+  printer.print("Vias:");
+  for (auto [_, viaPtr] : viaMap) {
+    printer.print(*viaPtr);
+  }
+#endif
+}
+
+void Axioms::initCutClasses()
 {
   odb::dbTech* tech = db_->getTech();
-  const auto techVias = tech->getVias();
-  for (auto techVia : techVias) {
-    if (techVia->isDefault()) {
-      defaultViaMap[techVia->getName()] = techVia;
-    }
-  }
-}
 
-void Axioms::getDefaultViasInLayer(
-    odb::dbTechLayer* layer,
-    std::vector<std::pair<std::string, odb::dbTechVia*>>& defaultViasInLayer)
-{
-  /* def vias seem missing
-  auto la = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
-  if (la < 0)
-    throw odb::ZException("invalid viadef layers");
-
-  for (auto i = dbAdapter_.layers_[la].viadef_begin;
-    i != dbAdapter_.layers_[la].viadef_end; ++i) {
-      const auto &viadef = dbAdapter_.viadefs_[i];
-      std::string name(viadef.name);
-      auto via = AssertFind(defaultViaMap, name);
-      defaultViasInLayer.emplace_back(name, via);
-  }
-  if (size_t(la+1) < dbAdapter_.layers_.size()) {
-    for (auto i = dbAdapter_.layers_[la+1].viadef_begin;
-      i != dbAdapter_.layers_[la+1].viadef_end; ++i) {
-        const auto &viadef = dbAdapter_.viadefs_[i];
-        std::string name(viadef.name);
-        auto via = AssertFind(defaultViaMap, name);
-        defaultViasInLayer.emplace_back(name, via);
-    }
-  }
-  //*/
-  //*
-  copy_if(defaultViaMap.begin(),
-          defaultViaMap.end(),
-          std::inserter(defaultViasInLayer, defaultViasInLayer.end()),
-          [layer](auto const& kv_pair) {
-            auto via = kv_pair.second;
-            return via->getTopLayer()->getName() == layer->getName()
-                   || via->getBottomLayer()->getName() == layer->getName();
-          });
-  //*/
-}
-
-uint32_t Axioms::getCutNumsFromVia(odb::dbTechVia* via)
-{
-  if (via == nullptr) {
-    return 0;
-  }
-  uint32_t num;
-  for (auto box : via->getBoxes()) {
-    if (box->getTechLayer()->getType().getValue()
-        != odb::dbTechLayerType::CUT) {
+  for (auto layer : tech->getLayers()) {
+    if (layer->getType() != odb::dbTechLayerType::CUT) {
       continue;
     }
-    num++;
+    CutClassMap<CutClassRule> cutClassRules;
+    for (auto cutClassRule : layer->getTechLayerCutClassRules()) {
+      cutClassRules[cutClassRule->getName()]
+          = std::make_shared<CutClassRule>(CutClassRule(layer, cutClassRule));
+    }
+    CutClassRule::laToCutClassRules[layer] = std::move(cutClassRules);
   }
-  return num;
 }
 
-void Axioms::getBoundaryBoxOfCutBoxesFromVia(odb::dbTechVia* via,
-                                             odb::Rect* resultBox)
+void Axioms::initRules()
 {
-  if (via == nullptr || resultBox == nullptr) {
-    return;
-  }
+  odb::dbTech* tech = db_->getTech();
 
-  for (auto box : via->getBoxes()) {
-    if (box->getTechLayer()->getType().getValue()
-        != odb::dbTechLayerType::CUT) {
-      continue;
-    }
-    if (box->xMin() < resultBox->xMin()) {
-      resultBox->set_xlo(box->xMin());
-    }
-    if (box->yMin() < resultBox->yMin()) {
-      resultBox->set_ylo(box->yMin());
-    }
-    if (box->xMax() > resultBox->xMax()) {
-      resultBox->set_xhi(box->xMax());
-    }
-    if (box->yMax() > resultBox->yMax()) {
-      resultBox->set_yhi(box->yMax());
-    }
-  }
+  std::vector<uint> widthIdx;
+  std::vector<uint> lengthIdx;
+  for (auto layer : tech->getLayers()) {
+    LayerRules<CutSpacingRule> cutSpacingRules;
+    LayerRules<CutSpacingTableRule> cutSpacingTableRules;
+    LayerRules<RoutingSpacingRule> routingSpacingRules;
+    LayerRules<RoutingSpacingTableRule> routingSpacingTableRules;
+    LayerRules<RoutingEOLSpacingRule> routingEOLSpacingRules;
+    odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
 
-  return;
-}
-
-odb::dbBox* Axioms::getLayerBoxFromVia(odb::dbTechLayer* layer,
-                                       odb::dbTechVia* via)
-{
-  if (via == nullptr) {
-    return nullptr;
-  }
-  for (auto box : via->getBoxes()) {
-    if (box->getTechLayer() != nullptr
-        && box->getTechLayer()->getName() == layer->getName()) {
-      return box;
-    }
-  }
-  return nullptr;
-}
-
-odb::dbTechLayer* Axioms::getCutLayerFromVia(odb::dbTechVia* via)
-{
-  if (via == nullptr) {
-    return nullptr;
-  }
-  odb::dbTechLayer* cutLayer = nullptr;
-  for (auto box : via->getBoxes()) {
-    if (box->getTechLayer()->getType().getValue()
-        == odb::dbTechLayerType::CUT) {
-      cutLayer = box->getTechLayer();
-      break;
-    }
-  }
-  return cutLayer;
-}
-
-bool isVaildSpacingRule(odb::dbTechLayerSpacingRule* spacingRule, uint width)
-{
-  uint wmin = 0;
-  uint wmax = 0;
-  bool hasRange = spacingRule->getRange(wmin, wmax);
-  if (!hasRange) {
-    return true;
-  }
-
-  return (wmin <= width && width <= wmax);
-}
-
-uint64_t Axioms::getRoutingPRLSpacing(odb::dbTechLayer* layer, bool isSameNet)
-{
-  if (layer == nullptr) {
-    return 0;
-  }
-  uint spacing = layer->getSpacing();
-
-  if (layer->hasV55SpacingRules()) {
-    spacing = std::max(layer->findV55Spacing((int) layer->getWidth(), INT_MAX),
-                       layer->getSpacing());
-  }
-
-  odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
-  layer->getV54SpacingRules(spacingRules);
-  for (auto spacingRule : spacingRules) {
-    uint width = 0;
-    uint within = 0;
-    bool parallelEdge = false;
-    uint parallelSpace = 0;
-    uint parallelWithin = 0;
-    bool twoEdges = false;
-    if (spacingRule->getEol(width,
-                            within,
-                            parallelEdge,
-                            parallelSpace,
-                            parallelWithin,
-                            twoEdges)) {
-      continue;
-    } else if (spacingRule->getSpacing() > spacing) {
-      if (isVaildSpacingRule(spacingRule, width)) {
-        spacing = spacingRule->getSpacing();
-      }
-    }
-  }
-
-  return spacing;
-}
-
-uint64_t Axioms::getRoutingEOLSpacing(odb::dbTechLayer* layer, bool isSameNet)
-{
-  if (layer == nullptr) {
-    return 0;
-  }
-  uint spacing = layer->getSpacing();
-  uint width = layer->getWidth();
-
-  auto prlSpacing = getRoutingPRLSpacing(layer, isSameNet);
-
-  odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
-  layer->getV54SpacingRules(spacingRules);
-
-  for (auto spacingRule : spacingRules) {
-    uint eolWidth = 0;
-    uint eolWithin = 0;
-    bool parallelEdge = false;
-    uint parallelSpace = 0;
-    uint parallelWithin = 0;
-    bool twoEdges = false;
-    if (spacingRule->getEol(eolWidth,
-                            eolWithin,
-                            parallelEdge,
-                            parallelSpace,
-                            parallelWithin,
-                            twoEdges)) {
-      if (layer->getWidth() > eolWidth) {
-        continue;
-      }
-      if (parallelSpace == 0 || parallelWithin == 0) {
-        if (isVaildSpacingRule(spacingRule, width)) {
-          spacing = spacingRule->getSpacing();
-        }
-        break;
-      } else {
-        if (prlSpacing < parallelWithin
-            || (uint) layer->getSpacing() < eolWithin) {
-          if (isVaildSpacingRule(spacingRule, width)) {
-            spacing = spacingRule->getSpacing();
+    switch (layer->getType()) {
+      case odb::dbTechLayerType::CUT:
+        if (layer->getV54SpacingRules(spacingRules)) {
+          for (auto spacingRule : spacingRules) {
+            cutSpacingRules.push_back(std::make_shared<CutSpacingRule>(
+                CutSpacingRule(layer, spacingRule)));
           }
-          break;
         }
-      }
-    } else if (spacingRule->getSpacing() > spacing) {
-      if (isVaildSpacingRule(spacingRule, width)) {
-        spacing = spacingRule->getSpacing();
+        for (auto cutSpacingRule : layer->getTechLayerCutSpacingRules()) {
+          cutSpacingRules.push_back(std::make_shared<CutSpacingRule>(
+              CutSpacingRule(layer, cutSpacingRule)));
+        }
+        for (auto cutSpacingTblRule :
+             layer->getTechLayerCutSpacingTableDefRules()) {
+          cutSpacingTableRules.push_back(std::make_shared<CutSpacingTableRule>(
+              CutSpacingTableRule(layer, cutSpacingTblRule)));
+        }
+        laToCutSpacingRules[layer] = std::move(cutSpacingRules);
+        laToCutSpacingTableRules[layer] = std::move(cutSpacingTableRules);
+        break;
+      case odb::dbTechLayerType::ROUTING:
+        printer.print(layer->getName(),
+                      "\tMinArea ",
+                      dbAdapter_.defArea(layer->getArea()));
+        if (layer->getV54SpacingRules(spacingRules)) {
+          for (auto spacingRule : spacingRules) {
+            if (spacingRule->hasSpacingNotchLength()) {
+              printer.print(
+                  layer->getName(),
+                  "\taxioms skip routing spacing rule with notchlength");
+              continue;
+            }
+            uint width = 0;
+            uint within = 0;
+            bool parallelEdge = false;
+            uint parallelSpace = 0;
+            uint parallelWithin = 0;
+            bool twoEdges = false;
+            if (spacingRule->getEol(width,
+                                    within,
+                                    parallelEdge,
+                                    parallelSpace,
+                                    parallelWithin,
+                                    twoEdges)) {
+              routingEOLSpacingRules.push_back(
+                  std::make_shared<RoutingEOLSpacingRule>(
+                      RoutingEOLSpacingRule(layer,
+                                            spacingRule->getSpacing(),
+                                            width,
+                                            within,
+                                            parallelEdge,
+                                            parallelSpace,
+                                            parallelWithin,
+                                            twoEdges)));
+              continue;
+            }
+
+            routingSpacingRules.push_back(std::make_shared<RoutingSpacingRule>(
+                RoutingSpacingRule(layer, spacingRule)));
+          }
+        }
+        for (auto spacingRule : layer->getTechLayerSpacingNotchLengthRules()) {
+          printer.print(layer->getName(),
+                        "\taxioms skip routing spacing rule with notchlength");
+        }
+        if (layer->hasV55SpacingRules()
+            && layer->getV55SpacingWidthsAndLengths(widthIdx, lengthIdx)) {
+          routingSpacingTableRules.push_back(
+              std::make_shared<RoutingSpacingTableRule>(
+                  RoutingSpacingTableRule(layer, widthIdx, lengthIdx)));
+        }
+        for (auto spacingTblPrl : layer->getTechLayerSpacingTablePrlRules()) {
+          routingSpacingTableRules.push_back(
+              std::make_shared<RoutingSpacingTableRule>(
+                  RoutingSpacingTableRule(layer, spacingTblPrl)));
+        }
+        for (auto eolSpacingRule : layer->getTechLayerSpacingEolRules()) {
+          routingEOLSpacingRules.push_back(
+              std::make_shared<RoutingEOLSpacingRule>(
+                  RoutingEOLSpacingRule(layer, eolSpacingRule)));
+        }
+        laToRoutingSpacingRules[layer] = std::move(routingSpacingRules);
+        laToRoutingSpacingTableRules[layer]
+            = std::move(routingSpacingTableRules);
+        laToRoutingEOLSpacingRules[layer] = std::move(routingEOLSpacingRules);
+        break;
+    }
+  }
+
+  if (debugActive_) {
+    printer.print("\nCUT Class Rules:");
+    for (auto [_, rules] : CutClassRule::laToCutClassRules) {
+      for (auto [_, rule] : rules) {
+        printer.print(*rule);
       }
     }
+    printer.print("\nCUT SPACING Rules:");
+    for (auto [_, rules] : laToCutSpacingRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nCUT SPACINGTABLE Rules:");
+    for (auto [_, rules] : laToCutSpacingTableRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nSPACING Rules:");
+    for (auto [_, rules] : laToRoutingSpacingRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nSPACINGTABLE Rules:");
+    for (auto [_, rules] : laToRoutingSpacingTableRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+    printer.print("\nEOL SPACING Rules:");
+    for (auto [_, rules] : laToRoutingEOLSpacingRules) {
+      for (auto rule : rules) {
+        printer.print(*rule);
+      }
+    }
+  }
+}
+
+void Axioms::getViasInLayer(
+    odb::dbTechLayer* layer,
+    std::vector<std::pair<std::string, std::shared_ptr<Via>>>& viasInLayer)
+{
+  std::copy_if(viaMap.begin(),
+               viaMap.end(),
+               std::inserter(viasInLayer, viasInLayer.end()),
+               [layer](auto const& kv_pair) {
+                 auto via = kv_pair.second;
+                 return via->topLayer()->getName() == layer->getName()
+                        || via->bottomLayer()->getName() == layer->getName();
+               });
+}
+
+std::pair<uint64_t, uint64_t> Axioms::addTableTriples(
+    odb::dbTechLayer* layer,
+    std::vector<std::pair<std::string, std::shared_ptr<Via>>> viasInLayer,
+    CalcLengthFn calcFunc,
+    bool isSameNet,
+    std::function<bool(int, int)> viaPairFilter)
+{
+  std::vector<banyan_go::table_triple>& triples = dbAdapter_.tableTriples_;
+  uint64_t triplesBegin = triples.size();
+
+  if (viaPairFilter(NULL_VIA_IDX, NULL_VIA_IDX)) {
+    triples.push_back({NULL_VIA_IDX,
+                       NULL_VIA_IDX,
+                       (this->*calcFunc)(layer, nullptr, nullptr, isSameNet)});
+  }
+
+  for (const auto& [viaXName, viaX] : viasInLayer) {
+    auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, viaXName);
+    if (viaPairFilter(viaXIdx, NULL_VIA_IDX)) {
+      triples.push_back({viaXIdx,
+                         NULL_VIA_IDX,
+                         (this->*calcFunc)(layer, viaX, nullptr, isSameNet)});
+    }
+  }
+
+  for (const auto& nameToViaY : viasInLayer) {
+    auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
+    auto viaY = nameToViaY.second;
+    if (viaPairFilter(NULL_VIA_IDX, viaYIdx)) {
+      triples.push_back({NULL_VIA_IDX,
+                         viaYIdx,
+                         (this->*calcFunc)(layer, nullptr, viaY, isSameNet)});
+    }
+  }
+
+  for (const auto& nameToViaX : viasInLayer) {
+    auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
+    auto viaX = nameToViaX.second;
+    for (const auto& nameToViaY : viasInLayer) {
+      auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
+      auto viaY = nameToViaY.second;
+      if (viaPairFilter(viaXIdx, viaYIdx)) {
+        triples.push_back({viaXIdx,
+                           viaYIdx,
+                           (this->*calcFunc)(layer, viaX, viaY, isSameNet)});
+      }
+    }
+  }
+
+  uint64_t triplesEnd = triples.size();
+  return std::make_pair(triplesBegin, triplesEnd);
+}
+
+uint64_t Axioms::getMinSpacing(odb::dbTechLayer* layer)
+{
+  uint64_t minSpacing = layer->getSpacing();
+  auto rules = laToRoutingSpacingRules[layer];
+  for (auto rule : rules) {
+    minSpacing = minSpacing == 0
+                     ? rule->getSpacing()
+                     : std::min(minSpacing, (uint64_t) rule->getSpacing());
+  }
+
+  auto ruleTbls = laToRoutingSpacingTableRules[layer];
+  assert(ruleTbls.size() <= 1);
+
+  return std::max(minSpacing,
+                  ruleTbls.size() > 0 ? ruleTbls[0]->getMinSpacing() : 0);
+}
+
+std::optional<uint32_t> Axioms::findLengthThreshold(odb::dbTechLayer* layer)
+{
+  auto rules = laToRoutingSpacingRules[layer];
+  for (auto rule : rules) {
+    auto lengthThreshold = rule->getLengthThreshold();
+    if (lengthThreshold.has_value()) {
+      return lengthThreshold;
+    }
+  }
+  return std::nullopt;
+}
+
+uint64_t Axioms::getMaxRoutingPrlSpacing(odb::dbTechLayer* layer,
+                                         bool isSameNet)
+{
+  uint64_t width = layer->getWidth();
+  uint64_t sameNetSpacing = 0;
+  uint64_t spacing = getMinSpacing(layer);
+
+  auto lengthThreshold = findLengthThreshold(layer);
+
+  auto rules = laToRoutingSpacingRules[layer];
+  for (auto rule : rules) {
+    auto subRule = rule->getSubRule();
+    if (subRule.has_value()) {
+      std::visit(
+          overloaded{
+              [width, rule, &spacing, &lengthThreshold](
+                  RoutingSpacingRange& range) {
+                auto [minWidth, maxWidth, prl]
+                    = range.getMinMaxWidthAndPrl(lengthThreshold);
+                if (minWidth <= width && width <= maxWidth) {
+                  spacing = std::max(spacing, (uint64_t) rule->getSpacing());
+                }
+              },
+              [rule, &sameNetSpacing](RoutingSpacingSameNet& sameNet) {
+                if (!sameNet.getIsPGOnly()) {
+                  sameNetSpacing
+                      = std::max(sameNetSpacing, (uint64_t) rule->getSpacing());
+                }
+              },
+              [rule](RoutingSpacingNotchLength&) {
+
+              },
+              [width, rule, &spacing](
+                  RoutingSpacingLengthThreshold& lengthThreshold) {
+                auto rangeOrNull = lengthThreshold.getMinMaxWidth();
+                if (rangeOrNull.has_value()) {
+                  auto [minWidth, maxWidth] = rangeOrNull.value();
+                  if (minWidth <= width && width <= maxWidth) {
+                    spacing = std::max(spacing, (uint64_t) rule->getSpacing());
+                  }
+                } else {
+                  spacing = std::max(spacing, (uint64_t) rule->getSpacing());
+                }
+              },
+          },
+          subRule.value());
+    } else {
+      spacing = std::max(spacing, (uint64_t) rule->getSpacing());
+    }
+  }
+
+  auto ruleTbls = laToRoutingSpacingTableRules[layer];
+  assert(ruleTbls.size() <= 1);
+  spacing = std::max(spacing,
+                     ruleTbls.size() > 0 ? ruleTbls[0]->getSpacing(
+                         width, std::numeric_limits<uint32_t>::max())
+                                         : spacing);
+
+  return isSameNet ? std::max(spacing, sameNetSpacing) : spacing;
+}
+
+uint64_t Axioms::getMaxRoutingEOLPrlSpacing(odb::dbTechLayer* layer,
+                                            std::shared_ptr<Via> via,
+                                            bool isSameNet)
+{
+  uint64_t spacing = getMinSpacing(layer);
+
+  auto rules = laToRoutingEOLSpacingRules[layer];
+  for (auto rule : rules) {
+    auto subRule = rule->getSubRule();
+    std::visit(overloaded{
+                   [](std::monostate&) {
+
+                   },
+                   [rule, &spacing](RoutingEOLSpacingRuleWithin& within) {
+                     if (within.getPrl().has_value()) {
+                     } else if (within.getEncloseCut().has_value()) {
+                     } else {
+                       spacing
+                           = std::max(spacing, (uint64_t) rule->getEolSpace());
+                     }
+                   },
+                   [rule](RoutingEOLSpacingRuleToConcaveCorner& subRule) {
+
+                   },
+                   [rule](RoutingEOLSpacingRuleToNotchLength& subRule) {
+
+                   },
+               },
+               subRule);
   }
 
   return spacing;
 }
 
-uint64_t Axioms::getCutSpacingFromVia(odb::dbTechVia* viaX,
-                                      odb::dbTechVia* viaY,
-                                      bool isSameNet,
-                                      bool isPrl)
+uint64_t Axioms::getMaxRoutingEOLEndToEndSpacing(odb::dbTechLayer* layer,
+                                                 std::shared_ptr<Via> via,
+                                                 bool isSameNet)
 {
-  if (viaX == nullptr || viaY == nullptr) {
-    return 0;
+  uint64_t spacing = getMinSpacing(layer);
+  std::optional<uint64_t> eteSpacing;
+
+  auto rules = laToRoutingEOLSpacingRules[layer];
+  for (auto rule : rules) {
+    auto subRule = rule->getSubRule();
+    std::visit(
+        overloaded{
+            [](std::monostate&) {
+
+            },
+            [rule, &spacing, &eteSpacing](RoutingEOLSpacingRuleWithin& within) {
+              if (within.getPrl().has_value()) {
+              } else if (within.getEncloseCut().has_value()) {
+              } else if (within.getEndToEnd().has_value()) {
+                auto eteSubRule = within.getEndToEnd().value();
+                if (eteSpacing.has_value()) {
+                  eteSpacing = std::make_optional(
+                      std::max(eteSpacing.value(),
+                               (uint64_t) eteSubRule.getEndToEndSpace()));
+                } else {
+                  eteSpacing = std::make_optional(
+                      (uint64_t) eteSubRule.getEndToEndSpace());
+                }
+              } else {
+                spacing = std::max(spacing, (uint64_t) rule->getEolSpace());
+              }
+            },
+            [rule](RoutingEOLSpacingRuleToConcaveCorner& subRule) {
+
+            },
+            [rule](RoutingEOLSpacingRuleToNotchLength& subRule) {
+
+            },
+        },
+        subRule);
   }
 
-  odb::dbTechLayer* cutLayerForViaX = getCutLayerFromVia(viaX);
-  odb::dbTechLayer* cutLayerForViaY = getCutLayerFromVia(viaY);
-  if (cutLayerForViaX->getName() != cutLayerForViaY->getName()) {
-    return 0;
-  }
-
-  uint cutSpacing = 0;
-  odb::dbSet<odb::dbTechLayerSpacingRule> spacingRules;
-  cutLayerForViaX->getV54SpacingRules(spacingRules);
-
-  for (auto spacingRule : spacingRules) {
-    uint numcuts = 0;
-    uint within = 0;
-    uint spacing = 0;
-    bool except_same_pgnet = false;
-    // skip adjacent cut spacing rule
-    if (spacingRule->getAdjacentCuts(
-            numcuts, within, spacing, except_same_pgnet)) {
-      continue;
-    }
-
-    if (isSameNet != spacingRule->getCutSameNet()) {
-      continue;
-    }
-    if (isPrl != spacingRule->getCutParallelOverlap()) {
-      continue;
-    }
-    cutSpacing = std::max(cutSpacing, spacingRule->getSpacing());
-  }
-
-  if (cutSpacing <= 0) {
-    cutSpacing = cutLayerForViaX->getSpacing();
-  }
-
-  return (uint64_t) cutSpacing;
+  return eteSpacing.has_value() ? eteSpacing.value() : spacing;
 }
 
-uint64_t Axioms::getDiffAreaBetweenViaAndWire(odb::dbBox* metalBoxOfVia,
-                                              uint64_t width,
-                                              bool isHorizontal)
+std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>>
+Axioms::getCutSpacings(std::shared_ptr<Via> via1,
+                       std::shared_ptr<Via> via2,
+                       bool isSameNet)
 {
-  if (metalBoxOfVia == nullptr) {
-    return 0;
-  }
-  uint64_t diffArea = 0;
-  uint64_t diffLenOfBoxOfVia = 0;
-  uint64_t metalBoxOfViaWidth
-      = (uint64_t) (dbAdapter_.defdist(metalBoxOfVia->getDX()));
-  uint64_t metalBoxOfViaHeight
-      = (uint64_t) (dbAdapter_.defdist(metalBoxOfVia->getDY()));
-  if (isHorizontal) {
-    if (metalBoxOfViaHeight > width) {
-      diffLenOfBoxOfVia = metalBoxOfViaHeight - width;
-      diffArea = diffLenOfBoxOfVia * metalBoxOfViaWidth;
+  std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>> results;
+  auto getCutSpacingsFn = [this, &results, isSameNet](
+                              std::shared_ptr<Via> mainVia,
+                              std::shared_ptr<Via> subVia) {
+    std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>> defSpacings;
+    std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>>
+        sameNetSpacings;
+    std::vector<std::tuple<bool, std::optional<int64_t>, uint64_t>>
+        exceptSameNetSpacings;
+
+    for (auto rule : this->laToCutSpacingRules[mainVia->getViaLayer()]) {
+      auto subRule = rule->getSubRule();
+      if (subRule.has_value()) {
+        std::visit(
+            overloaded{
+                [rule](CutSpacingSameMask& sameMask) {
+
+                },
+                [rule](CutSpacingMAXXY& maxxy) {
+
+                },
+                [&defSpacings,
+                 &sameNetSpacings,
+                 &exceptSameNetSpacings,
+                 rule,
+                 isSameNet,
+                 &mainVia,
+                 &subVia](CutSpacing& spacing) {
+                  if (spacing.constrained(mainVia->getViaLayer(),
+                                          subVia->getViaLayer())) {
+                    if (spacing.isAdjacentcutsRule()) {
+                    } else if (spacing.isSameNetRule()) {
+                      sameNetSpacings.push_back({spacing.getCenterToCenter(),
+                                                 spacing.isParallelOverlapRule()
+                                                     ? std::make_optional(0)
+                                                     : std::nullopt,
+                                                 rule->getSpacing()});
+                    } else if (spacing.isExceptSameNetRule()) {
+                      exceptSameNetSpacings.push_back(
+                          {spacing.getCenterToCenter(),
+                           spacing.isParallelOverlapRule()
+                               ? std::make_optional(0)
+                               : std::nullopt,
+                           rule->getSpacing()});
+                    } else {
+                      defSpacings.push_back({spacing.getCenterToCenter(),
+                                             spacing.isParallelOverlapRule()
+                                                 ? std::make_optional(0)
+                                                 : std::nullopt,
+                                             rule->getSpacing()});
+                    }
+                  }
+                },
+            },
+            subRule.value());
+
+      } else {
+        defSpacings.push_back({false, std::nullopt, rule->getSpacing()});
+      }
     }
-  } else {
-    if (metalBoxOfViaWidth > width) {
-      diffLenOfBoxOfVia = metalBoxOfViaWidth - width;
-      diffArea = diffLenOfBoxOfVia * metalBoxOfViaHeight;
+
+    for (auto rule : laToCutSpacingTableRules[mainVia->getViaLayer()]) {
+      if (isSameNet) {
+        auto spacings = rule->getCutSpacings(mainVia, subVia, true);
+        sameNetSpacings.insert(
+            sameNetSpacings.end(), spacings.begin(), spacings.end());
+      } else {
+        auto spacings = rule->getCutSpacings(mainVia, subVia, false);
+        exceptSameNetSpacings.insert(
+            sameNetSpacings.end(), spacings.begin(), spacings.end());
+      }
     }
+
+    if (isSameNet && sameNetSpacings.size() > 0) {
+      results.insert(
+          results.end(), sameNetSpacings.begin(), sameNetSpacings.end());
+    } else if (!isSameNet && exceptSameNetSpacings.size() > 0) {
+      results.insert(results.end(),
+                     exceptSameNetSpacings.begin(),
+                     exceptSameNetSpacings.end());
+    } else {
+      results.insert(results.end(), defSpacings.begin(), defSpacings.end());
+    }
+  };
+
+  getCutSpacingsFn(via1, via2);
+  if (via1->getViaLayer() != via2->getViaLayer()) {
+    getCutSpacingsFn(via2, via1);
   }
-  return diffArea;
+  return results;
 }
 
-uint64_t Axioms::getMarginBetweenCutAndMetalBox(odb::dbBox* metalBox,
-                                                odb::Rect* cutBox,
-                                                POSITION position)
+uint64_t Axioms::getMaxCutPrlCenterToCenterSpacing(odb::dbTechLayer* layer,
+                                                   std::shared_ptr<Via> viaX,
+                                                   std::shared_ptr<Via> viaY,
+                                                   bool isSameNet)
 {
-  if (metalBox == nullptr || cutBox == nullptr) {
-    return 0;
+  auto isHorizontal = layer->getDirection() == odb::dbTechLayerDir::HORIZONTAL;
+
+  uint64_t cutSpacing = 0;
+  if (viaX != nullptr && viaY != nullptr) {
+    auto cutsBboxOfViaX = viaX->getCutsBBox();
+    auto cutsBboxOfViaY = viaY->getCutsBBox();
+
+    decltype(cutSpacing) lineCutBBoxPadding
+        = isHorizontal ? getBoxCenterToRightEdge(cutsBboxOfViaX)
+                             + getBoxCenterToLeftEdge(cutsBboxOfViaY)
+                       : getBoxCenterToTopEdge(cutsBboxOfViaX)
+                             + getBoxCenterToBottomEdge(cutsBboxOfViaY);
+    for (auto [isCenterToCenter, _, spacing] :
+         getCutSpacings(viaX, viaY, isSameNet)) {
+      cutSpacing
+          = std::max(cutSpacing,
+                     isCenterToCenter ? spacing : spacing + lineCutBBoxPadding);
+    }
   }
-
-  uint64_t margin = 0;
-
-  switch (position) {
-    case POSITION::LEFT:
-      margin = abs(metalBox->xMin() - cutBox->xMin());
-      break;
-    case POSITION::BOTTOM:
-      margin = abs(metalBox->yMin() - cutBox->yMin());
-      break;
-    case POSITION::RIGHT:
-      margin = abs(metalBox->xMax() - cutBox->xMax());
-      break;
-    case POSITION::TOP:
-      margin = abs(metalBox->yMax() - cutBox->yMax());
-      break;
-  }
-
-  return dbAdapter_.defdist(margin);
+  return cutSpacing;
 }
 
-uint64_t Axioms::calcViaViaTrunkLength(odb::dbTechLayer* techLayer,
-                                       odb::dbTechVia* viaX,
-                                       odb::dbTechVia* viaY,
+std::optional<std::pair<Rectangle, Rectangle>> Axioms::getConstrainedMetalBoxes(
+    odb::dbTechLayer* layer,
+    std::shared_ptr<Via> via1,
+    std::shared_ptr<Via> via2)
+{
+  auto via1MetalBox = via1->getMetalBox(layer);
+  auto via2MetalBox = via2->getMetalBox(layer);
+
+  return (via1MetalBox.has_value() && via2MetalBox.has_value())
+             ? std::make_optional(
+                 std::make_pair(via1MetalBox.value(), via2MetalBox.value()))
+             : std::nullopt;
+}
+
+uint64_t Axioms::calcViaViaTrunkLength(odb::dbTechLayer* layer,
+                                       std::shared_ptr<Via> viaX,
+                                       std::shared_ptr<Via> viaY,
                                        bool isSameNet)
 {
+  assert(layer->getType() == odb::dbTechLayerType::ROUTING);
+  assert(isSameNet);
   if (viaX == nullptr || viaY == nullptr) {
     return 0;
   }
-  uint64_t minLen = 0;
-  auto width = techLayer->getWidth();
-  auto layerDir = techLayer->getDirection();
-  uint64_t cutSpacing
-      = std::max(getCutSpacingFromVia(viaX, viaY, isSameNet, true),
-                 getCutSpacingFromVia(viaX, viaY, isSameNet, false));
+  uint64_t width = layer->getWidth();
+  auto isHorizontal = layer->getDirection() == odb::dbTechLayerDir::HORIZONTAL;
 
-  auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
-  auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
+  auto ctcSpacing = getMaxCutPrlCenterToCenterSpacing(layer, viaX, viaY, true);
 
-  uint64_t borderBoxOfViaXCenterToEdge = 0;
-  uint64_t borderBoxOfViaYCenterToEdge = 0;
-
-  uint64_t diffLenOfBoxOfViaX = 0;
-  uint64_t diffLenOfBoxOfViaY = 0;
-
-  // uint32_t cutNumsOfViaX = getCutNumsFromVia(viaX);
-  // uint32_t cutNumsOfViaY = getCutNumsFromVia(viaY);
-
-  uint32_t borderCutBoxOfViaXToMetalBoxEdge = 0;
-  uint32_t borderCutBoxOfViaYToMetalBoxEdge = 0;
-
-  odb::Rect* boundaryBoxOfViaX = new odb::Rect();
-  odb::Rect* boundaryBoxOfViaY = new odb::Rect();
-
-  getBoundaryBoxOfCutBoxesFromVia(viaX, boundaryBoxOfViaX);
-  getBoundaryBoxOfCutBoxesFromVia(viaY, boundaryBoxOfViaY);
-
-  if (layerDir == odb::dbTechLayerDir::HORIZONTAL) {
-    if (viaX != nullptr) {
-      borderBoxOfViaXCenterToEdge
-          = dbAdapter_.defdist(boundaryBoxOfViaX->dx() / 2);
-      borderCutBoxOfViaXToMetalBoxEdge = getMarginBetweenCutAndMetalBox(
-          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::RIGHT);
-      uint64_t metalBoxOfViaXHeight
-          = (uint64_t) (dbAdapter_.defdist(metalBoxOfViaX->getDY()));
-      if (metalBoxOfViaXHeight > width) {
-        diffLenOfBoxOfViaX = metalBoxOfViaXHeight - width;
-      }
-    }
-
-    if (viaY != nullptr) {
-      borderBoxOfViaYCenterToEdge
-          = dbAdapter_.defdist(boundaryBoxOfViaY->dx() / 2);
-      borderCutBoxOfViaYToMetalBoxEdge = getMarginBetweenCutAndMetalBox(
-          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::LEFT);
-      uint64_t metalBoxOfViaYHeight
-          = (uint64_t) (dbAdapter_.defdist(metalBoxOfViaY->getDY()));
-      if (metalBoxOfViaYHeight > width) {
-        diffLenOfBoxOfViaY = metalBoxOfViaYHeight - width;
-      }
-    }
-
-  } else {
-    if (viaX != nullptr) {
-      borderBoxOfViaXCenterToEdge
-          = dbAdapter_.defdist(boundaryBoxOfViaX->dy() / 2);
-      borderCutBoxOfViaXToMetalBoxEdge = getMarginBetweenCutAndMetalBox(
-          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP);
-      uint64_t metalBoxOfViaXWidth
-          = (uint64_t) (dbAdapter_.defdist(metalBoxOfViaX->getDX()));
-      if (metalBoxOfViaXWidth > width) {
-        diffLenOfBoxOfViaX = metalBoxOfViaXWidth - width;
-      }
-    }
-
-    if (viaY != nullptr) {
-      borderBoxOfViaYCenterToEdge
-          = dbAdapter_.defdist(boundaryBoxOfViaY->dy() / 2);
-      borderCutBoxOfViaYToMetalBoxEdge = getMarginBetweenCutAndMetalBox(
-          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::BOTTOM);
-      uint64_t metalBoxOfViaYWidth
-          = (uint64_t) (dbAdapter_.defdist(metalBoxOfViaY->getDX()));
-      if (metalBoxOfViaYWidth > width) {
-        diffLenOfBoxOfViaY = metalBoxOfViaYWidth - width;
-      }
-    }
+  if (DEBUG_VIAVIATRUNKLENGTH) {
+    printer.print(layer->getName(),
+                  " calcViaViaTrunkLength Via1 ",
+                  viaX == nullptr ? "NullVia" : viaX->getViaName(),
+                  " Via2 ",
+                  viaY == nullptr ? "NullVia" : viaY->getViaName(),
+                  " result ",
+                  ctcSpacing);
   }
-
-  auto minStep = techLayer->getMinStep();
-  // auto minStepMaxEdges = techLayer->getMinStepMaxEdges();
-  // auto minStepMaxLength = techLayer->getMinStepMaxLength();
-
-  // if (minStep > 0 && diffLenOfBoxOfViaX > 0 && diffLenOfBoxOfViaY > 0
-  //     && diffLenOfBoxOfViaX < minStep && diffLenOfBoxOfViaY < minStep
-  //     && (cutSpacing - borderCutBoxOfViaXToMetalBoxEdge
-  //         - borderCutBoxOfViaYToMetalBoxEdge)
-  //            < minStep) {
-  //   cutSpacing += minStep + borderCutBoxOfViaXToMetalBoxEdge
-  //                 + borderCutBoxOfViaYToMetalBoxEdge - cutSpacing;
-  // }
-  if (minStep > 0 && diffLenOfBoxOfViaX > 0 && diffLenOfBoxOfViaY > 0
-      && (cutSpacing - borderCutBoxOfViaXToMetalBoxEdge
-          - borderCutBoxOfViaYToMetalBoxEdge)
-             < minStep) {
-    cutSpacing = minStep + borderCutBoxOfViaXToMetalBoxEdge
-                 + borderCutBoxOfViaYToMetalBoxEdge;
-  }
-
-  minLen
-      = borderBoxOfViaXCenterToEdge + borderBoxOfViaYCenterToEdge + cutSpacing;
-
-  delete boundaryBoxOfViaX;
-  delete boundaryBoxOfViaY;
-
-  return minLen;
+  return ctcSpacing;
 }
 
-uint64_t Axioms::calcTrunkMinLength(odb::dbTechLayer* techLayer,
-                                    odb::dbTechVia* viaX,
-                                    odb::dbTechVia* viaY,
+uint64_t Axioms::calcTrunkMinLength(odb::dbTechLayer* layer,
+                                    std::shared_ptr<Via> viaX,
+                                    std::shared_ptr<Via> viaY,
                                     bool isSameNet)
 {
-  uint64_t width = techLayer->getWidth();
-  auto layerDir = techLayer->getDirection();
-  auto area = dbAdapter_.defArea(techLayer->getArea());
+  assert(layer->getType() == odb::dbTechLayerType::ROUTING);
+  uint64_t width = layer->getWidth();
+  auto isHorizontal = layer->getDirection() == odb::dbTechLayerDir::HORIZONTAL;
 
-  uint64_t minLen = calcViaViaTrunkLength(techLayer, viaX, viaY, isSameNet);
+  decltype(width) minArea = dbAdapter_.defArea(layer->getArea());
+  decltype(width) minLen = calcViaViaTrunkLength(layer, viaX, viaY, isSameNet);
 
   uint64_t diffAreaOfBoxOfViaX = 0;
   uint64_t diffAreaOfBoxOfViaY = 0;
 
-  uint64_t metalBoxWidthOfViaX = 0;
-  uint64_t metalBoxWidthOfViaY = 0;
+  uint64_t metalBoxCenterToEdgeOfViaX = 0;
+  uint64_t metalBoxCenterToEdgeOfViaY = 0;
 
-  // uint32_t cutNumsOfViaX = getCutNumsFromVia(viaX);
-  // uint32_t cutNumsOfViaY = getCutNumsFromVia(viaY);
+  auto getDiffAreaBetweenViaAndWire = [](Rectangle metalBoxOfVia,
+                                         uint64_t width,
+                                         bool isHorizontal) -> int64_t {
+    uint64_t detlaOfMetalBox
+        = isHorizontal ? getBoxDx(metalBoxOfVia) : getBoxDy(metalBoxOfVia);
+    uint64_t areaOfWire = detlaOfMetalBox * width;
 
-  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
+    uint64_t areaOfMetalBox = area(metalBoxOfVia);
+
+    return areaOfMetalBox < areaOfWire ? 0 : areaOfMetalBox - areaOfWire;
+  };
+
   if (viaX != nullptr) {
-    auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
+    auto metalBoxOfViaX = viaX->getMetalBox(layer).value();
     diffAreaOfBoxOfViaX
         = getDiffAreaBetweenViaAndWire(metalBoxOfViaX, width, isHorizontal);
-    metalBoxWidthOfViaX = dbAdapter_.defdist(
-        isHorizontal ? metalBoxOfViaX->getDX() : metalBoxOfViaX->getDY());
+    metalBoxCenterToEdgeOfViaX = isHorizontal
+                                     ? getBoxCenterToLeftEdge(metalBoxOfViaX)
+                                     : getBoxCenterToBottomEdge(metalBoxOfViaX);
   }
 
   if (viaY != nullptr) {
-    auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
+    auto metalBoxOfViaY = viaY->getMetalBox(layer).value();
     diffAreaOfBoxOfViaY
         = getDiffAreaBetweenViaAndWire(metalBoxOfViaY, width, isHorizontal);
-    metalBoxWidthOfViaY = dbAdapter_.defdist(
-        isHorizontal ? metalBoxOfViaY->getDX() : metalBoxOfViaY->getDY());
+    metalBoxCenterToEdgeOfViaY = isHorizontal
+                                     ? getBoxCenterToRightEdge(metalBoxOfViaY)
+                                     : getBoxCenterToTopEdge(metalBoxOfViaY);
   }
 
-  int64_t remainArea = area - diffAreaOfBoxOfViaX - diffAreaOfBoxOfViaY;
-  uint64_t realLength = minLen + std::max(metalBoxWidthOfViaX, width) / 2
-                        + std::max(metalBoxWidthOfViaY, width) / 2;
+  int64_t remainArea = minArea - diffAreaOfBoxOfViaX - diffAreaOfBoxOfViaY;
+  uint64_t realLength = minLen + std::max(metalBoxCenterToEdgeOfViaX, width / 2)
+                        + std::max(metalBoxCenterToEdgeOfViaY, width / 2);
   uint64_t realArea = realLength * width;
 
   if (remainArea > 0 && remainArea > (int64_t) realArea) {
     uint64_t extLen = (remainArea - realArea) / width;
     minLen += extLen;
   }
-
+  if (DEBUG_TRUNKMINLENGTH) {
+    printer.print(layer->getName(),
+                  " calcTrunkMinLength Via1 ",
+                  viaX == nullptr ? "NullVia" : viaX->getViaName(),
+                  " Via2 ",
+                  viaY == nullptr ? "NullVia" : viaY->getViaName(),
+                  " Width ",
+                  width,
+                  " MinArea ",
+                  minArea,
+                  " Via1DiffArea",
+                  diffAreaOfBoxOfViaX,
+                  " Via2DiffArea",
+                  diffAreaOfBoxOfViaY,
+                  " Via1CenterToEdge ",
+                  metalBoxCenterToEdgeOfViaX,
+                  " Via2CenterToEdge ",
+                  metalBoxCenterToEdgeOfViaY,
+                  " result ",
+                  minLen);
+  }
   return minLen;
 }
 
-uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* techLayer,
-                                    odb::dbTechVia* via)
-{
-  auto layerDir = techLayer->getDirection();
-  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
-
-  uint64_t width = techLayer->getWidth();
-  auto metalBoxOfVia = getLayerBoxFromVia(techLayer, via);
-  auto prlSpacing = getRoutingPRLSpacing(techLayer, false);
-  uint64_t boxWidth = dbAdapter_.defdist(isHorizontal ? metalBoxOfVia->getDY()
-                                                      : metalBoxOfVia->getDX());
-
-  return std::max(boxWidth, width) / 2 + width / 2 + prlSpacing;
-}
-
-uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* techLayer,
-                                     odb::dbTechVia* viaX,
-                                     odb::dbTechVia* viaY,
+uint64_t Axioms::calcTrunkDistLength(odb::dbTechLayer* layer,
+                                     std::shared_ptr<Via> viaX,
+                                     std::shared_ptr<Via> viaY,
                                      bool isSameNet)
 {
-  auto layerDir = techLayer->getDirection();
-  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
-  uint64_t width = techLayer->getWidth();
+  assert(layer->getType() == odb::dbTechLayerType::ROUTING);
+  auto isHorizontal = layer->getDirection() == odb::dbTechLayerDir::HORIZONTAL;
+  uint64_t width = layer->getWidth();
+  uint64_t pitch = isHorizontal ? layer->getPitchY() : layer->getPitchX();
 
-  auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
-  auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
-
-  uint64_t metalBoxWidthOfViaX = 0;
-  uint64_t metalBoxWidthOfViaY = 0;
-
-  odb::Rect* boundaryBoxOfViaX = new odb::Rect();
-  odb::Rect* boundaryBoxOfViaY = new odb::Rect();
-  getBoundaryBoxOfCutBoxesFromVia(viaX, boundaryBoxOfViaX);
-  getBoundaryBoxOfCutBoxesFromVia(viaY, boundaryBoxOfViaY);
-
-  int cutSpacing = 0;
-  if (viaX != nullptr && viaY != nullptr) {
-    cutSpacing = std::max(getCutSpacingFromVia(viaX, viaY, isSameNet, false),
-                          getCutSpacingFromVia(viaX, viaY, isSameNet, true));
-    if (isHorizontal) {
-      cutSpacing -= getMarginBetweenCutAndMetalBox(
-          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::RIGHT);
-      cutSpacing -= getMarginBetweenCutAndMetalBox(
-          metalBoxOfViaY, boundaryBoxOfViaY, POSITION::LEFT);
-    } else {
-      cutSpacing -= getMarginBetweenCutAndMetalBox(
-          metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP);
-      cutSpacing -= getMarginBetweenCutAndMetalBox(
-          metalBoxOfViaY, boundaryBoxOfViaY, POSITION::BOTTOM);
-    }
+  uint64_t metalBoxCenterToEdgeOfViaX = 0;
+  if (viaX != nullptr) {
+    auto mbOfViaX = viaX->getMetalBox(layer).value();
+    metalBoxCenterToEdgeOfViaX = isHorizontal
+                                     ? getBoxCenterToRightEdge(mbOfViaX)
+                                     : getBoxCenterToTopEdge(mbOfViaX);
   }
 
-  if (metalBoxOfViaX != nullptr) {
-    metalBoxWidthOfViaX = dbAdapter_.defdist(
-        isHorizontal ? metalBoxOfViaX->getDX() : metalBoxOfViaX->getDY());
+  uint64_t metalBoxCenterToEdgeOfViaY = 0;
+  if (viaY != nullptr) {
+    auto mbOfViaY = viaY->getMetalBox(layer).value();
+    metalBoxCenterToEdgeOfViaY = isHorizontal
+                                     ? getBoxCenterToLeftEdge(mbOfViaY)
+                                     : getBoxCenterToBottomEdge(mbOfViaY);
   }
 
-  if (metalBoxOfViaY != nullptr) {
-    metalBoxWidthOfViaY = dbAdapter_.defdist(
-        isHorizontal ? metalBoxOfViaY->getDX() : metalBoxOfViaY->getDY());
+  uint64_t cutCenterToCenterSpacing
+      = getMaxCutPrlCenterToCenterSpacing(layer, viaX, viaY, isSameNet);
+
+  uint64_t rtEOLEndToEndSpacing
+      = std::max(getMaxRoutingEOLEndToEndSpacing(layer, viaX, isSameNet),
+                 getMaxRoutingEOLEndToEndSpacing(layer, viaY, isSameNet));
+
+  uint64_t spacing = std::max(
+      rtEOLEndToEndSpacing + std::max(metalBoxCenterToEdgeOfViaX, width / 2)
+          + std::max(metalBoxCenterToEdgeOfViaY, width / 2),
+      cutCenterToCenterSpacing);
+
+  if (DEBUG_TRUNKDISTLENGTH) {
+    printer.print(layer->getName(),
+                  " calcTrunkDistLength Via1 ",
+                  viaX == nullptr ? "NullVia" : viaX->getViaName(),
+                  " Via2 ",
+                  viaY == nullptr ? "NullVia" : viaY->getViaName(),
+                  " Width ",
+                  width,
+                  " CutCenterToCenterSpacing ",
+                  cutCenterToCenterSpacing,
+                  " EndToEndSpacing ",
+                  rtEOLEndToEndSpacing,
+                  " Via1CenterToEdge ",
+                  metalBoxCenterToEdgeOfViaX,
+                  " Via2CenterToEdge ",
+                  metalBoxCenterToEdgeOfViaY,
+                  " result ",
+                  spacing);
   }
-
-  auto routingSpacing
-      = dbAdapter_.defdist(getRoutingEOLSpacing(techLayer, isSameNet));
-
-  uint64_t spacing = std::max(routingSpacing, cutSpacing);
-
-  delete boundaryBoxOfViaX;
-  delete boundaryBoxOfViaY;
-
-  // logger_->info(utl::BY, 90, "spacing {} ", spacing);
-
-  return spacing + std::max(metalBoxWidthOfViaX, width) / 2
-         + std::max(metalBoxWidthOfViaY, width) / 2;
+  return spacing;
 }
 
-uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* techLayer,
-                                       odb::dbTechVia* viaX,
-                                       odb::dbTechVia* viaY,
+uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* layer,
+                                       std::shared_ptr<Via> viaX,
+                                       std::shared_ptr<Via> viaY,
                                        bool isSameNet)
 {
-  if (techLayer == nullptr || viaX == nullptr || viaY == nullptr) {
-    return 0;
-  }
-  auto layerDir = techLayer->getDirection();
-  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
-  uint64_t width = techLayer->getWidth();
-  uint64_t pitch = techLayer->getPitchX();
-  if (techLayer->getDirection() == odb::dbTechLayerDir::HORIZONTAL) {
-    pitch = techLayer->getPitchY();
-  }
+  assert(layer->getType() == odb::dbTechLayerType::ROUTING);
+  assert(viaX != nullptr && viaY != nullptr);
 
-  uint64_t spacing = pitch - width;
-
-  auto metalBoxOfViaX = getLayerBoxFromVia(techLayer, viaX);
-  auto metalBoxOfViaY = getLayerBoxFromVia(techLayer, viaY);
-
-  odb::Rect* boundaryBoxOfViaX = new odb::Rect();
-  odb::Rect* boundaryBoxOfViaY = new odb::Rect();
-
-  getBoundaryBoxOfCutBoxesFromVia(viaX, boundaryBoxOfViaX);
-  getBoundaryBoxOfCutBoxesFromVia(viaY, boundaryBoxOfViaY);
-
-  uint64_t cutSpacing = getCutSpacingFromVia(viaX, viaY, isSameNet, false);
-  uint64_t prlCutSpacing
-      = std::max(cutSpacing, getCutSpacingFromVia(viaX, viaY, isSameNet, true));
-
-  uint marginBetweenCutsAndMetalBox = 0;
-  uint cutsCenterToCenter = 0;
-  if (isHorizontal) {
-    cutsCenterToCenter
-        = boundaryBoxOfViaX->dx() / 2 + boundaryBoxOfViaY->dx() / 2;
-    marginBetweenCutsAndMetalBox
-        = getMarginBetweenCutAndMetalBox(
-              metalBoxOfViaX, boundaryBoxOfViaX, POSITION::TOP)
-          + getMarginBetweenCutAndMetalBox(
-              metalBoxOfViaY, boundaryBoxOfViaY, POSITION::BOTTOM);
-  } else {
-    cutsCenterToCenter
-        = boundaryBoxOfViaX->dy() / 2 + boundaryBoxOfViaY->dy() / 2;
-    marginBetweenCutsAndMetalBox
-        = getMarginBetweenCutAndMetalBox(
-              metalBoxOfViaX, boundaryBoxOfViaX, POSITION::RIGHT)
-          + getMarginBetweenCutAndMetalBox(
-              metalBoxOfViaY, boundaryBoxOfViaY, POSITION::LEFT);
-  }
-
-  delete boundaryBoxOfViaX;
-  delete boundaryBoxOfViaY;
-
-  if (prlCutSpacing <= spacing + marginBetweenCutsAndMetalBox) {
-    return 0;
-  }else if (cutSpacing <= spacing + marginBetweenCutsAndMetalBox) {
-    return cutsCenterToCenter;
-  }
-
-
-  double horizontalSpacing
-      = std::sqrt(std::pow(cutSpacing, 2)
-                  - std::pow(spacing + marginBetweenCutsAndMetalBox, 2));
-
-  horizontalSpacing = std::ceil(horizontalSpacing / 10) * 10;
-
-  return horizontalSpacing + cutsCenterToCenter;
-}
-
-void Axioms::addTableTriples(
-    odb::dbTechLayer* techLayer,
-    std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer,
-    CalcLength calcFunc,
-    bool isSameNet,
-    bool excludedNullVia)
-{
-  if (!excludedNullVia) {
-    tableTriples.push_back(
-        {NULL_VIA_IDX,
-         NULL_VIA_IDX,
-         (this->*calcFunc)(techLayer, nullptr, nullptr, isSameNet)});
-
-    for (const auto& nameToViaX : defaultViasInLayer) {
-      auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
-      auto viaX = nameToViaX.second;
-      tableTriples.push_back(
-          {viaXIdx,
-           NULL_VIA_IDX,
-           (this->*calcFunc)(techLayer, viaX, nullptr, isSameNet)});
+  std::optional<uint64_t> maxPerfCTCSpacingWithBoxes;
+  auto updateCTCSpacing = [&maxPerfCTCSpacingWithBoxes](uint64_t newSpacing) {
+    if (maxPerfCTCSpacingWithBoxes.has_value()) {
+      auto maxPerfMetalSpacing = maxPerfCTCSpacingWithBoxes.value();
+      if (maxPerfMetalSpacing < newSpacing) {
+        maxPerfCTCSpacingWithBoxes = std::make_optional(newSpacing);
+      }
+    } else {
+      maxPerfCTCSpacingWithBoxes = std::make_optional(newSpacing);
     }
-    for (const auto& nameToViaY : defaultViasInLayer) {
-      auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
-      auto viaY = nameToViaY.second;
-      tableTriples.push_back(
-          {NULL_VIA_IDX,
-           viaYIdx,
-           (this->*calcFunc)(techLayer, nullptr, viaY, isSameNet)});
+  };
+
+  auto isHorizontal = layer->getDirection() == odb::dbTechLayerDir::HORIZONTAL;
+  uint64_t width = layer->getWidth();
+  uint64_t pitch = isHorizontal ? layer->getPitchY() : layer->getPitchX();
+  uint64_t spacing = getMinSpacing(layer);
+  if (DEBUG_VIAVIATRACKLENGTH) {
+    printer.print(layer->getName(),
+                  " calcViaViaTrackLength Via1 ",
+                  viaX == nullptr ? "NullVia" : viaX->getViaName(),
+                  " Via2 ",
+                  viaY == nullptr ? "NullVia" : viaY->getViaName(),
+                  " Pitch ",
+                  pitch,
+                  " Width ",
+                  width);
+  }
+  auto metalBoxPair = getConstrainedMetalBoxes(layer, viaX, viaY);
+  if (metalBoxPair.has_value()) {
+    auto [metalBox1, metalBox2] = metalBoxPair.value();
+    auto metalSpacing = getMaxRoutingPrlSpacing(layer, isSameNet);
+    int64_t perfMetalSpacing = 0;
+    int64_t trackMetalDist
+        = pitch
+          - (isHorizontal ? getBoxCenterToTopEdge(metalBox1)
+                                + getBoxCenterToBottomEdge(metalBox2)
+                          : getBoxCenterToRightEdge(metalBox1)
+                                + getBoxCenterToLeftEdge(metalBox2));
+    if (trackMetalDist < 0) {
+      perfMetalSpacing = metalSpacing;
+    } else {
+      perfMetalSpacing = std::ceil(std::sqrt(std::pow((int64_t) metalSpacing, 2)
+                                             - std::pow(trackMetalDist, 2)));
+    }
+
+    if (perfMetalSpacing > 0) {
+      perfMetalSpacing
+          += (isHorizontal ? getBoxCenterToRightEdge(metalBox1)
+                                 + getBoxCenterToLeftEdge(metalBox2)
+                           : getBoxCenterToTopEdge(metalBox1)
+                                 + getBoxCenterToBottomEdge(metalBox2));
+      updateCTCSpacing(perfMetalSpacing);
+    }
+    if (DEBUG_VIAVIATRACKLENGTH) {
+      printer.print("\tMetalSpacing",
+                    metalSpacing,
+                    " PerfMetalSpacing ",
+                    perfMetalSpacing);
     }
   }
 
-  for (const auto& nameToViaX : defaultViasInLayer) {
-    auto viaXIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaX.first);
-    auto viaX = nameToViaX.second;
-    for (const auto& nameToViaY : defaultViasInLayer) {
-      auto viaYIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, nameToViaY.first);
-      auto viaY = nameToViaY.second;
-      tableTriples.push_back(
-          {viaXIdx,
-           viaYIdx,
-           (this->*calcFunc)(techLayer, viaX, viaY, isSameNet)});
-    }
-  }
-}
+  auto cutsBboxOfViaX = viaX->getCutsBBox();
+  auto cutsBboxOfViaY = viaY->getCutsBBox();
+  decltype(width) trackCutBBoxPadding
+      = isHorizontal ? getBoxCenterToTopEdge(cutsBboxOfViaX)
+                           + getBoxCenterToBottomEdge(cutsBboxOfViaY)
+                     : getBoxCenterToRightEdge(cutsBboxOfViaX)
+                           + getBoxCenterToLeftEdge(cutsBboxOfViaY);
+  decltype(width) lineCutBBoxPadding
+      = isHorizontal ? getBoxCenterToRightEdge(cutsBboxOfViaX)
+                           + getBoxCenterToLeftEdge(cutsBboxOfViaY)
+                     : getBoxCenterToTopEdge(cutsBboxOfViaX)
+                           + getBoxCenterToBottomEdge(cutsBboxOfViaY);
 
-void Axioms::initTable()
-{
-  odb::dbTech* tech = db_->getTech();
-  for (auto techLayer : tech->getLayers()) {
-    if (techLayer->getType().getValue() != odb::dbTechLayerType::ROUTING) {
-      continue;
-    }
-    int layerIdx
-        = AssertFind(dbAdapter_.layerNameToIdxs_, techLayer->getName());
-    std::vector<std::pair<std::string, odb::dbTechVia*>> defaultViasInLayer;
-    getDefaultViasInLayer(techLayer, defaultViasInLayer);
-    //===============================================================================================
-    dbAdapter_.layers_[layerIdx].trunk_min_len_begin = tableTriples.size();
-    addTableTriples(
-        techLayer, defaultViasInLayer, &Axioms::calcTrunkMinLength, false);
-    dbAdapter_.layers_[layerIdx].trunk_min_len_end = tableTriples.size();
-    //===============================================================================================
-    dbAdapter_.layers_[layerIdx].trunk_dist_same_begin = tableTriples.size();
-    addTableTriples(
-        techLayer, defaultViasInLayer, &Axioms::calcTrunkDistLength, true);
-    dbAdapter_.layers_[layerIdx].trunk_dist_same_end = tableTriples.size();
-    //===============================================================================================
-    dbAdapter_.layers_[layerIdx].trunk_dist_diff_begin = tableTriples.size();
-    addTableTriples(
-        techLayer, defaultViasInLayer, &Axioms::calcTrunkDistLength, false);
-    dbAdapter_.layers_[layerIdx].trunk_dist_diff_end = tableTriples.size();
-    //===============================================================================================
-    dbAdapter_.layers_[layerIdx].viavia_trunk_begin = tableTriples.size();
-    addTableTriples(techLayer,
-                    defaultViasInLayer,
-                    &Axioms::calcViaViaTrunkLength,
-                    false,
-                    true);
-    dbAdapter_.layers_[layerIdx].viavia_trunk_end = tableTriples.size();
-    //===============================================================================================
-    dbAdapter_.layers_[layerIdx].viavia_track_same_begin = tableTriples.size();
-    addTableTriples(techLayer,
-                    defaultViasInLayer,
-                    &Axioms::calcViaViaTrackLength,
-                    true,
-                    true);
-    dbAdapter_.layers_[layerIdx].viavia_track_same_end = tableTriples.size();
-    //===============================================================================================
-    dbAdapter_.layers_[layerIdx].viavia_track_diff_begin = tableTriples.size();
-    addTableTriples(techLayer,
-                    defaultViasInLayer,
-                    &Axioms::calcViaViaTrackLength,
-                    false,
-                    true);
-    dbAdapter_.layers_[layerIdx].viavia_track_diff_end = tableTriples.size();
-    //===============================================================================================
-    dbAdapter_.layers_[layerIdx].via_track_begin = tableTriples.size();
-    for (auto viaIter : defaultViasInLayer) {
-      auto viaIdx = AssertFind(dbAdapter_.viaDefNameToIdxs_, viaIter.first);
-      auto via = viaIter.second;
-      tableTriples.push_back(
-          {viaIdx, NULL_VIA_IDX, calcViaTrackLength(techLayer, via)});
-    }
-    dbAdapter_.layers_[layerIdx].via_track_end = tableTriples.size();
-    //================================================================================================
-    dbAdapter_.layers_[layerIdx].spacing_begin = tableTriples.size();
-    std::vector<uint> width_idx;
-    std::vector<uint> length_idx;
-    if (techLayer->hasV55SpacingRules()
-        && techLayer->getV55SpacingWidthsAndLengths(width_idx, length_idx)) {
-      for (auto width : width_idx) {
-        for (auto prl : length_idx) {
-          // for width and prl 'greater than'
-          auto spacing = techLayer->findV55Spacing(width + 1, prl + 1);
-          tableTriples.push_back({(int) prl, (int) width, (uint64) spacing});
+  int64_t trackCutDist = pitch - trackCutBBoxPadding;
+
+  for (auto [isCenterToCenter, prlOptional, spacing] :
+       getCutSpacings(viaX, viaY, isSameNet)) {
+    int64_t perfCutSpacing = 0;
+    // auto prl = prlOptional.has_value() ? prlOptional.value() : 0;
+    if (isCenterToCenter) {
+      if (trackCutDist < 0) {
+        perfCutSpacing
+            = (prlOptional.has_value() && -trackCutDist < prlOptional.value())
+                  ? lineCutBBoxPadding
+                  : std::max(spacing, lineCutBBoxPadding);
+      } else {
+        if (spacing <= pitch) {
+          perfCutSpacing = 0;
+        } else {
+          perfCutSpacing
+              = std::ceil(std::sqrt(std::pow(spacing, 2) - std::pow(pitch, 2)));
+          perfCutSpacing = prlOptional.has_value()
+                               ? std::min(perfCutSpacing,
+                                          ((int64_t) lineCutBBoxPadding)
+                                              - prlOptional.value())
+                               : perfCutSpacing;
+        }
+      }
+    } else {
+      if (trackCutDist < 0) {
+        perfCutSpacing
+            = (prlOptional.has_value() && -trackCutDist < prlOptional.value())
+                  ? lineCutBBoxPadding
+                  : spacing + lineCutBBoxPadding;
+      } else {
+        if (spacing <= trackCutDist) {
+          perfCutSpacing = 0;
+        } else {
+          perfCutSpacing = std::ceil(
+              std::sqrt(std::pow(spacing, 2) - std::pow(trackCutDist, 2)));
+          perfCutSpacing = (int64_t) (perfCutSpacing + lineCutBBoxPadding);
+          perfCutSpacing = prlOptional.has_value()
+                               ? std::min(perfCutSpacing,
+                                          ((int64_t) lineCutBBoxPadding)
+                                              - prlOptional.value())
+                               : perfCutSpacing;
         }
       }
     }
-    dbAdapter_.layers_[layerIdx].spacing_end = tableTriples.size();
-    //================================================================================================
-    dbAdapter_.layers_[layerIdx].mincut_begin = tableTriples.size();
+    if (perfCutSpacing > 0) {
+      updateCTCSpacing(perfCutSpacing);
+    }
+    if (DEBUG_VIAVIATRACKLENGTH) {
+      printer.print("\t",
+                    " TrackCutBBoxPadding ",
+                    trackCutBBoxPadding,
+                    " LineCutBBoxPadding ",
+                    lineCutBBoxPadding,
+                    " TrackCutDist ",
+                    trackCutDist,
+                    " CutSpacing ",
+                    isCenterToCenter,
+                    prlOptional,
+                    spacing,
+                    " PerfCutSpacing ",
+                    perfCutSpacing);
+    }
+  }
+  auto rst = maxPerfCTCSpacingWithBoxes.has_value()
+                 ? maxPerfCTCSpacingWithBoxes.value()
+                 : 0;
+  if (DEBUG_VIAVIATRACKLENGTH) {
+    printer.print("\tresult ", rst);
+  }
+  return rst;
+}
+
+uint64_t Axioms::calcViaTrackLength(odb::dbTechLayer* layer,
+                                    std::shared_ptr<Via> viaX,
+                                    std::shared_ptr<Via> viaY,
+                                    bool isSameNet)
+{
+  assert(layer->getType() == odb::dbTechLayerType::ROUTING);
+  assert(viaX != nullptr && viaY == nullptr && !isSameNet);
+  assert(layer->getDirection() != odb::dbTechLayerDir::NONE);
+
+  auto layerDir = layer->getDirection();
+  auto isHorizontal = layerDir == odb::dbTechLayerDir::HORIZONTAL;
+  uint64_t width = layer->getWidth();
+
+  auto metalBoxOfVia = viaX->getMetalBox(layer).value();
+  auto prlSpacing = getMaxRoutingPrlSpacing(layer, isSameNet);
+
+  uint64_t boxWidth
+      = isHorizontal ? getBoxDy(metalBoxOfVia) : getBoxDx(metalBoxOfVia);
+
+  auto rst = std::max(boxWidth, width) / 2 + width / 2 + prlSpacing;
+
+  if (DEBUG_VIATRACKLENGTH) {
+    printer.print(layer->getName(),
+                  " calcViaTrackLength VIA ",
+                  viaX->getViaName(),
+                  " Width ",
+                  width,
+                  " PrlSpacing ",
+                  prlSpacing,
+                  " BoxWidth ",
+                  boxWidth,
+                  " result ",
+                  rst);
+  }
+
+  return rst;
+}
+
+void Axioms::calcAxiomsRules()
+{
+  std::function<bool(int, int)> excludeNullFilter
+      = [](int viaXId, int viaYId) -> bool {
+    return viaXId != NULL_VIA_IDX && viaYId != NULL_VIA_IDX;
+  };
+
+  std::function<bool(int, int)> viaNullFilter
+      = [](int viaXId, int viaYId) -> bool {
+    return viaXId != NULL_VIA_IDX && viaYId == NULL_VIA_IDX;
+  };
+
+  for (auto layer : db_->getTech()->getLayers()) {
+    if (layer->getType() != odb::dbTechLayerType::ROUTING) {
+      continue;
+    }
+    std::vector<std::pair<std::string, std::shared_ptr<Via>>> viasInLayer;
+    getViasInLayer(layer, viasInLayer);
+    int layerIdx = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
+    for (auto [rType, clacFn] : calcFnMap) {
+      switch (rType) {
+        case AxiomsRuleType::TrunkMinLength:
+          std::tie(dbAdapter_.layers_[layerIdx].trunk_min_len_begin,
+                   dbAdapter_.layers_[layerIdx].trunk_min_len_end)
+              = addTableTriples(layer, viasInLayer, clacFn, true);
+          break;
+        case AxiomsRuleType::TrunkDistLength:
+          std::tie(dbAdapter_.layers_[layerIdx].trunk_dist_same_begin,
+                   dbAdapter_.layers_[layerIdx].trunk_dist_same_end)
+              = addTableTriples(layer, viasInLayer, clacFn, true);
+
+          std::tie(dbAdapter_.layers_[layerIdx].trunk_dist_diff_begin,
+                   dbAdapter_.layers_[layerIdx].trunk_dist_diff_end)
+              = addTableTriples(layer, viasInLayer, clacFn, false);
+          break;
+        case AxiomsRuleType::ViaViaTrunkLength:
+          std::tie(dbAdapter_.layers_[layerIdx].viavia_trunk_begin,
+                   dbAdapter_.layers_[layerIdx].viavia_trunk_end)
+              = addTableTriples(
+                  layer, viasInLayer, clacFn, true, excludeNullFilter);
+          break;
+        case AxiomsRuleType::ViaViaTrackLength:
+          std::tie(dbAdapter_.layers_[layerIdx].viavia_track_same_begin,
+                   dbAdapter_.layers_[layerIdx].viavia_track_same_end)
+              = addTableTriples(
+                  layer, viasInLayer, clacFn, true, excludeNullFilter);
+
+          std::tie(dbAdapter_.layers_[layerIdx].viavia_track_diff_begin,
+                   dbAdapter_.layers_[layerIdx].viavia_track_diff_end)
+              = addTableTriples(
+                  layer, viasInLayer, clacFn, false, excludeNullFilter);
+          break;
+        case AxiomsRuleType::ViaTrackLength:
+          std::tie(dbAdapter_.layers_[layerIdx].via_track_begin,
+                   dbAdapter_.layers_[layerIdx].via_track_end)
+              = addTableTriples(
+                  layer, viasInLayer, clacFn, false, viaNullFilter);
+          break;
+      }
+    }
+  }
+}
+
+void Axioms::calcSpacingTable()
+{
+  std::vector<banyan_go::table_triple>& triples = dbAdapter_.tableTriples_;
+
+  auto getTableFromTblRules = [&](LayerRules<RoutingSpacingTableRule>&
+                                      routingTblRules) {
+    assert(routingTblRules.size() <= 1);
+    for (auto rule : routingTblRules) {
+      rule->widthAndPrlToSpacing([&triples](uint32_t width,
+                                            uint32_t prl,
+                                            uint32_t spacing) {
+        triples.push_back({(int) prl + 1, (int) width + 1, (uint64_t) spacing});
+      });
+    }
+  };
+
+  auto getTableFromSpacingRules = [&](odb::dbTechLayer* layer,
+                                      LayerRules<RoutingSpacingRule>&
+                                          spacingRules) {
+    auto lengthThreshold = findLengthThreshold(layer);
+    auto width = layer->getWidth();
+    for (auto rule : spacingRules) {
+      auto subRule = rule->getSubRule();
+      if (subRule.has_value()) {
+        std::visit(
+            overloaded{
+                [&](RoutingSpacingRange& range) {
+                  auto [minWidth, maxWidth, prl]
+                      = range.getMinMaxWidthAndPrl(lengthThreshold);
+                  triples.push_back({(int) prl,
+                                     (int) minWidth,
+                                     (uint64_t) rule->getSpacing()});
+                },
+                [](RoutingSpacingSameNet&) {},
+                [](RoutingSpacingNotchLength&) {},
+                [&](RoutingSpacingLengthThreshold& lengthThreshold) {
+                  auto rangeOrNull = lengthThreshold.getMinMaxWidth();
+                  if (rangeOrNull.has_value()) {
+                    auto [minWidth, maxWidth] = rangeOrNull.value();
+                    triples.push_back({(int) lengthThreshold.getMaxLength(),
+                                       (int) minWidth,
+                                       (uint64_t) rule->getSpacing() + 1});
+                  } else {
+                    triples.push_back({(int) lengthThreshold.getMaxLength(),
+                                       (int) 0,
+                                       (uint64_t) rule->getSpacing() + 1});
+                  }
+                },
+            },
+            subRule.value());
+      } else {
+        triples.push_back({(int) 0, (int) 0, (uint64_t) rule->getSpacing()});
+      }
+    }
+  };
+
+  for (auto layer : db_->getTech()->getLayers()) {
+    if (layer->getType() != odb::dbTechLayerType::ROUTING) {
+      continue;
+    }
+    int layerIdx = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
+    int triplesBenginIdx = triples.size();
+
+    auto routingTblRules = laToRoutingSpacingTableRules[layer];
+    if (routingTblRules.size() > 0) {
+      getTableFromTblRules(routingTblRules);
+    } else {
+      auto routingRules = laToRoutingSpacingRules[layer];
+      getTableFromSpacingRules(layer, routingRules);
+    }
+#ifdef DEBUG_SPACINGTABLE
+    printer.print(layer->getName(), " SPACINGTABLE");
+    for (auto i = triplesBenginIdx; i < triples.size(); i++) {
+      auto triple = triples[i];
+      printer.print("\t PRL ",
+                    triple.col,
+                    " WIDTH ",
+                    triple.row,
+                    " SPACING ",
+                    triple.val);
+    }
+#endif
+    dbAdapter_.layers_[layerIdx].spacing_begin = triplesBenginIdx;
+    dbAdapter_.layers_[layerIdx].spacing_end = triples.size();
+  }
+}
+
+void Axioms::calcMinimumCut()
+{
+  std::vector<banyan_go::table_triple>& triples = dbAdapter_.tableTriples_;
+  for (auto layer : db_->getTech()->getLayers()) {
+    if (layer->getType() != odb::dbTechLayerType::ROUTING) {
+      continue;
+    }
+    int layerIdx = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
+    dbAdapter_.layers_[layerIdx].mincut_begin = triples.size();
     std::vector<odb::dbTechMinCutRule*> cut_rules;
-    if (techLayer->getMinimumCutRules(cut_rules)) {
+    if (layer->getMinimumCutRules(cut_rules)) {
       uint width;
       uint numcuts;
       uint length;
@@ -784,15 +1094,34 @@ void Axioms::initTable()
       for (auto mincut_rule : cut_rules) {
         if (mincut_rule->getMinimumCuts(numcuts, width)) {
           if (mincut_rule->getLengthForCuts(length, distance)) {
-            tableTriples.push_back(
-                {(int) width, (int) distance, (uint64) numcuts});
+            triples.push_back({(int) width, (int) distance, (uint64) numcuts});
           } else {
-            tableTriples.push_back({(int) width, 0, (uint64) numcuts});
+            triples.push_back({(int) width, 0, (uint64) numcuts});
           }
         }
       }
     }
-    dbAdapter_.layers_[layerIdx].mincut_end = tableTriples.size();
+    dbAdapter_.layers_[layerIdx].mincut_end = triples.size();
+  }
+}
+
+void Axioms::calcDefaultSpacing()
+{
+  for (auto layer : db_->getTech()->getLayers()) {
+    if (layer->getType() != odb::dbTechLayerType::ROUTING) {
+      continue;
+    }
+    int layerIdx = AssertFind(dbAdapter_.layerNameToIdxs_, layer->getName());
+    auto minSpacing = getMinSpacing(layer);
+    auto defEOLPrlSpacing = getMaxRoutingEOLPrlSpacing(layer, nullptr, false);
+
+    printer.print(layer->getName(),
+                  " MinSpacing ",
+                  minSpacing,
+                  " EOLPrlSpacing ",
+                  defEOLPrlSpacing);
+    dbAdapter_.layers_[layerIdx].min_spacing = minSpacing;
+    dbAdapter_.layers_[layerIdx].def_eol_prl_spacing = defEOLPrlSpacing;
   }
 }
 

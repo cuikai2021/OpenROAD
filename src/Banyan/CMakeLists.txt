@@ -6,6 +6,7 @@ project(Banyan
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
+
 include(CheckIPOSupported)
 check_ipo_supported(RESULT ipo_supported OUTPUT error)
 
@@ -24,9 +25,16 @@ target_sources(Banyan
   PRIVATE
     src/Banyan.cpp
     src/MakeBanyan.cpp
-    src/OpenDBAdapter.cpp
-    src/GroupedRange.hpp
+    src/DBAdapter.cpp
+    src/Global.cpp
     src/axioms/Axioms.cpp
+    src/axioms/Via.cpp
+    src/axioms/CutSpacingRule.cpp
+    src/axioms/CutSpacingTableRule.cpp
+    src/axioms/RoutingEOLSpacingRule.cpp
+    src/axioms/RoutingSpacingRule.cpp
+    src/axioms/RoutingSpacingTableRule.cpp
+    src/axioms/CutClassRule.cpp
 )
 
 target_include_directories(Banyan
@@ -34,7 +42,8 @@ target_include_directories(Banyan
     include
 
   PRIVATE
-    src
+    src/axioms
+    src  
 )
 
 target_link_libraries(Banyan
@@ -42,7 +51,11 @@ target_link_libraries(Banyan
     dl
     odb
     utl
+    rsz
+    stt
+    Laurel
     OpenSTA
+    dbSta
     Threads::Threads
     OpenMP::OpenMP_CXX
     Boost::boost
@@ -59,3 +72,5 @@ target_compile_options(Banyan
     $<$<CXX_COMPILER_ID:AppleClang>:-Wall -pedantic -Wcast-qual -Wredundant-decls -Wformat-security -Wno-gnu-zero-variadic-macro-arguments>
     $<$<CXX_COMPILER_ID:Clang>:-Wall -pedantic -Wcast-qual -Wredundant-decls -Wformat-security -Wno-gnu-zero-variadic-macro-arguments>
   )
+
+target_compile_features(Banyan PRIVATE cxx_std_17)
