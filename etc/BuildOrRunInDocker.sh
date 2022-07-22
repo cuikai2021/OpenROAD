@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # the dependency docker to build or run in docker
-build_docker_tag=$(find . -name "*.so" | xargs sha1sum | cut -d ' ' -f 1 | sha1sum)
+build_docker_tag=$(find . -name "*.so" | xargs sha1sum | cut -d ' ' -f 1 | sort | sha1sum)
 build_docker=registry.cn-shanghai.aliyuncs.com/icb/eden_build_ubuntu:${build_docker_tag:0:7}
 
 # e.g.
