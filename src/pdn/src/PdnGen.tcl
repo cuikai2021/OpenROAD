@@ -1533,6 +1533,9 @@ proc init_via_tech {} {
 
   set def_via_tech {}
   foreach via_rule [$tech getViaGenerateRules] {
+    if {[$via_rule getViaLayerRuleCount] < 3 } {
+      continue
+    }
     set levels [list [$via_rule getViaLayerRule 0] [$via_rule getViaLayerRule 1] [$via_rule getViaLayerRule 2]]
     set levels [lsort -command via_number $levels]
     lassign $levels lower cut upper
