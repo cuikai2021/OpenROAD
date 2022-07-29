@@ -83,7 +83,8 @@ LindenGlobalPlace::create_linden_db()
   for (auto& pin : pb_->pins()) {
     auto o_net = linden_db->odb2net(pin->net()->dbNet());
     assert(o_net);
-    if (pin->isITerm()) {
+    if (pin->instance()) {
+      assert(pin->isITerm());
       auto o_cell = linden_db->odb2cell(pin->instance()->dbInst());
       assert(o_cell);
       void* term = pin->dbITerm();
@@ -91,9 +92,15 @@ LindenGlobalPlace::create_linden_db()
       linden::geom::Point pin_offset(pin->offsetCx(), pin->offsetCy());
       linden_db->add_pin(linden::db::ITerm(term, *o_net, name, *o_cell, pin_offset));
     } else {
-      assert(pin->isBTerm());
-      void* term = pin->dbBTerm();
-      std::string name = pin->dbBTerm()->getName();
+      void* term = nullptr;
+      std::string name = "";
+      if(pin->isITerm()) {
+        term = pin->dbITerm();
+        name = pin->dbITerm()->getMTerm()->getName();
+      } else {
+        term = pin->dbBTerm();
+        name = pin->dbBTerm()->getName();
+      }
       linden::geom::Point pin_center(pin->cx(), pin->cy());
       linden_db->add_pin(linden::db::BTerm(term, *o_net, name, pin_center));
     }
