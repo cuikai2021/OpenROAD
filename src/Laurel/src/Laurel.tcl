@@ -35,14 +35,14 @@ proc laurel_fix_setup { args } {
 
 sta::define_cmd_args "laurel" {[-slack_margin slack_margin] \
                                 [-spef spef] \
-                                [-setup] [-hold] [-wire_budgeting] \
+                                [-fast] [-setup] [-hold] [-wire_budgeting]\
                                 [-debug_report] \
                                 [-rc]}
 
 proc laurel { args } {
   sta::parse_key_args "laurel" args \
     keys {-slack_margin -spef} \
-    flags {-setup -hold \
+    flags {-fast -setup -hold \
             -wire_budgeting -debug_report \
             -rc}
   
@@ -63,15 +63,18 @@ proc laurel { args } {
   }
   set rsz_cnt 0
   set buf_cnt 0
-
-  if { [info exists flags(-setup)] } {
-    set rsz_cnt [lrl::fix_setup_cmd]
-  }
-  if { [info exists flags(-hold)] } {
-    set buf_cnt [lrl::fix_hold_cmd]
-  }
-  if { [info exists flags(-wire_budgeting)] } {
-    lrl::wire_budgeting_cmd
+  if { [info exists flags(-fast)] } {
+    set rsz_cnt [lrl::fast_opt_cmd]
+  } else {
+    if { [info exists flags(-setup)] } {
+      set rsz_cnt [lrl::fix_setup_cmd]
+    }
+    if { [info exists flags(-hold)] } {
+      set buf_cnt [lrl::fix_hold_cmd]
+    }
+    if { [info exists flags(-wire_budgeting)] } {
+      lrl::wire_budgeting_cmd
+    }
   }
   return [expr $rsz_cnt + $buf_cnt]
 }

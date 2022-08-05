@@ -330,17 +330,20 @@ void LaurelAdapter::getAllRelatedEnds(VertexSet ends,
   }
 }
 
-Delay LaurelAdapter::getArrivalMax(Vertex* vertex) const
+Delay LaurelAdapter::getArrival(Vertex* vertex, MinMax const* min_max) const
 {
-  Delay max_arrival = LRL_H_ZERO;
+  Delay ex_arrival = LRL_H_ZERO;
+  if (min_max == MinMax::min())
+    ex_arrival = LRL_H_INFINITY;
   VertexPathIterator path_iter(vertex, sta_);
   while (path_iter.hasNext()) {
     Path* path = path_iter.next();
     Delay arrival = path->arrival(sta_);
-    if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
-      max_arrival = arrival;
+    if (((fuzzyLess(ex_arrival, arrival)) ^ (min_max == MinMax::min()))
+        && !fuzzyInf(arrival))
+      ex_arrival = arrival;
   }
-  return max_arrival;
+  return ex_arrival;
 }
 
 }  // namespace lrl

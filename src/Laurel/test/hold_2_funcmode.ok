@@ -115,9 +115,9 @@ worst slack 1.92
 [INFO LRL-1100] found 2 vio ends in 3 mode: (slack_margin = 0.000) 
 [INFO LRL-1103] Number of variables = 100
 [INFO LRL-1104] Number of constraints = 86
-[INFO LRL-1105] Objective value = 72.55503124295046 (PRIORITY 10000000)
-[INFO LRL-1110] Totally inserted 6 buffers
-6
+[INFO LRL-1105] Objective value = 90.37906101495992 (PRIORITY 10000000)
+[INFO LRL-1110] Totally inserted 8 buffers
+8
 -----------------
 report scan after repair 
 -----------------
@@ -154,7 +154,7 @@ Path Type: min
           -0.01   slack (VIOLATED)
 
 
-worst slack 1.93
+worst slack 1.91
 -----------------
 report func1 after repair 
 -----------------
@@ -209,11 +209,12 @@ Path Type: min
    0.06    0.06 v r2/Q (SDFFRS_X1)
    0.03    0.09 v b1/Z (TBUF_X1)
    0.02    0.11 v b1x/Z (TBUF_X1)
-   0.02    0.13 v hold6/Z (CLKBUF_X1)
-   0.02    0.15 v m1/Z (MUX2_X2)
-   0.01    0.16 v u2/ZN (AND2_X2)
-   0.00    0.16 v r3/D (SDFFRS_X1)
-           0.16   data arrival time
+   0.01    0.13 v hold7/Z (CLKBUF_X3)
+   0.02    0.14 v hold8/Z (CLKBUF_X3)
+   0.02    0.16 v m1/Z (MUX2_X2)
+   0.01    0.18 v u2/ZN (AND2_X2)
+   0.00    0.18 v r3/D (SDFFRS_X1)
+           0.18   data arrival time
 
    0.00    0.00   clock clk (rise edge)
    0.18    0.18   clock network delay (propagated)
@@ -223,9 +224,9 @@ Path Type: min
            0.17   data required time
 ---------------------------------------------------------
            0.17   data required time
-          -0.16   data arrival time
+          -0.18   data arrival time
 ---------------------------------------------------------
-          -0.01   slack (VIOLATED)
+           0.00   slack (MET)
 
 
 worst slack 1.92

@@ -108,6 +108,14 @@ wire_budgeting_cmd()
   laurel->wireBudgeting();
 }
 
+int
+fast_opt_cmd()
+{
+  ensureLinked();
+  Laurel *laurel = getLaurel();
+  return laurel->fastOpt();
+}
+
 } // namespace
 
 %} // inline

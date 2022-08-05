@@ -30,7 +30,7 @@ class Options
   bool hasSpefFile() { return spef_file_; }
 
  private:
-  float uncertainty_ = 0.1f;
+  float uncertainty_ = 0.05f;
   float slack_margin_ = 0.0f;
 
   bool ignore_clk_ = true;
