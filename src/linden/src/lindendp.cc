@@ -1,4 +1,5 @@
 #include "linden/linden.hpp"
+#include "fassert.hpp"
 #include "toml++/toml.h"
 #include "odb/db.h"
 #include "odb/lefout.h"
@@ -17,6 +18,7 @@
 #include <optional>
 #include <tcl.h>
 #include <cstdlib>
+#include <string_view>
 
 using namespace std;
 
@@ -204,6 +206,24 @@ string writeInputConfig(
     return filename;
 }
 
+void skip_whitespaces(string_view& str, const string& whitespace) {
+    size_t n = str.find_first_not_of(whitespace);
+    if (n == string_view::npos) {
+        str = string_view();
+    } else {
+        str = str.substr(n);
+    }
+}
+
+string_view nonwhitespaces(const string_view& str, const string& whitespace) {
+    size_t n = str.find_first_of(whitespace);
+    if (n == string_view::npos) {
+        return str;
+    } else {
+        return str.substr(0, n);
+    }
+}
+
 } // namespace
 
 void DetailedPlacer::go(
@@ -211,54 +231,37 @@ void DetailedPlacer::go(
     deque<reference_wrapper<Tcl_Obj>>&& args)
 {
     InputArgs input_cfg;
-    optional<const char*> filler_include = nullopt;
-    optional<const char*> filler_exclude = nullopt;
+    optional<const char*> filler_list = nullopt;
     args.pop_front(); // `linden_detailed_placement` itself
     for(; !args.empty(); ) {
         char* s = Tcl_GetString(&args.front().get());
-        if (strcmp(s, "--filler-include-names") == 0) {
+        if (strcmp(s, "--filler-list") == 0) {
             args.pop_front();
             if (args.empty()) {
-                cout << "Required a regexp for \"--filler-include-names\"." << endl;
-                throw std::runtime_error("Required a regexp for \"--filler-include-names\".");
+                cout << "Required a list of fillers, separated by whitespaces, e.g,. \"FILL1 FILL2\"." << endl;
+                throw std::runtime_error("Required a list of fillers.");
             }
-            filler_include = std::move(Tcl_GetString(&args.front().get()));
-            args.pop_front();
-        } else if (strcmp(s, "--filler-exclude-names") == 0) {
-            args.pop_front();
-            if (args.empty()) {
-                cout << "Required a regexp for \"--filler-exclude-names\"." << endl;
-                throw std::runtime_error("Required a regexp for \"--filler-exclude-names\".");
-            }
-            filler_exclude = std::move(Tcl_GetString(&args.front().get()));
+            filler_list = std::move(Tcl_GetString(&args.front().get()));
             args.pop_front();
         } else {
             args.pop_front();
         }
     }
 
-    if (filler_include || filler_exclude) {
-        //
-        // It seems TCL regex accepts the same syntax as that in Rust.
-        // But I cannot prove it.
-        // So, in order to provide a native user-experience for TCL users,
-        // I filter names of std-cells by TCL API, although there is a little bit
-        // performance penality.
-        //
+    if (filler_list) {
         deque<string> selected_fillers;
-        for(auto const& lib: openroad_.getDb()->getLibs()) {
-            for(auto const& model: lib->getMasters()) {
-                auto const& name = model->getName();
-                if (filler_include
-                    && !Tcl_RegExpMatch(&interp, name.c_str(), *filler_include)) {
-                    continue;
-                }
-                if (filler_exclude
-                    && Tcl_RegExpMatch(&interp, name.c_str(), *filler_exclude)) {
-                    continue;
-                }
-                selected_fillers.push_back(name);
+        string_view lst(*filler_list);
+        string whitespace(" \t\n");
+        for(;; ) {
+            skip_whitespaces(lst, whitespace);
+            if (lst.empty()) {
+                break;
             }
+            auto const& filler = nonwhitespaces(lst, whitespace);
+            FASSERT(!filler.empty())
+                (lst);
+            selected_fillers.push_back(string(filler));
+            lst = lst.substr(filler.length());
         }
         input_cfg.selected_fillers = std::move(selected_fillers);
     }
