@@ -1,15 +1,14 @@
 #include "linden/linden.hpp"
 #include "fassert.hpp"
+#include "linden/lefdef_dumper.hpp"
 #include "toml++/toml.h"
 #include "odb/db.h"
-#include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
 #include <boost/process.hpp>
 #include <exception>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <chrono>
 #include <deque>
 #include <string>
 #include <tuple>
@@ -74,56 +73,6 @@ DetailedPlacer::~DetailedPlacer() {
 }
 
 namespace {
-
-string genBaseFilename() {
-    auto tm = chrono::system_clock::now().time_since_epoch();
-    auto tm_ms = chrono::duration_cast<chrono::milliseconds>(tm).count();
-    ostringstream oss;
-    oss << "/tmp/lindendp_" << tm_ms;
-    return oss.str();
-}
-
-string writeTech(
-    ::ord::OpenRoad& openroad,
-    const string& basename)
-{
-    string filename = basename;
-    filename.append(".tech.lef");
-    ::odb::lefout out(openroad.getLogger());
-    out.writeTech(openroad.getDb()->getTech(), filename.c_str());
-    cout << "tech: " << filename << endl;
-    return filename;
-}
-
-deque<string> writeLib(
-    ::ord::OpenRoad& openroad,
-    const string& basename)
-{
-    const auto& libs = openroad.getDb()->getLibs();
-    deque<string> res;
-    for(const auto& lib: libs) {
-        string filename = basename;
-        filename.push_back('.');
-        filename.append(lib->getName());
-        filename.append(".lib.lef");
-        ::odb::lefout out(openroad.getLogger());
-        out.writeLib(const_cast<::odb::dbLib*>(lib), filename.c_str());
-        cout << "lib: " << filename << endl;
-        res.push_back(std::move(filename));
-    }
-    return res;
-}
-
-string writeDef(
-    ::ord::OpenRoad& openroad,
-    const string& basename)
-{
-    string filename = basename;
-    filename.append(".def");
-    openroad.writeDef(filename.c_str(), "5.8");
-    cout << "in def: " << filename << endl;
-    return filename;
-}
 
 string getExe() {
     const char LINDENDP_EXE[] = "LINDENDP_EXE";
@@ -266,12 +215,17 @@ void DetailedPlacer::go(
         input_cfg.selected_fillers = std::move(selected_fillers);
     }
 
-    string basename = std::move(genBaseFilename());
+    dp::LefDefDumper dumper;
+    dumper.run(openroad_);
+    dumper.print_dumped_files(std::cout);
 
-    input_cfg.def = std::move(writeDef(openroad_, basename));
-    string tech = std::move(writeTech(openroad_, basename));
-    input_cfg.lefs = std::move(writeLib(openroad_, basename));
+    string basename = dumper.basename();
+
+    input_cfg.def = dumper.def();
+    string tech = dumper.tech_lef();
+    input_cfg.lefs = dumper.lib_lefs();
     input_cfg.lefs.push_front(tech);
+
     string input_cfg_fn = std::move(writeInputConfig(input_cfg, basename));
     string outdef = std::move(outputDefName(basename));
     exec(input_cfg_fn, outdef);

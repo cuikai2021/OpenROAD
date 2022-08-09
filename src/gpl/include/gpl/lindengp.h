@@ -33,6 +33,7 @@ class LindenGlobalPlace
 
   void setTargetDensity(float density) { density_ = density; }
   void setTargetOverflow(float overflow)  { overflow_ = overflow; }
+  void setUniformDensity(bool use_uniform_density) { use_uniform_density_ = use_uniform_density; }
 
   void setPadLeft(int padding) { padLeft_ = padding; }
   void setPadRight(int padding) { padRight_ = padding; }
@@ -53,6 +54,7 @@ class LindenGlobalPlace
 
   float density_;
   float overflow_;
+  bool use_uniform_density_;
 
   // temp variable; OpenDB should have these values.
   int padLeft_;

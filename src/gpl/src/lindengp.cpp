@@ -1,9 +1,11 @@
 #include "gpl/lindengp.h"
+#include "ord/OpenRoad.hh"
 
 #include <iostream>
 
 #include "graphics.h"
 #include "linden/gpl/placer_config.hpp"
+#include "linden/lefdef_dumper.hpp"
 #include "odb/db.h"
 #include "placerBase.h"
 #include "utl/Logger.h"
@@ -21,6 +23,7 @@ LindenGlobalPlace::LindenGlobalPlace()
     lindengp_(nullptr),
     density_(1.0),
     overflow_(0.1),
+    use_uniform_density_(false),
     padLeft_(0),
     padRight_(0),
     gui_debug_(false),
@@ -119,6 +122,14 @@ void LindenGlobalPlace::run()
     linden::gpl::PlacerConfig cfg(ty);
     cfg.target_density = density_;
     cfg.target_overflow = overflow_;
+    cfg.use_uniform_density = use_uniform_density_;
+    {
+      linden::dp::LefDefDumper dumper;
+      dumper.run(*ord::OpenRoad::openRoad());
+      cfg.input_def = dumper.def();
+      cfg.tech_lef = dumper.tech_lef();
+      cfg.lib_lefs = dumper.lib_lefs();
+    }
     lindengp_ = linden::gpl::Placer::create(linden_db_, cfg, log_);
   }
   std::unique_ptr<Graphics> graphics;
@@ -138,7 +149,7 @@ void LindenGlobalPlace::run()
           graphics->cellPlot(pause);
         }
       }
-      if (!ret || (*ret < overflow_)) {
+      if (!ret) {
         break;
       }
     }
