@@ -44,7 +44,7 @@ void Laurel::initLaurel(OpenRoad* openroad,
   evalTclInit(interp, sta::Laurel_tcl_inits);
 }
 
-Laurel::~Laurel()
+void Laurel::deleteLaurel()
 {
   if (wire_bud_)
     delete wire_bud_;

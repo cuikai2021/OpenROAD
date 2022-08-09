@@ -386,7 +386,7 @@ class Laurel : public LaurelAdapter
 {
  public:
   Laurel() : LaurelAdapter() { options_ = std::make_shared<Options>(); }
-  virtual ~Laurel();
+  void deleteLaurel();
 
   void initLaurel(OpenRoad* openroad,
                   Tcl_Interp* interp,
