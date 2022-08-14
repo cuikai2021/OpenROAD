@@ -50,7 +50,7 @@ COPY --from=maple_build_stage /maple/build/src/yosys* /usr/local/bin/
 COPY --from=maple_build_stage /maple/yosys/share/* /usr/local/share/yosys/
 COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin/origin-yosys/
 COPY --from=eden_build_stage /Eden/build/src/eden /usr/local/bin
-COPY /Eden/src/linden/gpl/bin /usr/local/bin/
+COPY ./Eden-src/src/linden/gpl/bin /usr/local/bin/
 RUN mkdir -p /Eden-flow
 WORKDIR /Eden-flow
 RUN mkdir -p /Eden-flow/flow
