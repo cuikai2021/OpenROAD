@@ -4,6 +4,7 @@
 #include "toml++/toml.h"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
+#include "utl/Logger.h"
 #include <boost/process.hpp>
 #include <exception>
 #include <sstream>
@@ -92,6 +93,7 @@ string outputDefName(const string& basename) {
 }
 
 void exec(
+    utl::Logger& logger,
     const string& input_cfg,
     const string& outdef,
     bool not_stop_when_illegal)
@@ -110,15 +112,16 @@ void exec(
         // intend to do nothing
         return;
     case 1:
-        // illegal placement
+        logger.warn(utl::LDN, 1, "Cannot legalize completely.");
         if (not_stop_when_illegal) {
+            logger.info(utl::LDN, 2, "But not to stop the flow.");
             return;
         }
         break;
     default:
         break;
     }
-    cout << "Exit code: " << ec << endl;
+    logger.warn(utl::LDN, 2, "Exit code: {}", ec);
     throw std::runtime_error("fail to run lindendp");
 }
 
@@ -201,8 +204,10 @@ void DetailedPlacer::go(
         if (strcmp(s, "--filler-list") == 0) {
             args.pop_front();
             if (args.empty()) {
-                cout << "Required a list of fillers, separated by whitespaces, e.g,. \"FILL1 FILL2\"." << endl;
-                throw std::runtime_error("Required a list of fillers.");
+                openroad_.getLogger()->error(
+                    utl::LDN, 0,
+                    "Required a list of fillers, separated by whitespaces, "
+                    "e.g,. \"FILL1 FILL2\".");
             }
             filler_list = std::move(Tcl_GetString(&args.front().get()));
         } else if (strcmp(s, "--not-to-stop-when-illegal") == 0) {
@@ -241,7 +246,7 @@ void DetailedPlacer::go(
 
     string input_cfg_fn = std::move(writeInputConfig(input_cfg, basename));
     string outdef = std::move(outputDefName(basename));
-    exec(input_cfg_fn, outdef, not_stop_when_illegal);
+    exec(*openroad_.getLogger(), input_cfg_fn, outdef, not_stop_when_illegal);
     openroad_.readDef(outdef.c_str(), false, false, true);
 }
 
