@@ -35,6 +35,7 @@ target_sources(Laurel
     MakeLaurel.cc
     WireBudgeting.cc
     FastOpt.cc
+    ClockConcurrentFixer.cc
 
     ${FLEX_LrlSpefLex_OUTPUTS}
     ${BISON_LrlSpefParser_OUTPUTS}

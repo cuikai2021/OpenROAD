@@ -34,17 +34,17 @@ proc laurel_fix_setup { args } {
 }
 
 sta::define_cmd_args "laurel" {[-slack_margin slack_margin] \
-                                [-spef spef] \
-                                [-fast] [-setup] [-hold] [-wire_budgeting]\
+                                [-spef spef] [-iter iter] \
+                                [-fast] [-setup] [-hold] [-wire_budgeting] [-ccopt]\
                                 [-debug_report] \
-                                [-rc]}
+                                [-rc] [-iterative]}
 
 proc laurel { args } {
   sta::parse_key_args "laurel" args \
-    keys {-slack_margin -spef} \
-    flags {-fast -setup -hold \
+    keys {-slack_margin -spef -iter} \
+    flags {-fast -setup -hold -ccopt \
             -wire_budgeting -debug_report \
-            -rc}
+            -rc -iterative}
   
   if { [info exists keys(-slack_margin)] } {
     lrl::set_slack_margin $keys(-slack_margin)
@@ -63,11 +63,20 @@ proc laurel { args } {
   }
   set rsz_cnt 0
   set buf_cnt 0
+  set iter_cnt 1
+  if { [info exists flags(-iterative)] } {
+    set iter_cnt 5
+  }
+  if { [info exists keys(-iter)] } {
+    set iter_cnt $keys(-iter)
+  }
   if { [info exists flags(-fast)] } {
-    set rsz_cnt [lrl::fast_opt_cmd]
+    set rsz_cnt [lrl::fast_opt_cmd $iter_cnt]
   } else {
-    if { [info exists flags(-setup)] } {
-      set rsz_cnt [lrl::fix_setup_cmd]
+    if { [info exists flags(-ccopt)] } {
+      set rsz_cnt [lrl::ccopt_cmd]
+    } elseif { [info exists flags(-setup)] } {
+      set rsz_cnt [lrl::fix_setup_cmd $iter_cnt]
     }
     if { [info exists flags(-hold)] } {
       set buf_cnt [lrl::fix_hold_cmd]
@@ -77,4 +86,24 @@ proc laurel { args } {
     }
   }
   return [expr $rsz_cnt + $buf_cnt]
+}
+
+sta::define_cmd_args "report_violations" {[-max] [-min] [-ignore_top_ports]}
+
+proc report_violations {args} {
+  sta::parse_key_args "report_violations" args \
+    keys {} \
+    flags {-min -max -ignore_top_ports}
+  
+  set ignore_top_ports "false"
+  set min_max "max"
+  if { [info exists flags(-min)] } {
+    set min_max "min"
+  }
+  if { [info exists flags(-ignore_top_ports)] } {
+    set ignore_top_ports "true"
+  }
+
+
+  lrl::report_violations_cmd $min_max $ignore_top_ports
 }

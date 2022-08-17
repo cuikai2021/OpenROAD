@@ -92,6 +92,9 @@ Delay SetupFixer::getBound(Vertex* vertex, MinMax const* min_max)
   if (!vertex_bound_map_.hasKey(vertex)) {
     if (!vertex->isDriver(sta_->network()))
       return LRL_H_ZERO;
+    PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
+    if (!path.vertex(sta_))
+      return LRL_H_ZERO;
     Pin* drvr_pin = vertex->pin();
     LibertyPort* drvr_port = sta_->network()->libertyPort(drvr_pin);
     LibertyCell* cell = drvr_port->libertyCell();
@@ -100,9 +103,6 @@ Delay SetupFixer::getBound(Vertex* vertex, MinMax const* min_max)
       debugPrint(logger_, utl::LRL, "LRL", 3, "no equiv_cells for get bound");
       return getDelay(vertex);
     }
-    PathRef path = sta_->vertexWorstSlackPath(vertex, max_);
-    if (!path.vertex(sta_))
-      return LRL_H_ZERO;
     Delay high_bound = LRL_H_ZERO;
     Delay low_bound = INF;
     const DcalcAnalysisPt* dcalc_ap = path.dcalcAnalysisPt(sta_);
@@ -333,39 +333,62 @@ void SetupFixer::addConstraintPrimeOut(Vertex* po)
 void SetupFixer::addConstraintPrimeIn(Vertex* pi)
 {
   Index pi_index = getIndex(pi);
-  Arrival pi_arrival = getArrival(pi, max_);
+  PathRef path = sta_->vertexWorstSlackPath(pi, max_);
+  Arrival pi_arrival = path.vertex(sta_) ? 
+                       path.arrival(sta_) :
+                       getArrival(pi, max_);
   addConstraintBase({S_INDEX, pi_index, LRL_S_INT_INF, -delay2Cost(pi_arrival)});
-  pi_index_set_.insert(pi_index);
 }
 
-void SetupFixer::initAlgorithm()
+bool SetupFixer::initAlgorithm(bool iterative)
 {
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
   VertexSet* ends = sta_->search()->endpoints();
   VertexSet failures;
-  int cnt = 0;
-  debugPrint(logger_,
-             utl::LRL,
-             "LRL",
-             2,
-             "Violated Ends: (slack_margin = {})",
-             delayAsString(slack_margin, sta_, 3));
-  for (Vertex* vertex : *ends) {
-    Slack slack = sta_->vertexSlack(vertex, MinMax::max());
-    if (!fuzzyInf(slack) && fuzzyLess(slack, slack_margin)) {
-      failures.insert(vertex);
-      cnt++;
-      debugPrint(logger_,
-                 utl::LRL,
-                 "LRL",
-                 2,
-                 "   {} : {}",
-                 delayAsString(slack, sta_, 3),
-                 vertex->name(sta_->sdcNetwork()));
+  if (iterative) {
+    Slack worst_slack = LRL_H_INFINITY;
+    Vertex* worst_end;
+    for (Vertex* vertex : *ends) {
+      Slack slack = sta_->vertexSlack(vertex, MinMax::max());
+      if (fuzzyLess(slack, worst_slack)) {
+        worst_slack = slack;
+        worst_end = vertex;
+      }
     }
+    if (fuzzyLess(worst_slack, slack_margin - LRL_H_ROUNDING_LIMIT)){
+      failures.insert(worst_end);
+      logger_->info(utl::LRL,
+                    1303,
+                    "worst_end: {} (slack = {})",
+                    worst_end->name(sta_->sdcNetwork()),
+                    delayAsString(worst_slack, this, 3));
+    }
+  } else {
+    int cnt = 0;
+    debugPrint(logger_,
+              utl::LRL,
+              "LRL",
+              2,
+              "Violated Ends: (slack_margin = {})",
+              delayAsString(slack_margin, sta_, 3));
+    for (Vertex* vertex : *ends) {
+      Slack slack = sta_->vertexSlack(vertex, MinMax::max());
+      if (!fuzzyInf(slack) && fuzzyLess(slack, slack_margin)) {
+        failures.insert(vertex);
+        cnt++;
+        debugPrint(logger_,
+                  utl::LRL,
+                  "LRL",
+                  2,
+                  "   {} : {}",
+                  delayAsString(slack, sta_, 3),
+                  vertex->name(sta_->sdcNetwork()));
+      }
+    }
+    logger_->info(utl::LRL, 1304, "totally found {} vio ends", cnt);
   }
-  logger_->info(utl::LRL, 1303, "totally found {} vio ends", cnt);
   buildIndexMap(failures);
+  return !failures.empty();
 }
 
 SetupResult SetupFixer::resolve()
@@ -455,6 +478,10 @@ bool SetupFixer::remap()
 
 Delay SetupFixer::getNewDelay(Vertex* vertex)
 {
+  Delay low_bound = getLowBound(vertex);
+  Delay gate_delay = getDelay(vertex);
+  if (fuzzyEqual(low_bound, gate_delay))
+    return gate_delay;
   Delay shortest_delay = INF;
   if (vertex->isDriver(sta_->network())) {
     VertexInEdgeIterator edge_iter(vertex, sta_->graph());
@@ -479,10 +506,8 @@ Delay SetupFixer::getNewDelay(Vertex* vertex)
     }
     if (vertex_bound_map_.hasKey(vertex)) {
       Delay delay = getCellDelay(vertex);
-      Delay gate_delay = getDelay(vertex);
       Delay diff = delay - gate_delay;
       shortest_delay -= diff;
-      Delay low_bound = getLowBound(vertex);
       // Delay high_bound = getHighBound(vertex);
       Delay& high_bound = gate_delay;
       if (fuzzyLess(shortest_delay, low_bound + LRL_H_ROUNDING_LIMIT))
@@ -505,11 +530,12 @@ Delay SetupFixer::getResizeValue(Vertex* vertex)
 void SetupFixer::getResizeVertex(VertexSet& resize_vertex)
 {
   for (auto& node : vertex_index_map_) {
-    const Index& index = node.second;
-    if (!pi_index_set_.hasKey(index)) {
-      Vertex* vertex = node.first;
+    Vertex* vertex = node.first;
+    Pin const* pin = vertex->pin();
+    if (network_->isDriver(pin) 
+        && !network_->isTopLevelPort(pin) 
+        && !isRegOutput(vertex)) {
       Delay resize_value = getResizeValue(vertex);
-      // if (delay2Cost(resize_value) != 0)
       if (fuzzyLessEqual(resize_value, LRL_H_ZERO - LRL_H_ROUNDING_LIMIT)
           || fuzzyLessEqual(LRL_H_ZERO + LRL_H_ROUNDING_LIMIT, resize_value))
         resize_vertex.insert(vertex);

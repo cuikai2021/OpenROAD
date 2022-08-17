@@ -27,11 +27,10 @@ void Laurel::initFastOpt(OpenRoad *openroad)
   resizePreamble();
 }
 
-int Laurel::fastOpt()
+int Laurel::fastOpt(int iter)
 {
   initFastOpt(openroad_);
 
-  const int iter_limit = 5;
   VertexSet failures;
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
   VertexSet* ends = sta_->search()->endpoints();
@@ -42,11 +41,11 @@ int Laurel::fastOpt()
     if (!fuzzyInf(slack) && fuzzyLess(slack, slack_margin))
       failures.insert(vertex);
   }
-  logger_->info(utl::LRL, 1501, "Fast-Opt found {} violations", failures.size());
+  logger_->info(utl::LRL, 1501, "Fast-Opt found {} violations, iter {}", failures.size(), iter);
 
   for (auto& end : failures) {
     int index = 0;
-    while (quickFixSetup(end) && index < iter_limit) {
+    while (quickFixSetup(end) && index < iter) {
       index++;
     }
   }
@@ -63,10 +62,10 @@ int Laurel::fastOpt()
 bool Laurel::quickFixSetup(Vertex /*const*/*end) 
 {
   struct DrvrFanout{
-    int path_id_;
-    int num_fanout_;
+    int path_id;
+    int num_fanout;
     bool operator < (DrvrFanout const& other) const {
-      return this->num_fanout_ > other.num_fanout_;
+      return this->num_fanout > other.num_fanout;
     }
   };
 
@@ -83,8 +82,8 @@ bool Laurel::quickFixSetup(Vertex /*const*/*end)
 
     sort(load_fanouts.begin(), load_fanouts.end());
 
-    const int& drvr_index = load_fanouts[0].path_id_;
-    const int& fanout = load_fanouts[0].num_fanout_;
+    const int& drvr_index = load_fanouts[0].path_id;
+    const int& fanout = load_fanouts[0].num_fanout;
     PathRef *drvr_path = expanded.path(drvr_index);
     const Pin *drvr_pin = drvr_path->pin(this);
     bool tristate_drvr = isTristateDriver(drvr_pin);

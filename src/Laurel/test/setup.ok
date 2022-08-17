@@ -10,9 +10,9 @@ end reading sdc
 [WARNING RSZ-0014] wire capacitance for corner default is zero. Use the set_wire_rc command to set wire resistance and capacitance.
 worst slack -0.03
 Design area 100 u^2 100% utilization.
-[INFO LRL-1303] totally found 1 vio ends
+[INFO LRL-1304] totally found 1 vio ends
+[INFO LRL-1306] **fix setup, iter = 1 **
 [INFO LRL-1305] Totally resized 4 cells
-[INFO LRL-1306] Succeed to resize all cells
 4
 end repair timing
 worst slack 1.35

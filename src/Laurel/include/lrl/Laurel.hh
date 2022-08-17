@@ -4,6 +4,8 @@
 #include <ortools/linear_solver/linear_solver.h>
 
 #include <unordered_map>
+#include <unordered_set>
+#include <boost/bimap.hpp>
 
 #include "lrl/Options.hh"
 #include "rsz/Resizer.hh"
@@ -34,8 +36,7 @@
 #include "sta/Units.hh"
 
 // macros
-#define pathVertex(expanded, i) \
-  (expanded.path(i)->vertex(sta_))
+#define pathVertex(expanded, i) (expanded.path(i)->vertex(sta_))
 
 #define pathPort(expanded, i) \
   (network_->libertyPort(expanded.path(i)->pin(sta_)))
@@ -89,7 +90,8 @@ class LaurelAdapter : public Resizer
   static constexpr float LRL_H_ROUNDING_LIMIT = 0.0005f / LRL_H_STA_SCALING;
   static constexpr int32_t LRL_H_BUFFER_SPILIT = 2;
 
-  static constexpr int32_t LRL_S_INT_INF = (std::numeric_limits<int32_t>::max)();
+  static constexpr int32_t LRL_S_INT_INF
+      = (std::numeric_limits<int32_t>::max)();
   static constexpr int32_t LRL_S_INVALIDE = -1;
   static constexpr int32_t LRL_S_ZERO = 0;
   const char* LRL_S_SRC_NAME = "$src$";
@@ -102,7 +104,8 @@ class SetupFixer : public LaurelAdapter
   SetupFixer(OpenRoad* openroad, Options* options);
   virtual ~SetupFixer(){};
 
-  virtual void initAlgorithm();
+  virtual bool initAlgorithm(bool iterative);
+  virtual void initAlgorithm() { initAlgorithm(false); }
   SetupResult resolve();
   bool remap();
   void getResizeQueue(sta::Map<Vertex*, LibertyCell*>& queue);
@@ -148,7 +151,7 @@ class SetupFixer : public LaurelAdapter
 
   virtual Delay costSlope(Vertex* pred, Vertex* succ);
 
-  void addConstraintBase(Constraint &&);
+  void addConstraintBase(Constraint&&);
   virtual void addConstraintEdge(Vertex* pred, Vertex* succ);
   virtual void addConstraintPrimeOut(Vertex* po);
   virtual void addConstraintPrimeIn(Vertex* pi);
@@ -186,9 +189,57 @@ class SetupFixer : public LaurelAdapter
   sta::Map<Vertex*, Index> vertex_index_map_;
   sta::Map<Vertex*, BoundDelay> vertex_bound_map_;
   sta::Map<Vertex*, DelayFactor> vertex_delay_map_;
-  sta::Set<Index> pi_index_set_;
 
   Options* options_;
+};
+
+class ClockConcurrentFixer : public SetupFixer
+{
+ public:
+  ClockConcurrentFixer(OpenRoad* openroad, Options* options)
+      : SetupFixer(openroad, options){};
+
+  virtual void initAlgorithm() override;
+  Delay getUsefulSkew(Vertex const* vertex) const;
+
+  void report_skews();
+
+ protected: 
+
+  virtual void addConstraintPrimeOut(Vertex* po) override;
+  virtual void addConstraintPrimeIn(Vertex* pi) override;
+  void addConstraintPrimeInOut(Vertex* pi, Vertex* po);
+
+  struct Reg2RegSkewMap {
+    struct VertexHash {
+      size_t operator()(Vertex* v) const { return (size_t)v; }
+    };
+    typedef std::unordered_map<Vertex*, Delay, VertexHash> NodeSkewMap;
+    typedef std::unordered_map<Vertex*, std::shared_ptr<NodeSkewMap>, VertexHash> Map;
+    void insert(Vertex* i, Vertex* o, Delay const & d) {
+      insert_map(i2o, i, o, d);
+      insert_map(o2i, o, i, d);
+    }
+    NodeSkewMap* find(Vertex* i, bool& is_i2o) const {
+      is_i2o = true;
+      auto it = i2o.find(i);
+      if (it == i2o.end()) {
+        is_i2o = false;
+        it = o2i.find(i);
+        if (it == o2i.end()) return NULL;
+      }
+      return it->second.get();
+    } 
+  private:
+    void insert_map(Map& m, Vertex* k0, Vertex* k1, Delay const& d) {
+      auto it = m.find(k0);
+      if (it == m.end())
+        it = m.insert({k0, std::make_shared<NodeSkewMap>()}).first;
+      it->second->insert({k1, d});
+    }
+    Map i2o;
+    Map o2i;
+  } opt_regs_;
 };
 
 class WireBudgeting : public SetupFixer
@@ -297,37 +348,47 @@ class HoldFixer : public LaurelAdapter
 
  protected:
   // definitions
-  struct BufferDelay{
+  struct BufferDelay
+  {
     LibertyCell* buffer_;
     Delay hold_delay_;
-    bool operator < (BufferDelay const& other) const {
-      return  other.hold_delay_ < this->hold_delay_;
+    bool operator<(BufferDelay const& other) const
+    {
+      return other.hold_delay_ < this->hold_delay_;
     }
   };
 
-  typedef std::unordered_map<Index, MPVariable*> VertexMPVarMap;
+  struct ArrivalVariable
+  {
+    MPVariable* max;
+    MPVariable* min;
+  };
+
+  typedef sta::Map<Index, ArrivalVariable> VertexMPVarMap;
   typedef sta::Map<Sdc*, std::shared_ptr<VertexMPVarMap>> MMVertexMPVarMap;
   typedef sta::Map<WirePair, MPVariable*> WireMPVarMap;
   typedef sta::Map<Index, MPConstraint*> MPConstraintMap;
   typedef sta::Set<Name> VertexNameSet;
 
   // methods
-  void makeVar(const Index& vertex_index, MMVertexMPVarMap& arrival);
+  void makeVar(const Index& vertex_index);
   void makeWire(const Index& pred, const Index& succ);
-  void makeVarFanins(const VertexSet& fanins);
+  void makeVarFanins(const VertexSet& fanins, VertexIndexSet& pi_set);
   void makeVarAllModes();
-  void makeDelay(Vertex* vertex);
   void findHoldVioNameMM(VertexNameSet& vio_ends_name);
 
   int addConstraints(Delay low_bound, Delay high_bound);
-  void genPrimeInConstraints();
-  void genPrimeOutConstraints(VertexSet* ends);
+  void genPrimeInConstraints(const VertexIndexSet& pi_set);
+  void genPrimeOutConstraints(const VertexSet& ends);
   void genWireConstraints(const WirePair& wire);
 
-  Delay getDelay(const Index& vertex_index) const;
+  void getDelay(const Index& pred_index,
+                const Index& succ_index,
+                Delay& min_delay,
+                Delay& max_delay);
   Delay getCriLongArrival(Vertex* end) const;
 
-  void getRealVertexName();
+  void makeRealVertexName();
   Vertex* findRealVertex(const Index& vertex_index) const;
 
   bool hasHoldViolation(Vertex* vertex,
@@ -340,9 +401,6 @@ class HoldFixer : public LaurelAdapter
   Delay zoomIn(Delay ori) const { return ori * LRL_H_SCALING; }
   Delay zoomOut(Delay ori) const { return ori / LRL_H_SCALING; }
 
-  void confirmAllPrimeIn();
-  bool isPrimeIn(const Index& vertex_index) const;
-
   // insert buffers
   Pin* findFanoutPin(Vertex* pred, Vertex* succ) const;
   Vertex* insertHoldDelay(Vertex* drvr,
@@ -350,7 +408,7 @@ class HoldFixer : public LaurelAdapter
                           PinSeq& load_pins,
                           bool loads_have_out_port,
                           LibertyCell* buffer_cell);
-
+  void sortHoldBuffers();
   LibertyCell* findHoldBuffer(Delay min_limit, int& count, Delay& real_delay);
   bool insertBuffer(const Index& vertex_index,
                     Delay decrease,
@@ -367,17 +425,15 @@ class HoldFixer : public LaurelAdapter
   Slack sdc_worst_slack_ = LRL_H_ZERO;
 
   MPSolver* solver_;
-  MMVertexMPVarMap arrival_max_;  // A
-  MMVertexMPVarMap arrival_min_;  // a
+  MMVertexMPVarMap arrival_;      // A/a
   WireMPVarMap wire_;             // w
   MPConstraintMap constraint_;
 
-  std::unordered_map<Name, Index> vertex_name_index_map_;
-  std::unordered_map<Index, Delay> delay_map_;
+  boost::bimap<Index, Vertex*> sdc_id_vertex_bmap_;
+  std::unordered_map<Name, Index> vertex_name_id_map_;
+  sta::Vector<BufferDelay> hold_buffers_;
+
   VertexIndexSet complete_vio_ends_;
-  std::unordered_map<Index, Vertex*> sdc_id_vertex_map_;
-  std::unordered_map<Vertex*, Index> sdc_vertex_id_map_;
-  VertexIndexSet pi_set_;
 
   Options* options_;
 };
@@ -398,12 +454,15 @@ class Laurel : public LaurelAdapter
                   GlobalRouter* global_router);
 
   int fixHold();
-  int fixSetup();
-  int fastOpt();
+  int fixSetup(int iter);
+  int ccopt();
+  int fastOpt(int iter);
   void wireBudgeting();
   void wireBudgeting(float factor);
   void wireBudgetingSpef(const char* filename);
   void wireBudgetingRC();
+
+  void reportViolations(MinMax const* min_max, bool ignore_top_ports);
 
   // easy to get the hold slack
   Slack getHoldSlack(Vertex* drvr);
@@ -415,6 +474,9 @@ class Laurel : public LaurelAdapter
   uint64 getWireBudMaxLen(Pin* fanin, Pin* fanout);
   Delay getWireBudRate(Vertex* fanin, Vertex* fanout);
   Delay getWireBudRate(Pin* fanin, Pin* fanout);
+
+  // get useful skew (default is zero) after ccopt();
+  float usefulSkew(Vertex const* vertex) const;
 
   Options* getOptions() { return options_.get(); }
 
@@ -430,10 +492,13 @@ class Laurel : public LaurelAdapter
   void initFastOpt(OpenRoad* openroad);
   bool quickFixSetup(Vertex* end);
 
+  bool isWorstPathFromInPort(Vertex* vertex, MinMax const* min_max);
+
   // variable
   std::shared_ptr<Options> options_;
 
   WireBudgeting* wire_bud_ = nullptr;
+  ClockConcurrentFixer* ccopt_fixer_ = nullptr;
 };
 
 }  // namespace lrl

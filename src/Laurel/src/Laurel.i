@@ -2,6 +2,8 @@
 
 #include "lrl/Laurel.hh"
 #include "lrl/Options.hh"
+#include "sta/Sta.hh"
+#include "sta/MinMax.hh"
 
 namespace ord {
 // Defined in OpenRoad.i
@@ -12,6 +14,9 @@ void
 ensureLinked();
 }
 
+using sta::Sta;
+using sta::MinMax;
+
 using lrl::Laurel;
 using lrl::Options;
 
@@ -19,6 +24,16 @@ using ord::getLaurel;
 using ord::ensureLinked;
 
 %}
+
+%typemap(in) MinMax* {
+  int length;
+  char *arg = Tcl_GetStringFromObj($input, &length);
+  MinMax *min_max = MinMax::find(arg);
+  if (min_max)
+    $1 = min_max;
+  else
+    return TCL_ERROR;
+}
 
 %include "../../Exception.i"
 
@@ -93,11 +108,19 @@ set_spef_file(const char* filename)
 }
 
 int
-fix_setup_cmd()
+fix_setup_cmd(int iter)
 {
   ensureLinked();
   Laurel *laurel = getLaurel();
-  return laurel->fixSetup();
+  return laurel->fixSetup(iter);
+}
+
+int
+ccopt_cmd()
+{
+  ensureLinked();
+  Laurel *laurel = getLaurel();
+  return laurel->ccopt();
 }
 
 void
@@ -109,11 +132,20 @@ wire_budgeting_cmd()
 }
 
 int
-fast_opt_cmd()
+fast_opt_cmd(int iter)
 {
   ensureLinked();
   Laurel *laurel = getLaurel();
-  return laurel->fastOpt();
+  return laurel->fastOpt(iter);
+}
+
+void
+report_violations_cmd(MinMax *min_max,
+                      bool ignore_top_ports)
+{
+  ensureLinked();
+  Laurel *laurel = getLaurel();
+  return laurel->reportViolations(min_max, ignore_top_ports);
 }
 
 } // namespace
