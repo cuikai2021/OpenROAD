@@ -44,10 +44,12 @@ void Laurel::initLaurel(OpenRoad* openroad,
   evalTclInit(interp, sta::Laurel_tcl_inits);
 }
 
-Laurel::~Laurel()
+void Laurel::deleteLaurel()
 {
   if (wire_bud_)
     delete wire_bud_;
+  if (ccopt_fixer_)
+    delete ccopt_fixer_;
 }
 
 ////////////////////////////////////////////////////////
@@ -111,6 +113,7 @@ Slack Laurel::getHoldSlack(Pin* drvr_pin)
 bool Laurel::resizeAllCells(SetupFixer* fixer)
 {
   bool ret = true;
+  int resize_cnt_turn = 0;
   sta::Map<Vertex*, LibertyCell*> queue;
   fixer->getResizeQueue(queue);
   for (auto& q : queue) {
@@ -125,33 +128,67 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
                     vertex->name(sta_->sdcNetwork()));
       continue;
     }
-    resize_count_++;
+    ++resize_cnt_turn;
   }
   logger_->info(utl::LRL,
                 1305,
                 "Totally resized {} cells",
-                std::to_string(resize_count_));
+                std::to_string(resize_cnt_turn));
+  if (resize_cnt_turn == 0)
+    return false;
+  resize_count_ += resize_cnt_turn;
   return ret;
 }
 
-int Laurel::fixSetup()
+int Laurel::fixSetup(int iter)
 {
   resize_count_ = 0;
-  SetupFixer fixer = SetupFixer(openroad_, options_.get());
-  fixer.initAlgorithm();
-  SetupResult status = fixer.resolve();
-  bool ret = false;
+  SetupResult status = MinCostFlow::OPTIMAL;
+  bool has_violation = true;
+  bool iterative = iter > 1;
+  for (int i = 1; i <= iter && status == MinCostFlow::OPTIMAL; ++i) {
+    SetupFixer* fixer = new SetupFixer(openroad_, options_.get());
+    has_violation = fixer->initAlgorithm(iterative);
+    if (has_violation) {
+      logger_->info(utl::LRL, 1306, "**fix setup, iter = {} **", i);
+      status = fixer->resolve();
+      if (status == MinCostFlow::OPTIMAL) {
+        fixer->report();
+        fixer->remap();
+        if(!resizeAllCells(fixer))
+          break;
+      }
+      openroad_->getResizer()->estimateWireParasitics();
+    }
+    delete fixer;
+  }
+  return resize_count_;
+}
+
+int Laurel::ccopt()
+{
+  resize_count_ = 0;
+  if (ccopt_fixer_)
+    delete ccopt_fixer_;
+  ccopt_fixer_ = new ClockConcurrentFixer(openroad_, options_.get());
+  ccopt_fixer_->initAlgorithm();
+  SetupResult status = ccopt_fixer_->resolve();
   if (status == MinCostFlow::OPTIMAL) {
-    fixer.report();
-    ret = fixer.remap();
-    ret = resizeAllCells(&fixer);
+    ccopt_fixer_->report();
+    ccopt_fixer_->remap();
+    if (options_->getDebugReport())
+      ccopt_fixer_->report_skews();
+    resizeAllCells(ccopt_fixer_);
   }
   openroad_->getResizer()->estimateWireParasitics();
-  if (!ret)
-    logger_->warn(utl::LRL, 1202, "Fail to resize all cells");
-  else
-    logger_->info(utl::LRL, 1306, "Succeed to resize all cells");
   return resize_count_;
+}
+
+float Laurel::usefulSkew(Vertex const* vertex) const
+{
+  if (!ccopt_fixer_)
+    return LRL_H_ZERO;
+  return ccopt_fixer_->getUsefulSkew(vertex);
 }
 
 ////////////////////////////////////////////////////////
@@ -303,6 +340,64 @@ Delay Laurel::getWireBudRate(Pin* fanin, Pin* fanout)
 
 ////////////////////////////////////////////////////////
 //
+//  utils
+//
+////////////////////////////////////////////////////////
+
+bool Laurel::isWorstPathFromInPort(Vertex* vertex, MinMax const* min_max)
+{
+  PathRef worst_path = sta_->vertexWorstSlackPath(vertex, min_max);
+  PathExpanded expanded(&worst_path, sta_);
+  if (expanded.size() > 1) {
+    Vertex* start = pathVertex(expanded, expanded.startIndex());
+    if (sta_->network()->isTopLevelPort(start->pin()))
+      return true;
+  }
+  return false;
+}
+
+void Laurel::reportViolations(MinMax const* min_max, bool ignore_top_ports)
+{
+  struct Failure
+  {
+    Vertex* vertex;
+    Slack slack;
+    bool operator<(Failure const& other) const
+    {
+      return this->slack < other.slack;
+    }
+  };
+
+  initFastOpt(openroad_);
+  sta_->findRequireds();
+
+  const int report_limit = 10;
+  const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
+  VertexSet* ends = sta_->search()->endpoints();
+  std::vector<Failure> failures;
+  for (Vertex* vertex : *ends) {
+    Slack slack = sta_->vertexSlack(vertex, min_max);
+    if (!fuzzyInf(slack) && fuzzyLess(slack, slack_margin))
+      if (!ignore_top_ports
+          || (!isWorstPathFromInPort(vertex, min_max)
+              && !sta_->network()->isTopLevelPort(vertex->pin())))
+        failures.push_back({vertex, slack});
+  }
+  logger_->info(utl::LRL,
+                1502,
+                "Laurel report {} violations in {}\n show worst ends: (max {})",
+                failures.size(),
+                min_max == max_ ? "setup" : "hold",
+                report_limit);
+  sort(failures.begin(), failures.end());
+  for (int i = 0; i < failures.size() && i < report_limit; ++i)
+    printf("  %s : %s\n",
+           delayAsString(failures[i].slack, this, 3),
+           failures[i].vertex->name(sdc_network_));
+}
+
+////////////////////////////////////////////////////////
+//
 //  class LaurelAdapter
 //
 ////////////////////////////////////////////////////////
@@ -330,17 +425,20 @@ void LaurelAdapter::getAllRelatedEnds(VertexSet ends,
   }
 }
 
-Delay LaurelAdapter::getArrivalMax(Vertex* vertex) const
+Delay LaurelAdapter::getArrival(Vertex* vertex, MinMax const* min_max) const
 {
-  Delay max_arrival = LRL_H_ZERO;
+  Delay ex_arrival = LRL_H_ZERO;
+  if (min_max == MinMax::min())
+    ex_arrival = LRL_H_INFINITY;
   VertexPathIterator path_iter(vertex, sta_);
   while (path_iter.hasNext()) {
     Path* path = path_iter.next();
     Delay arrival = path->arrival(sta_);
-    if ((fuzzyLess(max_arrival, arrival)) && !fuzzyInf(arrival))
-      max_arrival = arrival;
+    if (((fuzzyLess(ex_arrival, arrival)) ^ (min_max == MinMax::min()))
+        && !fuzzyInf(arrival))
+      ex_arrival = arrival;
   }
-  return max_arrival;
+  return ex_arrival;
 }
 
 }  // namespace lrl

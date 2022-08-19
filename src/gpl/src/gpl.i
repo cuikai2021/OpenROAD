@@ -336,6 +336,13 @@ set_linden_overflow_cmd(float overflow)
 }
 
 void
+set_linden_use_uniform_density_cmd(bool use_uniform_density)
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setUniformDensity(use_uniform_density);
+}
+
+void
 set_linden_pad_left_cmd(int pad) 
 {
   LindenGlobalPlace* lindengp = getLindenGlobalPlace();

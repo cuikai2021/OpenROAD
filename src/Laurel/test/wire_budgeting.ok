@@ -35,4 +35,4 @@ wire bud scale = 2.000000
 [INFO LRL-1308] Succeed to do wire budgeting
 [INFO LRL-1310] test wire budgeting interface
 iterated 793 connections
-slacked 721 connections
+slacked 722 connections

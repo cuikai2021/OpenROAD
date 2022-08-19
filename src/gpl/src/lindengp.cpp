@@ -1,9 +1,11 @@
 #include "gpl/lindengp.h"
+#include "ord/OpenRoad.hh"
 
 #include <iostream>
 
 #include "graphics.h"
 #include "linden/gpl/placer_config.hpp"
+#include "linden/lefdef_dumper.hpp"
 #include "odb/db.h"
 #include "placerBase.h"
 #include "utl/Logger.h"
@@ -21,6 +23,7 @@ LindenGlobalPlace::LindenGlobalPlace()
     lindengp_(nullptr),
     density_(1.0),
     overflow_(0.1),
+    use_uniform_density_(false),
     padLeft_(0),
     padRight_(0),
     gui_debug_(false),
@@ -83,7 +86,8 @@ LindenGlobalPlace::create_linden_db()
   for (auto& pin : pb_->pins()) {
     auto o_net = linden_db->odb2net(pin->net()->dbNet());
     assert(o_net);
-    if (pin->isITerm()) {
+    if (pin->instance()) {
+      assert(pin->isITerm());
       auto o_cell = linden_db->odb2cell(pin->instance()->dbInst());
       assert(o_cell);
       void* term = pin->dbITerm();
@@ -91,9 +95,15 @@ LindenGlobalPlace::create_linden_db()
       linden::geom::Point pin_offset(pin->offsetCx(), pin->offsetCy());
       linden_db->add_pin(linden::db::ITerm(term, *o_net, name, *o_cell, pin_offset));
     } else {
-      assert(pin->isBTerm());
-      void* term = pin->dbBTerm();
-      std::string name = pin->dbBTerm()->getName();
+      void* term = nullptr;
+      std::string name = "";
+      if(pin->isITerm()) {
+        term = pin->dbITerm();
+        name = pin->dbITerm()->getMTerm()->getName();
+      } else {
+        term = pin->dbBTerm();
+        name = pin->dbBTerm()->getName();
+      }
       linden::geom::Point pin_center(pin->cx(), pin->cy());
       linden_db->add_pin(linden::db::BTerm(term, *o_net, name, pin_center));
     }
@@ -112,6 +122,14 @@ void LindenGlobalPlace::run()
     linden::gpl::PlacerConfig cfg(ty);
     cfg.target_density = density_;
     cfg.target_overflow = overflow_;
+    cfg.use_uniform_density = use_uniform_density_;
+    {
+      linden::dp::LefDefDumper dumper;
+      dumper.run(*ord::OpenRoad::openRoad());
+      cfg.input_def = dumper.def();
+      cfg.tech_lef = dumper.tech_lef();
+      cfg.lib_lefs = dumper.lib_lefs();
+    }
     lindengp_ = linden::gpl::Placer::create(linden_db_, cfg, log_);
   }
   std::unique_ptr<Graphics> graphics;
@@ -131,7 +149,7 @@ void LindenGlobalPlace::run()
           graphics->cellPlot(pause);
         }
       }
-      if (!ret || (*ret < overflow_)) {
+      if (!ret) {
         break;
       }
     }

@@ -13,6 +13,7 @@ lrl::Laurel* makeLaurel()
 
 void deleteLaurel(lrl::Laurel* laurel)
 {
+  laurel->deleteLaurel();
   delete laurel;
 }
 

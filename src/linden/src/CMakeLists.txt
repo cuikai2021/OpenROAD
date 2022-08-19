@@ -5,6 +5,7 @@ add_library(linden)
 target_sources(linden
   PRIVATE
     lindendp.cc
+    lefdef_dumper.cc
 )
 
 set (LINDEN_LIBS_DIR "../gpl/lib")
@@ -19,6 +20,20 @@ find_library(LINDENGP
 )
 
 message(STATUS "LINDENGP is set to " ${LINDENGP})
+
+find_library(BABYDP
+    baby_dp
+    HINTS
+      ${LINDEN_LIBS_DIR}
+    NO_DEFAULT_PATH
+)
+
+find_library(BABYDP_PUBLIC
+    baby_dp_public
+    HINTS
+      ${LINDEN_LIBS_DIR}
+    NO_DEFAULT_PATH
+)
 
 find_library(FINUFFT
     finufft
@@ -46,6 +61,8 @@ target_link_libraries(linden
     odb
     utl
     ${LINDENGP}
+    ${BABYDP_PUBLIC}
+    ${BABYDP}
     tomlpp
     fassert
     prettyprint
