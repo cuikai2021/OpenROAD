@@ -6,6 +6,7 @@
 #include <functional>
 #include <optional>
 #include <variant>
+#include <ostream>
 
 #include "magic_enum.hpp"
 #include "odb/db.h"

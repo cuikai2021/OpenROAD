@@ -1,14 +1,15 @@
 #include "linden/linden.hpp"
+#include "fassert.hpp"
+#include "linden/lefdef_dumper.hpp"
 #include "toml++/toml.h"
 #include "odb/db.h"
-#include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
+#include "utl/Logger.h"
 #include <boost/process.hpp>
 #include <exception>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <chrono>
 #include <deque>
 #include <string>
 #include <tuple>
@@ -17,6 +18,7 @@
 #include <optional>
 #include <tcl.h>
 #include <cstdlib>
+#include <string_view>
 
 using namespace std;
 
@@ -73,56 +75,6 @@ DetailedPlacer::~DetailedPlacer() {
 
 namespace {
 
-string genBaseFilename() {
-    auto tm = chrono::system_clock::now().time_since_epoch();
-    auto tm_ms = chrono::duration_cast<chrono::milliseconds>(tm).count();
-    ostringstream oss;
-    oss << "/tmp/lindendp_" << tm_ms;
-    return oss.str();
-}
-
-string writeTech(
-    ::ord::OpenRoad& openroad,
-    const string& basename)
-{
-    string filename = basename;
-    filename.append(".tech.lef");
-    ::odb::lefout out(openroad.getLogger());
-    out.writeTech(openroad.getDb()->getTech(), filename.c_str());
-    cout << "tech: " << filename << endl;
-    return filename;
-}
-
-deque<string> writeLib(
-    ::ord::OpenRoad& openroad,
-    const string& basename)
-{
-    const auto& libs = openroad.getDb()->getLibs();
-    deque<string> res;
-    for(const auto& lib: libs) {
-        string filename = basename;
-        filename.push_back('.');
-        filename.append(lib->getName());
-        filename.append(".lib.lef");
-        ::odb::lefout out(openroad.getLogger());
-        out.writeLib(const_cast<::odb::dbLib*>(lib), filename.c_str());
-        cout << "lib: " << filename << endl;
-        res.push_back(std::move(filename));
-    }
-    return res;
-}
-
-string writeDef(
-    ::ord::OpenRoad& openroad,
-    const string& basename)
-{
-    string filename = basename;
-    filename.append(".def");
-    openroad.writeDef(filename.c_str(), "5.8");
-    cout << "in def: " << filename << endl;
-    return filename;
-}
-
 string getExe() {
     const char LINDENDP_EXE[] = "LINDENDP_EXE";
     const char LINDENDP_EXE_DEFAULT[] = "/usr/local/bin/lindendp";
@@ -141,8 +93,10 @@ string outputDefName(const string& basename) {
 }
 
 void exec(
+    utl::Logger& logger,
     const string& input_cfg,
-    const string& outdef)
+    const string& outdef,
+    bool not_stop_when_illegal)
 {
     deque<string> args;
     args.push_back("--input-config");
@@ -152,10 +106,23 @@ void exec(
     args.push_back("--cell-only");
     string exe = std::move(getExe());
     int ec = boost::process::system(exe, boost::process::args(args));
-    if (ec != 0) {
-        cout << "Exit code: " << ec << endl;
-        throw std::runtime_error("fail to run lindendp");
+    switch (ec)
+    {
+    case 0:
+        // intend to do nothing
+        return;
+    case 1:
+        logger.warn(utl::LDN, 1, "Cannot legalize completely.");
+        if (not_stop_when_illegal) {
+            logger.info(utl::LDN, 2, "But not to stop the flow.");
+            return;
+        }
+        break;
+    default:
+        break;
     }
+    logger.warn(utl::LDN, 2, "Exit code: {}", ec);
+    throw std::runtime_error("fail to run lindendp");
 }
 
 struct InputArgs
@@ -204,6 +171,24 @@ string writeInputConfig(
     return filename;
 }
 
+void skip_whitespaces(string_view& str, const string& whitespace) {
+    size_t n = str.find_first_not_of(whitespace);
+    if (n == string_view::npos) {
+        str = string_view();
+    } else {
+        str = str.substr(n);
+    }
+}
+
+string_view nonwhitespaces(const string_view& str, const string& whitespace) {
+    size_t n = str.find_first_of(whitespace);
+    if (n == string_view::npos) {
+        return str;
+    } else {
+        return str.substr(0, n);
+    }
+}
+
 } // namespace
 
 void DetailedPlacer::go(
@@ -211,67 +196,57 @@ void DetailedPlacer::go(
     deque<reference_wrapper<Tcl_Obj>>&& args)
 {
     InputArgs input_cfg;
-    optional<const char*> filler_include = nullopt;
-    optional<const char*> filler_exclude = nullopt;
+    optional<const char*> filler_list = nullopt;
+    bool not_stop_when_illegal = false;
     args.pop_front(); // `linden_detailed_placement` itself
-    for(; !args.empty(); ) {
+    for(; !args.empty(); args.pop_front()) {
         char* s = Tcl_GetString(&args.front().get());
-        if (strcmp(s, "--filler-include-names") == 0) {
+        if (strcmp(s, "--filler-list") == 0) {
             args.pop_front();
             if (args.empty()) {
-                cout << "Required a regexp for \"--filler-include-names\"." << endl;
-                throw std::runtime_error("Required a regexp for \"--filler-include-names\".");
+                openroad_.getLogger()->error(
+                    utl::LDN, 0,
+                    "Required a list of fillers, separated by whitespaces, "
+                    "e.g,. \"FILL1 FILL2\".");
             }
-            filler_include = std::move(Tcl_GetString(&args.front().get()));
-            args.pop_front();
-        } else if (strcmp(s, "--filler-exclude-names") == 0) {
-            args.pop_front();
-            if (args.empty()) {
-                cout << "Required a regexp for \"--filler-exclude-names\"." << endl;
-                throw std::runtime_error("Required a regexp for \"--filler-exclude-names\".");
-            }
-            filler_exclude = std::move(Tcl_GetString(&args.front().get()));
-            args.pop_front();
-        } else {
-            args.pop_front();
+            filler_list = std::move(Tcl_GetString(&args.front().get()));
+        } else if (strcmp(s, "--not-to-stop-when-illegal") == 0) {
+            not_stop_when_illegal = true;
         }
     }
 
-    if (filler_include || filler_exclude) {
-        //
-        // It seems TCL regex accepts the same syntax as that in Rust.
-        // But I cannot prove it.
-        // So, in order to provide a native user-experience for TCL users,
-        // I filter names of std-cells by TCL API, although there is a little bit
-        // performance penality.
-        //
+    if (filler_list) {
         deque<string> selected_fillers;
-        for(auto const& lib: openroad_.getDb()->getLibs()) {
-            for(auto const& model: lib->getMasters()) {
-                auto const& name = model->getName();
-                if (filler_include
-                    && !Tcl_RegExpMatch(&interp, name.c_str(), *filler_include)) {
-                    continue;
-                }
-                if (filler_exclude
-                    && Tcl_RegExpMatch(&interp, name.c_str(), *filler_exclude)) {
-                    continue;
-                }
-                selected_fillers.push_back(name);
+        string_view lst(*filler_list);
+        string whitespace(" \t\n");
+        for(;; ) {
+            skip_whitespaces(lst, whitespace);
+            if (lst.empty()) {
+                break;
             }
+            auto const& filler = nonwhitespaces(lst, whitespace);
+            FASSERT(!filler.empty())
+                (lst);
+            selected_fillers.push_back(string(filler));
+            lst = lst.substr(filler.length());
         }
         input_cfg.selected_fillers = std::move(selected_fillers);
     }
 
-    string basename = std::move(genBaseFilename());
+    dp::LefDefDumper dumper;
+    dumper.run(openroad_);
+    dumper.print_dumped_files(std::cout);
 
-    input_cfg.def = std::move(writeDef(openroad_, basename));
-    string tech = std::move(writeTech(openroad_, basename));
-    input_cfg.lefs = std::move(writeLib(openroad_, basename));
+    string basename = dumper.basename();
+
+    input_cfg.def = dumper.def();
+    string tech = dumper.tech_lef();
+    input_cfg.lefs = dumper.lib_lefs();
     input_cfg.lefs.push_front(tech);
+
     string input_cfg_fn = std::move(writeInputConfig(input_cfg, basename));
     string outdef = std::move(outputDefName(basename));
-    exec(input_cfg_fn, outdef);
+    exec(*openroad_.getLogger(), input_cfg_fn, outdef, not_stop_when_illegal);
     openroad_.readDef(outdef.c_str(), false, false, true);
 }
 

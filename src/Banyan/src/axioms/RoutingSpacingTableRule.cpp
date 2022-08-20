@@ -1,4 +1,5 @@
 #include "axioms/RoutingSpacingTableRule.hpp"
+
 #include <set>
 namespace banyan {
 
@@ -35,10 +36,10 @@ uint64_t RoutingSpacingTableRule::getSpacing(uint64_t width, uint64_t prl)
       = [](uint64_t value, std::set<uint32_t>& values) -> uint64_t {
     uint64_t rst = 0;
     for (auto v : values) {
+      rst = v;
       if (value <= v) {
         break;
       }
-      rst = v;
     }
     return rst;
   };

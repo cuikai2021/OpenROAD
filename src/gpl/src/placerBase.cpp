@@ -765,7 +765,12 @@ void PlacerBase::init()
         auto inst = dbToPb(iTerm->getInst());
         pin->setInstance(inst);
         pinMap_[(void*) iTerm] = pin;
-        inst->addPin(pin);
+        
+        // only CORE and BLOCK inst are in the instStor_
+        // others, like PAD|RING|ENDCAP insts are not in the map
+        if (inst) {
+          inst->addPin(pin);
+        }
         myNetPtr->addPin(pin);
       }
 

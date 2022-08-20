@@ -1,4 +1,5 @@
 sta::define_cmd_args "linden_global_placement" {\
+    [-uniform_density] \
     [-density target_density]\
     [-overflow overflow]\
     [-pad_left pad_left]\
@@ -11,11 +12,15 @@ proc linden_global_placement { args } {
       -density \
       -overflow \
       -pad_left -pad_right} \
-    flags {}
-  
-  set target_density 0.7
+    flags {-uniform_density}
+
+  # density settings    
+  set target_density 1.0
+  set uniform_mode [info exists flags(-uniform_density)]
+  gpl::set_linden_use_uniform_density_cmd $uniform_mode
+
   if { [info exists keys(-density)] } {
-    set target_density $keys(-density) 
+    set target_density $keys(-density)
     sta::check_positive_float "-density" $target_density
   }
   gpl::set_linden_density_cmd $target_density 

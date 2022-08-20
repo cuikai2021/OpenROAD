@@ -133,9 +133,9 @@ void WireBudgeting::addConstraintEdge(Vertex* pred, Vertex* succ)
   Delay high_bound = getHighBound(pred, succ);
   Delay& delay = high_bound;
 
-  addConstraintBase(pred_index, succ_index, capacity, -delay2Cost(delay));
+  addConstraintBase({pred_index, succ_index, capacity, -delay2Cost(delay)});
   addConstraintBase(
-      pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound));
+      {pred_index, succ_index, LRL_S_INT_INF, -delay2Cost(low_bound)});
   // addConstraintBase(
   //     succ_index, pred_index, LRL_S_INT_INF, delay2Cost(high_bound));
 }
@@ -199,7 +199,7 @@ SteinerPt WireBudgeting::findNextPt(SteinerTree* tree,
   return left;
 }
 
-void WireBudgeting::buildSpefDelayMap(sta::Map<Vertex*, Delay>& spef_delay_map)
+void WireBudgeting::buildSpefDelayMap(VertexDelayMap& spef_delay_map)
 {
   sta_->findRequireds();
   VertexIterator vertex_iter(sta_->graph());
@@ -212,7 +212,7 @@ void WireBudgeting::buildSpefDelayMap(sta::Map<Vertex*, Delay>& spef_delay_map)
   }
 }
 
-bool WireBudgeting::makeDelaySpefCore(sta::Map<Vertex*, Delay>& map,
+bool WireBudgeting::makeDelaySpefCore(VertexDelayMap& map,
                                       double factor)
 {
   bool ret = sta::readSpefFct(options_->spefFileName(),
@@ -249,7 +249,7 @@ void WireBudgeting::getNewWireLength(Vertex* pred,
   Delay origin_delay = getLowBound(pred, fanout);
   Delay max_delay = getHighBound(pred, fanout);
 
-  Delay new_delay = arrival_map_[succ_index] - arrival_map_[pred_index];
+  Delay new_delay = fixed_arrival_map_[succ_index] - fixed_arrival_map_[pred_index];
 
   bud_rate = std::max(LRL_H_ZERO,
                       (new_delay - origin_delay) / (max_delay - origin_delay));

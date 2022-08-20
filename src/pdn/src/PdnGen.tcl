@@ -1533,6 +1533,9 @@ proc init_via_tech {} {
 
   set def_via_tech {}
   foreach via_rule [$tech getViaGenerateRules] {
+    if {[$via_rule getViaLayerRuleCount] < 3 } {
+      continue
+    }
     set levels [list [$via_rule getViaLayerRule 0] [$via_rule getViaLayerRule 1] [$via_rule getViaLayerRule 2]]
     set levels [lsort -command via_number $levels]
     lassign $levels lower cut upper
@@ -5808,13 +5811,13 @@ proc add_grid {} {
   if {[dict exists $grid_data core_ring]} {
     set area [dict get $grid_data area]
     # debug "Area $area"
-    # if {[dict exists $grid_data rings_number]} {
-    #   generate_core_rings_adjustable [dict get $grid_data core_ring] [dict get $grid_data rings_number]
-    # } else {
-    #   generate_core_rings [dict get $grid_data core_ring]
-    # }
+    if {[dict exists $grid_data rings_number]} {
+      generate_core_rings_adjustable [dict get $grid_data core_ring] [dict get $grid_data rings_number]
+    } else {
+      generate_core_rings [dict get $grid_data core_ring]
+    }
     
-    generate_core_rings [dict get $grid_data core_ring]
+    # generate_core_rings [dict get $grid_data core_ring]
     
     if {[dict exists $grid_data gnd_pads]} {
       dict for {pin_name cells} [dict get $grid_data gnd_pads] {

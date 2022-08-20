@@ -333,8 +333,8 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
 void OpenDBAdapter::addViaDef(odb::dbObject* viaObj)
 {
   std::string vname;
-  int botLayerIdx;
-  int topLayerIdx;
+  int botLayerIdx = 0;
+  int topLayerIdx = 0;
   odb::dbTechViaGenerateRule* rule;
   bool viaHasParams = false;
   odb::dbViaParams viaParams;
@@ -826,6 +826,7 @@ void OpenDBAdapter::addVia(odb::dbBox* box)
       return blockVia->getName();
     }
     assert(false);
+    return std::string();
   };
 
   int x;
