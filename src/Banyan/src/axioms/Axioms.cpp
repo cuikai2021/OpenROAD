@@ -362,6 +362,8 @@ uint64_t Axioms::getMaxRoutingEOLPrlSpacing(odb::dbTechLayer* layer,
                    },
                    [rule, &spacing](RoutingEOLSpacingRuleWithin& within) {
                      if (within.getPrl().has_value()) {
+                       spacing
+                           = std::max(spacing, (uint64_t) rule->getEolSpace());
                      } else if (within.getEncloseCut().has_value()) {
                      } else {
                        spacing
