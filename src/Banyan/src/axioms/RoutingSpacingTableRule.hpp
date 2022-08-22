@@ -90,7 +90,7 @@ class RoutingSpacingTableRule
     std::map<std::pair<uint32_t, uint32_t>, uint32_t> widthPrlToSpacings;
     for (auto width : widthIdx) {
       for (auto prl : lengthIdx) {
-        auto spacing = layer->findV55Spacing(width, prl);
+        auto spacing = layer->findV55Spacing(width+1, prl+1);
         widthPrlToSpacings[std::make_pair((uint32_t) width, (uint32_t) prl)]
             = (uint32_t) spacing;
       }

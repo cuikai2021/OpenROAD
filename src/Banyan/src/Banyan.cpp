@@ -331,6 +331,8 @@ int Banyan::run(OpenDBAdapter& bdAdapter, Axioms& axioms)
     logger_->error(utl::BY, 308, "cannot find banyan_route in banyan.so");
     return -1;
   }
+  
+  std::flush(std::cout);
 
   banyan_go::route_ret ret;
   ::memset(&ret, 0, sizeof(ret));
