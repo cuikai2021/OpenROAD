@@ -34,12 +34,14 @@ uint64_t RoutingSpacingTableRule::getSpacing(uint64_t width, uint64_t prl)
 
   auto searchLastSmaller
       = [](uint64_t value, std::set<uint32_t>& values) -> uint64_t {
-    uint64_t rst = 0;
-    for (auto v : values) {
-      rst = v;
+    uint64_t rst = *values.begin();
+    for (auto it = values.rbegin(); it != values.rend(); ++it) {
+      auto v = *it;
       if (value <= v) {
-        break;
+        continue;
       }
+      rst = v;
+      break;
     }
     return rst;
   };

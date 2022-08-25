@@ -339,10 +339,9 @@ uint64_t Axioms::getMaxRoutingPrlSpacing(odb::dbTechLayer* layer,
 
   auto ruleTbls = laToRoutingSpacingTableRules[layer];
   assert(ruleTbls.size() <= 1);
-  spacing = std::max(spacing,
-                     ruleTbls.size() > 0 ? ruleTbls[0]->getSpacing(
-                         width, std::numeric_limits<uint32_t>::max())
-                                         : spacing);
+  spacing = std::max(
+      spacing,
+      ruleTbls.size() > 0 ? ruleTbls[0]->getSpacing(width, 0) : spacing);
 
   return isSameNet ? std::max(spacing, sameNetSpacing) : spacing;
 }
@@ -356,26 +355,27 @@ uint64_t Axioms::getMaxRoutingEOLPrlSpacing(odb::dbTechLayer* layer,
   auto rules = laToRoutingEOLSpacingRules[layer];
   for (auto rule : rules) {
     auto subRule = rule->getSubRule();
-    std::visit(overloaded{
-                   [](std::monostate&) {
+    std::visit(
+        overloaded{
+            [](std::monostate&) {
 
-                   },
-                   [rule, &spacing](RoutingEOLSpacingRuleWithin& within) {
-                     if (within.getPrl().has_value()) {
-                     } else if (within.getEncloseCut().has_value()) {
-                     } else {
-                       spacing
-                           = std::max(spacing, (uint64_t) rule->getEolSpace());
-                     }
-                   },
-                   [rule](RoutingEOLSpacingRuleToConcaveCorner& subRule) {
+            },
+            [rule, &spacing](RoutingEOLSpacingRuleWithin& within) {
+              if (within.getPrl().has_value()) {
+                spacing = std::max(spacing, (uint64_t) rule->getEolSpace());
+              } else if (within.getEncloseCut().has_value()) {
+              } else {
+                spacing = std::max(spacing, (uint64_t) rule->getEolSpace());
+              }
+            },
+            [rule](RoutingEOLSpacingRuleToConcaveCorner& subRule) {
 
-                   },
-                   [rule](RoutingEOLSpacingRuleToNotchLength& subRule) {
+            },
+            [rule](RoutingEOLSpacingRuleToNotchLength& subRule) {
 
-                   },
-               },
-               subRule);
+            },
+        },
+        subRule);
   }
 
   return spacing;
@@ -398,6 +398,7 @@ uint64_t Axioms::getMaxRoutingEOLEndToEndSpacing(odb::dbTechLayer* layer,
             },
             [rule, &spacing, &eteSpacing](RoutingEOLSpacingRuleWithin& within) {
               if (within.getPrl().has_value()) {
+                spacing = std::max(spacing, (uint64_t) rule->getEolSpace());
               } else if (within.getEncloseCut().has_value()) {
               } else if (within.getEndToEnd().has_value()) {
                 auto eteSubRule = within.getEndToEnd().value();
@@ -771,15 +772,18 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* layer,
   if (metalBoxPair.has_value()) {
     auto [metalBox1, metalBox2] = metalBoxPair.value();
     auto metalSpacing = getMaxRoutingPrlSpacing(layer, isSameNet);
+
     int64_t perfMetalSpacing = 0;
     int64_t trackMetalDist
         = pitch
-          - (isHorizontal ? getBoxCenterToTopEdge(metalBox1)
-                                + getBoxCenterToBottomEdge(metalBox2)
-                          : getBoxCenterToRightEdge(metalBox1)
-                                + getBoxCenterToLeftEdge(metalBox2));
+          - (isHorizontal ? (getBoxCenterToTopEdge(metalBox1)
+                             + getBoxCenterToBottomEdge(metalBox2))
+                          : (getBoxCenterToRightEdge(metalBox1)
+                             + getBoxCenterToLeftEdge(metalBox2)));
     if (trackMetalDist < 0) {
       perfMetalSpacing = metalSpacing;
+    } else if (metalSpacing <= trackMetalDist) {
+      perfMetalSpacing = 0;
     } else {
       perfMetalSpacing = std::ceil(std::sqrt(std::pow((int64_t) metalSpacing, 2)
                                              - std::pow(trackMetalDist, 2)));
@@ -796,6 +800,10 @@ uint64_t Axioms::calcViaViaTrackLength(odb::dbTechLayer* layer,
     if (DEBUG_VIAVIATRACKLENGTH) {
       printer.print("\tMetalSpacing",
                     metalSpacing,
+                    " pitch ",
+                    pitch,
+                    " trackMetalDist ",
+                    trackMetalDist,
                     " PerfMetalSpacing ",
                     perfMetalSpacing);
     }
@@ -993,17 +1001,16 @@ void Axioms::calcSpacingTable()
 {
   std::vector<banyan_go::table_triple>& triples = dbAdapter_.tableTriples_;
 
-  auto getTableFromTblRules = [&](LayerRules<RoutingSpacingTableRule>&
-                                      routingTblRules) {
-    assert(routingTblRules.size() <= 1);
-    for (auto rule : routingTblRules) {
-      rule->widthAndPrlToSpacing([&triples](uint32_t width,
-                                            uint32_t prl,
-                                            uint32_t spacing) {
-        triples.push_back({(int) prl + 1, (int) width + 1, (uint64_t) spacing});
-      });
-    }
-  };
+  auto getTableFromTblRules =
+      [&](LayerRules<RoutingSpacingTableRule>& routingTblRules) {
+        assert(routingTblRules.size() <= 1);
+        for (auto rule : routingTblRules) {
+          rule->widthAndPrlToSpacing(
+              [&triples](uint32_t width, uint32_t prl, uint32_t spacing) {
+                triples.push_back({(int) prl, (int) width, (uint64_t) spacing});
+              });
+        }
+      };
 
   auto getTableFromSpacingRules = [&](odb::dbTechLayer* layer,
                                       LayerRules<RoutingSpacingRule>&
