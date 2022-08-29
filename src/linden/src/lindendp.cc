@@ -4,6 +4,8 @@
 #include "toml++/toml.h"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
+#include "rsz/Resizer.hh"
+#include "sta/Units.hh"
 #include "utl/Logger.h"
 #include <boost/process.hpp>
 #include <exception>
@@ -189,6 +191,26 @@ string_view nonwhitespaces(const string_view& str, const string& whitespace) {
     }
 }
 
+void report_metrics() {
+  rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
+  rs->estimateParasitics(rsz::ParasiticsSrc::placement);
+  auto sta = ::ord::OpenRoad::openRoad()->getSta();
+ 
+  const int DIGITS = 2;
+  auto total_negative_slack = sta->totalNegativeSlack(sta::MinMax::max());
+
+  sta::Slack worst_slack;
+  sta::Vertex* worst_vertex;
+  sta->worstSlack(sta::MinMax::max(), worst_slack, worst_vertex);
+ 
+  auto tns = sta->units()->timeUnit()->asString(total_negative_slack, DIGITS);
+  auto wns = sta->units()->timeUnit()->asString(worst_slack, DIGITS);
+
+  auto log = ::ord::OpenRoad::openRoad()->getLogger();
+  log->metric("dp::tns", tns);
+  log->metric("dp::wns", wns);
+}
+
 } // namespace
 
 void DetailedPlacer::go(
@@ -248,6 +270,7 @@ void DetailedPlacer::go(
     string outdef = std::move(outputDefName(basename));
     exec(*openroad_.getLogger(), input_cfg_fn, outdef, not_stop_when_illegal);
     openroad_.readDef(outdef.c_str(), false, false, true);
+    report_metrics();
 }
 
 } // namespace linden

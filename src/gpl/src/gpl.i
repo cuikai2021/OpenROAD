@@ -343,6 +343,13 @@ set_linden_use_uniform_density_cmd(bool use_uniform_density)
 }
 
 void
+set_linden_disable_zigzag_cmd(bool disable_zigzag)
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setDisableZigzag(disable_zigzag);
+}
+
+void
 set_linden_pad_left_cmd(int pad) 
 {
   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
@@ -362,6 +369,13 @@ set_linden_debug_cmd(int pause_iterations,
 {
   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
   lindengp->setDebug(pause_iterations, update_iterations);
+}
+
+void
+set_linden_timing_driven_mode(bool timing_driven)
+{
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setTimingDriven(timing_driven);
 }
 
 %} // inline lindengp

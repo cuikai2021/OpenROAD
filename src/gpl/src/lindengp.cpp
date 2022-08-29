@@ -1,5 +1,4 @@
 #include "gpl/lindengp.h"
-#include "ord/OpenRoad.hh"
 
 #include <iostream>
 
@@ -7,7 +6,11 @@
 #include "linden/gpl/placer_config.hpp"
 #include "linden/lefdef_dumper.hpp"
 #include "odb/db.h"
+#include "ord/OpenRoad.hh"
 #include "placerBase.h"
+#include "rsz/Resizer.hh"
+#include "sta/Fuzzy.hh"
+#include "sta/Units.hh"
 #include "utl/Logger.h"
 
 using namespace std;
@@ -16,19 +19,32 @@ using utl::GPL;
 namespace gpl {
 
 LindenGlobalPlace::LindenGlobalPlace()
-  : db_(nullptr),
-    log_(nullptr),
-    pb_(nullptr),
-    linden_db_(nullptr),
-    lindengp_(nullptr),
-    density_(1.0),
-    overflow_(0.1),
-    use_uniform_density_(false),
-    padLeft_(0),
-    padRight_(0),
-    gui_debug_(false),
-    gui_debug_pause_iterations_(10),
-    gui_debug_update_iterations_(10) {
+    : db_(nullptr),
+      log_(nullptr),
+      pb_(nullptr),
+      linden_db_(nullptr),
+      lindengp_(nullptr),
+      density_(1.0),
+      overflow_(0.1),
+      use_uniform_density_(false),
+      disable_zigzag_(false),
+      net_weight_max_(1.9),
+      timing_overflows_{},
+      padLeft_(0),
+      padRight_(0),
+      gui_debug_(false),
+      gui_debug_pause_iterations_(10),
+      gui_debug_update_iterations_(10)
+{
+}
+
+void LindenGlobalPlace::setTimingDriven(bool timing_driven)
+{
+  if (timing_driven) {
+    timing_overflows_ = {79, 64, 49, 29, 21, 15};
+  } else {
+    timing_overflows_ = {};
+  }
 }
 
 void LindenGlobalPlace::initPlacerBase()
@@ -42,12 +58,12 @@ void LindenGlobalPlace::initPlacerBase()
   }
 }
 
-std::shared_ptr<linden::db::Database>
-LindenGlobalPlace::create_linden_db()
+std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 {
   initPlacerBase();
   auto const& die = pb_->die();
-  linden::geom::Rect core_region(die.coreLx(), die.coreLy(), die.coreUx(), die.coreUy());
+  linden::geom::Rect core_region(
+      die.coreLx(), die.coreLy(), die.coreUx(), die.coreUy());
 
   linden::db::Database::Config cfg = {
     core_region : core_region,
@@ -74,14 +90,19 @@ LindenGlobalPlace::create_linden_db()
     bool is_fixed = inst->isFixed();
     if (inst->dbInst() != nullptr) {
       void* odb_instance = inst->dbInst();
-      linden_db->add_cell(
-          linden::db::Cell(odb_instance, inst->dbInst()->getName(), rect, inst_area, is_macro, is_fixed));
+      linden_db->add_cell(linden::db::Cell(odb_instance,
+                                           inst->dbInst()->getName(),
+                                           rect,
+                                           inst_area,
+                                           is_macro,
+                                           is_fixed));
     } else {
       linden_db->add_cell(linden::db::Cell(rect, is_fixed));
     }
   }
   for (auto& net : pb_->nets()) {
-    linden_db->add_net(linden::db::Net((void*) net->dbNet(), net->dbNet()->getName()));
+    linden_db->add_net(
+        linden::db::Net((void*) net->dbNet(), net->dbNet()->getName()));
   }
   for (auto& pin : pb_->pins()) {
     auto o_net = linden_db->odb2net(pin->net()->dbNet());
@@ -93,11 +114,12 @@ LindenGlobalPlace::create_linden_db()
       void* term = pin->dbITerm();
       std::string name = pin->dbITerm()->getMTerm()->getName();
       linden::geom::Point pin_offset(pin->offsetCx(), pin->offsetCy());
-      linden_db->add_pin(linden::db::ITerm(term, *o_net, name, *o_cell, pin_offset));
+      linden_db->add_pin(
+          linden::db::ITerm(term, *o_net, name, *o_cell, pin_offset));
     } else {
       void* term = nullptr;
       std::string name = "";
-      if(pin->isITerm()) {
+      if (pin->isITerm()) {
         term = pin->dbITerm();
         name = pin->dbITerm()->getMTerm()->getName();
       } else {
@@ -118,11 +140,13 @@ void LindenGlobalPlace::run()
     linden_db_ = create_linden_db();
   }
   if (!lindengp_) {
-    linden::gpl::PlacerConfig::PlacerType ty = linden::gpl::PlacerConfig::NPLACE;
+    linden::gpl::PlacerConfig::PlacerType ty
+        = linden::gpl::PlacerConfig::NPLACE;
     linden::gpl::PlacerConfig cfg(ty);
     cfg.target_density = density_;
     cfg.target_overflow = overflow_;
     cfg.use_uniform_density = use_uniform_density_;
+    cfg.disable_zigzag = disable_zigzag_;
     {
       linden::dp::LefDefDumper dumper;
       dumper.run(*ord::OpenRoad::openRoad());
@@ -137,24 +161,33 @@ void LindenGlobalPlace::run()
     graphics = make_unique<Graphics>(log_, linden_db_, pb_);
   }
   const int MAX_ITER = 5000;
-  if (gui_debug_) {
-    for (size_t iter = 0; iter < MAX_ITER; iter++) {
-      auto ret = lindengp_->one_step_move(iter);
-      if (graphics) {
-        bool update
-            = (iter == 0 || (iter + 1) % gui_debug_update_iterations_ == 0);
-        bool pause
-            = (iter == 0 || (iter + 1) % gui_debug_pause_iterations_ == 0);
-        if (update) {
-          graphics->cellPlot(pause);
-        }
-      }
-      if (!ret) {
-        break;
+  if (!timing_overflows_.empty()) {
+    rsz::Resizer* rs_ = ::ord::OpenRoad::openRoad()->getResizer();
+    rs_->resizeSlackPreamble();
+  }
+  for (size_t iter = 0; iter < MAX_ITER; iter++) {
+    auto ret = lindengp_->one_step_move(iter);
+    if (graphics) {
+      bool update
+          = (iter == 0 || (iter + 1) % gui_debug_update_iterations_ == 0);
+      bool pause = (iter == 0 || (iter + 1) % gui_debug_pause_iterations_ == 0);
+      if (update) {
+        graphics->cellPlot(pause);
       }
     }
-  } else {
-    lindengp_->run(MAX_ITER);
+    if (!ret) {
+      break;
+    }
+    auto overflow = *ret;
+    if (disable_zigzag_ && overflow <= overflow_) {
+      break;
+    }
+
+    if (!timing_overflows_.empty()
+        && overflow * 100 < timing_overflows_.front()) {
+      updateNetWeights();
+      timing_overflows_.pop_front();
+    }
   }
 
   if (graphics) {
@@ -162,18 +195,97 @@ void LindenGlobalPlace::run()
     graphics->cellPlot(true);
   }
 
-  {  // update db
-    for (auto& cell : linden_db_->cells()) {
-      if (cell.movable() && cell.is_instance()) {
-        odb::dbInst* inst = static_cast<odb::dbInst*>(cell.odb_instance());
-        inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
-        const linden::geom::Rect& r = cell.rect();
-        // pad awareness on X coordinates
-        inst->setLocation(r.lx() + pb_->siteSizeX() * pb_->padLeft(), r.ly());
-      }
+  update_db();
+  report_metrics();
+}
+
+void LindenGlobalPlace::update_db()
+{  // update db
+  for (auto& cell : linden_db_->cells()) {
+    if (cell.movable() && cell.is_instance()) {
+      odb::dbInst* inst = static_cast<odb::dbInst*>(cell.odb_instance());
+      inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+      const linden::geom::Rect& r = cell.rect();
+      // pad awareness on X coordinates
+      inst->setLocation(r.lx() + pb_->siteSizeX() * pb_->padLeft(), r.ly());
     }
   }
 }
 
+bool LindenGlobalPlace::updateNetWeights()
+{
+  update_db();
+  rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
+  rs->findResizeSlacks();
+
+  // get Top 10% worst resize nets
+  sta::NetSeq& worst_slack_nets = rs->resizeWorstSlackNets();
+
+  if (worst_slack_nets.empty()) {
+    log_->warn(GPL, 1114, "No net slacks found. Timing-driven mode disabled.");
+    return false;
+  }
+
+  // min/max slack for worst 10% nets
+  sta::Slack slack_min = rs->resizeNetSlack(worst_slack_nets[0]);
+  sta::Slack slack_max
+      = rs->resizeNetSlack(worst_slack_nets[worst_slack_nets.size() - 1]);
+
+  log_->info(GPL, 1100, "worst slack {:.3g}", slack_min);
+
+  if (sta::fuzzyInf(slack_min)) {
+    log_->warn(GPL, 1102, "No slacks found. Timing-driven mode disabled.");
+    return false;
+  }
+
+  size_t weighted_net_count = 0;
+  for (auto& net : pb_->nets()) {
+    auto dbNet = net->dbNet();
+    // default weight
+    double net_weight = 1.0;
+    if (net->pins().size() > 1) {
+      float net_slack = rs->resizeNetSlack(dbNet);
+      if (net_slack < slack_max) {
+        // weight(min_slack) = net_weight_max_
+        // weight(max_slack) = 1
+        net_weight = 1
+                     + (net_weight_max_ - 1) * (slack_max - net_slack)
+                           / (slack_max - slack_min);
+        weighted_net_count++;
+      }
+      debugPrint(log_,
+                 GPL,
+                 "linden-tdp",
+                 3,
+                 "timing: net:{} slack:{} weight:{}",
+                 dbNet->getName(),
+                 net_slack,
+                 net_weight);
+    }
+    linden_db_->set_net_timing_weight(dbNet, net_weight);
+  }
+  log_->info(GPL, 1103, "Weighted {} nets.", weighted_net_count);
+  return true;
+}
+
+void LindenGlobalPlace::report_metrics()
+{
+  rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
+  rs->estimateParasitics(rsz::ParasiticsSrc::placement);
+  auto sta = ::ord::OpenRoad::openRoad()->getSta();
+ 
+  const int DIGITS = 2;
+  auto total_negative_slack = sta->totalNegativeSlack(sta::MinMax::max());
+
+  sta::Slack worst_slack;
+  sta::Vertex* worst_vertex;
+  sta->worstSlack(sta::MinMax::max(), worst_slack, worst_vertex);
+ 
+  auto tns = sta->units()->timeUnit()->asString(total_negative_slack, DIGITS);
+  auto wns = sta->units()->timeUnit()->asString(worst_slack, DIGITS);
+
+  log_->metric("gp::tns", tns);
+  log_->metric("gp::wns", wns);
+}
 
 }  // namespace gpl

@@ -1,5 +1,7 @@
 sta::define_cmd_args "linden_global_placement" {\
     [-uniform_density] \
+    [-disable_zigzag] \
+    [-timing_driven] \
     [-density target_density]\
     [-overflow overflow]\
     [-pad_left pad_left]\
@@ -12,7 +14,15 @@ proc linden_global_placement { args } {
       -density \
       -overflow \
       -pad_left -pad_right} \
-    flags {-uniform_density}
+    flags { \
+      -uniform_density \
+      -disable_zigzag \
+      -timing_driven \
+    }
+
+  # zigzag settings    
+  set disable_zigzag [info exists flags(-disable_zigzag)]
+  gpl::set_linden_disable_zigzag_cmd $disable_zigzag
 
   # density settings    
   set target_density 1.0
@@ -44,6 +54,14 @@ proc linden_global_placement { args } {
   sta::check_positive_integer "-pad_right" $pad_right
   gpl::set_linden_pad_left_cmd $pad_left
   gpl::set_linden_pad_right_cmd $pad_right
+
+  set timing_driven [info exists flags(-timing_driven)]
+  gpl::set_linden_timing_driven_mode $timing_driven
+  if { $timing_driven } {
+    if { [get_libs -quiet "*"] == {} } {
+      utl::error GPL 1121 "No liberty libraries found."
+    }
+  }
 
   if { [ord::db_has_rows] } {
     sta::check_argc_eq0 "linden_global_placement" $args

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <string>
+#include <deque>
 
 #include "linden/db/db.hpp"
 #include "linden/gpl/placer.hpp"
@@ -24,21 +24,33 @@ class LindenGlobalPlace
   LindenGlobalPlace();
   ~LindenGlobalPlace() = default;
 
-  void init(odb::dbDatabase* odb, utl::Logger* log) { 
+  void init(odb::dbDatabase* odb, utl::Logger* log)
+  {
     db_ = odb;
-    log_ = log; 
+    log_ = log;
   }
 
   void run();
 
   void setTargetDensity(float density) { density_ = density; }
-  void setTargetOverflow(float overflow)  { overflow_ = overflow; }
-  void setUniformDensity(bool use_uniform_density) { use_uniform_density_ = use_uniform_density; }
+  void setTargetOverflow(float overflow) { overflow_ = overflow; }
+  void setUniformDensity(bool use_uniform_density)
+  {
+    use_uniform_density_ = use_uniform_density;
+  }
+
+  void setDisableZigzag(bool disable_zigzag)
+  {
+    disable_zigzag_ = disable_zigzag;
+  }
 
   void setPadLeft(int padding) { padLeft_ = padding; }
   void setPadRight(int padding) { padRight_ = padding; }
 
-  void setDebug(int pause_iterations, int update_iterations) {
+  void setTimingDriven(bool timing_driven);
+
+  void setDebug(int pause_iterations, int update_iterations)
+  {
     gui_debug_ = true;
     gui_debug_pause_iterations_ = pause_iterations;
     gui_debug_update_iterations_ = update_iterations;
@@ -55,6 +67,10 @@ class LindenGlobalPlace
   float density_;
   float overflow_;
   bool use_uniform_density_;
+  bool disable_zigzag_;
+
+  double net_weight_max_;
+  std::deque<int> timing_overflows_;
 
   // temp variable; OpenDB should have these values.
   int padLeft_;
@@ -66,5 +82,12 @@ class LindenGlobalPlace
 
   void initPlacerBase();
   std::shared_ptr<linden::db::Database> create_linden_db();
+
+  // Timing-driven
+  // return False if no slacks found
+  bool updateNetWeights();
+
+  void update_db();
+  void report_metrics();
 };
 }  // namespace gpl

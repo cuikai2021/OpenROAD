@@ -63,6 +63,7 @@ target_link_libraries(linden
     ${LINDENGP}
     ${BABYDP_PUBLIC}
     ${BABYDP}
+    rsz
     tomlpp
     fassert
     prettyprint
