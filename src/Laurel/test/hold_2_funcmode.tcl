@@ -24,8 +24,8 @@ report_worst_slack -max
 puts "-----------------\nreport func2 b4repair \n-----------------"
 report_checks -sdc func2 -path_delay min
 report_worst_slack -max
-
-puts [laurel -hold]
+# set_debug_level LRL "LRL" 4
+puts [laurel -hold -multi_mode]
 
 puts "-----------------\nreport scan after repair \n-----------------"
 report_checks -sdc scan -path_delay min

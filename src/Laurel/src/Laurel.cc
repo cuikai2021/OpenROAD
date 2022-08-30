@@ -58,9 +58,9 @@ void Laurel::deleteLaurel()
 //
 ////////////////////////////////////////////////////////
 
-bool Laurel::fixHoldCore()
+bool Laurel::fixHoldCore(bool multi_mode)
 {
-  HoldFixer fixer(openroad_, options_.get());
+  HoldFixer fixer(openroad_, options_.get(), multi_mode);
   HoldResult result = fixer.resolve();
   bool ret = true;
   if (result != MPSolver::ResultStatus::OPTIMAL) {
@@ -74,12 +74,13 @@ bool Laurel::fixHoldCore()
   return ret;
 }
 
-int Laurel::fixHold()
+int Laurel::fixHold(bool multi_mode)
 {
   init();
   inserted_buffer_count_ = 0;
+  parasiticPreamble(openroad_->getResizer());
   incrementalParasiticsBegin();
-  bool ret = fixHoldCore();
+  bool ret = fixHoldCore(multi_mode);
   // Leave the parasitices up to date.
   updateParasitics();
   incrementalParasiticsEnd();
@@ -130,6 +131,7 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
     }
     ++resize_cnt_turn;
   }
+  updateParasitics();
   logger_->info(utl::LRL,
                 1305,
                 "Totally resized {} cells",
@@ -146,6 +148,8 @@ int Laurel::fixSetup(int iter)
   SetupResult status = MinCostFlow::OPTIMAL;
   bool has_violation = true;
   bool iterative = iter > 1;
+  parasiticPreamble(openroad_->getResizer());
+  incrementalParasiticsBegin();
   for (int i = 1; i <= iter && status == MinCostFlow::OPTIMAL; ++i) {
     SetupFixer* fixer = new SetupFixer(openroad_, options_.get());
     has_violation = fixer->initAlgorithm(iterative);
@@ -158,10 +162,11 @@ int Laurel::fixSetup(int iter)
         if(!resizeAllCells(fixer))
           break;
       }
-      openroad_->getResizer()->estimateWireParasitics();
     }
     delete fixer;
+    updateParasitics();
   }
+  incrementalParasiticsEnd();
   return resize_count_;
 }
 
@@ -170,6 +175,8 @@ int Laurel::ccopt()
   resize_count_ = 0;
   if (ccopt_fixer_)
     delete ccopt_fixer_;
+  parasiticPreamble(openroad_->getResizer());
+  incrementalParasiticsBegin();
   ccopt_fixer_ = new ClockConcurrentFixer(openroad_, options_.get());
   ccopt_fixer_->initAlgorithm();
   SetupResult status = ccopt_fixer_->resolve();
@@ -180,7 +187,8 @@ int Laurel::ccopt()
       ccopt_fixer_->report_skews();
     resizeAllCells(ccopt_fixer_);
   }
-  openroad_->getResizer()->estimateWireParasitics();
+  updateParasitics();
+  incrementalParasiticsEnd();
   return resize_count_;
 }
 
@@ -439,6 +447,24 @@ Delay LaurelAdapter::getArrival(Vertex* vertex, MinMax const* min_max) const
       ex_arrival = arrival;
   }
   return ex_arrival;
+}
+
+void LaurelAdapter::parasiticPreamble(Resizer* rsz)
+{
+  Corners* cs = sta_->corners();
+  int const cnt = cs->count();
+  wire_signal_res_.resize(cnt);
+  wire_signal_cap_.resize(cnt);
+  wire_clk_res_.resize(cnt);
+  wire_clk_cap_.resize(cnt);
+  for (Corner* c : *cs) {
+    int const& id = c->index();
+    wire_signal_res_[id] = rsz->wireSignalResistance(c);
+    wire_signal_cap_[id] = rsz->wireSignalCapacitance(c);
+    wire_clk_res_[id] = rsz->wireClkResistance(c);
+    wire_clk_cap_[id] = rsz->wireClkCapacitance(c);
+  }
+  parasitics_src_ = ParasiticsSrc::placement;
 }
 
 }  // namespace lrl

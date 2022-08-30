@@ -345,25 +345,25 @@ bool SetupFixer::initAlgorithm(bool iterative)
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
   VertexSet* ends = sta_->search()->endpoints();
   VertexSet failures;
-  if (iterative) {
-    Slack worst_slack = LRL_H_INFINITY;
-    Vertex* worst_end;
-    for (Vertex* vertex : *ends) {
-      Slack slack = sta_->vertexSlack(vertex, MinMax::max());
-      if (fuzzyLess(slack, worst_slack)) {
-        worst_slack = slack;
-        worst_end = vertex;
-      }
-    }
-    if (fuzzyLess(worst_slack, slack_margin - LRL_H_ROUNDING_LIMIT)){
-      failures.insert(worst_end);
-      logger_->info(utl::LRL,
-                    1303,
-                    "worst_end: {} (slack = {})",
-                    worst_end->name(sta_->sdcNetwork()),
-                    delayAsString(worst_slack, this, 3));
-    }
-  } else {
+  // if (iterative) {
+  //   Slack worst_slack = LRL_H_INFINITY;
+  //   Vertex* worst_end;
+  //   for (Vertex* vertex : *ends) {
+  //     Slack slack = sta_->vertexSlack(vertex, MinMax::max());
+  //     if (fuzzyLess(slack, worst_slack)) {
+  //       worst_slack = slack;
+  //       worst_end = vertex;
+  //     }
+  //   }
+  //   if (fuzzyLess(worst_slack, slack_margin - LRL_H_ROUNDING_LIMIT)){
+  //     failures.insert(worst_end);
+  //     logger_->info(utl::LRL,
+  //                   1303,
+  //                   "worst_end: {} (slack = {})",
+  //                   worst_end->name(sta_->sdcNetwork()),
+  //                   delayAsString(worst_slack, this, 3));
+  //   }
+  // } else {
     int cnt = 0;
     debugPrint(logger_,
               utl::LRL,
@@ -386,7 +386,7 @@ bool SetupFixer::initAlgorithm(bool iterative)
       }
     }
     logger_->info(utl::LRL, 1304, "totally found {} vio ends", cnt);
-  }
+  // }
   buildIndexMap(failures);
   return !failures.empty();
 }

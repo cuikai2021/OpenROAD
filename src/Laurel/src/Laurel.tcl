@@ -37,14 +37,14 @@ sta::define_cmd_args "laurel" {[-slack_margin slack_margin] \
                                 [-spef spef] [-iter iter] \
                                 [-fast] [-setup] [-hold] [-wire_budgeting] [-ccopt]\
                                 [-debug_report] \
-                                [-rc] [-iterative]}
+                                [-rc] [-iterative] [-multi_mode]}
 
 proc laurel { args } {
   sta::parse_key_args "laurel" args \
     keys {-slack_margin -spef -iter} \
     flags {-fast -setup -hold -ccopt \
             -wire_budgeting -debug_report \
-            -rc -iterative}
+            -rc -iterative -multi_mode}
   
   if { [info exists keys(-slack_margin)] } {
     lrl::set_slack_margin $keys(-slack_margin)
@@ -64,6 +64,10 @@ proc laurel { args } {
   set rsz_cnt 0
   set buf_cnt 0
   set iter_cnt 1
+  set multi_mode "false"
+  if { [info exists flags(-multi_mode)] } {
+    set multi_mode "true"
+  }
   if { [info exists flags(-iterative)] } {
     set iter_cnt 5
   }
@@ -79,7 +83,7 @@ proc laurel { args } {
       set rsz_cnt [lrl::fix_setup_cmd $iter_cnt]
     }
     if { [info exists flags(-hold)] } {
-      set buf_cnt [lrl::fix_hold_cmd]
+      set buf_cnt [lrl::fix_hold_cmd $multi_mode]
     }
     if { [info exists flags(-wire_budgeting)] } {
       lrl::wire_budgeting_cmd

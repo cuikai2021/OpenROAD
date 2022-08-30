@@ -44,11 +44,11 @@ using ord::ensureLinked;
 namespace lrl {
 
 int
-fix_hold_cmd()
+fix_hold_cmd(bool multi_mode)
 {
   ensureLinked();
   Laurel *laurel = getLaurel();
-  return laurel->fixHold();
+  return laurel->fixHold(multi_mode);
 }
 
 void
