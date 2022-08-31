@@ -46,7 +46,7 @@ public:
     explicit DetailedPlacer(::ord::OpenRoad& ord);
     ~DetailedPlacer();
 
-    void go(Tcl_Interp&, deque<reference_wrapper<Tcl_Obj>>&& args);
+    int go(Tcl_Interp&, deque<reference_wrapper<Tcl_Obj>>&& args);
 
 private:
     ::ord::OpenRoad& openroad_;
@@ -94,7 +94,7 @@ string outputDefName(const string& basename) {
     return res;
 }
 
-void exec(
+int exec(
     utl::Logger& logger,
     const string& input_cfg,
     const string& outdef,
@@ -112,12 +112,12 @@ void exec(
     {
     case 0:
         // intend to do nothing
-        return;
+        return ec;
     case 1:
         logger.warn(utl::LDN, 1, "Cannot legalize completely.");
         if (not_stop_when_illegal) {
             logger.info(utl::LDN, 2, "But not to stop the flow.");
-            return;
+            return ec;
         }
         break;
     default:
@@ -195,14 +195,14 @@ void report_metrics() {
   rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
   rs->estimateParasitics(rsz::ParasiticsSrc::placement);
   auto sta = ::ord::OpenRoad::openRoad()->getSta();
- 
+
   const int DIGITS = 2;
   auto total_negative_slack = sta->totalNegativeSlack(sta::MinMax::max());
 
   sta::Slack worst_slack;
   sta::Vertex* worst_vertex;
   sta->worstSlack(sta::MinMax::max(), worst_slack, worst_vertex);
- 
+
   auto tns = sta->units()->timeUnit()->asString(total_negative_slack, DIGITS);
   auto wns = sta->units()->timeUnit()->asString(worst_slack, DIGITS);
 
@@ -213,7 +213,7 @@ void report_metrics() {
 
 } // namespace
 
-void DetailedPlacer::go(
+int DetailedPlacer::go(
     Tcl_Interp& interp,
     deque<reference_wrapper<Tcl_Obj>>&& args)
 {
@@ -268,9 +268,10 @@ void DetailedPlacer::go(
 
     string input_cfg_fn = std::move(writeInputConfig(input_cfg, basename));
     string outdef = std::move(outputDefName(basename));
-    exec(*openroad_.getLogger(), input_cfg_fn, outdef, not_stop_when_illegal);
+    int ret = exec(*openroad_.getLogger(), input_cfg_fn, outdef, not_stop_when_illegal);
     openroad_.readDef(outdef.c_str(), false, false, true);
     report_metrics();
+    return ret;
 }
 
 } // namespace linden
@@ -288,8 +289,18 @@ int ldp(
     for(int i = 0; i < objc; ++i) {
         args.push_back(std::ref(*argv[i]));
     }
-    dp->go(*interp, std::move(args));
-    return 0;
+    int ret = dp->go(*interp, std::move(args));
+    switch (ret) {
+        case 0: {
+            Tcl_SetResult(interp, "0", TCL_STATIC);
+            break;
+        }
+        case 1: {
+            Tcl_SetResult(interp, "1", TCL_STATIC);
+            break;
+        }
+    }
+    return TCL_OK;
 }
 
 extern "C"
