@@ -115,7 +115,7 @@ worst slack 1.92
 [INFO LRL-1100] found 2 vio ends in 3 mode: (multi mode: on)
 [INFO LRL-1103] Number of variables = 100
 [INFO LRL-1104] Number of constraints = 86
-[INFO LRL-1105] Objective value = 79.9439061842918 (PRIORITY 10000000)
+[INFO LRL-1105] Objective value = 79.94401759783844 (PRIORITY 10000000)
 [INFO LRL-1110] Totally inserted 6 buffers
 6
 -----------------

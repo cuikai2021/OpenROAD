@@ -1,16 +1,8 @@
 #include "db_sta/dbSta.hh"
 #include "utl/Logger.h"
-// #include "sta/Graph.hh"
-#include "sta/Sdc.hh"
-// #include "sta/Corner.hh"
 #include "sta/Search.hh"
-#include "parasitics/ConcreteParasitics.hh"
-#include "search/CheckMinPulseWidths.hh"
-#include "search/CheckMinPeriods.hh"
-#include "search/Levelize.hh"
+#include "sta/Sdc.hh"
 #include "search/Sim.hh"
-// #include "search/ReportPath.hh"
-#include "dcalc/GraphDelayCalc1.hh"
 
 namespace sta {
 
@@ -24,18 +16,9 @@ void dbSta::backupMode()
 
 void dbSta::switchMode()
 {
-  search_->clear();
-  levelize_->clear();
-  if (parasitics_)
-    parasitics_->clear();
-  graph_delay_calc_->clear();
+  // delaysInvalid();
+  search_->arrivalsInvalid();
   sim_->clear();
-  if (check_min_pulse_widths_)
-    check_min_pulse_widths_->clear();
-  if (check_min_periods_)
-    check_min_periods_->clear();
-  // delete graph_;
-  // graph_ = nullptr;
   graph_sdc_annotated_ = false;
   current_instance_ = nullptr;
   updateComponentsState();
@@ -71,6 +54,10 @@ void dbSta::setSdcOpt(std::string const& name)
 
 void dbSta::forEachSdc(const std::function<void()>& func)
 {
+  // if it is single mode, avoid redo sta
+  if(sta_map_.empty())
+    return func();
+
   for (auto& s : sta_map_) {
     Sdc* sdc = s.second;
     std::string const& name = s.first;

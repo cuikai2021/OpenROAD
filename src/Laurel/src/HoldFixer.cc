@@ -105,7 +105,6 @@ void HoldFixer::findHoldVioNameMM(bool multi_mode, NameSet& vio_ends_name)
     sta_->forEachSdc([&]() {
       mode_cnt++;
       sdc_ = sta_->sdc();
-      openroad_->getResizer()->estimateWireParasitics();
       sta_->findRequireds();
       findHoldVioNameCore(vio_ends_name);
     });
@@ -211,7 +210,6 @@ void HoldFixer::makeVarAllModes(bool multi_mode)
   if (multi_mode) {
     sta_->forEachSdc([&]() {
       sdc_ = sta_->sdc();
-      openroad_->getResizer()->estimateWireParasitics();
       sta_->findRequireds();
       makeVarAllModesCore(vio_ends_name);
     });
