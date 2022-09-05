@@ -122,9 +122,8 @@ public:
   void highlight(PathRef *path);
 
   // ICBench Methods public
-  void setSdcOpt(std::string name);
-  void forEachSdc(const std::function<void()>& func);
-  void forEachSdc(const std::function<void(Sdc*)>& func);
+  void setSdcOpt(std::string const& name);
+  void forEachSdc(std::function<void()> const& func);
 
   using Sta::netSlack;
   using Sta::replaceCell;
@@ -150,10 +149,18 @@ protected:
   std::unique_ptr<PowerDensityDataSource> power_density_heatmap_;
   
   // ICBench Methods protected
-  Sdc* getOrCreateSdcOpt(std::string name);
+  Sdc* getOrCreateSdcOpt(std::string const& name);
+  void backupMode();
+  void deleteModes();
+  void switchMode();
+
 
   // ICBench variables
-  sta::Map<std::string, Sdc*> sdc_list_;
+  typedef sta::Map<std::string, Sdc*> StaMap;
+
+  StaMap sta_map_;
+  const std::string default_sdc_name_ = "default";
+  std::string opt_sdc_name_ = default_sdc_name_;
 };
 
 // Make a stand-alone (scratchpad) sta for block.
