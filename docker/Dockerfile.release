@@ -48,6 +48,8 @@ RUN chmod +x /usr/local/bin/ossutil64 /usr/local/bin/envsubst /Eden-flow/gds2png
 COPY --from=maple_build_stage /maple/build/src/maple /usr/local/bin/sv2v
 COPY --from=maple_build_stage /maple/build/src/yosys* /usr/local/bin/
 COPY --from=maple_build_stage /maple/yosys/share/* /usr/local/share/yosys/
+COPY --from=maple_build_stage /maple/doc/hmerger/example /doc/hmerger/example
+COPY --from=maple_build_stage /maple/design/iscas/sky130_fd_sc_hd__ss_n40C_1v40.lib /doc/hmerger/example/input/
 COPY --from=yosys_build_stage /yosys/yosys* /usr/local/bin/origin-yosys/
 COPY --from=eden_build_stage /Eden/build/src/eden /usr/local/bin
 COPY ./Eden-src/src/linden/gpl/bin /usr/local/bin/
