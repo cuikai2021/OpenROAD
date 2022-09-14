@@ -2221,8 +2221,27 @@ Resizer::repairTieFanout(LibertyPort *tie_port,
         while (pin_iter->hasNext()) {
           Pin *load = pin_iter->next();
           if (load != drvr_pin) {
-            // Make tie inst.
             Point tie_loc = tieLocation(load, separation_dbu);
+            if (network_->direction(load)->isAnyOutput()
+                  && network_->isTopLevelPort(load)) {
+              // if load is out ports, use the original drvr net as its
+              Instance *drvr_inst = network_->instance(drvr_pin);
+              string tie_name = makeUniqueInstName(inst_name, true);
+              Instance *tie = makeInstance(tie_cell, tie_name.c_str(),
+                                            top_inst);
+              setLocation(tie, tie_loc);
+              Net *drvr_net = makeUniqueNet();
+
+              sta_->disconnectPin(drvr_pin);
+              Port *drvr_port = network_->port(drvr_pin);
+              sta_->connectPin(tie, tie_port, net);
+              sta_->connectPin(drvr_inst, drvr_port, drvr_net);
+              designAreaIncr(area(db_network_->cell(tie_cell)));
+              tie_count++;
+              continue;
+            }
+            // Make tie inst.
+            // Point tie_loc = tieLocation(load, separation_dbu);
             Instance *load_inst = network_->instance(load);
             string tie_name = makeUniqueInstName(inst_name, true);
             Instance *tie = makeInstance(tie_cell, tie_name.c_str(),
