@@ -430,7 +430,8 @@ Resizer::findBuffers()
     LibertyLibrary *lib = lib_iter->next();
     for (LibertyCell *buffer : *lib->buffers()) {
       if (!dontUse(buffer)
-          && isLinkCell(buffer)) {
+          && isLinkCell(buffer)
+          && !buffer->isPad()) {
         buffer_cells_.push_back(buffer);
       }
     }
