@@ -104,6 +104,7 @@ target_link_libraries(gpl
     rsz
     grt
     linden
+    fassert
     ${OCTAVE_LIBRARY}
 )
 

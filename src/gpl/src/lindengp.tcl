@@ -6,11 +6,13 @@ sta::define_cmd_args "linden_global_placement" {\
     [-overflow overflow]\
     [-pad_left pad_left]\
     [-pad_right pad_right]\
+    [-initial_place_policy initial_place_policy]\
 }
 
 proc linden_global_placement { args } {
   sta::parse_key_args "linden_global_placement" args \
     keys {\
+      -initial_place_policy \
       -density \
       -overflow \
       -pad_left -pad_right} \
@@ -63,6 +65,11 @@ proc linden_global_placement { args } {
     }
   }
 
+  if { [info exists keys(-initial_place_policy)] } { 
+    set initial_place_policy $keys(-initial_place_policy)
+    gpl::set_linden_initial_place_policy_cmd $initial_place_policy
+  }
+
   if { [ord::db_has_rows] } {
     sta::check_argc_eq0 "linden_global_placement" $args
     gpl::lindengp_run_cmd
@@ -89,7 +96,8 @@ proc linden_global_placement_debug { args } {
     set update $keys(-update)
     sta::check_positive_integer "-update" $update
   }
-  gpl::set_linden_debug_cmd $pause $update
+  set initial [info exists flags(-initial)]
+  gpl::set_linden_debug_cmd $pause $update $initial
 }
 
 }

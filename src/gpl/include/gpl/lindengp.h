@@ -49,18 +49,22 @@ class LindenGlobalPlace
 
   void setTimingDriven(bool timing_driven);
 
-  void setDebug(int pause_iterations, int update_iterations)
+  void setDebug(int pause_iterations, int update_iterations, bool initial)
   {
     gui_debug_ = true;
     gui_debug_pause_iterations_ = pause_iterations;
     gui_debug_update_iterations_ = update_iterations;
+    gui_debug_initial_ = initial;
   }
+
+  void setInitialPlacePolicy(const char* policy);
 
  private:
   odb::dbDatabase* db_;
   utl::Logger* log_;
 
   std::shared_ptr<PlacerBase> pb_;
+  std::string initialPlacePolicy_;
   std::shared_ptr<linden::db::Database> linden_db_;
   std::unique_ptr<linden::gpl::Placer> lindengp_;
 
@@ -72,6 +76,7 @@ class LindenGlobalPlace
   double net_weight_max_;
   std::deque<int> timing_overflows_;
 
+
   // temp variable; OpenDB should have these values.
   int padLeft_;
   int padRight_;
@@ -79,6 +84,7 @@ class LindenGlobalPlace
   bool gui_debug_;
   int gui_debug_pause_iterations_;
   int gui_debug_update_iterations_;
+  bool gui_debug_initial_;
 
   void initPlacerBase();
   std::shared_ptr<linden::db::Database> create_linden_db();
@@ -89,5 +95,9 @@ class LindenGlobalPlace
 
   void update_db();
   void report_metrics();
+
+  // initial placement
+  void doInitialPlace();
+
 };
 }  // namespace gpl

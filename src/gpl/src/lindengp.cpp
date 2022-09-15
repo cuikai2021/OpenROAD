@@ -3,6 +3,11 @@
 #include <iostream>
 
 #include "graphics.h"
+#include "initialPlace.h"
+#include "initialPlaceBicgstab.h"
+#include "initialPlaceDef.h"
+#include "initialPlaceDirichlet.h"
+#include "initialPlaceEV.h"
 #include "linden/gpl/placer_config.hpp"
 #include "linden/lefdef_dumper.hpp"
 #include "odb/db.h"
@@ -12,6 +17,7 @@
 #include "sta/Fuzzy.hh"
 #include "sta/Units.hh"
 #include "utl/Logger.h"
+#include "fassert.hpp"
 
 using namespace std;
 using utl::GPL;
@@ -22,6 +28,7 @@ LindenGlobalPlace::LindenGlobalPlace()
     : db_(nullptr),
       log_(nullptr),
       pb_(nullptr),
+      initialPlacePolicy_(""),
       linden_db_(nullptr),
       lindengp_(nullptr),
       density_(1.0),
@@ -34,7 +41,8 @@ LindenGlobalPlace::LindenGlobalPlace()
       padRight_(0),
       gui_debug_(false),
       gui_debug_pause_iterations_(10),
-      gui_debug_update_iterations_(10)
+      gui_debug_update_iterations_(10),
+      gui_debug_initial_(false)
 {
 }
 
@@ -60,7 +68,7 @@ void LindenGlobalPlace::initPlacerBase()
 
 std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 {
-  initPlacerBase();
+  FASSERT(pb_ != nullptr);
   auto const& die = pb_->die();
   linden::geom::Rect core_region(
       die.coreLx(), die.coreLy(), die.coreUx(), die.coreUy());
@@ -136,6 +144,7 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 void LindenGlobalPlace::run()
 {
   initPlacerBase();
+  doInitialPlace();
   if (!linden_db_) {
     linden_db_ = create_linden_db();
   }
@@ -273,19 +282,53 @@ void LindenGlobalPlace::report_metrics()
   rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
   rs->estimateParasitics(rsz::ParasiticsSrc::placement);
   auto sta = ::ord::OpenRoad::openRoad()->getSta();
- 
+
   const int DIGITS = 2;
   auto total_negative_slack = sta->totalNegativeSlack(sta::MinMax::max());
 
   sta::Slack worst_slack;
   sta::Vertex* worst_vertex;
   sta->worstSlack(sta::MinMax::max(), worst_slack, worst_vertex);
- 
+
   auto tns = sta->units()->timeUnit()->asString(total_negative_slack, DIGITS);
   auto wns = sta->units()->timeUnit()->asString(worst_slack, DIGITS);
 
   log_->metric("gp::tns", tns);
   log_->metric("gp::wns", wns);
+}
+
+void LindenGlobalPlace::setInitialPlacePolicy(const char* policy)
+{
+  initialPlacePolicy_ = policy != nullptr ? std::string(policy) : "";
+}
+
+void LindenGlobalPlace::doInitialPlace()
+{
+  FASSERT(pb_ != nullptr);
+  std::unique_ptr<InitialPlace> ip_(nullptr);
+
+  InitialPlaceVars ipVars;
+  ipVars.maxIter = 20;
+  ipVars.minDiffLength = 1500;
+  ipVars.maxSolverIter = 100;
+  ipVars.maxFanout = 200;
+  ipVars.netWeightScale = 800;
+  ipVars.debug = gui_debug_initial_;
+
+  if (initialPlacePolicy_ == "def") {
+    ip_ = std::move(
+        std::unique_ptr<InitialPlace>(new InitialPlaceDef(ipVars, pb_, log_)));
+  } else if (initialPlacePolicy_ == "ev") {
+    ip_ = std::move(
+        std::unique_ptr<InitialPlace>(new InitialPlaceEV(ipVars, pb_, log_)));
+  } else if (initialPlacePolicy_ == "dirichlet") {
+    ip_ = std::move(std::unique_ptr<InitialPlace>(
+        new InitialPlaceDirichlet(ipVars, pb_, log_)));
+  } else {  // default
+    ip_ = std::move(std::unique_ptr<InitialPlace>(
+        new InitialPlaceBicgstab(ipVars, pb_, log_)));
+  }
+  ip_->run();
 }
 
 }  // namespace gpl

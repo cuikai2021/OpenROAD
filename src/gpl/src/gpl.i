@@ -365,10 +365,11 @@ set_linden_pad_right_cmd(int pad)
 
 void
 set_linden_debug_cmd(int pause_iterations,
-              int update_iterations)
+              int update_iterations,
+              bool initial)
 {
   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setDebug(pause_iterations, update_iterations);
+  lindengp->setDebug(pause_iterations, update_iterations, initial);
 }
 
 void
@@ -376,6 +377,12 @@ set_linden_timing_driven_mode(bool timing_driven)
 {
   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
   lindengp->setTimingDriven(timing_driven);
+}
+
+void
+set_linden_initial_place_policy_cmd(const char* policy) {
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setInitialPlacePolicy(policy); 
 }
 
 %} // inline lindengp
