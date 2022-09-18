@@ -15,13 +15,12 @@ namespace banyan {
 
 void Axioms::initViaMap()
 {
-  for (auto techVia : db_->getTech()->getVias()) {
-    if (!techVia->isDefault()) {
-      continue;
+  for (auto [viaName, _] : dbAdapter_.viaDefNameToIdxs_) {
+    if (auto techVia = db_->getTech()->findVia(viaName.c_str());
+        techVia != nullptr && techVia->isDefault()) {
+      viaMap[techVia->getName()] = std::make_shared<Via>(Via(techVia));
     }
-    viaMap[techVia->getName()] = std::make_shared<Via>(Via(techVia));
   }
-
 #ifndef NDEBUG
   printer.print("Vias:");
   for (auto [_, viaPtr] : viaMap) {

@@ -318,10 +318,27 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
 
     size_t viaDefIndexBegin = viadefs_.size();
     for (auto via : layerNameToDefVias[layerName]) {
+      if (via->getTopLayer() == nullptr
+          || via->getTopLayer()->getType() != odb::dbTechLayerType::ROUTING
+          || via->getBottomLayer() == nullptr
+          || via->getBottomLayer()->getType()
+                 != odb::dbTechLayerType::ROUTING) {
+        logger_->warn(utl::BY, 809, "ignore non-routing via {}", via->getName());
+        continue;
+      }
       addViaDef(via);
     }
 
     for (auto techVia : layerNameToTechVias[layerName]) {
+      if (techVia->getTopLayer() == nullptr
+          || techVia->getTopLayer()->getType() != odb::dbTechLayerType::ROUTING
+          || techVia->getBottomLayer() == nullptr
+          || techVia->getBottomLayer()->getType()
+                 != odb::dbTechLayerType::ROUTING) {
+        logger_->warn(
+            utl::BY, 811, "ignore non-routing via {}", techVia->getName());
+        continue;
+      }
       addViaDef(techVia);
     }
 
