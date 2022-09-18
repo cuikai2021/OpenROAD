@@ -323,7 +323,7 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
           || via->getBottomLayer() == nullptr
           || via->getBottomLayer()->getType()
                  != odb::dbTechLayerType::ROUTING) {
-        logger_->warn(utl::BY, 809, "ignore invaild via {}", via->getName());
+        logger_->warn(utl::BY, 809, "ignore non-routing via {}", via->getName());
         continue;
       }
       addViaDef(via);
@@ -336,7 +336,7 @@ void OpenDBAdapter::getViaDefsFromOpenDB()
           || techVia->getBottomLayer()->getType()
                  != odb::dbTechLayerType::ROUTING) {
         logger_->warn(
-            utl::BY, 811, "ignore invaild via {}", techVia->getName());
+            utl::BY, 811, "ignore non-routing via {}", techVia->getName());
         continue;
       }
       addViaDef(techVia);
