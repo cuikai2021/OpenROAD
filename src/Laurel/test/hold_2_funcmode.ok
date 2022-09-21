@@ -113,10 +113,7 @@ Path Type: min
 
 worst slack 1.92
 [INFO LRL-1100] found 2 vio ends in 3 mode: (multi mode: on)
-[INFO LRL-1103] Number of variables = 100
-[INFO LRL-1104] Number of constraints = 86
-[INFO LRL-1105] Objective value = 79.94401759783844 (PRIORITY 10000000)
-[INFO LRL-1110] Totally inserted 6 buffers
+[INFO LRL-1110] Totally inserted 6 buffers , 0 infeasible
 6
 -----------------
 report scan after repair 
@@ -138,8 +135,9 @@ Path Type: min
    0.02    0.14 ^ b5/Z (TBUF_X1)
    0.02    0.15 ^ b6/Z (TBUF_X1)
    0.02    0.17 ^ u1/ZN (AND2_X2)
-   0.00    0.17 ^ r3/SI (SDFFRS_X1)
-           0.17   data arrival time
+   0.01    0.18 ^ hold6/Z (BUF_X4)
+   0.00    0.18 ^ r3/SI (SDFFRS_X1)
+           0.18   data arrival time
 
    0.00    0.00   clock clk (rise edge)
    0.18    0.18   clock network delay (propagated)
@@ -149,9 +147,9 @@ Path Type: min
            0.18   data required time
 ---------------------------------------------------------
            0.18   data required time
-          -0.17   data arrival time
+          -0.18   data arrival time
 ---------------------------------------------------------
-          -0.01   slack (VIOLATED)
+           0.00   slack (MET)
 
 
 worst slack 1.91
@@ -169,17 +167,20 @@ Path Type: min
    0.00    0.00   clock network delay (propagated)
    0.00    0.00 ^ r2/CK (SDFFRS_X1)
    0.07    0.07 ^ r2/Q (SDFFRS_X1)
-   0.02    0.09 ^ hold5/Z (CLKBUF_X3)
-   0.02    0.11 ^ hold6/Z (CLKBUF_X3)
-   0.02    0.13 ^ b1/Z (TBUF_X1)
-   0.02    0.14 ^ sb1/Z (TBUF_X1)
-   0.02    0.16 ^ sb2/Z (TBUF_X1)
-   0.02    0.17 ^ sb3/Z (TBUF_X1)
-   0.02    0.19 ^ sb4/Z (TBUF_X1)
-   0.02    0.21 ^ sb5/Z (TBUF_X1)
-   0.02    0.22 ^ u2/ZN (AND2_X2)
-   0.00    0.22 ^ r3/D (SDFFRS_X1)
-           0.22   data arrival time
+   0.02    0.09 ^ hold1/Z (CLKBUF_X3)
+   0.02    0.11 ^ hold2/Z (CLKBUF_X3)
+   0.02    0.12 ^ hold3/Z (CLKBUF_X3)
+   0.02    0.14 ^ hold4/Z (CLKBUF_X3)
+   0.02    0.16 ^ hold5/Z (CLKBUF_X3)
+   0.02    0.18 ^ b1/Z (TBUF_X1)
+   0.02    0.20 ^ sb1/Z (TBUF_X1)
+   0.02    0.22 ^ sb2/Z (TBUF_X1)
+   0.02    0.23 ^ sb3/Z (TBUF_X1)
+   0.02    0.25 ^ sb4/Z (TBUF_X1)
+   0.02    0.26 ^ sb5/Z (TBUF_X1)
+   0.02    0.28 ^ u2/ZN (AND2_X2)
+   0.00    0.28 ^ r3/D (SDFFRS_X1)
+           0.28   data arrival time
 
    0.00    0.00   clock clk (rise edge)
    0.18    0.18   clock network delay (propagated)
@@ -189,12 +190,12 @@ Path Type: min
            0.18   data required time
 ---------------------------------------------------------
            0.18   data required time
-          -0.22   data arrival time
+          -0.28   data arrival time
 ---------------------------------------------------------
-           0.04   slack (MET)
+           0.10   slack (MET)
 
 
-worst slack 1.75
+worst slack 1.77
 -----------------
 report func2 after repair 
 -----------------
@@ -208,30 +209,30 @@ Path Type: min
    0.00    0.00   clock clk (rise edge)
    0.00    0.00   clock network delay (propagated)
    0.00    0.00 ^ r2/CK (SDFFRS_X1)
-   0.07    0.07 ^ r2/Q (SDFFRS_X1)
-   0.02    0.09 ^ hold5/Z (CLKBUF_X3)
-   0.02    0.11 ^ hold6/Z (CLKBUF_X3)
-   0.02    0.13 ^ b1/Z (TBUF_X1)
-   0.02    0.14 ^ sb1/Z (TBUF_X1)
-   0.02    0.16 ^ sb2/Z (TBUF_X1)
-   0.02    0.17 ^ sb3/Z (TBUF_X1)
-   0.02    0.19 ^ sb4/Z (TBUF_X1)
-   0.02    0.21 ^ sb5/Z (TBUF_X1)
-   0.02    0.22 ^ u2/ZN (AND2_X2)
-   0.00    0.22 ^ r3/D (SDFFRS_X1)
+   0.06    0.06 v r2/Q (SDFFRS_X1)
+   0.02    0.08 v hold1/Z (CLKBUF_X3)
+   0.02    0.09 v hold2/Z (CLKBUF_X3)
+   0.02    0.11 v hold3/Z (CLKBUF_X3)
+   0.02    0.13 v hold4/Z (CLKBUF_X3)
+   0.02    0.14 v hold5/Z (CLKBUF_X3)
+   0.03    0.17 v b1/Z (TBUF_X1)
+   0.02    0.19 v b1x/Z (TBUF_X1)
+   0.02    0.21 v m1/Z (MUX2_X2)
+   0.01    0.22 v u2/ZN (AND2_X2)
+   0.00    0.22 v r3/D (SDFFRS_X1)
            0.22   data arrival time
 
    0.00    0.00   clock clk (rise edge)
    0.18    0.18   clock network delay (propagated)
    0.00    0.18   clock reconvergence pessimism
            0.18 ^ r3/CK (SDFFRS_X1)
-  -0.01    0.18   library hold time
-           0.18   data required time
+  -0.01    0.17   library hold time
+           0.17   data required time
 ---------------------------------------------------------
-           0.18   data required time
+           0.17   data required time
           -0.22   data arrival time
 ---------------------------------------------------------
-           0.04   slack (MET)
+           0.05   slack (MET)
 
 
-worst slack 1.87
+worst slack 1.84

@@ -5,6 +5,8 @@
 #include "sta/Sta.hh"
 
 // Global namespace.
+// redirect YY input macro
+#undef YY_INPUT
 #define YY_INPUT(buf, result, max_size) \
   sta::lrl_spef_reader->getChars(buf, result, max_size)
 

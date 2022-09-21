@@ -61,6 +61,7 @@ target_link_libraries(Laurel
     utl
     rsz
     spdlog::spdlog
+  PRIVATE
     ortools::ortools
 )
 

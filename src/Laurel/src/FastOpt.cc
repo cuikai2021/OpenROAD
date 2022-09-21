@@ -31,40 +31,69 @@ void Laurel::initFastOpt(OpenRoad *openroad)
 
 int Laurel::fastOpt(int iter)
 {
+  inserted_buffer_count_ = 0;
+  resize_count_ = 0;
+
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
   const Delay uncertainty = options_->uncertainty() / LRL_H_STA_SCALING;
 
   initFastOpt(openroad_);
   incrementalParasiticsBegin();
   for (int i = 0; i<iter; ++i) {
+    struct DrvrSlack
+    {
+      Vertex* drvr;
+      Slack slack;
+      int fanout;
+      bool operator<(DrvrSlack const& other) const
+      {
+        Slack const& mine = this->slack;
+        Slack const& his = other.slack;
+        if (fuzzyEqual(mine, his)) return this->fanout > other.fanout;
+        return mine < his;
+      }
+    };
     sta_->findRequireds();
     VertexIterator vertex_iter(sta_->graph());
-    VertexSet failures;
-    bool changed = false;
+    std::vector<DrvrSlack> failures;
+    int cnt = 0;
     while (vertex_iter.hasNext()) {
       Vertex* v = vertex_iter.next();
       Pin* pin = v->pin();
       if(network_->isDriver(pin) 
         && !network_->isTopLevelPort(pin)) {
         Slack slack = sta_->vertexSlack(v, max_);
-        if ( this->fanout(v) > 4
+        int fanout = this->fanout(v);
+        if ( fanout > 1
           && !fuzzyInf(slack)
           && fuzzyLess(slack, slack_margin + uncertainty))
-          failures.insert(v);
+          failures.push_back({v, slack, fanout});
       }
     }
-    logger_->info(utl::LRL, 1501, "Fast-Opt found {} violated high fanout net, iter {}", failures.size(), i+1);
     if (failures.empty())
       break;
+    sort(failures.begin(), failures.end());
 
-    for (auto& v : failures) {
-      if (quickFixSetup(v))
-        changed = true;
-      updateParasitics();
+    for (int i = 0; i<failures.size(); ++i) {
+      Vertex* v = failures[i].drvr;
+      Slack const& s = failures[i].slack;
+      journalBegin();
+      if(fuzzyLessEqual(sta_->vertexSlack(v, max_), s))
+        if (quickFixSetup(v)) {
+          updateParasitics();
+          sta_->findRequireds();
+          if(fuzzyLess(sta_->vertexSlack(v, max_), s))
+            journalRestore();
+          else
+            ++cnt;
+        }
     }
-    if (!changed)
+    if (cnt == 0)
       break;
+    logger_->info(utl::LRL, 1501, "Fast-Opt fixed {} violated nets, iter {}", cnt, i+1);
   }
+
+  updateParasitics();
   incrementalParasiticsEnd();
   logger_->info(utl::LRL,
                 1500,
@@ -80,6 +109,10 @@ bool Laurel::quickFixSetup(Vertex* v)
   PathRef path = sta_->vertexWorstSlackPath(v, max_);
   if(!path.vertex(sta_))
     return false;
+
+  updateParasitics();
+  sta_->findRequireds();
+
   const int fanout = this->fanout(v);
   if (!isTristateDriver(pin)) {
     if (fanout < rebuffer_max_fanout_) {

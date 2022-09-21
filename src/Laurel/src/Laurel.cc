@@ -58,35 +58,54 @@ void Laurel::deleteLaurel()
 //
 ////////////////////////////////////////////////////////
 
-bool Laurel::fixHoldCore(bool multi_mode)
+bool Laurel::fixHoldCore(bool multi_mode, VertexSet* v)
 {
-  HoldFixer fixer(openroad_, options_.get(), multi_mode);
+  HoldFixer fixer(openroad_, options_.get());
+  fixer.initAlgorithm(multi_mode, v);
   HoldResult result = fixer.resolve();
   bool ret = true;
   if (result != MPSolver::ResultStatus::OPTIMAL) {
-    logger_->warn(
-        utl::LRL, 1001, "Linear Programming failed, return {}", result);
+    debugPrint(logger_, utl::LRL, "LRL", 1, "Linear Programming failed, return {}", result);
+    infeasible_++;
     ret = false;
   } else {
+    fixer.hold_buffers_ = hold_buffers_.get();
     ret = fixer.insertAllBuffer();
   }
-  inserted_buffer_count_ = fixer.getInsertedBufferCnt();
+  inserted_buffer_count_ += fixer.getInsertedBufferCnt();
   return ret;
 }
 
-int Laurel::fixHold(bool multi_mode)
+int Laurel::fixHold(bool multi_mode, bool partial)
 {
   init();
   inserted_buffer_count_ = 0;
+  infeasible_ = 0;
   parasiticPreamble(openroad_->getResizer());
   incrementalParasiticsBegin();
-  bool ret = fixHoldCore(multi_mode);
-  // Leave the parasitices up to date.
+  bool ret = true;
+  if (!partial)
+    ret = fixHoldCore(multi_mode);
+  else {
+    VertexSet tasks;
+    HoldFixerTaskManager manager(openroad_, options_.get());
+    manager.findTasks(multi_mode);
+    for (size_t i = 0; i<manager.taskSize(); ++i) {
+      debugPrint(logger_, utl::LRL, "LRL", 1, "solving group: {}", i);
+      if(!fixHoldCore(multi_mode, manager.taskSet(i)))
+        ret = false;
+    }
+  }
   updateParasitics();
   incrementalParasiticsEnd();
   if (!ret) {
     logger_->warn(utl::LRL, 1002, "fail to fix all hold violations");
   }
+  logger_->info(
+      utl::LRL, 1110, 
+      "Totally inserted {} buffers , {} infeasible",
+      inserted_buffer_count_,
+      infeasible_);
   return inserted_buffer_count_;
 }
 

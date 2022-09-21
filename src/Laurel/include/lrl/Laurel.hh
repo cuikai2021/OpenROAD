@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <boost/bimap.hpp>
+#include <functional>
 
 #include "lrl/Options.hh"
 #include "rsz/Resizer.hh"
@@ -73,9 +74,10 @@ class LaurelAdapter : public Resizer
   typedef sta::Map<Vertex*, Delay> VertexDelayMap;
 
  protected:
-  struct VertexHash
-  {
-    size_t operator()(Vertex* v) const { return (size_t)v; }
+  template<class T>
+  struct PtrHash
+  { 
+    size_t operator()(T* s) const { return (size_t)s; }
   };
 
   // common methods
@@ -219,8 +221,8 @@ class ClockConcurrentFixer : public SetupFixer
   void addConstraintPrimeInOut(Vertex* pi, Vertex* po);
 
   struct Reg2RegSkewMap {
-    typedef std::unordered_map<Vertex*, Delay, VertexHash> NodeSkewMap;
-    typedef std::unordered_map<Vertex*, std::shared_ptr<NodeSkewMap>, VertexHash> Map;
+    typedef std::unordered_map<Vertex*, Delay, PtrHash<Vertex>> NodeSkewMap;
+    typedef std::unordered_map<Vertex*, std::shared_ptr<NodeSkewMap>, PtrHash<Vertex>> Map;
     void insert(Vertex* i, Vertex* o, Delay const & d) {
       insert_map(i2o, i, o, d);
       insert_map(o2i, o, i, d);
@@ -340,66 +342,95 @@ class WireBudgetingRC : public WireBudgeting
   Delay wire_slope_ = LRL_H_ZERO;
 };
 
+class HoldFixerTaskManager : public LaurelAdapter
+{
+ public:
+  HoldFixerTaskManager(OpenRoad* openroad, Options* options);
+
+  void findTasks(bool multi_mode);
+  VertexSet* taskSet(size_t i) const { return tasks_.seq.at(i).get(); }
+  size_t taskSize() const { return tasks_.seq.size(); }
+
+ protected:
+  void findTaskCore();
+  void findTaskCoreMM();
+
+  typedef std::unordered_set<Vertex*, PtrHash<Vertex>> VSet;
+  void getAllRelatedFailures(Vertex* v,
+                             VSet const& failures,
+                             VertexSet& results);
+  void findTaskBfs(VSet& failures);
+
+  struct ExclusiveSet
+  {
+    void expand(VertexSet const& related, std::vector<Vertex*>& queue);
+    typedef std::vector<std::shared_ptr<VertexSet>> SetSeq;
+    SetSeq seq;
+  } tasks_;
+  Options* options_;
+};
+
 class HoldFixer : public LaurelAdapter
 {
  public:
-  HoldFixer(OpenRoad* openroad, Options* options, bool multi_mode);
+  HoldFixer(OpenRoad* openroad, Options* options);
 
   HoldResult resolve();
-  Delay getWirePadding(const WirePair& wire_pair) const;
 
   bool insertAllBuffer();
   int getInsertedBufferCnt() const { return inserted_buffer_count_; }
 
- protected:
-  // definitions
-  struct BufferDelay
-  {
-    LibertyCell* buffer_;
-    Delay hold_delay_;
+  // static void partialTasks(OpenRoad* openroad, Options* options, VertexSet& s, bool multi_mode);
+  void initAlgorithm(bool multi_mode, VertexSet* v = nullptr);
+
+  // backup sort buffer results
+  struct BufferDelay {
+    LibertyCell* buffer;
+    Delay hold_delay;
     bool operator<(BufferDelay const& other) const
     {
-      return other.hold_delay_ < this->hold_delay_;
+      return this->hold_delay > other.hold_delay;
     }
   };
+  typedef sta::Vector<BufferDelay> BufferSeq;
+  BufferSeq* hold_buffers_ = nullptr;
 
-  struct VertexIdMap
-  {
-    typedef boost::bimap<Index, Vertex*> BMap;
-    typedef std::unordered_map<Name, Index> Map;
-    void clear() { if(!ivb.empty()) ivb.clear(); }
-    bool insert(Name const& n, Vertex* v)
-    {
-      bool new_n = false;
-      auto it = ni.find(n);
-      if (it == ni.end()) {
-        it = ni.insert({n, cur++}).first;
-        new_n = true;
-      }
-      ivb.insert({it->second, v});
-      return new_n;
-    }
-    bool hasKey(Vertex* v) const { return ivb.right.find(v) != ivb.right.end(); }
-    bool hasKey(Name const& n) const { return ni.find(n) != ni.end(); }
-    Vertex* at(Index const& i) const { return ivb.left.at(i); }
-    Index const& at(Vertex* v) const { return ivb.right.at(v); }
+ protected:
+  // definitions
+  enum ArrivalType {
+    DEFAULT = 0,  // path start from 0
+    HALF_AHEAD,   // path start from T/2
+    SIZE          // total number of types
+  };
 
-   private:
-    BMap ivb;
-    Map ni;
-    Index cur = 0;
-  } vertex_map_;
-
-  struct ArrivalVariable
+  struct ArrivalVariableUnit
   {
     MPVariable* max;
     MPVariable* min;
   };
-
-  struct WirePairHash 
+  template<class Key, class T, class Hash=std::hash<Key>>
+  struct LazyMap
   {
-    size_t operator()(WirePair const& w) const { return (size_t)w.first; }
+    typedef std::unordered_map<Key, std::shared_ptr<T>, Hash> Map;
+    T& operator[](Key const& k) {
+      auto it = map.find(k);
+      if(it == map.end()) it = map.insert({k, std::make_shared<T>()}).first;
+      return *(it->second);
+    }
+    Map map;
   };
+  typedef std::unordered_map<ArrivalType, ArrivalVariableUnit> ArrivalVariable;
+  typedef LazyMap<Vertex*, ArrivalVariable, PtrHash<Vertex>> VertexMPVarMap;
+  typedef LazyMap<Sdc*, VertexMPVarMap, PtrHash<Sdc>> MMVertexMPVarMap;
+
+  typedef VertexPair Wire;
+  typedef sta::Set<Wire> WireSet;
+  struct WireHash 
+  {
+    size_t operator()(Wire const& w) const { return (size_t)w.first; }
+  };
+  typedef LazyMap<Wire, std::unordered_set<ArrivalType>, WireHash> WireTypeMap;
+  typedef std::unordered_map<Wire, MPVariable*, WireHash> WireMPVarMap;
 
   struct DelayMap
   {
@@ -413,55 +444,38 @@ class HoldFixer : public LaurelAdapter
         if (fuzzyLess(max, d)) max = d;
       }
     };
-    typedef std::unordered_map<WirePair, MinMaxDelay, WirePairHash> Map;
-    Delay const& max(WirePair const& w) const {return m.at(w).max;}
-    Delay const& min(WirePair const& w) const {return m.at(w).min;}
-    void insert(Index const& p, Index const& s, Delay const& d) {insert(WirePair(p,s), d);}
-    bool hasKey(WirePair const& w) const {return m.find(w) != m.end();}
-    void clear() {m.clear();}
-   private:
-    void insert(WirePair const& w, Delay const& d)
+    typedef std::unordered_map<Wire, MinMaxDelay, WireHash> Map;
+    void insert(Wire const& w, Delay const& d)
     {
-      auto it = m.find(w);
-      if (it == m.end())
-        it = m.insert({w, {LRL_H_INFINITY, LRL_H_ZERO}}).first;
-      it->second.store(d);
+      map.insert({w, {LRL_H_INFINITY, LRL_H_ZERO}}).first->second.store(d);
     }
-    Map m;
+    Map map;
   } delays_;
 
-  typedef std::unordered_map<WirePair, MPVariable*, WirePairHash> WireMPVarMap;
-  typedef std::unordered_map<Index, ArrivalVariable> VertexMPVarMap;
-  typedef sta::Map<Sdc*, std::shared_ptr<VertexMPVarMap>> MMVertexMPVarMap;
-  typedef sta::Set<Name> NameSet;
-
   // methods
-  void makeVar(const Index& vertex_index);
-  void makeWire(const Index& pred, const Index& succ);
-  void makeVarFanins(const VertexSet& ends, VertexIndexSet& pi_set, WirePairSet& w_set);
-  void makeVarAllModesCore(NameSet const& vio_ends_name);
-  void makeVarAllModes(bool multi_mode);
-  void findHoldVioNameCore(NameSet& vio_ends_name);
-  void findHoldVioNameMM(bool multi_mode, NameSet& vio_ends_name);
+  void makeVar(Vertex* v, ArrivalType const& t = ArrivalType::DEFAULT);
+  void registerWire(Wire const& w);
+  void makeVarFanins(VertexSet const& ends, VertexSet& pi_set, WireTypeMap& w);
+  void makeVarAllModesCore(VertexSet const& hold_failures_end);
+  void findHoldVioCore(VertexSet& vio_ends);
+  void findHoldVioMM(bool multi_mode, VertexSet& vio_ends);
+  void buildFailureEnds(bool is_partial,
+                        VertexSet* v,
+                        VertexSet const& vio_ends);
 
-  void genPrimeInConstraints(const VertexIndexSet& pi_set);
+  void genPrimeInConstraints(VertexSet const& pi_set);
   void genPrimeOutConstraints(const VertexSet& ends);
-  void genWireConstraints(WirePair const& wire);
-  void genAllWireConstraints(WirePairSet const& w_set);
+  void genWireConstraints(Wire const& wire, ArrivalType const& t);
+  void genAllWireConstraints(WireTypeMap const& w);
 
-  void getDelay(const Index& pred_index,
-                const Index& succ_index,
+  void getDelay(Wire const& w,
                 Delay& min_delay,
                 Delay& max_delay);
   Delay getCriLongArrival(Vertex* end) const;
 
-  Index const& getIndex(Vertex* v);
-  void findAllIndex();
-
-  bool hasHoldViolation(Vertex* vertex,
-                        const NameSet& vio_ends_name) const;
-  // should run findHoldVioNaemMM before
-  void getHoldViolations(const NameSet& vio_ends_name,
+  bool hasHoldViolation(Vertex* v,
+                        VertexSet const& vio_ends) const;
+  void getHoldViolations(VertexSet const& vio_ends,
                          VertexSet& hold_failures);
 
   // can not do lp for 10^-10, should zoom in
@@ -477,25 +491,23 @@ class HoldFixer : public LaurelAdapter
                           LibertyCell* buffer_cell);
   void sortHoldBuffers();
   LibertyCell* findHoldBuffer(Delay min_limit, int& count, Delay& real_delay);
-  bool insertBuffer(const Index& vertex_index,
+  bool insertBuffer(Vertex* insert_from,
                     Delay decrease,
-                    WirePairSet& drvr_pair,
+                    WireSet& drvr_pair_set,
                     Vertex* drvr = nullptr);
-  void getAllWirePairFrom(const Index& vertex_index,
-                          WirePairSet& wire_pair_set);
-  void getNonZeroPaddingPred(VertexIndexSet& vio_pred_set);
+  void getAllWireFrom(Vertex* v,
+                          WireSet& wire_set);
+  void getNonZeroPaddingPred(VertexSet& vio_pred_set);
+  Delay getWirePadding(Wire const& w) const;
 
   // variables
-  Index var_index_ = 0;
-  Index ct_index_ = 0;
   Slack sdc_worst_slack_ = LRL_H_ZERO;
 
-  MPSolver* solver_;
+  std::unique_ptr<MPSolver> solver_;
   MMVertexMPVarMap arrival_;      // A/a
   WireMPVarMap wire_;             // w
 
-  sta::Vector<BufferDelay> hold_buffers_;
-  VertexIndexSet complete_vio_ends_;
+  VertexSet complete_vio_ends_;
 
   Options* options_;
 };
@@ -503,7 +515,10 @@ class HoldFixer : public LaurelAdapter
 class Laurel : public LaurelAdapter
 {
  public:
-  Laurel() : LaurelAdapter() { options_ = std::make_shared<Options>(); }
+  Laurel() : LaurelAdapter() {
+    options_ = std::make_shared<Options>();
+    hold_buffers_ = std::make_shared<HoldFixer::BufferSeq>();
+  }
   void deleteLaurel();
 
   void initLaurel(OpenRoad* openroad,
@@ -515,7 +530,7 @@ class Laurel : public LaurelAdapter
                   SteinerTreeBuilder* stt_builder,
                   GlobalRouter* global_router);
 
-  int fixHold(bool multi_mode);
+  int fixHold(bool multi_mode, bool partial);
   int fixSetup(int iter);
   int ccopt();
   int fastOpt(int iter);
@@ -543,7 +558,8 @@ class Laurel : public LaurelAdapter
   Options* getOptions() { return options_.get(); }
 
  protected:
-  bool fixHoldCore(bool multi_mode);
+  // if vertex v is nullptr, fix hold in global mode
+  bool fixHoldCore(bool multi_mode, VertexSet* v = nullptr);
 
   bool resizeAllCells(SetupFixer* fixer);
 
@@ -559,10 +575,13 @@ class Laurel : public LaurelAdapter
   bool isWorstPathFromInPort(Vertex* vertex, MinMax const* min_max);
 
   // variable
+  int infeasible_ = 0;
   std::shared_ptr<Options> options_;
+  std::shared_ptr<HoldFixer::BufferSeq> hold_buffers_;
 
   WireBudgeting* wire_bud_ = nullptr;
   ClockConcurrentFixer* ccopt_fixer_ = nullptr;
+
 };
 
 }  // namespace lrl
