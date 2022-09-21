@@ -37,6 +37,7 @@
 
 #include <iostream>
 
+#include "fassert.hpp"
 #include "nesterovBase.h"
 #include "util.h"
 #include "utl/Logger.h"
@@ -81,24 +82,43 @@ Instance::Instance(odb::dbInst* inst,
     : Instance()
 {
   inst_ = inst;
+  bool x_y_rotated = false;
+  switch (inst->getOrient()) {
+    case dbOrientType::R0:
+    case dbOrientType::R180:
+    case dbOrientType::MY:
+    case dbOrientType::MX: {
+      x_y_rotated = false;
+    } break;
+    case dbOrientType::R90:
+    case dbOrientType::R270:
+    case dbOrientType::MYR90:
+    case dbOrientType::MXR90: {
+      x_y_rotated = true;
+    } break;
+    default: {
+      FASSERT(0 && "unknown orient ");
+    } break;
+  };
+
   dbBox* bbox = inst->getBBox();
   int lx_, ly_;
   inst->getLocation(lx_, ly_);
-  auto ux_ = lx_ + bbox->getDX();
-  auto uy_ = ly_ + bbox->getDY();
+  auto master = inst_->getMaster();
+  assert(master != nullptr);
+  int64_t w = master->getWidth();
+  int64_t h = master->getHeight();
+  if (x_y_rotated) {
+    std::swap(w, h);
+  }
+  auto ux_ = lx_ + w;
+  auto uy_ = ly_ + h;
 
   if (isPlaceInstance()) {
     lx_ -= padLeft;
     ux_ += padRight;
   }
   rect_.reset(lx_, ly_, ux_, uy_);
-  {
-    auto master = inst_->getMaster();
-    assert(master != nullptr);
-    int64_t w = master->getWidth();
-    int64_t h = master->getHeight();
-    resize(w, h);
-  }
 
   // Masters more than row_limit rows tall are treated as macros
   constexpr int row_limit = 6;
@@ -666,7 +686,7 @@ void PlacerBase::init()
   instStor_.reserve(insts.size());
   for (dbInst* inst : insts) {
     auto type = inst->getMaster()->getType();
-    if (!type.isCore() && !type.isBlock()) {
+    if (!type.isCore() && !type.isBlock() && type != dbMasterType::RING) {
       continue;
     }
     Instance myInst(inst,
@@ -765,7 +785,7 @@ void PlacerBase::init()
         auto inst = dbToPb(iTerm->getInst());
         pin->setInstance(inst);
         pinMap_[(void*) iTerm] = pin;
-        
+
         // only CORE and BLOCK inst are in the instStor_
         // others, like PAD|RING|ENDCAP insts are not in the map
         if (inst) {

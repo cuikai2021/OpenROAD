@@ -194,8 +194,12 @@ void LindenGlobalPlace::run()
 
     if (!timing_overflows_.empty()
         && overflow * 100 < timing_overflows_.front()) {
-      updateNetWeights();
-      timing_overflows_.pop_front();
+      if (!updateNetWeights()) {
+        // escape timing-driven if problem occured
+        timing_overflows_.clear();
+      } else {
+        timing_overflows_.pop_front();
+      }
     }
   }
 
