@@ -86,6 +86,9 @@ class LindenGlobalPlace
   int gui_debug_update_iterations_;
   bool gui_debug_initial_;
 
+  // reset to release memory after gp
+  void reset();
+
   void initPlacerBase();
   std::shared_ptr<linden::db::Database> create_linden_db();
 

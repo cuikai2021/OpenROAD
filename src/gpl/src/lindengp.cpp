@@ -46,6 +46,12 @@ LindenGlobalPlace::LindenGlobalPlace()
 {
 }
 
+void LindenGlobalPlace::reset() {
+  lindengp_.reset();
+  linden_db_.reset();
+  pb_.reset();
+}
+
 void LindenGlobalPlace::setTimingDriven(bool timing_driven)
 {
   if (timing_driven) {
@@ -210,6 +216,7 @@ void LindenGlobalPlace::run()
 
   update_db();
   report_metrics();
+  reset();
 }
 
 void LindenGlobalPlace::update_db()
