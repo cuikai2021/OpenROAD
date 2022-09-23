@@ -83,17 +83,25 @@ int Laurel::fixHold(bool multi_mode, bool partial)
   infeasible_ = 0;
   parasiticPreamble(openroad_->getResizer());
   incrementalParasiticsBegin();
+  int const min_task_size = 50;
   bool ret = true;
   if (!partial)
     ret = fixHoldCore(multi_mode);
   else {
-    VertexSet tasks;
+    VertexSet task;
     HoldFixerTaskManager manager(openroad_, options_.get());
     manager.findTasks(multi_mode);
-    for (size_t i = 0; i<manager.taskSize(); ++i) {
-      debugPrint(logger_, utl::LRL, "LRL", 1, "solving group: {}", i);
-      if(!fixHoldCore(multi_mode, manager.taskSet(i)))
-        ret = false;
+    int const len = manager.taskSize();
+    debugPrint(logger_, utl::LRL, "LRL", 1, "totally {} tasks", len);
+    for (size_t i = 0; i<len; ++i) {
+      VertexSet* s = manager.taskSet(i);
+      task.insert(s->begin(), s->end());
+      if (task.size() >= min_task_size || i == len - 1) { 
+        debugPrint(logger_, utl::LRL, "LRL", 1, "solving group: {}", i);
+        if(!fixHoldCore(multi_mode, &task))
+          ret = false;
+        task.clear();
+      }
     }
   }
   updateParasitics();
@@ -172,18 +180,20 @@ int Laurel::fixSetup(int iter)
   for (int i = 1; i <= iter && status == MinCostFlow::OPTIMAL; ++i) {
     SetupFixer* fixer = new SetupFixer(openroad_, options_.get());
     has_violation = fixer->initAlgorithm(iterative);
+    bool fixed = false;
     if (has_violation) {
       logger_->info(utl::LRL, 1306, "**fix setup, iter = {} **", i);
       status = fixer->resolve();
       if (status == MinCostFlow::OPTIMAL) {
         fixer->report();
         fixer->remap();
-        if(!resizeAllCells(fixer))
-          break;
+        fixed = resizeAllCells(fixer);
       }
     }
     delete fixer;
     updateParasitics();
+    if(!fixed)
+      break;
   }
   incrementalParasiticsEnd();
   return resize_count_;

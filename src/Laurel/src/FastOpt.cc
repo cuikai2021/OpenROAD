@@ -76,17 +76,20 @@ int Laurel::fastOpt(int iter)
 
     for (int i = 0; i<failures.size(); ++i) {
       Vertex* v = failures[i].drvr;
-      Slack const& s = failures[i].slack;
+      // Slack const& s = failures[i].slack;
+      Slack const s = sta_->vertexSlack(v, max_);
       journalBegin();
-      if(fuzzyLessEqual(sta_->vertexSlack(v, max_), s))
+      if(fuzzyLessEqual(s, slack_margin + uncertainty))
         if (quickFixSetup(v)) {
           updateParasitics();
           sta_->findRequireds();
-          if(fuzzyLess(sta_->vertexSlack(v, max_), s))
+          if(fuzzyLessEqual(sta_->vertexSlack(v, max_), s))
             journalRestore();
           else
             ++cnt;
         }
+      updateParasitics();
+      sta_->findRequireds();
     }
     if (cnt == 0)
       break;
@@ -109,9 +112,6 @@ bool Laurel::quickFixSetup(Vertex* v)
   PathRef path = sta_->vertexWorstSlackPath(v, max_);
   if(!path.vertex(sta_))
     return false;
-
-  updateParasitics();
-  sta_->findRequireds();
 
   const int fanout = this->fanout(v);
   if (!isTristateDriver(pin)) {

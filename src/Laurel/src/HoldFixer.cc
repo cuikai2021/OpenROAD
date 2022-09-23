@@ -348,6 +348,10 @@ void HoldFixer::genPrimeInConstraints(VertexSet const& pi_set)
   }
 }
 
+#define checkPathRequired(path, v, min_max)        \
+  (path.vertex(sta_) ? path.required(sta_) \
+                     : sta_->vertexRequired(v, min_max))
+
 void HoldFixer::genPrimeOutConstraints(const VertexSet& ends)
 {
   const auto& m = arrival_[sdc_];
@@ -355,9 +359,9 @@ void HoldFixer::genPrimeOutConstraints(const VertexSet& ends)
     Vertex* v = vv.first;
     if (ends.hasKey(v)) {
       PathRef p = sta_->vertexWorstSlackPath(v, max_);
-      Delay const max_path_req = p.required(sta_);
+      Delay const max_path_req = checkPathRequired(p, v, max_);
       p = sta_->vertexWorstSlackPath(v, MinMax::min());
-      Delay const min_path_req = p.required(sta_);
+      Delay const min_path_req = checkPathRequired(p, v, MinMax::min());
       Delay const period = p.clock(sta_)->period();
 
       Delay const critical_long_arrival_value = getCriLongArrival(v);
@@ -391,7 +395,7 @@ void HoldFixer::genPrimeOutConstraints(const VertexSet& ends)
               case ArrivalType::HALF_AHEAD:
                 max_required = max_path_req + period; break;
               case ArrivalType::DEFAULT:
-                min_required = min_path_req - 0.5 * period; break;
+                min_required = min_path_req - 0.5*period; break;
             }
           debugPrint(logger_,
                     utl::LRL,
