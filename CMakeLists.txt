@@ -61,6 +61,8 @@ option(USE_SYSTEM_OPENSTA "Use system shared OpenSTA library" OFF)
 # Allow to use external shared abc libraries
 option(USE_SYSTEM_ABC "Use system shared ABC library" OFF)
 
+option(ENABLE_DEBUG_INFO "Enable debug info by applying -g" OFF)
+
 project(OpenROAD VERSION 1
   LANGUAGES CXX
 )
@@ -113,6 +115,7 @@ endif()
 message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Debug info: ${ENABLE_DEBUG_INFO}")
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 # configure a header file to pass some of the CMake settings

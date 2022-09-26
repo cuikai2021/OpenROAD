@@ -154,6 +154,10 @@ add_compile_options(
   $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
 )
 
+if (ENABLE_DEBUG_INFO)
+  add_compile_options(-g)
+endif()
+
 IF(USE_LINDEN_DEBUG_LIBS)
   add_link_options(--coverage -fsanitize=address)
 ENDIF(USE_LINDEN_DEBUG_LIBS)
