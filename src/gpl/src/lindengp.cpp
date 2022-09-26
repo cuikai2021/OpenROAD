@@ -97,11 +97,17 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 
   auto linden_db = std::make_shared<linden::db::Database>(cfg);
   for (auto& inst : pb_->insts()) {
-    const linden::geom::Rect rect(
+    linden::geom::Rect rect(
         inst->lx(), inst->ly(), inst->ux(), inst->uy());
     int64_t inst_area = inst->area();
     bool is_macro = inst->isMacro();
     bool is_fixed = inst->isFixed();
+    if (is_fixed) {
+      auto intersect = rect.intersect(core_region);
+      if (intersect && intersect->area() > 0) {
+        rect = *intersect;
+      }
+    }
     if (inst->dbInst() != nullptr) {
       void* odb_instance = inst->dbInst();
       linden_db->add_cell(linden::db::Cell(odb_instance,
