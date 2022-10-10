@@ -777,6 +777,8 @@ int NesterovPlace::doNesterovPlace(int start_iter)
     }
   }
 
+  log_->metric("gp::iter", iter+1);
+
   // in all case including diverge,
   // db should be updated.
   updateDb();

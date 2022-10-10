@@ -197,10 +197,12 @@ void LindenGlobalPlace::run()
       }
     }
     if (!ret) {
+      log_->metric("gp::iter", iter+1);
       break;
     }
     auto overflow = *ret;
     if (disable_zigzag_ && overflow <= overflow_) {
+      log_->metric("gp::iter", iter+1);
       break;
     }
 
