@@ -29,8 +29,8 @@ void ClockConcurrentFixer::initAlgorithm()
 void ClockConcurrentFixer::addConstraintPrimeInOut(Vertex* in, Vertex* out)
 {
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
-  Index o_index = getIndex(out);
-  Index i_index = getIndex(in);
+  Index o_index = index_[out];
+  Index i_index = index_[in];
 
   PathRef path = sta_->vertexWorstSlackPath(out, max_);
   Arrival arrival = path.vertex(sta_)
@@ -58,10 +58,10 @@ void ClockConcurrentFixer::addConstraintPrimeOut(Vertex* po)
       && opt_regs_.find(po, t) != NULL)
     return;
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
-  Index po_index = getIndex(po);
+  Index po_index = index_[po];
   Required req = sta_->vertexRequired(po, MinMax::max()) + slack_margin;
   addConstraintBase({po_index, T_INDEX, LRL_S_INT_INF, delay2Cost(req)});
-  bellman_max_iter_num_ = vertex_index_map_.size();
+  bellman_max_iter_num_ = index_.map.size();
 }
 
 #define instName(pin) \
@@ -89,7 +89,7 @@ void ClockConcurrentFixer::addConstraintPrimeIn(Vertex* pi)
     if (found)
       return;
   }
-  Index pi_index = getIndex(pi);
+  Index pi_index = index_[pi];
   PathRef path = sta_->vertexWorstSlackPath(pi, max_);
   Arrival pi_arrival = path.vertex(sta_) ? 
                       path.arrival(sta_) :
@@ -97,7 +97,7 @@ void ClockConcurrentFixer::addConstraintPrimeIn(Vertex* pi)
   addConstraintBase({S_INDEX, pi_index, LRL_S_INT_INF, -delay2Cost(pi_arrival)});
 }
 
-Delay ClockConcurrentFixer::getUsefulSkew(Vertex const* vertex) const
+Delay ClockConcurrentFixer::getUsefulSkew(Vertex const* vertex)
 {
   Delay new_skew = LRL_H_ZERO;
   bool is_i2o = false;
@@ -107,11 +107,11 @@ Delay ClockConcurrentFixer::getUsefulSkew(Vertex const* vertex) const
     Delay origin_skew = e.second;
     Vertex* vi =  is_i2o ? (Vertex*)vertex : e.first;
     Vertex* vo = !is_i2o ? (Vertex*)vertex : e.first;
-    Index i_index = getIndex(vi);
-    Index o_index = getIndex(vo);
-    Delay skew = fixed_arrival_map_.at(o_index) 
-              - fixed_arrival_map_.at(i_index) 
-              - origin_skew;
+    Index i_index = index_[vi];
+    Index o_index = index_[vo];
+    Delay skew = fixed_arrival_.at(o_index) 
+                  - fixed_arrival_.at(i_index)
+                  - origin_skew;
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, abs(skew))
         && fuzzyLess(std::abs(new_skew), std::abs(skew)))
       new_skew = skew;

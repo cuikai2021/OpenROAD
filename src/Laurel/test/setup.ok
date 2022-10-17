@@ -12,8 +12,8 @@ worst slack -0.03
 Design area 100 u^2 100% utilization.
 [INFO LRL-1304] totally found 1 vio ends
 [INFO LRL-1306] **fix setup, iter = 1 **
-[INFO LRL-1305] Totally resized 4 cells
-4
+[INFO LRL-1305] Totally resized 5 cells
+5
 end repair timing
-worst slack 1.35
-Design area 90 u^2 100% utilization.
+worst slack 1.34
+Design area 81 u^2 100% utilization.

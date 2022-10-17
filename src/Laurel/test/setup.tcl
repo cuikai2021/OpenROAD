@@ -14,6 +14,7 @@ estimate_parasitics -placement
 
 report_worst_slack -max
 report_design_area
+# set_debug_level LRL "LRL" 4
 puts [laurel -setup]
 puts "end repair timing"
 report_worst_slack -max

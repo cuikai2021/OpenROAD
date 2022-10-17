@@ -141,7 +141,6 @@ Slack Laurel::getHoldSlack(Pin* drvr_pin)
 bool Laurel::resizeAllCells(SetupFixer* fixer)
 {
   bool ret = true;
-  int resize_cnt_turn = 0;
   sta::Map<Vertex*, LibertyCell*> queue;
   fixer->getResizeQueue(queue);
   for (auto& q : queue) {
@@ -156,16 +155,15 @@ bool Laurel::resizeAllCells(SetupFixer* fixer)
                     vertex->name(sta_->sdcNetwork()));
       continue;
     }
-    ++resize_cnt_turn;
   }
   updateParasitics();
   logger_->info(utl::LRL,
                 1305,
                 "Totally resized {} cells",
-                std::to_string(resize_cnt_turn));
-  if (resize_cnt_turn == 0)
+                queue.size());
+  if (queue.size() == 0)
     return false;
-  resize_count_ += resize_cnt_turn;
+  resize_count_ += queue.size();
   return ret;
 }
 
@@ -185,8 +183,8 @@ int Laurel::fixSetup(int iter)
       logger_->info(utl::LRL, 1306, "**fix setup, iter = {} **", i);
       status = fixer->resolve();
       if (status == MinCostFlow::OPTIMAL) {
-        fixer->report();
         fixer->remap();
+        fixer->report();
         fixed = resizeAllCells(fixer);
       }
     }
@@ -372,6 +370,8 @@ Delay Laurel::getWireBudRate(Pin* fanin, Pin* fanout)
 {
   Vertex* pred = wire_bud_->getVertex(fanin);
   Vertex* succ = wire_bud_->getVertex(fanout);
+  if (!pred || !succ)
+    return LRL_S_ZERO;
   return getWireBudRate(pred, succ);
 }
 

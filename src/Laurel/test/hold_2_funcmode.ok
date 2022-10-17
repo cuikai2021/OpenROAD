@@ -113,8 +113,8 @@ Path Type: min
 
 worst slack 1.92
 [INFO LRL-1100] found 2 vio ends in 3 mode: (multi mode: on)
-[INFO LRL-1110] Totally inserted 6 buffers , 0 infeasible
-6
+[INFO LRL-1110] Totally inserted 7 buffers , 0 infeasible
+7
 -----------------
 report scan after repair 
 -----------------
@@ -135,9 +135,10 @@ Path Type: min
    0.02    0.14 ^ b5/Z (TBUF_X1)
    0.02    0.15 ^ b6/Z (TBUF_X1)
    0.02    0.17 ^ u1/ZN (AND2_X2)
-   0.01    0.18 ^ hold6/Z (BUF_X4)
-   0.00    0.18 ^ r3/SI (SDFFRS_X1)
-           0.18   data arrival time
+   0.02    0.19 ^ hold6/Z (CLKBUF_X3)
+   0.02    0.20 ^ hold7/Z (CLKBUF_X3)
+   0.00    0.20 ^ r3/SI (SDFFRS_X1)
+           0.20   data arrival time
 
    0.00    0.00   clock clk (rise edge)
    0.18    0.18   clock network delay (propagated)
@@ -147,12 +148,12 @@ Path Type: min
            0.18   data required time
 ---------------------------------------------------------
            0.18   data required time
-          -0.18   data arrival time
+          -0.20   data arrival time
 ---------------------------------------------------------
-           0.00   slack (MET)
+           0.03   slack (MET)
 
 
-worst slack 1.91
+worst slack 1.89
 -----------------
 report func1 after repair 
 -----------------
