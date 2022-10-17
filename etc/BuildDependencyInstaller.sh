@@ -1,9 +1,14 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
 
 cd "$(dirname $(readlink -f $0))/../"
 
-find . -name '*.so' -exec cp "{}" /usr/local/lib/ \;
+if [ "$1" = "--docker" ]; then
+  mkdir -p /build/usr/local/lib
+  mkdir -p /build/usr/local/bin
+  find . -name '*.so' -exec cp "{}" /build/usr/local/lib/ \;
+else
+  find . -name '*.so' -exec cp "{}" /usr/local/lib/ \;
+fi
 
-find . -name 'maxhs' -exec cp "{}" /usr/local/bin/ \;

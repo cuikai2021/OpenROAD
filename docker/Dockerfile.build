@@ -1,6 +1,8 @@
 ARG eden_base_image
-FROM ${eden_base_image}
 
+FROM ${eden_base_image} as tmp
 COPY . /Eden
-RUN cd /Eden; ./etc/BuildDependencyInstaller.sh 
-RUN rm /Eden -r
+RUN cd /Eden; ./etc/BuildDependencyInstaller.sh --docker
+
+FROM ${eden_base_image}
+COPY --from=tmp /build /

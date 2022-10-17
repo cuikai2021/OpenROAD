@@ -1,0 +1,41 @@
+- name: eden
+  repo: file://.
+  build: |-
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEDEN_VERSION=$REPO_COMMIT -B build . && cmake --build build -j 8
+  file: |-
+    build/src/eden:/build/bin/eden
+
+- name: maple
+  repo: docker://registry.cn-shanghai.aliyuncs.com/icbench-dev/maple_release_ubuntu
+  commit: 86a5ca8
+
+- name: banyan-integrate
+  repo: file://src/Banyan/banyan-integrate
+  file: |-
+    *.so:/build/lib/
+    maxhs:/build/bin/
+
+- name: linden-integrate
+  repo: file://src/linden/gpl
+  file: |-
+    bin:/build/bin
+
+- name: bamboo
+  repo: https://github.com/ICBench/bamboo
+  commit: 42319db4e7d28113003f89c19e27bcf7dab4ab24
+  file: |-
+    modules/release/tools/start_logtail.sh:/Eden-flow/start_logtail.sh
+    modules/release/tools/gds2png.sh:/Eden-flow/gds2png.sh:755
+    modules/release/tools/gds2png.txt:/Eden-flow/gds2png.txt
+    modules/release/tools/rpt_catcher.py:/Eden-flow/rpt_catcher.py
+    modules/release/tools/klayoutrc:/Eden-flow/klayoutrc
+
+- name: 3ptools
+  repo: oss://icb-devops-static/environments
+  commit: 173ce6c8aaaac3a790b9df041edb6581cd595299
+  # all files sha1sum $(find . -type f | sort | xargs cat | sha1sum | cut -d ' ' -f 1)
+  file: |-
+    ossutil64:/usr/local/bin/:755
+    envsubst:/usr/local/bin/:755
+    klayout_0.26.6-1_amd64.deb:/build/deb/klayout.deb
+    imagemagick_6.9.10.23+dfsg-2.1ubuntu11.4_amd64.deb:/build/deb/imagemagick.deb
