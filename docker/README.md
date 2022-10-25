@@ -23,8 +23,9 @@ Here are some options that do not have unified defaults
 
 | type | docker-tag | base-image |
 | ---- | ---------- | ---------- |
-| build-deps | `sha1sum of all "*.so" files` | registry.cn-shanghai.aliyuncs.com/icb/eden_deps_ubuntu:latest |
+| build-deps | `sha1sum of all "*.so" files` | registry.cn-shanghai.aliyuncs.com/icb/eden_base_ubuntu:latest |
 | release | latest | registry.cn-shanghai.aliyuncs.com/icb/eden_build_ubuntu:latest |
+| base | latest | ubuntu:20.04 |
 
 ## release
 options:
@@ -43,9 +44,26 @@ python3 build.py -t 220925 release -i eden -i maple
 python3 build.py -t 220926 release --debug
 ```
 
-## build_deps
+## build-deps
 
 example:
 ```
 python3 build.py build-deps
+python3 build.py -b registry.cn-shanghai.aliyuncs.com/icb/eden_base_ubuntu:$(date +%y%m%d) build-deps
+```
+
+## base
+
+Add the following configuration to the `~/.docker/config.json` to speed up the process
+```
+"proxies": {
+   "default": {
+     "httpProxy": "http://192.168.0.111:7891",
+     "httpsProxy": "http://192.168.0.111:7891"
+    }
+}
+```
+example:
+```
+python3 build.py -t $(date +%y%m%d) base
 ```

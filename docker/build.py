@@ -105,7 +105,7 @@ def build_deps(ctx, **kwargs):
         kwargs['docker_tag'] = utils.get_sha1sum(files)[:7]
 
     utils.docker_build(
-        docker_file = 'docker/Dockerfile.build', 
+        docker_file = 'docker/Dockerfile.build',
         docker_name = 'eden_build_ubuntu',
         build_args = {
             'eden_base_image': kwargs['base_image']
@@ -113,6 +113,21 @@ def build_deps(ctx, **kwargs):
         context = '.',
         **kwargs
     )
+
+
+@cli.command()
+@click.pass_context
+def base(ctx, **kwargs):
+    kwargs.update(ctx.obj)
+    if kwargs['docker_tag'] is None:
+        kwargs['docker_tag'] = 'latest'
+    utils.docker_build(
+        docker_file = 'docker/Dockerfile.base',
+        docker_name = 'eden_base_ubuntu',
+        context = '.',
+        **kwargs
+    )
+
 
 cli()
 os.chdir(CURRENT_DIR)
