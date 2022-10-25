@@ -34,7 +34,7 @@ LindenGlobalPlace::LindenGlobalPlace()
       density_(1.0),
       overflow_(0.1),
       use_uniform_density_(false),
-      disable_zigzag_(false),
+      zigzag_(false),
       net_weight_max_(1.9),
       timing_overflows_{},
       padLeft_(0),
@@ -167,7 +167,7 @@ void LindenGlobalPlace::run()
     cfg.target_density = density_;
     cfg.target_overflow = overflow_;
     cfg.use_uniform_density = use_uniform_density_;
-    cfg.disable_zigzag = disable_zigzag_;
+    cfg.zigzag = zigzag_;
     {
       linden::dp::LefDefDumper dumper;
       dumper.run(*ord::OpenRoad::openRoad());
@@ -201,7 +201,7 @@ void LindenGlobalPlace::run()
       break;
     }
     auto overflow = *ret;
-    if (disable_zigzag_ && overflow <= overflow_) {
+    if (!zigzag_ && overflow <= overflow_) {
       log_->metric("gp::iter", iter+1);
       break;
     }

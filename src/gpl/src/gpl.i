@@ -343,10 +343,10 @@ set_linden_use_uniform_density_cmd(bool use_uniform_density)
 }
 
 void
-set_linden_disable_zigzag_cmd(bool disable_zigzag)
+set_linden_zigzag_cmd(bool zigzag)
 {
   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setDisableZigzag(disable_zigzag);
+  lindengp->setZigzag(zigzag);
 }
 
 void

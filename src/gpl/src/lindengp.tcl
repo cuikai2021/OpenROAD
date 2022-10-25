@@ -1,6 +1,6 @@
 sta::define_cmd_args "linden_global_placement" {\
     [-uniform_density] \
-    [-disable_zigzag] \
+    [-zigzag true|false] \
     [-timing_driven] \
     [-density target_density]\
     [-overflow overflow]\
@@ -15,16 +15,19 @@ proc linden_global_placement { args } {
       -initial_place_policy \
       -density \
       -overflow \
+      -zigzag \
       -pad_left -pad_right} \
     flags { \
       -uniform_density \
-      -disable_zigzag \
       -timing_driven \
     }
 
   # zigzag settings    
-  set disable_zigzag [info exists flags(-disable_zigzag)]
-  gpl::set_linden_disable_zigzag_cmd $disable_zigzag
+  set zigzag false
+  if { [info exists keys(-zigzag)] } {
+    set zigzag $keys(-zigzag)
+  }
+  gpl::set_linden_zigzag_cmd $zigzag
 
   # density settings    
   set target_density 1.0

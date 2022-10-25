@@ -39,9 +39,9 @@ class LindenGlobalPlace
     use_uniform_density_ = use_uniform_density;
   }
 
-  void setDisableZigzag(bool disable_zigzag)
+  void setZigzag(bool zigzag)
   {
-    disable_zigzag_ = disable_zigzag;
+    zigzag_ = zigzag;
   }
 
   void setPadLeft(int padding) { padLeft_ = padding; }
@@ -71,7 +71,7 @@ class LindenGlobalPlace
   float density_;
   float overflow_;
   bool use_uniform_density_;
-  bool disable_zigzag_;
+  bool zigzag_;
 
   double net_weight_max_;
   std::deque<int> timing_overflows_;
