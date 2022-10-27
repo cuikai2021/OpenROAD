@@ -79,7 +79,7 @@ namespace {
 
 string getExe() {
     const char LINDENDP_EXE[] = "LINDENDP_EXE";
-    const char LINDENDP_EXE_DEFAULT[] = "/usr/local/bin/lindendp";
+    const char LINDENDP_EXE_DEFAULT[] = "/build/bin/lindendp";
     const char* exe = std::getenv(LINDENDP_EXE);
     if (exe == nullptr) {
         exe = LINDENDP_EXE_DEFAULT;
