@@ -5332,7 +5332,13 @@ class dbMaster : public dbObject
   ///
   /// Is the type PAD or any of its subtypes
   ///
-  bool isPad() const { return getType().isPad(); }
+  bool isPad() const {
+	  if (getType().isPad()) return true;
+	  dbSite* site = ((dbMaster*)this)->getSite();
+	  if (site) return site->getClass() == dbSiteClass::PAD;
+	  if (isBlock()) return ((dbMaster*)this)->getName().find("PAD") == 0;
+	  return false;
+  }
 
   ///
   /// Is the type ENDCAP or any of its subtypes
