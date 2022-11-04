@@ -175,35 +175,4 @@ void Laurel::splitFanoutLoads(PathRef *drvr_path)
   resizeToTargetSlew(buffer_out_pin, false);
 }
 
-////////////////////////////////////////////////////////
-//
-//  class LaurelAdapter
-//
-////////////////////////////////////////////////////////
-
-void LaurelAdapter::makeBufferInstance(const char* tag,
-                                       Point const& location,
-                                       LibertyCell* buffer_cell,
-                                       Instance*& buffer)
-{
-  string buffer_name = makeUniqueInstName(tag);
-  Instance* parent = db_network_->topInstance();
-  buffer = makeInstance(buffer_cell,
-                        buffer_name.c_str(),
-                        parent);
-  
-  journalMakeBuffer(buffer);
-  inserted_buffer_count_++;
-  designAreaIncr(area(db_network_->cell(buffer_cell)));
-  setLocation(buffer, location);
-}
-
-void LaurelAdapter::connectNetLoad(Pin* pin, Net* net)
-{
-  LibertyPort* port = network_->libertyPort(pin);
-  Instance* inst = network_->instance(pin);
-  sta_->disconnectPin(pin);
-  sta_->connectPin(inst, port, net);
-}
-
 }  // namespace lrl

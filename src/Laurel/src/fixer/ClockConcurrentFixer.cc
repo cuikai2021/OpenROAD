@@ -1,10 +1,7 @@
-#include "gui/gui.h"
-#include "lrl/Laurel.hh"
-#include "ord/OpenRoad.hh"
+#include "lrl/SetupFixer.hh"
 
 namespace lrl {
 
-using namespace operations_research;
 using namespace sta;
 
 ////////////////////////////////////////////////////////
@@ -29,8 +26,8 @@ void ClockConcurrentFixer::initAlgorithm()
 void ClockConcurrentFixer::addConstraintPrimeInOut(Vertex* in, Vertex* out)
 {
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
-  Index o_index = index_[out];
-  Index i_index = index_[in];
+  Index o_index = index_graph_[out];
+  Index i_index = index_graph_[in];
 
   PathRef path = sta_->vertexWorstSlackPath(out, max_);
   Arrival arrival = path.vertex(sta_)
@@ -39,7 +36,7 @@ void ClockConcurrentFixer::addConstraintPrimeInOut(Vertex* in, Vertex* out)
   Required req = sta_->vertexRequired(in, MinMax::max()) + slack_margin;
 
   Delay zero_skew = arrival - req;
-  addConstraintBase({i_index, o_index, LRL_S_INT_INF, -delay2Cost(zero_skew)});
+  solver_.addConstraint({i_index, o_index, MCFSolver::inf, -delay2Cost(zero_skew)});
   opt_regs_.insert(in, out, zero_skew);
   debugPrint(logger_,
           utl::LRL,
@@ -58,26 +55,26 @@ void ClockConcurrentFixer::addConstraintPrimeOut(Vertex* po)
       && opt_regs_.find(po, t) != NULL)
     return;
   const Slack slack_margin = options_->slackMargin() / LRL_H_STA_SCALING;
-  Index po_index = index_[po];
+  Index po_index = index_graph_[po];
   Required req = sta_->vertexRequired(po, MinMax::max()) + slack_margin;
-  addConstraintBase({po_index, T_INDEX, LRL_S_INT_INF, delay2Cost(req)});
-  bellman_max_iter_num_ = index_.map.size();
+  solver_.addConstraintSnk(po_index, delay2Cost(req));
+  bellman_max_iter_num_ = index_graph_.size();
 }
 
-#define instName(pin) \
+#define INST_NAME(pin) \
   (sta_->network()->pathName(sta_->network()->instance(pin)))
 
 void ClockConcurrentFixer::addConstraintPrimeIn(Vertex* pi)
 {
   Pin const* pi_pin = pi->pin();
   if (!sta_->network()->isTopLevelPort(pi_pin)) {
-    const char *inst_name = instName(pi_pin);
+    const char *inst_name = INST_NAME(pi_pin);
     VertexSet* ends = sta_->search()->endpoints();
     bool found = false;
     for (Vertex* end : *ends) {
       Pin const* end_pin = end->pin();
       if (!sta_->network()->isTopLevelPort(end_pin)) {
-        const char *end_inst_name = instName(end_pin);
+        const char *end_inst_name = INST_NAME(end_pin);
         if (strcmp(inst_name, end_inst_name) == 0
             && !sta_->isClock(end_pin)
             && !fuzzyInf(sta_->vertexSlack(end, max_))) {
@@ -89,12 +86,12 @@ void ClockConcurrentFixer::addConstraintPrimeIn(Vertex* pi)
     if (found)
       return;
   }
-  Index pi_index = index_[pi];
+  Index pi_index = index_graph_[pi];
   PathRef path = sta_->vertexWorstSlackPath(pi, max_);
   Arrival pi_arrival = path.vertex(sta_) ? 
                       path.arrival(sta_) :
                       getArrival(pi, max_);
-  addConstraintBase({S_INDEX, pi_index, LRL_S_INT_INF, -delay2Cost(pi_arrival)});
+  solver_.addConstraintSrc(pi_index, -delay2Cost(pi_arrival));
 }
 
 Delay ClockConcurrentFixer::getUsefulSkew(Vertex const* vertex)
@@ -107,10 +104,8 @@ Delay ClockConcurrentFixer::getUsefulSkew(Vertex const* vertex)
     Delay origin_skew = e.second;
     Vertex* vi =  is_i2o ? (Vertex*)vertex : e.first;
     Vertex* vo = !is_i2o ? (Vertex*)vertex : e.first;
-    Index i_index = index_[vi];
-    Index o_index = index_[vo];
-    Delay skew = fixed_arrival_.at(o_index) 
-                  - fixed_arrival_.at(i_index)
+    Delay skew = index_graph_.result(vi) 
+                  - index_graph_.result(vo)
                   - origin_skew;
     if (fuzzyLess(LRL_H_ROUNDING_LIMIT, abs(skew))
         && fuzzyLess(std::abs(new_skew), std::abs(skew)))

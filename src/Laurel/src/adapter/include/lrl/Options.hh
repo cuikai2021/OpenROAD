@@ -22,7 +22,7 @@ class Options
   void analyzeClk() { ignore_clk_ = false; }
   void debugReport() { debug_report_ = true; }
   void setWireBudModeRC() { wire_bud_mode_rc_ = true; }
-  void resetWireBudMode() { wire_bud_mode_rc_ = false;}
+  void resetWireBudMode() { wire_bud_mode_rc_ = false; }
 
   void setSpefFile(const char* file_name) { spef_file_ = file_name; }
 
