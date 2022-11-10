@@ -19,3 +19,6 @@
 [submodule "tomlpp"]
 	path = tomlpp
 	url = git@github.com:marzer/tomlplusplus.git
+[submodule "src/Laurel"]
+	path = src/Laurel
+	url = git@github.com:ICBench/laurel.git
