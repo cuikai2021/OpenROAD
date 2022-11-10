@@ -1060,14 +1060,39 @@ static bool isCoreAreaOverlap(Die& die, Instance& inst)
   return !(rectLx >= rectUx || rectLy >= rectUy);
 }
 
-static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
-{
-  int rectLx = max(die.coreLx(), inst.lx()),
-      rectLy = max(die.coreLy(), inst.ly()),
-      rectUx = min(die.coreUx(), inst.ux()),
-      rectUy = min(die.coreUy(), inst.uy());
+static int64_t getRectOverlapWithCoreArea(Die& die, const IntRect& rect) {
+    int rectLx = max(die.coreLx(), rect.lx()),
+      rectLy = max(die.coreLy(), rect.ly()),
+      rectUx = min(die.coreUx(), rect.ux()),
+      rectUy = min(die.coreUy(), rect.uy());
   return static_cast<int64_t>(rectUx - rectLx)
          * static_cast<int64_t>(rectUy - rectLy);
+}
+
+static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
+{
+  std::vector<IntRect> obs_overlap_layer;
+  if (inst.isMacro()) {
+    auto master = inst.dbInst()->getMaster();
+    for (auto const &obs : master->getObstructions()) {
+      auto layer = obs->getTechLayer();
+      if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
+        IntRect rect(obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
+        obs_overlap_layer.push_back(rect);
+      }
+    }
+  }
+  if (obs_overlap_layer.empty()) {  
+    return getRectOverlapWithCoreArea(die, inst);
+  } else {
+    int64_t res = 0;
+    for (const auto& rect: obs_overlap_layer) {
+      res += getRectOverlapWithCoreArea(die, rect);
+    }
+    return res;
+  }
+  
+  
 }
 
 }  // namespace gpl

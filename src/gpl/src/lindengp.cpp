@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "fassert.hpp"
 #include "graphics.h"
 #include "initialPlace.h"
 #include "initialPlaceBicgstab.h"
@@ -17,7 +18,6 @@
 #include "sta/Fuzzy.hh"
 #include "sta/Units.hh"
 #include "utl/Logger.h"
-#include "fassert.hpp"
 
 using namespace std;
 using utl::GPL;
@@ -46,7 +46,8 @@ LindenGlobalPlace::LindenGlobalPlace()
 {
 }
 
-void LindenGlobalPlace::reset() {
+void LindenGlobalPlace::reset()
+{
   lindengp_.reset();
   linden_db_.reset();
   pb_.reset();
@@ -97,8 +98,7 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 
   auto linden_db = std::make_shared<linden::db::Database>(cfg);
   for (auto& inst : pb_->insts()) {
-    linden::geom::Rect rect(
-        inst->lx(), inst->ly(), inst->ux(), inst->uy());
+    linden::geom::Rect rect(inst->lx(), inst->ly(), inst->ux(), inst->uy());
     int64_t inst_area = inst->area();
     bool is_macro = inst->isMacro();
     bool is_fixed = inst->isFixed();
@@ -110,12 +110,38 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
     }
     if (inst->dbInst() != nullptr) {
       void* odb_instance = inst->dbInst();
-      linden_db->add_cell(linden::db::Cell(odb_instance,
-                                           inst->dbInst()->getName(),
-                                           rect,
-                                           inst_area,
-                                           is_macro,
-                                           is_fixed));
+      std::vector<linden::geom::Rect> obs_overlap_layer;
+      if (is_macro) {
+        auto master = inst->dbInst()->getMaster();
+        for (auto obs : master->getObstructions()) {
+          auto layer = obs->getTechLayer();
+          if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
+            linden::geom::Rect rect(
+                obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
+            obs_overlap_layer.push_back(rect);
+          }
+        }
+      }
+      if (obs_overlap_layer.empty()) {
+        linden_db->add_cell(linden::db::Cell(odb_instance,
+                                             inst->dbInst()->getName(),
+                                             rect,
+                                             inst_area,
+                                             is_macro,
+                                             is_fixed));
+      } else {
+        FASSERT(is_macro);
+        inst_area = 0;
+        for (const auto& r : obs_overlap_layer) {
+          inst_area += r.area();
+        }
+        linden_db->add_cell(linden::db::Cell(odb_instance,
+                                             inst->dbInst()->getName(),
+                                             rect,
+                                             obs_overlap_layer,
+                                             inst_area,
+                                             is_fixed));
+      }
     } else {
       linden_db->add_cell(linden::db::Cell(rect, is_fixed));
     }
@@ -197,12 +223,12 @@ void LindenGlobalPlace::run()
       }
     }
     if (!ret) {
-      log_->metric("gp::iter", iter+1);
+      log_->metric("gp::iter", iter + 1);
       break;
     }
     auto overflow = *ret;
     if (!zigzag_ && overflow <= overflow_) {
-      log_->metric("gp::iter", iter+1);
+      log_->metric("gp::iter", iter + 1);
       break;
     }
 
