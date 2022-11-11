@@ -41,6 +41,8 @@
 #include "nesterovBase.h"
 #include "util.h"
 #include "utl/Logger.h"
+#include "linden/geom/rect.hpp"
+#include "linden/geom/point.hpp"
 
 namespace gpl {
 
@@ -897,14 +899,33 @@ void PlacerBase::initInstsForUnusableSites()
     if (!inst.isFixed()) {
       continue;
     }
-    std::pair<int, int> pairX = getMinMaxIdx(
-        inst.lx(), inst.ux(), die_.coreLx(), siteSizeX_, 0, siteCountX);
-    std::pair<int, int> pairY = getMinMaxIdx(
-        inst.ly(), inst.uy(), die_.coreLy(), siteSizeY_, 0, siteCountY);
+    std::vector<linden::geom::Rect> obs_overlap_layer;
+    auto master = inst.dbInst()->getMaster();
+    for (auto obs : master->getObstructions()) {
+      const linden::geom::Point shift(inst.lx(), inst.ly());
+      auto layer = obs->getTechLayer();
+      if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
+        linden::geom::Rect rect(
+            obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
+        rect += shift;
+        obs_overlap_layer.push_back(rect);
+      }
+    }
+    if (obs_overlap_layer.empty()) {
+      linden::geom::Rect rect(
+            inst.lx(), inst.ly(), inst.ux(), inst.uy());
+      obs_overlap_layer.push_back(rect);
+    }
+    for (const auto& rect: obs_overlap_layer) {
+      std::pair<int, int> pairX = getMinMaxIdx(
+          rect.lx(), rect.ux(), die_.coreLx(), siteSizeX_, 0, siteCountX);
+      std::pair<int, int> pairY = getMinMaxIdx(
+          rect.ly(), rect.uy(), die_.coreLy(), siteSizeY_, 0, siteCountY);
 
-    for (int i = pairX.first; i < pairX.second; i++) {
-      for (int j = pairY.first; j < pairY.second; j++) {
-        siteGrid[j * siteCountX + i] = FixedInst;
+      for (int i = pairX.first; i < pairX.second; i++) {
+        for (int j = pairY.first; j < pairY.second; j++) {
+          siteGrid[j * siteCountX + i] = FixedInst;
+        }
       }
     }
   }
