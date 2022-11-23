@@ -23,7 +23,7 @@ def cli(ctx, **kwargs):
 tools_by_name = tool.tools_by_name()
 tools_by_name.append("ALL")
 @cli.command()
-@click.option('-i', '--ignore-exist-manifest', type=click.Choice(tools_by_name) ,multiple=True, help='ignore exist manifest, build new docker image')
+@click.option('-i', '--ignore-exist-manifest', type=click.Choice(tools_by_name), multiple=True, help='ignore exist manifest, build new docker image')
 @click.option('--debug', 'build_type', flag_value='debug', help='build type')
 @click.pass_context
 def release(ctx, ignore_exist_manifest, build_type, **kwargs):
@@ -35,7 +35,7 @@ def release(ctx, ignore_exist_manifest, build_type, **kwargs):
     if build_type is None:
         build_type = 'release'
 
-    tools_docker_id= []
+    tools_docker_id = []
     tools_docker_repo = kwargs['docker_repo']
     tools_docker_name = 'eden_tools'
 
@@ -83,7 +83,6 @@ def release(ctx, ignore_exist_manifest, build_type, **kwargs):
     utils.docker_build(
         docker_file = '/tmp/Dockerfile/Dockerfile.release',
         docker_name = f'eden_{build_type}_ubuntu',
-        build_target = build_type,
         build_args = {
             'EDEN_BUILD_IMAGE': kwargs['base_image']
         },
@@ -124,6 +123,7 @@ def base(ctx, **kwargs):
     utils.docker_build(
         docker_file = 'docker/Dockerfile.base',
         docker_name = 'eden_base_ubuntu',
+        build_target = 'base',
         context = '.',
         **kwargs
     )

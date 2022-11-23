@@ -1,9 +1,22 @@
 ARG ubuntuVersion=20.04
 
 ARG fromImage=ubuntu:${ubuntuVersion}
-FROM $fromImage
+FROM $fromImage AS base
 USER root
 
 COPY ./etc/DependencyInstaller.sh /tmp
 RUN bash /tmp/DependencyInstaller.sh -dev
 RUN rm -f /tmp/DependencyInstaller.sh
+
+FROM base AS base-debug
+RUN apt-get update && apt-get install -y curl libgmp-dev && apt-get clean
+RUN curl -o /tmp/gdb-12.1.tar.gz -L https://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.gz && \
+    tar -zxf /tmp/gdb-12.1.tar.gz -C /tmp && \
+    cd /tmp/gdb-12.1 && \
+    ./configure && \
+    make -j8 && \
+    make install && \
+    rm -rf tmp/*
+
+FROM base-debug AS base-debug-vscode
+COPY ./vscode-extensions /root/.vscode-server/extensions
