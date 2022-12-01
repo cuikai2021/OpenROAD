@@ -100,6 +100,8 @@ class Instance : public IntRect
   // Dummy is virtual instance to fill in
   // unusable sites.  It will have inst_ as nullptr
   bool isDummy() const;
+  float max_density() const;
+  float& max_density();
 
   void setLocation(int x, int y);
   void setCenterLocation(int x, int y);
@@ -124,6 +126,7 @@ class Instance : public IntRect
   int extId_;
   bool is_macro_;
   bool is_locked_;
+  float max_density_;
 };
 
 class Pin

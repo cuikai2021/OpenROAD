@@ -71,7 +71,8 @@ Instance::Instance()
       inst_(nullptr),
       extId_(INT_MIN),
       is_macro_(false),
-      is_locked_(false)
+      is_locked_(false),
+      max_density_(1.0)
 {
 }
 
@@ -189,6 +190,15 @@ bool Instance::isPlaceInstance() const
 bool Instance::isDummy() const
 {
   return (inst_ == nullptr);
+}
+
+float Instance::max_density() const
+{
+  return max_density_;
+}
+
+float& Instance::max_density() {
+  return max_density_;
 }
 
 void Instance::setLocation(int x, int y)
@@ -831,17 +841,22 @@ void PlacerBase::initInstsForUnusableSites()
   int siteCountX = (die_.coreUx() - die_.coreLx()) / siteSizeX_;
   int siteCountY = (die_.coreUy() - die_.coreLy()) / siteSizeY_;
 
-  enum PlaceInfo
+  typedef enum {
+      Empty,
+      Row,
+      FixedInst
+    } SiteStatus;
+
+  struct PlaceInfo
   {
-    Empty,
-    Row,
-    FixedInst
+    SiteStatus status;
+    float max_density;
   };
 
   //
   // Initialize siteGrid as empty
   //
-  std::vector<PlaceInfo> siteGrid(siteCountX * siteCountY, PlaceInfo::Empty);
+  std::vector<PlaceInfo> siteGrid(siteCountX * siteCountY, PlaceInfo{Empty, 1.0});
 
   // fill in rows' bbox
   for (dbRow* row : rows) {
@@ -856,7 +871,7 @@ void PlacerBase::initInstsForUnusableSites()
 
     for (int i = pairX.first; i < pairX.second; i++) {
       for (int j = pairY.first; j < pairY.second; j++) {
-        siteGrid[j * siteCountX + i] = Row;
+        siteGrid[j * siteCountX + i] = {Row, 1.0};
       }
     }
   }
@@ -879,17 +894,10 @@ void PlacerBase::initInstsForUnusableSites()
     std::pair<int, int> pairY = getMinMaxIdx(
         bbox->yMin(), bbox->yMax(), die_.coreLy(), siteSizeY_, 0, siteCountY);
 
-    float filler_density = (100 - blockage->getMaxDensity()) / 100;
-    int cells = 0;
-    int filled = 0;
-
+    float blockage_density = blockage->getMaxDensity()/100.0; // convert maxdensity to a value between 0 and 1
     for (int j = pairY.first; j < pairY.second; j++) {
       for (int i = pairX.first; i < pairX.second; i++) {
-        if (cells == 0 || filled / (float) cells <= filler_density) {
-          siteGrid[j * siteCountX + i] = Empty;
-          ++filled;
-        }
-        ++cells;
+        siteGrid[j * siteCountX + i] = {Empty, blockage_density};
       }
     }
   }
@@ -924,7 +932,7 @@ void PlacerBase::initInstsForUnusableSites()
 
       for (int i = pairX.first; i < pairX.second; i++) {
         for (int j = pairY.first; j < pairY.second; j++) {
-          siteGrid[j * siteCountX + i] = FixedInst;
+          siteGrid[j * siteCountX + i] = {FixedInst, 1.0};
         }
       }
     }
@@ -936,11 +944,13 @@ void PlacerBase::initInstsForUnusableSites()
   //
   for (int j = 0; j < siteCountY; j++) {
     for (int i = 0; i < siteCountX; i++) {
-      // if empty spot found
-      if (siteGrid[j * siteCountX + i] == Empty) {
+      // if empty or partially empty spot found
+      if (siteGrid[j * siteCountX + i].status == Empty) {
         int startX = i;
+        float density = siteGrid[j * siteCountX + i].max_density;
         // find end points
-        while (i < siteCountX && siteGrid[j * siteCountX + i] == Empty) {
+        while (i < siteCountX && siteGrid[j * siteCountX + i].status == Empty
+        && siteGrid[j * siteCountX + i].max_density == density) {
           i++;
         }
         int endX = i;
@@ -948,6 +958,7 @@ void PlacerBase::initInstsForUnusableSites()
                         die_.coreLy() + siteSizeY_ * j,
                         die_.coreLx() + siteSizeX_ * endX,
                         die_.coreLy() + siteSizeY_ * (j + 1));
+        myInst.max_density() = density;
         instStor_.push_back(myInst);
       }
     }
@@ -1107,7 +1118,7 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
       }
     }
   }
-  if (obs_overlap_layer.empty()) {  
+  if (obs_overlap_layer.empty()) {
     return getRectOverlapWithCoreArea(die, inst);
   } else {
     int64_t res = 0;
@@ -1116,8 +1127,8 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
     }
     return res;
   }
-  
-  
+
+
 }
 
 }  // namespace gpl

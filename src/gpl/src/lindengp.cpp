@@ -102,6 +102,7 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
     int64_t inst_area = inst->area();
     bool is_macro = inst->isMacro();
     bool is_fixed = inst->isFixed();
+    float max_density = inst->max_density();
     if (is_fixed) {
       auto intersect = rect.intersect(core_region);
       if (intersect && intersect->area() > 0) {
@@ -128,7 +129,8 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
                                              rect,
                                              inst_area,
                                              is_macro,
-                                             is_fixed));
+                                             is_fixed,
+                                             max_density));
       } else {
         FASSERT(is_macro);
         inst_area = 0;
@@ -140,10 +142,11 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
                                              rect,
                                              obs_overlap_layer,
                                              inst_area,
-                                             is_fixed));
+                                             is_fixed,
+                                             max_density));
       }
     } else {
-      linden_db->add_cell(linden::db::Cell(rect, is_fixed));
+      linden_db->add_cell(linden::db::Cell(rect, is_fixed, max_density));
     }
   }
   for (auto& net : pb_->nets()) {
