@@ -25,7 +25,7 @@ using std::vector;
 %inline %{
 namespace banyan {
 
-void banyan_route_cmd(std::vector<std::string> args)
+void banyan(std::vector<std::string> args)
 {
      ord::OpenRoad::openRoad()->getBanyan()->main(args);
 }

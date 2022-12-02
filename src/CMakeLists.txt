@@ -201,6 +201,9 @@ message(STATUS "spdlog: ${spdlog_VERSION}")
 find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
+find_package(Protobuf REQUIRED)
+message(STATUS "protobuf: ${Protobuf_VERSION}")
+
 ################################################################
 
 # Build flow tools

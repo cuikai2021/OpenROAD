@@ -1,5 +1,5 @@
 
 
-proc banyan_route { args } {
-  banyan::banyan_route_cmd $args
+proc banyan { args } {
+  banyan::banyan $args
 }

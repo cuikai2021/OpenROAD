@@ -14,6 +14,17 @@ _installGtest(){
     cmake --build build -j $(nproc) --target install
 }
 
+_installProtobuf(){
+    cd "${baseDir}"
+    $PROXYCHAINS git clone https://github.com/protocolbuffers/protobuf.git
+    cd protobuf
+    $PROXYCHAINS git submodule update --init --recursive
+    cmake .
+    cmake --build . --parallel 10
+    ctest --verbose
+    cmake --install .
+}
+
 _installCommonDev() {
     lastDir="$(pwd)"
     # tools versions
@@ -111,6 +122,8 @@ _installCommonDev() {
 
     # gtest (latest)
     _installGtest
+
+    _installProtobuf
 
     # or-tools (latest)
     cd "${baseDir}"

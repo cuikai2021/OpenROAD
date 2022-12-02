@@ -27,14 +27,7 @@ target_sources(Banyan
     src/MakeBanyan.cpp
     src/DBAdapter.cpp
     src/Global.cpp
-    src/axioms/Axioms.cpp
-    src/axioms/Via.cpp
-    src/axioms/CutSpacingRule.cpp
-    src/axioms/CutSpacingTableRule.cpp
-    src/axioms/RoutingEOLSpacingRule.cpp
-    src/axioms/RoutingSpacingRule.cpp
-    src/axioms/RoutingSpacingTableRule.cpp
-    src/axioms/CutClassRule.cpp
+    banyan-integrate/banyan_db.pb.cc
 )
 
 target_include_directories(Banyan
@@ -42,7 +35,8 @@ target_include_directories(Banyan
     include
 
   PRIVATE
-    src/axioms
+    ${Protobuf_INCLUDE_DIRS}
+    banyan-integrate
     src  
 )
 
@@ -60,6 +54,9 @@ target_link_libraries(Banyan
     OpenMP::OpenMP_CXX
     Boost::boost
     ZLIB::ZLIB
+
+  PRIVATE
+    ${Protobuf_LIBRARIES}
 )
 
 ############################################################

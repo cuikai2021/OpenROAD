@@ -4,6 +4,4 @@ namespace banyan {
     
 pprint::PrettyPrinter printer = pprint::PrettyPrinter();
 
-BanyanOptions gOptions = {};
-
 }

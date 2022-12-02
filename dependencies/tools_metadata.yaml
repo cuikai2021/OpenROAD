@@ -12,7 +12,7 @@
 - name: banyan-integrate
   repo: file://src/Banyan/banyan-integrate
   file: |-
-    *.so:/build/lib/
+    banyan:/build/bin/
     maxhs:/build/bin/
 
 - name: linden-integrate

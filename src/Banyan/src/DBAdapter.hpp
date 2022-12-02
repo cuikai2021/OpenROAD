@@ -3,9 +3,10 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <deque>
 
 #include "Global.hpp"
-#include "banyan_go.h"
+#include "banyan_db.pb.h"
 #include "db.h"
 #include "string.h"
 #include "utl/Logger.h"
@@ -23,6 +24,13 @@ class dbVia;
 class dbTechVia;
 class dbTechNonDefaultRule;
 class Rect;
+class dbSigType;
+class dbWire;
+class dbITerm;
+class dbBTerm;
+class dbIoType;
+class dbOrientType;
+class dbMasterType;
 }  // namespace odb
 
 namespace utl {
@@ -41,67 +49,15 @@ namespace stt {
 class SteinerTreeBuilder;
 }
 
-#define AssertFind(mmap, key) \
-  assertFind(mmap, key, __FILE__, __LINE__, __func__)
-
-template <typename TKEY, typename TVALUE>
-TVALUE assertFind(std::map<TKEY, TVALUE>& mmap,
-                  TKEY key,
-                  const char* fname,
-                  int lineno,
-                  const char* fxname)
-{
-  auto itr = mmap.find(key);
-  if (itr == mmap.end()) {
-    std::cout << "can not find map[" << key << "], call in " << fname << " "
-              << fxname << " " << lineno << std::endl;
-    assert(false);
-  }
-  return itr->second;
-}
-
 namespace banyan {
 
-class DBAdapter
-{
- public:
-  virtual void updateDB(std::vector<banyan_go::layer>& layers,
-                        std::vector<banyan_go::net>& nets,
-                        std::vector<banyan_go::viadef>& viadefs,
-                        banyan_go::route_ret& ret)
-      = 0;
-  virtual std::vector<banyan_go::net>& getNets() = 0;
-  virtual std::vector<banyan_go::pin>& getPins() = 0;
-  virtual std::vector<banyan_go::boxx>& getBoxes() = 0;
-  virtual std::vector<banyan_go::via>& getVias() = 0;
-  virtual std::vector<banyan_go::layer>& getLayers() = 0;
-  virtual std::vector<banyan_go::viadef>& getViadefs() = 0;
-  virtual std::vector<banyan_go::track>& getTracks() = 0;
-  virtual std::vector<banyan_go::ndr_layer>& getNDRLayers() = 0;
-  virtual std::vector<banyan_go::ndr>& getNDRs() = 0;
-  virtual std::vector<banyan_go::table_triple>& getTableTriples() = 0;
-  virtual banyan_go::design getDesign() = 0;
+constexpr int DEFAULT_WIRE_EXT = 0;
 
-  virtual ~DBAdapter() {}
-};
-
-class Axioms;
-class OpenDBAdapter : public DBAdapter
+class OpenDBAdapter
 {
  private:
   bool debugActive_;
-  std::vector<banyan_go::net> nets_;
-  std::vector<banyan_go::pin> pins_;
-  std::vector<banyan_go::boxx> boxes_;
-  std::vector<banyan_go::via> vias_;
-  std::vector<banyan_go::layer> layers_;
-  std::vector<banyan_go::viadef> viadefs_;
-  std::vector<banyan_go::track> tracks_;
-  std::vector<banyan_go::ndr_layer> ndrlayers_;
-  std::vector<banyan_go::ndr> ndrs_;
-  std::vector<banyan_go::table_triple> tableTriples_;
-
-  banyan_go::design design_;
+  std::unique_ptr<Design> design_;
 
  protected:
   odb::dbDatabase* db_;
@@ -109,132 +65,80 @@ class OpenDBAdapter : public DBAdapter
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
 
-  uint32_t maxViaStack_;
-  std::string minLayer_ = "";
-  std::string maxLayer_ = "";
   bool timingDriven_ = false;
 
-  bool hasAddedCutLayer_ = false;
-  int belowRoutingLayerMaxIndex_ = -1;
+  std::set<std::string> instPinNames;
+  std::set<std::string> macroNames;
 
-  std::map<std::string, int> layerNameToIdxs_;
 
-  std::map<std::string, int> viaDefNameToIdxs_;
+  NetUse odbNetType2NetUse(odb::dbSigType sigType);
+  std::optional<SpecialWireShape> odbSWireShape(odb::dbWireShapeType shapeType);
 
-  std::map<std::string, size_t> netNameToIdxs_;
+  Pin odbITerm2Pin(odb::dbITerm* iterm);
+  Pin odbBTerm2Pin(odb::dbBTerm* bterm);
+  std::deque<Wire> odbWires2Wires(odb::dbWire* odbWires);
+  std::deque<SpecialWire> dbSWire2SpecialWires(odb::dbSWire* odbSWire);
 
-  std::map<std::string, size_t> ndrNameToIdxs_;
+  std::string viaNameFromViaBox(odb::dbBox* box);
 
-  std::map<std::string, size_t> instPinNameToIdxs_;
+  PinDirection odbIOType2Banyan(odb::dbIoType type);
+  ComponentOrient odbOrient2Banyan(odb::dbOrientType type);
+  MacroClass odbMacroClass2Banyan(odb::dbMasterType type);
 
-  std::list<std::string> strs_;
-
-  int defdist(int x);
-  int64_t defArea(double area);
-
-  int calLayerPitch(odb::dbTechLayer* layer);
-
-  void getDesignFromOpenDB();
-
-  void getLayersFromOpenDB();
-  void addRoutingLayer(odb::dbTechLayer* layer);
-  void addCutLayer(odb::dbTechLayer* layer);
-  void addMasterSliceLayer(odb::dbTechLayer* layer);
-  void addImplantLayer(odb::dbTechLayer* layer);
-
-  void getTracksFromOpenDB();
-  void getViaDefsFromOpenDB();
-
-  void addViaDef(odb::dbObject* odbvia);
-
-  void getNDRsFromOpenDB();
-  void addNDR(odb::dbTechNonDefaultRule* ndr);
-
-  void addBox(odb::dbBox* box);
-  void addBox(std::string layerName, const odb::Rect& rect);
-  void addBox(std::string layerName, int left, int bottom, int right, int top);
-  void addWireBox(const std::string& layerName,
-                  int left,
-                  int bottom,
-                  int right,
-                  int top,
-                  int startExt,
-                  int endExt);
-
-  void addNet(odb::dbNet* net);
-  void addWire(odb::dbWire* wire);
-  void addSpecialPath(odb::dbSBox* sbox);
-  void addVia(odb::dbBox* box);
-  void addVia(std::string viaName, int x, int y);
-
-  void getObsFromOpenDB();
-  void getInstsObsFromOpenDB();
-
-  void getNetsFromOpenDB();
-  void getPinsFromOpenDB();
-  void getWireBugdeting();
-  double getWorstHoldSlack();
-  sta::Pin* getStaPin(const char* name);
-  std::map<const sta::Pin*, int> getDistFromSrcForSinks(
-      sta::Pin* src,
-      std::vector<sta::Pin*> sinks);
+  void getDesignFromODB();
+  void getDefViaFromODB();
+  void getRoutingLayersFromODB();
+  void getNetsFromODB();
+  void getSpecialNetsFromODB();
+  void getBlockagesFromODB();
+  void getIOPinsFromODB();
+  void getInstancesFromODB();
+  void getMacrosFromODB();
+  void getWireBudgetingFromLrl();
 
  public:
-  friend class Axioms;
-  OpenDBAdapter(odb::dbDatabase* db,
+  OpenDBAdapter(bool debugActive,
+                odb::dbDatabase* db,
                 stt::SteinerTreeBuilder* sttBuilder_,
                 utl::Logger* logger,
                 lrl::Laurel* laurel,
-                int maxViaStack,
-                std::string minLayer,
-                std::string maxLayer,
-                bool timingDriven,
-                bool debugActive = false)
-      : db_(db),
+                bool timingDriven = false)
+      : debugActive_(debugActive),
+        db_(db),
         sttBuilder_(sttBuilder_),
         logger_(logger),
         laurel_(laurel),
-        maxViaStack_(maxViaStack),
-        minLayer_(minLayer),
-        maxLayer_(maxLayer),
-        timingDriven_(timingDriven),
-        debugActive_(debugActive)
+        timingDriven_(timingDriven)
   {
-    getLayersFromOpenDB();
-    getViaDefsFromOpenDB();
-    if (db->getChip() == nullptr || db->getChip()->getBlock() == nullptr) {
-      printer.print("Empty block, def file is not read");
-    } else {
-      getDesignFromOpenDB();
-      getTracksFromOpenDB();
-      getNDRsFromOpenDB();
-      getNetsFromOpenDB();
-      getPinsFromOpenDB();
-      getWireBugdeting();
-      getObsFromOpenDB();
-      getInstsObsFromOpenDB();
+    if (auto techlef = db->getTech(); techlef == nullptr) {
+      logger_->error(
+          utl::BY, 1, "techlef is empty, should read lef files first");
     }
+
+    if (auto chip = db->getChip();
+        chip == nullptr || chip->getBlock() == nullptr) {
+      logger_->error(utl::BY, 1, "design is empty, should read def file first");
+    }
+
+    design_ = std::make_unique<Design>();
+
+    getDesignFromODB();
+    getDefViaFromODB();
+    getRoutingLayersFromODB();
+    getIOPinsFromODB();
+    getInstancesFromODB();
+    getMacrosFromODB();
+    getNetsFromODB();
+    getSpecialNetsFromODB();
+    getBlockagesFromODB();
+    getWireBudgetingFromLrl();
   }
 
   ~OpenDBAdapter() {}
-  void printDB();
 
-  void updateDB(std::vector<banyan_go::layer>& layers,
-                std::vector<banyan_go::net>& nets,
-                std::vector<banyan_go::viadef>& viadefs,
-                banyan_go::route_ret& ret) override;
-  std::vector<banyan_go::net>& getNets() override { return nets_; }
-  std::vector<banyan_go::pin>& getPins() override { return pins_; }
-  std::vector<banyan_go::boxx>& getBoxes() override { return boxes_; }
-  std::vector<banyan_go::via>& getVias() override { return vias_; }
-  std::vector<banyan_go::layer>& getLayers() override { return layers_; }
-  std::vector<banyan_go::viadef>& getViadefs() override { return viadefs_; }
-  std::vector<banyan_go::track>& getTracks() override { return tracks_; }
-  std::vector<banyan_go::ndr_layer>& getNDRLayers() override { return ndrlayers_; }
-  std::vector<banyan_go::ndr>& getNDRs() override { return ndrs_; }
-  std::vector<banyan_go::table_triple>& getTableTriples() override { return tableTriples_; }
+  void updateDB(const BanyanResult& result);
 
-  banyan_go::design getDesign() override { return design_; }
+  std::unique_ptr<Design> getDesign() { return std::move(design_); }
 };
 
 }  // namespace banyan

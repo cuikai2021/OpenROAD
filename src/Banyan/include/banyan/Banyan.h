@@ -5,6 +5,7 @@
 #include <tcl.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/process.hpp>
 #include <charconv>
 #include <cstdint>
 #include <map>
@@ -12,11 +13,11 @@
 #include <numeric>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <filesystem>
 
 #include "DBAdapter.hpp"
 #include "Global.hpp"
-#include "axioms/Axioms.hpp"
-#include "banyan_go.h"
 #include "clipp.hpp"
 #include "magic_enum.hpp"
 #include "sta/StaMain.hh"
@@ -41,12 +42,14 @@ class SteinerTreeBuilder;
 
 namespace banyan {
 
-using namespace clipp;
+constexpr const std::string_view BANYAN_TMP_FOLDER = "/tmp/banyan/";
 
-enum class BanyanCMD
+
+struct InstanceData
 {
-  RUN,
-  HELP
+  std::string name;//using inst->GetName()
+  int64_t x; //inst center point x
+  int64_t y; //inst center point y
 };
 
 class Banyan
@@ -61,7 +64,7 @@ class Banyan
             lrl::Laurel* laurel);
 
   int main(std::vector<std::string> args);
-  int run(OpenDBAdapter& bdAdapter, Axioms& axioms);
+  int cmap(std::deque<InstanceData> gpInsts, std::string cmapPb);
 
 
  protected:
