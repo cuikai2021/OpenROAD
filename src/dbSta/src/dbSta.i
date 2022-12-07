@@ -120,6 +120,14 @@ db_network_defined()
   db_network->readDefAfter(block);
 }
 
+void
+db_network_initclknets()
+{
+  ord::OpenRoad *openroad = ord::getOpenRoad();
+  sta::dbSta *sta = openroad->getSta();
+  sta->initClkNets();
+}
+
 //ICBench methods
 void
 set_sdc_opt_cmd(std::string name)
