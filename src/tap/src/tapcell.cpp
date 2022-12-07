@@ -40,6 +40,7 @@
 #include <utility>
 
 #include "odb/db.h"
+#include "odb/dbTransform.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
 #include "utl/Logger.h"
@@ -1192,13 +1193,33 @@ bool Tapcell::overlaps(odb::dbBox* blockage,
 vector<odb::dbBox*> Tapcell::findBlockages()
 {
   vector<odb::dbBox*> blockages;
-  for (auto&& inst : db_->getChip()->getBlock()->getInsts()) {
+  odb::dbBlock* block = db_->getChip()->getBlock();
+  for (auto&& inst : block->getInsts()) {
     if (inst->isBlock()) {
       if (!inst->isPlaced()) {
         logger_->warn(utl::TAP, 32, "Macro {} is not placed.", inst->getName());
         continue;
       }
-      blockages.push_back(inst->getBBox());
+      odb::dbMaster* master = inst->getMaster();
+      // TODO should consider orientation ?
+      bool hasOverlap = false;
+      for (auto obs : master->getObstructions()) {
+    	  if (obs->getTechLayer()->getType() == odb::dbTechLayerType::Value::OVERLAP) {
+    		  odb::Rect rect;
+    		  obs->getBox(rect);
+    		  odb::dbTransform transform;
+    		  inst->getTransform(transform);
+    		  transform.apply(rect);
+    		  auto new_obs = odb::dbObstruction::create(block, obs->getTechLayer(),
+    				  rect.xMin(), rect.yMin(),
+					  rect.xMax(), rect.yMax());
+    		  blockages.push_back(new_obs->getBBox());
+    		  odb::dbObstruction::destroy(new_obs);
+    		  hasOverlap = true;
+    	  }
+      }
+    	if (!hasOverlap)
+    	  blockages.push_back(inst->getBBox());
     }
   }
 

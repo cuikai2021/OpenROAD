@@ -34,6 +34,7 @@
 #include "placerBase.h"
 
 #include <odb/db.h>
+#include <odb/dbTransform.h>
 
 #include <iostream>
 
@@ -910,13 +911,14 @@ void PlacerBase::initInstsForUnusableSites()
     std::vector<linden::geom::Rect> obs_overlap_layer;
     auto master = inst.dbInst()->getMaster();
     for (auto obs : master->getObstructions()) {
-      const linden::geom::Point shift(inst.lx(), inst.ly());
       auto layer = obs->getTechLayer();
       if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
-        linden::geom::Rect rect(
-            obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
-        rect += shift;
-        obs_overlap_layer.push_back(rect);
+    	  odb::Rect rect;
+		  obs->getBox(rect);
+		  odb::dbTransform transform;
+		  inst.dbInst()->getTransform(transform);
+		  transform.apply(rect);
+        obs_overlap_layer.push_back(linden::geom::Rect(rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
       }
     }
     if (obs_overlap_layer.empty()) {
@@ -1106,15 +1108,15 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
   std::vector<IntRect> obs_overlap_layer;
   if (inst.isMacro()) {
     auto master = inst.dbInst()->getMaster();
-    const linden::geom::Point shift(inst.lx(), inst.ly());
     for (auto const &obs : master->getObstructions()) {
       auto layer = obs->getTechLayer();
       if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
-        IntRect rect(obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
-        linden::geom::Rect r(
-            obs->xMin(), obs->yMin(), obs->xMax(), obs->yMax());
-        r += shift;
-        obs_overlap_layer.push_back(IntRect(r.lx(), r.ly(), r.ux(), r.uy()));
+    	  odb::Rect rect;
+		  obs->getBox(rect);
+		  odb::dbTransform transform;
+		  inst.dbInst()->getTransform(transform);
+		  transform.apply(rect);
+        obs_overlap_layer.push_back(IntRect(rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
       }
     }
   }
