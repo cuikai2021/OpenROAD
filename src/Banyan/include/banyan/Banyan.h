@@ -16,13 +16,7 @@
 #include <fstream>
 #include <filesystem>
 
-#include "DBAdapter.hpp"
-#include "Global.hpp"
-#include "clipp.hpp"
-#include "magic_enum.hpp"
-#include "sta/StaMain.hh"
-#include "utl/Logger.h"
-#include "Global.hpp"
+#include "ord/OpenRoad.hh"
 
 namespace odb {
 class dbDatabase;
@@ -44,15 +38,7 @@ namespace banyan {
 
 constexpr const std::string_view BANYAN_TMP_FOLDER = "/tmp/banyan/";
 
-
-struct InstanceData
-{
-  std::string name;//using inst->GetName()
-  int64_t x; //inst center point x
-  int64_t y; //inst center point y
-};
-
-class Banyan
+class Banyan : public ord::OpenRoad::Observer
 {
  public:
   Banyan();
@@ -63,15 +49,22 @@ class Banyan
             utl::Logger* logger,
             lrl::Laurel* laurel);
 
-  int main(std::vector<std::string> args);
-  int cmap(std::deque<InstanceData> gpInsts, std::string cmapPb);
+  int main(std::vector<std::string> args,bool updateDB);
+  int cmap(const std::string& cmapPb);
 
+  // From ord::OpenRoad::Observer
+  virtual void postReadLef(const char *filename, odb::dbTech* tech, odb::dbLib* library) override {
+     if (tech) {
+        techfile_name_ = filename;
+     }
+  }
 
  protected:
   odb::dbDatabase* db_;
   stt::SteinerTreeBuilder* stt_builder_;
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
+  std::string techfile_name_;
 }; // class Banyan
 
 }  // namespace banyan

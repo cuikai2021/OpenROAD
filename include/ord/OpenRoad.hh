@@ -244,11 +244,14 @@ public:
   {
   public:
     virtual ~Observer();
-
+    virtual void postReadLef(const char *filename, odb::dbTech* tech, odb::dbLib* library) {
+      postReadLef(tech, library);
+    }
+    
     // Either pointer could be null
-    virtual void postReadLef(odb::dbTech* tech, odb::dbLib* library) = 0;
-    virtual void postReadDef(odb::dbBlock* block) = 0;
-    virtual void postReadDb(odb::dbDatabase* db) = 0;
+    virtual void postReadLef(odb::dbTech* tech, odb::dbLib* library) {}
+    virtual void postReadDef(odb::dbBlock* block) {}
+    virtual void postReadDb(odb::dbDatabase* db)  {}
 
   private:
     OpenRoad* owner_ = nullptr;

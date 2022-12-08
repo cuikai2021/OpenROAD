@@ -324,7 +324,7 @@ OpenRoad::readLef(const char *filename,
   // both are null on parser failure
   if (lib != nullptr || tech != nullptr) {
     for (Observer* observer : observers_) {
-      observer->postReadLef(tech, lib);
+      observer->postReadLef(filename, tech, lib);
     }
   }
 }

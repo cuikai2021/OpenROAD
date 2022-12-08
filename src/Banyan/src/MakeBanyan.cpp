@@ -23,6 +23,7 @@ void initBanyan(OpenRoad* openroad)
       openroad->getSteinerTreeBuilder(),
       openroad->getLogger(), 
       openroad->getLaurel());
+  openroad->addObserver(openroad->getBanyan());
 }
 
 }  // namespace ord

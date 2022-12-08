@@ -102,5 +102,7 @@ class LindenGlobalPlace
   // initial placement
   void doInitialPlace();
 
+  // routability-driven placement
+  void test_baby_banyan();
 };
 }  // namespace gpl

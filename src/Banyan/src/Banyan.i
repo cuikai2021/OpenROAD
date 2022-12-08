@@ -27,7 +27,7 @@ namespace banyan {
 
 void banyan(std::vector<std::string> args)
 {
-     ord::OpenRoad::openRoad()->getBanyan()->main(args);
+     ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
 }
 
 }

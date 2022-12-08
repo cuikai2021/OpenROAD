@@ -252,6 +252,7 @@ void LindenGlobalPlace::run()
   }
 
   update_db();
+  // test_baby_banyan(); // WIP: to be continued
   report_metrics();
   reset();
 }

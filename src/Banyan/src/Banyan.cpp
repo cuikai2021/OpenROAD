@@ -1,5 +1,18 @@
 #include "banyan/Banyan.h"
 
+#include <chrono>
+#include <sstream>
+
+#include "DBAdapter.hpp"
+#include "Global.hpp"
+#include "clipp.hpp"
+#include "magic_enum.hpp"
+#include "odb/db.h"
+#include "odb/lefout.h"
+#include "ord/OpenRoad.hh"
+#include "sta/StaMain.hh"
+#include "utl/Logger.h"
+
 namespace sta {
 // Tcl files encoded into strings.
 extern const char* Banyan_tcl_inits[];
@@ -10,6 +23,8 @@ extern int Banyan_Init(Tcl_Interp* interp);
 }
 
 namespace banyan {
+
+using defer = std::shared_ptr<void>;
 
 Banyan::Banyan()
 {
@@ -66,7 +81,7 @@ std::string genTempFilePath(utl::Logger* logger, std::string fileExt)
   return ss.str();
 }
 
-int exec(utl::Logger* logger, std::vector<std::string> args)
+int exec(utl::Logger* logger, const std::vector<std::string>& args)
 {
   std::string exe = std::move(getExe());
   int ec = boost::process::system(exe, boost::process::args(args));
@@ -81,7 +96,7 @@ int exec(utl::Logger* logger, std::vector<std::string> args)
   logger->error(utl::BY, 1, "Run banyan error with exit code: {}", ec);
 }
 
-int Banyan::main(std::vector<std::string> args)
+int Banyan::main(std::vector<std::string> args, bool updateDB)
 {
   bool debugActive = false;
 #ifndef NDEBUG
@@ -108,67 +123,53 @@ int Banyan::main(std::vector<std::string> args)
   args.push_back("--protobuf");
   args.push_back(inPbFilePath);
 
-  std::string outPbFilePath = genTempFilePath(logger_, ".pb");
-  args.push_back("--output");
-  args.push_back(outPbFilePath);
+  std::string outPbFilePath = "";
+  if (updateDB) {
+    outPbFilePath = genTempFilePath(logger_, ".pb");
+    args.push_back("--output");
+    args.push_back(outPbFilePath);
+  }
+  defer _(nullptr, [&](...) {
+    if (updateDB) {
+      logger_->info(utl::BY, 1, "Writing banyan result to eden ...");
+      BanyanResult byrst;
+      std::ifstream outfs;
+      outfs.open(outPbFilePath);
+      byrst.ParseFromIstream(&outfs);
+      outfs.close();
+      dbAdapter.updateDB(byrst);
+    }
+  });
 
   auto status = exec(logger_, args);
 
-  logger_->info(utl::BY, 1, "Writing banyan result to eden ...");
-  BanyanResult byrst;
-  std::ifstream outfs;
-  outfs.open(outPbFilePath);
-  byrst.ParseFromIstream(&outfs);
-  outfs.close();
-
-  dbAdapter.updateDB(byrst);
   return status;
 }
 
-int Banyan::cmap(std::deque<InstanceData> gpInsts, std::string cmapPb)
+int Banyan::cmap(const std::string& cmapPb)
 {
-  auto odbInst2Snap = [](odb::dbInst* inst) -> InstanceData {
-    InstanceData snap;
-    snap.name = inst->getName();
-    int orix = 0;
-    int oriy = 0;
-    inst->getOrigin(orix, oriy);
-    snap.x = orix;
-    snap.y = oriy;
-    return snap;
-  };
-
-  std::deque<InstanceData> snapshot;
-  auto chip = db_->getChip();
-  assert(chip != nullptr);
-  auto block = chip->getBlock();
-  assert(block != nullptr);
-
-  for (auto inst : gpInsts) {
-    auto odbInst = block->findInst(inst.name.c_str());
-    assert(odbInst != nullptr);
-    snapshot.emplace_back(odbInst2Snap(odbInst));
-    odbInst->setOrigin(inst.x, inst.y);
-  }
+  ::ord::OpenRoad::openRoad()->writeDef("./banyan.cmap.pre.def", "5.8");
 
   std::vector<std::string> args;
+  args.push_back("route");
+  args.push_back("--techlef");
+  args.push_back(techfile_name_);
+  args.push_back("--max_layer");
+  args.push_back("ME4");  // FIXME: pass it through cfg pls.
   args.push_back("--log_level");
   args.push_back("info");
   args.push_back("--report_cmap");
   args.push_back(cmapPb);
   args.push_back("--disable_maze_top");
   args.push_back("true");
+  args.push_back("--disable_mcf_upt");
+  args.push_back("true");
   args.push_back("--baby_banyan");
   args.push_back("true");
-  main(args);
+  args.push_back("--baby_pa");
+  args.push_back("true");
 
-  for (auto inst : snapshot) {
-    auto odbInst = block->findInst(inst.name.c_str());
-    assert(odbInst != nullptr);
-    odbInst->setOrigin(inst.x, inst.y);
-  }
-
-  return 0;
+  return main(args, false);
 }
 
 }  // namespace banyan

@@ -78,6 +78,8 @@ target_sources(gpl
     src/routeBase.cpp
     src/timingBase.cpp
     src/graphics.cpp
+    src/banyan_cmap.pb.cc
+    src/lindengp.rdp.cpp
 )
 
 messages(TARGET gpl)
@@ -100,6 +102,7 @@ target_link_libraries(gpl
     gui
     odb
     OpenSTA
+    Banyan
     stt
     rsz
     grt
