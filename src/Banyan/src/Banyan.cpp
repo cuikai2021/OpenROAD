@@ -120,6 +120,12 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   }
   pbfs.close();
 
+
+  if (std::find(args.begin(), args.end(), "--techlef") == args.end()) {
+    args.push_back("--techlef");
+    args.push_back(techfile_name_);
+  }
+
   args.push_back("--protobuf");
   args.push_back(inPbFilePath);
 
