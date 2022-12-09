@@ -47,7 +47,7 @@ proc pdngen { args } {
 }
 
 sta::define_cmd_args "add_global_connection" {-net <net_name> \
-                                              -inst_pattern <inst_name_pattern> \ 
+                                              -inst_pattern <inst_name_pattern> \
                                               -pin_pattern <pin_name_pattern> \
                                               [(-power|-ground)]}
 
@@ -80,7 +80,7 @@ proc add_global_connection {args} {
     }
   }
 
-  if {![info exists keys(-pin_pattern)]} { 
+  if {![info exists keys(-pin_pattern)]} {
     utl::error PDN 94 "The -pin_pattern option of the add_global_connection command is required."
   } else {
     if {[catch {regexp $keys(-pin_pattern) ""}]} {
@@ -277,7 +277,7 @@ proc add_pdn_ring {args} {
   pdngen::check_design_state
 
   sta::parse_key_args "add_pdn_ring" args \
-    keys {-grid -layers -widths -spacings -core_offsets -pad_offsets -power_pads -ground_pads} 
+    keys {-grid -layers -widths -spacings -core_offsets -pad_offsets -power_pads -ground_pads}
 
   if {[llength $args] > 0} {
     utl::error PDN 135 "Unexpected argument [lindex $args 0] for add_pdn_ring command."
@@ -410,7 +410,7 @@ variable default_maxwidth 10
 proc get_max_width {layer} {
   set max_width [$layer getMaxWidth]
   if {$max_width < 2147483647} {
-    # OpenDB hides the fact that the layer has no MAXWIDTH field 
+    # OpenDB hides the fact that the layer has no MAXWIDTH field
     # and returns the biggest value of int32_t.
     # So I have to guess if it is set.
     return $max_width
@@ -478,7 +478,7 @@ proc check_layer_names {layer_names} {
       } else {
         utl::error "PDN" 76 "Layer $layer_name not found in loaded technology data."
       }
-    }  
+    }
   }
   return $layer_names
 }
@@ -616,15 +616,15 @@ proc check_core_ring {core_ring_spec} {
     }
   }
   if {[llength [dict keys $layer_directions]] == 0} {
-    utl::error PDN 139 "No direction defiend for layers [dict keys $core_ring_spec]." 
+    utl::error PDN 139 "No direction defiend for layers [dict keys $core_ring_spec]."
   } elseif {[llength [dict keys $layer_directions]] == 1} {
     set dir [dict keys $layer_directions]
     set direction [expr $dir == "ver" ? "vertical" : "horizontal"]
     set missing_direction [expr $dir == "ver" ? "horizontal" : "vertical"]
-    
-    utl::error PDN 140 "Layers [dict keys $core_ring_spec] are both $direction, missing layer in direction $other_direction." 
+
+    utl::error PDN 140 "Layers [dict keys $core_ring_spec] are both $direction, missing layer in direction $other_direction."
   } elseif {[llength [dict keys $layer_directions]] > 2} {
-    utl::error PDN 141 "Unexpected number of directions found for layers [dict keys $core_ring_spec], ([dict keys $layer_directions])." 
+    utl::error PDN 141 "Unexpected number of directions found for layers [dict keys $core_ring_spec], ([dict keys $layer_directions])."
   }
 
   return $core_ring_spec
@@ -1132,7 +1132,7 @@ proc convert_grid_to_def_units {grid} {
         dict set grid core_ring $layer [convert_layer_spec_to_def_units $data]
       }
     }
-  
+
     if {[dict exists $grid rails]} {
       dict for {layer data} [dict get $grid rails] {
         dict set grid rails $layer [convert_layer_spec_to_def_units $data]
@@ -1263,11 +1263,11 @@ proc verify_grid {grid} {
       foreach cell $cells {
         if {[set master [[ord::get_db] findMaster $cell]] == "NULL"} {
           utl::error PDN 153  "Core power padcell ($cell) not found in the database."
-        } 
+        }
         if {[$master findMTerm $pin_name] == "NULL"} {
           utl::error PDN 154 "Cannot find pin ($pin_name) on core power padcell ($cell)."
         }
-      } 
+      }
     }
   }
 
@@ -1276,18 +1276,18 @@ proc verify_grid {grid} {
       foreach cell $cells {
         if {[set master [[ord::get_db] findMaster $cell]] == "NULL"} {
           utl::error PDN 155  "Core ground padcell ($cell) not found in the database."
-        } 
+        }
         if {[$master findMTerm $pin_name] == "NULL"} {
           utl::error PDN 156 "Cannot find pin ($pin_name) on core ground padcell ($cell)."
         }
-      } 
+      }
     }
   }
 
   if {[dict exists $grid macro]} {
     check_cells [dict get $grid macro]
   }
- 
+
   if {[dict exists $grid rails]} {
     dict set grid rails [check_rails [dict get $grid rails]]
   }
@@ -1299,7 +1299,7 @@ proc verify_grid {grid} {
   if {[dict exists $grid template]} {
     set_template_size {*}[dict get $grid template size]
   }
-  
+
   if {[dict exists $grid orient]} {
     if {$type == "stdcell"} {
       utl::error PDN 90 "The orient attribute cannot be used with stdcell grids."
@@ -1334,8 +1334,7 @@ proc complete_macro_grid_specifications {} {
   set macros [get_macro_blocks]
 
   dict for {type grid_types} [dict get $design_data grid] {
-    dict for {name grid} $grid_types {
-      dict set design_data grid $type $name [convert_grid_to_def_units $grid]
+      dict for {name grid} $grid_types { dict set design_data grid $type $name [convert_grid_to_def_units $grid]
     }
   }
   if {![dict exists $design_data grid macro]} {
@@ -1361,6 +1360,7 @@ proc complete_macro_grid_specifications {} {
           set_instance_grid $inst_name $grid inst_name
 	}
       }
+      set selected_insts [dict get $grid instances]
       set insts [set_instance_grid $selected_insts $grid inst_name]
     } elseif {[dict exists $grid macro]} {
       # set insts [filter_out_selected_by $insts inst_name]
@@ -1392,7 +1392,7 @@ proc complete_macro_grid_specifications {} {
         dict set instance grid "__none__"
       }
       if {[dict get $instance grid] == $grid_name} {
-        dict set related_instances $inst $instance 
+        dict set related_instances $inst $instance
       }
     }
     dict set design_data grid macro $grid_name _related_instances $related_instances
@@ -1435,7 +1435,7 @@ proc complete_macro_grid_specifications {} {
         dict set design_data grid macro $grid_name connect $new_connections
       }
     }
-    
+
     if {[dict exists $grid straps]} {
       foreach strap_layer [dict keys [dict get $grid straps]] {
         lappend blockages $strap_layer
@@ -1485,7 +1485,6 @@ proc get_routing_direction {layer_name} {
   if {$layers == ""} {
     init_metal_layers
   }
-
   if {![dict exists $layers $layer_name direction]} {
     utl::error "PDN" 33 "Unknown direction for layer $layer_name."
   }
@@ -2273,7 +2272,7 @@ proc determine_num_via_columns {via_info constraints} {
       get_via_enclosure $via_info [expr min($lower_width,$lower_height)] [expr min([expr $cut_width + $xcut_pitch * ($columns - 1)],$upper_height)]
       set upper_width [expr $cut_width + $xcut_pitch * ($columns - 1) + 2 * $min_upper_enclosure]
     }
-  } 
+  }
   if {[get_routing_direction [dict get $via_info lower layer]] == "ver"} {
     if {[dict get $constraints stack_bottom] != [dict get $via_info lower layer]} {
       # debug "Adjust width of [dict get $via_info lower layer]"
@@ -2353,7 +2352,7 @@ proc determine_num_via_rows {via_info constraints} {
       set lower_height [expr $cut_height + $ycut_pitch * ($rows - 1) + 2 * $min_lower_enclosure]
       # debug "modify lower_height to $lower_height ($cut_height + $ycut_pitch * ($rows - 1) + 2 * $min_lower_enclosure"
     }
-  } 
+  }
   if {[get_routing_direction [dict get $via_info upper layer]] == "hor"} {
     # debug "[dict get $constraints stack_top] != [dict get $via_info upper layer]"
     if {[dict get $constraints stack_top] != [dict get $via_info upper layer]} {
@@ -2812,7 +2811,7 @@ proc get_via_option {viarule_name via_info lower width height constraints} {
   set columns [determine_num_via_columns $via_info $constraints]
   set rows    [determine_num_via_rows    $via_info $constraints]
 
-  # debug "columns: $columns, rows: $rows"	  
+  # debug "columns: $columns, rows: $rows"
   # debug "lower_width $lower_width lower_height: $lower_height, min_lower_enclosure $min_lower_enclosure"
   # debug "upper_width $upper_width upper_height: $upper_height, min_upper_enclosure $min_upper_enclosure"
 
@@ -3191,7 +3190,7 @@ proc get_grid_wire_width {layer_name} {
       return $width
     }
   }
-  
+
   if {[info exists default_grid_data]} {
     if {[dict exists $default_grid_data rails $layer_name width]} {
       set width [dict get $default_grid_data rails $layer_name width]
@@ -3239,68 +3238,70 @@ proc generate_via_stacks {l1 l2 tag connection} {
   variable def_units
   variable grid_data
 
-  set area [dict get $grid_data area]
+  foreach area [dict get $grid_data area] {
+
   # debug "From $l1 to $l2"
 
-  if {[dict exists $grid_data core_ring_area combined]} {
-    set grid_area [dict get $grid_data core_ring_area combined]
-    set factor [expr max([lindex $area 2] - [lindex $area 0], [lindex $area 3] - [lindex $area 1]) * 2]
-    set grid_area [odb::shrinkSet [odb::bloatSet $grid_area $factor] $factor]
-    # debug "Old area ($area)"
-    set bbox [lindex [odb::getRectangles $grid_area] 0]
-    set area [list {*}[$bbox ll] {*}[$bbox ur]]
-    # debug "Recalculated area to be ($area)"
-  }
+      if {[dict exists $grid_data core_ring_area combined]} {
+        set grid_area [dict get $grid_data core_ring_area combined]
+        set factor [expr max([lindex $area 2] - [lindex $area 0], [lindex $area 3] - [lindex $area 1]) * 2]
+        set grid_area [odb::shrinkSet [odb::bloatSet $grid_area $factor] $factor]
+        # debug "Old area ($area)"
+        set bbox [lindex [odb::getRectangles $grid_area] 0]
+        set area [list {*}[$bbox ll] {*}[$bbox ur]]
+        # debug "Recalculated area to be ($area)"
+      }
 
-  #this variable contains locations of intersecting points of two orthogonal metal layers, between which via needs to be inserted
-  #for every intersection. Here l1 and l2 are layer names, and i1 and i2 and their indices, tag represents domain (power or ground)
-  set intersections ""
-  #check if layer pair is orthogonal, case 1
-  set layer1 $l1
-  regexp {(.*)_PIN_(hor|ver)} $l1 - layer1 direction
+      #this variable contains locations of intersecting points of two orthogonal metal layers, between which via needs to be inserted
+      #for every intersection. Here l1 and l2 are layer names, and i1 and i2 and their indices, tag represents domain (power or ground)
+      set intersections ""
+      #check if layer pair is orthogonal, case 1
+      set layer1 $l1
+      regexp {(.*)_PIN_(hor|ver)} $l1 - layer1 direction
 
-  set layer2 $l2
+      set layer2 $l2
 
-  set ignore_count 0
-  if {[array names stripe_locs "$l1,$tag"] == ""} {
-    utl::warn "PDN" 2 "No shapes on layer $l1 for $tag."
-    return {}
-  }
-  if {[array names stripe_locs "$l2,$tag"] == ""} {
-    utl::warn "PDN" 3 "No shapes on layer $l2 for $tag."
-    return {}
-  }
-  set intersection \
-    [odb::andSet \
-      [odb::andSet $stripe_locs($l1,$tag) $stripe_locs($l2,$tag)] \
-      [odb::newSetFromRect {*}$area]]
+      set ignore_count 0
+      if {[array names stripe_locs "$l1,$tag"] == ""} {
+        utl::warn "PDN" 2 "No shapes on layer $l1 for $tag."
+        return {}
+      }
+      if {[array names stripe_locs "$l2,$tag"] == ""} {
+        utl::warn "PDN" 3 "No shapes on layer $l2 for $tag."
+        return {}
+      }
+      set intersection \
+        [odb::andSet \
+          [odb::andSet $stripe_locs($l1,$tag) $stripe_locs($l2,$tag)] \
+          [odb::newSetFromRect {*}$area]]
 
-  # debug "Detected [llength [::odb::getPolygons $intersection]] intersections of $l1 and $l2"
+      # debug "Detected [llength [::odb::getPolygons $intersection]] intersections of $l1 and $l2"
 
-  foreach shape [::odb::getPolygons $intersection] {
-    set points [::odb::getPoints $shape]
-    if {[llength $points] != 4} {
-        variable def_units
-        utl::warn "PDN" 4 "Unexpected number of points in connection shape ($l1,$l2 $tag [llength $points])."
-        set str "    "
-        foreach point $points {set str "$str ([expr 1.0 * [$point getX] / $def_units ] [expr 1.0 * [$point getY] / $def_units]) "}
-        utl::warn "PDN" 5 $str
-        continue
-    }
-    set xMin [expr min([[lindex $points 0] getX], [[lindex $points 1] getX], [[lindex $points 2] getX], [[lindex $points 3] getX])]
-    set xMax [expr max([[lindex $points 0] getX], [[lindex $points 1] getX], [[lindex $points 2] getX], [[lindex $points 3] getX])]
-    set yMin [expr min([[lindex $points 0] getY], [[lindex $points 1] getY], [[lindex $points 2] getY], [[lindex $points 3] getY])]
-    set yMax [expr max([[lindex $points 0] getY], [[lindex $points 1] getY], [[lindex $points 2] getY], [[lindex $points 3] getY])]
+      foreach shape [::odb::getPolygons $intersection] {
+        set points [::odb::getPoints $shape]
+        if {[llength $points] != 4} {
+            variable def_units
+            utl::warn "PDN" 4 "Unexpected number of points in connection shape ($l1,$l2 $tag [llength $points])."
+            set str "    "
+            foreach point $points {set str "$str ([expr 1.0 * [$point getX] / $def_units ] [expr 1.0 * [$point getY] / $def_units]) "}
+            utl::warn "PDN" 5 $str
+            continue
+        }
+        set xMin [expr min([[lindex $points 0] getX], [[lindex $points 1] getX], [[lindex $points 2] getX], [[lindex $points 3] getX])]
+        set xMax [expr max([[lindex $points 0] getX], [[lindex $points 1] getX], [[lindex $points 2] getX], [[lindex $points 3] getX])]
+        set yMin [expr min([[lindex $points 0] getY], [[lindex $points 1] getY], [[lindex $points 2] getY], [[lindex $points 3] getY])]
+        set yMax [expr max([[lindex $points 0] getY], [[lindex $points 1] getY], [[lindex $points 2] getY], [[lindex $points 3] getY])]
 
-    set width [expr $xMax - $xMin]
-    set height [expr $yMax - $yMin]
-    # debug "($xMin,$yMin) -> ($xMax,$yMax): $width * $height"
+        set width [expr $xMax - $xMin]
+        set height [expr $yMax - $yMin]
+        # debug "($xMin,$yMin) -> ($xMax,$yMax): $width * $height"
 
-    set rule_name ${l1}${layer2}_${width}x${height}
-    if {![dict exists $logical_viarules $rule_name]} {
-      dict set logical_viarules $rule_name [list lower $l1 upper $layer2 width $width height $height]
-    }
-    lappend intersections "rule $rule_name x [expr ($xMax + $xMin) / 2] y [expr ($yMax + $yMin) / 2]"
+        set rule_name ${l1}${layer2}_${width}x${height}
+        if {![dict exists $logical_viarules $rule_name]} {
+          dict set logical_viarules $rule_name [list lower $l1 upper $layer2 width $width height $height]
+        }
+        lappend intersections "rule $rule_name x [expr ($xMax + $xMin) / 2] y [expr ($yMax + $yMin) / 2]"
+      }
   }
 
   # debug "Added [llength $intersections] intersections"
@@ -3492,7 +3493,7 @@ proc generate_upper_metal_mesh_stripes {tag layer layer_info area} {
 
   if {[get_dir $layer] == "hor"} {
     set offset [expr [lindex $area 1] + [dict get $layer_info offset]]
-    if {![regexp "$start_with.*" $tag match]} { ;#If not starting from bottom with this net, 
+    if {![regexp "$start_with.*" $tag match]} { ;#If not starting from bottom with this net,
       if {[dict exists $layer_info spacing]} {
         set offset [expr {$offset + [dict get $layer_info spacing] + [dict get $layer_info width]}]
       } else {
@@ -3506,7 +3507,7 @@ proc generate_upper_metal_mesh_stripes {tag layer layer_info area} {
   } elseif {[get_dir $layer] == "ver"} {
     set offset [expr [lindex $area 0] + [dict get $layer_info offset]]
 
-    if {![regexp "$start_with.*" $tag match]} { ;#If not starting from bottom with this net, 
+    if {![regexp "$start_with.*" $tag match]} { ;#If not starting from bottom with this net,
       if {[dict exists $layer_info spacing]} {
         set offset [expr {$offset + [dict get $layer_info spacing] + [dict get $layer_info width]}]
       } else {
@@ -3563,8 +3564,8 @@ proc adjust_area_for_core_rings {layer area number} {
     # set yMin [expr [lindex $area 1] - $offset - ( $width + $spacing ) * ( $num * 2 - 1 ) - $width / 2 + $rail_width / 2]
     # set xMax [expr [lindex $area 2] + $offset + ( $width + $spacing ) * ( $num * 2 - 1 ) + $width / 2]
     # set yMax [expr [lindex $area 3] + $offset + ( $width + $spacing ) * ( $num * 2 - 1 ) + $width / 2 - $rail_width / 2]
-    
-    # set extension area according to the number of power rings of the voltage domain, the default number is 2 
+
+    # set extension area according to the number of power rings of the voltage domain, the default number is 2
     set xMin [expr [lindex $area 0] - $offset - $width - $spacing - $width / 2 - ($number - 2) * ($width + $spacing)]
     set yMin [expr [lindex $area 1] - $offset - $width - $spacing - $width / 2 + $rail_width / 2 - ($number - 2) * ($width + $spacing)]
     set xMax [expr [lindex $area 2] + $offset + $width + $spacing + $width / 2 + ($number - 2) * ($width + $spacing)]
@@ -3593,21 +3594,23 @@ proc generate_stripes {tag net_name} {
     # debug "    Layer $lay ..."
     #Upper layer stripes
     if {[dict exists $grid_data straps $lay width]} {
-      set area [dict get $grid_data area]
-      # debug "Area $area"
-      # Calculate the numebr of rings of core_domain
-      set ring_number 2 
-      if {[dict exists $grid_data core_ring] && [dict exists $grid_data core_ring $lay]} {
-        set area [adjust_area_for_core_rings $lay $area $ring_number]
-      }
+      foreach area [dict get $grid_data area] {
+
+          # debug "Area $area"
+          # Calculate the numebr of rings of core_domain
+          set ring_number 2
+          if {[dict exists $grid_data core_ring] && [dict exists $grid_data core_ring $lay]} {
+            set area [adjust_area_for_core_rings $lay $area $ring_number]
+          }
       # debug "area=$area (spec area=[dict get $grid_data area])"
       # Create stripes for core domain's pwr/gnd nets
-      
-      if {$net_name == [get_voltage_domain_power [dict get $design_data core_domain]] ||
-          $net_name == [get_voltage_domain_ground [dict get $design_data core_domain]]} {
-        generate_upper_metal_mesh_stripes $tag $lay [dict get $grid_data straps $lay] $area
-        # Split core domains pwr/gnd nets when they cross other voltage domains that have different pwr/gnd nets
-        update_mesh_stripes_with_volatge_domains $tag $lay $net_name
+
+          if {$net_name == [get_voltage_domain_power [dict get $design_data core_domain]] ||
+              $net_name == [get_voltage_domain_ground [dict get $design_data core_domain]]} {
+            generate_upper_metal_mesh_stripes $tag $lay [dict get $grid_data straps $lay] $area
+            # Split core domains pwr/gnd nets when they cross other voltage domains that have different pwr/gnd nets
+            update_mesh_stripes_with_volatge_domains $tag $lay $net_name
+          }
       }
       # Create stripes for each voltage domains
       foreach domain_name [dict keys $voltage_domains] {
@@ -3914,7 +3917,7 @@ proc generate_core_rings {core_ring_data} {
           [expr $inner_ux + $width / 2] \
           [expr $inner_ly + $width / 2] \
         ]
-      
+
       set upper_power \
         [odb::newSetFromRect \
           [expr $inner_lx - $width / 2] \
@@ -3937,7 +3940,7 @@ proc generate_core_rings {core_ring_data} {
           [expr $outer_ux + $width / 2] \
           [expr $outer_uy + $width / 2] \
         ]
- 
+
       add_stripe $layer "POWER" $upper_power
       add_stripe $layer "POWER" $lower_power
       add_stripe $layer "GROUND" $upper_ground
@@ -3986,12 +3989,12 @@ proc generate_core_rings {core_ring_data} {
       add_stripe $layer "POWER" $rhs_power
       add_stripe $layer "GROUND" $lhs_ground
       add_stripe $layer "GROUND" $rhs_ground
-      
+
       set core_rings [odb::orSets [list \
         [odb::newSetFromRect [expr $outer_lx - $width / 2] [expr $outer_ly - $width / 2] [expr $inner_lx + $width / 2] [expr $outer_uy + $width / 2]] \
         [odb::newSetFromRect [expr $inner_ux - $width / 2] [expr $outer_ly - $width / 2] [expr $outer_ux + $width / 2] [expr $outer_uy + $width / 2]] \
       ]]
-     
+
       set core_ring_area [odb::bloatSet $core_rings $spacing]
       dict set grid_data core_ring_area $layer $core_ring_area
 
@@ -4006,7 +4009,7 @@ proc generate_core_rings {core_ring_data} {
 
 proc generate_core_rings_adjustable {core_ring_data rings_number} {
   variable grid_data
-  
+
   dict for {layer layer_info} $core_ring_data {
     for {set num 0} {$num<$rings_number} {set num [expr $num + 1]} {
       set area [list {*}[[ord::get_db_core] ll] {*}[[ord::get_db_core] ur]]
@@ -4019,7 +4022,7 @@ proc generate_core_rings_adjustable {core_ring_data rings_number} {
 
       set spacing [dict get $layer_info spacing]
       set width [dict get $layer_info width]
-    
+
       set inner_lx [expr $xMin - $offset - ($spacing + $width) * 2 * $num]
       set inner_ly [expr $yMin - $offset - ($spacing + $width) * 2 * $num]
       set inner_ux [expr $xMax + $offset + ($spacing + $width) * 2 * $num]
@@ -4138,7 +4141,10 @@ proc get_macro_boundaries {} {
 
   set boundaries {}
   foreach instance [dict keys $instances] {
-    lappend boundaries [dict get $instances $instance macro_boundary]
+    set macro_boundaries [dict get $instances $instance macro_boundaries]
+    for macro_boundary $macro_boundaries {
+      lappend boundaries $macro_boundary
+    }
   }
 
   return $boundaries
@@ -4207,7 +4213,7 @@ proc get_macro_blocks {} {
         } else {
           continue
         }
-        
+
         foreach pin [$term getMPins] {
           foreach shape [$pin getGeometry] {
             lappend pin_layers [[$shape getTechLayer] getName]
@@ -4244,16 +4250,14 @@ proc get_macro_blocks {} {
 proc filtered_insts_within {instances boundary} {
   set filtered_instances {}
   dict for {instance_name instance} $instances {
-    # If there are no shapes left after 'and'ing the boundard with the cell, then
-    # the cell lies outside the area where we are adding a power grid.
-    set llx [dict get $instance xmin]
-    set lly [dict get $instance ymin]
-    set urx [dict get $instance xmax]
-    set ury [dict get $instance ymax]
+    foreach macro_boundary [dict get $instance macro_boundaries] {
+        # If there are no shapes left after 'and'ing the boundard with the cell, then
+        # the cell lies outside the area where we are adding a power grid.
+        set box [odb::newSetFromRect {*}$macro_boundary]
+        if {[llength [odb::getPolygons [odb::andSet $boundary $box]]] != 0} {
+          dict set filtered_instances $instance_name $instance
+        }
 
-    set box [odb::newSetFromRect $llx $lly $urx $ury]
-    if {[llength [odb::getPolygons [odb::andSet $boundary $box]]] != 0} {
-      dict set filtered_instances $instance_name $instance
     }
   }
   return $filtered_instances
@@ -4283,18 +4287,27 @@ proc get_instances {} {
     dict set instance macro [[$inst getMaster] getName]
     dict set instance x [lindex [$inst getOrigin] 0]
     dict set instance y [lindex [$inst getOrigin] 1]
-    dict set instance xmin [[$inst getBBox] xMin]
-    dict set instance ymin [[$inst getBBox] yMin]
-    dict set instance xmax [[$inst getBBox] xMax]
-    dict set instance ymax [[$inst getBBox] yMax]
     dict set instance orient [$inst getOrient]
 
+    set bboxes [list]
+    set master [$inst getMaster]
+    set llx [[$inst getBBox] xMin]
+    set lly [[$inst getBBox] yMin]
+    foreach obs [$master getObstructions] {
+        set layer [$obs getTechLayer]
+        if {[$layer getType] == "OVERLAP"} {
+            set bbox [transform_box [$obs xMin] [$obs yMin] [$obs xMax] [$obs yMax] [list $llx $lly] [$inst getOrient]]
+            lappend bboxes $bbox
+        }
+    }
+    if {[llength $bboxes] == 0} {
+        set urx [[$inst getBBox] xMax]
+        set ury [[$inst getBBox] yMax]
+        set bbox [list $llx $lly $urx $ury]
+        lappend bboxes $bbox
+    }
 
-    set llx [dict get $instance xmin]
-    set lly [dict get $instance ymin]
-    set urx [dict get $instance xmax]
-    set ury [dict get $instance ymax]
-    dict set instance macro_boundary [list $llx $lly $urx $ury]
+    dict set instance macro_boundaries $bboxes
     dict set instances [$inst getName] $instance
 
     set_instance_halo [$inst getName] [get_default_halo]
@@ -4319,7 +4332,7 @@ proc get_instance_pg_pins_area {inst_name} {
 }
 
 proc set_instance_halo {inst_name halo} {
-  variable instances 
+  variable instances
 
   set instance [dict get $instances $inst_name]
   set inst [dict get $instance inst]
@@ -4335,12 +4348,15 @@ proc set_instance_halo {inst_name halo} {
   dict set instances $inst_name halo $halo
   # debug "Inst: [$inst getName], halo: [dict get $instances $inst_name halo]"
 
-  set llx [expr round([dict get $instance xmin] - [lindex $halo 0])]
-  set lly [expr round([dict get $instance ymin] - ([lindex $halo 1] - [get_rail_width] / 2))]
-  set urx [expr round([dict get $instance xmax] + [lindex $halo 2])]
-  set ury [expr round([dict get $instance ymax] + ([lindex $halo 3] - [get_rail_width] / 2))]
-
-  dict set instances $inst_name halo_boundary [list $llx $lly $urx $ury]
+  set halo_boundaries [list]
+  foreach macro_boundary [dict get $instance macro_boundaries] {
+      set llx [expr round([lindex $macro_boundary 0] - [lindex $halo 0])]
+      set lly [expr round([lindex $macro_boundary 1] - ([lindex $halo 1] - [get_rail_width] / 2))]
+      set urx [expr round([lindex $macro_boundary 2] + [lindex $halo 2])]
+      set ury [expr round([lindex $macro_boundary 3] + ([lindex $halo 3] - [get_rail_width] / 2))]
+      lappend halo_boundaries [list $llx $lly $urx $ury]
+  }
+  dict set instances $inst_name halo_boundaries $halo_boundaries
 }
 
 proc find_instances_of {macro_names} {
@@ -4440,7 +4456,7 @@ proc export_opendb_global_connection {} {
 
   ## Do global connect statements first
   get_global_connect_list_default [dict get $design_data core_domain] false
-  
+
   foreach net_type "power_nets ground_nets" {
     foreach net_name [dict get $design_data $net_type] {
       set net [$block findNet $net_name]
@@ -4863,16 +4879,17 @@ proc init {args} {
   variable power_nets
   variable ground_nets
   variable default_maxwidth
+  variable layers
 
-  # debug "start" 
-  init_tech 
+  # debug "start"
+  init_tech
 
   set default_maxwidth [ord::microns_to_dbu $default_maxwidth]
   set design_name [$block getName]
 
   set physical_viarules {}
   set stdcell_area ""
- 
+
   set die_area [$block getDieArea]
 
   utl::info "PDN" 8 "Design name is $design_name."
@@ -4886,7 +4903,7 @@ proc init {args} {
       set power_nets $::power_nets
     }
   }
-  
+
   if {$ground_nets == {}} {
     if {[info vars ::ground_nets] == ""} {
       set ground_nets "VSS"
@@ -4912,7 +4929,7 @@ proc init {args} {
   } else {
     set stripes_start_with $::stripes_start_with
   }
-  
+
   dict set design_data power_nets $power_nets
   dict set design_data ground_nets $ground_nets
   dict set design_data core_domain $core_domain
@@ -4924,13 +4941,13 @@ proc init {args} {
   ##### Get information from BEOL LEF
   utl::info "PDN" 9 "Reading technology data."
 
-  if {[info vars ::layers] != ""} {
-    foreach layer $::layers {
-      if {[dict exists $::layers $layer widthtable]} {
-        dict set ::layers $layer widthtable [lmap x [dict get $::layers $layer widthtable] {expr $x * $def_units}]
+  if {[info vars layers] != ""} {
+    foreach layer $layers {
+      if {[dict exists $layers $layer widthtable]} {
+        dict set layers $layer widthtable [lmap x [dict get $layers $layer widthtable] {expr $x * $def_units}]
       }
     }
-    set_layer_info $::layers
+    set_layer_info $layers
   }
 
   dict set design_data config def_output   $def_output
@@ -5211,12 +5228,12 @@ proc putdown {width spacing from to} {
 # And every PDN circuit will drill some vias to the neighbour layer, which is costly.
 # Wider circuits means less circuits to cover the same arena, and thus less vias are required.
 #
-# Let us take away the grid constraint, the min spacing constraint and 
+# Let us take away the grid constraint, the min spacing constraint and
 # the min width constraint for a while.
 #
-# It is easy to see, there is always a suitable spacing for a thin enough circuit 
+# It is easy to see, there is always a suitable spacing for a thin enough circuit
 # to satisfy the density constraints and of course the max width constraint.
-# That is to say, if there are solutions, there is a specific width, 
+# That is to say, if there are solutions, there is a specific width,
 # there is a suitable spacing for every circuit narrower than this width
 # to satisfy these constraints.
 # We cannot say, a circuit wider than that width will not satisfy these constraints.
@@ -5379,39 +5396,41 @@ proc connect_pads_to_core_ring {type pin_name pads} {
       lassign $couple pref_layer non_pref_layer
       # debug "inst=$inst_name pref_layer=$pref_layer non_pref_layer=$non_pref_layer"
       set non_pref_layer_info [dict get $grid_data core_ring $non_pref_layer]
-      switch $side {
-        "t" {
-          set y_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
-          set y_min_blk [expr $y_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
-          set y_max [dict get $instance ymin]
-          # debug "t: [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]"
-          add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]]
-        }
-        "b" {
-          #debug "[get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2"
-          set y_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
-          set y_max_blk [expr $y_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
-          set y_min [dict get $instance ymax]
-          # debug "b: [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max_blk"
-          add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max_blk]
-          #debug "end b"
-        }
-        "l" {
-          set x_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
-          set x_max_blk [expr $x_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
-          set x_min [dict get $instance xmax]
-          # debug "l: [dict get $instance xmin] [dict get $instance ymin] $x_max_blk [dict get $instance ymax]"
-          add_padcell_blockage $pref_layer [odb::newSetFromRect [dict get $instance xmin] [dict get $instance ymin] $x_max_blk [dict get $instance ymax]]
-        }
-        "r" {
-          set x_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
-          set x_min_blk [expr $x_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
-          set x_max [dict get $instance xmin]
-          # debug "r: $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]"
-          add_padcell_blockage $pref_layer [odb::newSetFromRect $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]]
-        }
+      foreach macro_boundary [dict get $instance macro_boundaries] {
+          switch $side {
+            "t" {
+              set y_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
+              set y_min_blk [expr $y_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
+              set y_max [lindex $macro_boundary 1]
+              # debug "t: [dict get $instance xmin] $y_min_blk [dict get $instance xmax] [dict get $instance ymax]"
+              add_padcell_blockage $pref_layer [odb::newSetFromRect [lindex $macro_boundary 0] $y_min_blk [lindex $macro_boundary 2] [lindex $macro_boundary 3]]
+            }
+            "b" {
+              #debug "[get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2"
+              set y_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
+              set y_max_blk [expr $y_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
+              set y_min [lindex $macro_boundary 3]
+              # debug "b: [dict get $instance xmin] [dict get $instance ymin] [dict get $instance xmax] $y_max_blk"
+              add_padcell_blockage $pref_layer [odb::newSetFromRect [lindex $macro_boundary 0] [lindex $macro_boundary 1] [lindex $macro_boundary 2] $y_max_blk]
+              #debug "end b"
+            }
+            "l" {
+              set x_max [expr [get_core_ring_centre $type $side $non_pref_layer_info] + [dict get $grid_data core_ring $non_pref_layer width] / 2]
+              set x_max_blk [expr $x_max + [dict get $grid_data core_ring $non_pref_layer spacing]]
+              set x_min [lindex $macro_boundary 2]
+              # debug "l: [dict get $instance xmin] [dict get $instance ymin] $x_max_blk [dict get $instance ymax]"
+              add_padcell_blockage $pref_layer [odb::newSetFromRect [lindex $macro_boundary 0] [lindex $macro_boundary 1] $x_max_blk [lindex $macro_boundary 3]]
+            }
+            "r" {
+              set x_min [expr [get_core_ring_centre $type $side $non_pref_layer_info] - [dict get $grid_data core_ring $non_pref_layer width] / 2]
+              set x_min_blk [expr $x_min - [dict get $grid_data core_ring $non_pref_layer spacing]]
+              set x_max [lindex $macro_boundary 0]
+              # debug "r: $x_min_blk [dict get $instance ymin] [dict get $instance xmax] [dict get $instance ymax]"
+              add_padcell_blockage $pref_layer [odb::newSetFromRect $x_min_blk [lindex $macro_boundary 1] [lindex $macro_boundary 2] [lindex $macro_boundary 3]]
+            }
       }
 
+      }
       set min_width [get_min_width [find_layer $pref_layer]]
       foreach pin_geometry [get_core_facing_pins $instance $pin_name $side $pref_layer] {
         set centre [dict get $pin_geometry centre]
@@ -5816,9 +5835,9 @@ proc add_grid {} {
     } else {
       generate_core_rings [dict get $grid_data core_ring]
     }
-    
+
     # generate_core_rings [dict get $grid_data core_ring]
-    
+
     if {[dict exists $grid_data gnd_pads]} {
       dict for {pin_name cells} [dict get $grid_data gnd_pads] {
         connect_pads_to_core_ring "GROUND" $pin_name $cells
@@ -5829,7 +5848,7 @@ proc add_grid {} {
         connect_pads_to_core_ring "POWER" $pin_name $cells
       }
     }
-    
+
     generate_voltage_domain_rings [dict get $grid_data core_ring]
     # merge_stripes
     # set intersections [odb::andSet $stripe_locs(G1,POWER) $stripe_locs(G2,POWER)]
@@ -5912,7 +5931,7 @@ proc get_instance_specification {instance} {
   if {![dict exists $specification blockages]} {
     dict set specification blockages {}
   }
-  dict set specification area [dict get $instances $instance macro_boundary]
+  dict set specification area [dict get $instances $instance macro_boundaries]
 
   return $specification
 }
@@ -5972,26 +5991,6 @@ proc init_metal_layers {} {
       }
     }
   }
-}
-
-proc get_instance_llx {instance} {
-  variable instances
-  return [lindex [dict get $instances $instance halo_boundary] 0]
-}
-
-proc get_instance_lly {instance} {
-  variable instances
-  return [lindex [dict get $instances $instance halo_boundary] 1]
-}
-
-proc get_instance_urx {instance} {
-  variable instances
-  return [lindex [dict get $instances $instance halo_boundary] 2]
-}
-
-proc get_instance_ury {instance} {
-  variable instances
-  return [lindex [dict get $instances $instance halo_boundary] 3]
 }
 
 proc get_macro_blockage_layers {instance} {
@@ -6531,7 +6530,7 @@ proc get_voltage_domain_power {domain} {
 
 proc get_voltage_domain_secondary_power {domain} {
   variable voltage_domains
-  
+
   if {[dict exists $voltage_domains $domain secondary_power]} {
     return [dict get $voltage_domains $domain secondary_power]
   } else {
@@ -6651,7 +6650,7 @@ proc update_mesh_stripes_with_volatge_domains {tag lay snet_name} {
 
     for {set i 0} {$i < [llength $stripes($lay,$tag)]} {incr i} {
       set updated_polygonSet [lindex $stripes($lay,$tag) $i]
-      # Check if core domain's power is the same as voltage domain's power 
+      # Check if core domain's power is the same as voltage domain's power
       if {$snet_name == [get_voltage_domain_power $domain_name] ||
           $snet_name == [get_voltage_domain_ground $domain_name]} {
         set updated_polygonSet [odb::subtractSet $updated_polygonSet $boundary_box_for_crossing_core_net]
@@ -6705,7 +6704,7 @@ proc generate_voltage_domain_rings {core_ring_data} {
     set power_net [get_voltage_domain_power $domain_name]
     set secondary_power_net [get_voltage_domain_secondary_power $domain_name]
     set ground_net [get_voltage_domain_ground $domain_name]
-    
+
     set domain_xMin [$rect xMin]
     set domain_yMin [$rect yMin]
     set domain_xMax [$rect xMax]
@@ -6757,7 +6756,7 @@ proc generate_voltage_domain_rings {core_ring_data} {
             [expr $outer_ux + $width / 2] \
             [expr $outer_uy + $width / 2] \
           ]
-        
+
         if {$power_net == [get_voltage_domain_power [dict get $design_data core_domain]]} {
           add_stripe $layer "POWER" $lower_inner_ring
           add_stripe $layer "POWER" $upper_inner_ring
@@ -6772,12 +6771,12 @@ proc generate_voltage_domain_rings {core_ring_data} {
           add_stripe $layer "GROUND_$ground_net" $lower_outer_ring
           add_stripe $layer "GROUND_$ground_net" $upper_outer_ring
         }
-        
+
       	set number_of_rings [llength $secondary_power_net]
         foreach secondary_power $secondary_power_net {
           set outer_lx [expr $outer_lx - $spacing - $width]
           set outer_ly [expr $outer_ly - $spacing - $width]
-          set outer_ux [expr $outer_ux + $spacing + $width] 
+          set outer_ux [expr $outer_ux + $spacing + $width]
     	    set outer_uy [expr $outer_uy + $spacing + $width]
 
           set upper_domain_power \
@@ -6849,7 +6848,7 @@ proc generate_voltage_domain_rings {core_ring_data} {
           set outer_ly [expr $outer_ly - $spacing - $width]
           set outer_ux [expr $outer_ux + $spacing + $width]
           set outer_uy [expr $outer_uy + $spacing + $width]
-  
+
           set lhs_domain_power \
             [odb::newSetFromRect \
               [expr $outer_lx - $width / 2] \
@@ -6879,7 +6878,7 @@ proc generate_voltage_domain_rings {core_ring_data} {
 proc get_valid_mterms {net_name} {
   variable global_connections
   variable default_global_connections
- 
+
   if {$global_connections == {}} {
     set global_connections $default_global_connections
   }
@@ -6944,13 +6943,15 @@ proc get_instance_blockages {insts} {
   foreach inst $insts {
     foreach layer [get_macro_blockage_layers $inst] {
       # debug "Inst $inst"
-      # debug "Macro boundary: [dict get $instances $inst macro_boundary]"
-      # debug "Halo boundary:  [dict get $instances $inst halo_boundary]"
-      set box [odb::newSetFromRect [get_instance_llx $inst] [get_instance_lly $inst] [get_instance_urx $inst] [get_instance_ury $inst]]
-      if {[dict exists $blockages $layer]} {
-        dict set blockages $layer [odb::orSet [dict get $blockages $layer] $box]
-      } else {
-        dict set blockages $layer $box
+      #debug "Macro boundary: [dict get $instances $inst macro_boundaries]"
+      #debug "Halo boundary:  [dict get $instances $inst halo_boundaries]"
+      foreach halo_boundary [dict get $instances $inst halo_boundaries] {
+          set box [odb::newSetFromRect {*}$halo_boundary]
+          if {[dict exists $blockages $layer]} {
+            dict set blockages $layer [odb::orSet [dict get $blockages $layer] $box]
+          } else {
+            dict set blockages $layer $box
+          }
       }
     }
   }
@@ -7070,10 +7071,10 @@ proc add_macro_based_grids {} {
 
         if {[dict exists $grid_data grid_over_pg_pins]} {
           # debug "Grid over pins: [get_instance_pg_pins_area $instance]"
-          dict set grid_data area [get_instance_pg_pins_area $instance]
+          dict set grid_data area "{[get_instance_pg_pins_area $instance]}"
         } else {
           # debug "Grid boundary: [get_instance_pg_pins_area $instance]"
-          dict set grid_data area [dict get $instances $instance macro_boundary]
+          dict set grid_data area [dict get $instances $instance macro_boundaries]
         }
         add_grid
 
@@ -7122,15 +7123,17 @@ proc plan_grid {} {
   }
 
   if {![dict exists $specification area]} {
-    dict set specification area [dict get $design_data config core_area]
+    dict set specification area "{[dict get $design_data config core_area]}"
   }
 
   set grid_data $specification
 
-  set boundary [odb::newSetFromRect {*}[dict get $grid_data area]]
-  set insts_in_core_area [filtered_insts_within $instances $boundary]
+  foreach area [dict get $grid_data area] {
+      set boundary [odb::newSetFromRect {*}$area]
+      set insts_in_core_area [filtered_insts_within $instances $boundary]
 
-  set_blockages [get_instance_blockages [dict keys $insts_in_core_area]]
+      set_blockages [get_instance_blockages [dict keys $insts_in_core_area]]
+  }
   add_blockages [core_area_boundary]
   if {[dict exists $specification template]} {
     read_template_placement
@@ -7148,7 +7151,7 @@ proc plan_grid {} {
   }
 
   add_macro_based_grids
- 
+
 }
 
 proc opendb_update_grid {} {
@@ -7157,7 +7160,7 @@ proc opendb_update_grid {} {
   export_opendb_specialnets
   export_opendb_power_pins
 }
-  
+
 proc set_verbose {} {
   variable verbose
 
@@ -7178,7 +7181,7 @@ proc apply {args} {
     if {![file exists $PDN_cfg]} {
       utl::error "PDN" 62 "File $PDN_cfg does not exist."
     }
- 
+
     if {![file_exists_non_empty $PDN_cfg]} {
       utl::error "PDN" 28 "File $PDN_cfg is empty."
     }
