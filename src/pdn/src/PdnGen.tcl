@@ -1446,6 +1446,10 @@ proc complete_macro_grid_specifications {} {
     # debug "  blockages: [lsort -unique $blockages]"
     # debug "  connect: [dict get $design_data grid macro $grid_name connect]"
 
+    if {[dict exists $grid blockages]} {
+        lappend blockages {*}[dict get $grid blockages]
+    }
+
     dict set design_data grid macro $grid_name blockages [lsort -unique $blockages]
   }
 
@@ -4243,7 +4247,6 @@ proc get_macro_blocks {} {
       }
     }
   }
-
   return $macros
 }
 
