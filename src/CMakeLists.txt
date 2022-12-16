@@ -204,6 +204,12 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Protobuf REQUIRED)
 message(STATUS "protobuf: ${Protobuf_VERSION}")
 
+find_package(LEMON QUIET)
+if(NOT ${LEMON-FOUND})
+  find_package(lemon REQUIRED)
+endif()
+message(STATUS "lemon: ${LEMON_INCLUDE_DIR}, ${LEMON_LIBRARY}")
+
 ################################################################
 
 # Build flow tools
