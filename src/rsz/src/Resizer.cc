@@ -1919,6 +1919,19 @@ Resizer::area(dbMaster *master)
   if (!master->isCoreAutoPlaceable()) {
     return 0;
   }
+ 
+  bool hasOverlap = false;
+  double res = 0.0;
+  for (auto const &obs : master->getObstructions()) {
+    auto layer = obs->getTechLayer();
+    if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
+      hasOverlap = true;
+      odb::Rect rect;
+      obs->getBox(rect);
+      res += dbuToMeters(rect.dx()) * dbuToMeters(rect.dy());
+    }
+  } 
+  if (hasOverlap) return res;
   return dbuToMeters(master->getWidth()) * dbuToMeters(master->getHeight());
 }
 
