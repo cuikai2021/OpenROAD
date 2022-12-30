@@ -47,6 +47,7 @@
 #include "ord/Version.hh"
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
+#include <memory>
 
 
 ////////////////////////////////////////////////////////////////
@@ -169,6 +170,12 @@ getLindenGlobalPlace()
   return openroad->getLindenGlobalPlace();
 }
 
+std::shared_ptr<lindenmp::LindenMacroPlace> getLindenMacroPlace()
+{
+  OpenRoad *ord = getOpenRoad();
+  return ord->getLindenMacroPlace();
+}
+
 rcx::Ext *
 getOpenRCX()
 {
@@ -204,7 +211,7 @@ getGlobalRouter()
   return openroad->getGlobalRouter();
 }
 
-tap::Tapcell* 
+tap::Tapcell*
 getTapcell()
 {
   OpenRoad *openroad = getOpenRoad();
@@ -329,7 +336,7 @@ write_def_cmd(const char *filename,
 }
 
 
-void 
+void
 write_cdl_cmd(const char *outFilename,
               const char *mastersFilename,
               bool includeFillers)
@@ -471,21 +478,21 @@ db_layer_has_tracks(unsigned layerId, bool hor)
   dbDatabase *db = OpenRoad::openRoad()->getDb();
   dbBlock *block = db->getChip()->getBlock();
   dbTech *tech = db->getTech();
-  
+
   dbTechLayer *layer = tech->findRoutingLayer(layerId);
   if (!layer) {
     return false;
   }
-    
+
   dbTrackGrid *trackGrid = block->findTrackGrid(layer);
   if (!trackGrid) {
     return false;
   }
 
   if (hor) {
-    return trackGrid->getNumGridPatternsY() > 0; 
+    return trackGrid->getNumGridPatternsY() > 0;
   } else {
-    return trackGrid->getNumGridPatternsX() > 0; 
+    return trackGrid->getNumGridPatternsX() > 0;
   }
 }
 

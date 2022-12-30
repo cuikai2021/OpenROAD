@@ -88,6 +88,7 @@
 #include "dst/MakeDistributed.h"
 #include "stt/MakeSteinerTreeBuilder.h"
 #include "linden/linden.hpp"
+#include "gpl/lindenmp.hpp"
 
 namespace sta {
 extern const char *openroad_swig_tcl_inits[];
@@ -102,6 +103,8 @@ extern int Odbtcl_Init(Tcl_Interp *interp);
 // Main.cc set by main()
 extern const char* log_filename;
 extern const char* metrics_filename;
+
+using namespace std;
 
 namespace ord {
 
@@ -551,6 +554,13 @@ OpenRoad::setThreadCount(const char* threads, bool printInfo) {
 int
 OpenRoad::getThreadCount() {
   return threads_;
+}
+
+shared_ptr<lindenmp::LindenMacroPlace> OpenRoad::getLindenMacroPlace()
+{
+  static shared_ptr<lindenmp::LindenMacroPlace> singleton(
+    new lindenmp::LindenMacroPlace(this));
+  return singleton;
 }
 
 } // namespace

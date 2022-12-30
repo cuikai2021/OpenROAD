@@ -80,6 +80,7 @@ target_sources(gpl
     src/graphics.cpp
     src/banyan_cmap.pb.cc
     src/lindengp.rdp.cpp
+    src/lindenmp.cpp
 )
 
 messages(TARGET gpl)

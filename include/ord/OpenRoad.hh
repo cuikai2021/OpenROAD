@@ -38,6 +38,7 @@
 #include <string>
 #include <set>
 #include <vector>
+#include <memory>
 
 extern "C" {
 struct Tcl_Interp;
@@ -150,6 +151,10 @@ namespace stt {
 class SteinerTreeBuilder;
 }
 
+namespace lindenmp {
+class LindenMacroPlace;
+} // namespace lindenmp
+
 namespace ord {
 
 using std::string;
@@ -174,8 +179,8 @@ public:
   sta::dbNetwork *getDbNetwork();
   rsz::Resizer *getResizer() { return resizer_; }
   lrl::Laurel *getLaurel() { return laurel_; }
-  rmp::Restructure *getRestructure() { return restructure_; } 
-  cts::TritonCTS *getTritonCts() { return tritonCts_; } 
+  rmp::Restructure *getRestructure() { return restructure_; }
+  cts::TritonCTS *getTritonCts() { return tritonCts_; }
   dbVerilogNetwork *getVerilogNetwork() { return verilog_network_; }
   dpl::Opendp *getOpendp() { return opendp_; }
   dpo::Optdp *getOptdp() { return optdp_; }
@@ -196,6 +201,7 @@ public:
   pdn::PdnGen *getPdnGen() { return pdngen_; }
   dst::Distributed *getDistributed() { return distributer_; }
   stt::SteinerTreeBuilder *getSteinerTreeBuilder() { return stt_builder_; }
+  std::shared_ptr<lindenmp::LindenMacroPlace> getLindenMacroPlace();
 
   // Return the bounding box of the db rows.
   odb::Rect getCore();
@@ -211,11 +217,11 @@ public:
                bool continue_on_errors,
                bool floorplan_init,
                bool incremental);
-  
+
   void writeDef(const char *filename,
 		// major.minor (avoid including defout.h)
 		string version);
-  
+
   void writeCdl(const char *outFilename,
                 const char *mastersFilename,
                 bool includeFillers);
@@ -247,7 +253,7 @@ public:
     virtual void postReadLef(const char *filename, odb::dbTech* tech, odb::dbLib* library) {
       postReadLef(tech, library);
     }
-    
+
     // Either pointer could be null
     virtual void postReadLef(odb::dbTech* tech, odb::dbLib* library) {}
     virtual void postReadDef(odb::dbBlock* block) {}
@@ -291,7 +297,7 @@ private:
   ant::AntennaChecker *antenna_checker_;
   gpl::Replace *replace_;
   gpl::LindenGlobalPlace *lindengp_;
-  psm::PDNSim *pdnsim_; 
+  psm::PDNSim *pdnsim_;
   par::PartitionMgr *partitionMgr_;
   pdn::PdnGen *pdngen_;
   dst::Distributed *distributer_;
