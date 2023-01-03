@@ -205,10 +205,12 @@ find_package(Protobuf REQUIRED)
 message(STATUS "protobuf: ${Protobuf_VERSION}")
 
 find_package(LEMON QUIET)
-if(NOT ${LEMON-FOUND})
-  find_package(lemon REQUIRED)
+find_package(lemon QUIET)
+if(LEMON_LIBRARY STREQUAL "")
+  message(FATAL_ERROR "Cannot find lemon")
 endif()
-message(STATUS "lemon: ${LEMON_INCLUDE_DIR}, ${LEMON_LIBRARY}")
+string(REGEX REPLACE ".*/lib([a-zA-Z0-9]+)[.]a" "\\1" LEMON_LIB_NAME ${LEMON_LIBRARY})
+message(STATUS "lemon (${LEMON_LIB_NAME}): ${LEMON_INCLUDE_DIR}, ${LEMON_LIBRARY}")
 
 ################################################################
 

@@ -67,6 +67,6 @@ target_link_libraries(linden
     tomlpp
     fassert
     prettyprint
-    ${LEMON_LIBRARY}
+    ${LEMON_LIB_NAME}
     ${FINUFFT} ${LEGENDRE_RULE_FAST} fftw3 fftw3_omp fftw3f fftw3f_omp
 )
