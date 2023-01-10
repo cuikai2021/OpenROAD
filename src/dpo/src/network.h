@@ -154,6 +154,13 @@ class Node {
   void setIsDefinedByShapes(bool val = false) { m_isDefinedByShapes = val; }
   bool isDefinedByShapes() const { return m_isDefinedByShapes; }
 
+  void setIsBlock(bool is_block) {
+    m_isBlock = is_block;
+  }
+  bool isBlock() const {
+    return m_isBlock;
+  }
+
  protected:
   // Id.
   int m_id;
@@ -189,6 +196,8 @@ class Node {
   // some fixed macros are not rectangles
   // and are defined by sub-rectanges (shapes).
   bool m_isDefinedByShapes;
+
+  bool m_isBlock;
 
   friend class Network;
 };

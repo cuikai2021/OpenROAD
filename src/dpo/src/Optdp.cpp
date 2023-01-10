@@ -95,7 +95,7 @@ void Optdp::init(odb::dbDatabase* db, utl::Logger* logger, dpl::Opendp* opendp) 
 
 ////////////////////////////////////////////////////////////////
 void Optdp::improvePlacement(int seed,
-                             int max_displacement_x, 
+                             int max_displacement_x,
                              int max_displacement_y) {
   logger_->report("Detailed placement improvement.");
 
@@ -203,7 +203,7 @@ void Optdp::updateDbInstLocations() {
     if (!inst->getMaster()->isCoreAutoPlaceable()) {
       continue;
     }
-    
+
     it_n = instMap_.find(inst);
     if (instMap_.end() != it_n) {
       Node* nd = it_n->second;
@@ -443,6 +443,9 @@ void Optdp::createNetwork() {
     // Name of inst.
     network_->setNodeName(n, inst->getName().c_str());
 
+    // set whether this cell is a block.
+    ndi->setIsBlock(inst->getMaster()->isBlock());
+
     // Fill in data.
     ndi->setType(NodeType_CELL);
     ndi->setId(n);
@@ -567,7 +570,7 @@ void Optdp::createNetwork() {
 
         Pin* ptr = network_->createAndAddPin(network_->getNode(n),network_->getEdge(e));
 
-        // Pin offset. 
+        // Pin offset.
         dbMTerm* mTerm = iTerm->getMTerm();
         dbMaster* master = mTerm->getMaster();
         // Due to old bookshelf, my offsets are from the
@@ -641,7 +644,7 @@ void Optdp::createNetwork() {
         // Reorient the cell in my network too.
         it_n = instMap_.find(inst);
         if (instMap_.end() != it_n) {
-          n = it_n->second->getId();  
+          n = it_n->second->getId();
           if (network_->getNode(n)->getId() == n) {
             network_->getNode(n)->adjustCurrOrient(dbToDpoOrient(orient));
           }

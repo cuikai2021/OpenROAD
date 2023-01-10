@@ -60,7 +60,8 @@ Node::Node()
       m_regionId(0),
       m_currentOrient(Orientation_N),
       m_availOrient(Orientation_N),
-      m_isDefinedByShapes(false)
+      m_isDefinedByShapes(false),
+      m_isBlock(false)
 {
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -244,7 +245,7 @@ Node* Network::createAndAddFillerNode(int left, int bottom, int width,
 }
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-Node* Network::createAndAddShapeNode(int left, int bottom, int width, 
+Node* Network::createAndAddShapeNode(int left, int bottom, int width,
                                      int height) {
   // Add shape cells to list of network cells.  We have
   // the parent node from which we can derive a name.
