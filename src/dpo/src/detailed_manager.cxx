@@ -176,6 +176,11 @@ void DetailedMgr::findBlockages(bool includeRouteBlockages) {
   for (int i = 0; i < m_fixedCells.size(); i++) {
     Node* nd = m_fixedCells[i];
     if (nd->isBlock()) {
+      // Some macros allow std cells to be put inside their bounding box.
+      // They are so-called overlap-obstacled macros for they have obstacles
+      // on the overlap layer to indicate where std cells must really not go.
+      // So, rows will go inside overlap-obstacled macros and thus these macros
+      // must not cut these rows off.
       continue;
     }
 
