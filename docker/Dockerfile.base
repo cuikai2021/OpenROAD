@@ -17,6 +17,13 @@ RUN curl -o /tmp/gdb-12.1.tar.gz -L https://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.gz 
     make -j8 && \
     make install && \
     rm -rf tmp/*
+RUN curl -L https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2 -o /tmp/valgrind-3.20.0.tar.bz2 && \
+    tar -jxf /tmp/valgrind-3.20.0.tar.bz2 -C /tmp && \
+    cd /tmp/valgrind-3.20.0 && \
+    ./autogen.sh && \
+    make -j8 && \
+    make install && \
+    rm -rf tmp/*
 
 FROM base-debug AS base-debug-vscode
 COPY ./vscode-extensions /root/.vscode-server/extensions
