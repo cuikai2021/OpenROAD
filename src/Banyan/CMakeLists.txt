@@ -38,7 +38,7 @@ target_include_directories(Banyan
   PRIVATE
     ${Protobuf_INCLUDE_DIRS}
     banyan-integrate
-    src  
+    src
 )
 
 target_link_libraries(Banyan
@@ -59,6 +59,8 @@ target_link_libraries(Banyan
   PRIVATE
     ${Protobuf_LIBRARIES}
 )
+
+add_subdirectory(test)
 
 ############################################################
 # Compiler flags
