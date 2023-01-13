@@ -21,6 +21,7 @@ RUN curl -L https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2 -o /tmp/
     tar -jxf /tmp/valgrind-3.20.0.tar.bz2 -C /tmp && \
     cd /tmp/valgrind-3.20.0 && \
     ./autogen.sh && \
+    ./configure && \
     make -j8 && \
     make install && \
     rm -rf tmp/*
