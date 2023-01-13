@@ -127,11 +127,14 @@ _installCommonDev() {
 
     # or-tools (latest)
     cd "${baseDir}"
-    $PROXYCHAINS git clone -b "v${ortoolsVersion}" https://github.com/google/or-tools
-    cd or-tools
-    cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release -DBUILD_DEPS=ON
-    cmake --build build -j $(nproc) --config Release -v 
-    cmake --build build --target install
+    orToolsOsVersion=amd64_ubuntu-20.04
+    orToolsVersionBig=9.4
+    orToolsVersionSmall=${orToolsVersionBig}.1874
+    orToolsFile=or-tools_${orToolsOsVersion}_cpp_v${orToolsVersionSmall}.tar.gz
+    wget https://github.com/google/or-tools/releases/download/v${orToolsVersionBig}/${orToolsFile}
+    mkdir -p /opt/or-tools
+    tar --strip 1 --dir /opt/or-tools -xf ${orToolsFile}
+    # sync up `/opt/or-tools` in CMakeLists.txt
 
     cd "$lastDir"
     rm -rf "${baseDir}"

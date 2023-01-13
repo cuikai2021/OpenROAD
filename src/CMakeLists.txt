@@ -212,6 +212,13 @@ endif()
 string(REGEX REPLACE ".*/lib([a-zA-Z0-9]+)[.]a" "\\1" LEMON_LIB_NAME ${LEMON_LIBRARY})
 message(STATUS "lemon (${LEMON_LIB_NAME}): ${LEMON_INCLUDE_DIR}, ${LEMON_LIBRARY}")
 
+
+# or-tools
+list(APPEND CMAKE_PREFIX_PATH
+  "/opt/or-tools/lib64/cmake"
+  "/opt/or-tools/lib/cmake"
+)
+
 ################################################################
 
 # Build flow tools
