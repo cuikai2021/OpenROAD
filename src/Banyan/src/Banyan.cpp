@@ -5,6 +5,7 @@
 
 #include "DBAdapter.hpp"
 #include "Global.hpp"
+#include "MergeWireSegment.hpp"
 #include "clipp.hpp"
 #include "magic_enum.hpp"
 #include "odb/db.h"
@@ -120,7 +121,6 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   }
   pbfs.close();
 
-
   if (std::find(args.begin(), args.end(), "--techlef") == args.end()) {
     args.push_back("--techlef");
     args.push_back(techfile_name_);
@@ -176,6 +176,12 @@ int Banyan::cmap(const std::string& cmapPb)
   args.push_back("true");
 
   return main(args, false);
+}
+
+void Banyan::mergeWireSegment()
+{
+  auto mws = MergeWireSegment(db_, logger_);
+  mws.Run();
 }
 
 }  // namespace banyan

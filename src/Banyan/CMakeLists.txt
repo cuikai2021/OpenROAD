@@ -27,6 +27,7 @@ target_sources(Banyan
     src/MakeBanyan.cpp
     src/DBAdapter.cpp
     src/Global.cpp
+    src/MergeWireSegment.cpp
     banyan-integrate/banyan_db.pb.cc
 )
 

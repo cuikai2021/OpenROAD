@@ -30,6 +30,12 @@ void banyan(std::vector<std::string> args)
      ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
 }
 
+void mergeWireSegment()
+{
+     ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
+}
+
+
 }
 
 %} // inline

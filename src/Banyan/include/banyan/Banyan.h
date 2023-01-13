@@ -8,13 +8,13 @@
 #include <boost/process.hpp>
 #include <charconv>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <numeric>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <filesystem>
 
 #include "ord/OpenRoad.hh"
 
@@ -49,14 +49,18 @@ class Banyan : public ord::OpenRoad::Observer
             utl::Logger* logger,
             lrl::Laurel* laurel);
 
-  int main(std::vector<std::string> args,bool updateDB);
+  int main(std::vector<std::string> args, bool updateDB);
   int cmap(const std::string& cmapPb);
+  void mergeWireSegment();
 
   // From ord::OpenRoad::Observer
-  virtual void postReadLef(const char *filename, odb::dbTech* tech, odb::dbLib* library) override {
-     if (tech) {
-        techfile_name_ = filename;
-     }
+  virtual void postReadLef(const char* filename,
+                           odb::dbTech* tech,
+                           odb::dbLib* library) override
+  {
+    if (tech) {
+      techfile_name_ = filename;
+    }
   }
 
  protected:
@@ -65,7 +69,7 @@ class Banyan : public ord::OpenRoad::Observer
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
   std::string techfile_name_;
-}; // class Banyan
+};  // class Banyan
 
 }  // namespace banyan
 
