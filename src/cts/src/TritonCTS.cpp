@@ -45,6 +45,7 @@
 #include "CtsOptions.h"
 #include "HTreeBuilder.h"
 #include "LevelBalancer.h"
+#include "NNCBuilder.h"
 #include "PostCtsOpt.h"
 #include "TechChar.h"
 #include "TreeBuilder.h"
@@ -52,9 +53,11 @@
 #include "db_sta/dbSta.hh"
 #include "odb/db.h"
 #include "odb/dbShape.h"
+#include "search/ClkSkew.hh"
 #include "sta/Liberty.hh"
 #include "sta/Sdc.hh"
 #include "utl/Logger.h"
+#include "CTSClkSkew.h"
 
 namespace cts {
 
@@ -110,8 +113,12 @@ void TritonCTS::addBuilder(TreeBuilder* builder)
 
 void TritonCTS::setupCharacterization()
 {
-  // A new characteriztion is always created.
-  _techChar->create();
+  if (_options->getEnableNNC()) {
+    _techChar-> initCharacterizationNoLUT();
+  } else {
+    // A new characteriztion is always created.
+    _techChar->create();
+  }
 
   // Also resets metrics everytime the setup is done
   _options->setNumSinks(0);
@@ -152,18 +159,70 @@ void TritonCTS::findClockRoots()
   }
 }
 
+void TritonCTS::buildClockTreeWithGating(TreeBuilder* builder, TechChar *techChar) {
+  // 先把子树构建好，子树构建完成后，需要更新上一个builder中sink节点的load cap和delay
+  std::function<void(TreeBuilder*)> postOrderTraversal = [&](TreeBuilder* curBuilder) {
+    for (auto child_builder : curBuilder->getChildren()) {
+      buildClockTreeWithGating(child_builder, techChar);
+    }
+
+    curBuilder->setTechChar(*techChar);
+    curBuilder->run();
+
+  };
+  postOrderTraversal(builder);
+}
+
 void TritonCTS::buildClockTrees()
 {
+  //remove duplicate builder
+  std::set<odb::dbNet*> gatedClockNets;
   for (TreeBuilder* builder : *_builders) {
-    builder->setTechChar(*_techChar);
-    builder->run();
+    if (builder->getParent() == nullptr) {
+      continue ;
+    }
+
+    gatedClockNets.insert(builder->getClock().getNetObj());
   }
 
-  if (_options->getBalanceLevels()) {
+  for (std::vector<TreeBuilder*>::iterator it = (*_builders).begin(); it != (*_builders).end(); it++) {
+    if ((*it)->getParent() != nullptr) {
+      continue ;
+    }
+
+    if (gatedClockNets.find((*it)->getClock().getNetObj()) != gatedClockNets.end()) {
+      _logger->info(CTS, 108, "remove net {} from clock {} for gating net.",
+                    (*it)->getClock().getNetObj()->getName(), (*it)->getClock().getName());
+      it = (*_builders).erase(it);
+      it--;
+    }
+  }
+
+  if (_options->getEnableNNC()) {
     for (TreeBuilder* builder : *_builders) {
-      if (!builder->getParent() && builder->getChildren().size()) {
-        LevelBalancer balancer(builder, _options, _logger);
-        balancer.run();
+      if (builder->getParent() != nullptr) {
+        continue ;
+      }
+
+      if (builder->getChildren().size() > 0) {
+        buildClockTreeWithGating(builder, _techChar);
+      } else {
+        builder->setTechChar(*_techChar);
+        builder->run();
+      }
+    }
+  } else {
+    for (TreeBuilder* builder : *_builders) {
+      builder->setTechChar(*_techChar);
+      builder->run();
+    }
+
+    if (_options->getBalanceLevels()) {
+      for (TreeBuilder* builder : *_builders) {
+        if (!builder->getParent() && builder->getChildren().size()) {
+          LevelBalancer balancer(builder, _options, _logger);
+          balancer.run();
+        }
       }
     }
   }
@@ -193,10 +252,16 @@ void TritonCTS::initOneClockTree(odb::dbNet* driverNet,
           && (iterm->getInst()->isCore()
               || iterm->getInst()->isPad())) {  // Clock Gate
         odb::dbITerm* outputPin = getSingleOutput(iterm->getInst(), iterm);
+
         if (outputPin && outputPin->getNet()) {
           odb::dbNet* outputNet = outputPin->getNet();
-          if (visitedClockNets.find(outputNet) == visitedClockNets.end())
+          if (visitedClockNets.find(outputNet) == visitedClockNets.end()) {
+            if (_openSta->sdc()->isLeafPinClock(_network->dbToSta(outputPin))) {
+              _logger->info(CTS, 107, "leaf pin clock gating instance: {}, output net {}.",
+                            iterm->getInst()->getName(), outputNet->getName());
+            }
             initOneClockTree(outputNet, sdcClockName, clockBuilder);
+          }
         }
       }
     }
@@ -305,6 +370,9 @@ void TritonCTS::writeDataToDb()
     writeClockNetsToDb(builder->getClock());
   }
 
+  int total_sink = 0;
+  double total_distance = 0;
+
   for (TreeBuilder* builder : *_builders) {
     odb::dbNet* topClockNet = builder->getClock().getNetObj();
     unsigned sinkCount = 0;
@@ -332,7 +400,12 @@ void TritonCTS::writeDataToDb()
     double avgWL = allSinkDistance / sinkCount;
     _logger->info(CTS, 101, " Average sink wire length {:.2f} um", avgWL);
     _logger->info(CTS, 102, " Path depth {} - {}", minDepth, maxDepth);
+
+    total_sink += sinkCount;
+    total_distance += allSinkDistance;
   }
+
+  _options->setAvgDistance(total_distance/total_sink);
 }
 
 void TritonCTS::forEachBuilder(
@@ -345,6 +418,26 @@ void TritonCTS::forEachBuilder(
 
 void TritonCTS::reportCtsMetrics()
 {
+  CTSClkSkew* ctsClkSkew = new CTSClkSkew(_openSta);
+  sta::ClkSkewMap skew_map = ctsClkSkew->findClkSkews();
+  float avg_skew = 0;
+  float max_skew = 0;
+  if (skew_map.size() > 0) {
+    float total_skew = 0;
+    for (auto clk_skew_itr : skew_map) {
+      sta::ClkSkew *clk_skew = clk_skew_itr.second;
+      float skew = clk_skew->skew();
+      total_skew += skew;
+
+      if (skew > max_skew) {
+        max_skew = skew;
+      }
+    }
+    avg_skew = total_skew / (skew_map.size() * 1e-9);
+    avg_skew = std::round(avg_skew * 100) / 100;
+    max_skew = std::round((max_skew / 1e-9) * 100) / 100;
+  }
+  double avg_sink_distance = std::round(_options->getAvgDistance() * 100) / 100;
   std::string filename = _options->getMetricsFile();
 
   if (filename != "") {
@@ -355,13 +448,49 @@ void TritonCTS::reportCtsMetrics()
           CTS, 87, "Could not open output metric file {}.", filename.c_str());
     }
 
-    file << "Total number of Clock Roots: " << _options->getNumClockRoots()
-         << ".\n";
-    file << "Total number of Buffers Inserted: "
-         << _options->getNumBuffersInserted() << ".\n";
-    file << "Total number of Clock Subnets: " << _options->getNumClockSubnets()
-         << ".\n";
-    file << "Total number of Sinks: " << _options->getNumSinks() << ".\n";
+    if(_options->getMetricJsonFormat()) {
+      file << "{ \"clock_root\":" << _options->getNumClockRoots()
+           << ", \"total_buffers\": " << _options->getNumBuffersInserted()
+           << ", \"total_clock_nets\": " << _options->getNumClockSubnets()
+           << ", \"total_sinks\": " << _options->getNumSinks()
+           << ", \"avg_sink_wire_length(um)\": " << avg_sink_distance;
+      if (skew_map.size() > 0) {
+        file << ", \"avg_clock_skew(ns)\": " << avg_skew
+             << ", \"max_clock_skew(ns)\": " << max_skew
+             << ", \"skews\": {";
+        for (auto iter = skew_map.begin(); iter != skew_map.end();) {
+          sta::Clock* clock = iter->first;
+          sta::ClkSkew* clk_skew = iter->second;
+          float skew = clk_skew->skew() / 1e-9;
+          skew = std::round(skew * 100) / 100;
+          file << "\"" << clock->name() << "\":" << skew;
+          if (++iter != skew_map.end())
+            file << ",";
+        }
+        file << "}\n";
+      }
+      file << "}\n";
+    } else {
+      file << "Total number of Clock Roots: " << _options->getNumClockRoots()
+           << ".\n";
+      file << "Total number of Buffers Inserted: "
+           << _options->getNumBuffersInserted() << ".\n";
+      file << "Total number of Clock Subnets: " << _options->getNumClockSubnets()
+           << ".\n";
+      file << "Total number of Sinks: " << _options->getNumSinks() << ".\n";
+      file << "Average sink wire length(um): " << avg_sink_distance << ".\n";
+      if (skew_map.size() > 0) {
+        file << "Clock Skew(ns): " << avg_skew << ".\n";
+        file << "Max clock Skew(ns): " << max_skew << ".\n";
+        for (auto clk_skew_itr : skew_map) {
+          sta::Clock *clock = clk_skew_itr.first;
+          sta::ClkSkew *clk_skew = clk_skew_itr.second;
+          float skew = clk_skew->skew() / 1e-9;
+          skew = std::round(skew * 100) / 100;
+          file << "    " << clock->name() << ":" << skew << ".\n";
+        }
+      }
+    }
     file.close();
 
   } else {
@@ -379,6 +508,8 @@ void TritonCTS::reportCtsMetrics()
                   _options->getNumClockSubnets());
     _logger->info(
         CTS, 6, "Total number of Sinks: {}.", _options->getNumSinks());
+    _logger->info(CTS, 219, "Clock skew: {}ns.", avg_skew);
+    _logger->info(CTS, 220, "Average sink wire length: {}um.",avg_sink_distance);
   }
 }
 
@@ -466,6 +597,8 @@ void TritonCTS::populateTritonCTS()
     }
   }
 
+  std::set<odb::dbNet*> visitedClockNets;
+
   // Iterate over all the nets found by the user-input and dbSta
   for (const auto& clockInfo : clockNetsInfo) {
     std::set<odb::dbNet*> clockNets = clockInfo.first;
@@ -474,15 +607,19 @@ void TritonCTS::populateTritonCTS()
       if (net != nullptr) {
         if (clkName == "")
           _logger->info(CTS, 95, "Net \"{}\" found.", net->getName());
-        else
-          _logger->info(CTS,
-                        7,
-                        "Net \"{}\" found for clock \"{}\".",
-                        net->getName(),
-                        clkName);
-        // Initializes the net in TritonCTS. If the number of sinks is less than
-        // 2, the net is discarded.
-        initOneClockTree(net, clkName, nullptr);
+        else {
+          if (visitedClockNets.find(net) == visitedClockNets.end()) {
+            visitedClockNets.insert(net);
+            _logger->info(CTS,  7, "Net \"{}\" found for clock \"{}\".",
+                          net->getName(), clkName);
+            // Initializes the net in TritonCTS. If the number of sinks is less than
+            // 2, the net is discarded.
+            initOneClockTree(net, clkName, nullptr);
+          } else {
+            _logger->warn(CTS, 106, "Net \"{}\" in  clock \"{}\" already collected.",
+                          net->getName(), clkName);
+          }
+        }
       } else {
         _logger->warn(
             CTS,
@@ -592,8 +729,12 @@ TreeBuilder* TritonCTS::initClock(odb::dbNet* net,
   incrementNumClocks();
 
   clockNet.setNetObj(net);
-  HTreeBuilder* builder
-      = new HTreeBuilder(_options, clockNet, parentBuilder, _logger);
+  TreeBuilder* builder;
+  if (_options->getEnableNNC()) {
+    builder = new NNCBuilder(_options, clockNet, parentBuilder, _openSta, _network, _logger);
+  } else {
+    builder = new HTreeBuilder(_options, clockNet, parentBuilder, _logger);
+  }
   addBuilder(builder);
   return builder;
 }
@@ -734,23 +875,25 @@ void TritonCTS::writeClockNetsToDb(Clock& clockNet)
 
   int minPath = std::numeric_limits<int>::max();
   int maxPath = std::numeric_limits<int>::min();
-  rootSubNet->forEachSink([&](ClockInst* inst) {
-    if (inst->isClockBuffer()) {
-      std::pair<int, int> resultsForBranch
-          = branchBufferCount(inst, 1, clockNet);
-      if (resultsForBranch.first < minPath) {
-        minPath = resultsForBranch.first;
+  if (rootSubNet) {
+    rootSubNet->forEachSink([&](ClockInst* inst) {
+      if (inst->isClockBuffer()) {
+        std::pair<int, int> resultsForBranch
+            = branchBufferCount(inst, 1, clockNet);
+        if (resultsForBranch.first < minPath) {
+          minPath = resultsForBranch.first;
+        }
+        if (resultsForBranch.second > maxPath) {
+          maxPath = resultsForBranch.second;
+        }
       }
-      if (resultsForBranch.second > maxPath) {
-        maxPath = resultsForBranch.second;
-      }
-    }
-  });
+    });
+    _logger->info(
+        CTS, 12, "    Minimum number of buffers in the clock path: {}.", minPath);
+    _logger->info(
+        CTS, 13, "    Maximum number of buffers in the clock path: {}.", maxPath);
+  }
 
-  _logger->info(
-      CTS, 12, "    Minimum number of buffers in the clock path: {}.", minPath);
-  _logger->info(
-      CTS, 13, "    Maximum number of buffers in the clock path: {}.", maxPath);
 
   if (_numFixedNets > 0) {
     _logger->info(

@@ -56,6 +56,10 @@ namespace utl {
 class Logger;
 }  // namespace utl
 
+namespace lrl {
+class DelayCalc;
+} // namespace lrl
+
 namespace cts {
 
 using utl::Logger;
@@ -189,6 +193,7 @@ class TechChar
   };
 
   void create();
+  void initCharacterizationNoLUT();
   void compileLut(std::vector<ResultData> lutSols);
   void printCharacterization() const;
   void printSolution() const;
@@ -238,7 +243,11 @@ class TechChar
 
   float getCharMaxCap() const { return _charMaxCap; }
   double getCapPerDBU() const { return _capPerDBU; }
+  double getResPerDBU() const { return _resPerDBU; }
   float getCharMaxSlew() const { return _charMaxSlew; }
+  float getCharSlewInter() const {return _charSlewInter; }
+  std::vector<odb::dbMaster*> getBufferList() const { return _bufferList; }
+  odb::dbMaster* getCharBuffer() const { return _charBuf; }
   utl::Logger* getLogger() { return _options->getLogger(); }
 
  protected:
@@ -320,6 +329,7 @@ class TechChar
   float _charSlewInter = 5.0e-12;  // Hard-coded interval
   float _charCapInter = 5.0e-15;
   std::set<std::string> _masterNames;
+  std::vector<odb::dbMaster*> _bufferList;
   std::vector<float> _wirelengthsToTest;
   std::vector<float> _loadsToTest;
   std::vector<float> _slewsToTest;

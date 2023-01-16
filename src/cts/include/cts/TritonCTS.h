@@ -72,6 +72,7 @@ class CtsOptions;
 class TechChar;
 class StaEngine;
 class TreeBuilder;
+class CTSClkSkew;
 
 class TritonCTS
 {
@@ -94,6 +95,7 @@ class TritonCTS
   void checkCharacterization();
   void findClockRoots();
   void buildClockTrees();
+  void buildClockTreeWithGating(TreeBuilder* builder, TechChar *techChar);
   void runPostCtsOpt();
   void writeDataToDb();
 

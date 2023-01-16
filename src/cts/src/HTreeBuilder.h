@@ -39,6 +39,7 @@
 #include <limits>
 
 #include "CtsOptions.h"
+#include "Graphics.h"
 #include "TreeBuilder.h"
 #include "Util.h"
 
@@ -96,7 +97,7 @@ class SegmentBuilder
   bool _forceBuffer;
   unsigned _numBufferLevels = 0;
 };
-
+class Graphics;
 //-----------------------------------------------------------------------------
 
 class HTreeBuilder : public TreeBuilder
@@ -195,6 +196,16 @@ class HTreeBuilder : public TreeBuilder
   void run();
 
   void plotSolution();
+
+  std::vector<LevelTopology> getTopologyVector() const
+  {
+    return _topologyForEachLevel;
+  }
+
+  Box<double> getSinkRegion() const { return _sinkRegion; }
+
+  int getWireSegmentUnit() const { return _wireSegmentUnit; }
+
   unsigned computeMinDelaySegment(unsigned length,
                                   unsigned inputSlew,
                                   unsigned inputCap,
@@ -204,6 +215,7 @@ class HTreeBuilder : public TreeBuilder
                                   unsigned& outputCap) const;
 
  private:
+  void treeVisualizer();
   void initSinkRegion();
   void computeLevelTopology(unsigned level, double width, double height);
   unsigned computeNumberOfSinksPerSubRegion(unsigned level) const;
@@ -288,6 +300,7 @@ class HTreeBuilder : public TreeBuilder
   std::vector<LevelTopology> _topologyForEachLevel;
   std::map<Point<double>, ClockInst*> _mapLocationToSink;
   std::vector<std::pair<float, float>> _topLevelSinksClustered;
+  std::unique_ptr<Graphics> graphics_;
 
   int _wireSegmentUnit = 0;
   unsigned _minInputCap = 0;

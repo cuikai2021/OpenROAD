@@ -266,6 +266,10 @@ class Clock
   void setDriverPin(odb::dbObject* pin) { _driverPin = pin; }
   odb::dbObject* getDriverPin() const { return _driverPin; }
 
+  int getClockPinX() const { return _clockPinX; }
+  int getClockPinY() const { return _clockPinY; }
+
+
  private:
   std::string _netName;
   std::string _clockPin;

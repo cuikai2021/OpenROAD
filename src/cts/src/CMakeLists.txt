@@ -52,6 +52,9 @@ target_sources(cts
     TritonCTS.cpp
     Clustering.cpp
     LevelBalancer.cpp
+    Graphics.cpp
+    NNCBuilder.cpp
+    CTSClkSkew.cpp
 )
 
 target_include_directories(cts
@@ -70,6 +73,7 @@ target_link_libraries(cts
     rsz
     stt
     utl
+    LaurelUtil
  )
 
 messages(

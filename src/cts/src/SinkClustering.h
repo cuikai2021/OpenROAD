@@ -83,6 +83,7 @@ class SinkClustering
   }
 
   double getWireLength(std::vector<Point<double>> points);
+  int getScaleFactor() const { return _scaleFactor; }
 
  private:
   void normalizePoints(float maxDiameter = 10);

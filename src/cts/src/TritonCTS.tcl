@@ -90,14 +90,17 @@ proc clock_tree_synthesis { args } {
   sta::parse_key_args "clock_tree_synthesis" args \
     keys {-root_buf -buf_list -wire_unit -clk_nets -out_path -sink_clustering_size -num_static_layers\
           -sink_clustering_buffer -distance_between_buffers -branching_point_buffers_distance -clustering_exponent\
-          -clustering_unbalance_ratio -sink_clustering_max_diameter -sink_clustering_levels -tree_buf}\
-    flags {-post_cts_disable -sink_clustering_enable -balance_levels}
+          -clustering_unbalance_ratio -sink_clustering_max_diameter -sink_clustering_levels -tree_buf\
+          -slew_degradation_bound -merge_delay_threshold -buffer_test_in_slew -max_fanout -balance_delay_threshold}\
+    flags {-post_cts_disable -sink_clustering_enable -balance_levels -nnc_builder}
 
   sta::check_argc_eq0 "clock_tree_synthesis" $args
 
   cts::set_disable_post_cts [info exists flags(-post_cts_disable)]
 
   cts::set_sink_clustering [info exists flags(-sink_clustering_enable)]
+
+  cts::set_enable_nnc [info exists flags(-nnc_builder)]
 
   if { [info exists keys(-sink_clustering_size)] } {
     set size $keys(-sink_clustering_size)
@@ -198,6 +201,31 @@ proc clock_tree_synthesis { args } {
     cts::set_out_path $out_path
   }
 
+  if { [info exists keys(-slew_degradation_bound)] } {
+    set slew_bound $keys(-slew_degradation_bound)
+    cts::set_slew_degradation_bound $slew_bound
+  }
+
+  if { [info exists keys(-merge_delay_threshold)] } {
+    set delay_threshold $keys(-merge_delay_threshold)
+    cts::set_merge_delay_threshold $delay_threshold
+  }
+
+  if { [info exists keys(-buffer_test_in_slew)] } {
+    set test_in_slew $keys(-buffer_test_in_slew)
+    cts::set_buffer_test_in_slew $test_in_slew
+  }
+
+  if { [info exists keys(-balance_delay_threshold)] } {
+    set balance_delay_threshold $keys(-balance_delay_threshold)
+    cts::set_balance_delay_threshold $balance_delay_threshold
+  }
+
+  if { [info exists keys(-max_fanout)] } {
+    set fanout $keys(-max_fanout)
+    cts::set_max_fanout $fanout
+  }
+
   if { [ord::get_db_block] == "NULL" } {
     utl::error CTS 103 "No design block found."
   }
@@ -208,7 +236,7 @@ sta::define_cmd_args "report_cts" {[-out_file file] \
                                   }
 proc report_cts { args } {
   sta::parse_key_args "report_cts" args \
-    keys {-out_file} flags {}
+    keys {-out_file} flags {-json_format}
 
   sta::check_argc_eq0 "report_cts" $args
 
@@ -216,6 +244,8 @@ proc report_cts { args } {
     set outFile $keys(-out_file)
     cts::set_metric_output $outFile
   }
+
+  cts::set_json_metric_format [info exists flags(-json_format)]
 
   cts::report_cts_metrics
 }

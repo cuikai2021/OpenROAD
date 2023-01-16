@@ -120,6 +120,12 @@ set_metric_output(const char* file)
 }
 
 void
+set_debug_cmd()
+{
+  getTritonCts()->getParms()->setGuiDebug();
+}
+
+void
 report_cts_metrics()
 {
   getTritonCts()->reportCtsMetrics();
@@ -221,6 +227,48 @@ void
 run_triton_cts()
 {
   getTritonCts()->runTritonCts();
+}
+
+void
+set_enable_nnc(bool nnc)
+{
+  getTritonCts()->getParms()->setEnableNNC(nnc);
+}
+
+void
+set_slew_degradation_bound(double bound)
+{
+  getTritonCts()->getParms()->setSlewDegradationBound(bound);
+}
+
+void
+set_merge_delay_threshold(double threshold)
+{
+  getTritonCts()->getParms()->setMergeDelayThreshold(threshold);
+}
+
+void
+set_buffer_test_in_slew(double in_slew)
+{
+  getTritonCts()->getParms()->setBufferTestInSlew(in_slew);
+}
+
+void
+set_max_fanout(unsigned fanout)
+{
+  getTritonCts()->getParms()->setMaxFanout(fanout);
+}
+
+void
+set_balance_delay_threshold(double delay)
+{
+  getTritonCts()->getParms()->setBalanceDelayThreshold(delay);
+}
+
+void
+set_json_metric_format(bool json_format)
+{
+  getTritonCts()->getParms()->setMetricJsonFormat(json_format);
 }
 
 %} //inline

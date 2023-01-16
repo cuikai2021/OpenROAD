@@ -76,6 +76,8 @@ class CtsOptions
   unsigned getWireSegmentUnit() const { return _wireSegmentUnit; }
   void setPlotSolution(bool plot) { _plotSolution = plot; }
   bool getPlotSolution() const { return _plotSolution; }
+  void setGuiDebug() { gui_debug_ = true; }
+  bool getGuiDebug() const { return gui_debug_; }
   void setSimpleCts(bool enable) { _simpleCts = enable; }
   bool getSimpleCts() const { return _simpleCts; }
   void setSinkClustering(bool enable) { _sinkClusteringEnable = enable; }
@@ -200,8 +202,26 @@ class CtsOptions
   void setSinkBufferInputCap(double cap) { _sinkBufferInputCap = cap; }
   double getSinkBufferInputCap() const { return _sinkBufferInputCap; }
   std::string getSinkBuffer() const { return _sinkBuffer; }
+  void setEnableNNC(bool enable) { _enableNNC = enable; }
+  bool getEnableNNC() const { return _enableNNC; }
   utl::Logger* getLogger() { return _logger; }
   stt::SteinerTreeBuilder* getSttBuilder() { return _sttBuilder; }
+  void setBufferTestInSlew(double in_slew) { buffer_in_slew = in_slew; }
+  double getBufferTestInSlew() const { return buffer_in_slew; }
+  void setSlewDegradationBound(double bound) { slew_degradation_bound = bound; }
+  double getSlewDegradationBound() const { return slew_degradation_bound; }
+  void setMergeDelayThreshold(double delay_threshold) { merge_delay_threshold = delay_threshold; }
+  double getMergeDelayThreshold() const { return merge_delay_threshold; }
+  void setBalanceDelayThreshold(double balance_threshold) { balance_delay_threshold = balance_threshold; }
+  double getBalanceDelayThreshold() const { return balance_delay_threshold; }
+  void setBufferMaxLoadCap(double load_cap) { buffer_max_load_cap = load_cap; }
+  double getBufferMaxLoadCap() const { return buffer_max_load_cap; }
+  unsigned getMaxFanout() const { return _max_fanout; }
+  void setMaxFanout(unsigned num) { _max_fanout = num; }
+  double getAvgDistance() const { return avg_distance; }
+  void setAvgDistance(double distance) { avg_distance = distance; }
+  void setMetricJsonFormat(bool json_format) { _metric_json_format = json_format; }
+  bool getMetricJsonFormat() const { return _metric_json_format; }
 
  private:
   std::string _blockName = "";
@@ -219,6 +239,7 @@ class CtsOptions
   bool _sinkClusteringUseMaxCap = true;
   bool _simpleSegmentsEnable = false;
   bool _vertexBuffersEnable = false;
+  bool gui_debug_ = false;
   double _vertexBufDistance = 240;
   double _bufDistance = 100;
   double _clusteringCapacity = 0.6;
@@ -253,6 +274,16 @@ class CtsOptions
   std::vector<odb::dbNet*> _clockNetsObjs;
   utl::Logger* _logger;
   stt::SteinerTreeBuilder* _sttBuilder;
+  bool _enableNNC = false;
+  float buffer_in_slew = -1;
+  float slew_degradation_bound = -1;
+  float merge_delay_threshold = -1;
+  float balance_delay_threshold = -1;
+  float buffer_max_load_cap = -1;
+  //  float max_slew_limit = 5.0e-10;
+  unsigned _max_fanout = 0;
+  double avg_distance = 0;
+  bool _metric_json_format = false;
 };
 
 }  // namespace cts

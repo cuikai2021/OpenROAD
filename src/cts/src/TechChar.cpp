@@ -42,6 +42,7 @@
 #include <sstream>
 
 #include "db_sta/dbSta.hh"
+#include "lrl/DelayCalc.hh"
 #include "rsz/Resizer.hh"
 #include "sta/Graph.hh"
 #include "sta/Liberty.hh"
@@ -555,6 +556,8 @@ void TechChar::initCharacterization()
                      74,
                      "Buffer {} not found. Check your -buf_list input.",
                      masterString);
+    } else {
+      _bufferList.push_back(testBuf);
     }
     _masterNames.insert(masterString);
   }
@@ -701,6 +704,84 @@ void TechChar::initCharacterization()
         "    Check the parameters -max_cap/-max_slew/-cap_inter/-slew_inter\n"
         "          or the technology files.");
   }
+}
+
+void TechChar::initCharacterizationNoLUT()
+{
+  odb::dbChip* chip = _db->getChip();
+  odb::dbBlock* block = chip->getBlock();
+  float dbUnitsPerMicron = block->getDbUnitsPerMicron();
+
+  getClockLayerResCap(dbUnitsPerMicron);
+
+  // Gets the buffer masters and its in/out pins.
+  std::vector<std::string> masterVector = _options->getBufferList();
+  if (masterVector.size() < 1) {
+    _logger->error(CTS, 273, "Buffer not found. Check your -buf_list input.");
+  }
+  odb::dbMaster* testBuf = nullptr;
+  for (const std::string& masterString : masterVector) {
+    testBuf = _db->findMaster(masterString.c_str());
+    if (testBuf == nullptr) {
+      _logger->error(CTS, 274, "Buffer {} not found. Check your -buf_list input.", masterString);
+    } else {
+      _bufferList.push_back(testBuf);
+    }
+    _masterNames.insert(masterString);
+  }
+
+  std::string bufMasterName = _options->getRootBuffer();
+  _charBuf = _db->findMaster(bufMasterName.c_str());
+
+  // Gets the max slew and max cap if they weren't added as parameters.
+  float slew = 0.0;
+  float cap = 0.0;
+  sta::Cell* masterCell = _db_network->dbToSta(_charBuf);
+  sta::LibertyCell* libertyCell = _db_network->libertyCell(masterCell);
+  bool slewExist = false;
+  bool capExist = false;
+
+  if (!libertyCell) {
+    _logger->error(CTS, 296, "No Liberty cell found for {}.", bufMasterName);
+  } else {
+    getBufferMaxSlewMaxCap(libertyCell, slew, slewExist, cap, capExist, true);
+    if (!slewExist || !capExist) {  // In case buffer does not have tables
+      _logger->warn(CTS, 267,
+                    "Could not find mid slew/max cap values for buffer {}. "
+                    "Using library values.", bufMasterName);
+      sta::LibertyLibrary* staLib = libertyCell->libertyLibrary();
+      staLib->defaultMaxSlew(slew, slewExist);
+      staLib->defaultMaxCapacitance(cap, capExist);
+    }
+  }
+
+  if (!slewExist || !capExist) {
+    _logger->error(CTS, 277, "Liberty library does not have mid slew or mid cap values.");
+  }
+
+  if (_options->getBufferTestInSlew() < 0) {
+    _options->setBufferTestInSlew(slew);
+  }
+  if (_options->getSlewDegradationBound() < 0) {
+    _options->setSlewDegradationBound(slew);
+  }
+
+  auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
+                                             cap, reinterpret_cast<sta::Sta*>(_openSta));
+
+  if (_options->getMergeDelayThreshold() < 0) {
+    _options->setMergeDelayThreshold(result.delay);
+  }
+  if (_options->getBalanceDelayThreshold() < 0) {
+    _options->setBalanceDelayThreshold(result.delay / 10.0);
+  }
+
+  getBufferMaxSlewMaxCap(libertyCell, slew, slewExist, cap, capExist, false);
+  if (_options->getBufferMaxLoadCap() < 0) {
+    _options->setBufferMaxLoadCap(cap);
+  }
+  _options->setMaxCharSlew(slew);
+
 }
 
 std::vector<TechChar::SolutionData> TechChar::createPatterns(
@@ -1119,6 +1200,7 @@ void TechChar::create()
 {
   // Setup of the attributes required to run the characterization.
   initCharacterization();
+
   long unsigned int topologiesCreated = 0;
   for (unsigned setupWirelength : _wirelengthsToTest) {
     // Creates the topologies for the current wirelength.

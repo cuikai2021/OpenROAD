@@ -75,9 +75,10 @@ class TreeBuilder
     second_level_sink_drivers_.insert(inst);
   }
   void addTreeLevelBuffer(ClockInst* inst) { tree_level_buffers_.insert(inst); }
+  bool isInsertedBuffer(ClockInst* inst) { return inst != nullptr && _clock.findClockByName(inst->getName()) != nullptr; }
   bool isAnyTreeBuffer(ClockInst* inst)
   {
-    return isLeafBuffer(inst) || isLevelBuffer(inst);
+    return isLeafBuffer(inst) || isLevelBuffer(inst) || isInsertedBuffer(inst);
   }
   bool isLeafBuffer(ClockInst* inst)
   {
