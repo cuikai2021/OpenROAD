@@ -5,11 +5,62 @@
 
 #include <algorithm>
 #include <deque>
+#include <functional>
 #include <iostream>
 #include <map>
+#include <random>
 #include <unordered_map>
 
 namespace banyan {
+
+bool MwsLine::IsOverlapping(MwsLine lhs, MwsLine rhs)
+{
+  if (lhs.isLevel() != rhs.isLevel())
+    return false;
+  if (!lhs.isLevel()) {
+    lhs.route();
+    rhs.route();
+  }
+  if (lhs.start().y() != rhs.start().y()) {
+    return false;
+  }
+  if (lhs.start().x() > rhs.start().x()) {
+    std::swap(lhs, rhs);
+  }
+  if (rhs.start().x() >= lhs.start().x() && rhs.start().x() <= lhs.end().x()) {
+    return true;
+  }
+  return false;
+}
+
+polygon MwsLine::extendRect()
+{
+  polygon poly;
+  int w = 1;
+  int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+  if (isPoint()) {
+    x1 = x2 = start_.x();
+    y1 = y2 = start_.y();
+  } else if (isLevel()) {
+    x1 = start_.x();
+    x2 = end_.x();
+    y1 = start_.y();
+    y2 = y1 + w;
+  } else {
+    x1 = start_.x();
+    x2 = x1 + w;
+    y1 = start_.y();
+    y2 = end_.y();
+  }
+
+  point pts[5] = {boost::polygon::construct<point>(x1, y1),
+                  boost::polygon::construct<point>(x1, y2),
+                  boost::polygon::construct<point>(x2, y2),
+                  boost::polygon::construct<point>(x2, y1),
+                  boost::polygon::construct<point>(x1, y1)};
+  boost::polygon::set_points(poly, pts, pts + 5);
+  return poly;
+}
 
 MergeWireSegment::netWireMap MergeWireSegment::GetWireFromDb()
 {
@@ -261,12 +312,7 @@ std::deque<MwsWire> MergeWireSegment::mergeWireLines(
   return ans;
 }
 
-void f()
-{
-  int w = 2;
-}
-
-void MergeWireSegment::updateDB(netWireMap& result)
+void MergeWireSegment::updateDB(const netWireMap& result)
 {
   logger_->info(
       utl::BY, 1, "--------------- updateDB begin ------------------");
@@ -349,106 +395,6 @@ void MergeWireSegment::Run()
   logger_->info(utl::BY, 1, "merge result: before:{}  after:{}", before, after);
   updateDB(netWire);
   logger_->info(utl::BY, 1, "--------------- run done ------------------");
-}
-
-void MergeWireSegment::Test()
-{
-  logger_->info(utl::BY, 1, "--------------- Test begin ------------------");
-  auto netWire = GetWireFromDb();
-  auto oriNetWire = netWire;
-  int before = 0;
-  int after = 0;
-  for (auto& [net, wires] : netWire) {
-    before += wires.size();
-    wires = mergeWireLines(wires);
-    after += wires.size();
-  }
-  logger_->info(utl::BY, 1, "merge result: before:{}  after:{}", before, after);
-  testNetWireEqual(oriNetWire, netWire);
-  logger_->info(utl::BY, 1, "--------------- Test done ------------------");
-}
-
-bool MergeWireSegment::testWireEqual(std::deque<MwsWire>& origin,
-                                     std::deque<MwsWire>& result)
-{
-  auto getMap = [](std::deque<MwsWire>& wires) {
-    std::unordered_map<std::string, std::deque<std::deque<MwsLine>>> mp;
-    for (auto wire : wires) {
-      if (wire.isLine()) {
-        auto line = wire.line();
-        mp[wire.layerName()].resize(2);
-        if (line.isLevel()) {
-          mp[wire.layerName()][0].emplace_back(line);
-        } else {
-          mp[wire.layerName()][1].emplace_back(line);
-        }
-      }
-    }
-    return mp;
-  };
-
-  auto getLineRect = [](MwsLine line) {
-    polygon poly;
-    int x1 = line.start().x();
-    int x2 = line.end().x();
-    int y1 = line.start().y();
-    int y2 = y1 + 2;
-
-    if (!line.isLevel()) {
-      x2 = x1 + 2;
-      y2 = line.end().y();
-    }
-
-    point pts[5] = {boost::polygon::construct<point>(x1, y1),
-                    boost::polygon::construct<point>(x1, y2),
-                    boost::polygon::construct<point>(x2, y2),
-                    boost::polygon::construct<point>(x2, y1),
-                    boost::polygon::construct<point>(x1, y1)};
-    boost::polygon::set_points(poly, pts, pts + 5);
-    return poly;
-  };
-
-  auto getPolygonSet = [&getLineRect](std::deque<MwsLine>& lines) {
-    polygon_set s;
-    for (auto& x : lines) {
-      auto poly = getLineRect(x);
-      s.insert(poly);
-    }
-    return s;
-  };
-
-  auto oMap = getMap(origin);
-  auto rMap = getMap(result);
-  for (auto& [layer, line] : oMap) {
-    for (int i = 0; i <= 1; i++) {
-      auto rLine = rMap[layer];
-      auto os = getPolygonSet(line[i]);
-      auto rs = getPolygonSet(rLine[i]);
-      auto w = boost::polygon::equivalence<polygon_set, polygon_set>(os, rs);
-      assert(w);
-    }
-  }
-  return true;
-}
-
-bool MergeWireSegment::testNetWireEqual(netWireMap& origin, netWireMap& result)
-{
-  logger_->info(
-      utl::BY, 1, "--------------- testNetWireEqual begin ------------------");
-  int count = 0;
-  for (auto& [net, wires] : origin) {
-    count += testWireEqual(wires, result[net]);
-  }
-  logger_->info(utl::BY, 1, "testcases:{}   passed:{}", origin.size(), count);
-  if (origin.size() == count) {
-    logger_->info(utl::BY, 1, "!!!!!!!!!!!   all passed !!!!!!!!!!!!");
-  } else {
-    logger_->info(utl::BY, 1, "@@@@@@@@@@@@@   has wrong @@@@@@@@@@@@@ ");
-  }
-
-  logger_->info(
-      utl::BY, 1, "--------------- testNetWireEqual done ------------------");
-  return true;
 }
 
 }  // namespace banyan

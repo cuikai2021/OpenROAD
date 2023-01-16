@@ -18,6 +18,10 @@
 
 namespace banyan {
 
+using polygon = boost::polygon::polygon_data<int>;
+using point = boost::polygon::polygon_traits<polygon>::point_type;
+using polygon_set = boost::polygon::polygon_set_data<int>;
+
 class MwsPoint
 {
  public:
@@ -25,10 +29,10 @@ class MwsPoint
   MwsPoint(int x, int y) : x_(x), y_(y){};
 
   void setX(int x) { x_ = x; }
-  int x() { return x_; }
+  int x() const { return x_; }
 
   void setY(int y) { y_ = y; }
-  int y() { return y_; }
+  int y() const { return y_; }
   void route() { std::swap(x_, y_); }
 
   bool operator==(const MwsPoint& r) { return x_ == r.x_ && y_ == r.y_; }
@@ -53,10 +57,11 @@ class MwsLine
 
   MwsPoint start() { return start_; }
   MwsPoint end() { return end_; }
-  bool isMerged() { return isMerged_; }
-
+  bool isMerged() const { return isMerged_; }
   bool isLevel() { return start_.y() == end_.y(); }
   bool isPoint() { return start_ == end_; }
+  static bool IsOverlapping(MwsLine lhs, MwsLine rhs);
+  polygon extendRect();
 
   void route()
   {
@@ -80,20 +85,20 @@ class MwsRect
   MwsPoint point() { return point_; }
 
   void setXMin(int xMin) { xMin_ = xMin; }
-  int xMin() { return xMin_; }
+  int xMin() const { return xMin_; }
 
   void setYMin(int yMin) { yMin_ = yMin; }
-  int yMin() { return yMin_; }
+  int yMin() const { return yMin_; }
 
   void setXMax(int xMax) { xMax_ = xMax; }
-  int xMax() { return xMax_; }
+  int xMax() const { return xMax_; }
 
   void setYMax(int yMax) { yMax_ = yMax; }
-  int yMax() { return yMax_; }
+  int yMax() const { return yMax_; }
 
  private:
   MwsPoint point_;
-  int xMin_, yMin_, xMax_, yMax_;
+  int xMin_{}, yMin_{}, xMax_{}, yMax_{};
 };
 
 class MwsVia
@@ -144,7 +149,7 @@ class MwsWire
     if (isLine()) {
       return std::get<LINE>(val_);
     }
-    return MwsLine();
+    return {};
   }
 
   MwsRect rect()
@@ -152,7 +157,7 @@ class MwsWire
     if (isRect()) {
       return std::get<RECT>(val_);
     }
-    return MwsRect();
+    return {};
   }
 
   MwsVia via()
@@ -160,7 +165,7 @@ class MwsWire
     if (isVia()) {
       return std::get<VIA>(val_);
     }
-    return MwsVia();
+    return {};
   }
 
  private:
@@ -171,25 +176,17 @@ class MwsWire
 class MergeWireSegment
 {
   using netWireMap = std::unordered_map<std::string, std::deque<MwsWire>>;
-  using polygon = boost::polygon::polygon_data<int>;
-  using point = boost::polygon::polygon_traits<polygon>::point_type;
-  using polygon_set = boost::polygon::polygon_set_data<int>;
 
  public:
   MergeWireSegment(odb::dbDatabase* db, utl::Logger* logger)
       : db_(db), logger_(logger){};
   void Run();
-  void Test();
+  static std::deque<MwsLine> mergeLines(std::deque<MwsLine> lines, bool isLevel);
+  static std::deque<MwsWire> mergeWireLines(const std::deque<MwsWire>& wires);
 
  private:
   netWireMap GetWireFromDb();
-
-  void updateDB(netWireMap& result);
-  bool testNetWireEqual(netWireMap& origin, netWireMap& result);
-  static bool testWireEqual(std::deque<MwsWire>& origin,
-                            std::deque<MwsWire>& result);
-  std::deque<MwsLine> mergeLines(std::deque<MwsLine> lines, bool isLevel);
-  std::deque<MwsWire> mergeWireLines(const std::deque<MwsWire>& wires);
+  void updateDB(const netWireMap& result);
 
  private:
   odb::dbDatabase* db_;
