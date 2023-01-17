@@ -6,12 +6,6 @@
 namespace sta {
 class dbSta;
 class Clock;
-
-class ClkSkew
-{
- public:
-  float skew() const;
-};
 }  // namespace sta
 
 namespace cts {

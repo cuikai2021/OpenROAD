@@ -58,6 +58,7 @@
 #include "sta/Sdc.hh"
 #include "utl/Logger.h"
 #include "CTSClkSkew.h"
+#include "sta/PathVertex.hh"
 
 namespace cts {
 
@@ -416,6 +417,17 @@ void TritonCTS::forEachBuilder(
   }
 }
 
+class ClkSkewRef
+{
+public:
+  float skew() const { return skew_; }
+
+private:
+  sta::PathVertex src_path_;
+  sta::PathVertex tgt_path_;
+  float skew_;
+};
+
 void TritonCTS::reportCtsMetrics()
 {
   CTSClkSkew* ctsClkSkew = new CTSClkSkew(_openSta);
@@ -425,7 +437,7 @@ void TritonCTS::reportCtsMetrics()
   if (skew_map.size() > 0) {
     float total_skew = 0;
     for (auto clk_skew_itr : skew_map) {
-      sta::ClkSkew *clk_skew = clk_skew_itr.second;
+      ClkSkewRef *clk_skew = (ClkSkewRef *)clk_skew_itr.second;
       float skew = clk_skew->skew();
       total_skew += skew;
 
@@ -460,7 +472,7 @@ void TritonCTS::reportCtsMetrics()
              << ", \"skews\": {";
         for (auto iter = skew_map.begin(); iter != skew_map.end();) {
           sta::Clock* clock = iter->first;
-          sta::ClkSkew* clk_skew = iter->second;
+          ClkSkewRef* clk_skew = (ClkSkewRef *)iter->second;
           float skew = clk_skew->skew() / 1e-9;
           skew = std::round(skew * 100) / 100;
           file << "\"" << clock->name() << "\":" << skew;
@@ -484,7 +496,7 @@ void TritonCTS::reportCtsMetrics()
         file << "Max clock Skew(ns): " << max_skew << ".\n";
         for (auto clk_skew_itr : skew_map) {
           sta::Clock *clock = clk_skew_itr.first;
-          sta::ClkSkew *clk_skew = clk_skew_itr.second;
+          ClkSkewRef *clk_skew = (ClkSkewRef *)clk_skew_itr.second;
           float skew = clk_skew->skew() / 1e-9;
           skew = std::round(skew * 100) / 100;
           file << "    " << clock->name() << ":" << skew << ".\n";
