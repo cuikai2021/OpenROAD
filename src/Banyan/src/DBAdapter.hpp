@@ -83,7 +83,7 @@ class OpenDBAdapter
 
   PinDirection odbIOType2Banyan(odb::dbIoType type);
   ComponentOrient odbOrient2Banyan(odb::dbOrientType type);
-  MacroClass odbMacroClass2Banyan(odb::dbMasterType type);
+  MacroClass odbMacroClass2Banyan(odb::dbMaster* master);
 
   void getDesignFromODB();
   void getDefViaFromODB();
@@ -136,7 +136,7 @@ class OpenDBAdapter
 
   ~OpenDBAdapter() {}
 
-  void updateDB(const BanyanResult& result);
+  void updateDB(const Design& design);
 
   std::unique_ptr<Design> getDesign() { return std::move(design_); }
 };

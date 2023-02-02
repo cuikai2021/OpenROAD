@@ -103,15 +103,24 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
 #ifndef NDEBUG
   debugActive = true;
 #endif
+  std::string techlef = "";
+  std::string outPbFilePath = "";
+  auto cli = (clipp::command("route"),
+              clipp::option("--techlef") & clipp::value("", techlef),
+              clipp::option("--output") & clipp::value("", outPbFilePath));
+  clipp::parse(args, cli);
+
+  if (techlef == "") {
+    args.push_back("--techlef");
+    args.push_back(techfile_name_);
+  }
+
   OpenDBAdapter dbAdapter(
       debugActive, db_, stt_builder_, logger_, laurel_, false);
-
   auto design = dbAdapter.getDesign();
-
   BanyanCase byCase;
   byCase.set_allocated_design(design.get());
   design.release();
-
   std::string inPbFilePath = genTempFilePath(logger_, ".pb");
   std::ofstream pbfs;
   pbfs.open(inPbFilePath,
@@ -120,36 +129,30 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     logger_->error(utl::BY, 1, "save protobuf file to {} fail", inPbFilePath);
   }
   pbfs.close();
-
-  if (std::find(args.begin(), args.end(), "--techlef") == args.end()) {
-    args.push_back("--techlef");
-    args.push_back(techfile_name_);
-  }
-
   args.push_back("--protobuf");
   args.push_back(inPbFilePath);
 
-  std::string outPbFilePath = "";
   if (updateDB) {
-    outPbFilePath = genTempFilePath(logger_, ".pb");
+    if (outPbFilePath == "") {
+      outPbFilePath = genTempFilePath(logger_, ".pb");
+    }
     args.push_back("--output");
     args.push_back(outPbFilePath);
   }
+
   defer _(nullptr, [&](...) {
     if (updateDB) {
       logger_->info(utl::BY, 1, "Writing banyan result to eden ...");
-      BanyanResult byrst;
+      BanyanCase byrst;
       std::ifstream outfs;
       outfs.open(outPbFilePath);
       byrst.ParseFromIstream(&outfs);
       outfs.close();
-      dbAdapter.updateDB(byrst);
+      dbAdapter.updateDB(byrst.design());
     }
   });
 
-  auto status = exec(logger_, args);
-
-  return status;
+  return exec(logger_, args);
 }
 
 int Banyan::cmap(const std::string& cmapPb)

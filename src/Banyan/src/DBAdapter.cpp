@@ -60,50 +60,22 @@ ComponentOrient OpenDBAdapter::odbOrient2Banyan(odb::dbOrientType type)
   }
 }
 
-MacroClass OpenDBAdapter::odbMacroClass2Banyan(odb::dbMasterType type)
+MacroClass OpenDBAdapter::odbMacroClass2Banyan(odb::dbMaster* master)
 {
-  switch (type) {
-    case odb::dbMasterType::CORE:
-    case odb::dbMasterType::CORE_FEEDTHRU:
-    case odb::dbMasterType::CORE_TIEHIGH:
-    case odb::dbMasterType::CORE_TIELOW:
-    case odb::dbMasterType::CORE_SPACER:
-    case odb::dbMasterType::CORE_ANTENNACELL:
-    case odb::dbMasterType::CORE_WELLTAP:
-      return MacroClass::MACRO_CORE;
-
-    case odb::dbMasterType::RING:
-      return MacroClass::MACRO_RING;
-
-    case odb::dbMasterType::BLOCK:
-    case odb::dbMasterType::BLOCK_BLACKBOX:
-    case odb::dbMasterType::BLOCK_SOFT:
-      return MacroClass::MACRO_BLOCK;
-
-    case odb::dbMasterType::PAD:
-    case odb::dbMasterType::PAD_INPUT:
-    case odb::dbMasterType::PAD_OUTPUT:
-    case odb::dbMasterType::PAD_INOUT:
-    case odb::dbMasterType::PAD_POWER:
-    case odb::dbMasterType::PAD_SPACER:
-    case odb::dbMasterType::PAD_AREAIO:
-      return MacroClass::MACRO_PAD;
-
-    case odb::dbMasterType::COVER:
-    case odb::dbMasterType::COVER_BUMP:
-      return MacroClass::MACRO_COVER;
-
-    case odb::dbMasterType::ENDCAP:
-    case odb::dbMasterType::ENDCAP_PRE:
-    case odb::dbMasterType::ENDCAP_POST:
-    case odb::dbMasterType::ENDCAP_TOPLEFT:
-    case odb::dbMasterType::ENDCAP_TOPRIGHT:
-    case odb::dbMasterType::ENDCAP_BOTTOMLEFT:
-    case odb::dbMasterType::ENDCAP_BOTTOMRIGHT:
-      return MacroClass::MACRO_ENDCAP;
-    default:
-      logger_->error(utl::BY, 1, "unsupport macro class {}", type.getString());
+  if (master->isBlock()) {
+    return MacroClass::MACRO_BLOCK;
+  } else if (master->isCore()) {
+    return MacroClass::MACRO_CORE;
+  } else if (master->isCover()) {
+    return MacroClass::MACRO_COVER;
+  }else if (master->isEndCap()) {
+    return MacroClass::MACRO_ENDCAP;
+  }else if(master->isFiller()) {
+    return MacroClass::MACRO_ENDCAP;
+  }else if(master->isPad()) {
+    return MacroClass::MACRO_PAD;
   }
+  return MacroClass::MACRO_RING;
 }
 
 NetUse OpenDBAdapter::odbNetType2NetUse(odb::dbSigType sigType)
@@ -688,7 +660,7 @@ void OpenDBAdapter::getMacrosFromODB()
     auto point = macro->mutable_origin();
     point->set_x(x);
     point->set_y(y);
-    macro->set_mclass(odbMacroClass2Banyan(master->getType()));
+    macro->set_mclass(odbMacroClass2Banyan(master));
     for (auto mterm : master->getMTerms()) {
       auto pin = macro->add_pins();
       pin->set_name(mterm->getName());
@@ -795,36 +767,44 @@ void OpenDBAdapter::getWireBudgetingFromLrl()
 {
 }
 
-void OpenDBAdapter::updateDB(const BanyanResult& result)
+void OpenDBAdapter::updateDB(const Design& design)
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
   odb::dbTech* tech = db_->getTech();
-
   odb::dbWireEncoder _wire_encoder;
-  for (auto net : result.nets()) {
-    auto netInOpenDB = block->findNet(net.name().c_str());
-    if (netInOpenDB == nullptr) {
-      continue;
-    }
 
-    auto wire = odb::dbWire::create(netInOpenDB);
-    if (wire == nullptr) {
-      wire = netInOpenDB->getWire();
-    }
-    _wire_encoder.begin(wire);
+  auto pbVia2ODBVia = [&](const std::string& layerName, const ViaPoint& pbvia) {
+    auto layerInOpenDB = tech->findLayer(layerName.c_str());
+    _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
 
-    for (auto pbWire : net.wires()) {
-      auto layerInOpenDB = tech->findLayer(pbWire.layername().c_str());
-      for (auto pbWireSeg : pbWire.segments()) {
-        _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
-        if (pbWireSeg.has_line()) {
-          auto line = pbWireSeg.line();
+    auto point = pbvia.point().point();
+    _wire_encoder.addPoint(point.x(), point.y());
+    auto vianame = pbvia.vianame();
+    odb::dbTechVia* tech_via = tech->findVia(vianame.c_str());
+    if (tech_via != nullptr) {
+      _wire_encoder.addTechVia(tech_via);
+    } else {
+      odb::dbVia* db_via = block->findVia(vianame.c_str());
+      _wire_encoder.addVia(db_via);
+    }
+  };
+
+  auto pbWireline2ODBLine
+      = [&](const std::string& layerName, const WireLine& line) {
+          auto layerInOpenDB = tech->findLayer(layerName.c_str());
+          _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
+
           auto start = line.start().point();
           auto end = line.end().point();
           _wire_encoder.addPoint((int) start.x(), (int) start.y());
           _wire_encoder.addPoint((int) end.x(), (int) end.y());
-        } else if (pbWireSeg.has_rect()) {
-          auto rect = pbWireSeg.rect();
+        };
+
+  auto pbWireRect2ODBRect
+      = [&](const std::string& layerName, const WireRect& rect) {
+          auto layerInOpenDB = tech->findLayer(layerName.c_str());
+          _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
+
           auto point = rect.point().point();
           _wire_encoder.addPoint((int) point.x(), (int) point.y());
           auto ll = rect.rect().lowleft();
@@ -833,21 +813,77 @@ void OpenDBAdapter::updateDB(const BanyanResult& result)
                                 (int) ll.y(),
                                 (int) (ur.x() - ll.x()),
                                 (int) (ur.y() - ll.y()));
-        } else if (pbWireSeg.has_via()) {
-          auto via = pbWireSeg.via();
-          auto point = via.point().point();
-          _wire_encoder.addPoint(point.x(), point.y());
-          auto vianame = via.vianame();
-          odb::dbTechVia* tech_via = tech->findVia(vianame.c_str());
-          if (tech_via != nullptr) {
-            _wire_encoder.addTechVia(tech_via);
-          } else {
-            odb::dbVia* db_via = block->findVia(vianame.c_str());
-            _wire_encoder.addVia(db_via);
+        };
+
+  for (auto net : design.nets()) {
+    auto netInOpenDB = block->findNet(net.name().c_str());
+    if (netInOpenDB == nullptr) {
+      continue;
+    }
+
+    auto wire = netInOpenDB->getWire();
+    if (wire != nullptr) {
+      odb::dbWire::destroy(wire);
+    }
+    wire = odb::dbWire::create(netInOpenDB);
+    _wire_encoder.begin(wire);
+
+    for (auto pbPin : net.pins()) {
+      if (pbPin.aps_size() <= 0) {
+        continue;
+      }
+      for (auto pbAccessPoint : pbPin.aps()) {
+        auto layerName = pbAccessPoint.layername();
+        switch (pbAccessPoint.ap_case()) {
+          case PinAccessPoint::ApCase::kOnTrack:
+            // do nothing
+            break;
+          case PinAccessPoint::ApCase::kDropVia: {
+            auto dropvia = pbAccessPoint.dropvia();
+            pbVia2ODBVia(layerName, dropvia.via());
+            break;
           }
+          case PinAccessPoint::ApCase::kCoverTracks: {
+            auto covertracks = pbAccessPoint.covertracks();
+            pbWireline2ODBLine(layerName, covertracks.line());
+            for (auto block : covertracks.blocks()) {
+              pbWireline2ODBLine(layerName, block);
+            }
+            break;
+          }
+          case PinAccessPoint::ApCase::kMazePaths: {
+            auto mazepaths = pbAccessPoint.mazepaths();
+            if (mazepaths.has_via()) {
+              pbVia2ODBVia(layerName, mazepaths.via());
+            }
+            if (mazepaths.has_line()) {
+              pbWireline2ODBLine(layerName, mazepaths.line());
+            }
+            for (auto block : mazepaths.blocks()) {
+              pbWireline2ODBLine(layerName, block);
+            }
+            break;
+          }
+          default:
+            // do nothing
+            break;
         }
       }
     }
+
+    for (auto pbWire : net.wires()) {
+      auto layerName = pbWire.layername();
+      for (auto pbWireSeg : pbWire.segments()) {
+        if (pbWireSeg.has_line()) {
+          pbWireline2ODBLine(layerName, pbWireSeg.line());
+        } else if (pbWireSeg.has_rect()) {
+          pbWireRect2ODBRect(layerName, pbWireSeg.rect());
+        } else if (pbWireSeg.has_via()) {
+          pbVia2ODBVia(layerName, pbWireSeg.via());
+        }
+      }
+    }
+
     _wire_encoder.end();
   }
 }
