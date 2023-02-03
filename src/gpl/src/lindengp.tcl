@@ -157,3 +157,10 @@ proc linden_macro_placement_debug { args } {
 }
 
 }
+
+sta::define_cmd_args "linden_remove_fillers" {
+}
+
+proc linden_remove_fillers {} {
+  gpl::linden_remove_fillers_cmd
+}

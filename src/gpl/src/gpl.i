@@ -3,6 +3,7 @@
 #include "gpl/Replace.h"
 #include "gpl/lindengp.h"
 #include "gpl/lindenmp.hpp"
+#include "gpl/LindenDBSanitizer.hpp"
 #include <memory>
 
 namespace ord {
@@ -390,6 +391,14 @@ set_linden_initial_place_policy_cmd(const char* policy) {
 
 %} // inline lindengp
 
+%inline %{ // linden
+void 
+linden_remove_fillers_cmd() {
+  linden::LindenDBSanitizer *sanitizer = new linden::LindenDBSanitizer();
+  sanitizer->removeFillers();
+}
+%} // inline linden
+
 %inline %{ // lindenmp
 
 int lindenmp_run_cmd()
@@ -422,5 +431,7 @@ void set_lindenmp_debug(int pause_iterations, int update_iterations)
   lmp->mut_debug_pause_iters_() = pause_iterations;
   lmp->mut_debug_update_iters_() = update_iterations;
 }
+
+
 
 %} // inline lindenmp

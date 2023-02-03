@@ -81,6 +81,7 @@ target_sources(gpl
     src/banyan_cmap.pb.cc
     src/lindengp.rdp.cpp
     src/lindenmp.cpp
+    src/LindenDBSanitizer.cpp
 )
 
 messages(TARGET gpl)
