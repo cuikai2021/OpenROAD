@@ -164,6 +164,7 @@ _dbBlock::_dbBlock(_dbDatabase* db)
   _maxCCSegId = 0;
   _minExtModelIndex = -1;
   _maxExtModelIndex = -1;
+  _oneHeightSite = NULL;
 
   _bterm_tbl = new dbTable<_dbBTerm>(
       db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbBTermObj);
@@ -434,7 +435,8 @@ _dbBlock::_dbBlock(_dbDatabase* db, const _dbBlock& block)
       _minExtModelIndex(block._minExtModelIndex),
       _maxExtModelIndex(block._maxExtModelIndex),
       _children(block._children),
-      _currentCcAdjOrder(block._currentCcAdjOrder)
+      _currentCcAdjOrder(block._currentCcAdjOrder),
+		_oneHeightSite(NULL)
 {
   if (block._name) {
     _name = strdup(block._name);
@@ -1954,7 +1956,32 @@ dbSet<dbVia> dbBlock::getVias()
   return dbSet<dbVia>(block, block->_via_tbl);
 }
 
+struct Filter : public dbSetFilter<dbRow> {
+	Filter(dbSite* site) : _site(site) {}
+	dbSite* _site;
+	bool valid(dbRow* row) const { return row->getSite() == _site; }
+};
+
 dbSet<dbRow> dbBlock::getRows()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  dbSet<dbRow> res(block, block->_row_tbl);
+  if (!block->_oneHeightSite) {
+    int height = (~(unsigned)0) >> 1;
+	 for (auto row : getMultiHeightRows()) {
+      dbSite* site = row->getSite();
+      int h = site->getHeight();
+		if (h < height) {
+		  height = h;
+		  block->_oneHeightSite = site;
+      }
+    }
+  }
+  res.set(new Filter(block->_oneHeightSite));
+  return res;
+}
+
+dbSet<dbRow> dbBlock::getMultiHeightRows()
 {
   _dbBlock* block = (_dbBlock*) this;
   return dbSet<dbRow>(block, block->_row_tbl);

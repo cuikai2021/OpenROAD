@@ -173,7 +173,7 @@ void Tapcell::cutRows(odb::dbMaster* endcap_right_master,
   if (endcap_left_master == nullptr)
 	endcap_left_master = endcap_right_master;
   odb::dbBlock* block = db_->getChip()->getBlock();
-  const int rows_count = (block->getRows()).size();
+  const int rows_count = (block->getMultiHeightRows()).size();
   const int block_count = blockages.size();
 
   const int min_row_width
@@ -184,7 +184,7 @@ void Tapcell::cutRows(odb::dbMaster* endcap_right_master,
   vector<odb::dbRow*> blocked_rows;
   std::map<odb::dbRow*, vector<odb::dbBox*>> row_blockages;
   for (odb::dbBox* blockage : blockages) {
-    for (odb::dbRow* row : block->getRows()) {
+    for (odb::dbRow* row : block->getMultiHeightRows()) {
       if (overlaps(blockage, row, halo_x, halo_y)) {
         if (row_blockages.find(row) == row_blockages.end()) {
           blocked_rows.push_back(row);
@@ -198,7 +198,7 @@ void Tapcell::cutRows(odb::dbMaster* endcap_right_master,
   for (auto& [k, ignored] : row_blockages) {
     cutRow(block, k, row_blockages[k], min_row_width, halo_x, halo_y);
   }
-  const int cut_rows_count = block->getRows().size() - rows_count;
+  const int cut_rows_count = block->getMultiHeightRows().size() - rows_count;
   logger_->info(utl::TAP, 1, "Found {} macro blocks.", block_count);
   logger_->info(utl::TAP, 2, "Original rows: {}", rows_count);
   logger_->info(utl::TAP,

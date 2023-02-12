@@ -40,15 +40,38 @@ template <class T>
 class dbSet;
 
 template <class T>
+class dbSetFilter
+{
+public:
+  dbSetFilter() : _end(0), _refcnt(1) {}
+  virtual ~dbSetFilter() {}
+  virtual bool valid(T*) const { return true; }
+  uint _refcnt;
+  uint _end;
+};
+
+template <class T>
 class dbSetIterator
 {
+  typedef dbSetFilter<T> dbFilter;
   friend class dbSet<T>;
 
-  dbIterator* _itr;
-  uint _cur;
+  dbIterator*  _itr;
+  uint         _cur;
+  dbFilter*    _filter;
 
-  dbSetIterator(dbIterator* itr, uint id);
-
+  T* getCur() { return (T*) _itr->getObject(_cur); }
+  dbSetIterator(dbIterator* itr, uint id, dbFilter* f)
+   : _itr(itr), _cur(id), _filter(f) { validOrNext(); }
+  void validOrNext() {
+	 if (!_filter) return;
+	 do {
+		if (_cur == _filter->_end) return;
+		if (_filter->valid(getCur())) return;
+		_cur = _itr->next(_cur);
+	 } while(1);
+  }
+  void next() { _cur = _itr->next(_cur); validOrNext(); }
  public:
   typedef T* value_type;
   typedef std::ptrdiff_t difference_type;
@@ -56,16 +79,16 @@ class dbSetIterator
   typedef T*& reference;
   typedef std::input_iterator_tag iterator_category;
 
-  dbSetIterator();
+  dbSetIterator() : _itr(NULL), _cur(0), _filter(NULL) {}
   dbSetIterator(const dbSetIterator& it) = default;
 
-  bool operator==(const dbSetIterator<T>& it) const;
-  bool operator!=(const dbSetIterator<T>& it) const;
+  bool operator==(const dbSetIterator<T>& it) const { return (_itr == it._itr) && (_cur == it._cur); }
+  bool operator!=(const dbSetIterator<T>& it) const { return !(*this == it); }
 
-  T* operator*();
-  T* operator->();
-  dbSetIterator<T>& operator++();
-  dbSetIterator<T> operator++(int);
+  T* operator*()  { return getCur(); }
+  T* operator->() { return getCur(); }
+  dbSetIterator<T>& operator++() { next(); return *this; }
+  dbSetIterator<T> operator++(int) { dbSetIterator it(*this); ++(*this); return it; }
 };
 
 ///
@@ -93,28 +116,25 @@ class dbSetIterator
 template <class T>
 class dbSet
 {
+  typedef dbSetFilter<T> dbFilter;
   dbIterator* _itr;
-  dbObject* _parent;
-
+  dbObject*   _parent;
+  dbFilter*   _filter;
  public:
   typedef dbSetIterator<T> iterator;
 
-  dbSet()
-  {
-    _itr = NULL;
-    _parent = NULL;
-  }
+  dbSet() : _itr(NULL), _parent(NULL), _filter(NULL) {}
+  dbSet(dbObject* parent, dbIterator* itr) : _itr(itr), _parent(parent), _filter(NULL) {}
+  dbSet(const dbSet<T>& c) : _itr(c._itr), _parent(c._parent), _filter(c._filter) { if(_filter) ++_filter->_refcnt; }
+  ~dbSet() { if (_filter && --_filter->_refcnt == 0) delete _filter; }
 
-  dbSet(dbObject* parent, dbIterator* itr)
-  {
-    _parent = parent;
-    _itr = itr;
-  }
-
-  dbSet(const dbSet<T>& c)
-  {
-    _itr = c._itr;
-    _parent = c._parent;
+  ///
+  /// Set iteration filter
+  ///
+  void set(dbFilter* f) {
+	  assert(!_filter);
+	  _filter = f;
+	  _filter->_end = _itr->end(_parent);
   }
 
   ///
@@ -125,12 +145,12 @@ class dbSet
   ///
   /// Return a begin() iterator.
   ///
-  iterator begin() const { return iterator(_itr, _itr->begin(_parent)); }
+  iterator begin() const { return iterator(_itr, _itr->begin(_parent), _filter); }
 
   ///
   /// Return an end() iterator.
   ///
-  iterator end() const { return iterator(_itr, _itr->end(_parent)); }
+  iterator end() const { return iterator(_itr, _itr->end(_parent), _filter); }
 
   ///
   /// If this set is sequential, this function will return the database
@@ -164,59 +184,6 @@ class dbSet
   ///
   bool empty() { return begin() == end(); }
 };
-
-template <class T>
-inline dbSetIterator<T>::dbSetIterator()
-{
-  _itr = NULL;
-  _cur = 0;
-}
-
-template <class T>
-inline dbSetIterator<T>::dbSetIterator(dbIterator* itr, uint id)
-{
-  _itr = itr;
-  _cur = id;
-}
-
-template <class T>
-inline bool dbSetIterator<T>::operator==(const dbSetIterator& it) const
-{
-  return (_itr == it._itr) && (_cur == it._cur);
-}
-
-template <class T>
-inline bool dbSetIterator<T>::operator!=(const dbSetIterator& it) const
-{
-  return (_itr != it._itr) || (_cur != it._cur);
-}
-
-template <class T>
-inline T* dbSetIterator<T>::operator*()
-{
-  return (T*) _itr->getObject(_cur);
-}
-
-template <class T>
-inline T* dbSetIterator<T>::operator->()
-{
-  return (T*) _itr->getObject(_cur);
-}
-
-template <class T>
-inline dbSetIterator<T>& dbSetIterator<T>::operator++()
-{
-  _cur = _itr->next(_cur);
-  return *this;
-}
-
-template <class T>
-inline dbSetIterator<T> dbSetIterator<T>::operator++(int)
-{
-  dbSetIterator it(*this);
-  _cur = _itr->next(_cur);
-  return it;
-}
 
 }  // namespace odb
 

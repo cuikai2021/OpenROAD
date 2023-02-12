@@ -1179,6 +1179,8 @@ class dbBlock : public dbObject
   ///
   dbSet<dbRow> getRows();
 
+  dbSet<dbRow> getMultiHeightRows();
+
   ///
   /// Get the fills in this block
   ///

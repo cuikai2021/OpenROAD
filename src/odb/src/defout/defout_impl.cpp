@@ -235,7 +235,7 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
 
 void defout_impl::writeRows(dbBlock* block)
 {
-  dbSet<dbRow> rows = block->getRows();
+  dbSet<dbRow> rows = block->getMultiHeightRows();
   dbSet<dbRow>::iterator itr;
 
   for (itr = rows.begin(); itr != rows.end(); ++itr) {

@@ -38,6 +38,7 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <unordered_set>
 
 #include "odb/db.h"
 #include "odb/dbTransform.h"
@@ -135,7 +136,14 @@ protected:
 		int core_ly,
 		int core_ux,
 		int core_uy);
+  void makeMultiHeightRows(dbSite *besidesSite,
+		int core_lx,
+		int core_ly,
+		int core_ux,
+		int core_uy);
   dbSite *findSite(const char *site_name);
+  std::vector<dbSite*> findSites();
+  unsigned lowestPower(dbSite* site);
   void makeTracks(const char *tracks_file,
 		  Rect &die_area);
   void autoPlacePins(dbTechLayer *pin_layer,
@@ -152,6 +160,7 @@ protected:
   dbDatabase *db_;
   dbBlock *block_;
   Logger *logger_;
+  std::unordered_set<std::string> rowsites;
 };
 
 void
@@ -296,7 +305,7 @@ InitFloorplan::initFloorplan(double die_lx,
     dbSite *site = findSite(site_name);
     if (site) {
       // Destroy any existing rows.
-      auto rows = block_->getRows();
+      auto rows = block_->getMultiHeightRows();
       for (dbSet<dbRow>::iterator row_itr = rows.begin();
            row_itr != rows.end() ;
            row_itr = dbRow::destroy(row_itr)) ;
@@ -317,6 +326,7 @@ InitFloorplan::initFloorplan(double die_lx,
       int cuy = metersToDbu(core_uy);
       makeRows(site, clx, cly, cux, cuy);
       updateVoltageDomain(site, clx, cly, cux, cuy);
+      makeMultiHeightRows(site, clx, cly, cux, cuy);
     }
     else
       logger_->warn(IFP, 9, "SITE {} not found.", site_name);
@@ -427,6 +437,8 @@ InitFloorplan::makeRows(dbSite *site,
 			int core_ux,
 			int core_uy)
 {
+  if (rowsites.count(site->getName())) return;
+  rowsites.insert(site->getName());
   int core_dx = abs(core_ux - core_lx);
   int core_dy = abs(core_uy - core_ly);
   uint site_dx = site->getWidth();
@@ -439,12 +451,89 @@ InitFloorplan::makeRows(dbSite *site,
     dbOrientType orient = (row % 2 == 0)
       ? dbOrientType::R0        // N
       : dbOrientType::MX;       // FS
-    string row_name = stdstrPrint("ROW_%d", row);
+    string row_name = stdstrPrint("ROW_%s_%d", site->getName().c_str(), row);
     dbRow::create(block_, row_name.c_str(), site, core_lx, y, orient,
 		  dbRowDir::HORIZONTAL, rows_x, site_dx);
     y += site_dy;
   }
   logger_->info(IFP, 1, "Added {} rows of {} sites.", rows_y, rows_x);
+}
+
+void
+InitFloorplan::makeMultiHeightRows(dbSite *besidesSite,
+		int core_lx, int core_ly, int core_ux, int core_uy)
+{
+	std::vector<dbSite*> sites = findSites();
+	for (dbSite* site : sites) {
+		if (site->getName() == besidesSite->getName()) continue;
+		unsigned res = lowestPower(site);
+		if (res & 2) {
+			makeRows(site, core_lx, core_ly, core_ux, core_uy);
+		}
+		if (res & 1) {
+			makeRows(site, core_lx, core_ly + besidesSite->getHeight(), core_ux, core_uy);
+		}
+	}
+}
+
+unsigned
+InitFloorplan::lowestPower(dbSite* site)
+{
+  unsigned res = 0;
+  for (dbLib *lib : db_->getLibs()) {
+    for (dbMaster *m : lib->getMasters()) {
+    	if (m->getSite() == site) {
+    		int ymin = (~(unsigned)0) >> 1;
+    		bool isPower = false;
+    		for (odb::dbMTerm *t : m->getMTerms()) {
+    			if (t->getSigType() == odb::dbSigType::POWER) {
+    				for (odb::dbMPin* p : t->getMPins()) {
+    					for (auto box : p->getGeometry()) {
+    					  if (box->isVia()) continue;
+    					  //odb::dbTechLayer* techLayer = box->getTechLayer();
+    					  if (box->yMin() < ymin) {
+    						  ymin = box->yMin();
+    						  isPower = true;
+    					  }
+    					}
+    				}
+    			}
+    			if (t->getSigType() == odb::dbSigType::GROUND) {
+    				for (odb::dbMPin* p : t->getMPins()) {
+    					for (auto box : p->getGeometry()) {
+						  if (box->isVia()) continue;
+						  //odb::dbTechLayer* techLayer = box->getTechLayer();
+						  if (box->yMin() < ymin) {
+							  ymin = box->yMin();
+							  isPower = false;
+						  }
+						}
+					}
+				}
+    		}
+    		if (isPower) {
+    			res |= 1;
+    		} else {
+    			res |= 2;
+    		}
+    	}
+    }
+  }
+  assert(res != 3);
+  return res;
+}
+
+std::vector<dbSite*>
+InitFloorplan::findSites()
+{
+  std::vector<dbSite*> res;
+  for (dbLib *lib : db_->getLibs()) {
+    for (dbSite *site : lib->getSites()) {
+    	if (site->getClass() == odb::dbSiteClass::CORE)
+        res.push_back(site);
+	 }
+  }
+  return res;
 }
 
 dbSite *

@@ -119,6 +119,7 @@ class dbOStream;
 class dbDiff;
 class dbBlockSearch;
 class dbBlockCallBackObj;
+class dbSite;
 
 struct _dbBTermPin
 {
@@ -263,6 +264,9 @@ class _dbBlock : public _dbObject
 
   // This is a temporary vector to fix bterm pins pre dbBPin...
   std::vector<_dbBTermPin>* _bterm_pins;
+
+  // Cached objects
+  mutable dbSite*           _oneHeightSite;
 
   _dbBlock(_dbDatabase* db);
   _dbBlock(_dbDatabase* db, const _dbBlock& block);
