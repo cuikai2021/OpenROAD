@@ -121,6 +121,7 @@ public:
   // Highlight path in the gui.
   void highlight(PathRef *path);
 
+  void initClkNets();
   // ICBench Methods public
   void setSdcOpt(std::string const& name);
   void forEachSdc(std::function<void()> const& func);
