@@ -1446,6 +1446,10 @@ proc complete_macro_grid_specifications {} {
     # debug "  blockages: [lsort -unique $blockages]"
     # debug "  connect: [dict get $design_data grid macro $grid_name connect]"
 
+    if {[dict exists $grid blockages]} {
+        lappend blockages {*}[dict get $grid blockages]
+    }
+
     dict set design_data grid macro $grid_name blockages [lsort -unique $blockages]
   }
 
@@ -4243,7 +4247,6 @@ proc get_macro_blocks {} {
       }
     }
   }
-
   return $macros
 }
 
@@ -7152,6 +7155,155 @@ proc plan_grid {} {
 
   add_macro_based_grids
 
+}
+
+proc get_top_layer_pg_pinboxes {ins layer_names} {
+   set master [$ins getMaster]
+   set max_layer_index 0
+   set res ""
+   set boxes ""
+   foreach mTerm [$master getMTerms] {
+        set sigType [$mTerm getSigType]
+        if {[string equal -nocase $sigType "power"] || [string equal -nocase $sigType "ground"]} {
+           foreach mPin [$mTerm getMPins] {
+               foreach mPinBox [$mPin getGeometry] {
+                   if {[$mPinBox getTechLayer] == "NULL"} {
+                        continue
+                   }
+                   set pin_layer_name [[$mPinBox getTechLayer] getName]
+                   set cur [lsearch $layer_names $pin_layer_name]
+                   if {$cur < 0} {
+                       puts "Error no found $pin_layer_name"
+                       exit 1
+                   }
+                   if {$cur > $max_layer_index} {
+                      set boxes [list]
+                      set max_layer_index $cur
+                   }
+                   if {$cur == $max_layer_index} {
+                      lappend boxes $mPinBox
+                   }
+               }
+           }
+        }
+    }
+    lappend res [lindex $layer_names $max_layer_index]
+    lappend res $boxes
+    return $res
+}
+
+proc get_macro_top_layer_dir {inst boxes} {
+    set dir "NULL"
+    set dx_sum 0
+    set dy_sum 0
+    foreach originbox $boxes {
+        set box [pdngen::transform_box [$originbox xMin] [$originbox yMin] [$originbox xMax] [$originbox yMax] [$inst getOrigin] [$inst getOrient]]
+        set xmin [lindex $box 0]
+        set ymin [lindex $box 1]
+        set xmax [lindex $box 2]
+        set ymax [lindex $box 3]
+        set dx [expr $xmax - $xmin]
+        set dy [expr $ymax - $ymin]
+        set dx_sum [expr $dx_sum + $dx]
+        set dy_sum [expr $dy_sum + $dy]
+    }
+    if {$dx_sum < $dy_sum} {
+        set dir "ver"
+    } else {
+        set dir "hor"
+    }
+    return $dir
+}
+
+proc get_aligned_offset {inst layer strap} {
+    set location [$inst getLocation]
+    set block [[[ord::get_db] getChip] getBlock]
+    set core_location  [[$block getCoreArea] ll]
+    set units [$block getDefUnits]
+    set strap_width [expr [dict get $strap width] * $units]
+    set strap_pitch [expr [dict get $strap pitch] * $units]
+    set strap_offset [expr [dict get $strap offset] * $units]
+
+    if {[string tolower [string range [$layer getDirection] 0 2]] == "hor"} {
+        set p1 [lindex $core_location 1]
+        set p2 [lindex $location 1]
+    } else {
+        set p1 [lindex $core_location 0]
+        set p2 [lindex $location 0]
+    }
+    set offset_1ststrap [expr $p1 + $strap_offset]
+    set distance [expr $p2 - $offset_1ststrap]
+    set n [expr int($distance / $strap_pitch)]
+    set offset [expr ((($n + 1) * $strap_pitch) - $distance) / $units]
+    return $offset
+}
+
+proc get_macro_strap {inst tech top_layer_name top_layer_dir grid_strategy} {
+    set metal_straps [dict get $grid_strategy straps]
+    set layer_names [get_routing_layers $tech]
+    set straps [dict create]
+    for {set i [expr [lsearch $layer_names $top_layer_name] + 1]} {$i < [llength $layer_names]} {incr i} {
+        set layer [$tech findLayer [lindex $layer_names $i]]
+        set i_dir [string tolower [string range [$layer getDirection] 0 2]]
+        set i_name [$layer getName]
+        if {$i_dir != $top_layer_dir && [dict exists $metal_straps $i_name]} {
+            set strap [dict get $metal_straps $i_name]
+            dict set strap offset [get_aligned_offset $inst $layer $strap]
+            dict append straps $i_name $strap
+            break
+        }
+    }
+    return $straps
+}
+
+proc get_macro_spec {inst tech grid_strategy} {
+    set routing_layers [get_routing_layers $tech]
+    set layer_to_boxes [get_top_layer_pg_pinboxes $inst $routing_layers]
+    set top_layer_name [lindex $layer_to_boxes 0]
+    set spec [dict create]
+    if {[llength [lindex $layer_to_boxes 1]] == 0} {
+       dict append spec blockages $routing_layers
+    } else {
+        set top_layer_dir [get_macro_top_layer_dir $inst [lindex $layer_to_boxes 1]]
+        set straps [get_macro_strap $inst $tech $top_layer_name $top_layer_dir $grid_strategy]
+        set top_strap_layer [lindex [dict key $straps] end]
+
+        dict append spec straps $straps
+        set blockages [list]
+        for {set i 0} {$i <= [expr [lsearch $routing_layers $top_strap_layer] - 1]} {incr i} {
+           lappend blockages [lindex $routing_layers $i]
+        }
+        dict append spec blockages $blockages
+        dict append spec connect "{${top_layer_name}_PIN_$top_layer_dir $top_strap_layer}"
+    }
+    dict append spec orient [$inst getOrient]
+    dict append spec instances [$inst getName]
+    return $spec
+}
+
+proc get_routing_layers {tech} {
+    set routing_layers [list]
+    foreach layer [$tech getLayers] {
+        if {[$layer getType] == "ROUTING"} {
+            lappend routing_layers [$layer getName]
+        }
+    }
+    return $routing_layers
+}
+
+proc specify_grid_macro {stdcell_grid_strategy} {
+    set db [ord::get_db]
+    set chip [$db getChip]
+    set tech  [$db getTech]
+    set block [$chip getBlock]
+    set insts [$block getInsts]
+    foreach ins $insts {
+       set master [$ins getMaster]
+       if [$master isBlock] {
+            set spec [get_macro_spec $ins $tech $stdcell_grid_strategy]
+            specify_grid macro $spec
+       }
+    }
 }
 
 proc opendb_update_grid {} {
