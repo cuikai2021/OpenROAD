@@ -309,6 +309,7 @@ Resizer::removeBuffers()
 
   int remove_count = 0;
   for (dbInst *inst : block_->getInsts()) {
+	 if (!inst->canBeRemoved()) continue;
     LibertyCell *lib_cell = db_network_->libertyCell(inst);
     if (lib_cell && lib_cell->isBuffer()) {
       Instance *buffer = db_network_->dbToSta(inst);
@@ -746,6 +747,7 @@ Resizer::repairClkNets(double max_wire_length) // max_wire_length zero for none 
       Net *net = network_->isTopLevelPort(clk_pin)
         ? network_->net(network_->term(clk_pin))
         : network_->net(clk_pin);
+      if (net == NULL) {return;}
       if (network_->isDriver(clk_pin)) {
         Vertex *drvr = graph_->pinDrvrVertex(clk_pin);
         // Do not resize clock tree gates.

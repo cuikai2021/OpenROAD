@@ -35,6 +35,8 @@ int write_macro_lef(odb::dbLib* lib, const char* path);
 
 odb::dbChip* read_def(odb::dbDatabase* db, std::string path);
 
+odb::dbChip* read_def_incremental(odb::dbDatabase* db, std::string path);
+
 int write_def(odb::dbBlock* block,
               const char* path,
               odb::defout::Version version = odb::defout::Version::DEF_5_8);

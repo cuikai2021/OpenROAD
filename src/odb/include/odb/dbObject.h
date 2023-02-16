@@ -88,6 +88,9 @@ enum dbObjectType
   dbRegionObj,
   dbHierObj,
   dbBPinObj,
+  dbScanChainObj,
+  dbScanChainListObj,
+  dbScanChainCompObj,
   // Generator Code Begin DbObjectType
   dbTechLayerObj,
   dbTechLayerSpacingEolRuleObj,

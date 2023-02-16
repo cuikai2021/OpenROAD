@@ -91,6 +91,8 @@ class _dbModule;
 class _dbModInst;
 class _dbGroup;
 class _dbAccessPoint;
+class _dbScanChain;
+
 class dbJournal;
 
 class dbNetBTermItr;
@@ -226,6 +228,7 @@ class _dbBlock : public _dbObject
   dbTable<_dbCapNode>* _cap_node_tbl;
   dbTable<_dbRSeg>* _r_seg_tbl;
   dbTable<_dbCCSeg>* _cc_seg_tbl;
+  dbTable<_dbScanChain>* _scan_chain_tbl;
   dbExtControl* _extControl;
 
   // NON-PERSISTANT-NON-STREAMED-MEMBERS

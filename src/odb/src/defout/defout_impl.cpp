@@ -223,6 +223,7 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
   writeFills(block);
   writeNets(block);
   writeGroups(block);
+  writeScanChains(block);
 
   fprintf(_out, "END DESIGN\n");
   fclose(_out);
@@ -2106,6 +2107,53 @@ void defout_impl::writePinProperties(dbBlock* block)
   }
 
   fprintf(_out, "END PINPROPERTIES\n");
+}
+
+void defout_impl::writeScanChainsComps(const dbSet<dbScanChainComp>& comps, const char* type) {
+  bool has = false;
+  for (dbScanChainComp* c : comps) {
+   if (!has) {
+     fprintf(_out, "+ %s ", type);
+     has = true;
+   } else
+	  fprintf(_out, "\n");
+   fprintf(_out, "%s ( IN %s ) ( OUT %s )",
+	  c->getInst()->getName().c_str(),
+     c->getScanIn()->getMTerm()->getName().c_str(),
+     c->getScanOut()->getMTerm()->getName().c_str());
+    if (c->getNumBits() != 1) {
+    	fprintf(_out, " ( BITS %u )", c->getNumBits());
+    }
+  }
+  if(has)
+   fprintf(_out, "\n");
+}
+
+void defout_impl::writeScanChains(dbBlock* block) {
+  uint scsz = block->getScanChainCount();
+  fprintf(_out, "SCANCHAINS %u ;\n\n", scsz);
+  for (dbScanChain* sc : block->getScanChains()) {
+     fprintf(_out, "- %s\n", sc->getName());
+     //start
+     dbITerm* start = sc->getStart();
+     fprintf(_out, "+ START %s %s\n", start->getInst()->getName().c_str(), start->getMTerm()->getName().c_str());
+     //floating
+     writeScanChainsComps(sc->getFloating(), "FLOATING");
+     //ordered
+     for (dbScanChainList* l : sc->getOrdered())
+    	 writeScanChainsComps(l->getComps(), "ORDERED");
+     // partition
+     if (sc->getPartitionName()) {
+    	 if (sc->getPartitionMaxBits())
+    		fprintf(_out, "+ PARTITION %s %u\n", sc->getPartitionName(), sc->getPartitionMaxBits());
+    	 else
+         fprintf(_out, "+ PARTITION %s\n", sc->getPartitionName());
+     }
+     //stop
+     dbITerm* stop  = sc->getStop();
+     fprintf(_out, "+ STOP %s %s ;\n\n", stop->getInst()->getName().c_str(), stop->getMTerm()->getName().c_str());
+  }
+  fprintf(_out, "END SCANCHAINS\n");
 }
 
 }  // namespace odb

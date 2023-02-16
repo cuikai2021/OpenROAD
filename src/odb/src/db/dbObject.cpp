@@ -329,6 +329,15 @@ void dbObject::getDbName(char name[max_name_length]) const
         *cptr++ = 'h';
         id = impl->getOID();
         break;
+      case dbScanChainObj:
+      case dbScanChainListObj:
+        *cptr++ = '-';
+        id = impl->getOID();
+		  break;
+      case dbScanChainCompObj:
+    	  *cptr++ = '=';
+    	  id = impl->getOID();
+		  break;
       case dbTechLayerMinStepRuleObj:
       case dbTechLayerCornerSpacingRuleObj:
       case dbTechLayerSpacingTablePrlRuleObj:
@@ -643,6 +652,25 @@ dbObject* dbObject::resolveDbName(dbDatabase* db_, const char* name)
         oid = getOid(name);
         obj = dbGroup::getGroup((dbBlock*) obj, oid);
         break;
+
+      case '=': {
+    	  oid = getOid(name);
+    	  dbObjectType type = obj->getImpl()->getType();
+    	  if (type == dbScanChainObj)
+    		 obj = dbScanChainComp::getScanChainComp((dbScanChain*)obj, oid);
+    	  else
+    		 obj = dbScanChainComp::getScanChainComp((dbScanChainList*)obj, oid);
+    	  break;
+      }
+      case '-': {
+    	  oid = getOid(name);
+    	  dbObjectType type = obj->getImpl()->getType();
+    	  if (type == dbBlockObj)
+    	    obj = dbScanChain::getScanChain((dbBlock*) obj, oid);
+    	  else
+    		 obj = dbScanChainList::getScanChainList((dbScanChain*) obj, oid);
+    	  break;
+      }
       case 'h':
       case 'J':
         // SKIP
@@ -691,6 +719,9 @@ static const char* name_tbl[] = {"dbDatabase",
                                  "dbRegion",
                                  "dbHier",
                                  "dbBPin",
+								 	 	 	"dbScanChain",
+											"dbScanChainList",
+											"dbScanChainComp",
                                  // Generator Code Begin ObjectNames
                                  "dbTechLayer",
                                  "dbTechLayerSpacingEolRule",

@@ -18,6 +18,7 @@ add_library(defin
     definPolygon.cpp 
     definPropDefs.cpp 
     definPinProps.cpp 
+    definScanchain.cpp
 )
 
 target_include_directories(defin

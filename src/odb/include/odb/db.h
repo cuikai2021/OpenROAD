@@ -146,6 +146,8 @@ class dbGCellGrid;
 class dbAccessPoint;
 // Generator Code End ClassDeclarations
 
+class dbScanChain;
+
 // Extraction Objects
 class dbExtControl;
 
@@ -1241,6 +1243,16 @@ class dbBlock : public dbObject
   /// Get the capacitor-coupled segments.
   ///
   dbSet<dbCCSeg> getCCSegs();
+
+  ///
+  /// Get the scan chains
+  ///
+  dbSet<dbScanChain> getScanChains();
+
+  ///
+  /// Get the count of scan chains
+  ///
+  int getScanChainCount();
 
   ///
   /// Allow bufferin of altered nes
@@ -2968,6 +2980,9 @@ class dbInst : public dbObject
   /// Returns true if the don't-size flag is set.
   ///
   bool isDoNotSize();
+
+  /// dont touch,dont size and sizeonly
+  bool canBeRemoved();
 
   ///
   /// Get the block of this instance.
@@ -9046,5 +9061,47 @@ class dbAccessPoint : public dbObject
 };
 
 // Generator Code End ClassDefinition
+class dbScanChain;
+class dbScanChainList;
+
+class dbScanChainComp : public dbObject {
+public:
+  static dbScanChainComp* getScanChainComp(dbScanChain* scanchain, uint dbid);
+  static dbScanChainComp* getScanChainComp(dbScanChainList* scanchainlist, uint dbid);
+
+  dbInst*  getInst() const;
+  dbITerm* getScanIn() const;
+  dbITerm* getScanOut() const;
+  uint     getNumBits() const;
+};
+
+class dbScanChainList : public dbObject {
+public:
+  dbScanChainComp* createComp(dbInst* inst, dbITerm* in, dbITerm* out, int num_bits = 1);
+  static dbScanChainList* getScanChainList(dbScanChain* scanchain, uint dbid);
+
+  dbSet<dbScanChainComp> getComps() const;
+};
+
+class dbScanChain : public dbObject {
+public:
+  static dbScanChain* create(dbBlock* block, const char* name, const char* common_scan_in,
+    const char* common_scan_out, const char* partition_name = NULL, unsigned partition_max_bits = 0);
+  static dbScanChain* getScanChain(dbBlock* block, uint dbid);
+  static void destroy(dbScanChain* sc);
+
+  const char* getName() const;
+  dbITerm* getStart() const;
+  dbITerm* getStop() const;
+  const char* getPartitionName() const;
+  uint getPartitionMaxBits() const;
+  dbSet<dbScanChainList> getOrdered() const;
+  dbSet<dbScanChainComp> getFloating() const;
+
+  void setStart(dbITerm* t);
+  void setStop(dbITerm* t);
+  dbScanChainComp* createFloatingComp(dbInst* inst, dbITerm* in, dbITerm* out, int num_bits = 1);
+  dbScanChainList* createOrderedList();
+};
 
 }  // namespace odb

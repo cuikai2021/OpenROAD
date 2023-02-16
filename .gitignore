@@ -34,3 +34,5 @@ devops_results
 
 utest/*/test/results
 messages.txt
+.cache
+__pycache__

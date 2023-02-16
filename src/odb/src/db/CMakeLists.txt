@@ -93,6 +93,7 @@ add_library(odb
     wOrder.cpp
     dbGroupPowerNetItr.cpp
     dbGroupGroundNetItr.cpp
+    dbScanChain.cpp
     dbTechLayerSpacingNotchLengthRule.cpp
     dbTechLayerSpacingTableJogToJogSpacingRule.cpp
     # Generator Code Begin cpp

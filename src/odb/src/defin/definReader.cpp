@@ -57,6 +57,7 @@
 #include "definSNet.h"
 #include "definTracks.h"
 #include "definVia.h"
+#include "definScanchain.h"
 #include "defzlib.hpp"
 #include "utl/Logger.h"
 
@@ -103,6 +104,7 @@ definReader::definReader(dbDatabase* db, utl::Logger* logger, defin::MODE mode)
   _non_default_ruleR = new definNonDefaultRule;
   _prop_defsR = new definPropDefs;
   _pin_propsR = new definPinProps;
+  _scanchainR = new definScanchains;
 
   _interfaces.push_back(_blockageR);
   _interfaces.push_back(_componentR);
@@ -118,6 +120,7 @@ definReader::definReader(dbDatabase* db, utl::Logger* logger, defin::MODE mode)
   _interfaces.push_back(_non_default_ruleR);
   _interfaces.push_back(_prop_defsR);
   _interfaces.push_back(_pin_propsR);
+  _interfaces.push_back(_scanchainR);
   init();
 }
 
@@ -137,6 +140,7 @@ definReader::~definReader()
   delete _non_default_ruleR;
   delete _prop_defsR;
   delete _pin_propsR;
+  delete _scanchainR;
 
   if (_block_name)
     free((void*) _block_name);
@@ -1301,12 +1305,95 @@ int definReader::rowCallback(defrCallbackType_e /* unused: type */,
   return PARSE_OK;
 }
 
-int definReader::scanchainsCallback(defrCallbackType_e /* unused: type */,
-                                    int /* unused: count */,
+int definReader::scanchainsStartCallback(defrCallbackType_e /* unused: type */,
+                                    int number,
                                     defiUserData data)
 {
   definReader* reader = (definReader*) data;
-  UNSUPPORTED("SCANCHAINS are unsupported");
+  CHECKBLOCK
+  definScanchains* scanchainR = reader->_scanchainR;
+  scanchainR->scanchainsBegin(number);
+  return PARSE_OK;
+}
+
+int definReader::scanchainCallback(defrCallbackType_e type,
+                                   defiScanchain* scanchain,
+		                             defiUserData data)
+{
+  definReader* reader = (definReader*) data;
+  CHECKBLOCK
+  definScanchains* scanchainsR = reader->_scanchainR;
+  scanchainsR->setBlock(reader->_block);
+  definScanchain* scanchainR = scanchainsR->begin(scanchain->name());
+  scanchainR->setBlock(reader->_block);
+  // start
+  if (scanchain->hasStart()) {
+	 char *inst, *pin;
+	 scanchain->start(&inst, &pin);
+    scanchainR->setStart(inst, pin);
+  }
+  // stop
+  if (scanchain->hasStop()) {
+	 char *inst, *pin;
+	 scanchain->stop(&inst, &pin);
+	 scanchainR->setStop(inst, pin);
+  }
+  // ordered
+  if (scanchain->hasOrdered()) {
+	 size_t c = scanchain->numOrderedLists();
+	 for (size_t i = 0; i < c; ++i) {
+		int size;
+		char** inst;
+		char** inPin;
+		char** outPin;
+      int*   bits;
+	   scanchain->ordered(i, &size, &inst, &inPin, &outPin, &bits);
+	   auto ordered = scanchainR->createOrdered(size);
+	   for (int j = 0; j < size; ++j)
+		  ordered->add(inst[j], inPin[j], outPin[j], bits[j]);
+	 }
+  }
+  // floating
+  if (scanchain->hasFloating()) {
+    int size;																																					char** inst;
+    char** inPin;
+    char** outPin;
+    int*   bits;
+    scanchain->floating(&size, &inst, &inPin, &outPin, &bits);
+    auto floating = scanchainR->createFloating(size);
+    for (int j = 0; j < size; ++j)
+    	floating->add(inst[j], inPin[j], outPin[j], bits[j]);
+  }
+  // common_scan
+  if (scanchain->hasCommonInPin()) {
+    scanchainR->setCommonInPin(scanchain->commonInPin());
+  }
+  if (scanchain->hasCommonOutPin()) {
+	 scanchainR->setCommonOutPin(scanchain->commonOutPin());
+  }
+  // partition
+  if (scanchain->hasPartition()) {
+	 scanchainR->setPartitionName(scanchain->partitionName());
+	 if (scanchain->hasPartitionMaxBits()) {
+		scanchainR->setPartitionMaxBits(scanchain->partitionMaxBits());
+	 }
+  }
+
+  // handle_props(scanchain, scanchainR);
+
+  scanchainsR->end();
+
+  return PARSE_OK;
+}
+
+int definReader::scanchainsEndCallback(defrCallbackType_e type,
+                                       void* v,
+                                       defiUserData data)
+{
+  definReader* reader = (definReader*) data;
+  CHECKBLOCK
+  definScanchains* scanchainR = reader->_scanchainR;
+  scanchainR->scanchainsEnd();
   return PARSE_OK;
 }
 
@@ -1825,6 +1912,10 @@ bool definReader::createBlock(const char* file)
   defrSetPinEndCbk(pinsEndCallback);
   defrSetPinPropCbk(pinPropCallback);
 
+  defrSetScanchainsStartCbk(scanchainsStartCallback);
+  defrSetScanchainCbk(scanchainCallback);
+  defrSetScanchainsEndCbk(scanchainsEndCallback);
+
   if (_mode == defin::DEFAULT || _mode == defin::FLOORPLAN) {
     defrSetDieAreaCbk(dieAreaCallback);
     defrSetTrackCbk(trackCallback);
@@ -1854,7 +1945,6 @@ bool definReader::createBlock(const char* file)
     defrSetNonDefaultCbk(nonDefaultRuleCallback);
     defrSetRegionCbk(regionCallback);
 
-    defrSetScanchainsStartCbk(scanchainsCallback);
     defrSetSlotStartCbk(slotsCallback);
 
     defrSetStartPinsCbk(pinsStartCallback);

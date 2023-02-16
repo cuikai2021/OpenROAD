@@ -847,6 +847,14 @@ bool dbInst::isDoNotSize()
   return inst->_flags._dont_size == 1;
 }
 
+bool dbInst::canBeRemoved()
+{
+  _dbInst* inst = (_dbInst*) this;
+  return inst->_flags._dont_touch &&
+		   inst->_flags._dont_size &&
+		   inst->_flags._size_only;
+}
+
 dbBlock* dbInst::getBlock()
 {
   return (dbBlock*) getImpl()->getOwner();
