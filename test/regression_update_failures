@@ -11,16 +11,35 @@ set curtime [clock clicks -milliseconds]
 set regression_name "regression-$curtime"
 set regression_dir "$openroad_dir/$regression_name"
 set failures_count 0
+set gtest_failure_items 0
 set gtest_output "gtest_output.json"
 set devops_results_dir "$openroad_dir/devops_results"
 
 
-array set all_test_dirs { ifp "src/ifp/test" dbSta "src/dbSta/test" ppl "src/ppl/test" \
-pdngen "src/pdngen/test" ICeWall "src/ICeWall/test" mpl "src/mpl/test" rsz "src/rsz/test" replace "src/replace/test" \
-TritonCTS "src/TritonCTS/test" dpl "src/dpl/test" psm "src/psm/test" grt "src/grt/test" tap "src/tap/test" \
-ant "src/ant/test" OpenDB "src/OpenDB/test" rcx "src/rcx/test" PartitionMgr "src/PartitionMgr/test" \
-TritonRoute "src/TritonRoute/test" }
-
+array set all_test_dirs {
+  OpenDB "src/odb/test"
+  dbSta "src/dbSta/test"
+  stt "src/stt/test"
+  ifp "src/ifp/test"
+  tap "src/tap/test"
+  ppl "src/ppl/test"
+  pdn "src/pdn/test"
+  pad "src/pad/test"
+  mpl "src/mpl/test"
+  par "src/par/test"
+  gpl "src/gpl/test"
+  rsz "src/rsz/test"
+  cts "src/cts/test"
+  dpl "src/dpl/test"
+  dpo "src/dpo/test"
+  grt "src/grt/test"
+  ant "src/ant/test"
+  rcx "src/rcx/test"
+  psm "src/psm/test"
+  drt "src/drt/test"
+  rmp "src/rmp/test"   
+  lrl "src/Laurel/test"
+}
 
 proc read_failures_item { failures_file } {
     set items [list];
@@ -107,6 +126,7 @@ proc main {} {
     global regression_dir;
     global regression_name;
     global failures_count;
+    global gtest_failure_items;
     global gtest_output;
     global devops_results_dir;
 
@@ -115,8 +135,6 @@ proc main {} {
     foreach { name dir } [array get all_test_dirs] {
         update_failures $name $dir;
     }
-
-    set gtest_failure_items 0
 
     if { [file exists $gtest_output] == 1 } {
         set gtest [read_file $gtest_output];
@@ -128,7 +146,8 @@ proc main {} {
         exec mv "$gtest_output" $regression_name;
     }
 
-    puts $gtest_failure_items;
+    puts "gtest: $gtest_failure_items" ;
+    puts "regression: $failures_count"
 
     if { $gtest_failure_items > 0 || $failures_count > 0 } {
         exec tar -Pzcvf "$regression_name.tar.gz" $regression_name;
@@ -137,3 +156,6 @@ proc main {} {
 }
 
 main
+if { $gtest_failure_items > 0 || $failures_count > 0 } {
+  exit -1
+}
