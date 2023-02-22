@@ -2131,6 +2131,7 @@ void defout_impl::writeScanChainsComps(const dbSet<dbScanChainComp>& comps, cons
 
 void defout_impl::writeScanChains(dbBlock* block) {
   uint scsz = block->getScanChainCount();
+  if (scsz == 0) return;
   fprintf(_out, "SCANCHAINS %u ;\n\n", scsz);
   for (dbScanChain* sc : block->getScanChains()) {
      fprintf(_out, "- %s\n", sc->getName());
