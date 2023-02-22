@@ -89,6 +89,7 @@
 #include "stt/MakeSteinerTreeBuilder.h"
 #include "linden/linden.hpp"
 #include "gpl/lindenmp.hpp"
+#include "sc/MakeScanChain.h"
 
 namespace sta {
 extern const char *openroad_swig_tcl_inits[];
@@ -155,6 +156,7 @@ OpenRoad::OpenRoad()
     pdngen_(nullptr),
     distributer_(nullptr),
     stt_builder_(nullptr),
+    scan_chain_(nullptr),
     threads_(1)
 {
   db_ = dbDatabase::create();
@@ -188,6 +190,7 @@ OpenRoad::~OpenRoad()
   deletePdnGen(pdngen_);
   deleteDistributed(distributer_);
   deleteSteinerTreeBuilder(stt_builder_);
+  deleteScanChain(scan_chain_);
   delete logger_;
 }
 
@@ -254,6 +257,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   pdngen_ = makePdnGen();
   distributer_ = makeDistributed();
   stt_builder_ = makeSteinerTreeBuilder();
+  scan_chain_ = makeScanChain();
 
   // Init components.
   Openroad_swig_Init(tcl_interp);
@@ -290,6 +294,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initDistributed(this);
   initSteinerTreeBuilder(this);
   linden::initLindenDp(this);
+  initScanChain(this);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");

@@ -155,6 +155,10 @@ namespace lindenmp {
 class LindenMacroPlace;
 } // namespace lindenmp
 
+namespace sc {
+class ScanChain;
+}
+
 namespace ord {
 
 using std::string;
@@ -202,6 +206,7 @@ public:
   dst::Distributed *getDistributed() { return distributer_; }
   stt::SteinerTreeBuilder *getSteinerTreeBuilder() { return stt_builder_; }
   std::shared_ptr<lindenmp::LindenMacroPlace> getLindenMacroPlace();
+  sc::ScanChain *getScanChain() { return scan_chain_; }
 
   // Return the bounding box of the db rows.
   odb::Rect getCore();
@@ -302,6 +307,7 @@ private:
   pdn::PdnGen *pdngen_;
   dst::Distributed *distributer_;
   stt::SteinerTreeBuilder *stt_builder_;
+  sc::ScanChain *scan_chain_;
 
   std::set<Observer *> observers_;
 

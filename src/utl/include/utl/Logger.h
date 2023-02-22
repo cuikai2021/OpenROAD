@@ -82,6 +82,7 @@ namespace utl {
     X(BY) \
     X(LRL) \
     X(LDN) \
+    X(SC) \
 
 #define GENERATE_ENUM(ENUM) ENUM,
 #define GENERATE_STRING(STRING) #STRING,
