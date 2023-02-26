@@ -189,8 +189,8 @@ class Clock
                             int y)
   {
     _clockBuffers.emplace_back(
-        name + "_" + getName(), master, CLOCK_BUFFER, x, y);
-    _mapNameToInst[name + "_" + getName()] = &_clockBuffers.back();
+        getName() + "_" + name, master, CLOCK_BUFFER, x, y);
+    _mapNameToInst[getName() + "_" + name] = &_clockBuffers.back();
     return _clockBuffers.back();
   }
 
@@ -205,7 +205,7 @@ class Clock
 
   SubNet& addSubNet(const std::string& name)
   {
-    _subNets.emplace_back(name + "_" + getName());
+    _subNets.emplace_back(getName() + "_" + name);
     return _subNets.back();
   }
 

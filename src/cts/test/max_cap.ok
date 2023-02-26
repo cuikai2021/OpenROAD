@@ -66,5 +66,5 @@ max capacitance
 
 Pin                                    Limit     Cap   Slack
 ------------------------------------------------------------
-clkbuf_1_0_1_clk1/X                     0.15    0.29   -0.15 (VIOLATED)
+clk1_clkbuf_1_0_1/X                     0.15    0.29   -0.15 (VIOLATED)
 

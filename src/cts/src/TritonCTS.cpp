@@ -260,8 +260,9 @@ void TritonCTS::initOneClockTree(odb::dbNet* driverNet,
             if (_openSta->sdc()->isLeafPinClock(_network->dbToSta(outputPin))) {
               _logger->info(CTS, 107, "leaf pin clock gating instance: {}, output net {}.",
                             iterm->getInst()->getName(), outputNet->getName());
+            } else {
+              initOneClockTree(outputNet, sdcClockName, clockBuilder);
             }
-            initOneClockTree(outputNet, sdcClockName, clockBuilder);
           }
         }
       }
@@ -803,7 +804,7 @@ void TritonCTS::writeClockNetsToDb(Clock& clockNet)
   createClockBuffers(clockNet);
 
   // connect top buffer on the clock pin
-  std::string topClockInstName = "clkbuf_0_" + clockNet.getName();
+  std::string topClockInstName = clockNet.getName() + "_clkbuf_0";
   odb::dbInst* topClockInst = _block->findInst(topClockInstName.c_str());
   odb::dbITerm* topClockInstInputPin = getFirstInput(topClockInst);
   topClockInstInputPin->connect(topClockNet);
@@ -819,7 +820,7 @@ void TritonCTS::writeClockNetsToDb(Clock& clockNet)
     bool outputPinFound = true;
     bool inputPinFound = true;
     bool leafLevelNet = subNet.isLeafLevel();
-    if (("clknet_0_" + clockNet.getName()) == subNet.getName()) {
+    if ((clockNet.getName() + "_clknet_0") == subNet.getName()) {
       rootSubNet = &subNet;
     }
     odb::dbNet* clkSubNet

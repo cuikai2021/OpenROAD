@@ -107,16 +107,16 @@ void LevelBalancer::addBufferLevels(TreeBuilder* builder,
         driverX + (centroidX - driverX) * (level + 1) / (bufLevels + 1),
         driverY + (centroidY - driverY) * (level + 1) / (bufLevels + 1));
     builder->addTreeLevelBuffer(&levelBuffer);
-    _logger->info(CTS, 109, "Balance with buffer {}", "clkbuf_level_" + std::to_string(level) + "_" + nameSuffix
-                                                          + std::to_string(levelBufCount_) + "_" + builder->getClock().getName());
+    _logger->info(CTS, 109, "Balance with buffer {}", builder->getClock().getName() + "_clkbuf_level_"
+    + std::to_string(level) + "_" + nameSuffix + std::to_string(levelBufCount_));
 
 
     // Add Net
     Clock::SubNet* levelSubNet = &(builder->getClock().addSubNet(
         "clknet_level_" + std::to_string(level) + "_" + nameSuffix
         + std::to_string(levelBufCount_) + "_" + builder->getClock().getName()));
-    _logger->info(CTS, 110, "Balance with Net {}",  "clknet_level_" + std::to_string(level) + "_" + nameSuffix
-                                                       + std::to_string(levelBufCount_) + "_" + builder->getClock().getName());
+    _logger->info(CTS, 110, "Balance with Net {}",  builder->getClock().getName() + "_clknet_level_" +
+    std::to_string(level) + "_" + nameSuffix + std::to_string(levelBufCount_));
     levelBufCount_++;
     // Connect to driving and driven nets
     prevLevelSubNet->addInst(levelBuffer);

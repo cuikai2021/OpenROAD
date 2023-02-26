@@ -59,6 +59,13 @@ void NNCBuilder::run() {
           seg->cap += cap_delay.first;
         }
 
+        //TODO: gate cell delay
+        if (liberty_cell != nullptr) {
+            auto result = lrl::DelayCalc::maxGateDelay(liberty_cell, _options->getBufferTestInSlew(),
+                                                       seg->cap, reinterpret_cast<sta::Sta*>(_openSta));
+            seg->delay = seg->delay + result.delay;
+        }
+
         logger_->info(CTS, 203, " Reset the load capacitance and delay for cell {} as {} and {}.",
                       instance->getConstName(), seg->cap, seg->delay);
       }
@@ -381,6 +388,7 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
     }
   }
 
+  // TODO: maybe not a good choice
   if (std::abs(seg1->delay - seg2->delay) > _options->getBalanceDelayThreshold()) {
     // try to insert more buffers to balance delay
     Segment* small_delay_seg;
@@ -994,14 +1002,14 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
       interval_y = (node->loc->y - centroid_y) / (node->segment->more_buffers.size() + 1);
     }
 
-    Clock::SubNet& clock_sub_net = _clock.addSubNet(_clock.getName() + "_net_" + std::to_string(net_count));
+    Clock::SubNet& clock_sub_net = _clock.addSubNet("net_" + std::to_string(net_count));
     net_count ++;
     int new_net_count = 0;
     for (auto net_node : net_nodes) {
       if (net_node->segment->buffer) {
-        auto instance = _clock.findClockByName("buffer_" + std::to_string(net_node->id) + "_" + _clock.getName());
+        auto instance = _clock.findClockByName(_clock.getName() + "_buffer_" + std::to_string(net_node->id));
         if (net_node == tree->root) {
-          instance = _clock.findClockByName("clkbuf_0_" + _clock.getName());
+          instance = _clock.findClockByName(_clock.getName() + "_clkbuf_0");
         }
         assert(instance != nullptr);
 
@@ -1017,17 +1025,15 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
                                   net_node->loc->x - interval_x * (i + 1),
                                   net_node->loc->y - interval_y * (i + 1));
 
-            auto new_net_name = _clock.getName() + "_net_balance_"
-                                + std::to_string(net_count) + "_"
-                                + std::to_string(new_net_count);
+            auto new_net_name = "net_balance_" + std::to_string(net_count) + "_" + std::to_string(new_net_count);
             Clock::SubNet& new_clock_sub_net = _clock.addSubNet(new_net_name);
 
-            auto current_instance = _clock.findClockByName(buffer_name + "_" + _clock.getName());
+            auto current_instance = _clock.findClockByName(_clock.getName() + "_" + buffer_name);
             if (i == 0) {
               new_clock_sub_net.addInst(*instance);
             } else {
-              auto pre_buffer_name = "buffer_balance_" + std::to_string(net_node->id)
-                                     + "_" + std::to_string(i-1) + "_" + _clock.getName();
+              auto pre_buffer_name = _clock.getName() + "_buffer_balance_" + std::to_string(net_node->id)
+                                     + "_" + std::to_string(i-1);
               auto pre_instance = _clock.findClockByName(pre_buffer_name);
               new_clock_sub_net.addInst(*pre_instance);
             }
@@ -1036,7 +1042,7 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
 
           auto buffer_name = "buffer_balance_" + std::to_string(net_node->id)
                              + "_" + std::to_string(buffer_size-1);
-          auto new_instance = _clock.findClockByName(buffer_name + "_" + _clock.getName());
+          auto new_instance = _clock.findClockByName(_clock.getName() + "_" + buffer_name);
           clock_sub_net.addInst(*new_instance);
         } else {
           clock_sub_net.addInst(*instance);
