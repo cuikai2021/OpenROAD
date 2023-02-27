@@ -39,9 +39,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cstdint>
 
 typedef unsigned int uint;
 typedef unsigned char uchar;
 
-typedef long long int64;
-typedef unsigned long long uint64;
+typedef int64_t int64;
+typedef uint64_t uint64;
