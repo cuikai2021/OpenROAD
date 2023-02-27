@@ -475,25 +475,31 @@ void OpenDBAdapter::getDefViaFromODB()
     }
 
     int addedLayer = 0;
-    for (auto& [index, geos] : idxToGeos) {
+    for (auto const& [index, geos] : idxToGeos) {
       auto layerName = indexToLayerName[index];
       switch (addedLayer) {
         case 0: {
           auto botLayer = pbVia->mutable_bottomlayer();
           botLayer->set_name(layerName);
-          botLayer->mutable_geometries()->Add(geos.begin(), geos.end());
+          for(auto const& x: geos) {
+            *botLayer->mutable_geometries()->Add() = x;
+          }
           break;
         }
         case 1: {
           auto cutLayer = pbVia->mutable_cutlayer();
           cutLayer->set_name(layerName);
-          cutLayer->mutable_geometries()->Add(geos.begin(), geos.end());
+          for(auto const& x: geos) {
+            *cutLayer->mutable_geometries()->Add() = x;
+          }
           break;
         }
         case 2: {
           auto topLayer = pbVia->mutable_toplayer();
           topLayer->set_name(layerName);
-          topLayer->mutable_geometries()->Add(geos.begin(), geos.end());
+          for(auto const& x: geos) {
+            *topLayer->mutable_geometries()->Add() = x;
+          }
           break;
         }
       }
@@ -561,15 +567,17 @@ void OpenDBAdapter::getNetsFromODB()
     net->set_use(odbNetType2NetUse(odbNet->getSigType()));
 
     for (auto iterm : odbNet->getITerms()) {
-      net->mutable_pins()->Add(odbITerm2Pin(iterm));
+      *net->mutable_pins()->Add() = odbITerm2Pin(iterm);
     }
     for (auto bterm : odbNet->getBTerms()) {
-      net->mutable_pins()->Add(odbBTerm2Pin(bterm));
+      *net->mutable_pins()->Add() = odbBTerm2Pin(bterm);
     }
     auto odbNetWire = odbNet->getWire();
     if (odbNetWire != nullptr) {
       auto wires = odbWires2Wires(odbNet->getWire());
-      net->mutable_wires()->Add(wires.begin(), wires.end());
+      for(auto const& x: wires) {
+        *net->mutable_wires()->Add() = x;
+      }
     }
   }
 }
@@ -588,14 +596,16 @@ void OpenDBAdapter::getSpecialNetsFromODB()
     snet->set_use(odbNetType2NetUse(odbNet->getSigType()));
 
     for (auto iterm : odbNet->getITerms()) {
-      snet->mutable_pins()->Add(odbITerm2Pin(iterm));
+      *snet->mutable_pins()->Add() = odbITerm2Pin(iterm);
     }
     for (auto bterm : odbNet->getBTerms()) {
-      snet->mutable_pins()->Add(odbBTerm2Pin(bterm));
+      *snet->mutable_pins()->Add() = odbBTerm2Pin(bterm);
     }
     for (auto odbSwire : odbNet->getSWires()) {
       auto swires = dbSWire2SpecialWires(odbSwire);
-      snet->mutable_wires()->Add(swires.begin(), swires.end());
+      for(auto const& x: swires) {
+        *snet->mutable_wires()->Add() = x;
+      }
     }
   }
 }

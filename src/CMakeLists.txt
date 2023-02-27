@@ -93,7 +93,11 @@ else()
 endif()
 
 ################################################################
-#gen protobuf files
+# gen protobuf files
+#
+# FIXME:
+# 1.  It seems unwise to assume all .proto files in a common directory.
+# 2.  It seems wise to make components depending on compiled .a lib, rather than generated .cpp files.
 find_package(Protobuf REQUIRED)
 message(STATUS "protobuf: ${Protobuf_VERSION}")
 

@@ -78,10 +78,10 @@ target_sources(gpl
     src/routeBase.cpp
     src/timingBase.cpp
     src/graphics.cpp
-    src/banyan_cmap.pb.cc
     src/lindengp.rdp.cpp
     src/lindenmp.cpp
     src/LindenDBSanitizer.cpp
+    ${PROTO_GEN_SRCS}
 )
 
 messages(TARGET gpl)
@@ -89,7 +89,10 @@ messages(TARGET gpl)
 target_include_directories(gpl
   PUBLIC
     include
+  PRIVATE
     ${OCTAVE_INCLUDE_DIR}
+    ${PROTO_GEN_DIR}
+    ${Protobuf_INCLUDE_DIRS}
 )
 
 LINK_DIRECTORIES(
