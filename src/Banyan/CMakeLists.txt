@@ -28,7 +28,7 @@ target_sources(Banyan
     src/DBAdapter.cpp
     src/Global.cpp
     src/MergeWireSegment.cpp
-    banyan-integrate/banyan_db.pb.cc
+    ${PROTO_GEN_SRCS}
 )
 
 target_include_directories(Banyan
@@ -37,7 +37,7 @@ target_include_directories(Banyan
 
   PRIVATE
     ${Protobuf_INCLUDE_DIRS}
-    banyan-integrate
+    ${PROTO_GEN_DIR}
     src
 )
 
