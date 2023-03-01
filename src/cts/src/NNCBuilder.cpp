@@ -995,8 +995,15 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
         total_x += net_node->loc->x;
         total_y += net_node->loc->y;
       }
-      double centroid_x = total_x / (net_nodes.size() - 1);
-      double centroid_y = total_y / (net_nodes.size() - 1);
+
+      double centroid_x = 0, centroid_y = 0;
+      if (net_nodes.size() == 1) {
+        centroid_x = total_x;
+        centroid_y = total_y;
+      } else {
+        centroid_x = total_x / (net_nodes.size() - 1);
+        centroid_y = total_y / (net_nodes.size() - 1);
+      }
 
       interval_x = (node->loc->x - centroid_x) / (node->segment->more_buffers.size() + 1);
       interval_y = (node->loc->y - centroid_y) / (node->segment->more_buffers.size() + 1);
