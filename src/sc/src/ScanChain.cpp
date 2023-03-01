@@ -7,6 +7,7 @@
 #include "odb/db.h"
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
+#include <lemon/christofides_tsp.h>
 
 namespace sc {
 
@@ -40,6 +41,7 @@ void ScanChain::reorder() {
     logger_->info(SC, 3, "  Has {} points in the graph for scan chain {}.", points.size(), scan_chain->getName());
 
     std::vector<Graph::NodeId> orders = reorderScanChain(scan_chain, points);
+    assert(orders.size() == points.size() && orders[0] == 0);
 
     //assert the pin of START is output pin
     assert(scan_chain->getStart()->isOutputSignal(false));
@@ -81,13 +83,30 @@ void ScanChain::initPoints(const odb::dbScanChain *scan_chain, std::vector<Point
 
 std::vector<Graph::NodeId> ScanChain::reorderScanChain(const odb::dbScanChain *scan_chain,
                                                        const std::vector<Point> &points) {
-  auto graph = Graph(points);
-  graph.construct(new ZhouSpanningGraphStrategy);
-  auto min_graph = Graph(graph.vertices_);
-  min_graph.construct(new Kruskal(graph.edges_));
 
-  // node_id=0 stands for the start point of scan chain
-  return min_graph.dfs(0);
+  lemon::FullGraph g(points.size());
+  lemon::FullGraph::EdgeMap<int> tree_map(g);
+  for (size_t i = 0; i < points.size(); ++i) {
+    for (size_t j = i + 1; j < points.size(); ++j) {
+      lemon::FullGraph::Edge edge = g.edge(g(i), g(j));
+      double dis = std::abs(points[i].x - points[j].x) + std::abs(points[i].y - points[j].y);
+      tree_map[edge] = dis;
+    }
+  }
+  
+  lemon::ChristofidesTsp<lemon::FullGraph::EdgeMap<int> > c(g, tree_map);
+  c.run();
+  std::vector<lemon::FullGraph::Node> nodes = c.tourNodes();
+  auto pos = std::find(nodes.begin(), nodes.end(), g(0));
+  std::vector<Graph::NodeId> orders;
+  for (auto it = pos; it != nodes.end(); ++it) {
+    orders.push_back(g.index(*it));
+  }
+  for (auto it = nodes.begin(); it != pos; ++it) {
+    orders.push_back(g.index(*it));
+  }
+  
+  return orders;
 }
 
 odb::dbScanChainComp* getOrigComp(size_t id, bool is_next, std::vector<odb::dbScanChainComp *> orig_floatings,

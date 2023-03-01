@@ -1,0 +1,38 @@
+[annotation]
+  description = "youyong testcase for scanchain reorder"
+
+[[inputs]]
+  name = "lef/JLPADLRCMCUDCV1.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/63a507b9d27b327238e28afc"
+
+[[inputs]]
+  name = "lef/PF128AK128EJ30_V0.2.1.STB.110X.M4.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa069b1e7220b3738ee28"
+
+[[inputs]]
+  name = "lef/rf.1105.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/636a03b38da321006feaff51"
+
+[[inputs]]
+  name = "lef/SHAA110_4096X8X4CM8.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa0c7b1e7220b3738ee2e"
+
+[[inputs]]
+  name = "lef/ua11lscef15bdrll_6m2t.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa129b1e7220b3738ee34"
+
+[[inputs]]
+  name = "lef/ua11lscef15bdrll.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/63a507c0d27b327238e28b02"
+
+[[inputs]]
+  name = "place.def"
+  uri = "https://aqua.icbench.com/benchmark/data/63f714b07839bda84f6e01a2"
+
+[[inputs]]
+  name = "scanchain_with_ORDERED.def"
+  uri = "https://aqua.icbench.com/benchmark/data/63f715207839bda84f6e01ab"
+
+[[inputs]]
+  name = "scanchain.tcl"
+  uri = "https://aqua.icbench.com/benchmark/data/63f715677839bda84f6e01ae"
