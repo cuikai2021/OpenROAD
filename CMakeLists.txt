@@ -118,6 +118,8 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Debug info: ${ENABLE_DEBUG_INFO}")
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
+include(CompileProtobuf)
+
 # configure a header file to pass some of the CMake settings
 configure_file(
   ${OPENROAD_HOME}/include/ord/Version.hh.cmake

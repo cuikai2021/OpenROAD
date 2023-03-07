@@ -6,6 +6,12 @@ project(Banyan
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
+file(GLOB_RECURSE PROTO_FILES banyan-integrate/*.proto)
+protoc(banyan_pb
+  ${PROTO_FILES}
+  PB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/banyan-integrate/"
+  CPP_OUT "${CMAKE_CURRENT_BINARY_DIR}/cpp_out/"
+)
 
 include(CheckIPOSupported)
 check_ipo_supported(RESULT ipo_supported OUTPUT error)
@@ -28,7 +34,6 @@ target_sources(Banyan
     src/DBAdapter.cpp
     src/Global.cpp
     src/MergeWireSegment.cpp
-    ${PROTO_GEN_SRCS}
 )
 
 target_include_directories(Banyan
@@ -36,8 +41,6 @@ target_include_directories(Banyan
     include
 
   PRIVATE
-    ${Protobuf_INCLUDE_DIRS}
-    ${PROTO_GEN_DIR}
     src
 )
 
@@ -51,6 +54,7 @@ target_link_libraries(Banyan
     Laurel
     OpenSTA
     dbSta
+    banyan_pb
     Threads::Threads
     OpenMP::OpenMP_CXX
     Boost::boost
