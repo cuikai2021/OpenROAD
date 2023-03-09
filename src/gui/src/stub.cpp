@@ -157,6 +157,10 @@ void Gui::removeSelectedByType(const std::string& /* type */)
 {
 }
 
+void Gui::addInstToHighlightSet(const char* name, int highlight_group)
+{
+}
+
 std::string Descriptor::Property::toString(const std::any& /* value */)
 {
   return "";
