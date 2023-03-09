@@ -5,7 +5,10 @@
 #include <lemon/dijkstra.h>
 #include <lemon/list_graph.h>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/polygon/polygon.hpp>
 #include <cmath>
+#include <unordered_map>
 #include <utility>
 
 #include "GroupedRange.hpp"
@@ -23,6 +26,83 @@
 #include "utl/Logger.h"
 
 namespace banyan {
+
+using Y2Height = std::pair<int, int>;
+struct pair_hash
+{
+  template <class T1, class T2>
+  std::size_t operator()(const std::pair<T1, T2>& p) const
+  {
+    auto h1 = std::hash<T1>{}(p.first);
+    auto h2 = std::hash<T2>{}(p.second);
+    return h1 ^ h2;
+  }
+};
+
+namespace ply = boost::polygon;
+using namespace boost::polygon::operators;
+
+typedef ply::rectangle_data<int> PlyRect;
+typedef ply::polygon_90_set_data<int> PlyPolygonSet;
+
+bool OpenDBAdapter::isLegalized()
+{
+  auto chip = db_->getChip();
+  auto block = chip->getBlock();
+
+  std::unordered_map<Y2Height, std::vector<PlyRect>, pair_hash> rows;
+  for (auto row : block->getMultiHeightRows()) {
+    odb::Rect rowBox;
+    row->getBBox(rowBox);
+    auto y2h = std::make_pair(rowBox.yMin(), rowBox.dy());
+    rows[y2h].emplace_back(
+        PlyRect(rowBox.xMin(), rowBox.yMin(), rowBox.xMax(), rowBox.yMax()));
+  }
+  std::unordered_map<Y2Height, std::vector<PlyRect>, pair_hash> insts;
+  for (auto inst : block->getInsts()) {
+    int x = 0;
+    int y = 0;
+    inst->getLocation(x, y);
+    auto y2h = std::make_pair(y, inst->getMaster()->getHeight());
+    insts[y2h].emplace_back(PlyRect(x,
+                                    y,
+                                    x + inst->getMaster()->getWidth(),
+                                    y + inst->getMaster()->getHeight()));
+  }
+
+  for (auto yh2Insts : insts) {
+    // auto yh = yh2Insts.first;
+    auto rects = yh2Insts.second;
+    PlyPolygonSet plyset;
+    plyset += rects;
+    if (ply::area(plyset.self_intersect()) > 0) {
+      return false;
+    }
+  }
+
+  for (auto yh2Rows : rows) {
+    auto yh = yh2Rows.first;
+    auto instsRects = insts[yh];
+    if (instsRects.size() <= 0) {
+      continue;
+    }
+    auto rowsRects = yh2Rows.second;
+    PlyPolygonSet rowsPlyset;
+    rowsPlyset += rowsRects;
+
+    PlyPolygonSet instsPlyset;
+    instsPlyset += instsRects;
+
+    auto instsArea = ply::area(instsPlyset);
+    auto region = instsPlyset.interact(rowsPlyset);
+
+    if (instsArea != ply::area(region)) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 PinDirection OpenDBAdapter::odbIOType2Banyan(odb::dbIoType type)
 {
@@ -58,6 +138,7 @@ ComponentOrient OpenDBAdapter::odbOrient2Banyan(odb::dbOrientType type)
     case odb::dbOrientType::MXR90:
       return ComponentOrient::FW;
   }
+  return ComponentOrient::N;
 }
 
 MacroClass OpenDBAdapter::odbMacroClass2Banyan(odb::dbMaster* master)
@@ -68,11 +149,11 @@ MacroClass OpenDBAdapter::odbMacroClass2Banyan(odb::dbMaster* master)
     return MacroClass::MACRO_CORE;
   } else if (master->isCover()) {
     return MacroClass::MACRO_COVER;
-  }else if (master->isEndCap()) {
+  } else if (master->isEndCap()) {
     return MacroClass::MACRO_ENDCAP;
-  }else if(master->isFiller()) {
+  } else if (master->isFiller()) {
     return MacroClass::MACRO_ENDCAP;
-  }else if(master->isPad()) {
+  } else if (master->isPad()) {
     return MacroClass::MACRO_PAD;
   }
   return MacroClass::MACRO_RING;
@@ -553,10 +634,71 @@ void OpenDBAdapter::getRoutingLayersFromODB()
   }
 }
 
+VirtualPin OpenDBAdapter::gmVirtualPin2VirtualPin(const GmVirtualPin& gmvpin)
+{
+  auto tech = db_->getTech();
+  VirtualPin vpin;
+  for (auto pinname : gmvpin.names) {
+    auto pin = vpin.add_pins();
+
+    std::vector<std::string> names;
+    boost::split(names, pinname, boost::is_any_of("@"));
+    assert(names.size() == 2);
+    pin->set_instancename(names[0]);
+    pin->mutable_portname()->set_value(names[1]);
+  }
+
+  odb::dbTechLayer* techlayer = nullptr;
+  for (auto layer : tech->getLayers()) {
+    if (layer->getType() == odb::dbTechLayerType::ROUTING) {
+      techlayer = layer;
+      break;
+    }
+  }
+
+  auto wire = vpin.add_wires();
+  wire->set_layername(techlayer->getName());
+
+  for (auto line : gmvpin.lines) {
+    auto gmBox = line.extendBox(techlayer->getWidth() / 2);
+    auto wireSeg = wire->add_segments();
+    auto wireRect = wireSeg->mutable_rect();
+
+    auto point = wireRect->mutable_point();
+    point->mutable_point()->set_x(gmBox.xMin);
+    point->mutable_point()->set_y(gmBox.yMin);
+
+    auto rect = wireRect->mutable_rect();
+    rect->mutable_lowleft()->set_x(0);
+    rect->mutable_lowleft()->set_y(0);
+    rect->mutable_upright()->set_x(gmBox.xMax - gmBox.xMin);
+    rect->mutable_upright()->set_y(gmBox.yMax - gmBox.yMin);
+  }
+
+  return vpin;
+}
+
 void OpenDBAdapter::getNetsFromODB()
 {
   auto chip = db_->getChip();
   auto block = chip->getBlock();
+  auto designLegalized = isLegalized();
+  std::unordered_map<std::string, std::deque<VirtualPin>> net2Vpins;
+  if (designLegalized) {
+    auto gm
+        = GridlessMaze(db_, logger_, GridlessMaze::SearchLimitLevel::MEDIUM);
+    auto vpins = gm.Run();
+    for (auto vpin : vpins) {
+      if (net2Vpins.find(vpin.netName) != net2Vpins.end()) {
+        net2Vpins[vpin.netName].push_back(gmVirtualPin2VirtualPin(vpin));
+      } else {
+        std::deque<VirtualPin> netVpins{gmVirtualPin2VirtualPin(vpin)};
+        net2Vpins[vpin.netName] = netVpins;
+      }
+    }
+  } else {
+    logger_->warn(utl::BY, 1, "unlegalized design, skip gridless maze on m1");
+  }
 
   for (auto odbNet : block->getNets()) {
     if (odbNet->isSpecial()) {
@@ -565,6 +707,11 @@ void OpenDBAdapter::getNetsFromODB()
     auto net = design_->add_nets();
     net->set_name(odbNet->getName());
     net->set_use(odbNetType2NetUse(odbNet->getSigType()));
+
+    auto vpins = net->mutable_virtualpins();
+    for (const auto& vpin : net2Vpins[odbNet->getName()]) {
+      *vpins->Add() = vpin;
+    }
 
     for (auto iterm : odbNet->getITerms()) {
       *net->mutable_pins()->Add() = odbITerm2Pin(iterm);
@@ -825,6 +972,44 @@ void OpenDBAdapter::updateDB(const Design& design)
                                 (int) (ur.y() - ll.y()));
         };
 
+  auto updateAccessPoint = [&](const PinAccessPoint& pbAccessPoint) {
+    auto layerName = pbAccessPoint.layername();
+    switch (pbAccessPoint.ap_case()) {
+      case PinAccessPoint::ApCase::kOnTrack:
+        // do nothing
+        break;
+      case PinAccessPoint::ApCase::kDropVia: {
+        auto dropvia = pbAccessPoint.dropvia();
+        pbVia2ODBVia(layerName, dropvia.via());
+        break;
+      }
+      case PinAccessPoint::ApCase::kCoverTracks: {
+        auto covertracks = pbAccessPoint.covertracks();
+        pbWireline2ODBLine(layerName, covertracks.line());
+        for (auto block : covertracks.blocks()) {
+          pbWireline2ODBLine(layerName, block);
+        }
+        break;
+      }
+      case PinAccessPoint::ApCase::kMazePaths: {
+        auto mazepaths = pbAccessPoint.mazepaths();
+        if (mazepaths.has_via()) {
+          pbVia2ODBVia(layerName, mazepaths.via());
+        }
+        if (mazepaths.has_line()) {
+          pbWireline2ODBLine(layerName, mazepaths.line());
+        }
+        for (auto block : mazepaths.blocks()) {
+          pbWireline2ODBLine(layerName, block);
+        }
+        break;
+      }
+      default:
+        // do nothing
+        break;
+    }
+  };
+
   for (auto net : design.nets()) {
     auto netInOpenDB = block->findNet(net.name().c_str());
     if (netInOpenDB == nullptr) {
@@ -843,40 +1028,24 @@ void OpenDBAdapter::updateDB(const Design& design)
         continue;
       }
       for (auto pbAccessPoint : pbPin.aps()) {
-        auto layerName = pbAccessPoint.layername();
-        switch (pbAccessPoint.ap_case()) {
-          case PinAccessPoint::ApCase::kOnTrack:
-            // do nothing
-            break;
-          case PinAccessPoint::ApCase::kDropVia: {
-            auto dropvia = pbAccessPoint.dropvia();
-            pbVia2ODBVia(layerName, dropvia.via());
-            break;
+        updateAccessPoint(pbAccessPoint);
+      }
+    }
+
+    for (auto pbVPin : net.virtualpins()) {
+      for (auto pbAccessPoint : pbVPin.aps()) {
+        updateAccessPoint(pbAccessPoint);
+      }
+      for (auto pbWire : pbVPin.wires()) {
+        auto layerName = pbWire.layername();
+        for (auto pbWireSeg : pbWire.segments()) {
+          if (pbWireSeg.has_line()) {
+            pbWireline2ODBLine(layerName, pbWireSeg.line());
+          } else if (pbWireSeg.has_rect()) {
+            pbWireRect2ODBRect(layerName, pbWireSeg.rect());
+          } else if (pbWireSeg.has_via()) {
+            pbVia2ODBVia(layerName, pbWireSeg.via());
           }
-          case PinAccessPoint::ApCase::kCoverTracks: {
-            auto covertracks = pbAccessPoint.covertracks();
-            pbWireline2ODBLine(layerName, covertracks.line());
-            for (auto block : covertracks.blocks()) {
-              pbWireline2ODBLine(layerName, block);
-            }
-            break;
-          }
-          case PinAccessPoint::ApCase::kMazePaths: {
-            auto mazepaths = pbAccessPoint.mazepaths();
-            if (mazepaths.has_via()) {
-              pbVia2ODBVia(layerName, mazepaths.via());
-            }
-            if (mazepaths.has_line()) {
-              pbWireline2ODBLine(layerName, mazepaths.line());
-            }
-            for (auto block : mazepaths.blocks()) {
-              pbWireline2ODBLine(layerName, block);
-            }
-            break;
-          }
-          default:
-            // do nothing
-            break;
         }
       }
     }

@@ -1,0 +1,37 @@
+[annotation]
+  description = "smic110 meiren"
+  title = "smic110_meiren"
+  flowtype = "main"
+
+[[inputs]]
+  name = "banyan_options.sh"
+  uri = "https://aqua.icbench.com/benchmark/data/62f3a4d91a65a537a8a95747"
+
+[[inputs]]
+  name = "pre_route.def"
+  uri = "https://aqua.icbench.com/benchmark/data/62f9e741dc908ab00e9e5e3f"
+
+[[inputs]]
+  name = "tech.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/62f9e697dc908ab00e9e5e39"
+
+[[inputs]]
+  name = "scc011uef_uhd_rvt_ant.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/62f9e6b6dc908ab00e9e5e3c"
+
+[[inputs]]
+  name = "ADC_S11U_V11.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/62f9e766dc908ab00e9e5e42"
+
+[[inputs]]
+  name = "S110NEF16KX64_S1_V0.1.1_2P5M.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/62f9e781dc908ab00e9e5e45"
+
+[[inputs]]
+  name = "SRAM2048X32XM8.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/62f9e7a2dc908ab00e9e5e48"
+
+[[runners]]
+  image = "registry.cn-shanghai.aliyuncs.com/icb/eden_release_ubuntu:221027"
+  [runners.resource]
+    spec = "medium"

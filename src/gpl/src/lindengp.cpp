@@ -1,5 +1,7 @@
 #include "gpl/lindengp.h"
 
+#include <boost/algorithm/string/trim.hpp>
+#include <fstream>
 #include <iostream>
 
 #include "fassert.hpp"
@@ -11,6 +13,7 @@
 #include "initialPlaceEV.h"
 #include "linden/gpl/placer_config.hpp"
 #include "linden/lefdef_dumper.hpp"
+#include "linden/rdp/congestion_estimation.hpp"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "placerBase.h"
@@ -30,6 +33,7 @@ LindenGlobalPlace::LindenGlobalPlace()
       pb_(nullptr),
       initialPlacePolicy_(""),
       linden_db_(nullptr),
+      banyan_cmap_result_(nullptr),
       lindengp_(nullptr),
       density_(1.0),
       overflow_(0.1),
@@ -37,14 +41,14 @@ LindenGlobalPlace::LindenGlobalPlace()
       zigzag_(false),
       net_weight_max_(1.9),
       timing_overflows_{},
+      routability_driven_(false),
       padLeft_(0),
       padRight_(0),
       gui_debug_(false),
       gui_debug_pause_iterations_(10),
       gui_debug_update_iterations_(10),
       gui_debug_initial_(false)
-{
-}
+{}
 
 void LindenGlobalPlace::reset()
 {
@@ -62,6 +66,11 @@ void LindenGlobalPlace::setTimingDriven(bool timing_driven)
   }
 }
 
+void LindenGlobalPlace::setRoutabilityDriven(bool flag)
+{
+  routability_driven_ = flag;
+}
+
 void LindenGlobalPlace::initPlacerBase()
 {
   if (!pb_) {
@@ -77,10 +86,13 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 {
   FASSERT(pb_ != nullptr);
   auto const& die = pb_->die();
+  linden::geom::Rect die_region(
+      die.dieLx(), die.dieLy(), die.dieUx(), die.dieUy());
   linden::geom::Rect core_region(
       die.coreLx(), die.coreLy(), die.coreUx(), die.coreUy());
 
   linden::db::Database::Config cfg = {
+    die_region : die_region,
     core_region : core_region,
     cells : pb_->insts().size(),  // number of cells;
     nets : pb_->nets().size(),    // max number of nets;
@@ -189,6 +201,10 @@ void LindenGlobalPlace::run()
   if (!linden_db_) {
     linden_db_ = create_linden_db();
   }
+  if (routability_driven_) {
+    banyan_cmap_result_
+        = std::make_shared<linden::rdp::CongestionMap>(log_);  // FIXME:
+  }
   if (!lindengp_) {
     linden::gpl::PlacerConfig::PlacerType ty
         = linden::gpl::PlacerConfig::NPLACE;
@@ -197,6 +213,7 @@ void LindenGlobalPlace::run()
     cfg.target_overflow = overflow_;
     cfg.use_uniform_density = use_uniform_density_;
     cfg.zigzag = zigzag_;
+    cfg.routability_driven = routability_driven_;
     {
       linden::dp::LefDefDumper dumper;
       dumper.run(*ord::OpenRoad::openRoad());
@@ -208,31 +225,43 @@ void LindenGlobalPlace::run()
   }
   std::unique_ptr<Graphics> graphics;
   if (Graphics::guiActive()) {
-    graphics = make_unique<Graphics>(log_, linden_db_, pb_);
+    graphics
+        = make_unique<Graphics>(log_, linden_db_, banyan_cmap_result_, pb_);
   }
   const int MAX_ITER = 5000;
   if (!timing_overflows_.empty()) {
     rsz::Resizer* rs_ = ::ord::OpenRoad::openRoad()->getResizer();
     rs_->resizeSlackPreamble();
   }
-  for (size_t iter = 0; iter < MAX_ITER; iter++) {
+  size_t iter = 0;
+  for (; iter < MAX_ITER; iter++) {
     auto ret = lindengp_->one_step_move(iter);
+    if (!ret) {
+      break;
+    }
+    auto overflow = *ret;
+    if (routability_driven_) {
+      bool res = rdp_cmap(overflow);
+      if (!res) {
+        routability_driven_ = false;
+        break;
+      }
+    } else if (!zigzag_ && overflow <= overflow_) {
+      break;
+    }
+
     if (graphics) {
       bool update
           = (iter == 0 || (iter + 1) % gui_debug_update_iterations_ == 0);
       bool pause = (iter == 0 || (iter + 1) % gui_debug_pause_iterations_ == 0);
+      if (banyan_cmap_result_ && !banyan_cmap_result_->empty()) {
+        update = (iter + 1) % 10 == 0;
+        pause = true;  // pause for zoom-in: debug and analyze
+                       // CongestionEstimation|Repair
+      }
       if (update) {
         graphics->cellPlot(pause);
       }
-    }
-    if (!ret) {
-      log_->metric("gp::iter", iter + 1);
-      break;
-    }
-    auto overflow = *ret;
-    if (!zigzag_ && overflow <= overflow_) {
-      log_->metric("gp::iter", iter + 1);
-      break;
     }
 
     if (!timing_overflows_.empty()
@@ -245,6 +274,7 @@ void LindenGlobalPlace::run()
       }
     }
   }
+  log_->metric("gp::iter", iter + 1);
 
   if (graphics) {
     graphics->status("End placement");
@@ -252,7 +282,6 @@ void LindenGlobalPlace::run()
   }
 
   update_db();
-  // test_baby_banyan(); // WIP: to be continued
   report_metrics();
   reset();
 }
@@ -349,6 +378,89 @@ void LindenGlobalPlace::report_metrics()
 void LindenGlobalPlace::setInitialPlacePolicy(const char* policy)
 {
   initialPlacePolicy_ = policy != nullptr ? std::string(policy) : "";
+}
+
+namespace {  // local function for -focus support
+void splitNames(const std::string& line_str,
+                std::vector<std::string>& names_list)
+{
+  // split line with delimiter ',' and skip blanks for getting names
+  for (int start = 0, end = start + 1; start < line_str.size();
+       start = end + 1, end = start + 1) {
+    while (end < line_str.size() && line_str[end] != ',') {
+      end++;
+    }
+    std::string name(line_str.substr(start, end - start));
+    boost::algorithm::trim(name);
+    names_list.emplace_back(name);
+  }
+  return;
+}
+
+void readConfigFile(const char* filename,
+                    std::vector<std::vector<std::string>>& names)
+{
+  // input: configuration file;  output: focus insts/nets names -->
+  // group_id(index): [name1, name2, ....]
+  std::string line;
+  std::ifstream config_file(filename);
+  if (!config_file.is_open()) {
+    std::cerr << "Could not open the configuration file: " << filename
+              << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  size_t group_id = 0;
+  while (getline(config_file, line)) {
+    // names may contain some inst or net names in groups
+    while (group_id >= names.size()) {
+      names.push_back(std::vector<std::string>());
+    }
+    splitNames(line, names[group_id]);
+    group_id++;
+  }
+  config_file.close();
+}
+
+}  // namespace
+
+void LindenGlobalPlace::setFocusInsts(const char* focus_insts_file_name)
+{
+  readConfigFile(focus_insts_file_name, focus_inst_names_);
+}
+
+void LindenGlobalPlace::setFocusNets(const char* focus_nets_file_name)
+{
+  std::vector<std::vector<std::string>> focus_net_names;
+  readConfigFile(focus_nets_file_name, focus_net_names);
+  setFocusInstNamesFromNets(focus_net_names);
+}
+
+void LindenGlobalPlace::setFocusInstNamesFromNets(
+    const std::vector<std::vector<std::string>>& net_names)
+{
+  auto db = ::ord::OpenRoad::openRoad()->getDb();
+  auto chip = db->getChip();
+  auto block = chip->getBlock();
+  for (int group_id = 0; group_id < net_names.size(); group_id++) {
+    while (group_id >= focus_inst_names_.size()) {
+      // This loop is added to support -focus_insts and -focus_nets options at
+      // the same time
+      focus_inst_names_.push_back(std::vector<std::string>());
+    }
+    for (int cnt = 0; cnt < net_names[group_id].size(); cnt++) {
+      odb::dbNet* net = block->findNet(net_names[group_id][cnt].c_str());
+      if (net == nullptr) {
+        fprintf(stderr,
+                "net %s not found in the block!\n",
+                net_names[group_id][cnt].c_str());
+        continue;
+      }
+      for (const auto& iterm : net->getITerms()) {
+        focus_inst_names_[group_id].emplace_back(iterm->getInst()->getName());
+      }
+    }
+  }
+  return;
 }
 
 void LindenGlobalPlace::doInitialPlace()

@@ -2,12 +2,16 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <iostream>
 #include <limits>
 
+#include "fassert.hpp"
+#include "linden/db/db.hpp"
+#include "linden/rdp/congestion_estimation.hpp"
 #include "nesterovBase.h"
 #include "nesterovPlace.h"
+#include "ord/OpenRoad.hh"
 #include "placerBase.h"
-#include "linden/db/db.hpp"
 #include "utl/Logger.h"
 
 namespace gpl {
@@ -17,6 +21,7 @@ Graphics::Graphics(utl::Logger* logger, std::shared_ptr<PlacerBase> pb)
       nb_(),
       np_(nullptr),
       linden_db_(nullptr),
+      banyan_cmap_result_(nullptr),
       selected_(nullptr),
       draw_bins_(false),
       logger_(logger)
@@ -33,6 +38,7 @@ Graphics::Graphics(utl::Logger* logger,
       nb_(nb),
       np_(np),
       linden_db_(nullptr),
+      banyan_cmap_result_(nullptr),
       selected_(nullptr),
       draw_bins_(draw_bins),
       logger_(logger)
@@ -40,13 +46,16 @@ Graphics::Graphics(utl::Logger* logger,
   gui::Gui::get()->registerRenderer(this);
 }
 
-Graphics::Graphics(utl::Logger* logger,
-                   std::shared_ptr<linden::db::Database> linden_db,
-                   std::shared_ptr<PlacerBase> pb)
+Graphics::Graphics(
+    utl::Logger* logger,
+    std::shared_ptr<linden::db::Database> linden_db,
+    std::shared_ptr<linden::rdp::CongestionMap> banyan_cmap_result,
+    std::shared_ptr<PlacerBase> pb)
     : pb_(pb),
       nb_(),
       np_(nullptr),
       linden_db_(linden_db),
+      banyan_cmap_result_(banyan_cmap_result),
       selected_(nullptr),
       draw_bins_(false),
       logger_(logger)
@@ -54,15 +63,40 @@ Graphics::Graphics(utl::Logger* logger,
   gui::Gui::get()->registerRenderer(this);
 }
 
+void drawUnfilledRect(gui::Painter& painter,
+                      int64_t lx,
+                      int64_t ly,
+                      int64_t ux,
+                      int64_t uy)
+{
+  painter.drawLine(lx, ly, ux, ly);
+  painter.drawLine(ux, ly, ux, uy);
+  painter.drawLine(ux, uy, lx, uy);
+  painter.drawLine(lx, uy, lx, ly);
+}
+
 void Graphics::drawBounds(gui::Painter& painter)
 {
   // draw core bounds
-  auto& die = pb_->die();
-  painter.setPen(gui::Painter::yellow, /* cosmetic */ true);
-  painter.drawLine(die.coreLx(), die.coreLy(), die.coreUx(), die.coreLy());
-  painter.drawLine(die.coreUx(), die.coreLy(), die.coreUx(), die.coreUy());
-  painter.drawLine(die.coreUx(), die.coreUy(), die.coreLx(), die.coreUy());
-  painter.drawLine(die.coreLx(), die.coreUy(), die.coreLx(), die.coreLy());
+  {
+    auto& die = pb_->die();
+    painter.setPen(gui::Painter::yellow, /* cosmetic */ true);
+    drawUnfilledRect(
+        painter, die.coreLx(), die.coreLy(), die.coreUx(), die.coreLy());
+  }
+  // draw Blockages bounds
+  auto db = ord::OpenRoad::openRoad()->getDb();
+  painter.setPen(gui::Painter::yellow, true);
+  for (auto blockage : db->getChip()->getBlock()->getBlockages()) {
+    auto bbox = blockage->getBBox();
+    if (blockage->isSoft()) {
+      painter.setPen(gui::Painter::red, true);
+    } else if (blockage->getMaxDensity() != 0) {  // partial blockage
+      painter.setPen(gui::Painter::green, true);
+    }
+    drawUnfilledRect(
+        painter, bbox->xMin(), bbox->yMin(), bbox->xMax(), bbox->yMax());
+  }
 }
 
 void Graphics::drawInitial(gui::Painter& painter)
@@ -81,6 +115,133 @@ void Graphics::drawInitial(gui::Painter& painter)
     painter.setBrush(color);
     painter.drawRect({lx, ly, ux, uy});
   }
+  for (auto& inst : pb_->dummyInsts()) {
+    int lx = inst->lx();
+    int ly = inst->ly();
+    int ux = inst->ux();
+    int uy = inst->uy();
+
+    gui::Painter::Color color = gui::Painter::gray;
+    color.a = 180;
+    painter.setBrush(color);
+    painter.drawRect({lx, ly, ux, uy});
+  }
+}
+
+class CongestionColoring
+{
+ public:
+  static const int COLOR_CNT = 8;
+  explicit CongestionColoring(const linden::rdp::CongestionMap& cmap)
+      : cmap_(cmap)
+  {
+    // sort overflows
+    std::vector<double> overflows;
+    for (int j = 0; j < cmap.hgrids(); ++j) {
+      for (int i = 0; i < cmap.wgrids(); ++i) {
+        for (auto dim :
+             {linden::geom::dimension::X, linden::geom::dimension::Y}) {
+          auto overflow = cmap.overflow(dim, i, j);
+          if (overflow > 0) {
+            overflows.push_back(overflow);
+          }
+        }
+      }
+    }
+    std::sort(overflows.begin(), overflows.end());
+
+    // FIXME: @bangxiang: remove debugging code
+
+    // for (int i = 0; i < overflows.size(); ++i) {
+    //   std::cout << "overflows[" << i << "]:" << overflows[i] << std::endl;
+    // }
+
+    // init color_overflows_
+    // std::cout << "**** COLOR_OVERFLOWS=" << std::endl;
+    for (int i = 0; i < COLOR_CNT; ++i) {
+      const auto sz = overflows.size();
+      const auto delta = (sz + (COLOR_CNT - 1)) / COLOR_CNT;  // floor value
+      auto pos = delta * (i + 1);
+      pos = std::min(pos, sz - 1);
+      color_overflows_[i] = overflows[pos];
+      // std::cout << "\t" << i << ":" << color_overflows_[i] << " locate at:"
+      // << pos << std::endl;
+    }
+  }
+
+  gui::Painter::Color overflowColor(double overflow) const noexcept
+  {
+    // selected from https://www.rapidtables.com/web/color/RGB_Color.html
+    // (colors from the right-2nd colunms)
+    int64_t const COLOR_TABLE[COLOR_CNT] = {
+        0xFFCCE5,
+        0xFF99CC,
+        0xFF66B2,
+        0xFF3399,
+        0xFF007F,
+        0xCC0066,
+        0x99004C,
+        0x660033,
+    };
+    const int64_t COLOR_UNSET = 0xFFFFFF;
+    const int64_t COLOR_MASKS[3] = {0xFF0000, 0x00FF00, 0x0000FF};
+    int64_t color_val = COLOR_UNSET;
+    for (int pos = 0; pos < COLOR_CNT; ++pos) {
+      color_val = COLOR_TABLE[pos];
+      if (overflow < color_overflows_[pos]) {
+        break;
+      }
+    }
+    FASSERT(color_val != COLOR_UNSET);
+    int r = (COLOR_MASKS[0] & color_val) >> 16;
+    int g = (COLOR_MASKS[1] & color_val) >> 8;
+    int b = (COLOR_MASKS[2] & color_val);
+    // std::cout << "**** Overflow Color: Overflow=" << overflow << ", Color=("
+    //           << r << ", " << g << ", " << b << ")" << std::endl;
+    return gui::Painter::Color{r, g, b, 0xff};
+  }
+
+ private:
+  const linden::rdp::CongestionMap& cmap_;
+  double color_overflows_[COLOR_CNT];
+};
+
+void Graphics::drawBanyanCMap(gui::Painter& painter)
+{
+  if (!banyan_cmap_result_ || banyan_cmap_result_->empty()) {
+    return;
+  }
+  auto& cmap = *banyan_cmap_result_;
+  CongestionColoring coloring(cmap);
+
+  painter.setPen(gui::Painter::dark_red);
+  const double dx = cmap.getChipCoreRegion().dx() / cmap.wgrids();
+  const double dy = cmap.getChipCoreRegion().dy() / cmap.hgrids();
+
+  for (auto dim : {linden::geom::dimension::X, linden::geom::dimension::Y}) {
+    auto label = dim == linden::geom::dimension::X ? CMAP_H : CMAP_V;
+    for (int j = 0; j < cmap.hgrids(); ++j) {
+      for (int i = 0; i < cmap.wgrids(); ++i) {
+        auto const& r = cmap.rect(i, j);
+        auto overflow = cmap.overflow(dim, i, j);
+        if (overflow > 0) {
+          auto color = coloring.overflowColor(overflow);
+          addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()}, color, label);
+        }
+      }
+    }
+  }
+}
+
+void Graphics::highlightFocus(
+    const std::vector<std::vector<std::string>>& focus_names)
+{
+  for (int i = 0; i < focus_names.size(); i++) {
+    for (int j = 0; j < focus_names[i].size(); j++) {
+      gui::Gui::get()->addInstToHighlightSet(focus_names[i][j].c_str(), i);
+    }
+  }
+  return;
 }
 
 void Graphics::drawLinden(gui::Painter& painter)
@@ -88,6 +249,7 @@ void Graphics::drawLinden(gui::Painter& painter)
   drawBounds(painter);
   // Draw the placeable objects
   painter.setPen(gui::Painter::white);
+  drawBanyanCMap(painter);
   for (auto& cell : linden_db_->cells()) {
     if (cell.movable() && cell.is_instance()) {
       odb::dbInst* inst = static_cast<odb::dbInst*>(cell.odb_instance());
@@ -102,10 +264,28 @@ void Graphics::drawLinden(gui::Painter& painter)
     if (cell.odb_instance()) {
       color
           = cell.locked() ? gui::Painter::dark_cyan : gui::Painter::dark_green;
-    } else if (cell.is_virtual() && !cell.fixed()) {  // filler
-      color = gui::Painter::dark_magenta;
+    } else if (cell.is_virtual()) {
+      if (cell.fixed()) {
+        // dummy instance which is to fill unusable sites
+        // which will be placed to fill Macro halos, Partial|Soft blockages and
+        // etc
+        if (cell.max_density() == 0.0) {
+          // dummy instances in Soft blockage
+          color = gui::Painter::dark_gray;
+        } else if (cell.max_density() < 1.0) {
+          // dummy instances in Partial Blockage
+          color = gui::Painter::light_gray;
+        } else {
+          // other cases, like Macro halos and etc
+          FASSERT(cell.max_density() == 1.0);
+          color = gui::Painter::gray;
+        }
+      } else {
+        // movable filler added in linden
+        color = gui::Painter::dark_magenta;
+      }
     }
-#if 0 // TODO: support select on linden-cell
+#if 0  // TODO: support select on linden-cell
     if (cell == selected_) {
       color = gui::Painter::yellow;
     }
@@ -114,7 +294,18 @@ void Graphics::drawLinden(gui::Painter& painter)
     color.a = 180;
     painter.setBrush(color);
     auto const& r = cell.rect();
-    painter.drawRect({r.lx(), r.ly(), r.ux(), r.uy()});
+#if 0  // debug for label selection
+    std::vector<std::pair<gui::Painter::Color, Label>> labels{
+      {gui::Painter::red, LINDEN},
+      {gui::Painter::blue, CMAP},
+      {gui::Painter::green, EXPANDER},
+      {gui::Painter::cyan, MACRO}
+    };
+    int index = rand() % 4;
+    addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()}, labels[index].first, labels[index].second);
+#else
+    addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()}, color, LINDEN);
+#endif
   }
 }
 
@@ -217,6 +408,7 @@ void Graphics::drawObjects(gui::Painter& painter)
   } else {
     drawInitial(painter);
   }
+  drawRectsInLabels(painter);
 }
 
 void Graphics::reportSelected()
@@ -310,6 +502,42 @@ void Graphics::status(const std::string& message)
 bool Graphics::guiActive()
 {
   return gui::Gui::enabled();
+}
+
+const char* Graphics::getDisplayControlGroupName()
+{
+  return "Labels";
+}
+
+std::string Graphics::label2name(const Label& l)
+{
+  static std::vector<std::string> label_names
+      = {"Linden", "Cmap-H", "Cmap-V", "Expander", "Macro"};
+  FASSERT(l >= 0 && l < label_names.size());
+  return label_names[l];
+}
+
+bool Graphics::isLablelSelected(const Label& l)
+{
+  return checkDisplayControl(label2name(l));
+}
+
+void Graphics::addRectToLabelSet(const odb::Rect& rect,
+                                 const gui::Painter::Color& color,
+                                 const Label& label)
+{
+  labeledRects_.push_back({rect, color, label});
+}
+
+void Graphics::drawRectsInLabels(gui::Painter& painter)
+{
+  for (const auto& obj : labeledRects_) {
+    if (isLablelSelected(obj.label)) {
+      painter.setBrush(obj.color);
+      painter.drawRect(obj.rect);
+    }
+  }
+  labeledRects_.clear();
 }
 
 }  // namespace gpl

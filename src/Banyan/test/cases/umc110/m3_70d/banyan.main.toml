@@ -1,0 +1,25 @@
+[annotation]
+  description = "umc110_m3_70d"
+  title = "umc110_m3_70d"
+  flowtype = "main"
+
+[[inputs]]
+  name = "banyan_options.sh"
+  uri = "https://aqua.icbench.com/benchmark/data/62f3a4d91a65a537a8a95747"
+
+[[inputs]]
+  name = "pre_route.def"
+  uri = "https://aqua.icbench.com/benchmark/data/62f20793b76b85202e2706a5"
+
+[[inputs]]
+  name = "tech.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/62f206ddb76b85202e27069f"
+
+[[inputs]]
+  name = "ua11lscef15bdrll.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/62f20736b76b85202e2706a2"
+
+[[runners]]
+  image = "registry.cn-shanghai.aliyuncs.com/icb/eden_release_ubuntu:221027"
+  [runners.resource]
+    spec = "basic"

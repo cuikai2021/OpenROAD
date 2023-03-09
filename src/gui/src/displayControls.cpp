@@ -277,6 +277,22 @@ DisplayControls::DisplayControls(QWidget* parent)
       true);
   view_->expand(layers->index());
 
+  // labels group
+  auto labels_parent = makeParentItem(
+      labels_group_,
+      "Labels",
+      root,
+      Qt::Checked);
+
+  // ADD_NEW_GUI_LABEL_HERE
+  // make label items, non-null last argument to create checkbox
+  makeLeafItem(labels_.linden, "Linden", labels_parent, Qt::Checked);
+  makeLeafItem(labels_.cmap_h, "Cmap-H", labels_parent, Qt::Checked);
+  makeLeafItem(labels_.cmap_v, "Cmap-V", labels_parent, Qt::Checked);
+  makeLeafItem(labels_.expander, "Expander", labels_parent, Qt::Checked);
+  makeLeafItem(labels_.macro, "Macro", labels_parent, Qt::Checked);
+  toggleParent(labels_group_);
+
   // Nets group
   auto nets_parent = makeParentItem(
       nets_group_,

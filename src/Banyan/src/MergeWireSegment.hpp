@@ -175,18 +175,20 @@ class MwsWire
 
 class MergeWireSegment
 {
+ public:
   using netWireMap = std::unordered_map<std::string, std::deque<MwsWire>>;
 
  public:
   MergeWireSegment(odb::dbDatabase* db, utl::Logger* logger)
       : db_(db), logger_(logger){};
   void Run();
-  static std::deque<MwsLine> mergeLines(std::deque<MwsLine> lines, bool isLevel);
+  static std::deque<MwsLine> mergeLines(std::deque<MwsLine> lines,
+                                        bool isLevel);
   static std::deque<MwsWire> mergeWireLines(const std::deque<MwsWire>& wires);
+  static void updateDB(odb::dbDatabase* db, const netWireMap& result);
 
  private:
   netWireMap GetWireFromDb();
-  void updateDB(const netWireMap& result);
 
  private:
   odb::dbDatabase* db_;

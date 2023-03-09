@@ -312,13 +312,11 @@ std::deque<MwsWire> MergeWireSegment::mergeWireLines(
   return ans;
 }
 
-void MergeWireSegment::updateDB(const netWireMap& result)
+void MergeWireSegment::updateDB(odb::dbDatabase* db,const netWireMap& result)
 {
-  logger_->info(
-      utl::BY, 1, "--------------- updateDB begin ------------------");
 
-  odb::dbBlock* block = db_->getChip()->getBlock();
-  odb::dbTech* tech = db_->getTech();
+  odb::dbBlock* block = db->getChip()->getBlock();
+  odb::dbTech* tech = db->getTech();
   odb::dbWireEncoder _wire_encoder;
 
   for (auto& [net, wires] : result) {
@@ -357,10 +355,8 @@ void MergeWireSegment::updateDB(const netWireMap& result)
         auto rect = pbWire.rect();
         auto point = rect.point();
         _wire_encoder.addPoint(point.x(), point.y());
-        _wire_encoder.addRect(rect.xMin(),
-                              rect.yMin(),
-                              (rect.xMax() - rect.xMin()),
-                              (rect.yMax() - rect.yMin()));
+        _wire_encoder.addRect(
+            0, 0, (rect.xMax() - rect.xMin()), (rect.yMax() - rect.yMin()));
       } else if (pbWire.isVia()) {
         auto via = pbWire.via();
         auto point = via.point();
@@ -377,7 +373,6 @@ void MergeWireSegment::updateDB(const netWireMap& result)
     }
     _wire_encoder.end();
   }
-  logger_->info(utl::BY, 1, "--------------- updateDB done ------------------");
 }
 
 void MergeWireSegment::Run()
@@ -393,7 +388,7 @@ void MergeWireSegment::Run()
     after += wires.size();
   }
   logger_->info(utl::BY, 1, "merge result: before:{}  after:{}", before, after);
-  updateDB(netWire);
+  updateDB(db_,netWire);
   logger_->info(utl::BY, 1, "--------------- run done ------------------");
 }
 

@@ -6,6 +6,7 @@
 
 #include "linden/db/db.hpp"
 #include "linden/gpl/placer.hpp"
+#include "linden/rdp/congestion_estimation.hpp"
 
 namespace odb {
 class dbDatabase;
@@ -47,7 +48,8 @@ class LindenGlobalPlace
   void setPadLeft(int padding) { padLeft_ = padding; }
   void setPadRight(int padding) { padRight_ = padding; }
 
-  void setTimingDriven(bool timing_driven);
+  void setTimingDriven(bool flag);
+  void setRoutabilityDriven(bool flag);
 
   void setDebug(int pause_iterations, int update_iterations, bool initial)
   {
@@ -59,6 +61,10 @@ class LindenGlobalPlace
 
   void setInitialPlacePolicy(const char* policy);
 
+  void setFocusInsts(const char *focus_insts_file_name);
+
+  void setFocusNets(const char *focus_nets_file_name);
+  
  private:
   odb::dbDatabase* db_;
   utl::Logger* log_;
@@ -66,6 +72,7 @@ class LindenGlobalPlace
   std::shared_ptr<PlacerBase> pb_;
   std::string initialPlacePolicy_;
   std::shared_ptr<linden::db::Database> linden_db_;
+  std::shared_ptr<linden::rdp::CongestionMap> banyan_cmap_result_;
   std::unique_ptr<linden::gpl::Placer> lindengp_;
 
   float density_;
@@ -75,6 +82,7 @@ class LindenGlobalPlace
 
   double net_weight_max_;
   std::deque<int> timing_overflows_;
+  bool routability_driven_;
 
 
   // temp variable; OpenDB should have these values.
@@ -85,6 +93,12 @@ class LindenGlobalPlace
   int gui_debug_pause_iterations_;
   int gui_debug_update_iterations_;
   bool gui_debug_initial_;
+
+  // case 1: inst names from configuration file
+  // case 2: inst names from focusing nets
+  std::vector<std::vector<std::string>> focus_inst_names_;
+
+  void setFocusInstNamesFromNets(const std::vector<std::vector<std::string>> &net_names);
 
   // reset to release memory after gp
   void reset();
@@ -103,6 +117,6 @@ class LindenGlobalPlace
   void doInitialPlace();
 
   // routability-driven placement
-  void test_baby_banyan();
+  bool rdp_cmap(const double overflow);
 };
 }  // namespace gpl

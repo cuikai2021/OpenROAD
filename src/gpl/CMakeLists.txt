@@ -81,6 +81,7 @@ target_sources(gpl
     src/lindengp.rdp.cpp
     src/lindenmp.cpp
     src/LindenDBSanitizer.cpp
+    src/linden.rdp.cpp
     ${PROTO_GEN_SRCS}
 )
 
@@ -114,6 +115,9 @@ target_link_libraries(gpl
     linden
     fassert
     ${OCTAVE_LIBRARY}
+    ${LEMON_LIB_NAME}
+    glpk
+    ${Protobuf_LIBRARIES}
 )
 
 # CIMG_USE case

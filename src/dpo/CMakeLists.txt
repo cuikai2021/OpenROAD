@@ -73,6 +73,8 @@ target_link_libraries(dpo
     OpenSTA
     utl
     dpl
+    ${LEMON_LIB_NAME}
+    glpk
 )
 
 messages(

@@ -2,11 +2,20 @@ sta::define_cmd_args "linden_global_placement" {\
     [-uniform_density] \
     [-zigzag true|false] \
     [-timing_driven] \
+    [-routability_driven]\
     [-density target_density]\
     [-overflow overflow]\
     [-pad_left pad_left]\
     [-pad_right pad_right]\
     [-initial_place_policy initial_place_policy]\
+    [-focus_insts focus_insts_file]\
+    [-focus_nets focus_nets_file]\
+}
+
+sta::define_cmd_args "linden_macro_placement" {\
+    [-uniform_density] \
+    [-density target_density]\
+    [-overflow overflow]\
 }
 
 sta::define_cmd_args "linden_macro_placement" {\
@@ -22,10 +31,13 @@ proc linden_global_placement { args } {
       -density \
       -overflow \
       -zigzag \
+      -focus_insts \
+      -focus_nets \
       -pad_left -pad_right} \
     flags { \
       -uniform_density \
       -timing_driven \
+      -routability_driven \
     }
 
   # zigzag settings
@@ -73,10 +85,22 @@ proc linden_global_placement { args } {
       utl::error GPL 1121 "No liberty libraries found."
     }
   }
+  set routability_driven [info exists flags(-routability_driven)]
+  gpl::set_linden_routability_driven_mode $routability_driven
 
   if { [info exists keys(-initial_place_policy)] } {
     set initial_place_policy $keys(-initial_place_policy)
     gpl::set_linden_initial_place_policy_cmd $initial_place_policy
+  }
+
+  if { [info exists keys(-focus_insts)] } { 
+    set focus_insts $keys(-focus_insts)
+    gpl::set_linden_focus_insts_cmd $focus_insts
+  }
+
+  if { [info exists keys(-focus_nets)] } { 
+    set focus_nets $keys(-focus_nets)
+    gpl::set_linden_focus_nets_cmd $focus_nets
   }
 
   if { [ord::db_has_rows] } {

@@ -13,12 +13,12 @@ class ConfigError(Exception):
 
 class Tool(object):
     def __init__(
-        self,
-        name,
-        repo,
-        commit,
-        build_script,
-        file,
+            self,
+            name,
+            repo,
+            commit,
+            build_script,
+            file,
     ):
         self.name = name
         self.repo = repo
@@ -30,7 +30,7 @@ class Tool(object):
             diff_summary = system_run(f'git -C {path} diff', output = True)
             if diff_summary != '':
                 diff_hash = hashlib.sha1(diff_summary.encode('utf-8')).hexdigest()
-                self.commit += f'-modified-{diff_hash[:7]}' 
+                self.commit += f'-modified-{diff_hash[:7]}'
         elif 'docker://' in repo:
             self.commit = commit
         else:
@@ -67,7 +67,7 @@ class Tool(object):
 
         if 'docker://' in self.repo:
             raise ConfigError(f'"docker://" type repo can\'t build')
-        
+
         tool_path = self.checkout()
         docker_file_string=''
         has_build = False
@@ -110,7 +110,7 @@ class Tool(object):
         system_run('mkdir -p /tmp/Dockerfile')
         with open(f'/tmp/Dockerfile/Dockerfile.{self.name}', 'w') as f:
             f.write(docker_file_string)
-        
+
         docker_build(
             docker_file = f'/tmp/Dockerfile/Dockerfile.{self.name}',
             context = tool_path,
@@ -138,11 +138,11 @@ class Tool(object):
         for tool in tool_list:
             tools.append(Tool(
                 name=tool['name'],
-                repo=tool.get('repo'), 
+                repo=tool.get('repo'),
                 commit=tool.get('commit') or '',
                 build_script=tool.get('build') or None,
                 file=tool.get('file') or '',
-                )
+            )
             )
         return tools
 
@@ -150,15 +150,15 @@ with open('./dependencies/tools_metadata.yaml', 'r') as f:
     metadata = f.read()
 Tools = Tool.from_metadata_yaml(metadata)
 
-def tools_by_name() -> list: 
-   tools_list = []
-   for tool in Tools:
-       tools_list.append(tool.name)
-   return tools_list
+def tools_by_name() -> list:
+    tools_list = []
+    for tool in Tools:
+        tools_list.append(tool.name)
+    return tools_list
 
 def main():
-   for tool in tools_by_name():
-       print(tool)
+    for tool in tools_by_name():
+        print(tool)
 
 if __name__ == '__main__':
     main()

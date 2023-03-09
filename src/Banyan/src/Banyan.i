@@ -27,15 +27,26 @@ namespace banyan {
 
 void banyan(std::vector<std::string> args)
 {
-     ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
+    int status = ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
+    if (status == 0) {
+      ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
+    }
 }
 
 void mergeWireSegment()
 {
-     ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
+    ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
 }
 
+void m1GridlessMaze()
+{
+    ord::OpenRoad::openRoad()->getBanyan()->m1GridlessMaze();
+}
 
+void inst_movement(std::vector<std::string> args)
+{
+    ord::OpenRoad::openRoad()->getBanyan()->instanceMovement(args);
+}
 }
 
 %} // inline

@@ -147,6 +147,10 @@ class Pin
 
   void setITerm();
   void setBTerm();
+
+  void setUnplaceIOPin(bool flag) { isUnplaceIOPin_ = flag; }
+  bool isUnplacedIOPin() { return isUnplaceIOPin_; }
+
   void setMinPin(DIMENSION dim);
   void setMaxPin(DIMENSION dim);
   void unsetMinPin(DIMENSION dim);
@@ -192,6 +196,7 @@ class Pin
 
   unsigned char iTermField_ : 1;
   unsigned char bTermField_ : 1;
+  unsigned char isUnplaceIOPin_ : 1;
   unsigned char minPinXField_ : 1;
   unsigned char minPinYField_ : 1;
   unsigned char maxPinXField_ : 1;
@@ -317,6 +322,8 @@ class PlacerBase
 
   int64_t placeInstsArea() const { return placeInstsArea_; }
   int64_t nonPlaceInstsArea() const { return nonPlaceInstsArea_; }
+  int64_t dummyInstsArea() const { return dummyInstsArea_; }
+  int64_t fixedInstsArea() const { return fixedInstsArea_; }
   int64_t macroInstsArea() const { return macroInstsArea_; }
   int64_t stdInstsArea() const { return stdInstsArea_; }
 
@@ -354,6 +361,8 @@ class PlacerBase
 
   int64_t placeInstsArea_;
   int64_t nonPlaceInstsArea_;
+  int64_t dummyInstsArea_;
+  int64_t fixedInstsArea_;
 
   // macroInstsArea_ + stdInstsArea_ = placeInstsArea_;
   // macroInstsArea_ should be separated
@@ -363,6 +372,7 @@ class PlacerBase
 
   void init();
   void initInstsForUnusableSites();
+  void fixIOPinsLocation();
 
   void reset();
 };

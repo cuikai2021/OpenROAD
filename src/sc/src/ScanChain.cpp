@@ -93,7 +93,7 @@ std::vector<Graph::NodeId> ScanChain::reorderScanChain(const odb::dbScanChain *s
       tree_map[edge] = dis;
     }
   }
-  
+
   lemon::ChristofidesTsp<lemon::FullGraph::EdgeMap<int> > c(g, tree_map);
   c.run();
   std::vector<lemon::FullGraph::Node> nodes = c.tourNodes();
@@ -105,7 +105,7 @@ std::vector<Graph::NodeId> ScanChain::reorderScanChain(const odb::dbScanChain *s
   for (auto it = nodes.begin(); it != pos; ++it) {
     orders.push_back(g.index(*it));
   }
-  
+
   return orders;
 }
 

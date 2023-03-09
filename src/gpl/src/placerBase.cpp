@@ -39,11 +39,11 @@
 #include <iostream>
 
 #include "fassert.hpp"
+#include "linden/geom/point.hpp"
+#include "linden/geom/rect.hpp"
 #include "nesterovBase.h"
 #include "util.h"
 #include "utl/Logger.h"
-#include "linden/geom/rect.hpp"
-#include "linden/geom/point.hpp"
 
 namespace gpl {
 
@@ -198,7 +198,8 @@ float Instance::max_density() const
   return max_density_;
 }
 
-float& Instance::max_density() {
+float& Instance::max_density()
+{
   return max_density_;
 }
 
@@ -296,6 +297,7 @@ Pin::Pin()
       offsetCy_(0),
       iTermField_(0),
       bTermField_(0),
+      isUnplaceIOPin_(0),
       minPinXField_(0),
       minPinYField_(0),
       maxPinXField_(0),
@@ -489,11 +491,7 @@ void Pin::updateCoordi(odb::dbBTerm* bTerm)
   }
 
   if (lx == INT_MAX || ly == INT_MAX || ux == INT_MIN || uy == INT_MIN) {
-    string msg
-        = string(bTerm->getConstName()) + " toplevel port is not placed!\n";
-    msg += "       Replace will regard " + string(bTerm->getConstName())
-           + " is placed in (0, 0)";
-    slog_->warn(GPL, 1, msg);
+    setUnplaceIOPin(true);
   }
 
   // Just center
@@ -641,6 +639,8 @@ PlacerBase::PlacerBase()
       siteSizeY_(0),
       placeInstsArea_(0),
       nonPlaceInstsArea_(0),
+      dummyInstsArea_(0),
+      fixedInstsArea_(0),
       macroInstsArea_(0),
       stdInstsArea_(0)
 {
@@ -660,6 +660,32 @@ PlacerBase::PlacerBase(odb::dbDatabase* db,
 PlacerBase::~PlacerBase()
 {
   reset();
+}
+
+void PlacerBase::fixIOPinsLocation()
+{
+  for (auto pin : pins_) {
+    if (pin->isUnplacedIOPin()) {
+      assert(pin->isBTerm());
+      if (pin->net()->pins().size() == 2) {
+        for (auto p : pin->net()->pins()) {
+          if (p->instance()) {
+            pin->updateLocation(p->instance());
+            pin->setUnplaceIOPin(false);
+            const std::string msg = pin->name() + " top level port is not placed, reset to its connected pad location";
+            slog_->warn(GPL, 1, msg);
+            break;
+          }
+        }
+      }
+      if (pin->isUnplacedIOPin()) {
+        string msg = pin->name() + " toplevel port is not placed!\n";
+        msg += "       Replace will regard " + pin->name()
+               + " is placed in (0, 0)";
+        slog_->warn(GPL, 1, msg);
+      }
+    }
+  }
 }
 
 void PlacerBase::init()
@@ -699,7 +725,8 @@ void PlacerBase::init()
   instStor_.reserve(insts.size());
   for (dbInst* inst : insts) {
     auto type = inst->getMaster()->getType();
-    if (!type.isCore() && !type.isBlock() && type != dbMasterType::RING) {
+    if (!type.isCore() && !type.isBlock() && type != dbMasterType::RING
+        && !inst->getMaster()->isPad()) {
       continue;
     }
     Instance myInst(inst,
@@ -725,19 +752,29 @@ void PlacerBase::init()
   insts_.reserve(instStor_.size());
   for (auto& inst : instStor_) {
     if (inst.isInstance()) {
+      instMap_[inst.dbInst()] = &inst;
       if (inst.isFixed()) {
         // Check whether fixed instance is
         // within the corearea
         //
         // outside of corearea is none of RePlAce's business
         if (isCoreAreaOverlap(die_, inst)) {
+          const auto area = getOverlapWithCoreArea(die_, inst);
           fixedInsts_.push_back(&inst);
+          fixedInstsArea_ += area;
           nonPlaceInsts_.push_back(&inst);
-          nonPlaceInstsArea_ += getOverlapWithCoreArea(die_, inst);
+          nonPlaceInstsArea_ += area;
         }
       } else {
+        if (inst.dbInst()->getMaster()->isPad()) {
+          std::string msg
+              = "Warning: PAD cell " + inst.dbInst()->getName()
+                + " is not FIXED:"
+                + std::string(inst.dbInst()->getPlacementStatus().getString());
+          slog_->warn(GPL, 1, msg);
+        }
         placeInsts_.push_back(&inst);
-        int64_t instArea = inst.area();
+        const auto instArea = inst.area();
         placeInstsArea_ += instArea;
         // macro cells should be
         // macroInstsArea_
@@ -750,11 +787,12 @@ void PlacerBase::init()
           stdInstsArea_ += instArea;
         }
       }
-      instMap_[inst.dbInst()] = &inst;
     } else if (inst.isDummy()) {
+      const auto area = inst.area();
       dummyInsts_.push_back(&inst);
+      dummyInstsArea_ += area;
       nonPlaceInsts_.push_back(&inst);
-      nonPlaceInstsArea_ += inst.area();
+      nonPlaceInstsArea_ += area;
     }
     insts_.push_back(&inst);
   }
@@ -825,6 +863,8 @@ void PlacerBase::init()
     pins_.push_back(&pin);
   }
 
+  fixIOPinsLocation();
+
   nets_.reserve(netStor_.size());
   for (auto& net : netStor_) {
     nets_.push_back(&net);
@@ -842,22 +882,28 @@ void PlacerBase::initInstsForUnusableSites()
   int siteCountX = (die_.coreUx() - die_.coreLx()) / siteSizeX_;
   int siteCountY = (die_.coreUy() - die_.coreLy()) / siteSizeY_;
 
-  typedef enum {
-      Empty,
-      Row,
-      FixedInst
-    } SiteStatus;
+  typedef enum
+  {
+    Empty,
+    Row,
+    FixedInst
+  } SiteStatus;
 
   struct PlaceInfo
   {
     SiteStatus status;
     float max_density;
+    bool operator==(const PlaceInfo& ano) const noexcept
+    {
+      return status == ano.status && max_density == ano.max_density;
+    }
   };
 
   //
   // Initialize siteGrid as empty
   //
-  std::vector<PlaceInfo> siteGrid(siteCountX * siteCountY, PlaceInfo{Empty, 1.0});
+  std::vector<PlaceInfo> siteGrid(siteCountX * siteCountY,
+                                  PlaceInfo{Empty, 1.0});
 
   // fill in rows' bbox
   for (dbRow* row : rows) {
@@ -879,6 +925,21 @@ void PlacerBase::initInstsForUnusableSites()
 
   // Mark blockage areas as empty so that their sites will be blocked.
   for (dbBlockage* blockage : db_->getChip()->getBlock()->getBlockages()) {
+    dbBox* bbox = blockage->getBBox();
+    std::pair<int, int> pairX = getMinMaxIdx(
+        bbox->xMin(), bbox->xMax(), die_.coreLx(), siteSizeX_, 0, siteCountX);
+
+    std::pair<int, int> pairY = getMinMaxIdx(
+        bbox->yMin(), bbox->yMax(), die_.coreLy(), siteSizeY_, 0, siteCountY);
+
+    {
+      std::ostringstream msg;
+      msg << "Blockage: (" << bbox->xMin() << ", " << bbox->yMin() << ", "
+          << bbox->xMax() << ", " << bbox->yMax()
+          << "), max_density:" << blockage->getMaxDensity()
+          << ", SOFT=" << blockage->isSoft();
+      slog_->info(GPL, 1, msg.str());
+    }
     dbInst* inst = blockage->getInstance();
     if (inst && !inst->isFixed()) {
       string msg
@@ -888,14 +949,15 @@ void PlacerBase::initInstsForUnusableSites()
       slog_->error(GPL, 3, msg);
       continue;
     }
-    dbBox* bbox = blockage->getBBox();
-    std::pair<int, int> pairX = getMinMaxIdx(
-        bbox->xMin(), bbox->xMax(), die_.coreLx(), siteSizeX_, 0, siteCountX);
 
-    std::pair<int, int> pairY = getMinMaxIdx(
-        bbox->yMin(), bbox->yMax(), die_.coreLy(), siteSizeY_, 0, siteCountY);
-
-    float blockage_density = blockage->getMaxDensity()/100.0; // convert maxdensity to a value between 0 and 1
+    auto max_density = blockage->getMaxDensity();
+    if (blockage->isSoft()) {
+      FASSERT(blockage->getMaxDensity() == 0.0)
+      (blockage->getMaxDensity())("Expect soft blockage's max_density be 0");
+      max_density = 0;
+    }
+    // convert maxdensity to a value between 0 and 1
+    float blockage_density = max_density / 100.0;
     for (int j = pairY.first; j < pairY.second; j++) {
       for (int i = pairX.first; i < pairX.second; i++) {
         siteGrid[j * siteCountX + i] = {Empty, blockage_density};
@@ -913,20 +975,20 @@ void PlacerBase::initInstsForUnusableSites()
     for (auto obs : master->getObstructions()) {
       auto layer = obs->getTechLayer();
       if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
-    	  odb::Rect rect;
-		  obs->getBox(rect);
-		  odb::dbTransform transform;
-		  inst.dbInst()->getTransform(transform);
-		  transform.apply(rect);
-        obs_overlap_layer.push_back(linden::geom::Rect(rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
+        odb::Rect rect;
+        obs->getBox(rect);
+        odb::dbTransform transform;
+        inst.dbInst()->getTransform(transform);
+        transform.apply(rect);
+        obs_overlap_layer.push_back(linden::geom::Rect(
+            rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
       }
     }
     if (obs_overlap_layer.empty()) {
-      linden::geom::Rect rect(
-            inst.lx(), inst.ly(), inst.ux(), inst.uy());
+      linden::geom::Rect rect(inst.lx(), inst.ly(), inst.ux(), inst.uy());
       obs_overlap_layer.push_back(rect);
     }
-    for (const auto& rect: obs_overlap_layer) {
+    for (const auto& rect : obs_overlap_layer) {
       std::pair<int, int> pairX = getMinMaxIdx(
           rect.lx(), rect.ux(), die_.coreLx(), siteSizeX_, 0, siteCountX);
       std::pair<int, int> pairY = getMinMaxIdx(
@@ -950,12 +1012,17 @@ void PlacerBase::initInstsForUnusableSites()
       if (siteGrid[j * siteCountX + i].status == Empty) {
         int startX = i;
         float density = siteGrid[j * siteCountX + i].max_density;
-        // find end points
-        while (i < siteCountX && siteGrid[j * siteCountX + i].status == Empty
-        && siteGrid[j * siteCountX + i].max_density == density) {
-          i++;
+        int endX = i + 1;
+        {
+          // find end points, and merge sites together
+          const auto& startSiteInfo = siteGrid[j * siteCountX + startX];
+          while (endX < siteCountX
+                 && siteGrid[j * siteCountX + endX] == startSiteInfo) {
+            ++endX;
+          }
+          i = endX - 1;
         }
-        int endX = i;
+        FASSERT(i >= startX);
         Instance myInst(die_.coreLx() + siteSizeX_ * startX,
                         die_.coreLy() + siteSizeY_ * j,
                         die_.coreLx() + siteSizeX_ * endX,
@@ -1052,12 +1119,15 @@ void PlacerBase::printInfo() const
 
   log_->info(GPL, 16, "CoreArea: {}", coreArea);
   log_->info(GPL, 17, "NonPlaceInstsArea: {}", nonPlaceInstsArea_);
-
   log_->info(GPL, 18, "PlaceInstsArea: {}", placeInstsArea_);
   log_->info(GPL, 19, "Util(%): {:.2f}", util);
 
   log_->info(GPL, 20, "StdInstsArea: {}", stdInstsArea_);
   log_->info(GPL, 21, "MacroInstsArea: {}", macroInstsArea_);
+#if 0  // debug only
+  std::cout << "fixedInstsArea: " << fixedInstsArea_ << std::endl;
+  std::cout << "dummyInstsArea: " << dummyInstsArea_ << std::endl;
+#endif
 
   if (util >= 100.1) {
     log_->error(GPL, 301, "Utilization exceeds 100%.");
@@ -1094,8 +1164,9 @@ static bool isCoreAreaOverlap(Die& die, Instance& inst)
   return !(rectLx >= rectUx || rectLy >= rectUy);
 }
 
-static int64_t getRectOverlapWithCoreArea(Die& die, const IntRect& rect) {
-    int rectLx = max(die.coreLx(), rect.lx()),
+static int64_t getRectOverlapWithCoreArea(Die& die, const IntRect& rect)
+{
+  int rectLx = max(die.coreLx(), rect.lx()),
       rectLy = max(die.coreLy(), rect.ly()),
       rectUx = min(die.coreUx(), rect.ux()),
       rectUy = min(die.coreUy(), rect.uy());
@@ -1108,15 +1179,16 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
   std::vector<IntRect> obs_overlap_layer;
   if (inst.isMacro()) {
     auto master = inst.dbInst()->getMaster();
-    for (auto const &obs : master->getObstructions()) {
+    for (auto const& obs : master->getObstructions()) {
       auto layer = obs->getTechLayer();
       if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
-    	  odb::Rect rect;
-		  obs->getBox(rect);
-		  odb::dbTransform transform;
-		  inst.dbInst()->getTransform(transform);
-		  transform.apply(rect);
-        obs_overlap_layer.push_back(IntRect(rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
+        odb::Rect rect;
+        obs->getBox(rect);
+        odb::dbTransform transform;
+        inst.dbInst()->getTransform(transform);
+        transform.apply(rect);
+        obs_overlap_layer.push_back(
+            IntRect(rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
       }
     }
   }
@@ -1124,13 +1196,11 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
     return getRectOverlapWithCoreArea(die, inst);
   } else {
     int64_t res = 0;
-    for (const auto& rect: obs_overlap_layer) {
+    for (const auto& rect : obs_overlap_layer) {
       res += getRectOverlapWithCoreArea(die, rect);
     }
     return res;
   }
-
-
 }
 
 }  // namespace gpl

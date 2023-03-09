@@ -123,7 +123,8 @@ _installCommonDev() {
     # gtest (latest)
     _installGtest
 
-    _installProtobuf
+    # disable it as it is conflict with the protobuf version in or-tools
+    # _installProtobuf
 
     # or-tools (latest)
     cd "${baseDir}"

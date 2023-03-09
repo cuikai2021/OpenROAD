@@ -93,6 +93,26 @@ else()
 endif()
 
 ################################################################
+#gen protobuf files
+find_package(Protobuf REQUIRED)
+message(STATUS "protobuf: ${Protobuf_VERSION}")
+
+set(PROTOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Banyan/banyan-integrate)
+file(GLOB_RECURSE PROTO_FILES ${PROTOS_DIR}/*.proto)
+
+set(PROTO_GEN_DIR "${PROJECT_BINARY_DIR}/src/protos_gen")
+file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
+
+set(PROTO_GEN_SRCS "")
+set(PROTO_GEN_HDRS "")
+foreach(proto_file ${PROTO_FILES})
+  get_filename_component(FILE_WE ${proto_file} NAME_WE)
+  list(APPEND PROTO_GEN_SRCS "${PROTO_GEN_DIR}/${FILE_WE}.pb.cc")
+  list(APPEND PROTO_GEN_HDRS "${PROTO_GEN_DIR}/${FILE_WE}.pb.h")
+  execute_process(COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} -I ${PROTOS_DIR} --cpp_out ${PROTO_GEN_DIR} ${proto_file})
+endforeach()
+
+################################################################
 
 # OSX tcl is deprecated and prints a warning, so look for a user installed
 # version before using the system version.

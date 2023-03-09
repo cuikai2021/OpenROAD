@@ -10,6 +10,7 @@
 #include "db.h"
 #include "string.h"
 #include "utl/Logger.h"
+#include "GridlessMaze.hpp"
 
 namespace odb {
 class dbDatabase;
@@ -56,7 +57,6 @@ constexpr int DEFAULT_WIRE_EXT = 0;
 class OpenDBAdapter
 {
  private:
-  bool debugActive_;
   std::unique_ptr<Design> design_;
 
  protected:
@@ -85,6 +85,8 @@ class OpenDBAdapter
   ComponentOrient odbOrient2Banyan(odb::dbOrientType type);
   MacroClass odbMacroClass2Banyan(odb::dbMaster* master);
 
+  VirtualPin gmVirtualPin2VirtualPin(const GmVirtualPin& gmvpin);
+
   void getDesignFromODB();
   void getDefViaFromODB();
   void getRoutingLayersFromODB();
@@ -95,16 +97,15 @@ class OpenDBAdapter
   void getInstancesFromODB();
   void getMacrosFromODB();
   void getWireBudgetingFromLrl();
+  bool isLegalized();
 
  public:
-  OpenDBAdapter(bool debugActive,
-                odb::dbDatabase* db,
+  OpenDBAdapter(odb::dbDatabase* db,
                 stt::SteinerTreeBuilder* sttBuilder_,
                 utl::Logger* logger,
                 lrl::Laurel* laurel,
                 bool timingDriven = false)
-      : debugActive_(debugActive),
-        db_(db),
+      : db_(db),
         sttBuilder_(sttBuilder_),
         logger_(logger),
         laurel_(laurel),

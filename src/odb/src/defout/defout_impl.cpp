@@ -2146,7 +2146,7 @@ void defout_impl::writeScanChains(dbBlock* block) {
      // partition
      if (sc->getPartitionName()) {
     	 if (sc->getPartitionMaxBits())
-    		fprintf(_out, "+ PARTITION %s %u\n", sc->getPartitionName(), sc->getPartitionMaxBits());
+    		fprintf(_out, "+ PARTITION %s MAXBITS %u\n", sc->getPartitionName(), sc->getPartitionMaxBits());
     	 else
          fprintf(_out, "+ PARTITION %s\n", sc->getPartitionName());
      }

@@ -1,0 +1,45 @@
+[annotation]
+  description = "umc110_yourong"
+  title = "umc110_yourong"
+  flowtype = "main"
+
+[[inputs]]
+  name = "banyan_options.sh"
+  uri = "https://aqua.icbench.com/benchmark/data/62f3a4d91a65a537a8a95747"
+
+[[inputs]]
+  name = "pre_route.def"
+  uri = "https://aqua.icbench.com/benchmark/data/635f9fbab1e7220b3738ee20"
+
+[[inputs]]
+  name = "tech.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa129b1e7220b3738ee34"
+
+[[inputs]]
+  name = "ua11lscef15bdrll.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/62f20736b76b85202e2706a2"
+
+[[inputs]]
+  name = "JLPADLRCMCUDCV1.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa02ab1e7220b3738ee25"
+
+[[inputs]]
+  name = "PF128AK128EJ30_V0.2.1.STB.110X.M4.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa069b1e7220b3738ee28"
+
+[[inputs]]
+  name = "rf.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa09bb1e7220b3738ee2b"
+
+[[inputs]]
+  name = "SHAA110_4096X8X4CM8.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa0c7b1e7220b3738ee2e"
+
+[[inputs]]
+  name = "UMC110pflash_ISO.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/635fa0f3b1e7220b3738ee31"
+
+[[runners]]
+  image = "registry.cn-shanghai.aliyuncs.com/icb/eden_release_ubuntu:221027"
+  [runners.resource]
+    spec = "basic"

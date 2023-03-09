@@ -266,6 +266,17 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   };
 
   // The *Models are groups in the tree
+
+  // ADD_NEW_GUI_LABEL_HERE
+  struct LabelModels
+  {
+    ModelRow linden; 
+    ModelRow cmap_h; 
+    ModelRow cmap_v; 
+    ModelRow expander; 
+    ModelRow macro; 
+  };
+
   struct NetModels
   {
     ModelRow signal;
@@ -409,12 +420,16 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   bool ignore_callback_;
 
   // Categories in the model
+  ModelRow labels_group_;
   ModelRow layers_group_;
   ModelRow tracks_group_;
   ModelRow nets_group_;
   ModelRow instance_group_;
   ModelRow blockage_group_;
   ModelRow misc_group_;
+
+  // groups
+  LabelModels labels_;
 
   // instances
   InstanceModels instances_;
