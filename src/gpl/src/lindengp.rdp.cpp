@@ -93,7 +93,21 @@ bool load(const string& cmap_pb_file,
     return false;
   }
   cmap_result.initGrids(cmap.wgrids(), cmap.hgrids());
-  return cmap_result.updateOverflows();
+  for (int64_t j = 0; j < cmap.hgrids(); ++j) {
+    for (int64_t i = 0; i < cmap.wgrids(); ++i) {
+      const auto idx = j * cmap.wgrids() + i;
+      for (auto dim : {X, Y}) {
+        const auto& tile = dim == X ? cmap.htiles(idx) : cmap.vtiles(idx);
+        cmap_result.updateSupply(dim, i, j, tile.supply());
+        cmap_result.updateDemand(dim, i, j, tile.demand());
+      }
+    }
+  }
+  if (!cmap_result.updateOverflows()) {
+    cerr << "Failed to upload overflows:" << cmap_pb_file << endl;
+    return false;
+  }
+  return true;
 }
 
 }  // namespace

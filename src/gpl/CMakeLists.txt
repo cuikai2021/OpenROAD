@@ -81,7 +81,6 @@ target_sources(gpl
     src/lindengp.rdp.cpp
     src/lindenmp.cpp
     src/LindenDBSanitizer.cpp
-    src/linden.rdp.cpp
     ${PROTO_GEN_SRCS}
 )
 
