@@ -144,6 +144,8 @@ class DisplayControlModel : public QStandardItemModel
 
   QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
   QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+  Qt::DropActions supportedDropActions() const;
+  Qt::ItemFlags flags(const QModelIndex &index) const;
 
  private:
   const int user_data_item_idx_;
@@ -181,6 +183,8 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   void restore();
 
   void restoreTclCommands(std::vector<std::string>& cmds);
+
+  std::vector<std::string> getOrderedLabelNames();
 
   // From the Options API
   QColor color(const odb::dbTechLayer* layer) override;
@@ -453,6 +457,7 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   std::map<Renderer*, std::vector<ModelRow>> custom_controls_;
   std::map<std::string, Renderer::Settings> custom_controls_settings_;
   std::map<QStandardItem*, Qt::CheckState> saved_state_;
+  QStandardItem* labels_parent;
 
   odb::dbDatabase* db_;
   utl::Logger* logger_;

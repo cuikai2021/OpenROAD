@@ -586,6 +586,9 @@ class Gui
   void saveDisplayControls();
   void restoreDisplayControls();
 
+  // Used to get label orders of the display controls
+  std::vector<std::string> getDisplayControlsOrderedLabelNames();
+
   // Used to add and remove focus nets from layout
   void addFocusNet(odb::dbNet* net);
   void removeFocusNet(odb::dbNet* net);

@@ -219,7 +219,10 @@ void Graphics::drawBanyanCMap(gui::Painter& painter)
   const double dy = cmap.getChipCoreRegion().dy() / cmap.hgrids();
 
   for (auto dim : {linden::geom::dimension::X, linden::geom::dimension::Y}) {
-    auto label = dim == linden::geom::dimension::X ? CMAP_H : CMAP_V;
+    auto label = dim == linden::geom::dimension::X
+                     ? DisplayControlLabel::Label::CMAP_H
+                     : DisplayControlLabel::Label::CMAP_V;
+
     for (int j = 0; j < cmap.hgrids(); ++j) {
       for (int i = 0; i < cmap.wgrids(); ++i) {
         auto const& r = cmap.rect(i, j);
@@ -259,6 +262,9 @@ void Graphics::drawLinden(gui::Painter& painter)
       inst->setLocation(r.lx() + pb_->siteSizeX() * pb_->padLeft(), r.ly());
     }
   }
+#ifdef DEBUG_RDP_LABEL_SELECTION  // debug for label selection
+  int index = 0;
+#endif
   for (auto& cell : linden_db_->cells()) {
     gui::Painter::Color color;
     if (cell.odb_instance()) {
@@ -294,17 +300,20 @@ void Graphics::drawLinden(gui::Painter& painter)
     color.a = 180;
     painter.setBrush(color);
     auto const& r = cell.rect();
-#if 0  // debug for label selection
-    std::vector<std::pair<gui::Painter::Color, Label>> labels{
-      {gui::Painter::red, LINDEN},
-      {gui::Painter::blue, CMAP},
-      {gui::Painter::green, EXPANDER},
-      {gui::Painter::cyan, MACRO}
-    };
-    int index = rand() % 4;
-    addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()}, labels[index].first, labels[index].second);
+#ifdef DEBUG_RDP_LABEL_SELECTION  // debug for label selection
+    std::vector<std::pair<gui::Painter::Color, DisplayControlLabel::Label>>
+        labels{{gui::Painter::red, DisplayControlLabel::Label::LINDEN},
+               {gui::Painter::blue, DisplayControlLabel::Label::CMAP_H},
+               {gui::Painter::magenta, DisplayControlLabel::Label::CMAP_V},
+               {gui::Painter::green, DisplayControlLabel::Label::EXPANDER},
+               {gui::Painter::cyan, DisplayControlLabel::Label::MACRO}};
+    index %= labels.size();
+    addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()},
+                      labels[index].first,
+                      labels[index].second);
+    index++;
 #else
-    addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()}, color, LINDEN);
+    addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()}, color, DisplayControlLabel::Label::LINDEN);
 #endif
   }
 }
@@ -509,32 +518,59 @@ const char* Graphics::getDisplayControlGroupName()
   return "Labels";
 }
 
-std::string Graphics::label2name(const Label& l)
+std::vector<std::string> DisplayControlLabel::label_names
+    = {"Linden", "Cmap-H", "Cmap-V", "Expander", "Macro"};
+
+std::string DisplayControlLabel::label2name(const DisplayControlLabel::Label& l)
 {
-  static std::vector<std::string> label_names
-      = {"Linden", "Cmap-H", "Cmap-V", "Expander", "Macro"};
   FASSERT(l >= 0 && l < label_names.size());
   return label_names[l];
 }
 
-bool Graphics::isLablelSelected(const Label& l)
+DisplayControlLabel::Label DisplayControlLabel::name2label(
+    const std::string& name)
 {
-  return checkDisplayControl(label2name(l));
+  auto pos = std::find(label_names.begin(), label_names.end(), name);
+  assert(pos != label_names.end());
+  return Label(pos-label_names.begin());
+}
+
+std::vector<DisplayControlLabel::Label> DisplayControlLabel::getOrderedLabels(
+    const std::vector<std::string>& orderedLabelNames)
+{
+  std::vector<DisplayControlLabel::Label> res;
+  for (const auto& name : orderedLabelNames) {
+    res.emplace_back(name2label(name));
+  }
+  return res;
+}
+
+bool Graphics::isLablelSelected(const DisplayControlLabel::Label& l)
+{
+  return checkDisplayControl( DisplayControlLabel::label2name(l));
 }
 
 void Graphics::addRectToLabelSet(const odb::Rect& rect,
                                  const gui::Painter::Color& color,
-                                 const Label& label)
+                                 const DisplayControlLabel::Label& label)
 {
   labeledRects_.push_back({rect, color, label});
 }
 
 void Graphics::drawRectsInLabels(gui::Painter& painter)
 {
-  for (const auto& obj : labeledRects_) {
-    if (isLablelSelected(obj.label)) {
-      painter.setBrush(obj.color);
-      painter.drawRect(obj.rect);
+  auto orderedLabels = DisplayControlLabel::getOrderedLabels(
+      gui::Gui::get()->getDisplayControlsOrderedLabelNames());
+  // display bottom layers first
+  for (int i = orderedLabels.size() - 1; i >= 0; i--) {
+    DisplayControlLabel::Label label = orderedLabels[i];
+    if (!isLablelSelected(label)) continue;
+    for (const auto& obj : labeledRects_) {
+      if (obj.label == label) {
+        // draw obj
+        painter.setBrush(obj.color);
+        painter.drawRect(obj.rect);
+      }
     }
   }
   labeledRects_.clear();

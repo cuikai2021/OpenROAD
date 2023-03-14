@@ -161,6 +161,10 @@ void Gui::addInstToHighlightSet(const char* name, int highlight_group)
 {
 }
 
+std::vector<std::string> Gui::getDisplayControlsOrderedLabelNames() {
+  return {};
+}
+
 std::string Descriptor::Property::toString(const std::any& /* value */)
 {
   return "";

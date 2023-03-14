@@ -27,6 +27,31 @@ class NesterovPlace;
 class PlacerBase;
 class GCell;
 
+class DisplayControlLabel {
+public:
+  enum Label
+  {
+    LINDEN,
+    CMAP_H,
+    CMAP_V,
+    EXPANDER,
+    MACRO
+  };
+
+  struct LabeledRect
+  {
+    odb::Rect rect;
+    gui::Painter::Color color;
+    Label label;
+  };
+
+  static std::vector<std::string> label_names;
+
+  static std::string label2name(const Label& l);
+  static Label name2label(const std::string& name);
+  static std::vector<Label> getOrderedLabels(const std::vector<std::string>& orderedLabelNames);
+};
+
 // This class draws debugging graphics on the layout
 class Graphics : public gui::Renderer
 {
@@ -75,21 +100,8 @@ class Graphics : public gui::Renderer
   GCell* selected_;
   bool draw_bins_;
   utl::Logger* logger_;
-  enum Label
-  {
-    LINDEN,
-    CMAP_H,
-    CMAP_V,
-    EXPANDER,
-    MACRO
-  };
-  struct LabeledRect
-  {
-    odb::Rect rect;
-    gui::Painter::Color color;
-    Label label;
-  };
-  std::vector<LabeledRect> labeledRects_;
+
+  std::vector<DisplayControlLabel::LabeledRect> labeledRects_;
 
   void drawLinden(gui::Painter& painter);
   void drawBanyanCMap(gui::Painter& painter);
@@ -99,11 +111,10 @@ class Graphics : public gui::Renderer
   void drawBounds(gui::Painter& painter);
   void reportSelected();
 
-  static std::string label2name(const Label& l);
-  bool isLablelSelected(const Label& l);
+  bool isLablelSelected(const DisplayControlLabel::Label& l);
   void addRectToLabelSet(const odb::Rect& rect,
                          const gui::Painter::Color& color,
-                         const Label& label);
+                         const DisplayControlLabel::Label& label);
   void drawRectsInLabels(gui::Painter& painter);
 };
 

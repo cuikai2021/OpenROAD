@@ -239,6 +239,23 @@ QVariant DisplayControlModel::headerData(int section,
   return QVariant();
 }
 
+Qt::DropActions DisplayControlModel::supportedDropActions() const
+{
+  return Qt::MoveAction;
+}
+
+Qt::ItemFlags DisplayControlModel::flags(const QModelIndex &index) const
+{
+  // Enable drag and drop for each of the items by ensuring that the flags 
+  // returned contain the Qt::ItemIsDragEnabled and Qt::ItemIsDropEnabled values.
+  Qt::ItemFlags defaultFlags = QStandardItemModel::flags(index);
+  if (index.isValid()) {
+    return Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | defaultFlags;
+  } else {
+    return Qt::ItemIsDropEnabled | defaultFlags;
+  }
+}
+
 ///////////
 
 DisplayControls::DisplayControls(QWidget* parent)
@@ -253,6 +270,12 @@ DisplayControls::DisplayControls(QWidget* parent)
       sta_(nullptr),
       tech_inited_(false)
 {
+  view_->setDragDropMode(QAbstractItemView::InternalMove);
+  view_->setSelectionMode(QAbstractItemView::SingleSelection);
+  view_->setDragEnabled(true);
+  view_->setAcceptDrops(true);
+  view_->setDropIndicatorShown(true);
+
   setObjectName("layers");  // for settings
   view_->setModel(model_);
   view_->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -278,7 +301,7 @@ DisplayControls::DisplayControls(QWidget* parent)
   view_->expand(layers->index());
 
   // labels group
-  auto labels_parent = makeParentItem(
+  labels_parent = makeParentItem(
       labels_group_,
       "Labels",
       root,
@@ -1088,6 +1111,12 @@ void DisplayControls::setDb(odb::dbDatabase* db)
     }
   }
 
+  //set layers items unabled
+  for(int i = 0; i < layers_group_.name->rowCount(); i++) {
+    QStandardItem* item = layers_group_.name->child(i);
+    item->setEnabled(false);
+  }
+
   toggleParent(layers_group_);
 
   for (int i = 0; i < 4; i++)
@@ -1815,6 +1844,15 @@ void DisplayControls::checkLiberty(bool assume_loaded)
       selectable->setEnabled(enable);
     }
   }
+}
+
+std::vector<std::string> DisplayControls::getOrderedLabelNames() {
+  std::vector<std::string> res;
+  for(int i = 0; i < labels_parent->rowCount(); i++) {
+    QStandardItem* item = labels_parent->child(i);
+    res.emplace_back(item->text().toStdString());
+  }
+  return res;
 }
 
 }  // namespace gui

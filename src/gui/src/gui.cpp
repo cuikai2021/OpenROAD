@@ -429,6 +429,10 @@ void Gui::restoreDisplayControls()
   main_window->getControls()->restore();
 }
 
+std::vector<std::string> Gui::getDisplayControlsOrderedLabelNames() {
+  return main_window->getControls()->getOrderedLabelNames();
+}
+
 void Gui::zoomTo(const odb::Rect& rect_dbu)
 {
   main_window->zoomTo(rect_dbu);
