@@ -1,8 +1,12 @@
 #include "gpl/lindengp.h"
 
+#include <algorithm>
 #include <boost/algorithm/string/trim.hpp>
+#include <cassert>
+#include <cstddef>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #include "fassert.hpp"
 #include "graphics.h"
@@ -24,6 +28,45 @@
 
 using namespace std;
 using utl::GPL;
+
+namespace {
+// only for internal use
+struct IsScanChainsIgnoredPin {
+  vector<const odb::dbITerm*> scan_in_iterms;
+
+  IsScanChainsIgnoredPin(const odb::dbSet<odb::dbScanChain>& scan_chains) {
+    size_t scan_in_iterms_size = 0;
+    for (auto scan_chain : scan_chains) {
+      scan_in_iterms_size += scan_chain->getFloating().size();
+      scan_in_iterms_size += scan_chain->getOrdered ().size();
+      scan_in_iterms_size += 1;
+    }
+    scan_in_iterms.reserve(scan_in_iterms_size);
+
+    for (auto scan_chain : scan_chains) {
+      for (auto floating_comp : scan_chain->getFloating()) {
+        auto in_iterm = floating_comp->getScanIn();
+        scan_in_iterms.push_back(in_iterm);
+      }
+      for (auto ordered_comps : scan_chain->getOrdered()) {
+        auto in_iterm = ordered_comps->getComps().begin()->getScanIn();
+        scan_in_iterms.push_back(in_iterm);
+      }
+      auto stop_iterm = scan_chain->getStop();
+      scan_in_iterms.push_back(stop_iterm);
+    }
+
+    sort(scan_in_iterms.begin(), scan_in_iterms.end());
+    // i.e. there are no duplicate values in vec.
+    assert(std::adjacent_find(scan_in_iterms.begin(), scan_in_iterms.end()) == scan_in_iterms.end());
+  }
+
+  bool operator()(const gpl::Pin* value) {
+    return value->isITerm()
+    && binary_search(scan_in_iterms.begin(), scan_in_iterms.end(), value->dbITerm());
+  }
+};
+} // unnamed namespace
 
 namespace gpl {
 
@@ -165,7 +208,11 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
     linden_db->add_net(
         linden::db::Net((void*) net->dbNet(), net->dbNet()->getName()));
   }
+  IsScanChainsIgnoredPin isScanChainsIgnoredPin(pb_->db()->getChip()->getBlock()->getScanChains());
   for (auto& pin : pb_->pins()) {
+    if (isScanChainsIgnoredPin(pin)) {
+      continue;
+    }
     auto o_net = linden_db->odb2net(pin->net()->dbNet());
     assert(o_net);
     if (pin->instance()) {
