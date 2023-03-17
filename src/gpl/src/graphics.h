@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-
+#include <random>
 #include "gui/gui.h"
 
 namespace utl {
@@ -72,6 +72,9 @@ class Graphics : public gui::Renderer
            std::shared_ptr<linden::rdp::CongestionMap> banyan_cmap_result,
            std::shared_ptr<PlacerBase> pb);
 
+  // Debug linden::mpl::palcer
+  Graphics(utl::Logger* logger,
+           std::shared_ptr<linden::db::Database> linden_db_);
   // Draw the graphics; optionally pausing afterwards
   void cellPlot(bool pause = false);
 
@@ -100,12 +103,12 @@ class Graphics : public gui::Renderer
   GCell* selected_;
   bool draw_bins_;
   utl::Logger* logger_;
-
+  std::mt19937 rand_engine_;
   std::vector<DisplayControlLabel::LabeledRect> labeledRects_;
 
   void drawLinden(gui::Painter& painter);
   void drawBanyanCMap(gui::Painter& painter);
-
+  void drawLindenMP(gui::Painter& painter);
   void drawNesterov(gui::Painter& painter);
   void drawInitial(gui::Painter& painter);
   void drawBounds(gui::Painter& painter);

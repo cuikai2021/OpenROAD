@@ -250,17 +250,14 @@ int LindenMacroPlace::run()
 
     auto placer = linden::mpl::Placer::create(ldb, *log_, std::move(cfg));
 
-#if 0
     std::unique_ptr<gpl::Graphics> graphics;
     if (gpl::Graphics::guiActive()) {
-        graphics = make_unique<gpl::Graphics>(log_, ldb, pb);
+        graphics = make_unique<gpl::Graphics>(log_, ldb);
     }
-#endif
 
     const int MAX_ITER = 5000;
     for (size_t iter = 0; iter < MAX_ITER; iter++) {
         auto ret = placer->one_step_move(iter);
-#if 0
         if (graphics) {
             bool update
                 = (iter == 0 || (iter + 1) % debug_update_iters_ == 0);
@@ -269,7 +266,6 @@ int LindenMacroPlace::run()
                 graphics->cellPlot(pause);
             }
         }
-#endif
         if (!ret) {
             log_->metric("mpl::iter", iter + 1);
             break;
@@ -281,19 +277,15 @@ int LindenMacroPlace::run()
         }
     }
 
-#if 0
     if (graphics) {
         graphics->status("Before legalization of macro-placement");
         graphics->cellPlot(true);
     }
-#endif
     auto legalized = placer->legalize();
-#if 0
     if (graphics) {
         graphics->status("End macro-placement");
         graphics->cellPlot(true);
     }
-#endif
 
     // update db
     for (auto& cell : ldb->cells()) {

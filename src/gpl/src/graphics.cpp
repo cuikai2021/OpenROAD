@@ -4,6 +4,9 @@
 #include <cstdio>
 #include <iostream>
 #include <limits>
+#include <cstdlib>
+#include <cstring>
+#include <charconv>
 
 #include "fassert.hpp"
 #include "linden/db/db.hpp"
@@ -24,7 +27,8 @@ Graphics::Graphics(utl::Logger* logger, std::shared_ptr<PlacerBase> pb)
       banyan_cmap_result_(nullptr),
       selected_(nullptr),
       draw_bins_(false),
-      logger_(logger)
+      logger_(logger),
+      rand_engine_((std::random_device())())
 {
   gui::Gui::get()->registerRenderer(this);
 }
@@ -41,7 +45,8 @@ Graphics::Graphics(utl::Logger* logger,
       banyan_cmap_result_(nullptr),
       selected_(nullptr),
       draw_bins_(draw_bins),
-      logger_(logger)
+      logger_(logger),
+      rand_engine_((std::random_device())())
 {
   gui::Gui::get()->registerRenderer(this);
 }
@@ -58,7 +63,23 @@ Graphics::Graphics(
       banyan_cmap_result_(banyan_cmap_result),
       selected_(nullptr),
       draw_bins_(false),
-      logger_(logger)
+      logger_(logger),
+      rand_engine_((std::random_device())())
+{
+  gui::Gui::get()->registerRenderer(this);
+}
+
+Graphics::Graphics(utl::Logger* logger,
+           std::shared_ptr<linden::db::Database> linden_db)
+    : pb_(),
+      nb_(),
+      np_(nullptr),
+      linden_db_(linden_db),
+      banyan_cmap_result_(nullptr),
+      selected_(nullptr),
+      draw_bins_(false),
+      logger_(logger),
+      rand_engine_((std::random_device())())
 {
   gui::Gui::get()->registerRenderer(this);
 }
@@ -79,10 +100,13 @@ void Graphics::drawBounds(gui::Painter& painter)
 {
   // draw core bounds
   {
-    auto& die = pb_->die();
+    auto db = ord::OpenRoad::openRoad()->getDb();
+    odb::dbBlock* block = db->getChip()->getBlock();
+    odb::Rect rec;
+    block->getCoreArea(rec);
     painter.setPen(gui::Painter::yellow, /* cosmetic */ true);
     drawUnfilledRect(
-        painter, die.coreLx(), die.coreLy(), die.coreUx(), die.coreLy());
+        painter, rec.xMin(), rec.yMin(), rec.xMax(), rec.yMax());
   }
   // draw Blockages bounds
   auto db = ord::OpenRoad::openRoad()->getDb();
@@ -318,6 +342,60 @@ void Graphics::drawLinden(gui::Painter& painter)
   }
 }
 
+namespace {
+int getIntEnvValue(const char* envPath, int defaultValue)
+{
+  char* value = getenv(envPath);
+  if(value == nullptr){
+    return defaultValue;
+  }
+
+  utl::Logger* log_ = ord::OpenRoad::openRoad()->getLogger();
+  int envValue;
+  auto [ptr, ec] = std::from_chars(value, value + strlen(value), envValue);
+  if(ec == std::errc() && ptr == value + strlen(value)){
+    log_->report("Use env {}: {}", envPath, envValue);
+    return envValue;
+  } else {
+    log_->report("Invalid environment variable of {}", envPath);
+    abort();
+  }
+}
+}
+
+void Graphics::drawLindenMP(gui::Painter& painter)
+{
+  drawBounds(painter);
+  // Draw the placeable objects
+  painter.setPen(gui::Painter::white);
+
+  static int percent = getIntEnvValue("FILLER_PERCENT",10);
+  static int transparency = getIntEnvValue("GRAPH_TRANSPARENCY", 180);
+  for (auto& cell : linden_db_->cells()) {
+    gui::Painter::Color color;
+    if (cell.odb_instance()) {
+      color
+          = cell.locked() ? gui::Painter::dark_cyan : gui::Painter::dark_green; 
+    } else if (cell.is_virtual() && !cell.fixed()) {  // filler
+      std::uniform_int_distribution<int> uniform_num(1, 100);
+      int random = uniform_num(rand_engine_);
+      if(percent < 0 || percent > 100){
+        logger_->report("Env FILLER_PERCENT out of range [0,100]");
+        abort();
+      }
+      if(random > percent) {
+        continue;
+      }
+      color = gui::Painter::dark_magenta;
+    }
+    
+    color.a = transparency;
+    painter.setBrush(color);
+    auto const& r = cell.rect();
+    painter.drawRect({r.lx(), r.ly(), r.ux(), r.uy()});
+  }
+}
+
 void Graphics::drawNesterov(gui::Painter& painter)
 {
   drawBounds(painter);
@@ -413,7 +491,11 @@ void Graphics::drawObjects(gui::Painter& painter)
   if (nb_) {
     drawNesterov(painter);
   } else if (linden_db_) {
-    drawLinden(painter);
+    if(!pb_){
+      drawLindenMP(painter);
+    }else{
+      drawLinden(painter);
+    }
   } else {
     drawInitial(painter);
   }
