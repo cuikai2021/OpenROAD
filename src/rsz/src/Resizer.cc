@@ -710,7 +710,8 @@ Resizer::repairDesign(double max_wire_length, // zero for none (meters)
     if (net
         && !sta_->isClock(drvr_pin)
         // Exclude tie hi/low cells and supply nets.
-        && !drvr->isConstant())
+        // && !drvr->isConstant())
+        && !isFuncOneZero(drvr_pin))
       repairNet(net, drvr_pin, drvr, slew_margin, max_cap_margin,
                 true, true, true, max_length, true,
                 repair_count, slew_violations, cap_violations,
@@ -3803,6 +3804,9 @@ Resizer::fanout(Pin *drvr_pin)
   return fanout;
 }
 
+// TIE like cells follows this filter
+// their functions are constant (0 or 1)
+// memory and port driver, do not have func, return false
 bool
 Resizer::isFuncOneZero(const Pin *drvr_pin)
 {
