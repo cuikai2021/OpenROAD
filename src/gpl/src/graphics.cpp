@@ -361,7 +361,78 @@ int getIntEnvValue(const char* envPath, int defaultValue)
     abort();
   }
 }
+
+void symmetry(odb::Point& p1, odb::Point& p2, const linden::geom::Rect& r)
+{
+  int disy = p1.getY() - r.ly();
+  int disx = p1.getX() - r.lx();
+  p1.setX(r.lx() + disy);
+  p1.setY(r.ly() + disx);
+
+  disy = p2.getY() - r.ly();
+  disx = p2.getX() - r.lx();
+  p2.setX(r.lx() + disy);
+  p2.setY(r.ly() + disx);
 }
+
+void flip(odb::Point& p1, odb::Point& p2, const linden::geom::Rect& r, linden::geom::dimension::Dimension dim)
+{
+  if(dim == linden::geom::dimension::X){
+    p1.setY(r.ly() + r.uy() - p1.getY());
+    p2.setY(r.ly() + r.uy() - p2.getY());
+  } else {
+    p1.setX(r.lx() + r.ux() - p1.getX());
+    p2.setX(r.lx() + r.ux() - p2.getX());
+  }
+}
+
+void drawMarcoOri(const linden::db::Cell& cell, gui::Painter& painter)
+{
+  painter.setPen(gui::Painter::white);
+  painter.setPenWidth(1000);
+  auto const& r = cell.rect();
+  auto ori = cell.orientation();
+  odb::Point p1(r.lx(), r.ly() + std::min(r.dx(), r.dy()) / 2);
+  odb::Point p2(r.lx() + std::min(r.dx(), r.dy()) / 4, r.ly());
+
+  switch(ori){
+    case linden::db::W: {
+      symmetry(p1, p2, r);
+      flip(p1, p2, r, linden::geom::dimension::Y);
+      break;
+    }
+    case linden::db::S: {
+      flip(p1, p2, r, linden::geom::dimension::X);
+      flip(p1, p2, r, linden::geom::dimension::Y);
+      break;
+    }
+    case linden::db::E: {
+      symmetry(p1, p2, r);
+      flip(p1, p2, r, linden::geom::dimension::X);
+      break;
+    }
+    case linden::db::FN: {
+      flip(p1, p2, r, linden::geom::dimension::Y);
+      break;
+    }
+    case linden::db::FE: {
+      symmetry(p1, p2, r);
+      break;
+    }
+    case linden::db::FS: {
+      flip(p1, p2, r, linden::geom::dimension::X);
+      break;
+    }
+    case linden::db::FW: {
+      symmetry(p1, p2, r);
+      flip(p1, p2, r, linden::geom::dimension::X);
+      flip(p1, p2, r, linden::geom::dimension::Y);
+      break;
+    }
+  }
+  painter.drawLine(p1, p2);
+}
+} // namespace
 
 void Graphics::drawLindenMP(gui::Painter& painter)
 {
@@ -392,7 +463,11 @@ void Graphics::drawLindenMP(gui::Painter& painter)
     color.a = transparency;
     painter.setBrush(color);
     auto const& r = cell.rect();
+    painter.setPenWidth(1);
     painter.drawRect({r.lx(), r.ly(), r.ux(), r.uy()});
+    if(cell.macro()){
+      drawMarcoOri(cell, painter);
+    }
   }
 }
 
