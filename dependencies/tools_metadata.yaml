@@ -12,13 +12,15 @@
 - name: banyan-integrate
   repo: file://src/Banyan/banyan-integrate
   file: |-
-    banyan:/build/bin/
-    maxhs:/build/bin/
+    banyan:/build/bin/:755
+    maxhs:/build/bin/:755
 
 - name: linden-integrate
   repo: file://src/linden/gpl
   file: |-
-    bin:/build/bin
+    bin/design-inspector:/build/bin/design-inspector:755
+    bin/lindendp:/build/bin/lindendp:755
+    lib/liblegendre_rule_fast.so:/build/lib/liblegendre_rule_fast.so
 
 - name: bamboo
   repo: https://github.com/ICBench/bamboo
