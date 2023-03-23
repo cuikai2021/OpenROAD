@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "db.h"
 #include "dbLogger.h"
@@ -554,6 +555,7 @@ void tmg_conn::splitBySj(bool verbose,
       _rcV[k]._ito = _ptV.size() - 1;
       // create new tmg_rc
       addRc(k, _rcV[k]._shape, _ptV.size() - 1, endTo, nxmin, nymin, nxmax, nymax);
+      assert(_rcV.size() > 0);
       _search->addShape(rt, nxmin, nymin, nxmax, nymax, 0, _rcV.size() - 1);
       if (verbose || _gVerbose)
         notice(0, "      ( %d %d %d %d )\n", nxmin, nymin, nxmax, nymax);
@@ -799,7 +801,8 @@ void tmg_conn::findConnections(bool verbose)
     _ptV[j]._sring = NULL;
   }
   _first_for_clear = NULL;
-  for (unsigned long j = 0; j < _rcV.size() - 1; j++)
+
+  for (int j = 0; j < (int) _rcV.size() - 1; j++)
     if (_rcV[j]._ito == _rcV[j + 1]._ifr)
       _ptV[_rcV[j]._ito]._fre = 0;
 
@@ -1614,6 +1617,7 @@ void tmg_conn::printConnections()
       notice(0, "path %d", _rcV[j]._ifr);
     } else if (_ptV[_rcV[j]._ifr]._jct)
       notice(0, " %d", _rcV[j]._ifr);
+    assert(_rcV.size() > 0);
     if (j == _rcV.size() - 1 || _rcV[j]._ito != _rcV[j + 1]._ifr) {
       notice(0, " %d\n", _rcV[j]._ito);
       start = 1;
