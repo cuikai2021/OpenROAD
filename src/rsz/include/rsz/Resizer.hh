@@ -232,6 +232,12 @@ public:
   void repairTieFanout(LibertyPort *tie_port,
                        double separation, // meters
                        bool verbose);
+  /// cname: cell name
+  /// pname: port/pin name
+  void addTieCell(const char* tie_lo_cname,
+                  const char* tie_lo_pname,
+                  const char* tie_hi_cname,
+                  const char* tie_hi_pname);
   void bufferWireDelay(LibertyCell *buffer_cell,
                        double wire_length, // meters
                        Delay &delay,
@@ -625,7 +631,8 @@ protected:
   void removeBuffer(Instance *buffer);
   Instance *makeInstance(LibertyCell *cell,
                          const char *name,
-                         Instance *parent);
+                         Instance *parent,
+                         odb::dbSourceType type = odb::dbSourceType::TIMING);
   LibertyCell *findTargetCell(LibertyCell *cell,
                               float load_cap,
                               bool revisiting_inst);

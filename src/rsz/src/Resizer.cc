@@ -2301,6 +2301,81 @@ Resizer::repairTieFanout(LibertyPort *tie_port,
 }
 
 void
+Resizer::addTieCell(const char* tie_lo_cname,
+                    const char* tie_lo_pname,
+                    const char* tie_hi_cname,
+                    const char* tie_hi_pname)
+{
+  ensureBlock();
+  ensureDesignArea();
+
+  vector<Net*> gnd_nets, pwr_nets;
+  auto net_iter = network_->netIterator(network_->topInstance());
+  while (net_iter->hasNext()) {
+    auto net = net_iter->next();
+    if (db_network_->isSpecial(net)) {
+      continue;
+    }
+    if (network_->isGround(net)) {
+      gnd_nets.push_back(net);
+    } else if (network_->isPower(net)) {
+      pwr_nets.push_back(net);
+    }
+  }
+  delete net_iter;
+
+  auto connect = [this, top_inst(network_->topInstance())](Pin* pin, LibertyCell* lib_cell, LibertyPort* lib_port) {
+    auto tie_name = makeUniqueInstName(lib_cell->name(), true);
+    // 1. According to the lef/def 5.8 ref, in the COMPONENTS section tie cell source is not DIST,
+    //    not TIMING and not USER, only NETLIST can be used.
+    // 2. 3rd-party tool does not dump SOURCE type, and by default is NETLIST.
+    // 3. A backend expert advises to use NETLIST as SOURCE.
+    // Use NONE to dump a tie cell without SOURCE field.
+    auto tie_cell = makeInstance(lib_cell, tie_name.c_str(), top_inst, odb::dbSourceType::NONE);
+    setLocation(tie_cell, db_network_->location(pin));
+
+    // 1. There is a contradiction on SOURCE DIST description of the NETS section.
+    //    a. > components that only connect to power or ground nets
+    //    b. > ... physical components(...), such as ... tie-high and tie-low cells ...
+    //    Tie cells are not physical cells.
+    // 2. USE TIEOFF is mentioned by the ref.
+    // 3. 3rd-party tool does not dump SOURCE and USE(dbSig) type.
+    // 4. A backend expert says that without "USE" field, the default is "USE SIGNAL".
+    // makeUniqueNet creates a net without SOURCE and with "USE SIGNAL".
+    auto net = makeUniqueNet();
+    sta_->connectPin(tie_cell, lib_port, net);
+    sta_->connectPin(network_->instance(pin), network_->port(pin), net);
+
+    designAreaIncr(area(network_->cell(lib_cell)));
+  };
+
+  auto batch_connect = [this, &connect](vector<Net*>& nets, const char* tie_cname, const char* tie_pname) {
+    auto tie_cell = network_->findLibertyCell(tie_cname);
+    if (tie_cell == nullptr) {
+      logger_->error(RSZ, 204, "cannot find cell {}", tie_cname);
+    }
+    logger_->info(RSZ, 205, "find cell {} in library {}", tie_cname, tie_cell->libertyLibrary()->name());
+
+    auto tie_port = tie_cell->findLibertyPort(tie_pname);
+    if (tie_port == nullptr) {
+      logger_->error(RSZ, 206, "cannot find cell pin {} for the cell {}", tie_pname, tie_cname);
+    }
+
+    for (auto net : nets) {
+      auto pin_iter = network_->pinIterator(net);
+      while (pin_iter->hasNext()) {
+        auto pin = pin_iter->next();
+        connect(pin, tie_cell, tie_port);
+      }
+      delete pin_iter;
+      sta_->deleteNet(net);
+    }
+  };
+  batch_connect(gnd_nets, tie_lo_cname, tie_lo_pname);
+  batch_connect(pwr_nets, tie_hi_cname, tie_hi_pname);
+}
+
+void
 Resizer::findCellInstances(LibertyCell *cell,
                            // Return value.
                            InstanceSeq &insts)
@@ -4159,12 +4234,13 @@ Resizer::isRegister(Vertex *vertex)
 
 Instance *Resizer::makeInstance(LibertyCell *cell,
                                 const char *name,
-                                Instance *parent)
+                                Instance *parent,
+                                odb::dbSourceType type)
 {
   debugPrint(logger_, RSZ, "make_instance", 1, "make instance {}", name);
   Instance *inst = db_network_->makeInstance(cell, name, parent);
   dbInst *db_inst = db_network_->staToDb(inst);
-  db_inst->setSourceType(odb::dbSourceType::TIMING);
+  db_inst->setSourceType(type);
   return inst;
 }
 

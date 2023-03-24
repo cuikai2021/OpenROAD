@@ -401,6 +401,16 @@ repair_tie_fanout_cmd(LibertyPort *tie_port,
 }
 
 void
+add_tie_cell_cmd(const char* tie_lo_cname,
+                 const char* tie_lo_pname,
+                 const char* tie_hi_cname,
+                 const char* tie_hi_pname)
+{
+  Resizer *resizer = getResizer();
+  resizer->addTieCell(tie_lo_cname, tie_lo_pname, tie_hi_cname, tie_hi_pname);
+}
+
+void
 repair_design_cmd(double max_length,
                   double slew_margin,
                   double cap_margin)

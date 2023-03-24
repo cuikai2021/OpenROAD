@@ -1,4 +1,7 @@
 record_tests {
+  add_tie_cell_error_arg
+  add_tie_cell_error_nonexist_obj
+  add_tie_cell_work_well
   buffer_ports1
   buffer_ports3
   buffer_ports4

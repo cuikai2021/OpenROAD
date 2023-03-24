@@ -1,0 +1,10 @@
+[ERROR RSZ-0200] Missing mandatory parameter -tie_low_cell
+RSZ-0200
+[ERROR RSZ-0201] Missing mandatory parameter -tie_low_pin
+RSZ-0201
+[ERROR RSZ-0202] Missing mandatory parameter -tie_high_cell
+RSZ-0202
+[ERROR RSZ-0203] Missing mandatory parameter -tie_high_pin
+RSZ-0203
+[ERROR STA-0402] add_tie_cell -tie_high_pim is not a known keyword or flag.
+STA-0402
