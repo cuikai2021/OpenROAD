@@ -81,7 +81,6 @@ target_sources(gpl
     src/lindengp.rdp.cpp
     src/lindenmp.cpp
     src/LindenDBSanitizer.cpp
-    ${PROTO_GEN_SRCS}
 )
 
 messages(TARGET gpl)
@@ -91,8 +90,6 @@ target_include_directories(gpl
     include
   PRIVATE
     ${OCTAVE_INCLUDE_DIR}
-    ${PROTO_GEN_DIR}
-    ${Protobuf_INCLUDE_DIRS}
 )
 
 LINK_DIRECTORIES(
@@ -116,7 +113,6 @@ target_link_libraries(gpl
     ${OCTAVE_LIBRARY}
     ${LEMON_LIB_NAME}
     glpk
-    ${Protobuf_LIBRARIES}
 )
 
 # CIMG_USE case

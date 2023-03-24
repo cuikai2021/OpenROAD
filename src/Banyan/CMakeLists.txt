@@ -62,8 +62,6 @@ target_link_libraries(Banyan
     ZLIB::ZLIB
     fassert
     prettyprint
-
-  PRIVATE
     banyan_pb
 )
 
