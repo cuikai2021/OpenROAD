@@ -36,6 +36,7 @@
 #pragma once
 
 #include <memory>
+#include <functional>
 
 #include "odb/db.h"
 #include "odb/dbBlockCallBackObj.h"

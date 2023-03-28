@@ -47,20 +47,21 @@ function(protoc)
     set(cpps "")
     foreach(pb IN LISTS protos)
         get_filename_component(pb_base ${pb} NAME_WLE)
-        set(cpp "${cpp_out}/${pb_base}.pb.cc")
-        list(APPEND cpps ${cpp})
+        list(APPEND cpps "${cpp_out}/${pb_base}.pb.cc")
     endforeach()
 
     set(outs "")
     foreach(pb IN LISTS protos)
         get_filename_component(pb_base ${pb} NAME_WLE)
-        list(APPEND outs "${cpp_out}/${pb_base}.pb.hh")
+        list(APPEND outs "${cpp_out}/${pb_base}.pb.h")
         list(APPEND outs "${cpp_out}/${pb_base}.pb.cc")
     endforeach()
 
     add_custom_command(
         OUTPUT ${outs}
         COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} -I ${pb_dir} --cpp_out ${cpp_out} ${protos}
+        DEPENDS ${protos} ${PROTOBUF_PROTOC_EXECUTABLE}
+        VERBATIM
     )
 
     add_library(${libname} ${cpps})
