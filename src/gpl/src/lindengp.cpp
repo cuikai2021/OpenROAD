@@ -1,13 +1,17 @@
 #include "gpl/lindengp.h"
+#include "linden/scanchain.hpp"
 
-#include <algorithm>
 #include <boost/algorithm/string/trim.hpp>
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <unordered_set>
+#include <functional>
 
+#include "sta/Liberty.hh"
 #include "fassert.hpp"
 #include "graphics.h"
 #include "initialPlace.h"
@@ -20,14 +24,19 @@
 #include "linden/rdp/congestion_estimation.hpp"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
+#include "db_sta/dbSta.hh"
+#include "db_sta/dbNetwork.hh"
 #include "placerBase.h"
 #include "rsz/Resizer.hh"
 #include "sta/Fuzzy.hh"
 #include "sta/Units.hh"
 #include "utl/Logger.h"
+#include "envflag/envflag.hpp"
 
 using namespace std;
 using utl::GPL;
+
+IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_SCAN_ENABLE_WEIGHT);
 
 namespace {
 // only for internal use
@@ -125,6 +134,25 @@ void LindenGlobalPlace::initPlacerBase()
   }
 }
 
+namespace {
+
+unordered_set<odb::dbNet*> nets_to_scanchain_enables()
+{
+  deque<linden::PairedCell> cells_on_sc = linden::cells_on_scanchains();
+  unordered_set<odb::dbNet*> res;
+  for(auto const& cell: cells_on_sc) {
+    if (cell.scan_enable()) {
+      const linden::PairedPin& se = *cell.scan_enable();
+      odb::dbNet* net = se.db().getNet();
+      if (net != nullptr) {
+        res.insert(net);
+      }
+    }
+  }
+  return res;
+}
+} // namespace
+
 std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 {
   FASSERT(pb_ != nullptr);
@@ -204,10 +232,17 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
       linden_db->add_cell(linden::db::Cell(rect, is_fixed, max_density));
     }
   }
+
+  const unordered_set<odb::dbNet*>& se_nets = nets_to_scanchain_enables();
+  debugPrint(log_, GPL, "linden", 1, "#nets connecting scan enables: {}", se_nets.size());
   for (auto& net : pb_->nets()) {
-    linden_db->add_net(
-        linden::db::Net((void*) net->dbNet(), net->dbNet()->getName()));
+    linden::db::Net lnet((void*) net->dbNet(), net->dbNet()->getName());
+    if (se_nets.count(net->dbNet()) > 0) {
+      lnet.mut_weight() = LINDEN_SCAN_ENABLE_WEIGHT();
+    }
+    linden_db->add_net(std::move(lnet));
   }
+
   IsScanChainsIgnoredPin isScanChainsIgnoredPin(pb_->db()->getChip()->getBlock()->getScanChains());
   for (auto& pin : pb_->pins()) {
     if (isScanChainsIgnoredPin(pin)) {
@@ -244,6 +279,8 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 void LindenGlobalPlace::run()
 {
   initPlacerBase();
+  // FIXME: initial placement must be based on weighted nets in order to
+  // ignore scan enables and scan inputs.
   doInitialPlace();
   if (!linden_db_) {
     linden_db_ = create_linden_db();

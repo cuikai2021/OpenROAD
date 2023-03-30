@@ -45,3 +45,5 @@ if (NOT USE_SYSTEM_ABC)
   add_subdirectory(abc)
 
 endif()
+
+add_subdirectory(envflag/src)

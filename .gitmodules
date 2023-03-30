@@ -22,3 +22,6 @@
 [submodule "src/Laurel"]
 	path = src/Laurel
 	url = git@github.com:ICBench/laurel.git
+[submodule "third-party/envflag"]
+	path = third-party/envflag
+	url = git@github.com:TimeExceed/envflag.git
