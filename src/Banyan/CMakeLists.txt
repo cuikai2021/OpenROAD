@@ -35,6 +35,7 @@ target_sources(Banyan
   src/MergeWireSegment.cpp
   src/GridlessMaze.cpp
   src/PinCluster.cpp
+  src/DrcPatch.cpp
 )
 
 target_include_directories(Banyan

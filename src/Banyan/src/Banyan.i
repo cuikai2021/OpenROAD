@@ -30,6 +30,7 @@ void banyan(std::vector<std::string> args)
     int status = ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
     if (status == 0) {
       ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
+      ord::OpenRoad::openRoad()->getBanyan()->drcPatch();
     }
 }
 
@@ -43,10 +44,16 @@ void m1GridlessMaze()
     ord::OpenRoad::openRoad()->getBanyan()->m1GridlessMaze();
 }
 
-void inst_movement(std::vector<std::string> args)
+void instMovement(std::vector<std::string> args)
 {
     ord::OpenRoad::openRoad()->getBanyan()->instanceMovement(args);
 }
+
+void drcPatch()
+{
+    ord::OpenRoad::openRoad()->getBanyan()->drcPatch();
+}
+
 }
 
 %} // inline

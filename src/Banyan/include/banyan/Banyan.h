@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "ord/OpenRoad.hh"
+#include "odb/db.h"
 
 namespace odb {
 class dbDatabase;
@@ -35,6 +36,7 @@ class SteinerTreeBuilder;
 }
 
 namespace banyan {
+using byvia = std::tuple<int, int, std::string>;
 
 constexpr const std::string_view BANYAN_TMP_FOLDER = "/tmp/banyan/";
 
@@ -49,12 +51,12 @@ class Banyan : public ord::OpenRoad::Observer
             utl::Logger* logger,
             lrl::Laurel* laurel);
 
-  int main(std::vector<std::string> args,bool updateDB);
+  int main(std::vector<std::string> args, bool updateDB);
   int cmap(const std::string& cmapPb, const std::string& instMovementPb);
   int instanceMovement(std::vector<std::string> args);
   void mergeWireSegment();
   int m1GridlessMaze();
-
+  void drcPatch();
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
                            odb::dbTech* tech,

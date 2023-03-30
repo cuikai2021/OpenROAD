@@ -9,6 +9,7 @@
 #include "Global.hpp"
 #include "GridlessMaze.hpp"
 #include "MergeWireSegment.hpp"
+#include "DrcPatch.hpp"
 #include "PinCluster.hpp"
 #include "banyan_instance_movement.pb.h"
 #include "magic_enum.hpp"
@@ -304,6 +305,12 @@ int Banyan::instanceMovement(std::vector<std::string> args)
   }
 
   return SUCCESS;
+}
+
+void Banyan::drcPatch()
+{
+  auto dp = DrcPatch(db_, logger_);
+  dp.run();
 }
 
 }  // namespace banyan
