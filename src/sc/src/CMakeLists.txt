@@ -14,6 +14,7 @@ target_sources(sc
     Kruskal.cpp
     ScanChain.cpp
     MakeScanChain.cpp
+    ChristofidesSpanningGraph.cpp
 )
 
 target_include_directories(sc

@@ -8,6 +8,7 @@
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
 #include <lemon/christofides_tsp.h>
+#include "ChristofidesSpanningGraph.h"
 
 namespace sc {
 
@@ -81,31 +82,71 @@ void ScanChain::initPoints(const odb::dbScanChain *scan_chain, std::vector<Point
   }
 }
 
-std::vector<Graph::NodeId> ScanChain::reorderScanChain(const odb::dbScanChain *scan_chain,
-                                                       const std::vector<Point> &points) {
-
+void ScanChain::fullGraphReorderScanChain(std::vector<Graph::NodeId>& orders,
+                                          const std::vector<Point> &points)
+{
+  logger_->info(SC, 9, "SpanningGraph don't have a perfect matching so use FullGraph to find a perfect matching");
   lemon::FullGraph g(points.size());
   lemon::FullGraph::EdgeMap<int> tree_map(g);
   for (size_t i = 0; i < points.size(); ++i) {
     for (size_t j = i + 1; j < points.size(); ++j) {
       lemon::FullGraph::Edge edge = g.edge(g(i), g(j));
-      double dis = std::abs(points[i].x - points[j].x) + std::abs(points[i].y - points[j].y);
+      double dis = std::abs(points[i].x - points[j].x)
+                   + std::abs(points[i].y - points[j].y);
       tree_map[edge] = dis;
     }
   }
 
-  lemon::ChristofidesTsp<lemon::FullGraph::EdgeMap<int> > c(g, tree_map);
-  c.run();
-  std::vector<lemon::FullGraph::Node> nodes = c.tourNodes();
+  lemon::ChristofidesTsp<lemon::FullGraph::EdgeMap<int>> chris(g, tree_map);
+  chris.run();
+  std::vector<lemon::FullGraph::Node> nodes = chris.tourNodes();
   auto pos = std::find(nodes.begin(), nodes.end(), g(0));
-  std::vector<Graph::NodeId> orders;
   for (auto it = pos; it != nodes.end(); ++it) {
     orders.push_back(g.index(*it));
   }
   for (auto it = nodes.begin(); it != pos; ++it) {
     orders.push_back(g.index(*it));
   }
+}
 
+std::vector<Graph::NodeId> ScanChain::reorderScanChain(const odb::dbScanChain *scan_chain,
+                                                       const std::vector<Point> &points) {
+
+  sc::Graph graph = sc::Graph(points);
+  graph.construct(new sc::ZhouSpanningGraphStrategy);
+
+  lemon::ListGraph gr;
+  lemon::ListGraph::EdgeMap<int> cost(gr);
+  for (size_t i = 0; i < points.size(); ++i) {
+    gr.addNode();
+  }
+  for (size_t i = 0; i < graph.edges_.size(); ++i) {
+    sc::Graph::NodeId l = graph.edges_[i].first;
+    sc::Graph::NodeId r = graph.edges_[i].second;
+    lemon::ListGraph::Edge e = gr.addEdge(gr.nodeFromId(l), gr.nodeFromId(r));
+    int dis = (int)graph.vertices_[l].distance(graph.vertices_[r]);
+    cost[e] = dis;
+  }
+
+  sc::ChristofidesTsp c(gr, cost);
+  c.setPoints(points);  
+  int value = c.run();
+  std::vector<Graph::NodeId> orders;
+  if (value == -1) {
+    fullGraphReorderScanChain(orders, points);
+  } else {
+    std::vector<lemon::ListGraph::Node> nodes = c.tourNodes();
+    auto pos = std::find(nodes.begin(), nodes.end(), gr.nodeFromId(0));
+    for (auto it = pos; it != nodes.end(); ++it) {
+      orders.push_back(gr.id(*it));
+    }
+    for (auto it = nodes.begin(); it != pos; ++it) {
+      orders.push_back(gr.id(*it));
+    }
+  }
+  if (value == -1) {
+    return {};
+  }
   return orders;
 }
 

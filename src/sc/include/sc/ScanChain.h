@@ -39,6 +39,7 @@ class ScanChain {
   bool traceScanChain(const odb::dbScanChain *scan_chain, double& distance);
   void initPoints(const odb::dbScanChain *scan_chain, std::vector<Point> &points);
   std::vector<Graph::NodeId> reorderScanChain(const odb::dbScanChain *scan_chain, const std::vector<Point> &points);
+  void fullGraphReorderScanChain(std::vector<Graph::NodeId>& orders, const std::vector<Point> &points);
   void connectScanNet(const odb::dbScanChain *scan_chain, const std::vector<Graph::NodeId> &orders);
 };
 } // namespace sc
