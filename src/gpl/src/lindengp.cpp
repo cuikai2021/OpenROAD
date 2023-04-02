@@ -37,6 +37,7 @@ using namespace std;
 using utl::GPL;
 
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_SCAN_ENABLE_WEIGHT);
+IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_CLOCK_WEIGHT);
 
 namespace {
 // only for internal use
@@ -151,6 +152,21 @@ unordered_set<odb::dbNet*> nets_to_scanchain_enables()
   }
   return res;
 }
+
+unordered_set<odb::dbNet*> nets_to_clock()
+{
+  auto const& cells = linden::all_cells_with_lib();
+  unordered_set<odb::dbNet*> res;
+  for(const linden::PairedCell& cell: cells) {
+    for(const linden::PairedPin& pin: cell.clocks()) {
+      odb::dbNet* net = pin.db().getNet();
+      if (net != nullptr) {
+        res.insert(net);
+      }
+    }
+  }
+  return res;
+}
 } // namespace
 
 std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
@@ -235,10 +251,15 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 
   const unordered_set<odb::dbNet*>& se_nets = nets_to_scanchain_enables();
   debugPrint(log_, GPL, "linden", 1, "#nets connecting scan enables: {}", se_nets.size());
+  const unordered_set<odb::dbNet*>& clock_nets = nets_to_clock();
+  debugPrint(log_, GPL, "linden", 1, "#nets connecting clocks: {}", clock_nets.size());
   for (auto& net : pb_->nets()) {
     linden::db::Net lnet((void*) net->dbNet(), net->dbNet()->getName());
     if (se_nets.count(net->dbNet()) > 0) {
       lnet.mut_weight() = LINDEN_SCAN_ENABLE_WEIGHT();
+    }
+    if (clock_nets.count(net->dbNet()) > 0) {
+      lnet.mut_weight() = LINDEN_CLOCK_WEIGHT();
     }
     linden_db->add_net(std::move(lnet));
   }

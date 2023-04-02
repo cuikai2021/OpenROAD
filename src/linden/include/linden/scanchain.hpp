@@ -62,16 +62,23 @@ struct PairedCell {
         return scan_enable_;
     }
 
+    const std::deque<PairedPin>& clocks() const noexcept {
+        return clocks_;
+    }
+
 private:
     void init_scan_enable();
+    void init_clocks();
 
 private:
     std::reference_wrapper<odb::dbInst> odb_inst_;
     std::reference_wrapper<sta::LibertyCell> sta_cell_;
     std::string name_;
     std::optional<PairedPin> scan_enable_;
+    std::deque<PairedPin> clocks_;
 };
 
 std::deque<PairedCell> cells_on_scanchains();
+std::deque<PairedCell> all_cells_with_lib();
 
 } // namespace linden

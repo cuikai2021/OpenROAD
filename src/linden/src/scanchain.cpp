@@ -29,6 +29,7 @@ PairedCell::PairedCell(odb::dbInst* odb_inst, sta::LibertyCell* sta_cell)
     name_ = odb_inst_.get().getName();
 
     init_scan_enable();
+    init_clocks();
 }
 
 void PairedCell::init_scan_enable() {
@@ -40,6 +41,22 @@ void PairedCell::init_scan_enable() {
     odb::dbITerm* db_pin = db().findITerm(lib_port->name());
     PairedPin se(db_pin, lib_port);
     scan_enable_ = std::move(se);
+}
+
+void PairedCell::init_clocks() {
+    // Although LEF defines CLOCK in signal type, but it is usually unused.
+    // Clocks are crucial to timing and power analysis.
+    // So we consider liberty's answer as golden.
+    for(auto db_pin: db().getITerms()) {
+        auto lib_pin = sta().findLibertyPort(db_pin->getMTerm()->getConstName());
+        if (lib_pin == nullptr) {
+            continue;
+        }
+        if (!lib_pin->isClock()) {
+            continue;
+        }
+        clocks_.emplace_back(db_pin, lib_pin);
+    }
 }
 
 deque<PairedCell> cells_on_scanchains() {
@@ -79,6 +96,24 @@ deque<PairedCell> cells_on_scanchains() {
             }
             return a.name() < b.name();
         });
+    return res;
+}
+
+deque<PairedCell> all_cells_with_lib()
+{
+    ord::OpenRoad* ord = ord::OpenRoad::openRoad();
+    odb::dbDatabase& db = *ord->getDb();
+    sta::dbSta& sta = *ord->getSta();
+    sta::dbNetwork& network = *sta.getDbNetwork();
+
+    deque<PairedCell> res;
+    for(auto db_inst: db.getChip()->getBlock()->getInsts()) {
+        sta::LibertyCell* lib_cell = network.libertyCell(db_inst);
+        if (lib_cell == nullptr) {
+            continue;
+        }
+        res.emplace_back(db_inst, lib_cell);
+    }
     return res;
 }
 
