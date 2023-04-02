@@ -1,0 +1,64 @@
+module top (a,
+    b,
+    c,
+    d0,
+    z0,
+    y0,
+    x0,
+    e0,
+    f0,
+    d1,
+    z1,
+    y1,
+    x1,
+    e1,
+    f1);
+ input a;
+ input b;
+ output c;
+ output d0;
+ output z0;
+ output y0;
+ output x0;
+ output e0;
+ output f0;
+ output d1;
+ output z1;
+ output y1;
+ output x1;
+ output e1;
+ output f1;
+
+ wire net2;
+ wire net5;
+ wire net6;
+ wire net1;
+ wire net3;
+ wire net4;
+ wire net7;
+ wire net8;
+
+ AND2_X1 _0_ (.A1(b),
+    .A2(a),
+    .ZN(c));
+ LOGIC0_X1 LOGIC0_X1_1 (.Z(d0));
+ LOGIC0_X1 LOGIC0_X1_2 (.Z(net1));
+ LOGIC0_X1 LOGIC0_X1_3 (.Z(net2));
+ LOGIC0_X1 LOGIC0_X1_4 (.Z(y0));
+ LOGIC0_X1 LOGIC0_X1_5 (.Z(net3));
+ LOGIC0_X1 LOGIC0_X1_6 (.Z(net4));
+ LOGIC1_X1 LOGIC1_X1_7 (.Z(d1));
+ LOGIC1_X1 LOGIC1_X1_8 (.Z(net5));
+ LOGIC1_X1 LOGIC1_X1_9 (.Z(net6));
+ LOGIC1_X1 LOGIC1_X1_10 (.Z(y1));
+ LOGIC1_X1 LOGIC1_X1_11 (.Z(net7));
+ LOGIC1_X1 LOGIC1_X1_12 (.Z(net8));
+ assign z0 = net1;
+ assign x0 = net2;
+ assign e0 = net3;
+ assign f0 = net4;
+ assign z1 = net5;
+ assign x1 = net6;
+ assign e1 = net7;
+ assign f1 = net8;
+endmodule

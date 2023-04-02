@@ -66,6 +66,8 @@
 #include "sta/StaMain.hh"
 #include "sta/Fuzzy.hh"
 
+#include "fassert.hpp"
+
 // http://vlsicad.eecs.umich.edu/BK/Slots/cache/dropzone.tamu.edu/~zhuoli/GSRC/fast_buffer_insertion.html
 
 namespace sta {
@@ -2324,7 +2326,7 @@ Resizer::addTieCell(const char* tie_lo_cname,
   }
   delete net_iter;
 
-  auto connect = [this, top_inst(network_->topInstance())](Pin* pin, LibertyCell* lib_cell, LibertyPort* lib_port) {
+  auto make_tie_cell = [this, top_inst(network_->topInstance())](LibertyCell* lib_cell, Pin* adjacentPin) {
     auto tie_name = makeUniqueInstName(lib_cell->name(), true);
     // 1. According to the lef/def 5.8 ref, in the COMPONENTS section tie cell source is not DIST,
     //    not TIMING and not USER, only NETLIST can be used.
@@ -2332,8 +2334,13 @@ Resizer::addTieCell(const char* tie_lo_cname,
     // 3. A backend expert advises to use NETLIST as SOURCE.
     // Use NONE to dump a tie cell without SOURCE field.
     auto tie_cell = makeInstance(lib_cell, tie_name.c_str(), top_inst, odb::dbSourceType::NONE);
-    setLocation(tie_cell, db_network_->location(pin));
+    setLocation(tie_cell, db_network_->location(adjacentPin));
 
+    designAreaIncr(area(network_->cell(lib_cell)));
+    return tie_cell;
+  };
+
+  auto connect = [this](Pin* pin, Instance* tie_cell, LibertyPort* lib_port) {
     // 1. There is a contradiction on SOURCE DIST description of the NETS section.
     //    a. > components that only connect to power or ground nets
     //    b. > ... physical components(...), such as ... tie-high and tie-low cells ...
@@ -2345,11 +2352,9 @@ Resizer::addTieCell(const char* tie_lo_cname,
     auto net = makeUniqueNet();
     sta_->connectPin(tie_cell, lib_port, net);
     sta_->connectPin(network_->instance(pin), network_->port(pin), net);
-
-    designAreaIncr(area(network_->cell(lib_cell)));
   };
 
-  auto batch_connect = [this, &connect](vector<Net*>& nets, const char* tie_cname, const char* tie_pname) {
+  auto batch_connect = [this, &make_tie_cell, &connect](vector<Net*>& nets, const char* tie_cname, const char* tie_pname) {
     auto tie_cell = network_->findLibertyCell(tie_cname);
     if (tie_cell == nullptr) {
       logger_->error(RSZ, 204, "cannot find cell {}", tie_cname);
@@ -2362,13 +2367,30 @@ Resizer::addTieCell(const char* tie_lo_cname,
     }
 
     for (auto net : nets) {
-      auto pin_iter = network_->pinIterator(net);
+      auto pin_iter = network_->connectedPinIterator(net);
       while (pin_iter->hasNext()) {
         auto pin = pin_iter->next();
-        connect(pin, tie_cell, tie_port);
+        // Intention: When a pin is a top output port,
+        // different net and pin names introduce an extra verilog assigment that connects the port and the net.
+        // Use the same name to avoid such assigments.
+        if (strcmp(network_->name(pin), network_->name(net)) == 0) {
+          continue;
+        }
+        connect(pin, make_tie_cell(tie_cell, pin), tie_port);
       }
       delete pin_iter;
-      sta_->deleteNet(net);
+
+      pin_iter = network_->connectedPinIterator(net);
+      auto pin = pin_iter->hasNext() ? pin_iter->next() : nullptr;
+      FASSERT(not pin_iter->hasNext())("A net should have at most 1 pin left");
+      delete pin_iter;
+
+      if (pin != nullptr) {
+        db_network_->staToDb(net)->setSigType(odb::dbSigType::SIGNAL);
+        sta_->connectPin(make_tie_cell(tie_cell, pin), tie_port, net);
+      } else {
+        sta_->deleteNet(net);
+      }
     }
   };
   batch_connect(gnd_nets, tie_lo_cname, tie_lo_pname);

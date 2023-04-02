@@ -1,4 +1,5 @@
 record_tests {
+  add_tie_cell_const_out_pin
   add_tie_cell_error_arg
   add_tie_cell_error_nonexist_obj
   add_tie_cell_work_well

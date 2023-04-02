@@ -1,0 +1,84 @@
+VERSION 5.8 ;
+DIVIDERCHAR "/" ;
+BUSBITCHARS "[]" ;
+DESIGN top ;
+UNITS DISTANCE MICRONS 1000 ;
+DIEAREA ( 0 -1000 ) ( 25000 5000 ) ;
+
+ROW ROW_0 FreePDK45_38x28_10R_NP_162NW_34O 0 0 FS DO 130 BY 1 STEP 190 0 ;
+ROW ROW_1 FreePDK45_38x28_10R_NP_162NW_34O 0 1400 N DO 130 BY 1 STEP 190 0 ;
+ROW ROW_2 FreePDK45_38x28_10R_NP_162NW_34O 0 2800 FS DO 130 BY 1 STEP 190 0 ;
+
+TRACKS Y 70 DO 786 STEP 140 LAYER metal1 ;
+TRACKS X 95 DO 316 STEP 190 LAYER metal2 ;
+TRACKS Y 70 DO 786 STEP 140 LAYER metal3 ;
+TRACKS X 95 DO 214 STEP 280 LAYER metal4 ;
+TRACKS Y 70 DO 393 STEP 280 LAYER metal5 ;
+TRACKS X 95 DO 214 STEP 280 LAYER metal6 ;
+TRACKS Y 70 DO 138 STEP 800 LAYER metal7 ;
+TRACKS X 95 DO 75 STEP 800 LAYER metal8 ;
+TRACKS Y 70 DO 69 STEP 1600 LAYER metal9 ;
+TRACKS X 95 DO 38 STEP 1600 LAYER metal10 ;
+
+COMPONENTS 1 ;
+    - _0_ AND2_X1 + PLACED ( 3000 2800 ) N ;
+END COMPONENTS
+
+PINS 15 ;
+    - a + NET a + DIRECTION INPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 2000 -500 ) N ;
+    - b + NET b + DIRECTION INPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 3000 -500 ) N ;
+    - c + NET c + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 4000 -500 ) N ;
+
+    - d0 + NET d0 + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 5000 -500 ) N ;
+
+    - z0 + NET z0_renamed + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 6000 -500 ) N ;
+
+    - y0 + NET y0 + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 7000 -500 ) N ;
+    - x0 + NET y0 + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 8000 -500 ) N ;
+
+    - e0 + NET zero_ + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 9000 -500 ) N ;
+    - f0 + NET zero_ + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 10000 -500 ) N ;
+
+    - d1 + NET d1 + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 11000 -500 ) N ;
+
+    - z1 + NET z1_renamed + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 12000 -500 ) N ;
+
+    - y1 + NET y1 + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 13000 -500 ) N ;
+    - x1 + NET y1 + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 14000 -500 ) N ;
+
+    - e1 + NET one_ + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 15000 -500 ) N ;
+    - f1 + NET one_ + DIRECTION OUTPUT + USE SIGNAL
+        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 16000 -500 ) N ;
+
+END PINS
+
+NETS 11 ;
+    - a ( PIN a ) ( _0_ A2 ) + USE SIGNAL ;
+    - b ( PIN b ) ( _0_ A1 ) + USE SIGNAL ;
+    - c ( PIN c ) ( _0_ ZN ) + USE SIGNAL ;
+
+    - d0 ( PIN d0 ) + USE GROUND ;
+    - z0_renamed ( PIN z0 ) + USE GROUND ;
+    - y0 ( PIN x0 ) ( PIN y0 ) + USE GROUND ;
+    - zero_ ( PIN e0 ) ( PIN f0 ) + USE GROUND ;
+
+    - d1 ( PIN d1 ) + USE POWER ;
+    - z1_renamed ( PIN z1 ) + USE POWER ;
+    - y1 ( PIN x1 ) ( PIN y1 ) + USE POWER ;
+    - one_ ( PIN e1 ) ( PIN f1 ) + USE POWER ;
+END NETS
+END DESIGN

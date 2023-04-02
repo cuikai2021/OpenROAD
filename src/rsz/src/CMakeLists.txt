@@ -66,6 +66,7 @@ target_link_libraries(rsz
     gui
     utl
     spdlog::spdlog
+    fassert
 )
 
 messages(

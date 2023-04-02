@@ -1,0 +1,35 @@
+[INFO ODB-0222] Reading LEF file: Nangate45/Nangate45.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0225]     Created 134 library cells
+[INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
+[INFO ODB-0127] Reading DEF file: add_tie_cell_const_out_pin.def
+[INFO ODB-0128] Design: top
+[INFO ODB-0130]     Created 15 pins.
+[INFO ODB-0131]     Created 1 components and 5 component-terminals.
+[INFO ODB-0133]     Created 11 nets and 3 connections.
+[INFO ODB-0134] Finished DEF file: add_tie_cell_const_out_pin.def
+Compare original def dumped verilog:
+No differences found.
+[INFO RSZ-0205] find cell LOGIC0_X1 in library NangateOpenCellLibrary
+[INFO RSZ-0205] find cell LOGIC1_X1 in library NangateOpenCellLibrary
+No differences found.
+Compare modified def dumped verilog:
+No differences found.
+check_ties LOGIC0_X1:
+report_ties LOGIC0_X1:
+5.0 0.0
+6.0 0.0
+7.0 0.0
+8.0 0.0
+9.0 0.0
+10.0 0.0
+check_ties LOGIC1_X1:
+report_ties LOGIC1_X1:
+11.0 0.0
+12.0 0.0
+13.0 0.0
+14.0 0.0
+15.0 0.0
+16.0 0.0
+check_in_core:
