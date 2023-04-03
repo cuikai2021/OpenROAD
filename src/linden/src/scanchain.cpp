@@ -10,6 +10,26 @@ using namespace std;
 
 namespace linden {
 
+namespace {
+
+// Sort by name to make them stable.
+// Ordering makes little sense.
+void make_stable(deque<PairedCell>& cells) {
+    sort(
+        cells.begin(),
+        cells.end(),
+        [](const PairedCell& a, const PairedCell& b) noexcept {
+            if (a.name().size() < b.name().size()) {
+                return true;
+            } else if (a.name().size() > b.name().size()) {
+                return false;
+            }
+            return a.name() < b.name();
+        });
+}
+
+} // namespace
+
 PairedPin::PairedPin(odb::dbITerm* db_pin, sta::LibertyPort* sta_pin)
 :   db_pin_(*db_pin),
     sta_pin_(*sta_pin),
@@ -80,22 +100,13 @@ deque<PairedCell> cells_on_scanchains() {
     sta::dbNetwork& network = *sta->getDbNetwork();
     for (auto db_inst : cells_on_sc) {
         sta::LibertyCell* lib_cell = network.libertyCell(db_inst);
-        res.emplace_back(db_inst, lib_cell);
+        if (lib_cell != nullptr) {
+            res.emplace_back(db_inst, lib_cell);
+        }
     }
 
-    // sort by name to make them stable.
-    // Ordering makes little sense.
-    sort(
-        res.begin(),
-        res.end(),
-        [](const PairedCell& a, const PairedCell& b) noexcept {
-            if (a.name().size() < b.name().size()) {
-                return true;
-            } else if (a.name().size() > b.name().size()) {
-                return false;
-            }
-            return a.name() < b.name();
-        });
+    make_stable(res);
+
     return res;
 }
 
@@ -114,6 +125,9 @@ deque<PairedCell> all_cells_with_lib()
         }
         res.emplace_back(db_inst, lib_cell);
     }
+
+    make_stable(res);
+
     return res;
 }
 
