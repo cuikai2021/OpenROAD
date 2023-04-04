@@ -66,9 +66,14 @@ struct PairedCell {
         return clocks_;
     }
 
+    const std::deque<PairedPin>& resets() const noexcept {
+        return resets_;
+    }
+
 private:
     void init_scan_enable();
     void init_clocks();
+    void init_resets();
 
 private:
     std::reference_wrapper<odb::dbInst> odb_inst_;
@@ -76,6 +81,7 @@ private:
     std::string name_;
     std::optional<PairedPin> scan_enable_;
     std::deque<PairedPin> clocks_;
+    std::deque<PairedPin> resets_;
 };
 
 std::deque<PairedCell> cells_on_scanchains();

@@ -1,10 +1,13 @@
 #include "linden/scanchain.hpp"
-#include "sta/Liberty.hh"
 #include "ord/OpenRoad.hh"
 #include "db_sta/dbSta.hh"
 #include "db_sta/dbNetwork.hh"
+#include "sta/Liberty.hh"
+#include "sta/FuncExpr.hh"
+#include "sta/Sequential.hh"
 #include "utl/Logger.h"
 #include "fassert.hpp"
+#include <iostream>
 
 using namespace std;
 
@@ -14,11 +17,12 @@ namespace {
 
 // Sort by name to make them stable.
 // Ordering makes little sense.
-void make_stable(deque<PairedCell>& cells) {
+template<typename Coll>
+void make_stable(Coll& cells) {
     sort(
         cells.begin(),
         cells.end(),
-        [](const PairedCell& a, const PairedCell& b) noexcept {
+        [](auto const& a, auto const& b) noexcept {
             if (a.name().size() < b.name().size()) {
                 return true;
             } else if (a.name().size() > b.name().size()) {
@@ -28,6 +32,37 @@ void make_stable(deque<PairedCell>& cells) {
         });
 }
 
+void extract_pins_from_sta_expr(
+    unordered_set<sta::LibertyPort*>& out,
+    odb::dbInst& db,
+    sta::FuncExpr& expr)
+{
+    switch(expr.op()) {
+    case sta::FuncExpr::op_port: {
+        sta::LibertyPort* lib_pin = expr.port();
+        FASSERT(lib_pin != nullptr);
+        out.insert(lib_pin);
+        break;
+    }
+    case sta::FuncExpr::op_one:
+    case sta::FuncExpr::op_zero: break;
+    // suppose the expr does not go too deep.
+    case sta::FuncExpr::op_not: {
+        FASSERT(expr.left() != nullptr);
+        extract_pins_from_sta_expr(out, db, *expr.left());
+        break;
+    }
+    case sta::FuncExpr::op_and:
+    case sta::FuncExpr::op_or:
+    case sta::FuncExpr::op_xor: {
+        FASSERT(expr.left() != nullptr);
+        FASSERT(expr.right() != nullptr);
+        extract_pins_from_sta_expr(out, db, *expr.left());
+        extract_pins_from_sta_expr(out, db, *expr.right());
+        break;
+    }
+    }
+}
 } // namespace
 
 PairedPin::PairedPin(odb::dbITerm* db_pin, sta::LibertyPort* sta_pin)
@@ -50,6 +85,7 @@ PairedCell::PairedCell(odb::dbInst* odb_inst, sta::LibertyCell* sta_cell)
 
     init_scan_enable();
     init_clocks();
+    init_resets();
 }
 
 void PairedCell::init_scan_enable() {
@@ -77,6 +113,38 @@ void PairedCell::init_clocks() {
         }
         clocks_.emplace_back(db_pin, lib_pin);
     }
+}
+
+void PairedCell::init_resets() {
+    if (!sta().hasSequentials()) {
+        return;
+    }
+
+    unordered_set<sta::LibertyPort*> resets;
+    sta::LibertyCellPortIterator iter(&sta());
+    for(; iter.hasNext(); ) {
+        sta::LibertyPort* port = iter.next();
+        FASSERT(port != nullptr)
+            (name());
+        sta::Sequential* seq = sta().outputPortSequential(port);
+        if (seq == nullptr) {
+            continue;
+        }
+        sta::FuncExpr* clear = seq->clear();
+        if (clear != nullptr) {
+            extract_pins_from_sta_expr(resets, db(), *clear);
+        }
+        sta::FuncExpr* preset = seq->preset();
+        if (preset != nullptr) {
+            extract_pins_from_sta_expr(resets, db(), *preset);
+        }
+    }
+
+    for(auto lib_pin: resets) {
+        odb::dbITerm* db_pin = db().findITerm(lib_pin->name());
+        resets_.emplace_back(db_pin, lib_pin);
+    }
+    make_stable(resets_);
 }
 
 deque<PairedCell> cells_on_scanchains() {
