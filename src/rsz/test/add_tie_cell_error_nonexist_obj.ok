@@ -3,23 +3,16 @@
 [INFO ODB-0224]     Created 27 technology vias
 [INFO ODB-0225]     Created 134 library cells
 [INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
-[INFO ODB-0222] Reading LEF file: pad.lef
-[INFO ODB-0225]     Created 1 library cells
-[INFO ODB-0226] Finished LEF file:  pad.lef
-[INFO ODB-0127] Reading DEF file: add_tie_cell.def
+[INFO ODB-0127] Reading DEF file: add_tie_cell_error_nonexist_obj.def
 [INFO ODB-0128] Design: top
-[INFO ODB-0131]     Created 15 components and 68 component-terminals.
-[INFO ODB-0133]     Created 5 nets and 15 connections.
-[INFO ODB-0134] Finished DEF file: add_tie_cell.def
-[INFO RSZ-0205] find cell LOGIC0_X1 in library NangateOpenCellLibrary
+[INFO ODB-0134] Finished DEF file: add_tie_cell_error_nonexist_obj.def
+[INFO RSZ-0207] Inserted 0 tie low cells.
 [ERROR RSZ-0204] cannot find cell NOT_EXIST_CELL_TIE1
 RSZ-0204
 [ERROR RSZ-0204] cannot find cell NOT_EXIST_CELL_TIE0
 RSZ-0204
-[INFO RSZ-0205] find cell LOGIC0_X1 in library NangateOpenCellLibrary
 [ERROR RSZ-0206] cannot find cell pin NOT_EXIST_TIE0_PIN for the cell LOGIC0_X1
 RSZ-0206
-[INFO RSZ-0205] find cell LOGIC0_X1 in library NangateOpenCellLibrary
-[INFO RSZ-0205] find cell LOGIC1_X1 in library NangateOpenCellLibrary
+[INFO RSZ-0207] Inserted 0 tie low cells.
 [ERROR RSZ-0206] cannot find cell pin NOT_EXIST_TIE1_PIN for the cell LOGIC1_X1
 RSZ-0206

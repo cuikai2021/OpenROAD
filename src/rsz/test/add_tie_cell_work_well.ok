@@ -6,13 +6,13 @@
 [INFO ODB-0222] Reading LEF file: pad.lef
 [INFO ODB-0225]     Created 1 library cells
 [INFO ODB-0226] Finished LEF file:  pad.lef
-[INFO ODB-0127] Reading DEF file: add_tie_cell.def
+[INFO ODB-0127] Reading DEF file: add_tie_cell_work_well.def
 [INFO ODB-0128] Design: top
 [INFO ODB-0131]     Created 15 components and 68 component-terminals.
 [INFO ODB-0133]     Created 5 nets and 15 connections.
-[INFO ODB-0134] Finished DEF file: add_tie_cell.def
-[INFO RSZ-0205] find cell LOGIC0_X1 in library NangateOpenCellLibrary
-[INFO RSZ-0205] find cell LOGIC1_X1 in library NangateOpenCellLibrary
+[INFO ODB-0134] Finished DEF file: add_tie_cell_work_well.def
+[INFO RSZ-0207] Inserted 5 tie low cells.
+[INFO RSZ-0207] Inserted 5 tie high cells.
 No differences found.
 check_ties LOGIC0_X1:
 report_ties LOGIC0_X1:

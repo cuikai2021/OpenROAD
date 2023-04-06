@@ -11,8 +11,8 @@
 [INFO ODB-0134] Finished DEF file: add_tie_cell_const_out_pin.def
 Compare original def dumped verilog:
 No differences found.
-[INFO RSZ-0205] find cell LOGIC0_X1 in library NangateOpenCellLibrary
-[INFO RSZ-0205] find cell LOGIC1_X1 in library NangateOpenCellLibrary
+[INFO RSZ-0207] Inserted 6 tie low cells.
+[INFO RSZ-0207] Inserted 6 tie high cells.
 No differences found.
 Compare modified def dumped verilog:
 No differences found.

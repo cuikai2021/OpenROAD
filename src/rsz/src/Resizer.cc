@@ -2326,8 +2326,8 @@ Resizer::addTieCell(const char* tie_lo_cname,
   }
   delete net_iter;
 
-  auto make_tie_cell = [this, top_inst(network_->topInstance())](LibertyCell* lib_cell, Pin* adjacentPin) {
-    auto tie_name = makeUniqueInstName(lib_cell->name(), true);
+  auto make_tie_cell = [this, top_inst(network_->topInstance())](LibertyCell* lib_cell, const char* base_name, Pin* adjacentPin) {
+    auto tie_name = makeUniqueInstName(base_name, true);
     // 1. According to the lef/def 5.8 ref, in the COMPONENTS section tie cell source is not DIST,
     //    not TIMING and not USER, only NETLIST can be used.
     // 2. 3rd-party tool does not dump SOURCE type, and by default is NETLIST.
@@ -2350,33 +2350,39 @@ Resizer::addTieCell(const char* tie_lo_cname,
     // 4. A backend expert says that without "USE" field, the default is "USE SIGNAL".
     // makeUniqueNet creates a net without SOURCE and with "USE SIGNAL".
     auto net = makeUniqueNet();
+    sta_->disconnectPin(pin);
     sta_->connectPin(tie_cell, lib_port, net);
     sta_->connectPin(network_->instance(pin), network_->port(pin), net);
+    parasiticsInvalid(net);
   };
 
-  auto batch_connect = [this, &make_tie_cell, &connect](vector<Net*>& nets, const char* tie_cname, const char* tie_pname) {
+  auto batch_connect = [this, &make_tie_cell, &connect](
+    vector<Net*>& nets, const char* tie_cname, const char* tie_pname,
+    const char* tie_base_name, const char* tie_log_name
+  ) {
     auto tie_cell = network_->findLibertyCell(tie_cname);
     if (tie_cell == nullptr) {
       logger_->error(RSZ, 204, "cannot find cell {}", tie_cname);
     }
-    logger_->info(RSZ, 205, "find cell {} in library {}", tie_cname, tie_cell->libertyLibrary()->name());
 
     auto tie_port = tie_cell->findLibertyPort(tie_pname);
     if (tie_port == nullptr) {
       logger_->error(RSZ, 206, "cannot find cell pin {} for the cell {}", tie_pname, tie_cname);
     }
 
+    size_t new_tie_cell_count = 0;
     for (auto net : nets) {
       auto pin_iter = network_->connectedPinIterator(net);
       while (pin_iter->hasNext()) {
         auto pin = pin_iter->next();
         // Intention: When a pin is a top output port,
         // different net and pin names introduce an extra verilog assigment that connects the port and the net.
-        // Use the same name to avoid such assigments.
+        // Use the same name to avoid such assignments.
         if (strcmp(network_->name(pin), network_->name(net)) == 0) {
           continue;
         }
-        connect(pin, make_tie_cell(tie_cell, pin), tie_port);
+        connect(pin, make_tie_cell(tie_cell, tie_base_name, pin), tie_port);
+        new_tie_cell_count += 1;
       }
       delete pin_iter;
 
@@ -2387,14 +2393,21 @@ Resizer::addTieCell(const char* tie_lo_cname,
 
       if (pin != nullptr) {
         db_network_->staToDb(net)->setSigType(odb::dbSigType::SIGNAL);
-        sta_->connectPin(make_tie_cell(tie_cell, pin), tie_port, net);
+        sta_->connectPin(make_tie_cell(tie_cell, tie_base_name, pin), tie_port, net);
+        new_tie_cell_count += 1;
+        parasiticsInvalid(net);
       } else {
         sta_->deleteNet(net);
+        parasitics_invalid_.erase(net);
       }
     }
+    logger_->info(RSZ, 207, "Inserted {} {} cells.", new_tie_cell_count, tie_log_name);
+    if (new_tie_cell_count > 0) {
+      level_drvr_vertices_valid_ = false;
+    }
   };
-  batch_connect(gnd_nets, tie_lo_cname, tie_lo_pname);
-  batch_connect(pwr_nets, tie_hi_cname, tie_hi_pname);
+  batch_connect(gnd_nets, tie_lo_cname, tie_lo_pname, "TIEL", "tie low");
+  batch_connect(pwr_nets, tie_hi_cname, tie_hi_pname, "TIEH", "tie high");
 }
 
 void

@@ -41,18 +41,18 @@ module top (a,
  AND2_X1 _0_ (.A1(b),
     .A2(a),
     .ZN(c));
- LOGIC0_X1 LOGIC0_X1_1 (.Z(d0));
- LOGIC0_X1 LOGIC0_X1_2 (.Z(net1));
- LOGIC0_X1 LOGIC0_X1_3 (.Z(net2));
- LOGIC0_X1 LOGIC0_X1_4 (.Z(y0));
- LOGIC0_X1 LOGIC0_X1_5 (.Z(net3));
- LOGIC0_X1 LOGIC0_X1_6 (.Z(net4));
- LOGIC1_X1 LOGIC1_X1_7 (.Z(d1));
- LOGIC1_X1 LOGIC1_X1_8 (.Z(net5));
- LOGIC1_X1 LOGIC1_X1_9 (.Z(net6));
- LOGIC1_X1 LOGIC1_X1_10 (.Z(y1));
- LOGIC1_X1 LOGIC1_X1_11 (.Z(net7));
- LOGIC1_X1 LOGIC1_X1_12 (.Z(net8));
+ LOGIC0_X1 TIEL_1 (.Z(d0));
+ LOGIC0_X1 TIEL_2 (.Z(net1));
+ LOGIC0_X1 TIEL_3 (.Z(net2));
+ LOGIC0_X1 TIEL_4 (.Z(y0));
+ LOGIC0_X1 TIEL_5 (.Z(net3));
+ LOGIC0_X1 TIEL_6 (.Z(net4));
+ LOGIC1_X1 TIEH_7 (.Z(d1));
+ LOGIC1_X1 TIEH_8 (.Z(net5));
+ LOGIC1_X1 TIEH_9 (.Z(net6));
+ LOGIC1_X1 TIEH_10 (.Z(y1));
+ LOGIC1_X1 TIEH_11 (.Z(net7));
+ LOGIC1_X1 TIEH_12 (.Z(net8));
  assign z0 = net1;
  assign x0 = net2;
  assign e0 = net3;

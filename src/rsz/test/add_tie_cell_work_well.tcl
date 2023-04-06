@@ -4,7 +4,7 @@ source "resizer_helpers.tcl"
 read_liberty Nangate45/Nangate45_typ.lib
 read_lef Nangate45/Nangate45.lef
 read_lef pad.lef
-read_def add_tie_cell.def
+read_def add_tie_cell_work_well.def
 
 add_tie_cell -tie_low_cell  LOGIC0_X1 \
              -tie_low_pin   Z         \
