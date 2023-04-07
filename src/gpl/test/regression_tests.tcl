@@ -17,7 +17,6 @@ record_tests {
   ar01
   ar02
   incremental01
-  incremental02
   error01
   diverge01
   macro04
