@@ -48,6 +48,7 @@ void ScanChain::reorder() {
     assert(scan_chain->getStart()->isOutputSignal(false));
 
     // reconnect the net with scan instances
+    orders.pop_back(); //the last element is the stop of the chain, don't need to handle reconnect
     connectScanNet(scan_chain, orders);
   }
 }
@@ -80,6 +81,11 @@ void ScanChain::initPoints(const odb::dbScanChain *scan_chain, std::vector<Point
     //TODO it's not a good idea to use middle point
     points.push_back(Point((start_x + stop_x) / 2, (start_y + stop_y) / 2));
   }
+
+  auto stop_inst = scan_chain->getStop()->getInst();
+  int chain_stop_x, chain_stop_y;
+  stop_inst->getLocation(chain_stop_x, chain_stop_y);
+  points.push_back(Point(chain_stop_x, chain_stop_y));
 }
 
 void ScanChain::fullGraphReorderScanChain(std::vector<Graph::NodeId>& orders,
@@ -130,23 +136,8 @@ std::vector<Graph::NodeId> ScanChain::reorderScanChain(const odb::dbScanChain *s
 
   sc::ChristofidesTsp c(gr, cost);
   c.setPoints(points);  
-  int value = c.run();
-  std::vector<Graph::NodeId> orders;
-  if (value == -1) {
-    fullGraphReorderScanChain(orders, points);
-  } else {
-    std::vector<lemon::ListGraph::Node> nodes = c.tourNodes();
-    auto pos = std::find(nodes.begin(), nodes.end(), gr.nodeFromId(0));
-    for (auto it = pos; it != nodes.end(); ++it) {
-      orders.push_back(gr.id(*it));
-    }
-    for (auto it = nodes.begin(); it != pos; ++it) {
-      orders.push_back(gr.id(*it));
-    }
-  }
-  if (value == -1) {
-    return {};
-  }
+  c.run();
+  std::vector<Graph::NodeId> orders = c.tourNodes();
   return orders;
 }
 
