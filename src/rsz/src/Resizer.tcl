@@ -388,6 +388,38 @@ proc add_tie_cell { args } {
   rsz::add_tie_cell_cmd $tie_low_cell $tie_low_pin $tie_high_cell $tie_high_pin
 }
 
+sta::define_cmd_args "remove_tie_cell" {-tie_low_cell  tie_low_cell_name\
+                                        -tie_low_pin   tie_low_cell_output_pin_name\
+                                        -tie_high_cell tie_high_cell_name\
+                                        -tie_high_pin  tie_high_cell_output_pin_name}
+
+proc remove_tie_cell { args } {
+  sta::parse_key_args "remove_tie_cell" args \
+    keys {-tie_low_cell -tie_low_pin -tie_high_cell -tie_high_pin}
+
+  if { [info exists keys(-tie_low_cell)] } {
+    set tie_low_cell $keys(-tie_low_cell)
+  } else {
+    utl::error RSZ 208 "Missing mandatory parameter -tie_low_cell"
+  }
+  if { [info exists keys(-tie_low_pin)] } {
+    set tie_low_pin $keys(-tie_low_pin)
+  } else {
+    utl::error RSZ 209 "Missing mandatory parameter -tie_low_pin"
+  }
+  if { [info exists keys(-tie_high_cell)] } {
+    set tie_high_cell $keys(-tie_high_cell)
+  } else {
+    utl::error RSZ 210 "Missing mandatory parameter -tie_high_cell"
+  }
+  if { [info exists keys(-tie_high_pin)] } {
+    set tie_high_pin $keys(-tie_high_pin)
+  } else {
+    utl::error RSZ 211 "Missing mandatory parameter -tie_high_pin"
+  }
+  rsz::remove_tie_cell_cmd $tie_low_cell $tie_low_pin $tie_high_cell $tie_high_pin
+}
+
 # -max_passes is for developer debugging so intentionally not documented
 # in define_cmd_args
 sta::define_cmd_args "repair_timing" {[-setup] [-hold]\

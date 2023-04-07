@@ -27,6 +27,16 @@ record_tests {
   resize_slack3
   remove_buffers1
   remove_buffers2
+  remove_tie_cell_const_out_pin
+  remove_tie_cell_constrained_inst
+  remove_tie_cell_constrained_net
+  remove_tie_cell_constrained_pin
+  remove_tie_cell_dont_touch_inst
+  remove_tie_cell_error_arg
+  remove_tie_cell_error_nonexist_obj
+  remove_tie_cell_many_load
+  remove_tie_cell_tiecell_with_nontieport
+  remove_tie_cell_work_well
   repair_clk_nets1
   repair_clk_inverters1
   repair_cap1

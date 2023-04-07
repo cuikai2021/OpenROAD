@@ -26,43 +26,43 @@ END COMPONENTS
 
 PINS 15 ;
     - a + NET a + DIRECTION INPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 2000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 2000 -600 ) N ;
     - b + NET b + DIRECTION INPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 3000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 3000 -600 ) N ;
     - c + NET c + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 4000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 4000 -600 ) N ;
 
     - d0 + NET d0 + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 5000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 5000 -600 ) N ;
 
     - z0 + NET z0_renamed + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 6000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 6000 -600 ) N ;
 
     - y0 + NET y0 + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 7000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 7000 -600 ) N ;
     - x0 + NET y0 + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 8000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 8000 -600 ) N ;
 
     - e0 + NET zero_ + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 9000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 9000 -600 ) N ;
     - f0 + NET zero_ + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 10000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 10000 -600 ) N ;
 
     - d1 + NET d1 + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 11000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 11000 -600 ) N ;
 
     - z1 + NET z1_renamed + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 12000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 12000 -600 ) N ;
 
     - y1 + NET y1 + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 13000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 13000 -600 ) N ;
     - x1 + NET y1 + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 14000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 14000 -600 ) N ;
 
     - e1 + NET one_ + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 15000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 15000 -600 ) N ;
     - f1 + NET one_ + DIRECTION OUTPUT + USE SIGNAL
-        + LAYER metal2 ( -100 -300 ) ( 100 100 ) + FIXED ( 16000 -500 ) N ;
+        + LAYER metal2 ( -100 -200 ) ( 100 200 ) + FIXED ( 16000 -600 ) N ;
 
 END PINS
 

@@ -1,0 +1,114 @@
+VERSION 5.8 ;
+DIVIDERCHAR "/" ;
+BUSBITCHARS "[]" ;
+DESIGN top ;
+UNITS DISTANCE MICRONS 1000 ;
+DIEAREA ( 0 -1000 ) ( 25000 5000 ) ;
+ROW ROW_0 FreePDK45_38x28_10R_NP_162NW_34O 0 0 FS DO 130 BY 1 STEP 190 0 ;
+ROW ROW_1 FreePDK45_38x28_10R_NP_162NW_34O 0 1400 N DO 130 BY 1 STEP 190 0 ;
+ROW ROW_2 FreePDK45_38x28_10R_NP_162NW_34O 0 2800 FS DO 130 BY 1 STEP 190 0 ;
+TRACKS Y 70 DO 786 STEP 140 LAYER metal1 ;
+TRACKS X 95 DO 316 STEP 190 LAYER metal2 ;
+TRACKS Y 70 DO 786 STEP 140 LAYER metal3 ;
+TRACKS X 95 DO 214 STEP 280 LAYER metal4 ;
+TRACKS Y 70 DO 393 STEP 280 LAYER metal5 ;
+TRACKS X 95 DO 214 STEP 280 LAYER metal6 ;
+TRACKS Y 70 DO 138 STEP 800 LAYER metal7 ;
+TRACKS X 95 DO 75 STEP 800 LAYER metal8 ;
+TRACKS Y 70 DO 69 STEP 1600 LAYER metal9 ;
+TRACKS X 95 DO 38 STEP 1600 LAYER metal10 ;
+COMPONENTS 13 ;
+    - TIEH_10 LOGIC1_X1 + PLACED ( 13000 0 ) N ;
+    - TIEH_11 LOGIC1_X1 + PLACED ( 15000 0 ) N ;
+    - TIEH_12 LOGIC1_X1 + PLACED ( 16000 0 ) N ;
+    - TIEH_7 LOGIC1_X1 + PLACED ( 11000 0 ) N ;
+    - TIEH_8 LOGIC1_X1 + PLACED ( 12000 0 ) N ;
+    - TIEH_9 LOGIC1_X1 + PLACED ( 14000 0 ) N ;
+    - TIEL_1 LOGIC0_X1 + PLACED ( 5000 0 ) N ;
+    - TIEL_2 LOGIC0_X1 + PLACED ( 6000 0 ) N ;
+    - TIEL_3 LOGIC0_X1 + PLACED ( 8000 0 ) N ;
+    - TIEL_4 LOGIC0_X1 + PLACED ( 7000 0 ) N ;
+    - TIEL_5 LOGIC0_X1 + PLACED ( 9000 0 ) N ;
+    - TIEL_6 LOGIC0_X1 + PLACED ( 10000 0 ) N ;
+    - _0_ AND2_X1 + PLACED ( 3000 2800 ) N ;
+END COMPONENTS
+PINS 15 ;
+    - a + NET a + DIRECTION INPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 2000 -600 ) N ;
+    - b + NET b + DIRECTION INPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 3000 -600 ) N ;
+    - c + NET c + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 4000 -600 ) N ;
+    - d0 + NET d0 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 5000 -600 ) N ;
+    - d1 + NET d1 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 11000 -600 ) N ;
+    - e0 + NET net3 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 9000 -600 ) N ;
+    - e1 + NET net7 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 15000 -600 ) N ;
+    - f0 + NET net4 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 10000 -600 ) N ;
+    - f1 + NET net8 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 16000 -600 ) N ;
+    - x0 + NET net2 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 8000 -600 ) N ;
+    - x1 + NET net6 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 14000 -600 ) N ;
+    - y0 + NET y0 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 7000 -600 ) N ;
+    - y1 + NET y1 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 13000 -600 ) N ;
+    - z0 + NET net1 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 6000 -600 ) N ;
+    - z1 + NET net5 + DIRECTION OUTPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 12000 -600 ) N ;
+END PINS
+NETS 15 ;
+    - a ( PIN a ) ( _0_ A2 ) + USE SIGNAL ;
+    - b ( PIN b ) ( _0_ A1 ) + USE SIGNAL ;
+    - c ( PIN c ) ( _0_ ZN ) + USE SIGNAL ;
+    - d0 ( PIN d0 ) ( TIEL_1 Z ) + USE SIGNAL ;
+    - d1 ( PIN d1 ) ( TIEH_7 Z ) + USE SIGNAL ;
+    - net1 ( PIN z0 ) ( TIEL_2 Z ) + USE SIGNAL ;
+    - net2 ( PIN x0 ) ( TIEL_3 Z ) + USE SIGNAL ;
+    - net3 ( PIN e0 ) ( TIEL_5 Z ) + USE SIGNAL ;
+    - net4 ( PIN f0 ) ( TIEL_6 Z ) + USE SIGNAL ;
+    - net5 ( PIN z1 ) ( TIEH_8 Z ) + USE SIGNAL ;
+    - net6 ( PIN x1 ) ( TIEH_9 Z ) + USE SIGNAL ;
+    - net7 ( PIN e1 ) ( TIEH_11 Z ) + USE SIGNAL ;
+    - net8 ( PIN f1 ) ( TIEH_12 Z ) + USE SIGNAL ;
+    - y0 ( PIN y0 ) ( TIEL_4 Z ) + USE SIGNAL ;
+    - y1 ( PIN y1 ) ( TIEH_10 Z ) + USE SIGNAL ;
+END NETS
+END DESIGN

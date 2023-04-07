@@ -1,0 +1,25 @@
+[INFO ODB-0222] Reading LEF file: Nangate45/Nangate45.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0225]     Created 134 library cells
+[INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
+[INFO ODB-0222] Reading LEF file: pad.lef
+[INFO ODB-0225]     Created 1 library cells
+[INFO ODB-0226] Finished LEF file:  pad.lef
+[INFO ODB-0127] Reading DEF file: remove_tie_cell_many_load.def
+[INFO ODB-0128] Design: top
+[INFO ODB-0130]     Created 2 pins.
+[INFO ODB-0131]     Created 19 components and 80 component-terminals.
+[INFO ODB-0133]     Created 5 nets and 19 connections.
+[INFO ODB-0134] Finished DEF file: remove_tie_cell_many_load.def
+[INFO RSZ-0216] Removed 4 tie cells.
+No differences found.
+check_ties LOGIC0_X1:
+report_ties LOGIC0_X1:
+check_ties LOGIC1_X1:
+report_ties LOGIC1_X1:
+check_in_core:
+pad1 outside of core
+pad2 outside of core
+pad3 outside of core
+pad4 outside of core

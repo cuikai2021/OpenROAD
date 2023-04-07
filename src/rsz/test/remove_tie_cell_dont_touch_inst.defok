@@ -1,0 +1,66 @@
+VERSION 5.8 ;
+DIVIDERCHAR "/" ;
+BUSBITCHARS "[]" ;
+DESIGN top ;
+UNITS DISTANCE MICRONS 1000 ;
+DIEAREA ( 0 -1000 ) ( 240000 110000 ) ;
+ROW ROW_0 FreePDK45_38x28_10R_NP_162NW_34O 0 0 FS DO 1260 BY 1 STEP 190 0 ;
+ROW ROW_1 FreePDK45_38x28_10R_NP_162NW_34O 0 1400 N DO 1260 BY 1 STEP 190 0 ;
+ROW ROW_2 FreePDK45_38x28_10R_NP_162NW_34O 0 2800 FS DO 1260 BY 1 STEP 190 0 ;
+TRACKS Y 70 DO 786 STEP 140 LAYER metal1 ;
+TRACKS X 95 DO 316 STEP 190 LAYER metal2 ;
+TRACKS Y 70 DO 786 STEP 140 LAYER metal3 ;
+TRACKS X 95 DO 214 STEP 280 LAYER metal4 ;
+TRACKS Y 70 DO 393 STEP 280 LAYER metal5 ;
+TRACKS X 95 DO 214 STEP 280 LAYER metal6 ;
+TRACKS Y 70 DO 138 STEP 800 LAYER metal7 ;
+TRACKS X 95 DO 75 STEP 800 LAYER metal8 ;
+TRACKS Y 70 DO 69 STEP 1600 LAYER metal9 ;
+TRACKS X 95 DO 38 STEP 1600 LAYER metal10 ;
+COMPONENTS 18 ;
+    - AND_1 AND2_X1 + PLACED ( 20000 2800 ) N ;
+    - AND_2 AND2_X1 + PLACED ( 50000 2800 ) N ;
+    - AND_3 AND2_X1 + PLACED ( 80000 2800 ) N ;
+    - AND_4 AND2_X1 + PLACED ( 110000 2800 ) N ;
+    - AND_5 AND2_X1 + PLACED ( 140000 2800 ) N ;
+    - AND_6 AND2_X1 + PLACED ( 170000 2800 ) N ;
+    - AND_7 AND2_X1 + PLACED ( 200000 2800 ) N ;
+    - AND_8 AND2_X1 + PLACED ( 230000 2800 ) N ;
+    - TIEH_dont_touch_inst LOGIC1_X1 + PLACED ( 220000 1400 ) N ;
+    - TIEL_dont_touch_inst LOGIC0_X1 + PLACED ( 100000 1400 ) N ;
+    - pad1 PAD + FIXED ( 0 6000 ) N ;
+    - pad2 PAD + FIXED ( 30000 6000 ) N ;
+    - pad3 PAD + FIXED ( 60000 6000 ) N ;
+    - pad4 PAD + FIXED ( 90000 6000 ) N ;
+    - pad5 PAD + FIXED ( 120000 6000 ) N ;
+    - pad6 PAD + FIXED ( 150000 6000 ) N ;
+    - pad7 PAD + FIXED ( 180000 6000 ) N ;
+    - pad8 PAD + FIXED ( 210000 6000 ) N ;
+END COMPONENTS
+PINS 1 ;
+    - pin_in + NET pin_in + DIRECTION INPUT + USE SIGNAL
+      + PORT
+        + LAYER metal2 ( -100 -200 ) ( 100 200 )
+        + FIXED ( 120000 -600 ) N ;
+END PINS
+NETS 17 ;
+    - out_to_pad1 ( AND_1 ZN ) ( pad1 TRIEN ) + USE SIGNAL ;
+    - out_to_pad2 ( AND_2 ZN ) ( pad2 TRIEN ) + USE SIGNAL ;
+    - out_to_pad3 ( AND_3 ZN ) ( pad3 TRIEN ) + USE SIGNAL ;
+    - out_to_pad4 ( AND_4 ZN ) ( pad4 TRIEN ) + USE SIGNAL ;
+    - out_to_pad5 ( AND_5 ZN ) ( pad5 TRIEN ) + USE SIGNAL ;
+    - out_to_pad6 ( AND_6 ZN ) ( pad6 TRIEN ) + USE SIGNAL ;
+    - out_to_pad7 ( AND_7 ZN ) ( pad7 TRIEN ) + USE SIGNAL ;
+    - out_to_pad8 ( AND_8 ZN ) ( pad8 TRIEN ) + USE SIGNAL ;
+    - pin_in ( PIN pin_in ) ( AND_1 A1 ) ( AND_2 A1 ) ( AND_3 A1 ) ( AND_4 A1 ) ( AND_5 A1 ) ( AND_6 A1 )
+      ( AND_7 A1 ) ( AND_8 A1 ) + USE SIGNAL ;
+    - tie_net_1 ( AND_1 A2 ) + USE GROUND ;
+    - tie_net_2 ( AND_2 A2 ) + USE GROUND ;
+    - tie_net_3 ( AND_3 A2 ) + USE GROUND ;
+    - tie_net_4 ( TIEL_dont_touch_inst Z ) ( AND_4 A2 ) + USE SIGNAL ;
+    - tie_net_5 ( AND_5 A2 ) + USE POWER ;
+    - tie_net_6 ( AND_6 A2 ) + USE POWER ;
+    - tie_net_7 ( AND_7 A2 ) + USE POWER ;
+    - tie_net_8 ( TIEH_dont_touch_inst Z ) ( AND_8 A2 ) + USE SIGNAL ;
+END NETS
+END DESIGN

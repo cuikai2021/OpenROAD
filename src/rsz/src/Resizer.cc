@@ -2360,16 +2360,7 @@ Resizer::addTieCell(const char* tie_lo_cname,
     vector<Net*>& nets, const char* tie_cname, const char* tie_pname,
     const char* tie_base_name, const char* tie_log_name
   ) {
-    auto tie_cell = network_->findLibertyCell(tie_cname);
-    if (tie_cell == nullptr) {
-      logger_->error(RSZ, 204, "cannot find cell {}", tie_cname);
-    }
-
-    auto tie_port = tie_cell->findLibertyPort(tie_pname);
-    if (tie_port == nullptr) {
-      logger_->error(RSZ, 206, "cannot find cell pin {} for the cell {}", tie_pname, tie_cname);
-    }
-
+    auto [tie_cell, tie_port] = findLibertyCellAndPort(tie_cname, tie_pname);
     size_t new_tie_cell_count = 0;
     for (auto net : nets) {
       auto pin_iter = network_->connectedPinIterator(net);
@@ -2408,6 +2399,98 @@ Resizer::addTieCell(const char* tie_lo_cname,
   };
   batch_connect(gnd_nets, tie_lo_cname, tie_lo_pname, "TIEL", "tie low");
   batch_connect(pwr_nets, tie_hi_cname, tie_hi_pname, "TIEH", "tie high");
+}
+
+void
+Resizer::removeTieCell(const char* tie_lo_cname,
+                       const char* tie_lo_pname,
+                       const char* tie_hi_cname,
+                       const char* tie_hi_pname)
+{
+  auto [tie_lo_cell, tie_lo_port] = findLibertyCellAndPort(tie_lo_cname, tie_lo_pname);
+  auto [tie_hi_cell, tie_hi_port] = findLibertyCellAndPort(tie_hi_cname, tie_hi_pname);
+
+  size_t removed_tie_cell_count = 0;
+  auto inst_iter = network_->childIterator(network_->topInstance());
+  while (inst_iter->hasNext()) {
+    auto inst = inst_iter->next();
+
+    if (auto lib_cell = network_->libertyCell(inst);
+        lib_cell != tie_lo_cell and lib_cell != tie_hi_cell
+    ) {
+      continue;
+    }
+
+    if (not db_network_->staToDb(inst)->canBeRemoved()) {
+      continue;
+    }
+
+    if (sdc_->isConstrained(inst)) {
+      continue;
+    }
+
+    bool has_constrained_pin = false;
+    bool has_constrained_net = false;
+    bool has_non_tie_pin_net = false;
+    auto pin_iter = network_->pinIterator(inst);
+    while (pin_iter->hasNext()) {
+      auto pin = pin_iter->next();
+      if (sdc_->isConstrained(pin)) {
+        has_constrained_pin = true;
+        break;
+      }
+
+      auto net = network_->net(pin);
+      if (net == nullptr) {
+        continue;
+      }
+
+      if (sdc_->isConstrained(net)) {
+        has_constrained_net = true;
+        break;
+      }
+
+      auto lib_port = network_->libertyPort(pin);
+      if (lib_port != tie_lo_port and lib_port != tie_hi_port) {
+        has_non_tie_pin_net = true;
+        break;
+      }
+    }
+    delete pin_iter;
+    if (has_constrained_pin or has_constrained_net or has_non_tie_pin_net) {
+      continue;
+    }
+
+    pin_iter = network_->pinIterator(inst);
+    while (pin_iter->hasNext()) {
+      auto pin = pin_iter->next();
+      auto net = network_->net(pin);
+
+      if (net == nullptr) {
+        continue;
+      }
+
+      auto lib_port = network_->libertyPort(pin);
+      if (lib_port == tie_lo_port) {
+        db_network_->staToDb(net)->setSigType(odb::dbSigType::GROUND);
+      } else {
+        FASSERT(lib_port == tie_hi_port);
+        db_network_->staToDb(net)->setSigType(odb::dbSigType::POWER);
+      }
+      sta_->disconnectPin(pin);
+      parasiticsInvalid(net);
+    }
+    sta_->deleteInstance(inst);
+    removed_tie_cell_count += 1;
+  }
+  delete inst_iter;
+  logger_->info(RSZ, 216, "Removed {} tie cells.", removed_tie_cell_count);
+
+  if (removed_tie_cell_count > 0) {
+    graph_delay_calc_->delaysInvalid();
+    search_->arrivalsInvalid();
+    level_drvr_vertices_valid_ = false;
+  }
 }
 
 void
@@ -4277,6 +4360,25 @@ Instance *Resizer::makeInstance(LibertyCell *cell,
   dbInst *db_inst = db_network_->staToDb(inst);
   db_inst->setSourceType(type);
   return inst;
+}
+
+std::pair<LibertyCell*, LibertyPort*>
+Resizer::findLibertyCellAndPort(const char* cell_name,
+                                const char* port_name)
+{
+  auto lib_cell = network_->findLibertyCell(cell_name);
+  if (lib_cell == nullptr) {
+    logger_->error(RSZ, 204, "cannot find cell {}", cell_name);
+  }
+
+  auto lib_port = lib_cell->findLibertyPort(port_name);
+  if (lib_port == nullptr) {
+    logger_->error(RSZ, 206, "cannot find cell pin {} for the cell {}",
+                   port_name,
+                   cell_name);
+  }
+
+  return {lib_cell, lib_port};
 }
 
 } // namespace

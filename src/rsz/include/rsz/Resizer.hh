@@ -238,6 +238,10 @@ public:
                   const char* tie_lo_pname,
                   const char* tie_hi_cname,
                   const char* tie_hi_pname);
+  void removeTieCell(const char* tie_lo_cname,
+                     const char* tie_lo_pname,
+                     const char* tie_hi_cname,
+                     const char* tie_hi_pname);
   void bufferWireDelay(LibertyCell *buffer_cell,
                        double wire_length, // meters
                        Delay &delay,
@@ -636,6 +640,9 @@ protected:
   LibertyCell *findTargetCell(LibertyCell *cell,
                               float load_cap,
                               bool revisiting_inst);
+  std::pair<LibertyCell*, LibertyPort*>
+  findLibertyCellAndPort(const char* cell_name,
+                         const char* port_name);
 
   ////////////////////////////////////////////////////////////////
   // Jounalling support for checkpointing and backing out changes
