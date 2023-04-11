@@ -3,6 +3,7 @@
 #include <optional>
 #include <functional>
 #include <deque>
+#include <string>
 
 namespace odb {
 class dbInst;
