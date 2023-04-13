@@ -396,6 +396,18 @@ set_linden_initial_place_policy_cmd(const char* policy) {
   lindengp->setInitialPlacePolicy(policy);
 }
 
+void
+set_linden_focus_insts_cmd(const char* focus_insts_file_name) {
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setFocusInsts(focus_insts_file_name);
+}
+
+void
+set_linden_focus_nets_cmd(const char* focus_nets_file_name) {
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->setFocusNets(focus_nets_file_name);
+}
+
 %} // inline lindengp
 
 %inline %{ // linden
@@ -437,18 +449,6 @@ void set_lindenmp_debug(int pause_iterations, int update_iterations)
   auto lmp = ord::getLindenMacroPlace();
   lmp->mut_debug_pause_iters_() = pause_iterations;
   lmp->mut_debug_update_iters_() = update_iterations;
-}
-
-void
-set_linden_focus_insts_cmd(const char* focus_insts_file_name) {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setFocusInsts(focus_insts_file_name);
-}
-
-void
-set_linden_focus_nets_cmd(const char* focus_nets_file_name) {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setFocusNets(focus_nets_file_name);
 }
 
 %} // inline lindenmp

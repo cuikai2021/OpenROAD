@@ -3,11 +3,15 @@
 #include <chrono>
 #include <sstream>
 
+#include "envflag/envflag.hpp"
+
 #include "odb/db.h"
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
 
 using namespace std;
+
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
 
 namespace linden {
 namespace dp {
@@ -18,7 +22,7 @@ string genBaseFilename()
   auto tm = chrono::system_clock::now().time_since_epoch();
   auto tm_ms = chrono::duration_cast<chrono::milliseconds>(tm).count();
   ostringstream oss;
-  oss << "/tmp/lindendp_" << tm_ms;
+  oss << LINDEN_TMP_FILE_ROOT_DIR() << "/lindendp_" << tm_ms;
   return oss.str();
 }
 

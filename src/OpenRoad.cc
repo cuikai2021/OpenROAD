@@ -74,6 +74,7 @@
 #include "mpl2/MakeMacroPlacer.h"
 #include "gpl/MakeReplace.h"
 #include "gpl/MakeLindenGlobalPlace.h"
+#include "cgr/MakeCongestionRepair.hpp"
 #include "grt/MakeGlobalRouter.h"
 #include "cts/MakeTritoncts.h"
 #include "rmp/MakeRestructure.h"
@@ -151,6 +152,7 @@ OpenRoad::OpenRoad()
     antenna_checker_(nullptr),
     replace_(nullptr),
     lindengp_(nullptr),
+    congestionRepair_(nullptr),
     pdnsim_(nullptr),
     partitionMgr_(nullptr),
     pdngen_(nullptr),
@@ -183,6 +185,7 @@ OpenRoad::~OpenRoad()
   deleteBanyan(banyan_);
   deleteReplace(replace_);
   deleteLindenGlobalPlace(lindengp_);
+  deleteCongestionRepair(congestionRepair_);
   deleteFinale(finale_);
   deleteAntennaChecker(antenna_checker_);
   odb::dbDatabase::destroy(db_);
@@ -251,6 +254,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   banyan_ = makeBanyan();
   replace_ = makeReplace();
   lindengp_ = makeLindenGlobalPlace();
+  congestionRepair_ = makeCongestionRepair();
   pdnsim_ = makePDNSim();
   antenna_checker_ = makeAntennaChecker();
   partitionMgr_ = makePartitionMgr();
@@ -295,6 +299,7 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initSteinerTreeBuilder(this);
   linden::initLindenDp(this);
   initScanChain(this);
+  initCongestionRepair(this);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");

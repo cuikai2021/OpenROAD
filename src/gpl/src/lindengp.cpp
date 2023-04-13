@@ -1,11 +1,9 @@
 #include "gpl/lindengp.h"
 #include "linden/scanchain.hpp"
 
-#include <boost/algorithm/string/trim.hpp>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <fstream>
 #include <iostream>
 #include <vector>
 #include <unordered_set>
@@ -32,6 +30,7 @@
 #include "sta/Units.hh"
 #include "utl/Logger.h"
 #include "envflag/envflag.hpp"
+#include "cgr/congestionRepair.hpp"
 
 using namespace std;
 using utl::GPL;
@@ -42,14 +41,16 @@ IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT);
 
 namespace {
 // only for internal use
-struct IsScanChainsIgnoredPin {
+struct IsScanChainsIgnoredPin
+{
   vector<const odb::dbITerm*> scan_in_iterms;
 
-  IsScanChainsIgnoredPin(const odb::dbSet<odb::dbScanChain>& scan_chains) {
+  IsScanChainsIgnoredPin(const odb::dbSet<odb::dbScanChain>& scan_chains)
+  {
     size_t scan_in_iterms_size = 0;
     for (auto scan_chain : scan_chains) {
       scan_in_iterms_size += scan_chain->getFloating().size();
-      scan_in_iterms_size += scan_chain->getOrdered ().size();
+      scan_in_iterms_size += scan_chain->getOrdered().size();
       scan_in_iterms_size += 1;
     }
     scan_in_iterms.reserve(scan_in_iterms_size);
@@ -69,15 +70,18 @@ struct IsScanChainsIgnoredPin {
 
     sort(scan_in_iterms.begin(), scan_in_iterms.end());
     // i.e. there are no duplicate values in vec.
-    assert(std::adjacent_find(scan_in_iterms.begin(), scan_in_iterms.end()) == scan_in_iterms.end());
+    assert(std::adjacent_find(scan_in_iterms.begin(), scan_in_iterms.end())
+           == scan_in_iterms.end());
   }
 
-  bool operator()(const gpl::Pin* value) {
+  bool operator()(const gpl::Pin* value)
+  {
     return value->isITerm()
-    && binary_search(scan_in_iterms.begin(), scan_in_iterms.end(), value->dbITerm());
+           && binary_search(
+               scan_in_iterms.begin(), scan_in_iterms.end(), value->dbITerm());
   }
 };
-} // unnamed namespace
+}  // unnamed namespace
 
 namespace gpl {
 
@@ -85,14 +89,15 @@ LindenGlobalPlace::LindenGlobalPlace()
     : db_(nullptr),
       log_(nullptr),
       pb_(nullptr),
-      initialPlacePolicy_(""),
       linden_db_(nullptr),
-      banyan_cmap_result_(nullptr),
       lindengp_(nullptr),
+      banyan_cmap_result_(nullptr),
+      initialPlacePolicy_(),
       density_(1.0),
       overflow_(0.1),
       use_uniform_density_(false),
       zigzag_(false),
+      cgr_mode_(false),
       net_weight_max_(1.9),
       timing_overflows_{},
       routability_driven_(false),
@@ -102,13 +107,15 @@ LindenGlobalPlace::LindenGlobalPlace()
       gui_debug_pause_iterations_(10),
       gui_debug_update_iterations_(10),
       gui_debug_initial_(false)
-{}
+{
+}
 
 void LindenGlobalPlace::reset()
 {
-  lindengp_.reset();
-  linden_db_.reset();
   pb_.reset();
+  linden_db_.reset();
+  lindengp_.reset();
+  banyan_cmap_result_.reset();
 }
 
 void LindenGlobalPlace::setTimingDriven(bool timing_driven)
@@ -284,8 +291,8 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
     }
     linden_db->add_net(std::move(lnet));
   }
-
-  IsScanChainsIgnoredPin isScanChainsIgnoredPin(pb_->db()->getChip()->getBlock()->getScanChains());
+  IsScanChainsIgnoredPin isScanChainsIgnoredPin(
+      pb_->db()->getChip()->getBlock()->getScanChains());
   for (auto& pin : pb_->pins()) {
     if (isScanChainsIgnoredPin(pin)) {
       continue;
@@ -318,20 +325,17 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
   return linden_db;
 }
 
-void LindenGlobalPlace::run()
+void LindenGlobalPlace::init()
 {
   initPlacerBase();
   // FIXME: initial placement must be based on weighted nets in order to
   // ignore scan enables and scan inputs.
   doInitialPlace();
-  if (!linden_db_) {
-    linden_db_ = create_linden_db();
-  }
-  if (routability_driven_) {
-    banyan_cmap_result_
-        = std::make_shared<linden::rdp::CongestionMap>(log_);  // FIXME:
-  }
-  if (!lindengp_) {
+  FASSERT(!linden_db_);
+  linden_db_ = create_linden_db();
+
+  FASSERT(!lindengp_);
+  {
     linden::gpl::PlacerConfig::PlacerType ty
         = linden::gpl::PlacerConfig::NPLACE;
     linden::gpl::PlacerConfig cfg(ty);
@@ -339,6 +343,8 @@ void LindenGlobalPlace::run()
     cfg.target_overflow = overflow_;
     cfg.use_uniform_density = use_uniform_density_;
     cfg.zigzag = zigzag_;
+    cfg.cgr_mode = cgr_mode_;
+    cfg.cgr_params_file = ord::OpenRoad::openRoad()->getCongestionRepair()->getCGRParamsFile();
     cfg.routability_driven = routability_driven_;
     {
       linden::dp::LefDefDumper dumper;
@@ -348,6 +354,31 @@ void LindenGlobalPlace::run()
       cfg.lib_lefs = dumper.lib_lefs();
     }
     lindengp_ = linden::gpl::Placer::create(linden_db_, cfg, log_);
+  }
+}
+
+void LindenGlobalPlace::change_to_cgr_mode()
+{
+  routability_driven_ = true;
+  initialPlacePolicy_ = "def";
+
+  // disable gp-dp zigzag mode here
+  zigzag_ = false;
+  cgr_mode_ = true;
+
+  {  // FIXME: is it necessary to load the following from pb file?
+    density_ = 1.0;
+    overflow_ = 0.2;
+    use_uniform_density_ = true;
+  }
+}
+
+void LindenGlobalPlace::run()
+{
+  init();
+  FASSERT(!banyan_cmap_result_);
+  if (routability_driven_) {
+    banyan_cmap_result_ = std::make_shared<linden::rdp::CongestionMap>(log_);
   }
   std::unique_ptr<Graphics> graphics;
   if (Graphics::guiActive()) {
@@ -401,6 +432,8 @@ void LindenGlobalPlace::run()
     }
   }
   log_->metric("gp::iter", iter + 1);
+  
+  lindengp_->done();
 
   if (graphics) {
     graphics->status("End placement");
@@ -410,6 +443,58 @@ void LindenGlobalPlace::run()
   update_db();
   report_metrics();
   reset();
+}
+
+double LindenGlobalPlace::cgr_run()
+{
+  change_to_cgr_mode();
+  FASSERT(routability_driven_);
+  banyan_cmap_result_ = std::make_shared<linden::rdp::CongestionMap>(log_);
+  congestion_estimate();
+  const auto congestion = banyan_cmap_result_->getCurRouteCongestionValue();
+  if (congestion != 0) {
+    init();
+    std::unique_ptr<Graphics> graphics;
+    if (Graphics::guiActive()) {
+      graphics
+          = make_unique<Graphics>(log_, linden_db_, banyan_cmap_result_, pb_);
+    }
+    if (lindengp_->load_cmap(*banyan_cmap_result_)) {
+      const int MAX_ITER = 50;
+      for (size_t iter = 0; iter < MAX_ITER; iter++) {
+        auto ret = lindengp_->one_step_move(iter);
+        if (!ret) {
+          break;
+        }
+        if (*ret < 0.15 && iter > 10) {
+          break;
+        }
+        if (graphics) {
+          bool update
+              = (iter == 0 || (iter + 1) % gui_debug_update_iterations_ == 0);
+          bool pause
+              = (iter == 0 || (iter + 1) % gui_debug_pause_iterations_ == 0);
+          if (banyan_cmap_result_ && !banyan_cmap_result_->empty()) {
+            update = (iter + 1) % 10 == 0;
+            pause = true;  // pause for zoom-in: debug and analyze
+                           // CongestionEstimation|Repair
+          }
+          if (update) {
+            graphics->cellPlot(pause);
+          }
+        }
+      }
+      if (graphics) {
+        graphics->status("End cgr placement");
+        graphics->cellPlot(true);
+      }
+      
+      lindengp_->done();
+      update_db();
+    }
+  }
+  reset();
+  return congestion;
 }
 
 void LindenGlobalPlace::update_db()
@@ -504,89 +589,6 @@ void LindenGlobalPlace::report_metrics()
 void LindenGlobalPlace::setInitialPlacePolicy(const char* policy)
 {
   initialPlacePolicy_ = policy != nullptr ? std::string(policy) : "";
-}
-
-namespace {  // local function for -focus support
-void splitNames(const std::string& line_str,
-                std::vector<std::string>& names_list)
-{
-  // split line with delimiter ',' and skip blanks for getting names
-  for (int start = 0, end = start + 1; start < line_str.size();
-       start = end + 1, end = start + 1) {
-    while (end < line_str.size() && line_str[end] != ',') {
-      end++;
-    }
-    std::string name(line_str.substr(start, end - start));
-    boost::algorithm::trim(name);
-    names_list.emplace_back(name);
-  }
-  return;
-}
-
-void readConfigFile(const char* filename,
-                    std::vector<std::vector<std::string>>& names)
-{
-  // input: configuration file;  output: focus insts/nets names -->
-  // group_id(index): [name1, name2, ....]
-  std::string line;
-  std::ifstream config_file(filename);
-  if (!config_file.is_open()) {
-    std::cerr << "Could not open the configuration file: " << filename
-              << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  size_t group_id = 0;
-  while (getline(config_file, line)) {
-    // names may contain some inst or net names in groups
-    while (group_id >= names.size()) {
-      names.push_back(std::vector<std::string>());
-    }
-    splitNames(line, names[group_id]);
-    group_id++;
-  }
-  config_file.close();
-}
-
-}  // namespace
-
-void LindenGlobalPlace::setFocusInsts(const char* focus_insts_file_name)
-{
-  readConfigFile(focus_insts_file_name, focus_inst_names_);
-}
-
-void LindenGlobalPlace::setFocusNets(const char* focus_nets_file_name)
-{
-  std::vector<std::vector<std::string>> focus_net_names;
-  readConfigFile(focus_nets_file_name, focus_net_names);
-  setFocusInstNamesFromNets(focus_net_names);
-}
-
-void LindenGlobalPlace::setFocusInstNamesFromNets(
-    const std::vector<std::vector<std::string>>& net_names)
-{
-  auto db = ::ord::OpenRoad::openRoad()->getDb();
-  auto chip = db->getChip();
-  auto block = chip->getBlock();
-  for (int group_id = 0; group_id < net_names.size(); group_id++) {
-    while (group_id >= focus_inst_names_.size()) {
-      // This loop is added to support -focus_insts and -focus_nets options at
-      // the same time
-      focus_inst_names_.push_back(std::vector<std::string>());
-    }
-    for (int cnt = 0; cnt < net_names[group_id].size(); cnt++) {
-      odb::dbNet* net = block->findNet(net_names[group_id][cnt].c_str());
-      if (net == nullptr) {
-        fprintf(stderr,
-                "net %s not found in the block!\n",
-                net_names[group_id][cnt].c_str());
-        continue;
-      }
-      for (const auto& iterm : net->getITerms()) {
-        focus_inst_names_[group_id].emplace_back(iterm->getInst()->getName());
-      }
-    }
-  }
-  return;
 }
 
 void LindenGlobalPlace::doInitialPlace()

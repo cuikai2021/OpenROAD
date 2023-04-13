@@ -9,12 +9,14 @@
 
 #include "banyan/Banyan.h"
 #include "banyan_cmap.pb.h"
+#include "envflag/envflag.hpp"
 #include "fassert.hpp"
 #include "linden/geom/dimension.hpp"
 #include "linden/geom/point.hpp"
 #include "linden/rdp/congestion_estimation.hpp"
 #include "odb/db.h"
 #include "placerBase.h"
+#include "sc/ScanChain.h"
 #include "utl/Logger.h"
 
 using namespace linden::geom::dimension;
@@ -22,6 +24,10 @@ using namespace linden::geom::dimension;
 using namespace std;
 
 using utl::GPL;
+
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN);
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_CGR_CMAP_DEBUGGING_FILE);
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
 
 namespace gpl {
 
@@ -41,7 +47,8 @@ double cal_tile_overflow(const ::banyan::Tile& tile)
   }
 }
 
-void debug_print_cmap(const banyan::Cmap& cmap, const double tile_area)
+[[maybe_unused]] void debug_print_cmap(const banyan::Cmap& cmap,
+                                       const double tile_area)
 {
   typedef std::tuple<int, int, char, double, double> Triple;
   std::vector<Triple> grids;
@@ -103,7 +110,10 @@ bool load(const string& cmap_pb_file,
       }
     }
   }
-  if (!cmap_result.updateOverflows()) {
+  // FIXME: update it after expander's PR is merged
+  //        and use_expander should always be FALSE in cgr mode
+  const bool use_expander = false;
+  if (!cmap_result.updateOverflows(use_expander)) {
     cerr << "Failed to upload overflows:" << cmap_pb_file << endl;
     return false;
   }
@@ -111,6 +121,55 @@ bool load(const string& cmap_pb_file,
 }
 
 }  // namespace
+
+bool LindenGlobalPlace::congestion_estimate()
+{
+  auto sc = ::ord::OpenRoad::openRoad()->getScanChain();
+  sc->reorder();
+  FASSERT(routability_driven_);
+  auto genCmapFileName = [] {
+    const std::string basename = [] {
+      auto tm = std::chrono::system_clock::now().time_since_epoch();
+      auto tm_ms
+          = std::chrono::duration_cast<std::chrono::milliseconds>(tm).count();
+      std::ostringstream oss;
+      oss << LINDEN_TMP_FILE_ROOT_DIR() << "/banyan_" << tm_ms;
+      return oss.str();
+    }();
+    return basename + ".cmap";
+  };
+  std::string cmap_pb_file(LINDEN_CGR_CMAP_DEBUGGING_FILE());
+  if (cmap_pb_file.empty()) {
+    cmap_pb_file = genCmapFileName();
+    if (LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN()) {
+      const std::string debug_def_file = cmap_pb_file + ".def";
+      std::cout << "// banyan_debug::before_call_baby_banyan.def: "
+                << debug_def_file << std::endl;
+      ::ord::OpenRoad::openRoad()->writeDef(debug_def_file.c_str(), "5.8");
+    }
+    auto banyan = ::ord::OpenRoad::openRoad()->getBanyan();
+    banyan->cmap(cmap_pb_file, cgr_mode_, "");
+  }
+  {
+    odb::Rect coreRect;
+    {
+      auto odb = ord::OpenRoad::openRoad()->getDb();
+      FASSERT(odb != nullptr);
+      auto block = db_->getChip()->getBlock();
+      FASSERT(block != nullptr);
+      block->getCoreArea(coreRect);
+    }
+    linden::geom::Rect core_region(coreRect.ll().x(),
+                                   coreRect.ll().y(),
+                                   coreRect.ur().x(),
+                                   coreRect.ur().y());
+    FASSERT(banyan_cmap_result_);
+    if (!load(cmap_pb_file, core_region, *banyan_cmap_result_)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 bool LindenGlobalPlace::rdp_cmap(const double overflow)
 {
@@ -124,37 +183,7 @@ bool LindenGlobalPlace::rdp_cmap(const double overflow)
     return true;
   }
   update_db();
-  const std::string cmap_pb_file = [] {
-    const std::string basename = [] {
-      auto tm = std::chrono::system_clock::now().time_since_epoch();
-      auto tm_ms
-          = std::chrono::duration_cast<std::chrono::milliseconds>(tm).count();
-      std::ostringstream oss;
-      oss << "./banyan_" << tm_ms;  // FIXME: put it under /tmp
-      return oss.str();
-    }();
-    return basename + ".cmap";
-  }();
-  if (1) {
-    const std::string debug_def_file = cmap_pb_file + ".def";
-    std::cout << "// banyan_debug::gp_before_call_baby_banyan.def: "
-              << debug_def_file << std::endl;
-    ::ord::OpenRoad::openRoad()->writeDef(debug_def_file.c_str(), "5.8");
-  }
-  auto banyan = ::ord::OpenRoad::openRoad()->getBanyan();
-  banyan->cmap(cmap_pb_file, "");
-  FASSERT(banyan_cmap_result_ != nullptr);
-  {
-    FASSERT(pb_ != nullptr);
-    auto const& die = pb_->die();
-    linden::geom::Rect die_region(
-        die.dieLx(), die.dieLy(), die.dieUx(), die.dieUy());
-    linden::geom::Rect core_region(
-        die.coreLx(), die.coreLy(), die.coreUx(), die.coreUy());
-    if (!load(cmap_pb_file, core_region, *banyan_cmap_result_)) {
-      return false;
-    }
-  }
+  congestion_estimate();
   bool res = lindengp_->load_cmap(*banyan_cmap_result_);
   rdp_cnt_down = 10;
   return res;

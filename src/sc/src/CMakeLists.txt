@@ -20,7 +20,6 @@ target_sources(sc
 target_include_directories(sc
   PUBLIC
     ../include
-  PRIVATE
     .
 )
 

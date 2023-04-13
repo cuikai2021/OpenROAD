@@ -79,6 +79,7 @@ target_sources(gpl
     src/timingBase.cpp
     src/graphics.cpp
     src/lindengp.rdp.cpp
+    src/lindengp.focus.cpp
     src/lindenmp.cpp
     src/LindenDBSanitizer.cpp
 )
@@ -90,11 +91,6 @@ target_include_directories(gpl
     include
   PRIVATE
     ${OCTAVE_INCLUDE_DIR}
-)
-
-LINK_DIRECTORIES(
-    /usr/lib
-    /usr/local/lib
 )
 
 target_link_libraries(gpl
@@ -109,6 +105,8 @@ target_link_libraries(gpl
     rsz
     grt
     linden
+    cgr
+    sc
     fassert
     ${OCTAVE_LIBRARY}
     ${LEMON_LIB_NAME}

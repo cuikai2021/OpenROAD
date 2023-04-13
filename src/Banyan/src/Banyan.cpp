@@ -17,6 +17,7 @@
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
+#include "cgr/congestionRepair.hpp"
 #include "utl/Logger.h"
 
 namespace sta {
@@ -198,28 +199,33 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   return exec(logger_, args);
 }
 
-int Banyan::cmap(const std::string& cmapPb, const std::string& instMovementPb)
+int Banyan::cmap(const std::string& cmapPb, bool cgr_mode, const std::string& instMovementPb)
 {
-  ::ord::OpenRoad::openRoad()->writeDef("./banyan.cmap.pre.def", "5.8");
-
   std::vector<std::string> args;
   args.push_back("route");
   args.push_back("--techlef");
   args.push_back(techfile_name_);
-  args.push_back("--max_layer");
-  args.push_back("ME4");  // FIXME: pass it through cfg pls.
+
+  const auto max_layer = ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
+  if (!max_layer.empty()) {
+    args.push_back("--max_layer");
+    args.push_back(max_layer);
+  }
+
   args.push_back("--log_level");
   args.push_back("info");
   args.push_back("--report_cmap");
   args.push_back(cmapPb);
-  args.push_back("--disable_maze_top");
-  args.push_back("true");
-  args.push_back("--disable_mcf_upt");
-  args.push_back("true");
   args.push_back("--baby_banyan");
   args.push_back("true");
-  args.push_back("--baby_pa");
+  args.push_back("--disable_maze_top");
   args.push_back("true");
+  if (!cgr_mode) {
+    args.push_back("--disable_mcf_upt");
+    args.push_back("true");
+    args.push_back("--baby_pa");
+    args.push_back("true");
+  }
   args.push_back("--cmap_use_corearea");
   args.push_back("true");
 

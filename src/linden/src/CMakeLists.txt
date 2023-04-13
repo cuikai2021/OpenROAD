@@ -27,4 +27,5 @@ PUBLIC
     fassert
     prettyprint
     tomlpp
+    linden_pb
 )

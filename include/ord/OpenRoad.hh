@@ -111,6 +111,10 @@ class Replace;
 class LindenGlobalPlace;
 }
 
+namespace cgr {
+class CongestionRepair;
+}
+
 namespace rcx {
 class Ext;
 }
@@ -197,6 +201,7 @@ public:
   banyan::Banyan *getBanyan() { return banyan_; }
   gpl::Replace* getReplace() { return replace_; }
   gpl::LindenGlobalPlace* getLindenGlobalPlace() { return lindengp_; }
+  cgr::CongestionRepair* getCongestionRepair() { return congestionRepair_; }
   psm::PDNSim* getPDNSim() { return pdnsim_; }
   grt::GlobalRouter* getGlobalRouter() { return global_router_; }
   par::PartitionMgr *getPartitionMgr() { return partitionMgr_; }
@@ -302,6 +307,7 @@ private:
   ant::AntennaChecker *antenna_checker_;
   gpl::Replace *replace_;
   gpl::LindenGlobalPlace *lindengp_;
+  cgr::CongestionRepair *congestionRepair_;
   psm::PDNSim *pdnsim_;
   par::PartitionMgr *partitionMgr_;
   pdn::PdnGen *pdngen_;

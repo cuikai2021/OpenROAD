@@ -1,8 +1,8 @@
 #pragma once
 
+#include <deque>
 #include <memory>
 #include <string>
-#include <deque>
 
 #include "linden/db/db.hpp"
 #include "linden/gpl/placer.hpp"
@@ -33,6 +33,9 @@ class LindenGlobalPlace
 
   void run();
 
+  // run in cgr(congestion-repair) mode
+  double cgr_run();
+
   void setTargetDensity(float density) { density_ = density; }
   void setTargetOverflow(float overflow) { overflow_ = overflow; }
   void setUniformDensity(bool use_uniform_density)
@@ -40,10 +43,7 @@ class LindenGlobalPlace
     use_uniform_density_ = use_uniform_density;
   }
 
-  void setZigzag(bool zigzag)
-  {
-    zigzag_ = zigzag;
-  }
+  void setZigzag(bool zigzag) { zigzag_ = zigzag; }
 
   void setPadLeft(int padding) { padLeft_ = padding; }
   void setPadRight(int padding) { padRight_ = padding; }
@@ -61,29 +61,31 @@ class LindenGlobalPlace
 
   void setInitialPlacePolicy(const char* policy);
 
-  void setFocusInsts(const char *focus_insts_file_name);
+  void setFocusInsts(const char* focus_insts_file_name);
 
-  void setFocusNets(const char *focus_nets_file_name);
-  
+  void setFocusNets(const char* focus_nets_file_name);
+
  private:
   odb::dbDatabase* db_;
   utl::Logger* log_;
 
   std::shared_ptr<PlacerBase> pb_;
-  std::string initialPlacePolicy_;
   std::shared_ptr<linden::db::Database> linden_db_;
-  std::shared_ptr<linden::rdp::CongestionMap> banyan_cmap_result_;
   std::unique_ptr<linden::gpl::Placer> lindengp_;
+  std::shared_ptr<linden::rdp::CongestionMap> banyan_cmap_result_;
+
+  std::string initialPlacePolicy_;
 
   float density_;
   float overflow_;
   bool use_uniform_density_;
   bool zigzag_;
 
+  bool cgr_mode_;
+
   double net_weight_max_;
   std::deque<int> timing_overflows_;
   bool routability_driven_;
-
 
   // temp variable; OpenDB should have these values.
   int padLeft_;
@@ -98,7 +100,11 @@ class LindenGlobalPlace
   // case 2: inst names from focusing nets
   std::vector<std::vector<std::string>> focus_inst_names_;
 
-  void setFocusInstNamesFromNets(const std::vector<std::vector<std::string>> &net_names);
+  void setFocusInstNamesFromNets(
+      const std::vector<std::vector<std::string>>& net_names);
+
+  // initialize
+  void init();
 
   // reset to release memory after gp
   void reset();
@@ -118,5 +124,9 @@ class LindenGlobalPlace
 
   // routability-driven placement
   bool rdp_cmap(const double overflow);
+  bool congestion_estimate();
+
+  // change to cgr(congestion-repair) mode
+  void change_to_cgr_mode();
 };
 }  // namespace gpl

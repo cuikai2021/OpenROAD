@@ -40,7 +40,7 @@ namespace gpl {
 
 class InitialPlaceGuide : public InitialPlace {
   public:
-    InitialPlaceGuide() : guide_file_("") {}
+    InitialPlaceGuide() : guide_file_() {}
     InitialPlaceGuide(InitialPlaceVars ipVars, 
         std::shared_ptr<PlacerBase> pb,
         utl::Logger* logger,

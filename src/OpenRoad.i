@@ -177,6 +177,13 @@ std::shared_ptr<lindenmp::LindenMacroPlace> getLindenMacroPlace()
   return ord->getLindenMacroPlace();
 }
 
+cgr::CongestionRepair*
+getCongestionRepair()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getCongestionRepair();
+}
+
 rcx::Ext *
 getOpenRCX()
 {

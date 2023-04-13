@@ -883,7 +883,7 @@ std::vector<GmRoutLine> GridlessMaze::findPath(const std::vector<PII>& source,
   for (const auto& [x, y] : source) {
     if (isInTree(obsTree, x, y) || isInTree(pinTree, x, y)
         || !isInPinBoundary(xMap[x], yMap[y], sourceBox)
-        || !checkOffGrid(xMap[x], xMap[y])) {
+        || !checkOffGrid(xMap[x], yMap[y])) {
       continue;
     }
     q.push({xMap[x], yMap[y], 0, calcDisToSink(xMap[x], yMap[y]), TOTDIR, -1});

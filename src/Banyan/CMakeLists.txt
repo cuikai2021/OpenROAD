@@ -64,6 +64,8 @@ target_link_libraries(Banyan
     fassert
     prettyprint
     banyan_pb
+    cgr
+    linden
 )
 
 add_subdirectory(test)
