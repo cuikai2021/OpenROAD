@@ -36,6 +36,7 @@
 #pragma once
 
 #include <array>
+#include <deque>
 #include <string>
 
 #include "SteinerTree.hh"
@@ -643,6 +644,19 @@ protected:
   std::pair<LibertyCell*, LibertyPort*>
   findLibertyCellAndPort(const char* cell_name,
                          const char* port_name);
+  // Sort OBJs by the dictionary order of their names.
+  template<typename OBJ>
+  std::deque<OBJ*> staIter2StableDeque(sta::Iterator<OBJ*>* iter) {
+    std::deque<OBJ*> ret;
+    while (iter->hasNext()) {
+      auto val = iter->next();
+      ret.push_back(val);
+    }
+    std::sort(ret.begin(), ret.end(), [this](OBJ* l, OBJ* r) {
+      return strcmp(network_->name(l), network_->name(r)) < 0;
+    });
+    return ret;
+  }
 
   ////////////////////////////////////////////////////////////////
   // Jounalling support for checkpointing and backing out changes

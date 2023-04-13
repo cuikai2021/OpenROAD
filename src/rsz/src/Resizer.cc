@@ -2313,8 +2313,7 @@ Resizer::addTieCell(const char* tie_lo_cname,
 
   vector<Net*> gnd_nets, pwr_nets;
   auto net_iter = network_->netIterator(network_->topInstance());
-  while (net_iter->hasNext()) {
-    auto net = net_iter->next();
+  for (auto net : staIter2StableDeque(net_iter)) {
     if (db_network_->isSpecial(net)) {
       continue;
     }
@@ -2364,8 +2363,7 @@ Resizer::addTieCell(const char* tie_lo_cname,
     size_t new_tie_cell_count = 0;
     for (auto net : nets) {
       auto pin_iter = network_->connectedPinIterator(net);
-      while (pin_iter->hasNext()) {
-        auto pin = pin_iter->next();
+      for (auto pin : staIter2StableDeque(pin_iter)) {
         // Intention: When a pin is a top output port,
         // different net and pin names introduce an extra verilog assigment that connects the port and the net.
         // Use the same name to avoid such assignments.

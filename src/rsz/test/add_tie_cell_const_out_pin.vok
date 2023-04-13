@@ -29,13 +29,13 @@ module top (a,
  output e1;
  output f1;
 
- wire net2;
- wire net5;
- wire net6;
- wire net1;
  wire net3;
- wire net4;
+ wire net5;
  wire net7;
+ wire net1;
+ wire net2;
+ wire net4;
+ wire net6;
  wire net8;
 
  AND2_X1 _0_ (.A1(b),
@@ -43,22 +43,22 @@ module top (a,
     .ZN(c));
  LOGIC0_X1 TIEL_1 (.Z(d0));
  LOGIC0_X1 TIEL_2 (.Z(net1));
- LOGIC0_X1 TIEL_3 (.Z(net2));
- LOGIC0_X1 TIEL_4 (.Z(y0));
+ LOGIC0_X1 TIEL_3 (.Z(y0));
+ LOGIC0_X1 TIEL_4 (.Z(net2));
  LOGIC0_X1 TIEL_5 (.Z(net3));
  LOGIC0_X1 TIEL_6 (.Z(net4));
  LOGIC1_X1 TIEH_7 (.Z(d1));
  LOGIC1_X1 TIEH_8 (.Z(net5));
  LOGIC1_X1 TIEH_9 (.Z(net6));
- LOGIC1_X1 TIEH_10 (.Z(y1));
- LOGIC1_X1 TIEH_11 (.Z(net7));
+ LOGIC1_X1 TIEH_10 (.Z(net7));
+ LOGIC1_X1 TIEH_11 (.Z(y1));
  LOGIC1_X1 TIEH_12 (.Z(net8));
- assign z0 = net1;
- assign x0 = net2;
+ assign z0 = net2;
+ assign x0 = net1;
  assign e0 = net3;
  assign f0 = net4;
- assign z1 = net5;
- assign x1 = net6;
- assign e1 = net7;
- assign f1 = net8;
+ assign z1 = net8;
+ assign x1 = net7;
+ assign e1 = net5;
+ assign f1 = net6;
 endmodule
