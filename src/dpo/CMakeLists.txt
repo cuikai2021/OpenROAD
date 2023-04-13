@@ -64,7 +64,6 @@ target_sources(dpo
 target_include_directories(dpo
   PUBLIC
     include
-    ${LEMON_INCLUDE_DIRS}
 )
 
 target_link_libraries(dpo
@@ -73,7 +72,7 @@ target_link_libraries(dpo
     OpenSTA
     utl
     dpl
-    ${LEMON_LIB_NAME}
+    lemon
     glpk
 )
 

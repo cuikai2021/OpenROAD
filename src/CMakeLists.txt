@@ -201,12 +201,7 @@ message(STATUS "spdlog: ${spdlog_VERSION}")
 find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
-find_package(LEMON QUIET)
-find_package(lemon QUIET)
-if(LEMON_LIBRARY STREQUAL "")
-  message(FATAL_ERROR "Cannot find lemon")
-endif()
-string(REGEX REPLACE ".*/lib([a-zA-Z0-9]+)[.]a" "\\1" LEMON_LIB_NAME ${LEMON_LIBRARY})
+find_package(lemon REQUIRED)
 message(STATUS "lemon (${LEMON_LIB_NAME}): ${LEMON_INCLUDE_DIR}, ${LEMON_LIBRARY}")
 
 ################################################################

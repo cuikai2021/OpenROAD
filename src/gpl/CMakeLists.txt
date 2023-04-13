@@ -109,7 +109,7 @@ target_link_libraries(gpl
     sc
     fassert
     ${OCTAVE_LIBRARY}
-    ${LEMON_LIB_NAME}
+    lemon
     glpk
 )
 

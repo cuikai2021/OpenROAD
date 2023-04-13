@@ -62,7 +62,6 @@ target_include_directories(cts
     ../include
   PRIVATE
     .
-    ${LEMON_INCLUDE_DIRS}
  )
 
 target_link_libraries(cts
@@ -74,6 +73,7 @@ target_link_libraries(cts
     stt
     utl
     LaurelUtil
+    lemon
  )
 
 messages(
