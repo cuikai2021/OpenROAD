@@ -13,5 +13,5 @@ docker run -it --rm --network=host \
   --mount type=bind,src=$workdir,dst=$workdir \
   --user `id -u`:`id -g` \
   --entrypoint /bin/bash \
-  registry.cn-shanghai.aliyuncs.com/icb/eden_build:latest \
+  registry.cn-shanghai.aliyuncs.com/icb/eden_build:20230414T0353Z \
   -c "cd $workdir; $cmd"
