@@ -4,6 +4,18 @@
 
 The documentation is also available [here](https://openroad.readthedocs.io/en/latest/main/README.html).
 
+## Configure git lfs
+
+To make the lfs client get the credentials to access the server, you need to run the following command once
+
+```bash
+cat >> ~/.gitconfig <<EOF
+[credential "https://lfs.icbench.com"]
+  username = icb
+  helper = "!f() { test \"\$1\" = get && echo \"password=\$(icb login sign lfs)\"; }; f"
+EOF
+```
+
 ## Install dependencies
 
 For a limited number of configurations the following script can be used
