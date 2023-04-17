@@ -10,6 +10,12 @@
 [INFO ODB-0131]     Created 1 components and 11 component-terminals.
 [INFO ODB-0133]     Created 9 nets and 9 connections.
 [INFO ODB-0134] Finished DEF file: bus1.def
+[WARNING STA-1002] bus1.lib line 2, library unsupported feature comment.
+[WARNING STA-1002] bus1.lib line 4, library unsupported feature simulation.
+[WARNING STA-1002] bus1.lib line 11, library unsupported feature library_features.
+[WARNING STA-1002] bus1.lib line 42, library unsupported feature base_type.
+[WARNING STA-1002] bus1.lib line 43, library unsupported feature data_type.
+[WARNING STA-1002] bus1.lib line 44, library unsupported feature bit_width.
 module top (clk,
     in,
     out);

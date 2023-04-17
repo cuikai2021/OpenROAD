@@ -2,6 +2,43 @@
 [INFO ODB-0223]     Created 2 technology layers
 [INFO ODB-0225]     Created 6 library cells
 [INFO ODB-0226] Finished LEF file:  liberty1.lef
+[WARNING STA-1002] liberty1.lib line 2, library unsupported feature comment.
+[WARNING STA-1002] liberty1.lib line 4, library unsupported feature simulation.
+[WARNING STA-1002] liberty1.lib line 11, library unsupported feature library_features.
+[WARNING STA-1002] liberty1.lib line 25, library unsupported feature default_cell_leakage_power.
+[WARNING STA-1002] liberty1.lib line 63, library unsupported feature k_temp_fall_propagation.
+[WARNING STA-1002] liberty1.lib line 64, library unsupported feature k_temp_rise_propagation.
+[WARNING STA-1002] liberty1.lib line 67, library unsupported feature k_temp_min_pulse_width_high.
+[WARNING STA-1002] liberty1.lib line 68, library unsupported feature k_temp_min_pulse_width_low.
+[WARNING STA-1002] liberty1.lib line 72, library unsupported feature k_temp_cell_leakage_power.
+[WARNING STA-1002] liberty1.lib line 81, library unsupported feature k_volt_fall_propagation.
+[WARNING STA-1002] liberty1.lib line 82, library unsupported feature k_volt_rise_propagation.
+[WARNING STA-1002] liberty1.lib line 85, library unsupported feature k_volt_min_pulse_width_high.
+[WARNING STA-1002] liberty1.lib line 86, library unsupported feature k_volt_min_pulse_width_low.
+[WARNING STA-1002] liberty1.lib line 90, library unsupported feature k_volt_cell_leakage_power.
+[WARNING STA-1002] liberty1.lib line 99, library unsupported feature k_process_fall_propagation.
+[WARNING STA-1002] liberty1.lib line 100, library unsupported feature k_process_rise_propagation.
+[WARNING STA-1002] liberty1.lib line 103, library unsupported feature k_process_min_pulse_width_high.
+[WARNING STA-1002] liberty1.lib line 104, library unsupported feature k_process_min_pulse_width_low.
+[WARNING STA-1002] liberty1.lib line 108, library unsupported feature k_process_cell_leakage_power.
+[WARNING STA-1002] liberty1.lib line 188, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 234, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 280, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 326, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 372, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 488, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 570, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 652, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 734, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 816, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 898, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 1016, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 1134, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 1216, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 1302, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 1457, library unsupported feature nextstate_type.
+[WARNING STA-1002] liberty1.lib line 1521, library unsupported feature cell_footprint.
+[WARNING STA-1002] liberty1.lib line 1635, library unsupported feature cell_footprint.
 module reg5 (out,
     clk,
     in);

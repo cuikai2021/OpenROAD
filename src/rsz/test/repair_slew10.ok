@@ -1,3 +1,13 @@
+[WARNING STA-1002] repair_slew10.lib line 40, library unsupported feature date.
+[WARNING STA-1002] repair_slew10.lib line 41, library unsupported feature revision.
+[WARNING STA-1002] repair_slew10.lib line 42, library unsupported feature comment.
+[WARNING STA-1002] repair_slew10.lib line 45, library unsupported feature technology.
+[WARNING STA-1002] repair_slew10.lib line 47, library unsupported feature in_place_swap_mode.
+[WARNING STA-1002] repair_slew10.lib line 48, library unsupported feature library_features.
+[WARNING STA-1002] repair_slew10.lib line 68, library unsupported feature process_corner.
+[WARNING STA-1002] repair_slew10.lib line 86, library unsupported feature default_leakage_power_density.
+[WARNING STA-1002] repair_slew10.lib line 87, library unsupported feature default_cell_leakage_power.
+[WARNING STA-1002] repair_slew10.lib line 166, library unsupported feature drive_strength.
 [INFO ODB-0222] Reading LEF file: Nangate45/Nangate45.lef
 [INFO ODB-0223]     Created 22 technology layers
 [INFO ODB-0224]     Created 27 technology vias

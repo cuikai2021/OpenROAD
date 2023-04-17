@@ -2,4 +2,29 @@
 [INFO ODB-0223]     Created 4 technology layers
 [INFO ODB-0225]     Created 2 library cells
 [INFO ODB-0226] Finished LEF file:  read_liberty1.lef
+[WARNING STA-1002] read_liberty1.lib line 2, library unsupported feature comment.
+[WARNING STA-1002] read_liberty1.lib line 4, library unsupported feature simulation.
+[WARNING STA-1002] read_liberty1.lib line 11, library unsupported feature library_features.
+[WARNING STA-1002] read_liberty1.lib line 25, library unsupported feature default_cell_leakage_power.
+[WARNING STA-1002] read_liberty1.lib line 63, library unsupported feature k_temp_fall_propagation.
+[WARNING STA-1002] read_liberty1.lib line 64, library unsupported feature k_temp_rise_propagation.
+[WARNING STA-1002] read_liberty1.lib line 67, library unsupported feature k_temp_min_pulse_width_high.
+[WARNING STA-1002] read_liberty1.lib line 68, library unsupported feature k_temp_min_pulse_width_low.
+[WARNING STA-1002] read_liberty1.lib line 72, library unsupported feature k_temp_cell_leakage_power.
+[WARNING STA-1002] read_liberty1.lib line 81, library unsupported feature k_volt_fall_propagation.
+[WARNING STA-1002] read_liberty1.lib line 82, library unsupported feature k_volt_rise_propagation.
+[WARNING STA-1002] read_liberty1.lib line 85, library unsupported feature k_volt_min_pulse_width_high.
+[WARNING STA-1002] read_liberty1.lib line 86, library unsupported feature k_volt_min_pulse_width_low.
+[WARNING STA-1002] read_liberty1.lib line 90, library unsupported feature k_volt_cell_leakage_power.
+[WARNING STA-1002] read_liberty1.lib line 99, library unsupported feature k_process_fall_propagation.
+[WARNING STA-1002] read_liberty1.lib line 100, library unsupported feature k_process_rise_propagation.
+[WARNING STA-1002] read_liberty1.lib line 103, library unsupported feature k_process_min_pulse_width_high.
+[WARNING STA-1002] read_liberty1.lib line 104, library unsupported feature k_process_min_pulse_width_low.
+[WARNING STA-1002] read_liberty1.lib line 108, library unsupported feature k_process_cell_leakage_power.
+[WARNING STA-1002] read_liberty1.lib line 188, library unsupported feature cell_footprint.
+[WARNING STA-1002] read_liberty1.lib line 235, library unsupported feature cell_footprint.
+[WARNING STA-1002] read_liberty1.lib line 281, library unsupported feature related_bias_pin.
+[WARNING STA-1002] read_liberty1.lib line 286, library unsupported feature physical_connection.
+[WARNING STA-1002] read_liberty1.lib line 291, library unsupported feature physical_connection.
+[WARNING STA-1002] read_liberty1.lib line 296, library unsupported feature related_bias_pin.
 [WARNING ORD-1002] Liberty cell snl_bufx1 pin A missing from LEF macro.

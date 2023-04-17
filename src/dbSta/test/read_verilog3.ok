@@ -1,6 +1,12 @@
 [INFO ODB-0222] Reading LEF file: bus1.lef
 [INFO ODB-0225]     Created 1 library cells
 [INFO ODB-0226] Finished LEF file:  bus1.lef
+[WARNING STA-1002] bus1.lib line 2, library unsupported feature comment.
+[WARNING STA-1002] bus1.lib line 4, library unsupported feature simulation.
+[WARNING STA-1002] bus1.lib line 11, library unsupported feature library_features.
+[WARNING STA-1002] bus1.lib line 42, library unsupported feature base_type.
+[WARNING STA-1002] bus1.lib line 43, library unsupported feature data_type.
+[WARNING STA-1002] bus1.lib line 44, library unsupported feature bit_width.
 Instance bus1
  Cell: bus4
  Library: bus1

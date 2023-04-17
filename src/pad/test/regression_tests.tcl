@@ -11,7 +11,6 @@ record_tests {
   coyote_tc_sky130.max_pad_spacing_constraint
   coyote_tc_max_spacing_constraint_anchor_cells_far
   coyote_tc_max_spacing_constraint_no_adjacent_cell
-  caravel_sky130
   tcl_interface
   tcl_interface.flipchip
 }

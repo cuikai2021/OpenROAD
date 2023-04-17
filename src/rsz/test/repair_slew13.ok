@@ -1,3 +1,25 @@
+[WARNING STA-1002] repair_slew13.lib line 12, library unsupported feature technology.
+[WARNING STA-1002] repair_slew13.lib line 21, library unsupported feature revision.
+[WARNING STA-1002] repair_slew13.lib line 22, library unsupported feature default_cell_leakage_power.
+[WARNING STA-1002] repair_slew13.lib line 28, library unsupported feature default_arc_mode.
+[WARNING STA-1002] repair_slew13.lib line 29, library unsupported feature default_constraint_arc_mode.
+[WARNING STA-1002] repair_slew13.lib line 30, library unsupported feature default_leakage_power_density.
+[WARNING STA-1001] repair_slew13.lib line 125, library unsupported feature normalized_driver_waveform.
+[WARNING STA-1002] repair_slew13.lib line 128, library unsupported feature driver_waveform_name.
+[WARNING STA-1002] repair_slew13.lib line 138, library unsupported feature library_features.
+[WARNING STA-1002] repair_slew13.lib line 147, library unsupported feature driver_model.
+[WARNING STA-1002] repair_slew13.lib line 148, library unsupported feature in_place_swap_mode.
+[WARNING STA-1002] repair_slew13.lib line 151, library unsupported feature min_pulse_width_mode.
+[WARNING STA-1002] repair_slew13.lib line 157, library unsupported feature simulation.
+[WARNING STA-1002] repair_slew13.lib line 163, library unsupported feature switching_power_split_model.
+[WARNING STA-1002] repair_slew13.lib line 175, library unsupported feature cell_footprint.
+[WARNING STA-1002] repair_slew13.lib line 177, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] repair_slew13.lib line 178, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] repair_slew13.lib line 181, library unsupported feature related_bias_pin.
+[WARNING STA-1002] repair_slew13.lib line 186, library unsupported feature physical_connection.
+[WARNING STA-1002] repair_slew13.lib line 191, library unsupported feature physical_connection.
+[WARNING STA-1002] repair_slew13.lib line 196, library unsupported feature related_bias_pin.
+[WARNING STA-1002] repair_slew13.lib line 239, library unsupported feature power_down_function.
 [INFO ODB-0222] Reading LEF file: sky130hd/sky130hd.tlef
 [INFO ODB-0223]     Created 13 technology layers
 [INFO ODB-0224]     Created 25 technology vias
