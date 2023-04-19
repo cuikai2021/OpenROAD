@@ -16,6 +16,9 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$HOME/.ssh,dst=/home/dockeruser/.ssh \
   --mount type=bind,src=$HOME/.ssh,dst=/root/.ssh \
   --mount type=bind,src=$workdir,dst=$workdir \
+  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/banyan,dst=/build/bin/banyan \
+  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/maxhs,dst=/build/bin/maxhs \
+  --mount type=bind,src=$workdir/src/linden/gpl/bin/lindendp,dst=/build/bin/lindendp \
   --entrypoint /bin/bash \
   registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20230418T0353Z_8aa01a3 \
   -c "cd $workdir; $cmd"
