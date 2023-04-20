@@ -248,7 +248,7 @@ int LindenMacroPlace::run()
         build_pins(*ldb, *db_);
     }
 
-    auto placer = linden::mpl::Placer::create(ldb, *log_, std::move(cfg));
+    auto placer = linden::mpl::Placer::create(ldb, std::move(cfg));
 
     std::unique_ptr<gpl::Graphics> graphics;
     if (gpl::Graphics::guiActive()) {

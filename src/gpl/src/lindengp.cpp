@@ -353,7 +353,7 @@ void LindenGlobalPlace::init()
       cfg.tech_lef = dumper.tech_lef();
       cfg.lib_lefs = dumper.lib_lefs();
     }
-    lindengp_ = linden::gpl::Placer::create(linden_db_, cfg, log_);
+    lindengp_ = linden::gpl::Placer::create(linden_db_, cfg);
   }
 }
 
@@ -378,7 +378,7 @@ void LindenGlobalPlace::run()
   init();
   FASSERT(!banyan_cmap_result_);
   if (routability_driven_) {
-    banyan_cmap_result_ = std::make_shared<linden::rdp::CongestionMap>(log_);
+    banyan_cmap_result_ = std::make_shared<linden::rdp::CongestionMap>();
   }
   std::unique_ptr<Graphics> graphics;
   if (Graphics::guiActive()) {
@@ -449,15 +449,14 @@ double LindenGlobalPlace::cgr_run()
 {
   change_to_cgr_mode();
   FASSERT(routability_driven_);
-  banyan_cmap_result_ = std::make_shared<linden::rdp::CongestionMap>(log_);
+  banyan_cmap_result_ = std::make_shared<linden::rdp::CongestionMap>();
   congestion_estimate();
   const auto congestion = banyan_cmap_result_->getCurRouteCongestionValue();
   if (congestion != 0) {
     init();
     std::unique_ptr<Graphics> graphics;
     if (Graphics::guiActive()) {
-      graphics
-          = make_unique<Graphics>(log_, linden_db_, banyan_cmap_result_, pb_);
+      graphics = make_unique<Graphics>(log_, linden_db_, banyan_cmap_result_, pb_);
     }
     if (lindengp_->load_cmap(*banyan_cmap_result_)) {
       const int MAX_ITER = 50;
