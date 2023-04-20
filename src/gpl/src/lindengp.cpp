@@ -276,7 +276,7 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
   const deque<linden::PairedCell>& all_cells_w_lib = linden::all_cells_with_lib();
   const unordered_set<odb::dbNet*>& clock_nets = nets_to_clock(all_cells_w_lib);
   debugPrint(log_, GPL, "linden", 1, "#nets connecting clocks: {}", clock_nets.size());
-  const unordered_set<odb::dbNet*>& reset_nets = nets_to_clock(all_cells_w_lib);
+  const unordered_set<odb::dbNet*>& reset_nets = nets_to_resets(all_cells_w_lib);
   debugPrint(log_, GPL, "linden", 1, "#nets connecting resets: {}", reset_nets.size());
   for (auto& net : pb_->nets()) {
     linden::db::Net lnet((void*) net->dbNet(), net->dbNet()->getName());
