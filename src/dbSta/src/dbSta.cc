@@ -449,7 +449,7 @@ void
 dbStaReport::printLine(const char *buffer,
                        size_t length)
 {
-  logger_->report(buffer);
+  logger_->report("{}", buffer);
 }
 
 // Only used by encapsulated Tcl channels, ie puts and command prompt.
@@ -479,7 +479,7 @@ dbStaReport::printString(const char *buffer,
   if (!buf.empty()) {
     // Trim trailing \r\n.
     buf.erase(buf.find_last_not_of("\r\n") + 1);
-    logger_->report(buf.c_str());
+    logger_->report("{}", buf);
   }
 
   // if gui enabled, keep tcl_buffer_ until a newline appears
@@ -551,7 +551,7 @@ dbStaReport::error(int id,
   std::unique_lock<std::mutex> lock(buffer_lock_);
   printToBuffer(fmt, args);
   // Don't give std::format a chance to interpret the message.
-  logger_->error(STA, id, buffer_);
+  logger_->error(STA, id, "{}", buffer_);
   va_end(args);
 }
 

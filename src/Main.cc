@@ -349,7 +349,7 @@ tclAppInit(int& argc,
           sourceTclFile(init_path.c_str(), true, true, interp);
         } else {
           // need to delay loading of file until after GUI is completed initialized
-          gui::Gui::get()->addRestoreStateCommand(fmt::format(restore_state_cmd, init_path));
+          gui::Gui::get()->addRestoreStateCommand(fmt::vformat(restore_state_cmd, fmt::make_format_args(init_path)));
         }
       }
 #endif
@@ -371,7 +371,7 @@ tclAppInit(int& argc,
           } else {
             // need to delay loading of file until after GUI is completed initialized
             const char* restore_state_cmd = "source {{{}}}";
-            gui::Gui::get()->addRestoreStateCommand(fmt::format(restore_state_cmd, cmd_file));
+            gui::Gui::get()->addRestoreStateCommand(fmt::vformat(restore_state_cmd, fmt::make_format_args(cmd_file)));
             if (exit_after_cmd_file) {
               gui::Gui::get()->addRestoreStateCommand("exit");
             }

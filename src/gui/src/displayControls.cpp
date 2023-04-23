@@ -1719,11 +1719,11 @@ void DisplayControls::buildRestoreTclCommands(std::vector<std::string>& cmds, co
       buildRestoreTclCommands(cmds, item, name + "/");
     } else {
       bool visible = parent->child(r, Visible)->checkState() == Qt::Checked;
-      cmds.push_back(fmt::format(visible_restore, name, visible));
+      cmds.push_back(fmt::vformat(visible_restore, fmt::make_format_args(name, visible)));
       auto* selectable = parent->child(r, Selectable);
       if (selectable != nullptr) {
         bool select = selectable->checkState() == Qt::Checked;
-        cmds.push_back(fmt::format(selectable_restore, name, select));
+        cmds.push_back(fmt::vformat(selectable_restore, fmt::make_format_args(name, select)));
       }
     }
   }

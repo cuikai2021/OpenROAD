@@ -420,9 +420,9 @@ const std::string input_dialog(const char* title, const char* question)
   return gui->requestUserInput(title, question);
 }
 
-void pause(int timeout = 0)
+void pause_gui(int timeout = 0)
 {
-  if (!check_gui("pause")) {
+  if (!check_gui("pause_gui")) {
     return;
   }
   auto gui = gui::Gui::get();

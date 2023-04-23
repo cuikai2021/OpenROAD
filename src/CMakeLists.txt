@@ -258,14 +258,6 @@ if(APPLE)
 endif()
 
 
-set_target_properties(eden PROPERTIES
-  # Disable compiler specific extensions like gnu++11.
-  CXX_EXTENSIONS OFF
-  # Export symbols for stack trace printing
-  ENABLE_EXPORTS ON
-)
-target_compile_features(eden PUBLIC cxx_std_17)
-
 target_include_directories(eden
   PUBLIC
     ../include
@@ -444,10 +436,6 @@ if(GTEST STREQUAL ON)
       $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
       $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
   )
-
-  # Disable compiler specific extensions like gnu++11.
-  set_target_properties(utEden PROPERTIES CXX_EXTENSIONS OFF)
-  target_compile_features(utEden PUBLIC cxx_std_17)
 
   target_include_directories(utEden
     PUBLIC

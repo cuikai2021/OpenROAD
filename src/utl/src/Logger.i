@@ -66,7 +66,7 @@ void
 report(const char *msg)
 {
   Logger *logger = getLogger();
-  logger->report(msg);
+  logger->report("{}", msg);
 }
 
 void
@@ -75,7 +75,7 @@ info(utl::ToolId tool,
      const char *msg)
 {
   Logger *logger = getLogger();
-  logger->info(tool, id, msg);
+  logger->info(tool, id, "{}", msg);
 }
 
 void
@@ -93,7 +93,7 @@ error(utl::ToolId tool,
       const char *msg)
 {
   Logger *logger = getLogger();
-  logger->error(tool, id, msg);
+  logger->error(tool, id, "{}", msg);
 }
 
 void
@@ -102,7 +102,7 @@ critical(utl::ToolId tool,
          const char *msg)
 {
   Logger *logger = getLogger();
-  logger->critical(tool, id, msg);
+  logger->critical(tool, id, "{}", msg);
 }
 
 void
