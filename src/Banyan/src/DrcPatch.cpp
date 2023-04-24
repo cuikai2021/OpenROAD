@@ -36,8 +36,6 @@ std::vector<PlyRect> DrcPatch::sameNetRects(odb::dbTechLayer* layer,
                                             odb::dbNet* net)
 {
   std::vector<PlyRect> sameNetRects;
-  auto chip = db_->getChip();
-  auto block = chip->getBlock();
 
   auto netName = net->getName();
   auto dbWire = net->getWire();
@@ -179,7 +177,7 @@ std::vector<PlyRect> DrcPatch::spacingDrcPatch(
     std::vector<PlyRect> pinMaxRects;
     ply::get_max_rectangles(pinMaxRects, polygon);
     if (pinMaxRects.size() <= 1) {
-      return std::move(patchRects);
+      return patchRects;
     }
 
     for (int i = 0; i < pinMaxRects.size() - 1; i++) {
@@ -213,7 +211,7 @@ std::vector<PlyRect> DrcPatch::spacingDrcPatch(
         }
       }
     }
-    return std::move(patchRects);
+    return patchRects;
   };
 
   PlyPolygonSet plyset;

@@ -113,8 +113,6 @@ void mergeLinesVerifier(const deque<MwsWire>& res,
   }
   // check the same
   for (auto& [layer, line] : oMap) {
-  }
-  for (auto& [layer, line] : oMap) {
     auto rLine = rMap[layer];
     for (int i = 0; i <= 1; i++) {
       auto os = getPolygonSet(line[i]);

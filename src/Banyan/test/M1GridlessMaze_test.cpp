@@ -66,15 +66,13 @@ void readLef(odb::dbDatabase* db,
              bool make_library)
 {
   odb::lefin lef_reader(db, logger, false);
-  odb::dbLib* lib = nullptr;
-  odb::dbTech* tech = nullptr;
   if (make_tech && make_library) {
-    lib = lef_reader.createTechAndLib(lib_name, filename);
-    tech = db->getTech();
+    lef_reader.createTechAndLib(lib_name, filename);
+    db->getTech();
   } else if (make_tech) {
-    tech = lef_reader.createTech(filename);
+    lef_reader.createTech(filename);
   } else if (make_library) {
-    lib = lef_reader.createLib(lib_name, filename);
+    lef_reader.createLib(lib_name, filename);
   }
 }
 
@@ -97,7 +95,7 @@ void readDef(odb::dbDatabase* db,
   if (continue_on_errors) {
     def_reader.continueOnErrors();
   }
-  odb::dbChip* chip = def_reader.createChip(search_libs, filename);
+  def_reader.createChip(search_libs, filename);
 }
 
 void M1GridlessMazeTestBench(

@@ -1,5 +1,5 @@
 #include "GridlessMaze.hpp"
-
+#include "fassert.hpp"
 #include <ctime>
 
 #include "thread_pool/ThreadPool.h"
@@ -538,7 +538,10 @@ std::vector<GmRoutLine> GridlessMaze::findPath(const std::vector<PII>& source,
   }
 
   for (auto& [x, y] : sink) {
-    assert(xMap.count(x) && yMap.count(y));
+    FASSERT(xMap.contains(x))
+      (x);
+    FASSERT(yMap.contains(y))
+      (y);
   }
 
   auto calcDis = [&](int x1, int y1, int x2, int y2) {
@@ -1002,8 +1005,12 @@ std::vector<GmRoutLine> GridlessMaze::findPath(const std::vector<PII>& source,
     i = j - 2;
   }
   for (auto& x : res) {
-    assert(checkOffGrid(x.lx, x.ly));
-    assert(checkOffGrid(x.rx, x.ry));
+    FASSERT(checkOffGrid(x.lx, x.ly))
+      (x.lx)
+      (x.ly);
+    FASSERT(checkOffGrid(x.rx, x.ry))
+      (x.rx)
+      (x.ry);
     x.lx = xList[x.lx];
     x.ly = yList[x.ly];
     x.rx = xList[x.rx];
