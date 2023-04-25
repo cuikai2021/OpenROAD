@@ -143,7 +143,8 @@ class Segment {
       // y=x+a y=-x+b
       // y=(a+b)/2
       // x=(b-a)/2
-      double a,b;
+      double a = 0;
+      double b = 0;
       if(std::abs(cur_slope - 1) < eps) {
         a = p1.y - p1.x;
         b = rhs.p1.x + rhs.p1.y;

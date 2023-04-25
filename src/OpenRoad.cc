@@ -215,8 +215,8 @@ OpenRoad::getDbNetwork()
 OpenRoad *OpenRoad::openRoad()
 {
   // This will be destroyed at application exit
-  static OpenRoad o;
-  return &o;
+  static OpenRoad* o = new OpenRoad();
+  return o;
 }
 
 ////////////////////////////////////////////////////////////////

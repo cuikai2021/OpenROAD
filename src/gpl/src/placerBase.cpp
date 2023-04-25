@@ -147,7 +147,12 @@ Instance::Instance(odb::dbInst* inst,
 
 // for dummy instances
 Instance::Instance(int lx, int ly, int ux, int uy)
-    : IntRect(lx, ly, ux, uy), inst_(nullptr)
+:   IntRect(lx, ly, ux, uy), 
+    inst_(nullptr),
+    extId_(INT_MIN),
+    is_macro_(false),
+    is_locked_(false),
+    max_density_(1.0)
 {
 }
 

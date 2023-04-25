@@ -70,7 +70,7 @@ void ScanChain::initPoints(const odb::dbScanChain *scan_chain, std::vector<Point
   auto ordered_list = scan_chain->getOrdered();
   for (auto ordered : ordered_list) {
     odb::dbScanChainComp *first_comp = *(ordered->getComps().begin());
-    odb::dbScanChainComp *last_comp;
+    odb::dbScanChainComp *last_comp = nullptr;
     for (auto comp : ordered->getComps()) {
       last_comp = comp;
     }
@@ -167,7 +167,7 @@ void ScanChain::connectScanNet(const odb::dbScanChain *scan_chain,
   auto ordered_list = scan_chain->getOrdered();
   for (auto ordered : ordered_list) {
     odb::dbScanChainComp *first_comp = *(ordered->getComps().begin());
-    odb::dbScanChainComp *last_comp;
+    odb::dbScanChainComp *last_comp = nullptr;
     for (auto comp : ordered->getComps()) {
       last_comp = comp;
     }

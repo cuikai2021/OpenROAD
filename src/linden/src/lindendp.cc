@@ -292,11 +292,13 @@ int ldp(
     int ret = dp->go(*interp, std::move(args));
     switch (ret) {
         case 0: {
-            Tcl_SetResult(interp, "0", TCL_STATIC);
+            const char* ZERO = "0";
+            Tcl_SetResult(interp, const_cast<char*>(ZERO), TCL_STATIC);
             break;
         }
         case 1: {
-            Tcl_SetResult(interp, "1", TCL_STATIC);
+            const char* ONE = "1";
+            Tcl_SetResult(interp, const_cast<char*>(ONE), TCL_STATIC);
             break;
         }
     }

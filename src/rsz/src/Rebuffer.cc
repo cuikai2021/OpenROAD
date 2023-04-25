@@ -239,7 +239,7 @@ Resizer::rebufferBottomUp(SteinerTree *tree,
       }
       // Prune the options. This is fanout^2.
       // Presort options to hit better options sooner.
-      sort(Z, [=](BufferedNet *option1,
+      sort(Z, [=, this](BufferedNet *option1,
                   BufferedNet *option2)
               { return fuzzyGreater(option1->required(sta_),
                                     option2->required(sta_));

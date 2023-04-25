@@ -19,6 +19,28 @@
 
 namespace gpl {
 
+namespace {
+
+odb::Point to_odb_pt(const linden::geom::Point& lpt) {
+  int x = static_cast<int>(lpt.x());
+  int y = static_cast<int>(lpt.y());
+  FASSERT(x == lpt.x())
+    (x)
+    (lpt.x());
+  FASSERT(y == lpt.y())
+    (y)
+    (lpt.y());
+  return odb::Point(x, y);
+}
+
+odb::Rect to_odb_rect(const linden::geom::Rect& lrect) {
+  odb::Point ll = to_odb_pt(lrect.ll());
+  odb::Point ur = to_odb_pt(lrect.ur());
+  return odb::Rect(ll, ur);
+}
+
+} // namespace
+
 Graphics::Graphics(utl::Logger* logger, std::shared_ptr<PlacerBase> pb)
     : pb_(pb),
       nb_(),
@@ -239,8 +261,6 @@ void Graphics::drawBanyanCMap(gui::Painter& painter)
   CongestionColoring coloring(cmap);
 
   painter.setPen(gui::Painter::dark_red);
-  const double dx = cmap.getChipCoreRegion().dx() / cmap.wgrids();
-  const double dy = cmap.getChipCoreRegion().dy() / cmap.hgrids();
 
   for (auto dim : {linden::geom::dimension::X, linden::geom::dimension::Y}) {
     auto label = dim == linden::geom::dimension::X
@@ -253,7 +273,7 @@ void Graphics::drawBanyanCMap(gui::Painter& painter)
         auto overflow = cmap.overflow(dim, i, j);
         if (overflow > 0) {
           auto color = coloring.overflowColor(overflow);
-          addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()}, color, label);
+          addRectToLabelSet(to_odb_rect(r), color, label);
         }
       }
     }
@@ -332,12 +352,12 @@ void Graphics::drawLinden(gui::Painter& painter)
                {gui::Painter::green, DisplayControlLabel::Label::EXPANDER},
                {gui::Painter::cyan, DisplayControlLabel::Label::MACRO}};
     index %= labels.size();
-    addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()},
+    addRectToLabelSet(to_odb_rect(r),
                       labels[index].first,
                       labels[index].second);
     index++;
 #else
-    addRectToLabelSet({r.lx(), r.ly(), r.ux(), r.uy()}, color, DisplayControlLabel::Label::LINDEN);
+    addRectToLabelSet(to_odb_rect(r), color, DisplayControlLabel::Label::LINDEN);
 #endif
   }
 }
@@ -396,6 +416,10 @@ void drawMarcoOri(const linden::db::Cell& cell, gui::Painter& painter)
   odb::Point p2(r.lx() + std::min(r.dx(), r.dy()) / 4, r.ly());
 
   switch(ori){
+    case linden::db::N: {
+      // intend to do nothing
+      break;
+    }
     case linden::db::W: {
       symmetry(p1, p2, r);
       flip(p1, p2, r, linden::geom::dimension::Y);
@@ -464,7 +488,7 @@ void Graphics::drawLindenMP(gui::Painter& painter)
     painter.setBrush(color);
     auto const& r = cell.rect();
     painter.setPenWidth(1);
-    painter.drawRect({r.lx(), r.ly(), r.ux(), r.uy()});
+    painter.drawRect(to_odb_rect(r));
     if(cell.macro()){
       drawMarcoOri(cell, painter);
     }
