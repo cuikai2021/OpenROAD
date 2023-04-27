@@ -34,10 +34,10 @@
 
 - name: 3ptools
   repo: oss://icb-devops-static/environments
-  commit: 173ce6c8aaaac3a790b9df041edb6581cd595299
+  commit: 2e76e3cfc4b0c8d306c4f828127a4289bceb98d8
   # all files sha1sum $(find . -type f | sort | xargs cat | sha1sum | cut -d ' ' -f 1)
   file: |-
     ossutil64:/usr/local/bin/:755
     envsubst:/usr/local/bin/:755
-    klayout_0.26.6-1_amd64.deb:/build/deb/klayout.deb
+    klayout_0.28.6-1_amd64.deb:/build/deb/klayout.deb
     imagemagick_6.9.10.23+dfsg-2.1ubuntu11.4_amd64.deb:/build/deb/imagemagick.deb
