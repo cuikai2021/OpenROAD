@@ -9,6 +9,8 @@
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "utl/Logger.h"
+#include "utl/metrics.hpp"
+#include "envflag/envflag.hpp"
 #include "fassert.hpp"
 #include <deque>
 #include <iostream>
@@ -16,6 +18,8 @@
 
 using ord::OpenRoad;
 using namespace std;
+
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_MP_METRICS_FILE);
 
 namespace sta {
 extern const char *gpl_tcl_inits[];
@@ -256,7 +260,8 @@ int LindenMacroPlace::run()
     }
 
     const int MAX_ITER = 5000;
-    for (size_t iter = 0; iter < MAX_ITER; iter++) {
+    size_t iter = 0;
+    for (; iter < MAX_ITER; iter++) {
         auto ret = placer->one_step_move(iter);
         if (graphics) {
             bool update
@@ -267,14 +272,21 @@ int LindenMacroPlace::run()
             }
         }
         if (!ret) {
-            log_->metric("mpl::iter", iter + 1);
             break;
         }
         auto overflow = *ret;
         if (overflow <= overflow_) {
-            log_->metric("mpl::iter", iter + 1);
             break;
         }
+    }
+    metrics::Config mcfg = metrics::Config::sink_to_stderr();
+    {
+        string_view filename = LINDEN_MP_METRICS_FILE();
+        if(!filename.empty()) {
+            mcfg = metrics::Config::sink_to_file(filename);
+        }
+        metrics::Reporter reporter(mcfg);
+        reporter["mpl::iter"] = iter + 1;
     }
 
     if (graphics) {

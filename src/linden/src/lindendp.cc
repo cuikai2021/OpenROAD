@@ -7,6 +7,8 @@
 #include "rsz/Resizer.hh"
 #include "sta/Units.hh"
 #include "utl/Logger.h"
+#include "utl/metrics.hpp"
+#include "envflag/envflag.hpp"
 #include <boost/process.hpp>
 #include <exception>
 #include <sstream>
@@ -23,6 +25,8 @@
 #include <string_view>
 
 using namespace std;
+
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_DP_METRICS_FILE);
 
 extern "C" {
 
@@ -206,9 +210,19 @@ void report_metrics() {
   auto tns = sta->units()->timeUnit()->asString(total_negative_slack, DIGITS);
   auto wns = sta->units()->timeUnit()->asString(worst_slack, DIGITS);
 
-  auto log = ::ord::OpenRoad::openRoad()->getLogger();
-  log->metric("dp::tns", tns);
-  log->metric("dp::wns", wns);
+  metrics::Config mcfg = metrics::Config::sink_to_stderr();
+  {
+    string_view filename = LINDEN_DP_METRICS_FILE();
+    if(!filename.empty()) {
+        mcfg = metrics::Config::sink_to_file(filename);
+    }
+  }
+  metrics::Reporter reporter(mcfg);
+  // TODO:
+  // 1. shall we convert tns and wns to numbers?
+  // 2. shall metrics hierarchically indexed?
+  reporter["dp::tns"] = tns;
+  reporter["dp::wns"] = wns;
 }
 
 } // namespace

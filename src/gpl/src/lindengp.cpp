@@ -1,5 +1,6 @@
 #include "gpl/lindengp.h"
 #include "linden/scanchain.hpp"
+#include "utl/metrics.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -38,6 +39,7 @@ using utl::GPL;
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_SCAN_ENABLE_WEIGHT);
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_CLOCK_WEIGHT);
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT);
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_GP_METRICS_FILE);
 
 namespace {
 // only for internal use
@@ -431,8 +433,16 @@ void LindenGlobalPlace::run()
       }
     }
   }
-  log_->metric("gp::iter", iter + 1);
-  
+  metrics::Config mcfg = metrics::Config::sink_to_stderr();
+  {
+    string_view filename = LINDEN_GP_METRICS_FILE();
+    if (!filename.empty()) {
+      mcfg = metrics::Config::sink_to_file(filename);
+    }
+  }
+  metrics::Reporter metrics_reporter(mcfg);
+  metrics_reporter["gp::iter"] = iter + 1;
+
   lindengp_->done();
 
   if (graphics) {
@@ -441,7 +451,7 @@ void LindenGlobalPlace::run()
   }
 
   update_db();
-  report_metrics();
+  report_metrics(metrics_reporter);
   reset();
 }
 
@@ -487,7 +497,7 @@ double LindenGlobalPlace::cgr_run()
         graphics->status("End cgr placement");
         graphics->cellPlot(true);
       }
-      
+
       lindengp_->done();
       update_db();
     }
@@ -565,7 +575,7 @@ bool LindenGlobalPlace::updateNetWeights()
   return true;
 }
 
-void LindenGlobalPlace::report_metrics()
+void LindenGlobalPlace::report_metrics(metrics::Reporter& reporter)
 {
   rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
   rs->estimateParasitics(rsz::ParasiticsSrc::placement);
@@ -581,8 +591,11 @@ void LindenGlobalPlace::report_metrics()
   auto tns = sta->units()->timeUnit()->asString(total_negative_slack, DIGITS);
   auto wns = sta->units()->timeUnit()->asString(worst_slack, DIGITS);
 
-  log_->metric("gp::tns", tns);
-  log_->metric("gp::wns", wns);
+  // TODO:
+  // 1. shall we convert tns and wns to numbers?
+  // 2. shall metrics hierarchically indexed?
+  reporter["gp::tns"] = tns;
+  reporter["gp::wns"] = wns;
 }
 
 void LindenGlobalPlace::setInitialPlacePolicy(const char* policy)

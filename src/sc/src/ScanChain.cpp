@@ -9,6 +9,7 @@
 #include "ord/OpenRoad.hh"
 #include <lemon/christofides_tsp.h>
 #include "ChristofidesSpanningGraph.h"
+#include "utl/metrics.hpp"
 
 namespace sc {
 
@@ -135,7 +136,7 @@ std::vector<Graph::NodeId> ScanChain::reorderScanChain(const odb::dbScanChain *s
   }
 
   sc::ChristofidesTsp c(gr, cost);
-  c.setPoints(points);  
+  c.setPoints(points);
   c.run();
   std::vector<Graph::NodeId> orders = c.tourNodes();
   return orders;
@@ -288,36 +289,28 @@ void ScanChain::reportScanChain(const char *filename) {
     return;
   }
 
-  std::ofstream file(filename);
-  file.setf(std::ios::fixed);
-  file.precision(0);
-  if (!file.is_open()) {
-    logger_->error(SC, 8, "Could not open output metric file {}.", filename);
-  }
+  metrics::Config mcfg = metrics::Config::sink_to_file(filename);
+  metrics::Reporter reporter(mcfg);
 
   block_ = db_->getChip()->getBlock();
   auto scan_chains = block_->getScanChains();
   int total_success_count = 0;
   double total_length = 0;
 
-  file << "{ \"scan_chains\":" << scan_chains.size()
-       << ", \"length\": {";
+  reporter["scan_chains"] = scan_chains.size();
 
+  auto& length_reporter = reporter["length"];
   for (auto iter = scan_chains.begin(); iter != scan_chains.end();) {
     auto scan_chain = *iter;
     double length = 0;
     if (traceScanChain(scan_chain, length)) {
       total_success_count++;
       total_length = total_length + length;
-      file << "\"" << scan_chain->getName() << "\":" << length;
+      length_reporter[scan_chain->getName()] = length;
     }
-
-    if (++iter != scan_chains.end())
-      file << ",";
   }
-  file << "}"
-       << ", \"total_length\": " << total_length
-       << ", \"correct_scan_chains\": " << total_success_count
-       << "}\n";
+
+  reporter["scan_chains"] = total_length;
+  reporter["correct_scan_chains"] = total_success_count;
 }
 } // namespace sc

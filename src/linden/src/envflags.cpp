@@ -26,3 +26,15 @@ DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR,
     "/tmp/"
 )
 
+DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_GP_METRICS_FILE,
+    "Where to dump metrics after Linden global placement. Default is stderr.",
+    ""
+);
+DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_MP_METRICS_FILE,
+    "Where to dump metrics after Linden macro placement. Default is stderr.",
+    ""
+);
+DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_DP_METRICS_FILE,
+    "Where to dump metrics after Linden detailed placement. Default is stderr.",
+    ""
+);

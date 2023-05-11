@@ -16,6 +16,10 @@ namespace utl {
 class Logger;
 }
 
+namespace metrics {
+class Reporter;
+} // namespace metrics
+
 namespace gpl {
 class PlacerBase;
 
@@ -117,7 +121,7 @@ class LindenGlobalPlace
   bool updateNetWeights();
 
   void update_db();
-  void report_metrics();
+  void report_metrics(metrics::Reporter&);
 
   // initial placement
   void doInitialPlace();
