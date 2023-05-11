@@ -296,12 +296,10 @@ void ScanChain::reportScanChain(const char *filename) {
   auto scan_chains = block_->getScanChains();
   int total_success_count = 0;
   double total_length = 0;
-
   reporter["scan_chains"] = scan_chains.size();
 
   auto& length_reporter = reporter["length"];
-  for (auto iter = scan_chains.begin(); iter != scan_chains.end();) {
-    auto scan_chain = *iter;
+  for (auto const& scan_chain: scan_chains) {
     double length = 0;
     if (traceScanChain(scan_chain, length)) {
       total_success_count++;
@@ -310,7 +308,7 @@ void ScanChain::reportScanChain(const char *filename) {
     }
   }
 
-  reporter["scan_chains"] = total_length;
+  reporter["total_length"] = total_length;
   reporter["correct_scan_chains"] = total_success_count;
 }
 } // namespace sc
