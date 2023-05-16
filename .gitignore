@@ -36,3 +36,5 @@ utest/*/test/results
 messages.txt
 .cache
 __pycache__
+
+/.devcontainer/

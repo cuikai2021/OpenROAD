@@ -1,5 +1,6 @@
 #include "gpl/lindengp.h"
 #include "linden/scanchain.hpp"
+#include "linden/relevance_verify.hpp"
 #include "utl/metrics.hpp"
 
 #include <algorithm>
@@ -40,6 +41,7 @@ IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_SCAN_ENABLE_WEIGHT);
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_CLOCK_WEIGHT);
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT);
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_GP_METRICS_FILE);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL);
 
 namespace {
 // only for internal use
@@ -392,6 +394,7 @@ void LindenGlobalPlace::run()
     rsz::Resizer* rs_ = ::ord::OpenRoad::openRoad()->getResizer();
     rs_->resizeSlackPreamble();
   }
+  relevance::RelevanceDetector relev(*linden_db_);
   size_t iter = 0;
   for (; iter < MAX_ITER; iter++) {
     auto ret = lindengp_->one_step_move(iter);
@@ -408,7 +411,14 @@ void LindenGlobalPlace::run()
     } else if (!zigzag_ && overflow <= overflow_) {
       break;
     }
-
+    if (LINDEN_GP_CELL_RELATIVE_POS_CAL()) {
+      if (iter % 10 == 0) {
+        auto const& [x_change, y_change] = relev.update(*linden_db_);
+        log_->info(
+          GPL, 1001, "NPlace: relative position change = ({:.2f}%, {:.2f}%) ",
+          x_change * 100, y_change * 100);
+      }
+    }
     if (graphics) {
       bool update
           = (iter == 0 || (iter + 1) % gui_debug_update_iterations_ == 0);

@@ -8,6 +8,7 @@ PRIVATE
     lindendp.cc
     lefdef_dumper.cc
     scanchain.cpp
+    relevance_verify.cpp
 )
 
 target_include_directories(linden
