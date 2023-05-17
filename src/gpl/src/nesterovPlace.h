@@ -90,7 +90,7 @@ class NesterovPlace
   // SLP is Step Length Prediction.
   struct SLP
   {
-    void resize(std::size_t sz);
+    void resize(size_t sz);
     void swap(SLP& ano);
     void clear();
     void shrink_to_fit();

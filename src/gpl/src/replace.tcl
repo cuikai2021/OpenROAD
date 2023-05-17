@@ -46,7 +46,6 @@ sta::define_cmd_args "global_placement" {\
     [-max_phi_coef max_phi_coef]\
     [-reference_hpwl reference_hpwl]\
     [-overflow overflow]\
-    [-initial_place_guide_file initial_place_guide_file]\ 
     [-initial_place_policy initial_place_policy]\ 
     [-initial_place_max_iter initial_place_max_iter]\
     [-initial_place_max_fanout initial_place_max_fanout]\
@@ -70,7 +69,6 @@ proc global_placement { args } {
       -init_density_penalty -init_wirelength_coef \
       -min_phi_coef -max_phi_coef -overflow \
       -reference_hpwl \
-      -initial_place_guide_file \
       -initial_place_policy \
       -initial_place_max_iter -initial_place_max_fanout \
       -cell_density_force_policy \
@@ -113,11 +111,6 @@ proc global_placement { args } {
 
   set disable_cell_density_scaling [info exists flags(-disable_cell_density_scaling)]
   gpl::set_disable_cell_density_scaling_cmd $disable_cell_density_scaling
-
-  if { [info exists keys(-initial_place_guide_file)] } { 
-    set initial_place_guide_file $keys(-initial_place_guide_file)
-    gpl::set_initial_place_guide_file_cmd $initial_place_guide_file
-  } 
 
   if { [info exists keys(-initial_place_policy)] } { 
     set initial_place_policy $keys(-initial_place_policy)

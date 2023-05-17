@@ -16,7 +16,7 @@ class NetModel
   typedef Eigen::Triplet<float> T;
   typedef std::vector<T> Triplets;
 
-  NetModel(std::size_t maxFanout,
+  NetModel(size_t maxFanout,
            float netWeightScale,
            const std::vector<Net*>& nets,
            const std::vector<Instance*>& placeInsts)
@@ -38,7 +38,7 @@ class NetModel
 
   const std::vector<Net*>& nets() const { return nets_; }
   const std::vector<Instance*>& placeInsts() const { return placeInsts_; }
-  std::size_t placeInstsNum() const { return placeInsts().size(); }
+  size_t placeInstsNum() const { return placeInsts().size(); }
 
  protected:
   void reset(DIMENSION dim);
@@ -51,10 +51,10 @@ class NetModel
                        float netWeight,
                        DIMENSION dim) const = 0;
 
-  void addTwoPinConn(Pin* pin1, Pin* pin2, float w, DIMENSION dim);
+  void addTwoPinConn(Pin* pin0, Pin* pin1, float w, DIMENSION dim);
   bool isSkipped(Net* net) const;
 
-  std::size_t maxFanout_;
+  size_t maxFanout_;
   float netWeightScale_;
   const std::vector<Net*>& nets_;
   const std::vector<Instance*>& placeInsts_;          // moveable instances

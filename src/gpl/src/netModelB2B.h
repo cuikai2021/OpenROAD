@@ -11,7 +11,7 @@ class NetModelB2B : public NetModel
 {
  public:
   NetModelB2B(size_t minDiffLength,
-              std::size_t maxFanout,
+              size_t maxFanout,
               float netWeightScale,
               const std::vector<Net*>& nets,
               const std::vector<Instance*>& placeInsts)

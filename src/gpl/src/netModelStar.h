@@ -11,7 +11,7 @@ class Net;
 class NetModelStar : public NetModel
 {
  public:
-  NetModelStar(std::size_t maxFanout,
+  NetModelStar(size_t maxFanout,
                float netWeightScale,
                const std::vector<Net*>& nets,
                const std::vector<Instance*>& placeInsts)

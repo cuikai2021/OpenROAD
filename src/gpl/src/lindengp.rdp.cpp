@@ -38,12 +38,7 @@ double cal_tile_overflow(const ::banyan::Tile& tile)
   if (tile.supply() == 0) {
     return 0;
   } else {
-#if 0 
-        //FIXME: cleanup the hack on overflow values
-        return (tile.demand() * 1.5 / tile.supply()) - 1.0;
-#else
     return (tile.demand() / tile.supply()) - 1.0;
-#endif
   }
 }
 

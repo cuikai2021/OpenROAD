@@ -3,8 +3,6 @@
 
 namespace odb {
 class dbInst;
-class dbNet;
-class dbITerm;
 class dbDatabase;
 } // namespace odb
 
@@ -26,7 +24,6 @@ private:
   bool isFillerInstByName(odb::dbInst* inst) const;
   bool isFillerInstByMasterType(odb::dbInst* inst) const;
   bool isUnconnected(odb::dbInst* inst) const;
-  bool isNotLogicPin(odb::dbITerm* iterm) const;
   bool hasNoLogicPins(odb::dbInst* inst) const;
   bool isFiller(odb::dbInst *inst) const;
 

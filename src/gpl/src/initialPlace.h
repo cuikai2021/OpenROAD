@@ -87,7 +87,7 @@ class InitialPlace
   Eigen::VectorXf instLocVec_[DIMENSION_CNT];
 
   virtual const std::vector<Instance*>& placeInsts() const;
-  std::size_t placeInstsNum() const { return placeInsts().size(); }
+  size_t placeInstsNum() const { return placeInsts().size(); }
 
   // convertion between absolute location and normalized location
   int normOriginLoc(DIMENSION dim) const;

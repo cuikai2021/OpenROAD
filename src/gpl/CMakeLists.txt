@@ -62,7 +62,6 @@ target_sources(gpl
     src/initialPlaceEVBicg.cpp
     src/initialPlaceDirichlet.cpp
     src/initialPlaceDef.cpp
-    src/initialPlaceGuide.cpp
     src/netModel.cpp
     src/netModelB2B.cpp
     src/netModelStar.cpp

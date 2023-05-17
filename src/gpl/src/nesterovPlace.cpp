@@ -138,7 +138,7 @@ NesterovPlace::~NesterovPlace()
 static PlotEnv pe;
 #endif
 
-void NesterovPlace::SLP::resize(std::size_t sz)
+void NesterovPlace::SLP::resize(size_t sz)
 {
   coordi_.resize(sz, FloatPoint());
   wireLengthGrads_.resize(sz, FloatPoint());

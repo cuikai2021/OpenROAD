@@ -72,12 +72,6 @@ set_uniform_target_density_mode_cmd(bool uniform)
 }
 
 void
-set_initial_place_guide_file_cmd(const char* path) {
-  Replace* replace = getReplace();
-  replace->setInitialPlaceGuideFile(path);
-}
-
-void
 set_initial_place_policy_cmd(const char* policy) {
   Replace* replace = getReplace();
   replace->setInitialPlacePolicy(policy);

@@ -35,7 +35,6 @@ global_placement
     [-min_phi_coef min_phi_conef]
     [-max_phi_coef max_phi_coef]
     [-overflow overflow]
-    [-initial_place_guide_file initial_place_guide_file]
     [-initial_place_policy initial_place_policy]
     [-cell_density_force_policy cell_density_force_policy]
     [-initial_place_max_iter initial_place_max_iter]
@@ -68,7 +67,6 @@ global_placement
 - `-min_phi_coef`: set `pcof_min(µ_k Lower Bound)`. Default value is 0.95. Allowed values are `[0.95-1.05, float]`.
 - `-max_phi_coef`: set `pcof_max(µ_k Upper Bound)`. Default value is 1.05. Allowed values are `[1.00-1.20, float]`.
 - `-overflow`: set target overflow for termination condition. Default value is 0.1. Allowed values are `[0-1, float]`.
-- `initial_place_guide_file`: a guide file which contails cells' initial positions to start the gpl
 - `initial_place_policy`: set the policy to initialize positions to start the gpl
 - `cell_density_force_policy`: set the policy on cell density force calculation
 - `-initial_place_max_iter`: set maximum iterations in initial place. Default value is 20. Allowed values are `[0-MAX_INT, int]`.

@@ -41,7 +41,6 @@
 #include "initialPlaceDef.h"
 #include "initialPlaceDirichlet.h"
 #include "initialPlaceEV.h"
-#include "initialPlaceGuide.h"
 #include "nesterovBase.h"
 #include "nesterovPlace.h"
 #include "odb/db.h"
@@ -68,7 +67,6 @@ Replace::Replace()
       tb_(nullptr),
       ip_(nullptr),
       np_(nullptr),
-      initialPlaceGuideFilePath_(),
       initialPlacePolicy_(),
       initialPlaceMaxIter_(20),
       initialPlaceMinDiffLength_(1500),
@@ -136,7 +134,6 @@ void Replace::reset()
   tb_.reset();
   rb_.reset();
 
-  initialPlaceGuideFilePath_ = "";
   initialPlacePolicy_ = "";
   initialPlaceMaxIter_ = 20;
   initialPlaceMinDiffLength_ = 1500;
@@ -273,10 +270,7 @@ void Replace::doInitialPlace()
   ipVars.netWeightScale = initialPlaceNetWeightScale_;
   ipVars.debug = gui_debug_initial_;
 
-  if (initialPlaceGuideFilePath_ != "") {
-    ip_ = std::move(std::unique_ptr<InitialPlace>(
-        new InitialPlaceGuide(ipVars, pb_, log_, initialPlaceGuideFilePath_)));
-  } else if (initialPlacePolicy_ == "def") {
+  if (initialPlacePolicy_ == "def") {
     ip_ = std::move(
         std::unique_ptr<InitialPlace>(new InitialPlaceDef(ipVars, pb_, log_)));
   } else if (initialPlacePolicy_ == "ev") {
@@ -385,11 +379,6 @@ int Replace::doNesterovPlace(int start_iter)
   if (timingDrivenMode_)
     rs_->resizeSlackPreamble();
   return np_->doNesterovPlace(start_iter);
-}
-
-void Replace::setInitialPlaceGuideFile(const char* path)
-{
-  initialPlaceGuideFilePath_ = path != nullptr ? std::string(path) : "";
 }
 
 void Replace::setInitialPlacePolicy(const char* policy)

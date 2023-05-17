@@ -195,23 +195,12 @@ class CongestionColoring
       }
     }
     std::sort(overflows.begin(), overflows.end());
-
-    // FIXME: @bangxiang: remove debugging code
-
-    // for (int i = 0; i < overflows.size(); ++i) {
-    //   std::cout << "overflows[" << i << "]:" << overflows[i] << std::endl;
-    // }
-
-    // init color_overflows_
-    // std::cout << "**** COLOR_OVERFLOWS=" << std::endl;
     for (int i = 0; i < COLOR_CNT; ++i) {
       const auto sz = overflows.size();
       const auto delta = (sz + (COLOR_CNT - 1)) / COLOR_CNT;  // floor value
       auto pos = delta * (i + 1);
       pos = std::min(pos, sz - 1);
       color_overflows_[i] = overflows[pos];
-      // std::cout << "\t" << i << ":" << color_overflows_[i] << " locate at:"
-      // << pos << std::endl;
     }
   }
 
@@ -242,8 +231,6 @@ class CongestionColoring
     int r = (COLOR_MASKS[0] & color_val) >> 16;
     int g = (COLOR_MASKS[1] & color_val) >> 8;
     int b = (COLOR_MASKS[2] & color_val);
-    // std::cout << "**** Overflow Color: Overflow=" << overflow << ", Color=("
-    //           << r << ", " << g << ", " << b << ")" << std::endl;
     return gui::Painter::Color{r, g, b, 0xff};
   }
 

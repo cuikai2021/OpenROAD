@@ -7,7 +7,7 @@
 namespace gpl {
 
 // AX = b
-// build matrix A and vector b from Star modeling
+// build matrix A and vector b from B2B modeling
 void NetModelB2B::buildOn(DIMENSION dim)
 {
   reset(dim);

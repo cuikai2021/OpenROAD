@@ -18,44 +18,47 @@ void NetModel::reset(DIMENSION dim)
   aList.reserve(2 * placeInstsNum());
 
   // initialize vector
-  fixedInstForceVec_[dim].resize(placeInstsNum());
+  auto& data = fixedInstForceVec_[dim];
+  data.resize(placeInstsNum());
   for (auto& inst : placeInsts()) {
-    int idx = inst->extId();
-    fixedInstForceVec_[dim](idx) = 0;
+    data(inst->extId()) = 0;
   }
 }
 
 // add a two pin connection into the graph, and update the matrix A and vector b
 // , where w is the weight on the two pin connection
-void NetModel::addTwoPinConn(Pin* pin1, Pin* pin2, float w, DIMENSION dim)
+void NetModel::addTwoPinConn(Pin* pin0, Pin* pin1, float w, DIMENSION dim)
 {
+  struct PinInfo
+  {
+    Pin* pin;
+    int id;
+    bool movable;
+    explicit PinInfo(Pin* p) : pin(p), id(-1), movable(false)
+    {
+      if (p) {
+        movable = p->isPlaceInstConnected();
+        if (p->instance()) {
+          id = p->instance()->extId();
+        }
+      }
+    }
+  } pins[2] = {PinInfo(pin0), PinInfo(pin1)};
+
   auto& aList = matrixATriplets_[dim];
   auto& b = fixedInstForceVec_[dim];
-  // both pins come from moveable instance
-  if (pin1->isPlaceInstConnected() && pin2->isPlaceInstConnected()) {
-    const int inst1 = pin1->instance()->extId();
-    const int inst2 = pin2->instance()->extId();
-
-    aList.push_back(T(inst1, inst1, w));
-    aList.push_back(T(inst2, inst2, w));
-
-    aList.push_back(T(inst1, inst2, -w));
-    aList.push_back(T(inst2, inst1, -w));
-
-    b(inst1) += w * (pin2->offsetC(dim) - pin1->offsetC(dim));
-    b(inst2) += w * (pin1->offsetC(dim) - pin2->offsetC(dim));
-  }
-  // pin1 from IO port / pin2 from moveable instance
-  else if (!pin1->isPlaceInstConnected() && pin2->isPlaceInstConnected()) {
-    const int inst2 = pin2->instance()->extId();
-    aList.push_back(T(inst2, inst2, w));
-    b(inst2) += w * (pin1->c(dim) - pin2->offsetC(dim));
-  }
-  // pin2 from IO port / pin1 from moveable instance
-  else if (!pin2->isPlaceInstConnected() && pin1->isPlaceInstConnected()) {
-    const int inst1 = pin1->instance()->extId();
-    aList.push_back(T(inst1, inst1, w));
-    b(inst1) += w * (pin2->c(dim) - pin1->offsetC(dim));
+  for (auto cur_idx : {0, 1}) {
+    const auto& cur = pins[cur_idx];
+    if (cur.movable) {
+      aList.push_back(T(cur.id, cur.id, w));
+      const auto& ano = pins[(cur_idx + 1) % 2];
+      if (ano.movable) {
+        aList.push_back(T(cur.id, ano.id, -w));
+        b(cur.id) += w * (ano.pin->offsetC(dim) - cur.pin->offsetC(dim));
+      } else {
+        b(cur.id) += w * (ano.pin->c(dim) - cur.pin->offsetC(dim));
+      }
+    }
   }
 }
 
