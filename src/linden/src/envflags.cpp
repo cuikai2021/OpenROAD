@@ -9,7 +9,7 @@ DEFINE_F64_FLAG_WITH_DEFAULT(LINDEN_CLOCK_WEIGHT,
     0);
 DEFINE_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT,
     "net weight for those connecting to reset pins.",
-    0);
+    1);
 
 DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN,
     "debug flag for dumping def file for debugging baby-banyan in CGR run",
