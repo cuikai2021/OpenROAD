@@ -57,6 +57,7 @@ class Banyan : public ord::OpenRoad::Observer
   void mergeWireSegment();
   int m1GridlessMaze();
   void drcPatch();
+  void clearWires();
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
                            odb::dbTech* tech,

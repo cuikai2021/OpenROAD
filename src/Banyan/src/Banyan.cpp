@@ -319,4 +319,15 @@ void Banyan::drcPatch()
   dp.run();
 }
 
+void Banyan::clearWires()
+{
+  auto block = db_->getChip()->getBlock();
+  for(auto net : block->getNets()) {
+    auto wire = net->getWire();
+    if (wire != nullptr) {
+      odb::dbWire::destroy(wire);
+    }
+  }
+}
+
 }  // namespace banyan

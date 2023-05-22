@@ -34,6 +34,11 @@ void banyan(std::vector<std::string> args)
     }
 }
 
+void banyan_clear_wires()
+{
+    ord::OpenRoad::openRoad()->getBanyan()->clearWires();
+}
+
 void mergeWireSegment()
 {
     ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
