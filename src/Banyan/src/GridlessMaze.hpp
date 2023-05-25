@@ -1,48 +1,35 @@
 #pragma once
-
-#include <boost/assign.hpp>
-#include <boost/foreach.hpp>
-#include <boost/geometry/core/point_type.hpp>
-#include <boost/geometry/geometries/box.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/index/rtree.hpp>
-#include <string>
-#include <tuple>
-#include <vector>
-
-#include "MergeWireSegment.hpp"
+#include "ByAdapter.hpp"
 #include "PinCluster.hpp"
-#include "odb/ZException.h"
-#include "odb/db.h"
-#include "odb/dbShape.h"
-#include "odb/dbTransform.h"
-#include "odb/dbWireCodec.h"
-#include "odb/geom.h"
-#include "thread_pool/ThreadPool.h"
-
 namespace banyan {
 
-using GmMazeNodeHashVal = std::tuple<int, int, int>;
+using InstPinName = std::pair<std::string, std::string>;
+using PII = std::pair<int, int>;
+using GridlessMazeNodeHashVal = std::tuple<int, int, int>;
 
-struct GmRoutLine
+struct GmRoutingLine
 {
   std::string layerName;
-  int lx, ly, rx, ry;
-  bool isLevel() const { return ly == ry; }
-  GmBox extendBox(int x) const { return {lx - x, ly - x, rx + x, ry + x}; }
-};
-
-struct PIIHash
-{
-  size_t operator()(const std::pair<int, int>& p) const
+  std::string netName;
+  int x1, y1, x2, y2;
+  ByBox toBox(int lw) const
   {
-    return std::hash<int>()(p.first) ^ std::hash<int>()(p.second);
+    return ByBox(x1 - lw / 2,
+                 y1 - lw / 2,
+                 x2 + lw / 2,
+                 y2 + lw / 2,
+                 std::make_shared<ByBoxInfo>(layerName,
+                                             netName,
+                                             std::nullopt,
+                                             std::nullopt,
+                                             std::nullopt,
+                                             ByBoxInfo::WIRE));
   }
 };
 
-struct GmMazeNodeHash
+struct GridlessMazeNodeHashFunc
 {
-  size_t operator()(const GmMazeNodeHashVal& w) const
+  size_t operator()(const GridlessMazeNodeHashVal& w) const
   {
     size_t res = std::hash<int>()(std::get<0>(w));
     res = (res << 5) ^ std::hash<int>()(std::get<1>(w));
@@ -51,79 +38,144 @@ struct GmMazeNodeHash
   }
 };
 
-struct GmMazeNode
+struct GridlessMazeNode
 {
-  int x, y, d;
-  std::tuple<int, int> w;
-  int sta, preDir;
-  bool operator<(const GmMazeNode& r) const { return w > r.w; }
-  bool operator==(const GmMazeNode& r) const
+  int x, y, dis;
+  PII weight;
+  int dirSta, preDir;
+  bool operator<(const GridlessMazeNode& r) const { return weight > r.weight; }
+};
+
+struct pair_hash
+{
+  template <class T1, class T2>
+  std::size_t operator()(const std::pair<T1, T2>& p) const
   {
-    return x == r.x && y == r.y && sta == r.sta && preDir == r.preDir;
+    return std::hash<T1>()(p.first) ^ std::hash<T2>()(p.second);
   }
 };
 
 struct GmVirtualPin
 {
   std::string netName;
-  std::vector<std::string> names;
-  std::vector<GmRoutLine> lines;
+  std::vector<InstPinName> names;
+  std::vector<GmRoutingLine> lines;
 };
 
 class GridlessMaze
 {
  public:
-  using polygon = boost::polygon::polygon_45_data<int>;
-  using point = boost::polygon::point_data<int>;
-  using polygon_set = boost::polygon::polygon_45_set_data<int>;
-  using DPoint
-      = boost::geometry::model::d2::point_xy<int,
-                                             boost::geometry::cs::cartesian>;
-  using DBox = boost::geometry::model::box<DPoint>;
-  using Value = std::pair<DBox, unsigned>;
-  using PII = std::pair<int, int>;
-  using RTree = boost::geometry::index::
-      rtree<Value, boost::geometry::index::quadratic<100000>>;
+  using Rtree = bgi::rtree<ByBox, bgi::quadratic<100000>>;
 
  public:
-  enum SearchLimitLevel
+  enum
   {
-    LOW = 100,
-    MEDIUM = 500,
-    HIGH = 2000,
-    NOLIMIT = INT_MAX
+    WEST,
+    SOUTH,
+    EAST,
+    NORTH
   };
+
+  enum SEARCH_LIMIT
+  {
+    SMALL = 100,
+    MEDIUN = 500,
+    HIGH = 2500,
+    NOLIMIT = std::numeric_limits<int>::max()
+  };
+
+ public:
   GridlessMaze(odb::dbDatabase* db,
+               const std::shared_ptr<ByDb>& bydb,
                utl::Logger* logger,
-               SearchLimitLevel searchLimitLevel = MEDIUM)
-      : logger_(logger), db_(db), searchLimit_(searchLimitLevel){};
-  ~GridlessMaze() = default;
-  std::vector<GmVirtualPin> Run();
-  static void updateDB(odb::dbDatabase* db,
-                       const std::vector<GmVirtualPin>& vpins);
-  static DBox getDBoxByBox(const GmBox& b);
-  static DBox getDBoxByPoint(int x1, int y1, int x2, int y2);
-  static void cutTrapezoid(std::vector<GmBox>& boxes);
+               SEARCH_LIMIT searchLimit = MEDIUN);
+
+ public:
+  std::vector<GmVirtualPin> run();
 
  private:
-  bool isInTree(const RTree& rt, int x, int y);
-  bool isInTree(const RTree& rt,int x1, int y1, int x2, int y2);
-  std::vector<GmVirtualPin> ConnectPin(
-      const PinCluster& pc,
-      const std::unordered_map<std::string, std::string>& pin2net);
-  std::vector<GmRoutLine> findPath(const std::vector<PII>& source,
-                                   const std::vector<PII>& sink,
-                                   std::vector<GmBox> sourceBox,
-                                   std::vector<GmBox> sinkBox,
-                                   const std::vector<int>& xList,
-                                   const std::vector<int>& yList,
-                                   const RTree& obsTree,
-                                   const RTree& pinTree);
-  void RemoveIllegal(std::vector<GmVirtualPin>& ans);
-  utl::Logger* logger_;
+  void markTouchWirePin(PinCluster& pc);
+
+  std::vector<GmVirtualPin> solveOneRowPinCluster(
+      std::vector<PinCluster>& pcs,
+      const std::unordered_map<InstPinName, std::string, pair_hash>& pin2Net);
+
+  std::vector<GmVirtualPin> solvePinCluster(
+      PinCluster& pc,
+      const std::unordered_map<InstPinName, std::string, pair_hash>& pin2Net);
+
+  std::vector<int> getXVal(const ByBox& b);
+
+  std::vector<int> getYVal(const ByBox& b);
+
+  void getPinPoint(std::vector<PII>& ans,
+                   const ByBox& b,
+                   int x1,
+                   int x2,
+                   int y1,
+                   int y2);
+
+  void extendHanan(std::vector<int>& v,
+                   const std::vector<int>& totPinVal,
+                   int x1,
+                   int x2);
+
+  bool checkSimpleSource(const std::pair<InstPinName, std::vector<ByBox>>& lhs,
+                         const std::pair<InstPinName, std::vector<ByBox>>& rhs);
+
+  std::vector<ByBox> getRect(const std::vector<ByBox>& boxes,
+                             bsp::orientation_2d ori);
+
+  std::vector<GmRoutingLine> findPath(const std::string &netName,const std::vector<PII>& source,
+                                      const std::vector<PII>& sink,
+                                      std::vector<ByBox> sourceBox,
+                                      std::vector<ByBox> sinkBox,
+                                      const std::vector<int>& xList,
+                                      const std::vector<int>& yList,
+                                      const Rtree& obsTree,
+                                      const Rtree& pinTree);
+
+  bool checkDrcInPin(int x,
+                     int y,
+                     int dir,
+                     const std::vector<ByBox>& vBoxes,
+                     const std::vector<ByBox>& hBoxes,
+                     bool isSink);
+
+  bool checkLineDrc(const GmRoutingLine& line,
+                    const std::vector<ByBox>& vBoxes,
+                    const std::vector<ByBox>& hBoxes);
+
+  bool checkTurnPointDrc(const BsPoint& p, const std::vector<ByBox>& boxes);
+
+  bool isInBoxes(int x,
+                 int y,
+                 const std::vector<ByBox>& boxes,
+                 bool touch = true);
+
+  bool isInBoxesBoundary(int x, int y, const std::vector<ByBox>& boxes);
+
+  bool checkOffGrid(int x, int y);
+
+  bool isInRtree(const Rtree& rt, int x, int y);
+
+  void initBigger(std::vector<int>& v, const std::vector<int>& a, int x);
+
+  void initLess(std::vector<int>& v, const std::vector<int>& a, int x);
+
+  void initBiggest(std::vector<int>& v, const std::vector<int>& a, int x);
+
+  void initLeast(std::vector<int>& v, const std::vector<int>& a, int x);
+
+  std::vector<ByBox> getMaxRect(const std::vector<ByBox>& boxes);
+
+ private:
   odb::dbDatabase* db_;
-  int gridU_{}, U_{}, lineWidth_{}, maxInstWidth_{}, manufacturingGrid_{1};
-  SearchLimitLevel searchLimit_{MEDIUM};
+  std::shared_ptr<ByDb> bydb_;
+  utl::Logger* logger_;
+  int spacing_{}, lineWidth_{}, manufacturingGrid_{1};
+  int U_, GridU_;
+  SEARCH_LIMIT searchLimit_;
 };
 
 }  // namespace banyan

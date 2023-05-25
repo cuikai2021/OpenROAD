@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include "ByDb.hpp"
 #include "ord/OpenRoad.hh"
 #include "odb/db.h"
 
@@ -51,12 +52,14 @@ class Banyan : public ord::OpenRoad::Observer
             utl::Logger* logger,
             lrl::Laurel* laurel);
 
-  int main(std::vector<std::string> args,bool updateDB);
+  int main(std::vector<std::string> args, bool updateDB);
   int cmap(const std::string& cmapPb, bool cgr_mode, const std::string& instMovementPb);
   int instanceMovement(std::vector<std::string> args);
   void mergeWireSegment();
   int m1GridlessMaze();
+  void runGui();
   void drcPatch();
+
   void clearWires();
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,

@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include "ByAdapter.hpp"
+#include "GridlessMaze.hpp"
 #include "GroupedRange.hpp"
 #include "db_sta/dbNetwork.hh"
 #include "lrl/Laurel.hh"
@@ -28,16 +30,6 @@
 namespace banyan {
 
 using Y2Height = std::pair<int, int>;
-struct pair_hash
-{
-  template <class T1, class T2>
-  std::size_t operator()(const std::pair<T1, T2>& p) const
-  {
-    auto h1 = std::hash<T1>{}(p.first);
-    auto h2 = std::hash<T2>{}(p.second);
-    return h1 ^ h2;
-  }
-};
 
 namespace ply = boost::polygon;
 using namespace boost::polygon::operators;
@@ -562,7 +554,7 @@ void OpenDBAdapter::getDefViaFromODB()
         case 0: {
           auto botLayer = pbVia->mutable_bottomlayer();
           botLayer->set_name(layerName);
-          for(auto const& x: geos) {
+          for (auto const& x : geos) {
             *botLayer->mutable_geometries()->Add() = x;
           }
           break;
@@ -570,7 +562,7 @@ void OpenDBAdapter::getDefViaFromODB()
         case 1: {
           auto cutLayer = pbVia->mutable_cutlayer();
           cutLayer->set_name(layerName);
-          for(auto const& x: geos) {
+          for (auto const& x : geos) {
             *cutLayer->mutable_geometries()->Add() = x;
           }
           break;
@@ -578,7 +570,7 @@ void OpenDBAdapter::getDefViaFromODB()
         case 2: {
           auto topLayer = pbVia->mutable_toplayer();
           topLayer->set_name(layerName);
-          for(auto const& x: geos) {
+          for (auto const& x : geos) {
             *topLayer->mutable_geometries()->Add() = x;
           }
           break;
@@ -640,12 +632,9 @@ VirtualPin OpenDBAdapter::gmVirtualPin2VirtualPin(const GmVirtualPin& gmvpin)
   VirtualPin vpin;
   for (auto pinname : gmvpin.names) {
     auto pin = vpin.add_pins();
-
-    std::vector<std::string> names;
-    boost::split(names, pinname, boost::is_any_of("@"));
-    assert(names.size() == 2);
-    pin->set_instancename(names[0]);
-    pin->mutable_portname()->set_value(names[1]);
+    assert(pinname.first != "" && pinname.second != "");
+    pin->set_instancename(pinname.first);
+    pin->mutable_portname()->set_value(pinname.second);
   }
 
   odb::dbTechLayer* techlayer = nullptr;
@@ -660,19 +649,19 @@ VirtualPin OpenDBAdapter::gmVirtualPin2VirtualPin(const GmVirtualPin& gmvpin)
   wire->set_layername(techlayer->getName());
 
   for (auto line : gmvpin.lines) {
-    auto gmBox = line.extendBox(techlayer->getWidth() / 2);
+    auto b = line.toBox(techlayer->getWidth());
     auto wireSeg = wire->add_segments();
     auto wireRect = wireSeg->mutable_rect();
 
     auto point = wireRect->mutable_point();
-    point->mutable_point()->set_x(gmBox.xMin);
-    point->mutable_point()->set_y(gmBox.yMin);
+    point->mutable_point()->set_x(b.xMin());
+    point->mutable_point()->set_y(b.yMin());
 
     auto rect = wireRect->mutable_rect();
     rect->mutable_lowleft()->set_x(0);
     rect->mutable_lowleft()->set_y(0);
-    rect->mutable_upright()->set_x(gmBox.xMax - gmBox.xMin);
-    rect->mutable_upright()->set_y(gmBox.yMax - gmBox.yMin);
+    rect->mutable_upright()->set_x(b.dx());
+    rect->mutable_upright()->set_y(b.dy());
   }
 
   return vpin;
@@ -685,9 +674,9 @@ void OpenDBAdapter::getNetsFromODB()
   auto designLegalized = isLegalized();
   std::unordered_map<std::string, std::deque<VirtualPin>> net2Vpins;
   if (designLegalized) {
-    auto gm
-        = GridlessMaze(db_, logger_, GridlessMaze::SearchLimitLevel::MEDIUM);
-    auto vpins = gm.Run();
+    auto bydb = ByAdapter(db_, logger_).getByDb();
+    auto gm = GridlessMaze(db_, bydb, logger_, GridlessMaze::HIGH);
+    auto vpins = gm.run();
     for (auto vpin : vpins) {
       if (net2Vpins.find(vpin.netName) != net2Vpins.end()) {
         net2Vpins[vpin.netName].push_back(gmVirtualPin2VirtualPin(vpin));
@@ -722,7 +711,7 @@ void OpenDBAdapter::getNetsFromODB()
     auto odbNetWire = odbNet->getWire();
     if (odbNetWire != nullptr) {
       auto wires = odbWires2Wires(odbNet->getWire());
-      for(auto const& x: wires) {
+      for (auto const& x : wires) {
         *net->mutable_wires()->Add() = x;
       }
     }
@@ -750,7 +739,7 @@ void OpenDBAdapter::getSpecialNetsFromODB()
     }
     for (auto odbSwire : odbNet->getSWires()) {
       auto swires = dbSWire2SpecialWires(odbSwire);
-      for(auto const& x: swires) {
+      for (auto const& x : swires) {
         *snet->mutable_wires()->Add() = x;
       }
     }

@@ -1,5 +1,4 @@
 add_executable(banyan_unittest
-        MergeWireSegment_test.cpp
         M1GridlessMaze_test.cpp
         )
 

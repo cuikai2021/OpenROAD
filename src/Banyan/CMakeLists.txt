@@ -19,6 +19,7 @@ check_ipo_supported(RESULT ipo_supported OUTPUT error)
 find_package(Boost 1.68.0)
 find_package(Boost 1.68.0 COMPONENTS program_options REQUIRED)
 find_package(OpenMP REQUIRED)
+add_subdirectory(banyan-integrate)
 
 swig_lib(NAME Banyan
   NAMESPACE banyan
@@ -32,10 +33,14 @@ target_sources(Banyan
   src/MakeBanyan.cpp
   src/DBAdapter.cpp
   src/Global.cpp
-  src/MergeWireSegment.cpp
-  src/GridlessMaze.cpp
+  src/BanyanGraphics.cpp
+  src/ByAdapter.cpp
+  src/DebugDefWriter.cpp
   src/PinCluster.cpp
+  src/UnionFind.cpp
+  src/GridlessMaze.cpp
   src/DrcPatch.cpp
+  src/ViaCandidate.cpp
 )
 
 target_include_directories(Banyan
@@ -44,6 +49,7 @@ target_include_directories(Banyan
 
   PRIVATE
     src
+    banyan-integrate/include
 )
 
 target_link_libraries(Banyan
@@ -63,6 +69,7 @@ target_link_libraries(Banyan
     ZLIB::ZLIB
     fassert
     prettyprint
+    banyan_ext
     banyan_pb
     cgr
     linden

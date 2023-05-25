@@ -54,6 +54,10 @@ void instMovement(std::vector<std::string> args)
     ord::OpenRoad::openRoad()->getBanyan()->instanceMovement(args);
 }
 
+void banyanRunGui()
+{
+    ord::OpenRoad::openRoad()->getBanyan()->runGui();
+}
 void drcPatch()
 {
     ord::OpenRoad::openRoad()->getBanyan()->drcPatch();

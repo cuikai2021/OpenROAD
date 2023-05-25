@@ -1,16 +1,16 @@
 #pragma once
 
+#include <deque>
 #include <iostream>
 #include <list>
 #include <map>
-#include <deque>
 
 #include "Global.hpp"
+#include "GridlessMaze.hpp"
 #include "banyan_db.pb.h"
 #include "db.h"
 #include "string.h"
 #include "utl/Logger.h"
-#include "GridlessMaze.hpp"
 
 namespace odb {
 class dbDatabase;

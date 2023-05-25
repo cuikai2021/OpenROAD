@@ -5,19 +5,22 @@
 #include <iostream>
 #include <sstream>
 
+#include "BanyanGraphics.hpp"
+#include "ByAdapter.hpp"
 #include "DBAdapter.hpp"
+#include "DrcPatch.hpp"
 #include "Global.hpp"
 #include "GridlessMaze.hpp"
-#include "MergeWireSegment.hpp"
-#include "DrcPatch.hpp"
 #include "PinCluster.hpp"
+#include "UnionFind.hpp"
+#include "ViaCandidate.hpp"
 #include "banyan_instance_movement.pb.h"
+#include "cgr/congestionRepair.hpp"
 #include "magic_enum.hpp"
 #include "odb/db.h"
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
-#include "cgr/congestionRepair.hpp"
 #include "utl/Logger.h"
 
 namespace sta {
@@ -199,14 +202,17 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   return exec(logger_, args);
 }
 
-int Banyan::cmap(const std::string& cmapPb, bool cgr_mode, const std::string& instMovementPb)
+int Banyan::cmap(const std::string& cmapPb,
+                 bool cgr_mode,
+                 const std::string& instMovementPb)
 {
   std::vector<std::string> args;
   args.push_back("route");
   args.push_back("--techlef");
   args.push_back(techfile_name_);
 
-  const auto max_layer = ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
+  const auto max_layer
+      = ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
   if (!max_layer.empty()) {
     args.push_back("--max_layer");
     args.push_back(max_layer);
@@ -239,16 +245,57 @@ int Banyan::cmap(const std::string& cmapPb, bool cgr_mode, const std::string& in
 
 int Banyan::m1GridlessMaze()
 {
-  auto gm = GridlessMaze(db_, logger_, GridlessMaze::SearchLimitLevel::MEDIUM);
-  auto res = gm.Run();
-  GridlessMaze::updateDB(db_, res);
+  auto bydb = ByAdapter(db_, logger_).getByDb();
+  auto gm = GridlessMaze(db_, bydb, logger_, GridlessMaze::MEDIUN);
+  gm.run();
+  ByAdapter::updateWire(db_, bydb);
   return SUCCESS;
 }
 
 void Banyan::mergeWireSegment()
 {
-  auto mws = MergeWireSegment(db_, logger_);
-  mws.Run();
+  auto bydb = ByAdapter(db_, logger_).getByDb();
+  for (auto& net : bydb->getNets()) {
+    if (net->isSpecial()) {
+      continue;
+    }
+    std::vector<std::shared_ptr<ByBox>> rectWires;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<ByBox>>>
+        layerWire;
+    for (auto& wire : net->getWires()) {
+      auto lineWidth
+          = db_->getTech()->findLayer(wire->getLayerName().c_str())->getWidth();
+      if (wire->isLineBox(lineWidth)) {
+        layerWire[wire->getLayerName()].emplace_back(wire);
+      } else {
+        rectWires.emplace_back(wire);
+      }
+    }
+    for (auto& [layer, wires] : layerWire) {
+      BsPolygon90Set s;
+      for (const auto& b : wires) {
+        s += *b;
+      }
+      auto lineWidth = db_->getTech()->findLayer(layer.c_str())->getWidth();
+      std::vector<ByBox> res;
+      bsp::get_max_rectangles(res, s);
+      auto info = std::make_shared<ByBoxInfo>(layer,
+                                              net->getName(),
+                                              std::nullopt,
+                                              std::nullopt,
+                                              std::nullopt,
+                                              ByBoxInfo::WIRE);
+      for (const auto& b : res) {
+        if (b.isLineBox(lineWidth)) {
+          rectWires.emplace_back(std::make_shared<ByBox>(
+              b.xMin(), b.yMin(), b.xMax(), b.yMax(), info));
+        }
+      }
+    }
+    net->mutableWires() = rectWires;
+  }
+  logger_->info(utl::BY, 1, "wire merged!");
+  ByAdapter::updateWire(db_, bydb);
 }
 
 int Banyan::instanceMovement(std::vector<std::string> args)
@@ -311,6 +358,27 @@ int Banyan::instanceMovement(std::vector<std::string> args)
   }
 
   return SUCCESS;
+}
+
+void Banyan::runGui()
+{
+  auto bydb = ByAdapter(db_, logger_).getByDb();
+  std::unique_ptr<BanyanGraphics> graphics;
+  if (BanyanGraphics::guiActive()) {
+    graphics = std::make_unique<BanyanGraphics>(logger_);
+  }
+  if (graphics) {
+    graphics->status("Open nets polygons");
+    auto netPolygons = bydb->getOpenNetPolygons();
+    logger_->info(utl::BY, 1, "open:{}", netPolygons.size());
+    std::unordered_map<std::string, std::vector<std::pair<BsPoint, BsPoint>>>
+        netMst;
+    for (const auto& [netName, netPls] : netPolygons) {
+      netMst[netName] = ByDb::getPolygonsMst(netPls);
+    }
+    graphics->drawPolygons(netPolygons, netMst);
+  }
+  return;
 }
 
 void Banyan::drcPatch()

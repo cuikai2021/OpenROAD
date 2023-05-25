@@ -102,9 +102,8 @@ void DrcPatch::run()
   auto chip = db_->getChip();
   auto block = chip->getBlock();
 
-  std::vector<std::future<std::tuple<odb::dbTechLayer*,
-                                     odb::dbNet*,
-                                     std::vector<PlyRect>>>>
+  std::vector<std::future<
+      std::tuple<odb::dbTechLayer*, odb::dbNet*, std::vector<PlyRect>>>>
       futureRes;
   for (auto layer : db_->getTech()->getLayers()) {
     if (layer->getType() != odb::dbTechLayerType::ROUTING) {
@@ -128,8 +127,13 @@ void DrcPatch::run()
     }
   }
 
+  std::vector<std::tuple<odb::dbTechLayer*, odb::dbNet*, std::vector<PlyRect>>>
+      results;
   for (int i = 0; i < futureRes.size(); i++) {
-    auto result = futureRes[i].get();
+    results.push_back(futureRes[i].get());
+  }
+
+  for (auto result : results) {
     auto layer = std::get<0>(result);
     auto net = std::get<1>(result);
     odb::dbWireEncoder _wire_encoder;
@@ -284,14 +288,12 @@ std::vector<PlyRect> DrcPatch::minHolePatch(odb::dbTechLayer* layer,
   return netPatchRects;
 }
 
-
 const std::string DrcPatch::getItermName(odb::dbITerm* iterm) const
 {
   auto inst = iterm->getInst();
   auto mterm = iterm->getMTerm();
   return inst->getName() + "/" + mterm->getName();
 }
-
 
 std::vector<PlyRect> DrcPatch::dbWire2Rects(odb::dbTechLayer* layer,
                                             odb::dbWire* odbWire)
