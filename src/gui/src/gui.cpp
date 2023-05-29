@@ -152,6 +152,8 @@ void Gui::redraw()
     return;
   }
   main_window->redraw();
+  // Make changes visible while command runs
+  QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 }
 
 void Gui::status(const std::string& message)
