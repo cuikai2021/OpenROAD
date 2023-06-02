@@ -37,13 +37,11 @@
 sta::define_cmd_args "tapcell" {[-tapcell_master tapcell_master]\
                                 [-tap_prefix tap_prefix]\
                                 [-endcap_master endcap_master]\
-				[-endcap_right_master endcap_right_master]\
-				[-endcap_left_master endcap_left_master]\
+                                [-endcap_right_master endcap_right_master]\
+                                [-endcap_left_master endcap_left_master]\
                                 [-endcap_cpp endcap_cpp]\
                                 [-endcap_prefix endcap_prefix]\
                                 [-distance dist]\
-                                [-halo_width_x halo_x]\
-                                [-halo_width_y halo_y]\
                                 [-tap_nwin2_master tap_nwin2_master]\
                                 [-tap_nwin3_master tap_nwin3_master]\
                                 [-tap_nwout2_master tap_nwout2_master]\
@@ -63,7 +61,7 @@ sta::define_cmd_args "tapcell" {[-tapcell_master tapcell_master]\
 proc tapcell { args } {
   sta::parse_key_args "tapcell" args \
     keys {-tapcell_master -endcap_master -endcap_right_master -endcap_left_master \
-              -endcap_cpp -distance -halo_width_x -halo_width_y \
+              -endcap_cpp -distance -halo_width_y -halo_width_x \
               -tap_nwin2_master -tap_nwin3_master -tap_nwout2_master \
               -tap_nwout3_master -tap_nwintie_master -tap_nwouttie_master \
               -cnrcap_nwin_master -cnrcap_nwout_master -incnrcap_nwin_master \
@@ -83,15 +81,11 @@ proc tapcell { args } {
   }
 
   if { [info exists keys(-halo_width_y)] } {
-  set halo_y $keys(-halo_width_y)
-  } else {
-    set halo_y 2
+    utl::warn TAP 34 "halo_width_y option is deprecated"
   }
 
   if { [info exists keys(-halo_width_x)] } {
-    set halo_x $keys(-halo_width_x)
-  } else {
-    set halo_x 2
+    utl::warn TAP 35 "halo_width_x option is deprecated"
   }
 
   set tap_nwin2_master "INVALID"
@@ -164,7 +158,7 @@ proc tapcell { args } {
   if { [info exists keys(-endcap_prefix)] } {
       set endcap_prefix $keys(-endcap_prefix)
   }
-  
+
   set add_boundary_cell 0
   if {$tap_nwintie_master != "INVALID" &&
       $tap_nwin2_master != "INVALID" &&
@@ -180,8 +174,6 @@ proc tapcell { args } {
 
   set db [ord::get_db]
 
-  set halo_y [ord::microns_to_dbu $halo_y]
-  set halo_x [ord::microns_to_dbu $halo_x]
   set dist [ord::microns_to_dbu $dist]
 
   set tapcell_master "NULL"
@@ -213,7 +205,7 @@ proc tapcell { args } {
       utl::error TAP 111 "-endcap_right_master and -endcap_left_master must be used together.";
     }
   }
-	
+
   if { [info exists keys(-endcap_right_master)] } {
     set endcap_master_name $keys(-endcap_right_master)
     set endcap_right_master [$db findMaster $endcap_master_name]
@@ -221,7 +213,7 @@ proc tapcell { args } {
       utl::error TAP 112 "Master $endcap_master_name not found."
     }
   }
-	
+
   if { [info exists keys(-endcap_left_master)] } {
     set endcap_master_name $keys(-endcap_left_master)
     set endcap_left_master [$db findMaster $endcap_master_name]
@@ -233,7 +225,7 @@ proc tapcell { args } {
   tap::clear
   tap::set_tap_prefix $tap_prefix
   tap::set_endcap_prefix $endcap_prefix
-  tap::run $endcap_right_master $endcap_left_master $halo_x $halo_y $cnrcap_nwin_master $cnrcap_nwout_master $add_boundary_cell $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $incnrcap_nwin_master $incnrcap_nwout_master $tapcell_master $dist
+  tap::run $endcap_right_master $endcap_left_master $cnrcap_nwin_master $cnrcap_nwout_master $add_boundary_cell $tap_nwintie_master $tap_nwin2_master $tap_nwin3_master $tap_nwouttie_master $tap_nwout2_master $tap_nwout3_master $incnrcap_nwin_master $incnrcap_nwout_master $tapcell_master $dist
 }
 
 sta::define_cmd_args "tapcell_ripup" {[-tap_prefix tap_prefix]\
@@ -266,6 +258,6 @@ proc tapcell_ripup { args } {
   set endcaps_removed [tap::remove_cells $endcap_prefix]
   utl::info TAP 101 "Removed $endcaps_removed endcaps."
 
-  # Reset global parameters 
+  # Reset global parameters
   tap::reset
 }

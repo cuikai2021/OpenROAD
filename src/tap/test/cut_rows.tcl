@@ -8,4 +8,4 @@ read_def cut_rows.def
 set db [::ord::get_db]
 set blockages [tap::find_blockages]
 set endcap_master [$db findMaster "FILLCELL_X1"]
-tap::cut_rows $endcap_master $endcap_master $blockages 2 2
+tap::cut_rows $endcap_master $endcap_master $blockages

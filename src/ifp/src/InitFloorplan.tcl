@@ -318,7 +318,10 @@ proc cut_rows {block placement_blockages} {
       foreach row [$block getRows] {
         set row_name [$row getName]
         if {![dict exists $row_placement_blockages $row_name]} {
-          if {[tap::overlaps [$blockage getBBox] $row 0 0]} {
+          set box [$blockage getBBox]
+          set rect [odb::Rect]
+          $rect init [$box xMin] [$box yMin] [$box xMax] [$box yMax]
+          if {[tap::overlaps $rect $row]} {
             lappend rows_to_cut $row
           }
           dict lappend row_placement_blockages $row_name [$blockage getBBox]

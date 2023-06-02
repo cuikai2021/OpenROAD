@@ -68,9 +68,7 @@ class Tapcell
   void setEndcapPrefix(const std::string& endcap_prefix);
   void clear();
   void run(odb::dbMaster* endcap_right_master,
-		   odb::dbMaster* endcap_left_master,
-           int halo_x,
-           int halo_y,
+           odb::dbMaster* endcap_left_master,
            const std::string& cnrcap_nwin_master,
            const std::string& cnrcap_nwout_master,
            bool add_boundary_cell,
@@ -96,15 +94,22 @@ class Tapcell
                 odb::dbRowDir& direction,
                 int min_row_width);
   void cutRows(odb::dbMaster* endcap_right_master,
-		       odb::dbMaster* endcap_left_master,
-               const std::vector<odb::dbBox*>& blockages,
-               int halo_x,
-               int halo_y);
-  bool overlaps(odb::dbBox* blockage, odb::dbRow* row, int halo_x, int halo_y);
+               odb::dbMaster* endcap_left_master,
+               const std::vector<odb::Rect>& blockages);
+  bool overlaps(const odb::Rect& blockage, odb::dbRow* row);
   int removeCells(const std::string& prefix);
-  std::vector<odb::dbBox*> findBlockages();
+  std::vector<odb::Rect> findBlockages();
 
  private:
+  struct RowAndHeightHash {
+    template <class T1, class T2>
+    std::size_t operator () (const std::pair<T1,T2> &p) const {
+        auto h1 = std::hash<T1>{}(p.first);
+        auto h2 = std::hash<T2>{}(p.second);
+        return  h1 ^ h2;
+    }
+  };
+  std::unordered_map<std::pair<int, int>, std::set<std::pair<int, int>>, RowAndHeightHash> row_areas_;
   struct FilledSites
   {
     int yMin;
@@ -124,12 +129,13 @@ class Tapcell
   std::vector<FilledSites> filled_sites_;
   std::string tap_prefix_;
   std::string endcap_prefix_;
+  odb::Rect expandBlockage(odb::dbBox* box,
+                           odb::dbInst* inst,
+                           bool is_need_transform);
   void cutRow(odb::dbBlock* block,
               odb::dbRow* row,
-              std::vector<odb::dbBox*>& row_blockages,
-              int min_row_width,
-              int halo_x,
-              int halo_y);
+              std::vector<odb::Rect>& row_blockages,
+              int min_row_width);
   const std::pair<int, int> getMinMaxX(
       const std::vector<std::vector<odb::dbRow*>>& rows);
   RowFills findRowFills();
@@ -153,6 +159,7 @@ class Tapcell
                      int width,
                      odb::dbOrientType& orient,
                      const std::vector<std::vector<int>>& row_insts);
+  bool checkRowArea(int xmin, int ymin, int xmax, int ymax);
   int insertAtTopBottom(const std::vector<std::vector<odb::dbRow*>>& rows,
                         const std::vector<std::string>& masters,
                         odb::dbMaster* endcap_master,
@@ -181,7 +188,7 @@ class Tapcell
       const std::vector<std::vector<odb::dbRow*>>& rows);
   int insertEndcaps(const std::vector<std::vector<odb::dbRow*>>& rows,
                     odb::dbMaster* endcap_right_master,
-					odb::dbMaster* endcap_left_master,
+                    odb::dbMaster* endcap_left_master,
                     const CornercapMasters& masters);
   std::vector<std::vector<odb::dbRow*>> organizeRows();
   int insertTapcells(const std::vector<std::vector<odb::dbRow*>>& rows,
