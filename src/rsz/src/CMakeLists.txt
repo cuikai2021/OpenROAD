@@ -49,6 +49,8 @@ target_sources(rsz
     Rebuffer.cc
     SteinerTree.cc
     EstimateWireParasitics.cc
+
+    envflags.cpp
 )
 
 target_include_directories(rsz
@@ -67,6 +69,7 @@ target_link_libraries(rsz
     utl
     spdlog::spdlog
     fassert
+    envflag
 )
 
 messages(

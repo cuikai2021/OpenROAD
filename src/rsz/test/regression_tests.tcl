@@ -1,4 +1,7 @@
 record_tests {
+  repair_setup1_no_buffer
+  repair_setup1_no_rc_chage
+
   add_tie_cell_const_out_pin
   add_tie_cell_error_arg
   add_tie_cell_error_nonexist_obj

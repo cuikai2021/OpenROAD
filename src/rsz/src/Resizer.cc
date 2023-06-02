@@ -67,8 +67,12 @@
 #include "sta/Fuzzy.hh"
 
 #include "fassert.hpp"
+#include "envflag/envflag.hpp"
 
 // http://vlsicad.eecs.umich.edu/BK/Slots/cache/dropzone.tamu.edu/~zhuoli/GSRC/fast_buffer_insertion.html
+
+IMPORT_BOOL_FLAG_WITH_DEFAULT(RSZ_DISABLE_BUFFERING);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(RSZ_DISABLE_RC_MODIFICATION);
 
 namespace sta {
 extern const char *rsz_tcl_inits[];
@@ -1791,7 +1795,8 @@ Resizer::replaceCell(Instance *inst,
 
     // Invalidate estimated parasitics on all instance pins.
     // Input nets change pin cap, outputs change location (slightly).
-    if (haveEstimatedParasitics()) {
+    if (haveEstimatedParasitics()
+        && !RSZ_DISABLE_RC_MODIFICATION()) {
       InstancePinIterator *pin_iter = network_->pinIterator(inst);
       while (pin_iter->hasNext()) {
         const Pin *pin = pin_iter->next();
@@ -2691,6 +2696,7 @@ Resizer::repairSetup(PathRef &path,
         break;
       }
 
+      if (!RSZ_DISABLE_BUFFERING()) {
       // For tristate nets all we can do is resize the driver.
       bool tristate_drvr = isTristateDriver(drvr_pin);
       if (fanout > 1
@@ -2713,6 +2719,7 @@ Resizer::repairSetup(PathRef &path,
         splitLoads(drvr_path, drvr_index, path_slack, &expanded);
         changed = true;
         break;
+      }
       }
     }
   }

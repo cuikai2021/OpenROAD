@@ -420,19 +420,32 @@ proc remove_tie_cell { args } {
   rsz::remove_tie_cell_cmd $tie_low_cell $tie_low_pin $tie_high_cell $tie_high_pin
 }
 
+proc rsz_set_flag { keys_arr key } {
+  # global env
+  upvar $keys_arr keys
+  if { [info exists keys(-$key)] } {
+    set macro "RSZ_[string toupper $key]"
+    puts "set $macro true"
+    set ::env($macro) "true"
+  }
+}
+
 # -max_passes is for developer debugging so intentionally not documented
 # in define_cmd_args
 sta::define_cmd_args "repair_timing" {[-setup] [-hold]\
                                         [-slack_margin slack_margin]\
                                         [-max_buffer_percent buffer_percent]\
                                         [-allow_setup_violations]\
-                                        [-max_utilization util]}
+                                        [-max_utilization util] \
+                                        [-disable_buffering] \
+                                        [-disable_rc_modification]}
 
 proc repair_timing { args } {
   sta::parse_key_args "repair_timing" args \
     keys {-slack_margin -libraries -max_utilization
       -max_buffer_percent -max_passes} \
-    flags {-setup -hold -allow_setup_violations}
+    flags {-setup -hold -allow_setup_violations \
+      -disable_buffering -disable_rc_modification}
   
   if { [info exists keys(-libraries)] } {
     utl::warn RSZ 63 "-libraries is deprecated."
@@ -444,6 +457,9 @@ proc repair_timing { args } {
     set setup 1
     set hold 1
   }
+
+  rsz_set_flag flags "disable_buffering"
+  rsz_set_flag flags "disable_rc_modification"
   
   set slack_margin [rsz::parse_time_margin_arg "-slack_margin" keys]
   set allow_setup_violations [info exists flags(-allow_setup_violations)]
