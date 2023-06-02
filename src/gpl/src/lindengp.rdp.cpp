@@ -117,6 +117,11 @@ bool load(const string& cmap_pb_file,
 
 }  // namespace
 
+void LindenGlobalPlace::setRoutabilityDriven(bool flag)
+{
+  routability_driven_ = flag;
+}
+
 bool LindenGlobalPlace::congestion_estimate()
 {
   auto sc = ::ord::OpenRoad::openRoad()->getScanChain();

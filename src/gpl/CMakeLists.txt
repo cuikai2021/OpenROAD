@@ -47,7 +47,7 @@ find_package(Eigen3 REQUIRED)
 swig_lib(NAME      gpl
          NAMESPACE gpl
          I_FILE    src/gpl.i
-         SCRIPTS   src/replace.tcl src/lindengp.tcl
+         SCRIPTS   src/replace.tcl src/linden.tcl
 )
 
 target_sources(gpl
@@ -78,7 +78,10 @@ target_sources(gpl
     src/timingBase.cpp
     src/graphics.cpp
     src/lindengp.rdp.cpp
+    src/lindengp.tdp.cpp
     src/lindengp.focus.cpp
+    src/lindengp.db.cpp
+    src/lindengp.ip.cpp
     src/lindenmp.cpp
     src/LindenDBSanitizer.cpp
 )
