@@ -147,12 +147,12 @@ Instance::Instance(odb::dbInst* inst,
 
 // for dummy instances
 Instance::Instance(int lx, int ly, int ux, int uy)
-:   IntRect(lx, ly, ux, uy), 
-    inst_(nullptr),
-    extId_(INT_MIN),
-    is_macro_(false),
-    is_locked_(false),
-    max_density_(1.0)
+    : IntRect(lx, ly, ux, uy),
+      inst_(nullptr),
+      extId_(INT_MIN),
+      is_macro_(false),
+      is_locked_(false),
+      max_density_(1.0)
 {
 }
 
@@ -647,7 +647,8 @@ PlacerBase::PlacerBase()
       dummyInstsArea_(0),
       fixedInstsArea_(0),
       macroInstsArea_(0),
-      stdInstsArea_(0)
+      stdInstsArea_(0),
+      instsPadding_()
 {
 }
 
@@ -725,6 +726,8 @@ void PlacerBase::init()
   log_->info(GPL, 4, "CoreAreaLxLy: {} {}", die_.coreLx(), die_.coreLy());
   log_->info(GPL, 5, "CoreAreaUxUy: {} {}", die_.coreUx(), die_.coreUy());
 
+  instsPadding_.init(pbVars_.padLeft, pbVars_.padRight, siteSizeX_);
+
   // insts fill with real instances
   dbSet<dbInst> insts = block->getInsts();
   instStor_.reserve(insts.size());
@@ -740,6 +743,7 @@ void PlacerBase::init()
                     siteSizeY_,
                     log_);
     instStor_.push_back(myInst);
+    instsPadding_.add(myInst);
 
     dbBox* bbox = inst->getBBox();
     if (bbox->getDY() > die_.coreDy())
@@ -876,6 +880,23 @@ void PlacerBase::init()
   }
 
   printInfo();
+}
+
+void PlacerBase::InstsPadding::add(const Instance& inst) noexcept
+{
+  if (!hasPadding()) {
+    return;
+  }
+  const auto& dbInst = inst.dbInst();
+  FASSERT(dbInst != nullptr);
+  int lx_, ly_;
+  dbInst->getLocation(lx_, ly_);
+  const auto& master = dbInst->getMaster();
+  FASSERT(master != nullptr);
+  int64_t w = master->getWidth();
+  int64_t h = master->getHeight();
+  area += inst.area() - w * h;
+  instsNum++;
 }
 
 // Use dummy instance to fill unusable sites.  Sites are unusable
@@ -1119,8 +1140,9 @@ void PlacerBase::printInfo() const
   log_->info(GPL, 15, "CoreAreaUxUy: {} {}", die_.coreUx(), die_.coreUy());
 
   const int64_t coreArea = die_.coreArea();
-  float util = static_cast<float>(placeInstsArea_)
-               / (coreArea - nonPlaceInstsArea_) * 100;
+  const int64_t whiteSpaceArea = coreArea - nonPlaceInstsArea_;
+  float util = static_cast<float>(placeInstsArea_) / whiteSpaceArea * 100;
+  float instsPaddingAreaUtil = static_cast<float>(instsPadding_.area) / whiteSpaceArea * 100;
 
   log_->info(GPL, 16, "CoreArea: {}", coreArea);
   log_->info(GPL, 17, "NonPlaceInstsArea: {}", nonPlaceInstsArea_);
@@ -1129,6 +1151,18 @@ void PlacerBase::printInfo() const
 
   log_->info(GPL, 20, "StdInstsArea: {}", stdInstsArea_);
   log_->info(GPL, 21, "MacroInstsArea: {}", macroInstsArea_);
+  if (instsPadding_.hasPadding()) {
+    log_->info(GPL,
+               22,
+               "InstsPaddingInfo: Area: {}({:.2f}%), PadSites: ({}, {}), SiteSizeX: {}, "
+               "PaddedInstsNum: {}",
+               instsPadding_.area,
+               instsPaddingAreaUtil,
+               instsPadding_.padLeft,
+               instsPadding_.padLeft,
+               instsPadding_.siteSizeX,
+               instsPadding_.instsNum);
+  }
 #if 0  // debug only
   std::cout << "fixedInstsArea: " << fixedInstsArea_ << std::endl;
   std::cout << "dummyInstsArea: " << dummyInstsArea_ << std::endl;

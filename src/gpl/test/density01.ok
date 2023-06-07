@@ -61,6 +61,7 @@ pad : 0 -> 0.597
 [INFO GPL-0019] Util(%): 76.13
 [INFO GPL-0020] StdInstsArea: 2904720000
 [INFO GPL-0021] MacroInstsArea: 0
+[INFO GPL-0022] InstsPaddingInfo: Area: 625632000(16.40%), PadSites: (1, 1), SiteSizeX: 380, PaddedInstsNum: 294
 [INFO GPL-0031] FillerInit: NumGCells: 391
 [INFO GPL-0032] FillerInit: NumGNets: 364
 [INFO GPL-0033] FillerInit: NumGPins: 1122
@@ -93,6 +94,7 @@ pad : 1 -> 0.761
 [INFO GPL-0019] Util(%): 92.53
 [INFO GPL-0020] StdInstsArea: 3530352000
 [INFO GPL-0021] MacroInstsArea: 0
+[INFO GPL-0022] InstsPaddingInfo: Area: 1251264000(32.79%), PadSites: (2, 2), SiteSizeX: 380, PaddedInstsNum: 294
 [INFO GPL-0031] FillerInit: NumGCells: 318
 [INFO GPL-0032] FillerInit: NumGNets: 364
 [INFO GPL-0033] FillerInit: NumGPins: 1122

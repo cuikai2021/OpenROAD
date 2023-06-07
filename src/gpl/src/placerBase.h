@@ -370,6 +370,28 @@ class PlacerBase
   int64_t macroInstsArea_;
   int64_t stdInstsArea_;
 
+  struct InstsPadding
+  {
+    int64_t padLeft;
+    int64_t padRight;
+    int64_t siteSizeX;
+    int64_t area;
+    int64_t instsNum;
+    InstsPadding() : padLeft(0), padRight(0), siteSizeX(0), area(0), instsNum(0)
+    {
+    }
+    void init(int64_t left, int64_t right, int64_t sz) noexcept
+    {
+      padLeft = left;
+      padRight = right;
+      siteSizeX = sz;
+    }
+
+    bool hasPadding() const noexcept { return padLeft > 0 || padRight > 0; }
+    void add(const Instance& inst) noexcept;
+
+  } instsPadding_;
+
   void init();
   void initInstsForUnusableSites();
   void fixIOPinsLocation();
