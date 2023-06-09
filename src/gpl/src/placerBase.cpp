@@ -750,7 +750,7 @@ void PlacerBase::init()
       log_->error(
           GPL, 119, "instance {} height is larger than core.", inst->getName());
     if (bbox->getDX() > die_.coreDx())
-      log_->error(
+      log_->warn(
           GPL, 120, "instance {} width is larger than core.", inst->getName());
   }
 
