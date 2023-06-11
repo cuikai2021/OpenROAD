@@ -142,12 +142,6 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
     bool is_macro = inst->isMacro();
     bool is_fixed = inst->isFixed();
     float max_density = inst->max_density();
-    if (is_fixed) {
-      auto intersect = rect.intersect(core_region);
-      if (intersect && intersect->area() > 0) {
-        rect = *intersect;
-      }
-    }
     if (inst->dbInst() != nullptr) {
       void* odb_instance = inst->dbInst();
       std::vector<linden::geom::Rect> obs_overlap_layer;
