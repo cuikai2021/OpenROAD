@@ -1205,12 +1205,14 @@ static bool isCoreAreaOverlap(Die& die, Instance& inst)
 
 static int64_t getRectOverlapWithCoreArea(Die& die, const IntRect& rect)
 {
-  int rectLx = max(die.coreLx(), rect.lx()),
-      rectLy = max(die.coreLy(), rect.ly()),
-      rectUx = min(die.coreUx(), rect.ux()),
-      rectUy = min(die.coreUy(), rect.uy());
-  return static_cast<int64_t>(rectUx - rectLx)
-         * static_cast<int64_t>(rectUy - rectLy);
+  int64_t lx = max(die.coreLx(), rect.lx());
+  int64_t ly = max(die.coreLy(), rect.ly());
+  int64_t ux = min(die.coreUx(), rect.ux());
+  int64_t uy = min(die.coreUy(), rect.uy());
+  if (lx > ux || ly > uy) {
+    return 0;
+  }
+  return (ux - lx) * (uy - ly);
 }
 
 static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
