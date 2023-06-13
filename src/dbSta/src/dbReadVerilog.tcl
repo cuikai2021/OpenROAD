@@ -69,11 +69,11 @@ proc write_verilog { args } {
 
   set remove_cells {}
   if { [info exists keys(-remove_cells)] } {
-    set remove_cells [sta::parse_libcell_arg $keys(-remove_cells)]
+    set remove_cells [sta::parse_cell_arg $keys(-remove_cells)]
   }
   set sort [info exists flags(-sort)]
   set include_pwr_gnd [info exists flags(-include_pwr_gnd)]
   sta::check_argc_eq1 "write_verilog" $args
   set filename [file nativename [lindex $args 0]]
-  ord::write_verilog_cmd $filename $sort $include_pwr_gnd $remove_cells
+  sta::write_verilog_cmd $filename $sort $include_pwr_gnd $remove_cells
 }

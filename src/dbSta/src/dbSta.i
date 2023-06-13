@@ -4,6 +4,7 @@
 #include "db_sta/dbSta.hh"
 #include "db_sta/dbNetwork.hh"
 #include "ord/OpenRoad.hh"
+#include "sta/VerilogWriter.hh"
 
 namespace ord {
 // Defined in OpenRoad.i
@@ -135,6 +136,20 @@ set_sdc_opt_cmd(std::string name)
   ord::OpenRoad *openroad = ord::getOpenRoad();
   sta::dbSta *sta = openroad->getSta();
   sta->setSdcOpt(name);
+}
+
+void
+write_verilog_cmd(const char *filename,
+		  bool sort,
+		  bool include_pwr_gnd,
+		  CellSeq *remove_cells)
+{
+  // This does NOT want the SDC (cmd) network because it wants
+  // to see the sta internal names.
+  Sta *sta = Sta::sta();
+  Network *network = sta->network();
+  sta::writeVerilog(filename, sort, include_pwr_gnd, remove_cells, network);
+  delete remove_cells;
 }
 
 %} // inline
