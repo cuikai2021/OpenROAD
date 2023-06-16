@@ -98,7 +98,6 @@ class Replace
   void setInitialPlaceMaxIter(int iter);
   void setInitialPlaceMinDiffLength(int length);
   void setInitialPlaceMaxSolverIter(int iter);
-  void setInitialPlaceMaxFanout(int fanout);
   void setInitialPlaceNetWeightScale(float scale);
 
   void setCellDensityForceCalPolicy(const char* policy);
@@ -173,7 +172,6 @@ class Replace
   int initialPlaceMaxIter_;
   int initialPlaceMinDiffLength_;
   int initialPlaceMaxSolverIter_;
-  int initialPlaceMaxFanout_;
   float initialPlaceNetWeightScale_;
 
   std::string cellDensityForceCalPolicy_;

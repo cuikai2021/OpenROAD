@@ -11,11 +11,12 @@ class NetModelB2B : public NetModel
 {
  public:
   NetModelB2B(size_t minDiffLength,
-              size_t maxFanout,
               float netWeightScale,
               const std::vector<Net*>& nets,
-              const std::vector<Instance*>& placeInsts)
-      : NetModel(maxFanout, netWeightScale, nets, placeInsts),
+              const std::vector<Instance*>& placeInsts,
+              const IsScanChainsIgnoredPin& is_scan_chains_ignored_pin,
+              const IgnoredNets& ignored_nets)
+      : NetModel(netWeightScale, nets, placeInsts, is_scan_chains_ignored_pin,ignored_nets),
         minDiffLength_(minDiffLength)
   {
     build();

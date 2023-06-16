@@ -49,7 +49,6 @@ void InitialPlaceVars::reset()
   maxIter = 20;
   minDiffLength = 1500;
   maxSolverIter = 100;
-  maxFanout = 200;
   netWeightScale = 800.0;
   debug = false;
 }

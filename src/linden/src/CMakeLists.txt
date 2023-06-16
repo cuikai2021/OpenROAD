@@ -8,6 +8,7 @@ PRIVATE
     lindendp.cc
     lefdef_dumper.cc
     scanchain.cpp
+    ignored_nets.cpp
     relevance_verify.cpp
 )
 

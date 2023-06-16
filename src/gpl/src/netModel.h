@@ -3,6 +3,7 @@
 #include <Eigen/SparseCore>
 
 #include "dimension.h"
+#include "linden/ignored_nets.hpp"
 
 namespace gpl {
 class Instance;
@@ -16,14 +17,16 @@ class NetModel
   typedef Eigen::Triplet<float> T;
   typedef std::vector<T> Triplets;
 
-  NetModel(size_t maxFanout,
-           float netWeightScale,
+  NetModel(float netWeightScale,
            const std::vector<Net*>& nets,
-           const std::vector<Instance*>& placeInsts)
-      : maxFanout_(maxFanout),
-        netWeightScale_(netWeightScale),
+           const std::vector<Instance*>& placeInsts,
+           const IsScanChainsIgnoredPin& is_scan_chains_ignored_pin,
+           const IgnoredNets& ignored_nets)
+      : netWeightScale_(netWeightScale),
         nets_(nets),
-        placeInsts_(placeInsts)
+        placeInsts_(placeInsts),
+        is_scan_chains_ignored_pin_(is_scan_chains_ignored_pin),
+        ignored_nets_(ignored_nets)
   {
   }
 
@@ -53,9 +56,12 @@ class NetModel
 
   void addTwoPinConn(Pin* pin0, Pin* pin1, float w, DIMENSION dim);
   bool isSkipped(Net* net) const;
+  double getNetWeight(Net* net) const noexcept;
 
-  size_t maxFanout_;
   float netWeightScale_;
+
+  const IsScanChainsIgnoredPin& is_scan_chains_ignored_pin_;
+  const IgnoredNets& ignored_nets_;
   const std::vector<Net*>& nets_;
   const std::vector<Instance*>& placeInsts_;          // moveable instances
   Triplets matrixATriplets_[DIMENSION_CNT];           // matrix A

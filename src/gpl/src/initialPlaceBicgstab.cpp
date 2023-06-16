@@ -87,13 +87,16 @@ void InitialPlaceBicgstab::run()
   }
 
   float errors[DIMENSION_CNT] = {0.0f, 0.0f};
+  IsScanChainsIgnoredPin is_scan_chains_ignored_pin(pb_->db()->getChip()->getBlock()->getScanChains());
+  IgnoredNets ignored_nets;
   for (int i = 1; i <= ipVars_.maxIter; i++) {
     updatePinInfo();
     NetModelB2B model(ipVars_.minDiffLength,
-                      ipVars_.maxFanout,
                       ipVars_.netWeightScale,
                       pb_->nets(),
-                      placeInsts());
+                      placeInsts(),
+                      is_scan_chains_ignored_pin,
+                      ignored_nets);
     for (auto dim : {X, Y}) {
       SMatrix s(placeInstsNum(), placeInstsNum());
       // The triplet vector is recommended usages to fill in SparseMatrix from

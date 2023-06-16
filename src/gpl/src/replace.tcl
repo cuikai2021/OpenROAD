@@ -48,7 +48,6 @@ sta::define_cmd_args "global_placement" {\
     [-overflow overflow]\
     [-initial_place_policy initial_place_policy]\ 
     [-initial_place_max_iter initial_place_max_iter]\
-    [-initial_place_max_fanout initial_place_max_fanout]\
     [-cell_density_force_policy cell_density_force_policy]\
     [-routability_check_overflow routability_check_overflow]\
     [-routability_max_density routability_max_density]\
@@ -70,7 +69,7 @@ proc global_placement { args } {
       -min_phi_coef -max_phi_coef -overflow \
       -reference_hpwl \
       -initial_place_policy \
-      -initial_place_max_iter -initial_place_max_fanout \
+      -initial_place_max_iter \
       -cell_density_force_policy \
       -routability_check_overflow -routability_max_density \
       -routability_max_bloat_iter -routability_max_inflation_iter \
@@ -159,12 +158,6 @@ proc global_placement { args } {
   }
   if { [info exists flags(-disable_routability_driven)] } {
     utl::warn "GPL" 116 "-disable_routability_driven is deprecated."
-  }
-  
-  if { [info exists keys(-initial_place_max_fanout)] } { 
-    set initial_place_max_fanout $keys(-initial_place_max_fanout)
-    sta::check_positive_integer "-initial_place_max_fanout" $initial_place_max_fanout
-    gpl::set_initial_place_max_fanout_cmd $initial_place_max_fanout
   }
   
   # density settings    

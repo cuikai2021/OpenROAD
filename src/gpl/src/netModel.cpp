@@ -1,6 +1,10 @@
 #include "netModel.h"
 
+#include "envflag/envflag.hpp"
+#include "linden/ignored_nets.hpp"
 #include "placerBase.h"
+
+IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_IGNORED_NETS_MAX_FANOUT);
 
 namespace gpl {
 
@@ -29,6 +33,13 @@ void NetModel::reset(DIMENSION dim)
 // , where w is the weight on the two pin connection
 void NetModel::addTwoPinConn(Pin* pin0, Pin* pin1, float w, DIMENSION dim)
 {
+  auto is_scan_chains_ignored_pin = [&](Pin* pin) {
+    return pin->isITerm() && is_scan_chains_ignored_pin_(pin->dbITerm());
+  };
+  if (is_scan_chains_ignored_pin(pin0) || is_scan_chains_ignored_pin(pin1)) {
+    return;
+  }
+
   struct PinInfo
   {
     Pin* pin;
@@ -51,7 +62,7 @@ void NetModel::addTwoPinConn(Pin* pin0, Pin* pin1, float w, DIMENSION dim)
     const auto& cur = pins[cur_idx];
     if (cur.movable) {
       aList.push_back(T(cur.id, cur.id, w));
-      const auto& ano = pins[(cur_idx + 1) % 2];
+      const auto& ano = pins[cur_idx ^ 1];
       if (ano.movable) {
         aList.push_back(T(cur.id, ano.id, -w));
         b(cur.id) += w * (ano.pin->offsetC(dim) - cur.pin->offsetC(dim));
@@ -64,16 +75,22 @@ void NetModel::addTwoPinConn(Pin* pin0, Pin* pin1, float w, DIMENSION dim)
 
 bool NetModel::isSkipped(Net* net) const
 {
-  // skip for small nets.
-  if (net->pins().size() <= 1) {
+  if (net->pins().size() == 1) {
     return true;
   }
-
-  // escape long time cals on huge fanout.
-  if (net->pins().size() >= maxFanout_) {
+  if (net->pins().size() >= LINDEN_IGNORED_NETS_MAX_FANOUT()) {
     return true;
   }
   return false;
+}
+
+double NetModel::getNetWeight(Net* net) const noexcept
+{
+  if (isSkipped(net)) {
+    return 0;
+  }
+  auto w = ignored_nets_.get_net_weight(net->dbNet());
+  return w * netWeightScale_ / (net->pins().size() - 1);
 }
 
 }  // namespace gpl

@@ -12,7 +12,6 @@ global_placement
     [-max_phi_coef max_phi_coef]
     [-overflow overflow]
     [-initial_place_max_iter max_iter]
-    [-initial_place_max_fanout max_fanout]
 
 ```
 

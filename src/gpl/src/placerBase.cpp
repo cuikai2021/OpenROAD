@@ -183,7 +183,7 @@ bool Instance::isFixed() const
   return false;
 }
 
-bool Instance::isInstance() const
+bool Instance::isInstance() const   //
 {
   return (inst_ != nullptr);
 }
@@ -451,15 +451,17 @@ void Pin::updateCoordi(odb::dbITerm* iTerm)
   int lx = iTerm->getInst()->getBBox()->xMin();
   int ly = iTerm->getInst()->getBBox()->yMin();
 
-  int instCenterX = iTerm->getInst()->getMaster()->getWidth() / 2;
-  int instCenterY = iTerm->getInst()->getMaster()->getHeight() / 2;
+  int half_w = iTerm->getInst()->getMaster()->getWidth() / 2;
+  int half_h = iTerm->getInst()->getMaster()->getHeight() / 2;
 
   // Pin SHAPE is NOT FOUND;
   // (may happen on OpenDB bug case)
+  Point offset_ll;
   if (offsetLx == INT_MAX || offsetLy == INT_MAX || offsetUx == INT_MIN
       || offsetUy == INT_MIN) {
     // offset is center of instances
-    offsetCx_ = offsetCy_ = 0;
+    offset_ll.x() = half_w;
+    offset_ll.y() = half_h;
   }
   // usual case
   else {
@@ -470,11 +472,13 @@ void Pin::updateCoordi(odb::dbITerm* iTerm)
     // from (origin: 0,0)
     // to (origin: instCenterX, instCenterY)
     //
-    offsetCx_ = (offsetLx + offsetUx) / 2 - instCenterX;
-    offsetCy_ = (offsetLy + offsetUy) / 2 - instCenterY;
+    offset_ll.x() = (offsetLx + offsetUx) / 2;
+    offset_ll.y() = (offsetLy + offsetUy) / 2;
   }
 
-  center_.set(lx + instCenterX + offsetCx_, ly + instCenterY + offsetCy_);
+  center_.set(lx + offset_ll.x(), ly + offset_ll.y());
+  offsetCx_ = offset_ll.x() - half_w;
+  offsetCy_ = offset_ll.y() - half_h;
 }
 
 //
@@ -1124,15 +1128,6 @@ void PlacerBase::printInfo() const
   log_->info(GPL, 9, "NumDummyInstances: {}", dummyInsts_.size());
   log_->info(GPL, 10, "NumNets: {}", nets_.size());
   log_->info(GPL, 11, "NumPins: {}", pins_.size());
-
-  int maxFanout = INT_MIN;
-  int sumFanout = 0;
-  for (auto& net : nets_) {
-    if (maxFanout < (int) net->pins().size()) {
-      maxFanout = (int) net->pins().size();
-    }
-    sumFanout += (int) net->pins().size();
-  }
 
   log_->info(GPL, 12, "DieAreaLxLy: {} {}", die_.dieLx(), die_.dieLy());
   log_->info(GPL, 13, "DieAreaUxUy: {} {}", die_.dieUx(), die_.dieUy());

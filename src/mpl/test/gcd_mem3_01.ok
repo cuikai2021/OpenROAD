@@ -240,11 +240,11 @@ Using 2 tracks default min distance between IO pins.
 [INFO GPL-0019] Util(%): 58.31
 [INFO GPL-0020] StdInstsArea: 2234400000
 [INFO GPL-0021] MacroInstsArea: 36133440000
-[InitialPlace]  Iter: 1 CG Error: 0.00000010 HPWL: 39059900
-[InitialPlace]  Iter: 2 CG Error: 0.00000011 HPWL: 32832900
-[InitialPlace]  Iter: 3 CG Error: 0.00000009 HPWL: 32980880
-[InitialPlace]  Iter: 4 CG Error: 0.00000011 HPWL: 33040518
-[InitialPlace]  Iter: 5 CG Error: 0.00000009 HPWL: 33053884
+[InitialPlace]  Iter: 1 CG Error: 0.00000011 HPWL: 39059900
+[InitialPlace]  Iter: 2 CG Error: 0.00000010 HPWL: 32822203
+[InitialPlace]  Iter: 3 CG Error: 0.00000011 HPWL: 32986290
+[InitialPlace]  Iter: 4 CG Error: 0.00000010 HPWL: 33052234
+[InitialPlace]  Iter: 5 CG Error: 0.00000010 HPWL: 33074850
 [INFO GPL-0031] FillerInit: NumGCells: 2927
 [INFO GPL-0032] FillerInit: NumGNets: 398
 [INFO GPL-0033] FillerInit: NumGPins: 1259
@@ -256,43 +256,43 @@ Using 2 tracks default min distance between IO pins.
 [INFO GPL-0028] BinCnt: 16 16
 [INFO GPL-0029] BinSize: 29973 8575
 [INFO GPL-0030] NumBins: 256
-[NesterovSolve] Iter: 1 overflow: 0.597888 HPWL: 22789768
-[NesterovSolve] Iter: 10 overflow: 0.573391 HPWL: 25240645
-[NesterovSolve] Iter: 20 overflow: 0.576882 HPWL: 25240190
-[NesterovSolve] Iter: 30 overflow: 0.577225 HPWL: 25216379
-[NesterovSolve] Iter: 40 overflow: 0.577006 HPWL: 25222324
-[NesterovSolve] Iter: 50 overflow: 0.57649 HPWL: 25218643
-[NesterovSolve] Iter: 60 overflow: 0.576102 HPWL: 25211576
-[NesterovSolve] Iter: 70 overflow: 0.575123 HPWL: 25205894
-[NesterovSolve] Iter: 80 overflow: 0.573813 HPWL: 25193372
-[NesterovSolve] Iter: 90 overflow: 0.57192 HPWL: 25178839
-[NesterovSolve] Iter: 100 overflow: 0.569208 HPWL: 25160365
-[NesterovSolve] Iter: 110 overflow: 0.566289 HPWL: 25147722
-[NesterovSolve] Iter: 120 overflow: 0.562444 HPWL: 25152247
-[NesterovSolve] Iter: 130 overflow: 0.553827 HPWL: 25121491
-[NesterovSolve] Iter: 140 overflow: 0.543225 HPWL: 25087375
-[NesterovSolve] Iter: 150 overflow: 0.527241 HPWL: 24986123
-[NesterovSolve] Iter: 160 overflow: 0.511062 HPWL: 24997756
-[NesterovSolve] Iter: 170 overflow: 0.477428 HPWL: 25077069
-[NesterovSolve] Iter: 180 overflow: 0.443125 HPWL: 25160207
-[NesterovSolve] Iter: 190 overflow: 0.413215 HPWL: 24684267
-[NesterovSolve] Iter: 200 overflow: 0.386797 HPWL: 24838304
-[NesterovSolve] Iter: 210 overflow: 0.336282 HPWL: 25881083
-[NesterovSolve] Iter: 220 overflow: 0.307804 HPWL: 25299913
-[NesterovSolve] Iter: 230 overflow: 0.143386 HPWL: 25581580
-[NesterovSolve] Finished with Overflow: 0.084397
+[NesterovSolve] Iter: 1 overflow: 0.599275 HPWL: 22910039
+[NesterovSolve] Iter: 10 overflow: 0.574796 HPWL: 25230492
+[NesterovSolve] Iter: 20 overflow: 0.57746 HPWL: 25249382
+[NesterovSolve] Iter: 30 overflow: 0.577195 HPWL: 25216452
+[NesterovSolve] Iter: 40 overflow: 0.576901 HPWL: 25221232
+[NesterovSolve] Iter: 50 overflow: 0.576556 HPWL: 25219211
+[NesterovSolve] Iter: 60 overflow: 0.576335 HPWL: 25213338
+[NesterovSolve] Iter: 70 overflow: 0.575536 HPWL: 25209458
+[NesterovSolve] Iter: 80 overflow: 0.574366 HPWL: 25198207
+[NesterovSolve] Iter: 90 overflow: 0.572661 HPWL: 25184373
+[NesterovSolve] Iter: 100 overflow: 0.570197 HPWL: 25166474
+[NesterovSolve] Iter: 110 overflow: 0.56725 HPWL: 25148285
+[NesterovSolve] Iter: 120 overflow: 0.56395 HPWL: 25152140
+[NesterovSolve] Iter: 130 overflow: 0.55726 HPWL: 25147693
+[NesterovSolve] Iter: 140 overflow: 0.54766 HPWL: 25099310
+[NesterovSolve] Iter: 150 overflow: 0.531738 HPWL: 25035408
+[NesterovSolve] Iter: 160 overflow: 0.515393 HPWL: 25061146
+[NesterovSolve] Iter: 170 overflow: 0.492461 HPWL: 25074582
+[NesterovSolve] Iter: 180 overflow: 0.464547 HPWL: 25101169
+[NesterovSolve] Iter: 190 overflow: 0.428125 HPWL: 24742129
+[NesterovSolve] Iter: 200 overflow: 0.399451 HPWL: 24733479
+[NesterovSolve] Iter: 210 overflow: 0.353376 HPWL: 25592321
+[NesterovSolve] Iter: 220 overflow: 0.319587 HPWL: 25376363
+[NesterovSolve] Iter: 230 overflow: 0.238989 HPWL: 25612571
+[NesterovSolve] Finished with Overflow: 0.078466
 [INFO MPL-0005] Found 3 macros.
 [INFO MPL-0009] West pins 11.
 [INFO MPL-0009] East pins 11.
 [INFO MPL-0009] North pins 27.
 [INFO MPL-0009] South pins 26.
-[INFO MPL-0069] Initial weighted wire length 15009.4.
+[INFO MPL-0069] Initial weighted wire length 15023.4.
 Begin one level partition.
 [INFO MPL-0076] Partition 3 macros.
 [INFO MPL-0077] Using 3 cut lines.
-[INFO MPL-0079] Cut line 55.10.
-[INFO MPL-0079] Cut line 114.76.
-[INFO MPL-0079] Cut line 165.11.
+[INFO MPL-0079] Cut line 54.91.
+[INFO MPL-0079] Cut line 114.38.
+[INFO MPL-0079] Cut line 166.06.
 End one level partition.
 Begin horizontal partition.
 Begin east partition.

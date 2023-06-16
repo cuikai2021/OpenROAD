@@ -16,7 +16,7 @@ void NetModelB2B::buildOn(DIMENSION dim)
       continue;
     }
 
-    float netWeight = netWeightScale_ / (net->pins().size() - 1);
+    const double netWeight = getNetWeight(net);
 
     // foreach two pins in single nets.
     auto& pins = net->pins();

@@ -2,112 +2,18 @@
 
 #include <unordered_set>
 
-#include "envflag/envflag.hpp"
 #include "linden/scanchain.hpp"
 #include "odb/db.h"
 #include "placerBase.h"
 #include "utl/Logger.h"
+#include "linden/ignored_nets.hpp"
 
-IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_SCAN_ENABLE_WEIGHT);
-IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_CLOCK_WEIGHT);
-IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT);
+#include "fassert.hpp"
 
 using namespace std;
 using utl::GPL;
 
 namespace gpl {
-
-namespace {
-
-// only for internal use
-struct IsScanChainsIgnoredPin
-{
-  vector<const odb::dbITerm*> scan_in_iterms;
-
-  IsScanChainsIgnoredPin(const odb::dbSet<odb::dbScanChain>& scan_chains)
-  {
-    size_t scan_in_iterms_size = 0;
-    for (auto scan_chain : scan_chains) {
-      scan_in_iterms_size += scan_chain->getFloating().size();
-      scan_in_iterms_size += scan_chain->getOrdered().size();
-      scan_in_iterms_size += 1;
-    }
-    scan_in_iterms.reserve(scan_in_iterms_size);
-
-    for (auto scan_chain : scan_chains) {
-      for (auto floating_comp : scan_chain->getFloating()) {
-        auto in_iterm = floating_comp->getScanIn();
-        scan_in_iterms.push_back(in_iterm);
-      }
-      for (auto ordered_comps : scan_chain->getOrdered()) {
-        auto in_iterm = ordered_comps->getComps().begin()->getScanIn();
-        scan_in_iterms.push_back(in_iterm);
-      }
-      auto stop_iterm = scan_chain->getStop();
-      scan_in_iterms.push_back(stop_iterm);
-    }
-
-    sort(scan_in_iterms.begin(), scan_in_iterms.end());
-    // i.e. there are no duplicate values in vec.
-    assert(std::adjacent_find(scan_in_iterms.begin(), scan_in_iterms.end())
-           == scan_in_iterms.end());
-  }
-
-  bool operator()(const gpl::Pin* value)
-  {
-    return value->isITerm()
-           && binary_search(
-               scan_in_iterms.begin(), scan_in_iterms.end(), value->dbITerm());
-  }
-};
-
-unordered_set<odb::dbNet*> nets_to_scanchain_enables()
-{
-  deque<linden::PairedCell> cells_on_sc = linden::cells_on_scanchains();
-  unordered_set<odb::dbNet*> res;
-  for (auto const& cell : cells_on_sc) {
-    if (cell.scan_enable()) {
-      const linden::PairedPin& se = *cell.scan_enable();
-      odb::dbNet* net = se.db().getNet();
-      if (net != nullptr) {
-        res.insert(net);
-      }
-    }
-  }
-  return res;
-}
-
-unordered_set<odb::dbNet*> nets_to_clock(
-    const deque<linden::PairedCell>& all_cells)
-{
-  unordered_set<odb::dbNet*> res;
-  for (const linden::PairedCell& cell : all_cells) {
-    for (const linden::PairedPin& pin : cell.clocks()) {
-      odb::dbNet* net = pin.db().getNet();
-      if (net != nullptr) {
-        res.insert(net);
-      }
-    }
-  }
-  return res;
-}
-
-unordered_set<odb::dbNet*> nets_to_resets(
-    const deque<linden::PairedCell>& all_cells)
-{
-  unordered_set<odb::dbNet*> res;
-  for (const linden::PairedCell& cell : all_cells) {
-    for (const linden::PairedPin& pin : cell.resets()) {
-      odb::dbNet* net = pin.db().getNet();
-      if (net != nullptr) {
-        res.insert(net);
-      }
-    }
-  }
-  return res;
-}
-
-}  // namespace
 
 std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
 {
@@ -117,6 +23,8 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
       die.dieLx(), die.dieLy(), die.dieUx(), die.dieUy());
   linden::geom::Rect core_region(
       die.coreLx(), die.coreLy(), die.coreUx(), die.coreUy());
+
+  IgnoredNets ignored_nets;
 
   linden::db::Database::Config cfg = {
     die_region : die_region,
@@ -183,39 +91,28 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
     }
   }
 
-  const unordered_set<odb::dbNet*>& se_nets = nets_to_scanchain_enables();
+  auto se_nets = ignored_nets.scan_enable_nets();
   debugPrint(log_,
              GPL,
              "linden",
              1,
              "#nets connecting scan enables: {}",
              se_nets.size());
-  const deque<linden::PairedCell>& all_cells_w_lib
-      = linden::all_cells_with_lib();
-  const unordered_set<odb::dbNet*>& clock_nets = nets_to_clock(all_cells_w_lib);
+  auto clock_nets = ignored_nets.clock_nets();
   debugPrint(
       log_, GPL, "linden", 1, "#nets connecting clocks: {}", clock_nets.size());
-  const unordered_set<odb::dbNet*>& reset_nets
-      = nets_to_resets(all_cells_w_lib);
+  auto reset_nets = ignored_nets.reset_nets();
   debugPrint(
       log_, GPL, "linden", 1, "#nets connecting resets: {}", reset_nets.size());
   for (auto& net : pb_->nets()) {
     linden::db::Net lnet((void*) net->dbNet(), net->dbNet()->getName());
-    if (se_nets.count(net->dbNet()) > 0) {
-      lnet.mut_weight() = LINDEN_SCAN_ENABLE_WEIGHT();
-    }
-    if (clock_nets.count(net->dbNet()) > 0) {
-      lnet.mut_weight() = LINDEN_CLOCK_WEIGHT();
-    }
-    if (reset_nets.count(net->dbNet()) > 0) {
-      lnet.mut_weight() = LINDEN_RESET_WEIGHT();
-    }
+    lnet.mut_weight() = ignored_nets.get_net_weight(net->dbNet());
     linden_db->add_net(std::move(lnet));
   }
   IsScanChainsIgnoredPin isScanChainsIgnoredPin(
       pb_->db()->getChip()->getBlock()->getScanChains());
   for (auto& pin : pb_->pins()) {
-    if (isScanChainsIgnoredPin(pin)) {
+    if (pin->isITerm() && isScanChainsIgnoredPin(pin->dbITerm())) {
       continue;
     }
     auto o_net = linden_db->odb2net(pin->net()->dbNet());

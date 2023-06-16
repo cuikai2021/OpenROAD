@@ -91,13 +91,6 @@ set_initial_place_max_iter_cmd(int iter)
 }
 
 void
-set_initial_place_max_fanout_cmd(int fanout)
-{
-  Replace* replace = getReplace();
-  replace->setInitialPlaceMaxFanout(fanout);
-}
-
-void
 set_nesv_place_iter_cmd(int iter)
 {
   Replace* replace = getReplace();

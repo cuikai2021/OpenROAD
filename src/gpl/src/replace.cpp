@@ -71,7 +71,6 @@ Replace::Replace()
       initialPlaceMaxIter_(20),
       initialPlaceMinDiffLength_(1500),
       initialPlaceMaxSolverIter_(100),
-      initialPlaceMaxFanout_(200),
       initialPlaceNetWeightScale_(800),
       cellDensityForceCalPolicy_(),
       nesterovPlaceMaxIter_(5000),
@@ -138,7 +137,6 @@ void Replace::reset()
   initialPlaceMaxIter_ = 20;
   initialPlaceMinDiffLength_ = 1500;
   initialPlaceMaxSolverIter_ = 100;
-  initialPlaceMaxFanout_ = 200;
   initialPlaceNetWeightScale_ = 800;
 
   cellDensityForceCalPolicy_ = "";
@@ -266,7 +264,6 @@ void Replace::doInitialPlace()
   ipVars.maxIter = initialPlaceMaxIter_;
   ipVars.minDiffLength = initialPlaceMinDiffLength_;
   ipVars.maxSolverIter = initialPlaceMaxSolverIter_;
-  ipVars.maxFanout = initialPlaceMaxFanout_;
   ipVars.netWeightScale = initialPlaceNetWeightScale_;
   ipVars.debug = gui_debug_initial_;
 
@@ -399,11 +396,6 @@ void Replace::setInitialPlaceMinDiffLength(int length)
 void Replace::setInitialPlaceMaxSolverIter(int iter)
 {
   initialPlaceMaxSolverIter_ = iter;
-}
-
-void Replace::setInitialPlaceMaxFanout(int fanout)
-{
-  initialPlaceMaxFanout_ = fanout;
 }
 
 void Replace::setInitialPlaceNetWeightScale(float scale)

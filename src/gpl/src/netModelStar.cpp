@@ -18,7 +18,7 @@ void NetModelStar::buildOn(DIMENSION dim)
       continue;
     }
 
-    float netWeight = netWeightScale_ / (net->pins().size() - 1);
+    const double netWeight = getNetWeight(net);
 
     auto pin1 = getSourcePin(net);
     for (auto& pin2 : net->pins()) {

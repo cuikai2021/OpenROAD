@@ -28,11 +28,14 @@ void InitialPlaceDirichlet::run()
   for (int iter = 0; iter < 1; ++iter) {
     InitialPlaceBicgstab::run();
 
+    IsScanChainsIgnoredPin is_scan_chains_ignored_pin(pb_->db()->getChip()->getBlock()->getScanChains());
+    IgnoredNets ignored_nets;
     NetModelB2B model(ipVars_.minDiffLength,
-                      ipVars_.maxFanout,
                       ipVars_.netWeightScale,
                       pb_->nets(),
-                      placeInsts());
+                      placeInsts(),
+                      is_scan_chains_ignored_pin,
+                      ignored_nets);
 
     const octave_idx_type placeCnt = placeInstsNum();
     const int K = 4;  // number of eig values to get

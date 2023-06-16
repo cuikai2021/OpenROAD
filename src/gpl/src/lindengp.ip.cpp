@@ -23,7 +23,6 @@ void LindenGlobalPlace::doInitialPlace()
   ipVars.maxIter = 20;
   ipVars.minDiffLength = 1500;
   ipVars.maxSolverIter = 100;
-  ipVars.maxFanout = 200;
   ipVars.netWeightScale = 800;
   ipVars.debug = gui_debug_initial_;
 
