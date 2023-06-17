@@ -7,6 +7,8 @@
 #include "initialPlaceDirichlet.h"
 #include "initialPlaceEV.h"
 
+#include <spdlog/spdlog.h>
+
 namespace gpl {
 
 void LindenGlobalPlace::setInitialPlacePolicy(const char* policy)
@@ -26,6 +28,7 @@ void LindenGlobalPlace::doInitialPlace()
   ipVars.netWeightScale = 800;
   ipVars.debug = gui_debug_initial_;
 
+  spdlog::info("[linden/gpl] initialPlacePolicy: {}",initialPlacePolicy_);
   if (initialPlacePolicy_ == "def") {
     ip_ = std::move(
         std::unique_ptr<InitialPlace>(new InitialPlaceDef(ipVars, pb_, log_)));

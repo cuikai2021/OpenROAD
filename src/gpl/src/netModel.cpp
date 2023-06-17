@@ -56,11 +56,20 @@ void NetModel::addTwoPinConn(Pin* pin0, Pin* pin1, float w, DIMENSION dim)
     }
   } pins[2] = {PinInfo(pin0), PinInfo(pin1)};
 
+  // movable but id == INT_MAX, means that one pin is not in the connected graph, don't add this. 
+  for (auto cur_idx : {0, 1}) {
+    const auto& cur = pins[cur_idx];
+    if (cur.movable && cur.id == INT_MAX) {
+      return;
+    }
+  }
+
   auto& aList = matrixATriplets_[dim];
   auto& b = fixedInstForceVec_[dim];
   for (auto cur_idx : {0, 1}) {
     const auto& cur = pins[cur_idx];
     if (cur.movable) {
+      FASSERT(cur.id != INT_MAX);
       aList.push_back(T(cur.id, cur.id, w));
       const auto& ano = pins[cur_idx ^ 1];
       if (ano.movable) {
