@@ -3,13 +3,14 @@ include("openroad")
 swig_lib(NAME      cgr
          NAMESPACE cgr
          I_FILE    src/cgr.i
-         SCRIPTS   src/cgr.tcl
+         SCRIPTS   src/cgr.tcl src/analyze_banyan_cmap_file.tcl
 )
 
 target_sources(cgr
   PRIVATE
     src/MakeCongestionRepair.cpp
     src/congestionRepair.cpp
+    src/analyze_banyan_cmap_file.cpp
 )
 
 messages(TARGET cgr)

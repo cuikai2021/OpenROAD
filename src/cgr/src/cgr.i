@@ -1,13 +1,19 @@
 %{
 
 #include "cgr/congestionRepair.hpp"
+#include "cgr/analyze_banyan_cmap_file.hpp"
 
 namespace ord {
 // Defined in OpenRoad.i
 cgr::CongestionRepair* getCongestionRepair();
+namespace cgr {
+void analyze_banyan_cmap_file(const char* cmap_file, const char* report_file);
+}
+
 }  // namespace ord
 
 using ord::getCongestionRepair;
+using ord::cgr::analyze_banyan_cmap_file;
 
 %}
 
@@ -35,6 +41,10 @@ namespace cgr {
   void set_routing_max_layer_cmd(const char* max_layer) {
     cgr::CongestionRepair* cgr = getCongestionRepair();
     cgr->setRoutingMaxLayer(max_layer);
+  }
+
+  void analyze_banyan_cmap_file_cmd(const char* cmap_file, const char* report_file) {
+    cgr::analyze_banyan_cmap_file(cmap_file, report_file);
   }
 
 } // namespace

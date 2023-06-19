@@ -9,6 +9,7 @@
 
 #include "banyan/Banyan.h"
 #include "banyan_cmap.pb.h"
+#include "cgr/analyze_banyan_cmap_file.hpp"
 #include "envflag/envflag.hpp"
 #include "fassert.hpp"
 #include "linden/geom/dimension.hpp"
@@ -80,41 +81,6 @@ double cal_tile_overflow(const ::banyan::Tile& tile)
   }
 }
 
-bool load(const string& cmap_pb_file,
-          const linden::geom::Rect& core_region,
-          linden::rdp::CongestionMap& cmap_result) noexcept
-{
-  cmap_result.setChipCoreRegion(core_region);
-  banyan::Cmap cmap;
-  fstream input(cmap_pb_file, ios::in | ios::binary);
-  if (!input) {
-    cerr << "Failed to open file:" << cmap_pb_file << endl;
-    return false;
-  } else if (!cmap.ParseFromIstream(&input)) {
-    cerr << "Failed to parse cmap file" << cmap_pb_file << endl;
-    return false;
-  }
-  cmap_result.initGrids(cmap.wgrids(), cmap.hgrids());
-  for (int64_t j = 0; j < cmap.hgrids(); ++j) {
-    for (int64_t i = 0; i < cmap.wgrids(); ++i) {
-      const auto idx = j * cmap.wgrids() + i;
-      for (auto dim : {X, Y}) {
-        const auto& tile = dim == X ? cmap.htiles(idx) : cmap.vtiles(idx);
-        cmap_result.updateSupply(dim, i, j, tile.supply());
-        cmap_result.updateDemand(dim, i, j, tile.demand());
-      }
-    }
-  }
-  // FIXME: update it after expander's PR is merged
-  //        and use_expander should always be FALSE in cgr mode
-  const bool use_expander = false;
-  if (!cmap_result.updateOverflows(use_expander)) {
-    cerr << "Failed to upload overflows:" << cmap_pb_file << endl;
-    return false;
-  }
-  return true;
-}
-
 }  // namespace
 
 void LindenGlobalPlace::setRoutabilityDriven(bool flag)
@@ -151,20 +117,8 @@ bool LindenGlobalPlace::congestion_estimate()
     banyan->cmap(cmap_pb_file, cgr_mode_, "");
   }
   {
-    odb::Rect coreRect;
-    {
-      auto odb = ord::OpenRoad::openRoad()->getDb();
-      FASSERT(odb != nullptr);
-      auto block = db_->getChip()->getBlock();
-      FASSERT(block != nullptr);
-      block->getCoreArea(coreRect);
-    }
-    linden::geom::Rect core_region(coreRect.ll().x(),
-                                   coreRect.ll().y(),
-                                   coreRect.ur().x(),
-                                   coreRect.ur().y());
     FASSERT(banyan_cmap_result_);
-    if (!load(cmap_pb_file, core_region, *banyan_cmap_result_)) {
+    if (!cgr::load_cmap(cmap_pb_file, *banyan_cmap_result_)) {
       return false;
     }
   }

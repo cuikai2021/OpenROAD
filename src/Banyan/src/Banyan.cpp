@@ -5,6 +5,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <spdlog/spdlog.h>
+
 #include "BanyanGraphics.hpp"
 #include "ByAdapter.hpp"
 #include "DBAdapter.hpp"
@@ -70,6 +72,10 @@ std::string getExe()
   const char* exe = std::getenv(BANYAN_EXE);
   if (exe == nullptr) {
     exe = BANYAN_EXE_DEFAULT;
+  }
+  if (!std::filesystem::exists(exe)) {
+    spdlog::error("Banyan executable not found: {}", exe);
+    exit(1);
   }
   return std::string(exe);
 }
