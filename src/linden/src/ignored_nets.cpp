@@ -101,6 +101,7 @@ void IgnoredNets::init() noexcept
       = linden::all_cells_with_lib();
   clock_nets_ = nets_to_clock(all_cells_w_lib);
   reset_nets_ = nets_to_resets(all_cells_w_lib);
+  scan_enable_nets_ = nets_to_scanchain_enables();
 }
 
 bool IgnoredNets::is_clock_net(odb::dbNet* net) const noexcept
