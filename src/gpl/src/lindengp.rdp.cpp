@@ -27,7 +27,7 @@ using namespace std;
 using utl::GPL;
 
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN);
-IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_CGR_CMAP_DEBUGGING_FILE);
+IMPORT_STR_FLAG(LINDEN_CGR_CMAP_DEBUGGING_FILE);
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
 
 namespace gpl {
@@ -104,17 +104,20 @@ bool LindenGlobalPlace::congestion_estimate()
     }();
     return basename + ".cmap";
   };
-  std::string cmap_pb_file(LINDEN_CGR_CMAP_DEBUGGING_FILE());
-  if (cmap_pb_file.empty()) {
+
+  std::string cmap_pb_file;
+  if (auto opt = LINDEN_CGR_CMAP_DEBUGGING_FILE(); opt) {
+    cmap_pb_file = std::string(*opt);
+  } else {
     cmap_pb_file = genCmapFileName();
-    if (LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN()) {
-      const std::string debug_def_file = cmap_pb_file + ".def";
-      std::cout << "// banyan_debug::before_call_baby_banyan.def: "
-                << debug_def_file << std::endl;
-      ::ord::OpenRoad::openRoad()->writeDef(debug_def_file.c_str(), "5.8");
-    }
     auto banyan = ::ord::OpenRoad::openRoad()->getBanyan();
     banyan->cmap(cmap_pb_file, cgr_mode_, "");
+  }
+  if (LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN()) {
+    const std::string debug_def_file = cmap_pb_file + ".def";
+    std::cout << "// banyan_debug::before_call_baby_banyan.def: "
+              << debug_def_file << std::endl;
+    ::ord::OpenRoad::openRoad()->writeDef(debug_def_file.c_str(), "5.8");
   }
   {
     FASSERT(banyan_cmap_result_);

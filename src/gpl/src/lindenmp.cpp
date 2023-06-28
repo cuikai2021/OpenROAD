@@ -19,7 +19,7 @@
 using ord::OpenRoad;
 using namespace std;
 
-IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_MP_METRICS_FILE);
+IMPORT_STR_FLAG(LINDEN_MP_METRICS_FILE);
 
 namespace sta {
 extern const char *gpl_tcl_inits[];
@@ -279,11 +279,10 @@ int LindenMacroPlace::run()
             break;
         }
     }
-    metrics::Config mcfg = metrics::Config::sink_to_stderr();
     {
-        string_view filename = LINDEN_MP_METRICS_FILE();
-        if(!filename.empty()) {
-            mcfg = metrics::Config::sink_to_file(filename);
+        metrics::Config mcfg = metrics::Config::sink_to_stderr();
+        if(auto opt = LINDEN_MP_METRICS_FILE(); opt) {
+            mcfg = metrics::Config::sink_to_file(*opt);
         }
         metrics::Reporter reporter(mcfg);
         reporter["mpl::iter"] = iter + 1;

@@ -1,13 +1,19 @@
 #include "gpl/lindengp.h"
 
+#include <spdlog/spdlog.h>
+
+#include "envflag/envflag.hpp"
 #include "fassert.hpp"
 #include "initialPlace.h"
 #include "initialPlaceBicgstab.h"
 #include "initialPlaceDef.h"
 #include "initialPlaceDirichlet.h"
 #include "initialPlaceEV.h"
+#include "ord/OpenRoad.hh"
 
-#include <spdlog/spdlog.h>
+IMPORT_STR_FLAG(LINDEN_INITIAL_PLACEMENT_RESULT_IN_DEF_FILE)
+
+using namespace std;
 
 namespace gpl {
 
@@ -28,7 +34,7 @@ void LindenGlobalPlace::doInitialPlace()
   ipVars.netWeightScale = 800;
   ipVars.debug = gui_debug_initial_;
 
-  spdlog::info("[linden/gpl] initialPlacePolicy: {}",initialPlacePolicy_);
+  spdlog::info("[linden/gpl] initialPlacePolicy: {}", initialPlacePolicy_);
   if (initialPlacePolicy_ == "def") {
     ip_ = std::move(
         std::unique_ptr<InitialPlace>(new InitialPlaceDef(ipVars, pb_, log_)));
@@ -43,6 +49,12 @@ void LindenGlobalPlace::doInitialPlace()
         new InitialPlaceBicgstab(ipVars, pb_, log_)));
   }
   ip_->run();
+  if (auto opt = LINDEN_INITIAL_PLACEMENT_RESULT_IN_DEF_FILE(); opt) {
+    const string def_out(*opt);
+    spdlog::info("[linden/gpl] Writing initial placement result to {}",
+                 def_out);
+    ::ord::OpenRoad::openRoad()->writeDef(def_out.c_str(), "5.8");
+  }
 }
 
 }  // namespace gpl

@@ -284,10 +284,10 @@ void InitialPlaceEV::initAdjGraph(Triplets& aList)
   IsScanChainsIgnoredPin is_scan_chains_ignored_pin(pb_->db()->getChip()->getBlock()->getScanChains());
   IgnoredNets ignored_nets;
   NetModelStar model(ipVars_.netWeightScale,
-                     pb_->nets(),
-                     placeInsts(),
                      is_scan_chains_ignored_pin,
-                     ignored_nets);
+                     ignored_nets,
+                     pb_->nets(),
+                     placeInsts());
   aList = model.getMatrixATriplets(X);
 }
 

@@ -12,11 +12,11 @@ class NetModelStar : public NetModel
 {
  public:
   NetModelStar(float netWeightScale,
-               const std::vector<Net*>& nets,
-               const std::vector<Instance*>& placeInsts,
                const IsScanChainsIgnoredPin& is_scan_chains_ignored_pin,
-               const IgnoredNets& ignored_nets)
-      : NetModel(netWeightScale, nets, placeInsts, is_scan_chains_ignored_pin,ignored_nets)
+               const IgnoredNets& ignored_nets,
+               const std::vector<Net*>& nets,
+               const std::vector<Instance*>& placeInsts)
+      : NetModel(netWeightScale, is_scan_chains_ignored_pin,ignored_nets, nets, placeInsts)
   {
     build();
   }

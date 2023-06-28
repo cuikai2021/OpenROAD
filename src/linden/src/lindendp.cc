@@ -26,7 +26,7 @@
 
 using namespace std;
 
-IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_DP_METRICS_FILE);
+IMPORT_STR_FLAG(LINDEN_DP_METRICS_FILE);
 
 extern "C" {
 
@@ -211,11 +211,8 @@ void report_metrics() {
   auto wns = sta->units()->timeUnit()->asString(worst_slack, DIGITS);
 
   metrics::Config mcfg = metrics::Config::sink_to_stderr();
-  {
-    string_view filename = LINDEN_DP_METRICS_FILE();
-    if(!filename.empty()) {
-        mcfg = metrics::Config::sink_to_file(filename);
-    }
+  if(auto opt = LINDEN_DP_METRICS_FILE(); opt) {
+    mcfg = metrics::Config::sink_to_file(*opt);
   }
   metrics::Reporter reporter(mcfg);
   // TODO:

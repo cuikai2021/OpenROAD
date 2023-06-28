@@ -16,7 +16,7 @@
 using namespace std;
 using utl::GPL;
 
-IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_GP_METRICS_FILE);
+IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL);
 
 namespace gpl {
@@ -182,12 +182,9 @@ void LindenGlobalPlace::run()
       }
     }
   }
-  metrics::Config mcfg = metrics::Config::sink_to_stderr();
-  {
-    string_view filename = LINDEN_GP_METRICS_FILE();
-    if (!filename.empty()) {
-      mcfg = metrics::Config::sink_to_file(filename);
-    }
+  metrics::Config mcfg = metrics::Config::sink_to_stderr(); 
+  if (auto opt = LINDEN_GP_METRICS_FILE(); opt) {
+    mcfg = metrics::Config::sink_to_file(*opt);
   }
   metrics::Reporter metrics_reporter(mcfg);
   metrics_reporter["gp::iter"] = iter + 1;

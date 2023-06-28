@@ -19,9 +19,12 @@ DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN,
     false
 )
 
-DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_CGR_CMAP_DEBUGGING_FILE,
-    "debug: loading cmap from disk without running baby-banyan",
-    ""
+DEFINE_STR_FLAG(LINDEN_CGR_CMAP_DEBUGGING_FILE,
+    "debug: loading cmap from disk without running baby-banyan"
+)
+
+DEFINE_STR_FLAG(LINDEN_INITIAL_PLACEMENT_RESULT_IN_DEF_FILE,
+    "debug: save linden's initial placement result in def. empty means no dump"
 )
 
 DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR,
@@ -29,17 +32,14 @@ DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR,
     "/tmp/"
 )
 
-DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_GP_METRICS_FILE,
-    "Where to dump metrics after Linden global placement. Default is stderr.",
-    ""
+DEFINE_STR_FLAG(LINDEN_GP_METRICS_FILE,
+    "Where to dump metrics after Linden global placement. Default is stderr."
 );
-DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_MP_METRICS_FILE,
-    "Where to dump metrics after Linden macro placement. Default is stderr.",
-    ""
+DEFINE_STR_FLAG(LINDEN_MP_METRICS_FILE,
+    "Where to dump metrics after Linden macro placement. Default is stderr."
 );
-DEFINE_STR_FLAG_WITH_DEFAULT(LINDEN_DP_METRICS_FILE,
-    "Where to dump metrics after Linden detailed placement. Default is stderr.",
-    ""
+DEFINE_STR_FLAG(LINDEN_DP_METRICS_FILE,
+    "Where to dump metrics after Linden detailed placement. Default is stderr."
 );
 DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL,
     "Enable the calculation of change in cell relative position",

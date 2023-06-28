@@ -18,15 +18,15 @@ class NetModel
   typedef std::vector<T> Triplets;
 
   NetModel(float netWeightScale,
-           const std::vector<Net*>& nets,
-           const std::vector<Instance*>& placeInsts,
            const IsScanChainsIgnoredPin& is_scan_chains_ignored_pin,
-           const IgnoredNets& ignored_nets)
+           const IgnoredNets& ignored_nets,
+           const std::vector<Net*>& nets,
+           const std::vector<Instance*>& placeInsts)
       : netWeightScale_(netWeightScale),
-        nets_(nets),
-        placeInsts_(placeInsts),
         is_scan_chains_ignored_pin_(is_scan_chains_ignored_pin),
-        ignored_nets_(ignored_nets)
+        ignored_nets_(ignored_nets),
+        nets_(nets),
+        placeInsts_(placeInsts)
   {
   }
 

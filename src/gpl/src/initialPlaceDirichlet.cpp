@@ -32,10 +32,10 @@ void InitialPlaceDirichlet::run()
     IgnoredNets ignored_nets;
     NetModelB2B model(ipVars_.minDiffLength,
                       ipVars_.netWeightScale,
-                      pb_->nets(),
-                      placeInsts(),
                       is_scan_chains_ignored_pin,
-                      ignored_nets);
+                      ignored_nets,
+                      pb_->nets(),
+                      placeInsts());
 
     const octave_idx_type placeCnt = placeInstsNum();
     const int K = 4;  // number of eig values to get

@@ -93,10 +93,10 @@ void InitialPlaceBicgstab::run()
     updatePinInfo();
     NetModelB2B model(ipVars_.minDiffLength,
                       ipVars_.netWeightScale,
-                      pb_->nets(),
-                      placeInsts(),
                       is_scan_chains_ignored_pin,
-                      ignored_nets);
+                      ignored_nets,
+                      pb_->nets(),
+                      placeInsts());
     for (auto dim : {X, Y}) {
       SMatrix s(placeInstsNum(), placeInstsNum());
       // The triplet vector is recommended usages to fill in SparseMatrix from
