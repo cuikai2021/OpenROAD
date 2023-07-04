@@ -53,8 +53,7 @@ class Banyan : public ord::OpenRoad::Observer
             lrl::Laurel* laurel);
 
   int main(std::vector<std::string> args, bool updateDB);
-  int cmap(const std::string& cmapPb, bool cgr_mode, const std::string& instMovementPb);
-  int instanceMovement(std::vector<std::string> args);
+  int cmap(const std::string& cmapPb, bool cgr_mode);
   void mergeWireSegment();
   int m1GridlessMaze();
   void runGui();

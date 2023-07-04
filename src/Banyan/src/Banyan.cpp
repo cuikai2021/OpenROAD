@@ -120,6 +120,7 @@ int exec(utl::Logger* logger, const std::vector<std::string>& args)
 int Banyan::main(std::vector<std::string> args, bool updateDB)
 {
   std::string techlef = "";
+  std::string inPbFilePath = "";
   std::string outPbFilePath = "";
   std::vector<std::string> unregister;
 
@@ -128,7 +129,8 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   desc.add_options()                                                         //
       ("help,h", "")                                                         //
       ("techlef", po::value<std::string>(&techlef), "")                      //
-      ("output", po::value<std::string>(&outPbFilePath), "")                 //
+      ("save_db", po::value<std::string>(&outPbFilePath), "")                //
+      ("db", po::value<std::string>(&inPbFilePath), "")                      //
       ("unregister", po::value<std::vector<std::string>>(&unregister), "");  //
 
   po::positional_options_description posDesc;
@@ -160,8 +162,6 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     return HELP;
   } else if (command == "") {
     logger_->error(utl::BY, 1, "subcommand is required but missing");
-  } else if (command != "route") {
-    logger_->error(utl::BY, 1, "unknow banyan subcommand '{}'", command);
   }
 
   if (!vm.count("techlef")) {
@@ -170,26 +170,32 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   }
 
   OpenDBAdapter dbAdapter(db_, stt_builder_, logger_, laurel_, false);
-  auto design = dbAdapter.getDesign();
-  BanyanCase byCase;
-  byCase.set_allocated_design(design.get());
-  design.release();
-  std::string inPbFilePath = genTempFilePath(logger_, ".pb");
-  std::ofstream pbfs;
-  pbfs.open(inPbFilePath,
-            std::ofstream::in | std::ofstream::out | std::ofstream::trunc);
-  if (!byCase.SerializeToOstream(&pbfs)) {
-    logger_->error(utl::BY, 1, "save protobuf file to {} fail", inPbFilePath);
-  }
-  pbfs.close();
-  args.push_back("--protobuf");
-  args.push_back(inPbFilePath);
 
-  if (updateDB) {
+  if (!vm.count("db")) {
+    dbAdapter.loadDesignFromODB();
+    auto design = dbAdapter.getDesign();
+    BanyanCase byCase;
+    byCase.set_allocated_design(design.get());
+    design.release();
+    inPbFilePath = genTempFilePath(logger_, ".pb");
+    std::ofstream pbfs;
+    pbfs.open(inPbFilePath,
+              std::ofstream::in | std::ofstream::out | std::ofstream::trunc);
+    if (!byCase.SerializeToOstream(&pbfs)) {
+      logger_->error(utl::BY, 1, "save protobuf file to {} fail", inPbFilePath);
+    }
+    pbfs.close();
+    args.push_back("--db");
+    args.push_back(inPbFilePath);
+  } else {
+    dbAdapter.loadDesignFromBanyanDB(inPbFilePath);
+  }
+
+  if (updateDB && !vm.count("save_db")) {
     if (outPbFilePath == "") {
       outPbFilePath = genTempFilePath(logger_, ".pb");
     }
-    args.push_back("--output");
+    args.push_back("--save_db");
     args.push_back(outPbFilePath);
   }
 
@@ -208,9 +214,7 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   return exec(logger_, args);
 }
 
-int Banyan::cmap(const std::string& cmapPb,
-                 bool cgr_mode,
-                 const std::string& instMovementPb)
+int Banyan::cmap(const std::string& cmapPb, bool cgr_mode)
 {
   std::vector<std::string> args;
   args.push_back("route");
@@ -229,21 +233,9 @@ int Banyan::cmap(const std::string& cmapPb,
   args.push_back("--report_cmap");
   args.push_back(cmapPb);
   args.push_back("--baby_banyan");
-  args.push_back("true");
-  args.push_back("--disable_maze_top");
-  args.push_back("true");
   if (!cgr_mode) {
     args.push_back("--disable_mcf_upt");
-    args.push_back("true");
     args.push_back("--baby_pa");
-    args.push_back("true");
-  }
-  args.push_back("--cmap_use_corearea");
-  args.push_back("true");
-
-  if (instMovementPb != "") {
-    args.push_back("--report_inst_movement");
-    args.push_back(instMovementPb);
   }
 
   return main(args, false);
@@ -304,68 +296,6 @@ void Banyan::mergeWireSegment()
   ByAdapter::updateWire(db_, bydb);
 }
 
-int Banyan::instanceMovement(std::vector<std::string> args)
-{
-  std::string instanceMovementPb = "";
-
-  namespace po = boost::program_options;
-  po::options_description desc("Banyan");
-  desc.add_options()  //
-      ("report_inst_movement",
-       po::value<std::string>(&instanceMovementPb)->required(),
-       "");  //
-
-  po::variables_map vm;
-  try {
-    po::store(
-        po::command_line_parser(args).options(desc).allow_unregistered().run(),
-        vm);
-
-    po::notify(vm);
-  } catch (std::exception& e) {
-    logger_->error(utl::BY, 1, "ERROR: {}", e.what());
-    return ERROR;
-  }
-
-  main(args, false);
-
-  InstanceMovement im;
-  std::ifstream outfs;
-  outfs.open(instanceMovementPb);
-  if (!im.ParseFromIstream(&outfs)) {
-    logger_->error(utl::BY, 1, "parsing inst movement protobuf file error");
-  }
-  outfs.close();
-
-  auto chip = db_->getChip();
-  auto block = chip->getBlock();
-
-  for (auto instance : im.instances()) {
-    auto dbInst = block->findInst(instance.name().c_str());
-
-    int x = 0;
-    int y = 0;
-    dbInst->getLocation(x, y);
-
-    auto dbBBox = dbInst->getBBox();
-    int movedx = instance.x() - dbBBox->getDX() / 2;
-    int movedy = instance.y() - dbBBox->getDY() / 2;
-
-    logger_->info(utl::BY,
-                  1,
-                  "instance {} from ({},{}) to ({},{})",
-                  dbInst->getName(),
-                  x,
-                  y,
-                  movedx,
-                  movedy);
-
-    dbInst->setLocation(movedx, movedy);
-  }
-
-  return SUCCESS;
-}
-
 void Banyan::runGui()
 {
   auto bydb = ByAdapter(db_, logger_).getByDb();
@@ -387,6 +317,7 @@ void Banyan::runGui()
   return;
 }
 
+
 void Banyan::drcPatch()
 {
   auto dp = DrcPatch(db_, logger_);
@@ -396,7 +327,7 @@ void Banyan::drcPatch()
 void Banyan::clearWires()
 {
   auto block = db_->getChip()->getBlock();
-  for(auto net : block->getNets()) {
+  for (auto net : block->getNets()) {
     auto wire = net->getWire();
     if (wire != nullptr) {
       odb::dbWire::destroy(wire);

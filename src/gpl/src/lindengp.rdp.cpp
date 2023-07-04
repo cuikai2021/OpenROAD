@@ -111,7 +111,7 @@ bool LindenGlobalPlace::congestion_estimate()
   } else {
     cmap_pb_file = genCmapFileName();
     auto banyan = ::ord::OpenRoad::openRoad()->getBanyan();
-    banyan->cmap(cmap_pb_file, cgr_mode_, "");
+    banyan->cmap(cmap_pb_file, cgr_mode_);
   }
   if (LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN()) {
     const std::string debug_def_file = cmap_pb_file + ".def";

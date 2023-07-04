@@ -22,6 +22,13 @@ using std::vector;
   $1 = args;
 }
 
+
+%typemap(in) std::string {
+  char *cstr = Tcl_GetStringFromObj($input, 0);
+  std::string str = cstr;
+  $1 = str;
+}
+
 %inline %{
 namespace banyan {
 
@@ -30,9 +37,9 @@ void banyan(std::vector<std::string> args)
     int status = ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
     if (status == 0) {
       ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
-      ord::OpenRoad::openRoad()->getBanyan()->drcPatch();
     }
 }
+
 
 void banyan_clear_wires()
 {
@@ -47,11 +54,6 @@ void mergeWireSegment()
 void m1GridlessMaze()
 {
     ord::OpenRoad::openRoad()->getBanyan()->m1GridlessMaze();
-}
-
-void instMovement(std::vector<std::string> args)
-{
-    ord::OpenRoad::openRoad()->getBanyan()->instanceMovement(args);
 }
 
 void banyanRunGui()

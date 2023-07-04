@@ -2,6 +2,8 @@
 #include <boost/polygon/polygon.hpp>
 #include <unordered_map>
 
+#include "ByBox.hpp"
+#include "DebugDefWriter.hpp"
 #include "odb/ZException.h"
 #include "odb/db.h"
 #include "odb/dbShape.h"
@@ -26,12 +28,12 @@ class DrcPatch
  protected:
   odb::dbDatabase* db_;
   utl::Logger* logger_;
+  DebugDefWriter defWriter_;
 
  public:
   DrcPatch(odb::dbDatabase* db, utl::Logger* logger)
-      : db_(db), logger_(logger){};
+      : db_(db), logger_(logger), defWriter_(0, 0, 3140000, 3640000){};
   ~DrcPatch();
- 
 
   PlyRect dbBox2PlyRect(const odb::dbTransform& transformer, odb::dbBox* dbBox);
   std::vector<PlyRect> dbWire2Rects(odb::dbTechLayer* layer,
@@ -39,8 +41,7 @@ class DrcPatch
 
   const std::string getItermName(odb::dbITerm* iterm) const;
 
-  std::vector<PlyRect>  sameNetRects(odb::dbTechLayer* layer,
-                                       odb::dbNet* net);
+  std::vector<PlyRect> sameNetRects(odb::dbTechLayer* layer, odb::dbNet* net);
 
   std::vector<PlyRect> spacingDrcPatch(odb::dbTechLayer* layer,
                                        odb::dbNet* net,
@@ -49,10 +50,10 @@ class DrcPatch
 
   std::vector<PlyRect> minHolePatch(odb::dbTechLayer* layer,
                                     odb::dbNet* net,
-                                       std::vector<PlyRect> sameNetRects,
-                                       std::vector<PlyRect> patchRects);
+                                    std::vector<PlyRect> sameNetRects,
+                                    std::vector<PlyRect> patchRects);
 
-   void run();
+  void run();
 };
 
 }  // namespace banyan

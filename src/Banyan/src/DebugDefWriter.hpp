@@ -1,24 +1,24 @@
 #pragma once
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
+
 #include "ByBox.hpp"
 
 namespace banyan {
 class DebugDefWriter
 {
  public:
-  DebugDefWriter()
-  {
-    xMax_ = yMax_ = 100000;
-    init();
-  }
+  DebugDefWriter() : DebugDefWriter(0, 0, 100000, 100000) {}
+
+  DebugDefWriter(int xMax, int yMax) : DebugDefWriter(0, 0, xMax, yMax) {}
+
   DebugDefWriter(int xMin, int yMin, int xMax, int yMax)
       : xMin_(xMin), yMin_(yMin), xMax_(xMax), yMax_(yMax)
   {
     init();
   }
-  DebugDefWriter(int xMax, int yMax) : xMax_(xMax), yMax_(yMax) { init(); }
+
   ~DebugDefWriter() = default;
   void addBox(const std::string& layer, const ByBox& b);
   void addBox(const std::string& layer, std::shared_ptr<ByBox>& b);

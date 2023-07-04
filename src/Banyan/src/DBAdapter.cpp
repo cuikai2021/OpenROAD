@@ -24,6 +24,7 @@
 #include "odb/geom.h"
 #include "rsz/SteinerTree.hh"
 #include "sta/Network.hh"
+#include "sta/PortDirection.hh"
 #include "stt/SteinerTreeBuilder.h"
 #include "utl/Logger.h"
 
@@ -56,6 +57,9 @@ bool OpenDBAdapter::isLegalized()
     int y = 0;
     inst->getLocation(x, y);
     auto y2h = std::make_pair(y, inst->getMaster()->getHeight());
+    if (rows.count(y2h) <= 0) {
+      return false;
+    }
     insts[y2h].emplace_back(PlyRect(x,
                                     y,
                                     x + inst->getMaster()->getWidth(),
@@ -108,6 +112,20 @@ PinDirection OpenDBAdapter::odbIOType2Banyan(odb::dbIoType type)
     default:
       logger_->error(utl::BY, 1, "unsupport iotype {}", type.getString());
   }
+}
+
+PinDirection OpenDBAdapter::staPortDirection2Banyan(sta::PortDirection* pd)
+{
+  if (pd->isBidirect()) {
+    return PinDirection::INOUT;
+  }
+  if (pd->isInput()) {
+    return PinDirection::INPUT;
+  }
+  if (pd->isOutput() || pd->isTristate()) {
+    return PinDirection::OUTPUT;
+  }
+  logger_->error(utl::BY, 2, "unsupport PortDirection {}", pd->name());
 }
 
 ComponentOrient OpenDBAdapter::odbOrient2Banyan(odb::dbOrientType type)
@@ -302,8 +320,8 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
 
     auto point = wireRect->mutable_point();
     point->mutable_extvalue()->set_value(ext);
-    point->mutable_point()->set_x(x);
-    point->mutable_point()->set_y(y);
+    point->mutable_point()->set_x(0);
+    point->mutable_point()->set_y(0);
 
     auto rect = wireRect->mutable_rect();
     rect->mutable_lowleft()->set_x(std::min(x1, x2));
@@ -667,6 +685,83 @@ VirtualPin OpenDBAdapter::gmVirtualPin2VirtualPin(const GmVirtualPin& gmvpin)
   return vpin;
 }
 
+void OpenDBAdapter::getNDRsFromODB()
+{
+  auto chip = db_->getChip();
+  auto tech = db_->getTech();
+  auto block = chip->getBlock();
+
+  std::vector<odb::dbTechLayerRule*> odbLayerRules;
+  std::vector<odb::dbTechVia*> odbVias;
+  std::vector<odb::dbTechViaGenerateRule*> odbViaRules;
+
+  std::unordered_set<std::string> doneNDR;
+  auto handleSingleNDR = [&](odb::dbTechNonDefaultRule* odbNDR) {
+    std::string ndrName = odbNDR->getName();
+    if (doneNDR.count(ndrName)) {
+      logger_->warn(
+          utl::BY, 1, "Found NDRs with the same name: \"{}\"", ndrName);
+      return;
+    }
+    doneNDR.insert(ndrName);
+    auto ndr = design_->add_nondefaultrules();
+
+    ndr->set_name(odbNDR->getConstName());
+    ndr->set_hardspacing(odbNDR->getHardSpacing());
+
+    odbNDR->getLayerRules(odbLayerRules);
+    for (auto odbLayerRule : odbLayerRules) {
+      auto layerRule = ndr->add_layerrules();
+      layerRule->set_layername(odbLayerRule->getLayer()->getConstName());
+      layerRule->set_width(odbLayerRule->getWidth());
+      layerRule->set_spacing(odbLayerRule->getSpacing());
+      layerRule->set_wireext(odbLayerRule->getWireExtension());
+    }
+
+    odbNDR->getVias(odbVias);
+    for (auto odbPin : odbVias) {
+      auto viaName = odbPin->getConstName();
+      ndr->add_vianames()->assign(viaName);
+    }
+    odbVias.clear();
+    odbNDR->getUseVias(odbVias);
+    for (auto odbPin : odbVias) {
+      auto viaName = odbPin->getConstName();
+      ndr->add_vianames()->assign(viaName);
+    }
+    odbVias.clear();
+
+    odbNDR->getUseViaRules(odbViaRules);
+    for (auto odbViaRule : odbViaRules) {
+      auto viaRuleName = odbViaRule->getName();
+      ndr->add_viarulenames()->assign(viaRuleName);
+    }
+    odbViaRules.clear();
+
+    for (auto odbLayer : tech->getLayers()) {
+      int count;
+      bool exist = odbNDR->getMinCuts(odbLayer, count);
+      if (not exist) {
+        continue;
+      }
+      auto min_cuts = ndr->add_mincuts();
+      min_cuts->set_layername(odbLayer->getConstName());
+      min_cuts->set_count(count);
+    }
+  };
+  // Ref: If a nondefault rule name collides with an existing LEF or DEF
+  // nondefault rule name that has different parameters, the application should
+  // use the DEF definition when reading this DEF file, though it can change the
+  // DEF nondefault rule name to make it unique. So, handle NDRs in block before
+  // NDRs in tech.
+  for (auto odbNDR : block->getNonDefaultRules()) {
+    handleSingleNDR(odbNDR);
+  }
+  for (auto odbNDR : tech->getNonDefaultRules()) {
+    handleSingleNDR(odbNDR);
+  }
+}
+
 void OpenDBAdapter::getNetsFromODB()
 {
   auto chip = db_->getChip();
@@ -674,6 +769,7 @@ void OpenDBAdapter::getNetsFromODB()
   auto designLegalized = isLegalized();
   std::unordered_map<std::string, std::deque<VirtualPin>> net2Vpins;
   if (designLegalized) {
+    logger_->warn(utl::BY, 1, "legalized design, run gridless maze on m1");
     auto bydb = ByAdapter(db_, logger_).getByDb();
     auto gm = GridlessMaze(db_, bydb, logger_, GridlessMaze::HIGH);
     auto vpins = gm.run();
@@ -714,6 +810,12 @@ void OpenDBAdapter::getNetsFromODB()
       for (auto const& x : wires) {
         *net->mutable_wires()->Add() = x;
       }
+    }
+
+    auto netNDR = odbNet->getNonDefaultRule();
+    if (netNDR != nullptr) {
+      auto ndr_name = netNDR->getName();
+      net->mutable_nondefaultrule()->mutable_value()->assign(ndr_name);
     }
   }
 }
@@ -792,6 +894,8 @@ void OpenDBAdapter::getInstancesFromODB()
 
 void OpenDBAdapter::getMacrosFromODB()
 {
+  auto sta_db_network_ = ord::OpenRoad::openRoad()->getSta()->getDbNetwork();
+  bool had_warn_no_liberty = false;
   for (auto macroName : macroNames) {
     auto master = db_->findMaster(macroName.c_str());
     assert(master != nullptr);
@@ -810,8 +914,23 @@ void OpenDBAdapter::getMacrosFromODB()
     for (auto mterm : master->getMTerms()) {
       auto pin = macro->add_pins();
       pin->set_name(mterm->getName());
-      pin->set_direction(odbIOType2Banyan(mterm->getIoType()));
 
+      auto sta_port = sta_db_network_->dbToSta(mterm);
+      auto sta_lib_port = sta_db_network_->libertyPort(sta_port);
+      if (sta_lib_port != nullptr) {
+        auto sta_direction = sta_lib_port->direction();
+        pin->set_direction(staPortDirection2Banyan(sta_direction));
+      } else {
+        if (not had_warn_no_liberty) {
+          logger_->warn(
+              utl::BY,
+              4,
+              "there is macro that is not contained in the libs, such as {}",
+              macroName);
+          had_warn_no_liberty = true;
+        }
+        pin->set_direction(odbIOType2Banyan(mterm->getIoType()));
+      }
       for (auto mpin : mterm->getMPins()) {
         for (auto odbBox : mpin->getGeometry()) {
           auto geo = pin->add_port();
@@ -913,6 +1032,34 @@ void OpenDBAdapter::getWireBudgetingFromLrl()
 {
 }
 
+void OpenDBAdapter::loadDesignFromODB()
+{
+  design_.reset();
+  design_ = std::make_unique<Design>();
+  getDesignFromODB();
+  getDefViaFromODB();
+  getRoutingLayersFromODB();
+  getIOPinsFromODB();
+  getInstancesFromODB();
+  getMacrosFromODB();
+  getNDRsFromODB();
+  getNetsFromODB();
+  getSpecialNetsFromODB();
+  getBlockagesFromODB();
+  getWireBudgetingFromLrl();
+}
+
+void OpenDBAdapter::loadDesignFromBanyanDB(std::string pbfile)
+{
+  design_.reset();
+  BanyanCase bydb;
+  std::ifstream dbfs;
+  dbfs.open(pbfile);
+  bydb.ParseFromIstream(&dbfs);
+  dbfs.close();
+  design_ = std::unique_ptr<Design>(bydb.release_design());
+}
+
 void OpenDBAdapter::updateDB(const Design& design)
 {
   odb::dbBlock* block = db_->getChip()->getBlock();
@@ -952,14 +1099,25 @@ void OpenDBAdapter::updateDB(const Design& design)
           _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
 
           auto point = rect.point().point();
-          _wire_encoder.addPoint((int) point.x(), (int) point.y());
+          _wire_encoder.addPoint(0, 0);
           auto ll = rect.rect().lowleft();
           auto ur = rect.rect().upright();
-          _wire_encoder.addRect((int) ll.x(),
-                                (int) ll.y(),
-                                (int) (ur.x() - ll.x()),
-                                (int) (ur.y() - ll.y()));
+          _wire_encoder.addRect(
+              (int) ll.x(), (int) ll.y(), (int) ur.x(), (int) ur.y());
         };
+
+  auto pbWire2ODBWire = [&](const Wire& pbWire) {
+    auto layerName = pbWire.layername();
+    for (auto pbWireSeg : pbWire.segments()) {
+      if (pbWireSeg.has_line()) {
+        pbWireline2ODBLine(layerName, pbWireSeg.line());
+      } else if (pbWireSeg.has_rect()) {
+        pbWireRect2ODBRect(layerName, pbWireSeg.rect());
+      } else if (pbWireSeg.has_via()) {
+        pbVia2ODBVia(layerName, pbWireSeg.via());
+      }
+    }
+  };
 
   auto updateAccessPoint = [&](const PinAccessPoint& pbAccessPoint) {
     auto layerName = pbAccessPoint.layername();
@@ -969,27 +1127,27 @@ void OpenDBAdapter::updateDB(const Design& design)
         break;
       case PinAccessPoint::ApCase::kDropVia: {
         auto dropvia = pbAccessPoint.dropvia();
-        pbVia2ODBVia(layerName, dropvia.via());
+        pbWire2ODBWire(dropvia.via());
         break;
       }
       case PinAccessPoint::ApCase::kCoverTracks: {
         auto covertracks = pbAccessPoint.covertracks();
-        pbWireline2ODBLine(layerName, covertracks.line());
+        pbWire2ODBWire(covertracks.line());
         for (auto block : covertracks.blocks()) {
-          pbWireline2ODBLine(layerName, block);
+          pbWire2ODBWire(block);
         }
         break;
       }
       case PinAccessPoint::ApCase::kMazePaths: {
         auto mazepaths = pbAccessPoint.mazepaths();
         if (mazepaths.has_via()) {
-          pbVia2ODBVia(layerName, mazepaths.via());
+          pbWire2ODBWire(mazepaths.via());
         }
         if (mazepaths.has_line()) {
-          pbWireline2ODBLine(layerName, mazepaths.line());
+          pbWire2ODBWire(mazepaths.line());
         }
-        for (auto block : mazepaths.blocks()) {
-          pbWireline2ODBLine(layerName, block);
+        for (auto pbWire : mazepaths.blocks()) {
+          pbWire2ODBWire(pbWire);
         }
         break;
       }
@@ -1026,30 +1184,12 @@ void OpenDBAdapter::updateDB(const Design& design)
         updateAccessPoint(pbAccessPoint);
       }
       for (auto pbWire : pbVPin.wires()) {
-        auto layerName = pbWire.layername();
-        for (auto pbWireSeg : pbWire.segments()) {
-          if (pbWireSeg.has_line()) {
-            pbWireline2ODBLine(layerName, pbWireSeg.line());
-          } else if (pbWireSeg.has_rect()) {
-            pbWireRect2ODBRect(layerName, pbWireSeg.rect());
-          } else if (pbWireSeg.has_via()) {
-            pbVia2ODBVia(layerName, pbWireSeg.via());
-          }
-        }
+        pbWire2ODBWire(pbWire);
       }
     }
 
     for (auto pbWire : net.wires()) {
-      auto layerName = pbWire.layername();
-      for (auto pbWireSeg : pbWire.segments()) {
-        if (pbWireSeg.has_line()) {
-          pbWireline2ODBLine(layerName, pbWireSeg.line());
-        } else if (pbWireSeg.has_rect()) {
-          pbWireRect2ODBRect(layerName, pbWireSeg.rect());
-        } else if (pbWireSeg.has_via()) {
-          pbVia2ODBVia(layerName, pbWireSeg.via());
-        }
-      }
+      pbWire2ODBWire(pbWire);
     }
 
     _wire_encoder.end();

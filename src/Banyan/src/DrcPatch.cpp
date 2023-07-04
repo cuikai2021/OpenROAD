@@ -126,7 +126,6 @@ void DrcPatch::run()
           net));
     }
   }
-
   std::vector<std::tuple<odb::dbTechLayer*, odb::dbNet*, std::vector<PlyRect>>>
       results;
   for (int i = 0; i < futureRes.size(); i++) {
@@ -170,24 +169,16 @@ std::vector<PlyRect> DrcPatch::spacingDrcPatch(
     std::vector<PlyRect> patchRects)
 {
   auto reqSpacing = layer->getSpacing();
-  auto polygon2Patchs = [&, this](const PlyPolygon& polygon) {
-    std::vector<PlyRect> patchRects;
-    std::vector<PlyPolygonPoint> points;
-    for (auto iter = ply::begin_points(polygon);
-         iter != ply::end_points(polygon);
-         ++iter) {
-      points.push_back(*iter);
-    }
-    std::vector<PlyRect> pinMaxRects;
-    ply::get_max_rectangles(pinMaxRects, polygon);
-    if (pinMaxRects.size() <= 1) {
-      return patchRects;
-    }
 
-    for (int i = 0; i < pinMaxRects.size() - 1; i++) {
-      for (int j = i + 1; j < pinMaxRects.size(); j++) {
-        auto rect0 = pinMaxRects[i];
-        auto rect1 = pinMaxRects[j];
+  auto calcPatchs = [&, this](const std::vector<PlyRect>& maxRects) {
+    std::vector<PlyRect> plyPatchRects;
+    if (maxRects.size() <= 1) {
+      return plyPatchRects;
+    }
+    for (int i = 0; i < maxRects.size() - 1; i++) {
+      for (int j = i + 1; j < maxRects.size(); j++) {
+        auto rect0 = maxRects[i];
+        auto rect1 = maxRects[j];
         if (ply::intersect(rect0, rect1)) {
           continue;
         }
@@ -198,24 +189,41 @@ std::vector<PlyRect> DrcPatch::spacingDrcPatch(
         auto rect1Ver = ply::vertical(rect1);
         auto l1dist = ply::manhattan_distance(rect0, rect1);
 
-        if (ply::intersect(rect0Hor, rect1Hor) && 0 < l1dist
-            && l1dist < reqSpacing) {
-          auto minx = std::max(rect0Hor.low(), rect1Hor.low());
-          auto maxx = std::min(rect0Hor.high(), rect1Hor.high());
-          auto miny = std::min(rect0Ver.high(), rect1Ver.high());
-          auto maxy = std::max(rect0Ver.low(), rect1Ver.low());
-          patchRects.push_back(PlyRect(minx, miny, maxx, maxy));
-        } else if (ply::intersect(rect0Ver, rect1Ver) && 0 < l1dist
-                   && l1dist < reqSpacing) {
-          auto minx = std::min(rect0Hor.high(), rect1Hor.high());
-          auto maxx = std::max(rect0Hor.low(), rect1Hor.low());
-          auto miny = std::max(rect0Ver.low(), rect1Ver.low());
-          auto maxy = std::min(rect0Ver.high(), rect1Ver.high());
-          patchRects.push_back(PlyRect(minx, miny, maxx, maxy));
+        if (ply::intersect(rect0Hor, rect1Hor)) {
+          if (0 < l1dist && l1dist < reqSpacing) {
+            auto minx = std::max(rect0Hor.low(), rect1Hor.low());
+            auto maxx = std::min(rect0Hor.high(), rect1Hor.high());
+            auto miny = std::min(rect0Ver.high(), rect1Ver.high());
+            auto maxy = std::max(rect0Ver.low(), rect1Ver.low());
+            plyPatchRects.push_back(PlyRect(minx, miny, maxx, maxy));
+          }
+        } else if (ply::intersect(rect0Ver, rect1Ver)) {
+          if (0 < l1dist && l1dist < reqSpacing) {
+            auto minx = std::min(rect0Hor.high(), rect1Hor.high());
+            auto maxx = std::max(rect0Hor.low(), rect1Hor.low());
+            auto miny = std::max(rect0Ver.low(), rect1Ver.low());
+            auto maxy = std::min(rect0Ver.high(), rect1Ver.high());
+            plyPatchRects.push_back(PlyRect(minx, miny, maxx, maxy));
+          }
+        } else {
+          if (ply::euclidean_distance(rect0, rect1) < reqSpacing) {
+            logger_->info(utl::BY,
+                          1,
+                          "complex spacing drc between rect0 {} {} {} {}, "
+                          "rect1 {} {} {} {}",
+                          ply::xl(rect0),
+                          ply::yl(rect0),
+                          ply::xh(rect0),
+                          ply::yh(rect0),
+                          ply::xl(rect1),
+                          ply::yl(rect1),
+                          ply::xh(rect1),
+                          ply::yh(rect1));
+          }
         }
       }
     }
-    return patchRects;
+    return plyPatchRects;
   };
 
   PlyPolygonSet plyset;
@@ -223,33 +231,24 @@ std::vector<PlyRect> DrcPatch::spacingDrcPatch(
   plyset += patchRects;
 
   std::vector<PlyRect> netPatchRects;
+  std::vector<PlyRect> allMaxRects;
+
   std::vector<PlyPolygon> polygons;
   plyset.get_polygons(polygons);
   for (auto polygon : polygons) {
-    auto patchRects = polygon2Patchs(polygon);
-    if (patchRects.size() <= 0) {
-      continue;
-    }
-    PlyPolygonSet patchPlyset;
-    patchPlyset += patchRects;
-    patchPlyset += polygon;
-
-    std::vector<PlyPolygon> newPolygons;
-    patchPlyset.get_polygons(newPolygons);
-    assert(newPolygons.size() == 1);
-    auto newPolygon = newPolygons[0];
-    auto newPatchRects = polygon2Patchs(newPolygon);
-
-    PlyPolygonSet newPatchPlyset;
-    newPatchPlyset += patchRects;
-    newPatchPlyset += newPatchRects;
-
-    std::vector<PlyRect> reducedPatchRects;
-    ply::get_max_rectangles(reducedPatchRects, newPatchPlyset);
-    netPatchRects.insert(netPatchRects.end(),
-                         std::make_move_iterator(reducedPatchRects.begin()),
-                         std::make_move_iterator(reducedPatchRects.end()));
+    std::vector<PlyRect> maxRects;
+    ply::get_max_rectangles(maxRects, polygon);
+    allMaxRects.insert(allMaxRects.end(),
+                       std::make_move_iterator(maxRects.begin()),
+                       std::make_move_iterator(maxRects.end()));
   }
+
+  auto plyPatchRects = calcPatchs(allMaxRects);
+  std::vector<PlyRect> reducedPatchRects;
+  ply::get_max_rectangles(reducedPatchRects, plyPatchRects);
+  netPatchRects.insert(netPatchRects.end(),
+                       std::make_move_iterator(reducedPatchRects.begin()),
+                       std::make_move_iterator(reducedPatchRects.end()));
   return netPatchRects;
 }
 std::vector<PlyRect> DrcPatch::minHolePatch(odb::dbTechLayer* layer,

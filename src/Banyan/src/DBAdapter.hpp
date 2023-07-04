@@ -44,6 +44,7 @@ class Laurel;
 
 namespace sta {
 class Pin;
+class PortDirection;
 }
 
 namespace stt {
@@ -82,6 +83,7 @@ class OpenDBAdapter
   std::string viaNameFromViaBox(odb::dbBox* box);
 
   PinDirection odbIOType2Banyan(odb::dbIoType type);
+  PinDirection staPortDirection2Banyan(sta::PortDirection* pd);
   ComponentOrient odbOrient2Banyan(odb::dbOrientType type);
   MacroClass odbMacroClass2Banyan(odb::dbMaster* master);
 
@@ -90,6 +92,7 @@ class OpenDBAdapter
   void getDesignFromODB();
   void getDefViaFromODB();
   void getRoutingLayersFromODB();
+  void getNDRsFromODB();
   void getNetsFromODB();
   void getSpecialNetsFromODB();
   void getBlockagesFromODB();
@@ -121,21 +124,19 @@ class OpenDBAdapter
       logger_->error(utl::BY, 1, "design is empty, should read def file first");
     }
 
-    design_ = std::make_unique<Design>();
-
-    getDesignFromODB();
-    getDefViaFromODB();
-    getRoutingLayersFromODB();
-    getIOPinsFromODB();
-    getInstancesFromODB();
-    getMacrosFromODB();
-    getNetsFromODB();
-    getSpecialNetsFromODB();
-    getBlockagesFromODB();
-    getWireBudgetingFromLrl();
+    if (auto libs = db->getLibs(); libs.empty()) {
+      logger_->warn(
+          utl::BY,
+          3,
+          "libs is empty, would use lef file to determine the direction of macro' pins, instead of lib file");
+    }
   }
 
   ~OpenDBAdapter() {}
+
+  void loadDesignFromODB();
+
+  void loadDesignFromBanyanDB(std::string pbfile);
 
   void updateDB(const Design& design);
 
