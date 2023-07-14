@@ -128,6 +128,18 @@ def base(ctx, **kwargs):
         **kwargs
     )
 
+@cli.command()
+@click.pass_context
+def benchmark_metrics(ctx, **kwargs):
+    kwargs.update(ctx.obj)
+    if kwargs['docker_tag'] is None:
+        kwargs['docker_tag'] = 'latest'
+    utils.docker_build(
+        docker_file = 'docker/benchmark/Dockerfile.metrics',
+        docker_name = 'benchmark_metrics',
+        context = '.',
+        **kwargs
+    )
 
 cli()
 os.chdir(CURRENT_DIR)
