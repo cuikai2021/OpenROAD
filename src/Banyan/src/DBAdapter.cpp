@@ -27,6 +27,9 @@
 #include "sta/PortDirection.hh"
 #include "stt/SteinerTreeBuilder.h"
 #include "utl/Logger.h"
+#include "ord/OpenRoad.hh"
+#include "db_sta/dbSta.hh"
+#include "sta/Liberty.hh"
 
 namespace banyan {
 
