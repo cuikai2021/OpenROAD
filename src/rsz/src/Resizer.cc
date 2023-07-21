@@ -4386,4 +4386,61 @@ Resizer::findLibertyCellAndPort(const char* cell_name,
   return {lib_cell, lib_port};
 }
 
+void Resizer::getWorstSlackNets(NetSlackMap& result, size_t limit)
+{
+  // stupid realization
+  struct NetSlack
+  {
+    dbNet* net;
+    Slack slack;
+    bool operator<(NetSlack const & o) const
+    {
+      if (fuzzyEqual(slack, o.slack)) return net < o.net;
+      return fuzzyLess(slack, o.slack);
+    }
+  };
+  std::set<NetSlack> cache;
+
+  init();
+  sta_->findRequireds();
+  VertexIterator iter(graph_);
+  while (iter.hasNext()) {
+    Vertex* drvr = iter.next();
+    if (!drvr->isDriver(network_))
+      continue;
+
+    Pin* drvr_pin = drvr->pin();
+    Net* net = network_->isTopLevelPort(drvr_pin)
+      ? network_->net(network_->term(drvr_pin))
+      : network_->net(drvr_pin);
+
+    if (!net || sta_->isClock(drvr_pin) || isFuncOneZero(drvr_pin))
+      continue;
+
+    Slack s = sta_->vertexSlack(drvr, MinMax::max());
+    if (fuzzyLess(s, 0)) {
+      dbNet* d_net = db_network_->staToDb(net);
+      cache.insert({d_net, s});
+    }
+  }
+  auto it = cache.begin();
+  for (size_t i = 0; i < limit && it != cache.end(); ++i) {
+    result.insert({it->net, it->slack});
+    it++;
+  }
+}
+
+void Resizer::reportWorstSlackNets(size_t limit)
+{
+  Resizer::NetSlackMap ret;
+  getWorstSlackNets(ret, limit);
+
+  printf("[RSZ] report worst %ld net\n", ret.size());
+  for (auto& ele : ret) {
+    Net* net = db_network_->dbToSta(ele.first);
+    const char* net_name = db_network_->name(net);
+    printf("  %e: %s\n", ele.second, net_name);
+  }
+}
+
 } // namespace

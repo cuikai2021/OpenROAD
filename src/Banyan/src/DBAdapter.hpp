@@ -51,6 +51,10 @@ namespace stt {
 class SteinerTreeBuilder;
 }
 
+namespace rsz {
+class Resizer;
+}
+
 namespace banyan {
 
 constexpr int DEFAULT_WIRE_EXT = 0;
@@ -65,8 +69,8 @@ class OpenDBAdapter
   stt::SteinerTreeBuilder* sttBuilder_;
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
-
-  bool timingDriven_ = false;
+  rsz::Resizer* resizer_;
+  bool timingDriven_ ;
 
   std::set<std::string> instPinNames;
   std::set<std::string> macroNames;
@@ -107,11 +111,13 @@ class OpenDBAdapter
                 stt::SteinerTreeBuilder* sttBuilder_,
                 utl::Logger* logger,
                 lrl::Laurel* laurel,
+                rsz::Resizer* resizer,
                 bool timingDriven = false)
       : db_(db),
         sttBuilder_(sttBuilder_),
         logger_(logger),
         laurel_(laurel),
+        resizer_(resizer),
         timingDriven_(timingDriven)
   {
     if (auto techlef = db->getTech(); techlef == nullptr) {

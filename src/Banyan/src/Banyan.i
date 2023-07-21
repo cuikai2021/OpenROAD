@@ -40,10 +40,9 @@ void banyan(std::vector<std::string> args)
     }
 }
 
-
-void banyan_clear_wires()
+void banyanClearWires(bool excludeClock, bool excludeSignal)
 {
-    ord::OpenRoad::openRoad()->getBanyan()->clearWires();
+    ord::OpenRoad::openRoad()->getBanyan()->clearWires(excludeClock, excludeSignal);
 }
 
 void mergeWireSegment()
@@ -60,10 +59,12 @@ void banyanRunGui()
 {
     ord::OpenRoad::openRoad()->getBanyan()->runGui();
 }
+
 void drcPatch()
 {
     ord::OpenRoad::openRoad()->getBanyan()->drcPatch();
 }
+
 
 }
 

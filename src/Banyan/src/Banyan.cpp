@@ -1,11 +1,11 @@
 #include "banyan/Banyan.h"
 
+#include <spdlog/spdlog.h>
+
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <iostream>
 #include <sstream>
-
-#include <spdlog/spdlog.h>
 
 #include "BanyanGraphics.hpp"
 #include "ByAdapter.hpp"
@@ -54,12 +54,14 @@ void Banyan::init(Tcl_Interp* tcl_interp,
                   odb::dbDatabase* db,
                   stt::SteinerTreeBuilder* stt_builder,
                   utl::Logger* logger,
-                  lrl::Laurel* laurel)
+                  lrl::Laurel* laurel,
+                  rsz::Resizer* resizer)
 {
   db_ = db;
   stt_builder_ = stt_builder;
   logger_ = logger;
   laurel_ = laurel;
+  resizer_ = resizer;
   // Define swig TCL commands.
   Banyan_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::Banyan_tcl_inits);
@@ -128,6 +130,7 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   po::options_description desc("Banyan");
   desc.add_options()                                                         //
       ("help,h", "")                                                         //
+      ("timing_driven", "")                                                  //
       ("techlef", po::value<std::string>(&techlef), "")                      //
       ("save_db", po::value<std::string>(&outPbFilePath), "")                //
       ("db", po::value<std::string>(&inPbFilePath), "")                      //
@@ -169,7 +172,9 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     args.push_back(techfile_name_);
   }
 
-  OpenDBAdapter dbAdapter(db_, stt_builder_, logger_, laurel_, false);
+  bool timingDriven = vm.count("timing_driven");
+  OpenDBAdapter dbAdapter(
+      db_, stt_builder_, logger_, laurel_, resizer_, timingDriven);
 
   if (!vm.count("db")) {
     dbAdapter.loadDesignFromODB();
@@ -201,7 +206,7 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
 
   defer _(nullptr, [&](...) {
     if (updateDB) {
-      logger_->info(utl::BY, 1, "Writing banyan result to eden ...");
+      logger_->info(utl::BY, 1, "Writing banyan result {} to eden ...", outPbFilePath);
       BanyanCase byrst;
       std::ifstream outfs;
       outfs.open(outPbFilePath);
@@ -317,22 +322,32 @@ void Banyan::runGui()
   return;
 }
 
-
 void Banyan::drcPatch()
 {
   auto dp = DrcPatch(db_, logger_);
   dp.run();
 }
 
-void Banyan::clearWires()
+void Banyan::clearWires(bool excludeClock, bool excludeSignal)
 {
   auto block = db_->getChip()->getBlock();
   for (auto net : block->getNets()) {
+    if (net->isSpecial()) {
+      continue;
+    }
+    if (excludeClock && net->getSigType() == odb::dbSigType::CLOCK) {
+      continue;
+    }
+    if (excludeSignal && net->getSigType() == odb::dbSigType::SIGNAL) {
+      continue;
+    }
     auto wire = net->getWire();
     if (wire != nullptr) {
       odb::dbWire::destroy(wire);
     }
   }
 }
+
+
 
 }  // namespace banyan

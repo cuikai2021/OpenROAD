@@ -50,7 +50,8 @@ class Banyan : public ord::OpenRoad::Observer
             odb::dbDatabase* db,
             stt::SteinerTreeBuilder* stt_builder,
             utl::Logger* logger,
-            lrl::Laurel* laurel);
+            lrl::Laurel* laurel,
+            rsz::Resizer* resizer);
 
   int main(std::vector<std::string> args, bool updateDB);
   int cmap(const std::string& cmapPb, bool cgr_mode);
@@ -58,8 +59,7 @@ class Banyan : public ord::OpenRoad::Observer
   int m1GridlessMaze();
   void runGui();
   void drcPatch();
-
-  void clearWires();
+  void clearWires(bool excludeClock, bool excludeSignal);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
                            odb::dbTech* tech,
@@ -75,6 +75,7 @@ class Banyan : public ord::OpenRoad::Observer
   stt::SteinerTreeBuilder* stt_builder_;
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
+  rsz::Resizer* resizer_;
   std::string techfile_name_;
 };  // class Banyan
 

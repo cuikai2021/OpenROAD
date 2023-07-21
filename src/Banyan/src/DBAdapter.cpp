@@ -22,7 +22,10 @@
 #include "odb/dbTransform.h"
 #include "odb/dbWireCodec.h"
 #include "odb/geom.h"
+#include "ord/OpenRoad.hh"
+#include "rsz/Resizer.hh"
 #include "rsz/SteinerTree.hh"
+#include "sta/Delay.hh"
 #include "sta/Network.hh"
 #include "sta/PortDirection.hh"
 #include "stt/SteinerTreeBuilder.h"
@@ -56,6 +59,9 @@ bool OpenDBAdapter::isLegalized()
   }
   std::unordered_map<Y2Height, std::vector<PlyRect>, pair_hash> insts;
   for (auto inst : block->getInsts()) {
+    if (!inst->isCore() && !inst->isEndCap()) {
+      continue;
+    }
     int x = 0;
     int y = 0;
     inst->getLocation(x, y);
@@ -311,10 +317,10 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
                        int deltaY1,
                        int deltaX2,
                        int deltaY2) {
-    int x1 = x + deltaX1;
-    int y1 = y + deltaY1;
-    int x2 = x + deltaX2;
-    int y2 = y + deltaY2;
+    int x1 = deltaX1;
+    int y1 = deltaY1;
+    int x2 = deltaX2;
+    int y2 = deltaY2;
 
     Wire wire;
     wire.set_layername(layerName);
@@ -323,8 +329,8 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
 
     auto point = wireRect->mutable_point();
     point->mutable_extvalue()->set_value(ext);
-    point->mutable_point()->set_x(0);
-    point->mutable_point()->set_y(0);
+    point->mutable_point()->set_x(x);
+    point->mutable_point()->set_y(y);
 
     auto rect = wireRect->mutable_rect();
     rect->mutable_lowleft()->set_x(std::min(x1, x2));
@@ -1033,6 +1039,22 @@ void OpenDBAdapter::getBlockagesFromODB()
 
 void OpenDBAdapter::getWireBudgetingFromLrl()
 {
+  sta::dbNetwork* network = ::ord::OpenRoad::openRoad()->getDbNetwork();
+  if (network->isLinked()) {
+    auto chip = db_->getChip();
+    auto block = chip->getBlock();
+    auto netsSize = block->getNets().size();
+    rsz::Resizer::NetSlackMap ret;
+    resizer_->getWorstSlackNets(ret, (int) netsSize);
+    for (int i; i < design_->nets_size(); i++) {
+      auto net = design_->mutable_nets(i);
+      auto odbNet = block->findNet(net->name().c_str());
+      auto minSlackIter = ret.find(odbNet);
+      if (minSlackIter != ret.end() && minSlackIter->second < 0) {
+        net->mutable_minslack()->set_value(minSlackIter->second);
+      }
+    }
+  }
 }
 
 void OpenDBAdapter::loadDesignFromODB()
@@ -1101,10 +1123,11 @@ void OpenDBAdapter::updateDB(const Design& design)
           auto layerInOpenDB = tech->findLayer(layerName.c_str());
           _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
 
-          auto point = rect.point().point();
-          _wire_encoder.addPoint(0, 0);
           auto ll = rect.rect().lowleft();
           auto ur = rect.rect().upright();
+
+          auto point = rect.point().point();
+          _wire_encoder.addPoint((int) point.x(), (int) point.y());
           _wire_encoder.addRect(
               (int) ll.x(), (int) ll.y(), (int) ur.x(), (int) ur.y());
         };

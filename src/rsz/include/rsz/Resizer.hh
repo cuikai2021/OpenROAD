@@ -325,6 +325,11 @@ public:
   double dbuToMeters(int dist) const;
   int metersToDbu(double dist) const;
 
+  // for Timing Driven Routing
+  typedef std::unordered_map<odb::dbNet*, Slack> NetSlackMap;
+  void getWorstSlackNets(NetSlackMap& result, size_t limit = 100);
+  void reportWorstSlackNets(size_t limit);
+
 protected:
   void init();
   void ensureBlock();

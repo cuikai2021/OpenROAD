@@ -644,6 +644,15 @@ find_fanin_fanouts(PinSet *pins)
   return resizer->findFaninFanouts(pins);
 }
 
+void
+report_worst_slack_net(int limit)
+{
+  // for debug
+  ensureLinked();
+  Resizer *resizer = getResizer();
+  resizer->reportWorstSlackNets(limit);
+}
+
 } // namespace
 
 %} // inline
