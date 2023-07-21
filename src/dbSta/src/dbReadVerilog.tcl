@@ -61,11 +61,12 @@ proc link_design { {top_cell_name ""} } {
 }
 
 sta::define_cmd_args "write_verilog" {[-sort] [-include_pwr_gnd]\
+					[-exclude_not_in_lib] \
 					[-remove_cells cells] filename}
 
 proc write_verilog { args } {
   sta::parse_key_args "write_verilog" args keys {-remove_cells} \
-    flags {-sort -include_pwr_gnd}
+    flags {-sort -include_pwr_gnd -exclude_not_in_lib}
 
   set remove_cells {}
   if { [info exists keys(-remove_cells)] } {
@@ -73,7 +74,8 @@ proc write_verilog { args } {
   }
   set sort [info exists flags(-sort)]
   set include_pwr_gnd [info exists flags(-include_pwr_gnd)]
+  set exclude_not_in_lib [info exists flags(-exclude_not_in_lib)]
   sta::check_argc_eq1 "write_verilog" $args
   set filename [file nativename [lindex $args 0]]
-  sta::write_verilog_cmd $filename $sort $include_pwr_gnd $remove_cells
+  sta::write_verilog_cmd $filename $sort $include_pwr_gnd $exclude_not_in_lib $remove_cells
 }
