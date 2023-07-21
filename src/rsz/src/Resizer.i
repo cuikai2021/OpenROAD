@@ -277,6 +277,14 @@ estimate_parasitics_cmd(ParasiticsSrc src)
   resizer->estimateParasitics(src);
 }
 
+void
+load_estimate_topo_pb_cmd(const char *pb_file)
+{
+  ensureLinked();
+  Resizer *resizer = getResizer();
+  resizer->loadEstimateTopoPb(pb_file);
+}
+
 // For debugging. Does not protect against annotating power/gnd.
 void
 estimate_parasitic_net(const Net *net)

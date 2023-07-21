@@ -215,15 +215,18 @@ proc set_wire_rc { args } {
   }
 }
 
-sta::define_cmd_args "estimate_parasitics" { -placement|-global_routing }
+sta::define_cmd_args "estimate_parasitics" { {-placement [-topo_pb pb_file]}|-global_routing }
 
 proc estimate_parasitics { args } {
   sta::parse_key_args "estimate_parasitics" args \
-    keys {} flags {-placement -global_routing}
+    keys {-topo_pb} flags {-placement -global_routing}
   
   sta::check_argc_eq0 "estimate_parasitics" $args
   if { [info exists flags(-placement)] } {
     if { [rsz::check_corner_wire_cap] } {
+      if { [info exists keys(-topo_pb)] } {
+        rsz::load_estimate_topo_pb_cmd $keys(-topo_pb)
+      }
       rsz::estimate_parasitics_cmd "placement"
     }
   } elseif { [info exists flags(-global_routing)] } {

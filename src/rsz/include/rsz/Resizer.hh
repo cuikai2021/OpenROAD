@@ -38,6 +38,7 @@
 #include <array>
 #include <deque>
 #include <string>
+#include <unordered_map>
 
 #include "SteinerTree.hh"
 #include "BufferedNet.hh"
@@ -55,6 +56,10 @@ class IncrementalGRoute;
 
 namespace sta {
 class PathExpanded;
+}
+
+namespace banyan {
+class RouteTree;
 }
 
 namespace rsz {
@@ -176,6 +181,7 @@ public:
   double wireSignalCapacitance(const Corner *corner);
   double wireClkCapacitance(const Corner *corner);
   void estimateParasitics(ParasiticsSrc src);
+  void loadEstimateTopoPb(const char *pb_file);
   void estimateWireParasitics();
   void estimateWireParasitic(const Net *net);
   void estimateWireParasitic(const Pin *drvr_pin,
@@ -573,8 +579,7 @@ protected:
                 const Pin *&pin2) const;
   void parasiticNodeConnectPins(Parasitic *parasitic,
                                 ParasiticNode *node,
-                                SteinerTree *tree,
-                                SteinerPt pt,
+                                const PinSeq *pins,
                                 const ParasiticAnalysisPt *parasitics_ap);
   double wireSignalCapacitance(const Pin *drvr_pin,
                                const Net *net,
@@ -711,6 +716,7 @@ protected:
 
   ParasiticsSrc parasitics_src_;
   UnorderedSet<const Net*, NetHash> parasitics_invalid_;
+  std::unordered_map<const Net*, banyan::RouteTree*> estimate_topo_;
 
   double design_area_;
   const MinMax *max_;

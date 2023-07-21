@@ -70,6 +70,8 @@ target_link_libraries(rsz
     spdlog::spdlog
     fassert
     envflag
+  PRIVATE
+    banyan_pb
 )
 
 messages(

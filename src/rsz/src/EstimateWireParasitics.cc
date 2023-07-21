@@ -36,6 +36,19 @@
 #include "rsz/Resizer.hh"
 #include "rsz/SteinerTree.hh"
 
+#include <cassert>
+#include <cstdlib>
+#include <deque>
+#include <fstream>
+#include <functional>
+#include <memory>
+#include <string>
+#include <tuple>
+#include <vector>
+#include "dbTypes.h"
+
+#include "sta/NetworkClass.hh"
+#include "sta/PortDirection.hh"
 #include "utl/Logger.h"
 
 #include "sta/Report.hh"
@@ -47,6 +60,8 @@
 #include "sta/DcalcAnalysisPt.hh"
 
 #include "grt/GlobalRouter.h"
+
+#include "banyan_cts.pb.h"
 
 namespace rsz {
 
@@ -228,6 +243,7 @@ Resizer::estimateParasitics(ParasiticsSrc src)
 {
   switch (src) {
   case ParasiticsSrc::placement:
+    sta_->deleteParasitics();
     estimateWireParasitics();
     break;
   case ParasiticsSrc::global_routing:
@@ -237,6 +253,28 @@ Resizer::estimateParasitics(ParasiticsSrc src)
   case ParasiticsSrc::none:
     break;
   }
+}
+
+void
+Resizer::loadEstimateTopoPb(const char *pb_file)
+{
+  if (pb_file[0] == '\0') {
+    return;
+  }
+
+  auto nets = new banyan::CTSRouteNets;
+  std::ifstream fin(pb_file);
+  assert(nets->ParseFromIstream(&fin));
+  fin.close();
+
+  estimate_topo_.reserve(nets->nets_size());
+  for (auto net : nets->nets()) {
+    auto sta_net = network_->findNet(net.netname().c_str());
+    if (sta_net != nullptr) {
+      estimate_topo_[sta_net] = net.release_routetree();
+    }
+  }
+  delete nets;
 }
 
 bool
@@ -355,6 +393,11 @@ Resizer::estimateWireParasitics()
     parasitics_src_ = ParasiticsSrc::placement;
     parasitics_invalid_.clear();
   }
+
+  for (auto [_, topo] : estimate_topo_) {
+    delete topo;
+  }
+  estimate_topo_.clear();
 }
 
 void
@@ -423,57 +466,108 @@ void
 Resizer::estimateWireParasiticSteiner(const Pin *drvr_pin,
                                       const Net *net)
 {
-  SteinerTree *tree = makeSteinerTree(drvr_pin, false, max_steiner_pin_count_,
-                                      stt_builder_, db_network_, logger_);
-  if (tree) {
-    debugPrint(logger_, RSZ, "resizer_parasitics", 1, "estimate wire {}",
-               sdc_network_->pathName(net));
-    for (Corner *corner : *sta_->corners()) {
-      const ParasiticAnalysisPt *parasitics_ap = corner->findParasiticAnalysisPt(max_);
-      Parasitic *parasitic = sta_->makeParasiticNetwork(net, false, parasitics_ap);
-      bool is_clk = sta_->isClock(net);
-      double wire_cap=is_clk ? wireClkCapacitance(corner) : wireSignalCapacitance(corner);
-      double wire_res=is_clk ? wireClkResistance(corner) : wireSignalResistance(corner);
-      int branch_count = tree->branchCount();
-      for (int i = 0; i < branch_count; i++) {
-        Point pt1, pt2;
-        SteinerPt steiner_pt1, steiner_pt2;
-        int wire_length_dbu;
-        tree->branch(i,
-                     pt1, steiner_pt1,
-                     pt2, steiner_pt2,
-                     wire_length_dbu);
-        ParasiticNode *n1 = parasitics_->ensureParasiticNode(parasitic, net, steiner_pt1);
-        ParasiticNode *n2 = parasitics_->ensureParasiticNode(parasitic, net, steiner_pt2);
-        if (wire_length_dbu == 0)
-          // Use a small resistor to keep the connectivity intact.
-          parasitics_->makeResistor(nullptr, n1, n2, 1.0e-3, parasitics_ap);
-        else {
-          double length = dbuToMeters(wire_length_dbu);
-          double cap = length * wire_cap;
-          double res = length * wire_res;
-          // Make pi model for the wire.
-          debugPrint(logger_, RSZ, "resizer_parasitics", 2,
-                     " pi {} l={} c2={} rpi={} c1={} {}",
-                     parasitics_->name(n1),
-                     units_->distanceUnit()->asString(length),
-                     units_->capacitanceUnit()->asString(cap / 2.0),
-                     units_->resistanceUnit()->asString(res),
-                     units_->capacitanceUnit()->asString(cap / 2.0),
-                     parasitics_->name(n2));
-          parasitics_->incrCap(n1, cap / 2.0, parasitics_ap);
-          parasitics_->makeResistor(nullptr, n1, n2, res, parasitics_ap);
-          parasitics_->incrCap(n2, cap / 2.0, parasitics_ap);
-        }
-        parasiticNodeConnectPins(parasitic, n1, tree, steiner_pt1, parasitics_ap);
-        parasiticNodeConnectPins(parasitic, n2, tree, steiner_pt2, parasitics_ap);
+  auto topo = estimate_topo_.count(net) ? estimate_topo_[net] : nullptr;
+  auto tree = topo ? nullptr : makeSteinerTree(drvr_pin, false, max_steiner_pin_count_,
+                                               stt_builder_, db_network_, logger_);
+
+  if (!topo && !tree) {
+    return;
+  }
+
+  using TopoNode   = const banyan::RouteTree*;
+  using TopoBranch = std::tuple<TopoNode, std::unique_ptr<PinSeq>, int>; // 当前节点、其的 pin、其的父节点 id
+  std::deque<TopoBranch> topo_branches;
+  if (topo) {
+    std::function<void(TopoNode, int)> dfs = [&](TopoNode node, int fa_id) {
+      auto id = topo_branches.size();
+      auto& branch = topo_branches.emplace_back(node, nullptr, fa_id);
+
+      if (node->val_case() == banyan::RouteTree::kPinName) {
+        std::get<1>(branch) = std::make_unique<PinSeq>(1, network_->findPin(node->pinname().c_str()));
       }
-      ReducedParasiticType reduce_to = ReducedParasiticType::pi_elmore;
-      const OperatingConditions *op_cond = sdc_->operatingConditions(max_);
-      parasitics_->reduceTo(parasitic, net, reduce_to, op_cond,
-                            corner, max_, parasitics_ap);
+
+      for (auto& son : node->sons()) {
+        dfs(&son, id);
+      }
+    };
+    dfs(topo, -1);
+  }
+
+  int branch_count = topo ? topo_branches.size() - 1 : tree->branchCount();
+  auto get_points_len = [&](int id) -> std::tuple<SteinerPt, SteinerPt, int> {
+    Point pt1, pt2;
+    SteinerPt steiner_pt1, steiner_pt2;
+    int wire_length_dbu;
+
+    if (topo) {
+      auto get_point = [&](TopoNode branch) -> Point {
+        if (branch->val_case() == banyan::RouteTree::kPinName) {
+          auto pin = network_->findPin(branch->pinname().c_str());
+          return db_network_->location(pin);
+        } else {
+          return {
+            int(branch->point().x()),
+            int(branch->point().y()),
+          };
+        }
+      };
+      steiner_pt1 = id + 1;
+      steiner_pt2 = std::get<2>(topo_branches[steiner_pt1]);
+      pt1 = get_point(std::get<0>(topo_branches[steiner_pt1]));
+      pt2 = get_point(std::get<0>(topo_branches[steiner_pt2]));
+      wire_length_dbu = Point::manhattanDistance(pt1, pt2);
+    } else {
+      tree->branch(id,
+                   pt1, steiner_pt1,
+                   pt2, steiner_pt2,
+                   wire_length_dbu);
     }
-    parasitics_->deleteParasiticNetworks(net);
+    return { steiner_pt1, steiner_pt2, wire_length_dbu };
+  };
+
+  debugPrint(logger_, RSZ, "resizer_parasitics", 1, "estimate wire {}",
+              sdc_network_->pathName(net));
+  for (Corner *corner : *sta_->corners()) {
+    const ParasiticAnalysisPt *parasitics_ap = corner->findParasiticAnalysisPt(max_);
+    Parasitic *parasitic = sta_->makeParasiticNetwork(net, false, parasitics_ap);
+    bool is_clk = sta_->isClock(net);
+    double wire_cap=is_clk ? wireClkCapacitance(corner) : wireSignalCapacitance(corner);
+    double wire_res=is_clk ? wireClkResistance(corner) : wireSignalResistance(corner);
+    for (int i = 0; i < branch_count; i++) {
+      auto [steiner_pt1, steiner_pt2, wire_length_dbu] = get_points_len(i);
+      ParasiticNode *n1 = parasitics_->ensureParasiticNode(parasitic, net, steiner_pt1);
+      ParasiticNode *n2 = parasitics_->ensureParasiticNode(parasitic, net, steiner_pt2);
+      if (wire_length_dbu == 0)
+        // Use a small resistor to keep the connectivity intact.
+        parasitics_->makeResistor(nullptr, n1, n2, 1.0e-3, parasitics_ap);
+      else {
+        double length = dbuToMeters(wire_length_dbu);
+        double cap = length * wire_cap;
+        double res = length * wire_res;
+        // Make pi model for the wire.
+        debugPrint(logger_, RSZ, "resizer_parasitics", 2,
+                    " pi {} l={} c2={} rpi={} c1={} {}",
+                    parasitics_->name(n1),
+                    units_->distanceUnit()->asString(length),
+                    units_->capacitanceUnit()->asString(cap / 2.0),
+                    units_->resistanceUnit()->asString(res),
+                    units_->capacitanceUnit()->asString(cap / 2.0),
+                    parasitics_->name(n2));
+        parasitics_->incrCap(n1, cap / 2.0, parasitics_ap);
+        parasitics_->makeResistor(nullptr, n1, n2, res, parasitics_ap);
+        parasitics_->incrCap(n2, cap / 2.0, parasitics_ap);
+      }
+      parasiticNodeConnectPins(parasitic, n1, topo ? std::get<1>(topo_branches[steiner_pt1]).get() : tree->pins(steiner_pt1), parasitics_ap);
+      parasiticNodeConnectPins(parasitic, n2, topo ? std::get<1>(topo_branches[steiner_pt2]).get() : tree->pins(steiner_pt2), parasitics_ap);
+    }
+    ReducedParasiticType reduce_to = ReducedParasiticType::pi_elmore;
+    const OperatingConditions *op_cond = sdc_->operatingConditions(max_);
+    parasitics_->reduceTo(parasitic, net, reduce_to, op_cond,
+                          corner, max_, parasitics_ap);
+  }
+  parasitics_->deleteParasiticNetworks(net);
+
+  if (tree != nullptr) {
     delete tree;
   }
 }
@@ -481,11 +575,9 @@ Resizer::estimateWireParasiticSteiner(const Pin *drvr_pin,
 void
 Resizer::parasiticNodeConnectPins(Parasitic *parasitic,
                                   ParasiticNode *node,
-                                  SteinerTree *tree,
-                                  SteinerPt pt,
+                                  const PinSeq *pins,
                                   const ParasiticAnalysisPt *parasitics_ap)
 {
-  const PinSeq *pins = tree->pins(pt);
   if (pins) {
     for (Pin *pin : *pins) {
       ParasiticNode *pin_node = parasitics_->ensureParasiticNode(parasitic, pin);
