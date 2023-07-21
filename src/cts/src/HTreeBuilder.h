@@ -193,7 +193,9 @@ class HTreeBuilder : public TreeBuilder
                Logger* logger)
       : TreeBuilder(options, net, parent), _logger(logger){};
 
-  void run();
+  ~HTreeBuilder() override = default;
+
+  void run() override;
 
   void plotSolution();
 

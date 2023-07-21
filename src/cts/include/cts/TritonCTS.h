@@ -37,8 +37,10 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
+#include <unordered_map>
 
 namespace ord {
 class OpenRoad;
@@ -73,6 +75,7 @@ class TechChar;
 class StaEngine;
 class TreeBuilder;
 class CTSClkSkew;
+class RouteTreeBuilder;
 
 class TritonCTS
 {
@@ -98,6 +101,7 @@ class TritonCTS
   void buildClockTreeWithGating(TreeBuilder* builder, TechChar *techChar);
   void runPostCtsOpt();
   void writeDataToDb();
+  void writeDataToPb();
 
   // db functions
   bool masterExists(const std::string& master) const;
@@ -150,6 +154,7 @@ class TritonCTS
   std::set<odb::dbNet*> staClockNets;
   std::set<odb::dbNet*> visitedClockNets;
   std::map<odb::dbInst*, ClockInst*> inst2clkbuf;
+  std::unordered_map<std::string, std::unique_ptr<RouteTreeBuilder>> _route_tree_builders;
 
   // db vars
   odb::dbDatabase* _db;

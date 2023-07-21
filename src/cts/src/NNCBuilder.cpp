@@ -1,11 +1,14 @@
 #include "NNCBuilder.h"
 
+#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <cmath>
 #include <map>
+#include <memory>
 #include <queue>
 
+#include "odb/geom.h"
 #include "utl/Logger.h"
 #include "lrl/DelayCalc.hh"
 #include "sta/Liberty.hh"
@@ -938,6 +941,77 @@ void NNCBuilder::findIndependentSet(std::vector<Edge>& edges,
   }
 }
 
+void NNCBuilder::buildBYRouteTreeInner(RouteTreeBuilder& rt, TreeNode* node) {
+  if (node->segment->buffer) {
+    auto bufInst = _clock.findClockByName(_clock.getName() + "_buffer_" + std::to_string(node->id));
+    rt.setClkInst(bufInst);
+    return;
+  }
+
+  if (node->segment->sinkInst) {
+    rt.setClkInst(node->segment->sinkInst);
+    return;
+  }
+
+  rt.setMergePoint(odb::Point(
+    int(std::round(node->loc->x)),
+    int(std::round(node->loc->y))
+  ));
+
+  for (auto child : node->children) {
+    buildBYRouteTreeInner(rt.addSubtree(), child);
+  }
+}
+
+void NNCBuilder::buildBYRouteTree(RouteTreeBuilder& rt, TreeNode* node, ClockInst* srcInst) {
+  rt.setClkInst(srcInst);
+
+  for (auto child : node->children) {
+    buildBYRouteTreeInner(rt.addSubtree(), child);
+  }
+}
+
+std::pair<double, double> NNCBuilder::evalBufInterval(TreeNode* node, std::vector<TreeNode*>& net_nodes) {
+  if (net_nodes.size() <= 1 || node->children.empty()) {
+    return { 0, 0 };
+  }
+
+  double target_x, target_y;
+  bool target_unique;
+
+  if (_options->getNNCBanyan()) {
+    double total_x = 0, total_y = 0;
+    for (auto net_node : net_nodes) {
+      if (net_node == node) {
+        continue;
+      }
+      total_x += net_node->loc->x;
+      total_y += net_node->loc->y;
+    }
+
+    // 可能中位数更优？
+    target_x = total_x / (net_nodes.size() - 1);
+    target_y = total_y / (net_nodes.size() - 1);
+    target_unique = net_nodes.size() == 2;
+  } else {
+    double min_x = INFINITY, max_x = -INFINITY;
+    double min_y = INFINITY, max_y = -INFINITY;
+    for (auto child : node->children) {
+      min_x = std::min(min_x, child->loc->x);
+      max_x = std::max(max_x, child->loc->x);
+      min_y = std::min(min_y, child->loc->y);
+      max_y = std::max(max_y, child->loc->y);
+    }
+
+    target_x = (max_x + min_x) / 2;
+    target_y = (max_y + min_y) / 2;
+    target_unique = node->children.size() == 1;
+  }
+  return {
+    (node->loc->x - target_x) / (node->segment->more_buffers.size() + target_unique),
+    (node->loc->y - target_y) / (node->segment->more_buffers.size() + target_unique),
+  };
+}
 
 void NNCBuilder::buildSolutionInner(TreeNode* node, std::queue<TreeNode*>& buffer_queue,
                                     std::vector<TreeNode*>& net_nodes) {
@@ -978,35 +1052,8 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
     std::vector<TreeNode*> net_nodes;
     net_nodes.push_back(node);
 
-    if (node->children.size() > 0) {
-      for (auto child : node->children) {
-        buildSolutionInner(child, buffer_queue, net_nodes);
-      }
-    }
-
-    double interval_x = 0, interval_y = 0;
-    if (node->segment->more_buffers.size() > 0) {
-      double total_x = 0, total_y = 0;
-      for (auto net_node : net_nodes) {
-        if (net_node == node) {
-          continue ;
-        }
-
-        total_x += net_node->loc->x;
-        total_y += net_node->loc->y;
-      }
-
-      double centroid_x = 0, centroid_y = 0;
-      if (net_nodes.size() == 1) {
-        centroid_x = total_x;
-        centroid_y = total_y;
-      } else {
-        centroid_x = total_x / (net_nodes.size() - 1);
-        centroid_y = total_y / (net_nodes.size() - 1);
-      }
-
-      interval_x = (node->loc->x - centroid_x) / (node->segment->more_buffers.size() + 1);
-      interval_y = (node->loc->y - centroid_y) / (node->segment->more_buffers.size() + 1);
+    for (auto child : node->children) {
+      buildSolutionInner(child, buffer_queue, net_nodes);
     }
 
     Clock::SubNet& clock_sub_net = _clock.addSubNet("net_" + std::to_string(net_count));
@@ -1022,6 +1069,7 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
 
         if (net_node->segment->more_buffers.size() > 0 && net_node == node) {
           int buffer_size = net_node->segment->more_buffers.size();
+          auto [interval_x, interval_y] = evalBufInterval(node, net_nodes);
 
           for(int i = 0; i < buffer_size; i ++) {
             new_net_count ++;
@@ -1051,8 +1099,19 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
                              + "_" + std::to_string(buffer_size-1);
           auto new_instance = _clock.findClockByName(_clock.getName() + "_" + buffer_name);
           clock_sub_net.addInst(*new_instance);
+
+          // NOTE: 生成的 pb 结果跳过部分 2-pin net，如 _clkbuf_0 的 in-pin、more buffer 的 in-pin 所在 net。
+          if (!_options->getNNCTopoFile().empty() && !node->children.empty()) {
+            auto& rtb = _route_tree_builders[&clock_sub_net] = std::make_unique<RouteTreeBuilder>();
+            buildBYRouteTree(*rtb, node, new_instance);
+          }
         } else {
           clock_sub_net.addInst(*instance);
+
+          if (!_options->getNNCTopoFile().empty() && net_node == node && !node->children.empty()) {
+            auto& rtb = _route_tree_builders[&clock_sub_net] = std::make_unique<RouteTreeBuilder>();
+            buildBYRouteTree(*rtb, node, instance);
+          }
         }
       }
       if (net_node->segment->sinkInst) {

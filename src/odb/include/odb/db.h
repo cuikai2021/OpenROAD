@@ -3010,6 +3010,11 @@ class dbInst : public dbObject
   dbITerm* getFirstOutput();
 
   ///
+  /// Get the first input terminal of this instance.
+  ///
+  dbITerm* getFirstInput();
+
+  ///
   /// Get the region this instance belongs to. Returns NULL if instance has no
   /// assigned region.
   ///

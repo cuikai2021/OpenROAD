@@ -55,6 +55,7 @@ target_sources(cts
     Graphics.cpp
     NNCBuilder.cpp
     CTSClkSkew.cpp
+    RouteTreeBuilder.cpp
 )
 
 target_include_directories(cts
@@ -74,6 +75,7 @@ target_link_libraries(cts
     utl
     LaurelUtil
     lemon
+    banyan_pb
  )
 
 messages(

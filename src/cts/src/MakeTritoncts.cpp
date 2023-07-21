@@ -40,6 +40,7 @@
 #include "db.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
+#include "RouteTreeBuilder.hh"
 
 namespace sta {
 // Tcl files encoded into strings.

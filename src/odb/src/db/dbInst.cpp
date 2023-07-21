@@ -1540,5 +1540,26 @@ dbITerm* dbInst::getFirstOutput()
       utl::ODB, 47, "instance {} has no output pin", getConstName());
   return NULL;
 }
+dbITerm* dbInst::getFirstInput()
+{
+  dbSet<dbITerm> iterms = getITerms();
+  dbSet<dbITerm>::iterator iitr;
+
+  for (iitr = iterms.begin(); iitr != iterms.end(); ++iitr) {
+    dbITerm* tr = *iitr;
+
+    if ((tr->getSigType() == dbSigType::GROUND)
+        || (tr->getSigType() == dbSigType::POWER))
+      continue;
+
+    if (tr->getIoType() != dbIoType::INPUT)
+      continue;
+
+    return tr;
+  }
+  getImpl()->getLogger()->warn(
+      utl::ODB, 470, "instance {} has no input pin", getConstName());
+  return NULL;
+}
 
 }  // namespace odb

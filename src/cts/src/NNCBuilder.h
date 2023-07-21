@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <queue>
 
 #include "CtsOptions.h"
 #include "TreeBuilder.h"
+#include "RouteTreeBuilder.hh"
 
 namespace utl {
 class Logger;
@@ -275,6 +277,7 @@ class NNCBuilder : public TreeBuilder {
  public:
   double source_delay;
   double source_cap;
+  std::unordered_map<Clock::SubNet*, std::unique_ptr<RouteTreeBuilder>> _route_tree_builders;
 
   NNCBuilder(CtsOptions* options,
              Clock& net,
@@ -284,7 +287,9 @@ class NNCBuilder : public TreeBuilder {
              utl::Logger* logger)
       : TreeBuilder(options, net, parent), _openSta(sta), _network(network), logger_(logger){};
 
-  void run();
+  ~NNCBuilder() override = default;
+
+  void run() override;
 
  protected:
   sta::dbSta* _openSta;
@@ -302,6 +307,9 @@ class NNCBuilder : public TreeBuilder {
                                 const double seg1_cap, const double seg2_cap,
                                 double d, double& d1, double& d2,
                                 double& wire_d1, double& wire_d2);
+  void buildBYRouteTreeInner(RouteTreeBuilder& rt, TreeNode* node);
+  void buildBYRouteTree(RouteTreeBuilder& rt, TreeNode* node, ClockInst* srcInst);
+  std::pair<double, double> evalBufInterval(TreeNode* node, std::vector<TreeNode*>& net_nodes);
   void buildSolution(TreeTopology* tree);
   void plotSolution(TreeTopology* tree);
   bool skipMergeByDelay(Segment* g1, Segment* g2, double distance);

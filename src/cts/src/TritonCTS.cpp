@@ -35,6 +35,8 @@
 
 #include "cts/TritonCTS.h"
 
+#include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <ctime>
 #include <fstream>
@@ -47,6 +49,7 @@
 #include "LevelBalancer.h"
 #include "NNCBuilder.h"
 #include "PostCtsOpt.h"
+#include "RouteTreeBuilder.hh"
 #include "TechChar.h"
 #include "TreeBuilder.h"
 #include "db_sta/dbNetwork.hh"
@@ -104,6 +107,7 @@ void TritonCTS::runTritonCts()
       runPostCtsOpt();
     }
     writeDataToDb();
+    writeDataToPb();
   }
 }
 
@@ -408,6 +412,36 @@ void TritonCTS::writeDataToDb()
   }
 
   _options->setAvgDistance(total_distance/total_sink);
+}
+
+void TritonCTS::writeDataToPb()
+{
+  if (_options->getNNCTopoFile().empty()) {
+    return;
+  }
+
+  for (auto builder : *_builders) {
+    auto nccb = dynamic_cast<NNCBuilder*>(builder);
+    assert(nccb != nullptr);
+
+    for (auto& [subnet, rtb] : nccb->_route_tree_builders) {
+      assert(_route_tree_builders.find(subnet->getName()) == _route_tree_builders.end());
+      rtb->ClkInst2PinName(_network);
+      _route_tree_builders[subnet->getName()] = std::move(rtb);
+    }
+  }
+
+  auto nets = new banyan::CTSRouteNets();
+  for (auto& [net_name, rtb] : _route_tree_builders) {
+    auto net = nets->add_nets();
+    net->set_netname(net_name);
+    net->set_allocated_routetree(rtb->toPb());
+  }
+
+  std::ofstream fout(_options->getNNCTopoFile());
+  assert(nets->SerializeToOstream(&fout));
+  fout.close();
+  delete nets;
 }
 
 void TritonCTS::forEachBuilder(

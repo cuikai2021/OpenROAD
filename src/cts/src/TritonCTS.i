@@ -236,6 +236,18 @@ set_enable_nnc(bool nnc)
 }
 
 void
+set_ncc_topo_pbfile(const char* file_name)
+{
+  getTritonCts()->getParms()->setNNCTopoPbFile(file_name);
+}
+
+void
+set_nnc_banyan(bool nnc)
+{
+  getTritonCts()->getParms()->setNNCBanyan(nnc);
+}
+
+void
 set_slew_degradation_bound(double bound)
 {
   getTritonCts()->getParms()->setSlewDegradationBound(bound);

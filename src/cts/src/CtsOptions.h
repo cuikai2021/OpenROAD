@@ -204,6 +204,10 @@ class CtsOptions
   std::string getSinkBuffer() const { return _sinkBuffer; }
   void setEnableNNC(bool enable) { _enableNNC = enable; }
   bool getEnableNNC() const { return _enableNNC; }
+  void setNNCTopoPbFile(std::string file_name) { _nncTopoPb = file_name; }
+  const std::string& getNNCTopoFile() const { return _nncTopoPb; }
+  void setNNCBanyan(bool enable) { _nncBanyan = enable; }
+  bool getNNCBanyan() const { return _nncBanyan; }
   utl::Logger* getLogger() { return _logger; }
   stt::SteinerTreeBuilder* getSttBuilder() { return _sttBuilder; }
   void setBufferTestInSlew(double in_slew) { buffer_in_slew = in_slew; }
@@ -275,6 +279,8 @@ class CtsOptions
   utl::Logger* _logger;
   stt::SteinerTreeBuilder* _sttBuilder;
   bool _enableNNC = false;
+  std::string _nncTopoPb;
+  bool _nncBanyan = false;
   float buffer_in_slew = -1;
   float slew_degradation_bound = -1;
   float merge_delay_threshold = -1;

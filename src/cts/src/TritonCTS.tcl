@@ -84,6 +84,7 @@ sta::define_cmd_args "clock_tree_synthesis" {[-wire_unit unit]
                                              [-sink_clustering_levels levels] \
                                              [-num_static_layers] \
                                              [-sink_clustering_buffer] \
+                                             [-nnc_builder [-nnc_topo_pb pb_file] [-nnc_banyan]]
                                             }
 
 proc clock_tree_synthesis { args } {
@@ -91,8 +92,9 @@ proc clock_tree_synthesis { args } {
     keys {-root_buf -buf_list -wire_unit -clk_nets -out_path -sink_clustering_size -num_static_layers\
           -sink_clustering_buffer -distance_between_buffers -branching_point_buffers_distance -clustering_exponent\
           -clustering_unbalance_ratio -sink_clustering_max_diameter -sink_clustering_levels -tree_buf\
-          -slew_degradation_bound -merge_delay_threshold -buffer_test_in_slew -max_fanout -balance_delay_threshold}\
-    flags {-post_cts_disable -sink_clustering_enable -balance_levels -nnc_builder}
+          -slew_degradation_bound -merge_delay_threshold -buffer_test_in_slew -max_fanout -balance_delay_threshold\
+          -nnc_topo_pb}\
+    flags {-post_cts_disable -sink_clustering_enable -balance_levels -nnc_builder -nnc_banyan}
 
   sta::check_argc_eq0 "clock_tree_synthesis" $args
 
@@ -101,6 +103,22 @@ proc clock_tree_synthesis { args } {
   cts::set_sink_clustering [info exists flags(-sink_clustering_enable)]
 
   cts::set_enable_nnc [info exists flags(-nnc_builder)]
+
+  if { [info exists keys(-nnc_topo_pb)] } {
+    if { [info exists flags(-nnc_builder)] } {
+      cts::set_ncc_topo_pbfile $keys(-nnc_topo_pb)
+    } else {
+      utl::warn CTS 53 "Given -nnc_topo_pb flag in the absence of -nnc_builder flag, ignore it."
+    }
+  }
+
+  if { [info exists keys(-nnc_banyan)] } {
+    if { [info exists flags(-nnc_builder)] } {
+      cts::set_nnc_banyan true
+    } else {
+      utl::warn CTS 54 "Given -nnc_banyan flag in the absence of -nnc_builder flag, ignore it."
+    }
+  }
 
   if { [info exists keys(-sink_clustering_size)] } {
     set size $keys(-sink_clustering_size)

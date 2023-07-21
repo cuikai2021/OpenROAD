@@ -57,6 +57,7 @@ class TreeBuilder
     if (parent)
       parent->_children.emplace_back(this);
   }
+  virtual ~TreeBuilder() = default;
 
   virtual void run() = 0;
   void setTechChar(TechChar& techChar) { _techChar = &techChar; }
