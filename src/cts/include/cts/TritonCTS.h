@@ -64,6 +64,10 @@ class Clock;
 class dbNetwork;
 }  // namespace sta
 
+namespace banyan {
+enum NetClockLevel : int;
+}  // namespace banyan
+
 namespace cts {
 
 using utl::Logger;
@@ -92,6 +96,7 @@ class TritonCTS
   void forEachBuilder(const std::function<void(const TreeBuilder*)> func) const;
   int setClockNets(const char* names);
   void setBufferList(const char* buffers);
+  void setNDR4Clock(banyan::NetClockLevel lv, const char *ndr_name);
 
  private:
   void setupCharacterization();
@@ -143,6 +148,10 @@ class TritonCTS
   float getInputPinCap(odb::dbITerm* iterm);
   bool isSink(odb::dbITerm* iterm);
   ClockInst* getClockFromInst(odb::dbInst* inst);
+  // 含 buffer
+  // NOTE: 不确定对复杂案例的正确性
+  bool isClockGate(odb::dbITerm* iterm);
+  banyan::NetClockLevel getNetClockLevel(odb::dbNet* net);
 
   ord::OpenRoad* _openroad;
   sta::dbSta* _openSta;

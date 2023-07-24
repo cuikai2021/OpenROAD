@@ -38,6 +38,7 @@
 #include "CtsOptions.h"
 #include "TechChar.h"
 #include "ord/OpenRoad.hh"
+#include "banyan_cts.pb.h"
 
 namespace ord {
 // Defined in OpenRoad.i
@@ -47,9 +48,28 @@ getTritonCts();
 
 using namespace cts;
 using ord::getTritonCts;
+using sta::stringEq;
+using banyan::NetClockLevel;
 %}
 
 %include "../../Exception.i"
+
+%typemap(in) NetClockLevel {
+  int length;
+  const char *arg = Tcl_GetStringFromObj($input, &length);
+  if (stringEq(arg, "top"))
+    $1 = NetClockLevel::CLK_LV_TOP;
+  else if (stringEq(arg, "trunk"))
+    $1 = NetClockLevel::CLK_LV_TRUNK;
+  else if (stringEq(arg, "trunk_leaf"))
+    $1 = NetClockLevel::CLK_LV_TRUNK_LEAF;
+  else if (stringEq(arg, "leaf"))
+    $1 = NetClockLevel::CLK_LV_LEAF;
+  else {
+    Tcl_SetResult(interp,const_cast<char*>("Error: clock net level."), TCL_STATIC);
+    return TCL_ERROR;
+  }
+}
 
 %inline %{
 
@@ -281,6 +301,12 @@ void
 set_json_metric_format(bool json_format)
 {
   getTritonCts()->getParms()->setMetricJsonFormat(json_format);
+}
+
+void
+set_clock_net_ndr_cmd(NetClockLevel lv, const char *ndr_name)
+{
+  getTritonCts()->setNDR4Clock(lv, ndr_name);
 }
 
 %} //inline

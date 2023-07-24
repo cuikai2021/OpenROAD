@@ -243,6 +243,12 @@ void TritonCTS::runPostCtsOpt()
   }
 }
 
+bool TritonCTS::isClockGate(odb::dbITerm* iterm) {
+  return !isSink(iterm)
+  && (iterm->getInst()->isCore()
+  || iterm->getInst()->isPad());
+}
+
 void TritonCTS::initOneClockTree(odb::dbNet* driverNet,
                                  std::string sdcClockName,
                                  TreeBuilder* parent)
@@ -253,9 +259,7 @@ void TritonCTS::initOneClockTree(odb::dbNet* driverNet,
   odb::dbSet<odb::dbITerm> iterms = driverNet->getITerms();
   for (odb::dbITerm* iterm : iterms) {
     if (iterm != driver && iterm->isInputSignal()) {
-      if (!isSink(iterm)
-          && (iterm->getInst()->isCore()
-              || iterm->getInst()->isPad())) {  // Clock Gate
+      if (isClockGate(iterm)) {
         odb::dbITerm* outputPin = getSingleOutput(iterm->getInst(), iterm);
 
         if (outputPin && outputPin->getNet()) {
@@ -436,6 +440,7 @@ void TritonCTS::writeDataToPb()
     auto net = nets->add_nets();
     net->set_netname(net_name);
     net->set_allocated_routetree(rtb->toPb());
+    net->set_clocklevel(getNetClockLevel(_block->findNet(net_name.c_str())));
   }
 
   std::ofstream fout(_options->getNNCTopoFile());
@@ -1150,6 +1155,49 @@ bool TritonCTS::isSink(odb::dbITerm* iterm)
   } else {
     return false;
   }
+}
+
+banyan::NetClockLevel TritonCTS::getNetClockLevel(odb::dbNet* net) {
+  if (net->getSigType() != odb::dbSigType::CLOCK)
+    return banyan::NetClockLevel::NON_CLOCK;
+
+  auto drvr = net->getFirstOutput();
+  if (drvr == nullptr) {
+    assert(net->getBTermCount() > 0);
+    return banyan::NetClockLevel::CLK_LV_TOP;
+  }
+  assert(isClockGate(drvr));
+
+  bool has_gate_pin = false, has_sink_pin = false;
+  for (auto iterm : net->getITerms())
+    if (iterm != drvr)
+      (isClockGate(iterm) ? has_gate_pin : has_sink_pin) = true;
+  if (net->getBTermCount() > 0)
+    has_sink_pin = true;
+
+  assert(has_gate_pin or has_sink_pin);
+  if (not has_sink_pin)
+    return banyan::NetClockLevel::CLK_LV_TRUNK;
+  if (has_gate_pin)
+    return banyan::NetClockLevel::CLK_LV_TRUNK_LEAF;
+  return banyan::NetClockLevel::CLK_LV_LEAF;
+}
+
+void TritonCTS::setNDR4Clock(banyan::NetClockLevel lv, const char *ndr_name) {
+  auto ndr = _db->getTech()->findNonDefaultRule(ndr_name);
+  if (ndr_name[0] != '\0' && ndr == nullptr)
+    _logger->error(utl::BY, 230, "failed to find NonDefaultRule {}", ndr_name);
+
+  size_t cnt = 0;
+  for (auto net : _block->getNets())
+    if (!net->isSpecial())
+      if (getNetClockLevel(net) == lv) {
+        net->setNonDefaultRule(ndr);
+        cnt++;
+      }
+
+  _logger->info(utl::BY, 231, "set NDR for {} {} clock nets", cnt,
+                (std::array<const char*, 4>{"Top", "Trunk", "TrunkWithLeaf", "Leaf"})[lv]);
 }
 
 }  // namespace cts

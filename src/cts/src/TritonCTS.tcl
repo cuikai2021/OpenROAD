@@ -267,3 +267,35 @@ proc report_cts { args } {
 
   cts::report_cts_metrics
 }
+
+sta::define_cmd_args "set_clock_net_ndr" { {-all ndr} | {-non_leaf ndr} | {[-top ndr] [-trunk ndr] [-trunk_leaf ndr] [-leaf ndr]} }
+
+proc set_clock_net_ndr { args } {
+  sta::parse_key_args "set_clock_net_ndr" args \
+    keys  {-all -non_leaf -top -trunk -trunk_leaf -leaf} \
+    flags {}
+
+  if { [info exists keys(-all)] } {
+    set_clock_net_ndr   -non_leaf $keys(-all)
+    set_clock_net_ndr       -leaf $keys(-all)
+  }
+
+  if { [info exists keys(-non_leaf)] } {
+    set_clock_net_ndr -top        $keys(-non_leaf)
+    set_clock_net_ndr -trunk      $keys(-non_leaf)
+    set_clock_net_ndr -trunk_leaf $keys(-non_leaf)
+  }
+
+  if { [info exists keys(-top)] } {
+    cts::set_clock_net_ndr_cmd "top"        $keys(-top)
+  }
+  if { [info exists keys(-trunk)] } {
+    cts::set_clock_net_ndr_cmd "trunk"      $keys(-trunk)
+  }
+  if { [info exists keys(-trunk_leaf)] } {
+    cts::set_clock_net_ndr_cmd "trunk_leaf" $keys(-trunk_leaf)
+  }
+  if { [info exists keys(-leaf)] } {
+    cts::set_clock_net_ndr_cmd "leaf"       $keys(-leaf)
+  }
+}
