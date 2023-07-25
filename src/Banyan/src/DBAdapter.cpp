@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "ord/OpenRoad.hh"
 #include "ByAdapter.hpp"
 #include "GridlessMaze.hpp"
 #include "GroupedRange.hpp"
