@@ -1186,17 +1186,17 @@ banyan::NetClockLevel TritonCTS::getNetClockLevel(odb::dbNet* net) {
 void TritonCTS::setNDR4Clock(banyan::NetClockLevel lv, const char *ndr_name) {
   auto ndr = _db->getTech()->findNonDefaultRule(ndr_name);
   if (ndr_name[0] != '\0' && ndr == nullptr)
-    _logger->error(utl::BY, 230, "failed to find NonDefaultRule {}", ndr_name);
+    _logger->error(utl::CTS, 230, "failed to find NonDefaultRule {}", ndr_name);
 
   size_t cnt = 0;
-  for (auto net : _block->getNets())
+  for (auto net : _db->getChip()->getBlock()->getNets())
     if (!net->isSpecial())
       if (getNetClockLevel(net) == lv) {
         net->setNonDefaultRule(ndr);
         cnt++;
       }
 
-  _logger->info(utl::BY, 231, "set NDR for {} {} clock nets", cnt,
+  _logger->info(utl::CTS, 231, "set NDR for {} {} clock nets", cnt,
                 (std::array<const char*, 4>{"Top", "Trunk", "TrunkWithLeaf", "Leaf"})[lv]);
 }
 
