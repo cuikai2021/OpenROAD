@@ -81,7 +81,6 @@ class OpenDBAdapter
 
   Pin odbITerm2Pin(odb::dbITerm* iterm);
   Pin odbBTerm2Pin(odb::dbBTerm* bterm);
-  std::deque<Wire> odbWires2Wires(odb::dbWire* odbWires);
   std::deque<SpecialWire> dbSWire2SpecialWires(odb::dbSWire* odbSWire);
 
   std::string viaNameFromViaBox(odb::dbBox* box);
@@ -145,6 +144,8 @@ class OpenDBAdapter
   void loadDesignFromBanyanDB(std::string pbfile);
 
   void updateDB(const Design& design);
+
+  static std::deque<Wire> odbWires2Wires(odb::dbWire* odbWires);
 
   std::unique_ptr<Design> getDesign() { return std::move(design_); }
 };

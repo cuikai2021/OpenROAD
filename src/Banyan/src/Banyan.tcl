@@ -33,4 +33,8 @@ proc banyan_clear_wires { args } {
   banyan::banyanClearWires $ex_signal $ex_clock
 }
 
+sta::define_cmd_args "regression_RC" { spef setRC_tcl }
 
+proc regression_RC { spef setRC_tcl } {
+  banyan::regression_RC_cmd $spef $setRC_tcl
+}

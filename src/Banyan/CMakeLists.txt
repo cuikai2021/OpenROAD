@@ -19,6 +19,7 @@ check_ipo_supported(RESULT ipo_supported OUTPUT error)
 find_package(Boost 1.68.0)
 find_package(Boost 1.68.0 COMPONENTS program_options REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(Eigen3 REQUIRED)
 add_subdirectory(banyan-integrate)
 
 swig_lib(NAME Banyan
@@ -41,6 +42,7 @@ target_sources(Banyan
   src/GridlessMaze.cpp
   src/DrcPatch.cpp
   src/ViaCandidate.cpp
+  src/RegressionRC.cpp
 )
 
 target_include_directories(Banyan
@@ -73,6 +75,8 @@ target_link_libraries(Banyan
     banyan_pb
     cgr
     linden
+  PRIVATE
+    Eigen3::Eigen
 )
 
 add_subdirectory(test)
