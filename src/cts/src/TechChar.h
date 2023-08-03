@@ -249,6 +249,7 @@ class TechChar
   std::vector<odb::dbMaster*> getBufferList() const { return _bufferList; }
   odb::dbMaster* getCharBuffer() const { return _charBuf; }
   utl::Logger* getLogger() { return _options->getLogger(); }
+  float findCapacitanceLimit(const sta::Pin* pin);
 
  protected:
   void initLengthUnits();

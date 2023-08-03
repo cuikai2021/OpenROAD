@@ -53,6 +53,7 @@
 #include "sta/TimingArc.hh"
 #include "sta/Units.hh"
 #include "utl/Logger.h"
+#include "sta/CheckCapacitanceLimits.hh"
 
 namespace cts {
 
@@ -770,15 +771,15 @@ void TechChar::initCharacterizationNoLUT()
                                              cap, reinterpret_cast<sta::Sta*>(_openSta));
 
   if (_options->getMergeDelayThreshold() < 0) {
-    _options->setMergeDelayThreshold(result.delay);
+    _options->setMergeDelayThreshold(result.delay / 2);
   }
   if (_options->getBalanceDelayThreshold() < 0) {
-    _options->setBalanceDelayThreshold(result.delay / 10.0);
+    _options->setBalanceDelayThreshold(result.delay / 2);
   }
 
   getBufferMaxSlewMaxCap(libertyCell, slew, slewExist, cap, capExist, false);
   if (_options->getBufferMaxLoadCap() < 0) {
-    _options->setBufferMaxLoadCap(cap);
+    _options->setBufferMaxLoadCap(cap / 5);
   }
   _options->setMaxCharSlew(slew);
 
@@ -1339,6 +1340,29 @@ void TechChar::create()
     delete _openStaChar;
     _openStaChar = nullptr;
   }
+}
+
+float TechChar::findCapacitanceLimit(const sta::Pin* pin) {
+  struct FindCapacitanceLimit : public sta::Sta {
+    void findCapacitanceLimit(const sta::Pin* pin,
+                              const sta::Corner* corner,
+                              const sta::MinMax* min_max,
+                              float& limit,
+                              bool& exists) {
+      this->checkCapacitanceLimitPreamble();
+      this->check_capacitance_limits_->findLimit(pin, corner, min_max, limit, exists);
+    }
+  };
+  FindCapacitanceLimit* worker = (FindCapacitanceLimit*)_openSta;
+  float limit = 0;
+  for (auto corner : *_openSta->corners()) {
+    float corner_limit = 0;
+    bool exists = false;
+    worker->findCapacitanceLimit(pin, corner, sta::MinMax::max(), corner_limit, exists);
+    if (exists && corner_limit > limit) limit = corner_limit;
+  }
+
+  return limit;
 }
 
 }  // namespace cts

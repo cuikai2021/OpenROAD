@@ -560,7 +560,7 @@ void TritonCTS::reportCtsMetrics()
                   _options->getNumClockSubnets());
     _logger->info(
         CTS, 6, "Total number of Sinks: {}.", _options->getNumSinks());
-    _logger->info(CTS, 219, "Clock skew: {}ns.", avg_skew);
+    _logger->info(CTS, 219, "Worst Clock skew: {}ns.", max_skew);
     _logger->info(CTS, 220, "Average sink wire length: {}um.",avg_sink_distance);
   }
 }

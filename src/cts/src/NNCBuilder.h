@@ -56,6 +56,9 @@ class Segment {
   bool gate_cell;
   ClockInst* sinkInst;
   int fanout = 0;
+  double buffered_wire_distance = 0;
+  double min_delay = 0;
+  double max_delay = 0;
 
   Segment(GridPoint u, GridPoint v) : p1(u), p2(v) {
     delay = 0;
@@ -165,6 +168,11 @@ class Segment {
       }
     }
     return ret;
+  }
+  void clearBuffer() {
+    buffer = nullptr;
+    more_buffers.clear();
+    buffered_wire_distance = 0;
   }
 };
 
@@ -278,6 +286,8 @@ class NNCBuilder : public TreeBuilder {
   double source_delay;
   double source_cap;
   std::unordered_map<Clock::SubNet*, std::unique_ptr<RouteTreeBuilder>> _route_tree_builders;
+  double max_delay;
+  double min_delay;
 
   NNCBuilder(CtsOptions* options,
              Clock& net,
@@ -299,10 +309,10 @@ class NNCBuilder : public TreeBuilder {
   int graph_k = 2;
   float wire_slew_coefficient = log(9);
 
-  void relationGraphByBucket(std::vector<Segment*> segs, std::vector<Edge>& edges, bool skip_by_delay);
+  void relationGraphByBucket(std::vector<Segment*> segs, std::vector<Edge>& edges, double skip_delay_gap);
   void findIndependentSet(std::vector<Edge>& edges, int K, int k, std::vector<Edge>& indep_edges);
   TreeTopology* constructTopo(std::vector<Segment*>& segments);
-  Segment* mergeByDelay(Segment* seg1, Segment* seg2);
+  Segment* mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop);
   double calcMergePointByElmore(const double seg1_delay, const double seg2_delay,
                                 const double seg1_cap, const double seg2_cap,
                                 double d, double& d1, double& d2,
@@ -312,17 +322,17 @@ class NNCBuilder : public TreeBuilder {
   std::pair<double, double> evalBufInterval(TreeNode* node, std::vector<TreeNode*>& net_nodes);
   void buildSolution(TreeTopology* tree);
   void plotSolution(TreeTopology* tree);
-  bool skipMergeByDelay(Segment* g1, Segment* g2, double distance);
+  bool skipMergeByDelay(Segment* g1, Segment* g2, double skip_delay_gap);
   void buildSolutionInner(TreeNode* node,
                           std::queue<TreeNode*>& buffer_queue,
                           std::vector<TreeNode*>& net_nodes);
   void localEmbedding(TreeNode* node, int& node_count, int& sink_count);
-  void insertBuffer(Segment* seg, odb::dbMaster* buffer);
+  int fixSlewByBuffer(Segment* seg, odb::dbMaster* buffer, double max_load_distance, double max_load_slew);
+  void insertBuffer(Segment* seg, odb::dbMaster* buffer, std::string type);
   void fixCapByBuffer(Segment* seg1, Segment* seg2, double distance, double& p_cap);
-  void fixMaxFanoutByBuffer(Segment* seg1, Segment* seg2, double distance,
-                            double& p_cap, int& p_fanout);
+  void fixMaxFanoutByBuffer(Segment* seg1, Segment* seg2);
   void balanceDelayByBuffer(Segment* seg1, Segment* seg2,
-                            double d, double& d1, double& d2,
+                            double d, bool final_lopp, double& d1, double& d2,
                             double& wire_delay1, double& wire_delay2);
 };
 

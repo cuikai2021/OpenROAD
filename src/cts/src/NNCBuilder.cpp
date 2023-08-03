@@ -24,6 +24,7 @@ void NNCBuilder::run() {
 
   //get the delay&cap of the root of the subtrees
   std::map<std::string, std::pair<float, float>> cell_cap_delay_map;
+  std::map<std::string, std::pair<double, double>> cell_max_min_delay_map;
   if (this->getChildren().size() > 0) {
     for (auto child : this->getChildren()) {
       NNCBuilder *builder = dynamic_cast<NNCBuilder*>(child);
@@ -32,6 +33,8 @@ void NNCBuilder::run() {
         odb::dbInst* drivingInst = (static_cast<odb::dbITerm*>(driverPin))->getInst();
         cell_cap_delay_map[drivingInst->getConstName()] = std::make_pair(
             builder->source_cap, builder->source_delay);
+        cell_max_min_delay_map[drivingInst->getConstName()] = std::make_pair(
+            builder->max_delay, builder->min_delay);
       }
     }
   }
@@ -52,25 +55,21 @@ void NNCBuilder::run() {
         reset_child_count ++;
 
         auto cap_delay = pos->second;
-        seg->delay = cap_delay.second;
         seg->gate_cell = true;
 
         sta::LibertyCell* liberty_cell = _network->libertyCell(instance);
-        if (liberty_cell != nullptr && liberty_cell->isBuffer()) {
-          seg->cap = sink.getInputCap();
-        } else {
-          seg->cap += cap_delay.first;
-        }
+        assert(liberty_cell != nullptr);
+        auto result = lrl::DelayCalc::maxGateDelay(liberty_cell, _options->getBufferTestInSlew(),
+                                                   cap_delay.first, reinterpret_cast<sta::Sta*>(_openSta));
+        seg->delay = cap_delay.second + result.delay;
 
-        //TODO: gate cell delay
-        if (liberty_cell != nullptr) {
-            auto result = lrl::DelayCalc::maxGateDelay(liberty_cell, _options->getBufferTestInSlew(),
-                                                       seg->cap, reinterpret_cast<sta::Sta*>(_openSta));
-            seg->delay = seg->delay + result.delay;
-        }
-
-        logger_->info(CTS, 203, " Reset the load capacitance and delay for cell {} as {} and {}.",
-                      instance->getConstName(), seg->cap, seg->delay);
+        logger_->info(CTS, 203, " Reset the delay for cell {} as {}, clock gating delay is {}, load cap is {}.",
+                      instance->getConstName(), seg->delay, result.delay, cap_delay.first);
+      }
+      auto delay_pos = cell_max_min_delay_map.find(instance->getConstName());
+      if (delay_pos != cell_max_min_delay_map.end()) {
+        seg->max_delay = delay_pos->second.first;
+        seg->min_delay = delay_pos->second.second;
       }
     }
 
@@ -208,23 +207,23 @@ static Segment* trrIntersectSegment(TRR& trr, Segment& seg)
   return nullptr;
 }
 
-Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2) {
+Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop) {
   double d = calcDistance(seg1, seg2);
 
   //check max load capacitance
-  double p_cap = seg1->cap + seg2->cap + d * _techChar->getCapPerDBU() / 2.0;
+  double p_cap = seg1->cap + seg2->cap + d * _techChar->getCapPerDBU();
   fixCapByBuffer(seg1, seg2, d, p_cap);
-
-  // check max fanout
-  int p_fanout = seg1->fanout + seg2->fanout;
-  fixMaxFanoutByBuffer(seg1, seg2, d, p_cap, p_fanout);
+  fixMaxFanoutByBuffer(seg1, seg2);
 
   double d1, d2, wire_delay1, wire_delay2;
-  balanceDelayByBuffer(seg1, seg2, d, d1, d2, wire_delay1, wire_delay2);
+  balanceDelayByBuffer(seg1, seg2, d, final_loop, d1, d2, wire_delay1, wire_delay2);
+  calcMergePointByElmore(seg1->delay, seg2->delay,
+                         seg1->cap, seg2->cap, d, d1, d2,
+                         wire_delay1, wire_delay2);
 
   // reset fanout & cap for merge point
-  p_fanout = seg1->fanout + seg2->fanout;
-  p_cap = seg1->cap + seg2->cap + _techChar->getCapPerDBU() * d / 2.0;
+  int p_fanout = seg1->fanout + seg2->fanout;
+  p_cap = seg1->cap + seg2->cap + _techChar->getCapPerDBU() * d;
 
   TRR trr1 = TRR(seg1, d1);
   TRR trr2 = TRR(seg2, d2);
@@ -236,6 +235,8 @@ Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2) {
   seg1->distance = d1;
   seg2->distance = d2;
   ms->delay = std::max(seg1->delay + wire_delay1, seg2->delay + wire_delay2);
+  ms->min_delay = std::min(seg1->delay + wire_delay1, seg2->delay + wire_delay2);
+  ms->max_delay = std::max(seg1->delay + wire_delay1, seg2->delay + wire_delay2);
   ms->cap = p_cap;
 
   // slew degradation from "Fast Algorithms For Slew Constrained Minimum Cost Buffering"
@@ -246,83 +247,44 @@ Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2) {
 
   // need to insert buffer at the root of parent node
   if (p_slew_degradation >= _options->getSlewDegradationBound()) {
-    // use slew_degradation to select buffer, need to make sure the children are in the bound
-
-    // choose the smallest delay from the buffers which meet the slew degradation
-    double min_buffer_delay = std::numeric_limits<double>::max();
-    double min_buffer_in_cap = 0.0;
-    odb::dbMaster* min_delay_buffer = nullptr;
-    for (odb::dbMaster* buffer : _techChar->getBufferList()) {
-      sta::Cell* masterCell = _network->dbToSta(buffer);
-      sta::LibertyCell* libertyCell = _network->libertyCell(masterCell);
-
-      // get buffer delay&input cap
-      auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
-                                                 p_cap, reinterpret_cast<sta::Sta*>(_openSta));
-
-      lrl::ArcDelay buffer_delay = result.delay;
-      lrl::Slew out_slew = result.out_slew;
-
-      // calc the slew of the child node
-      // Note: delay is calculated from bottom to up
-      double slew1 = sqrt(out_slew * out_slew + s_wire_seg1 * s_wire_seg1);
-      if (slew1 > _options->getMaxCharSlew()) {
-        continue ;
-      }
-      double slew2 = sqrt(out_slew * out_slew + s_wire_seg2 * s_wire_seg2);
-      if (slew2 > _options->getMaxCharSlew()) {
-        continue ;
-      }
-
-      if (buffer_delay < min_buffer_delay) {
-        min_buffer_delay = buffer_delay;
-        min_buffer_in_cap = lrl::DelayCalc::bufferInputCap(libertyCell);
-        min_delay_buffer = buffer;
-      }
-    }
-
-    if (min_delay_buffer != nullptr) {
-      logger_->info(CTS, 216, " Insert buffer {} because of slew degradation {} exceed the bound {}.",
-                    min_delay_buffer->getConstName(), p_slew_degradation, _options->getSlewDegradationBound());
-
-      ms->cap = min_buffer_in_cap;
-      ms->delay += min_buffer_delay;
-      ms->buffer = min_delay_buffer;
-
+    int inserted_buffer = fixSlewByBuffer(ms, _techChar->getCharBuffer(), std::max(d1, d2), p_slew_degradation);
+    if (inserted_buffer >= 1) {
       p_fanout = 1;
-      p_slew_degradation = 0.0;
+      p_slew_degradation = 0;
     }
   }
 
   ms->fanout = p_fanout;
   ms->slew_degradation = p_slew_degradation;
 
+  double buffered_wire_distance = 0.0;
+  if (!seg1->buffer) buffered_wire_distance += seg1->buffered_wire_distance;
+  if (!seg2->buffer) buffered_wire_distance += seg2->buffered_wire_distance;
+  buffered_wire_distance += d;
+  ms->buffered_wire_distance = buffered_wire_distance;
+
   return ms;
 }
 
 void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
-                                      double d, double& d1, double& d2,
+                                      double d, bool final_loop, double& d1, double& d2,
                                       double& wire_delay1, double& wire_delay2) {
-  double delay_gap = calcMergePointByElmore(seg1->delay, seg2->delay,
-                                            seg1->cap, seg2->cap, d, d1, d2,
-                                            wire_delay1, wire_delay2);
+  std::string type = "balanceDelay";
+  float delay_gap = std::abs(seg1->delay - seg2->delay);
+  int buffer_count = _techChar->getBufferList().size();
+  if (delay_gap < _options->getBalanceDelayThreshold())
+    return;
 
-  if (delay_gap > _options->getBalanceDelayThreshold() && (seg1->buffer == nullptr || seg2->buffer == nullptr)) {
-    int buffer_count = _techChar->getBufferList().size();
-    double min_gap = delay_gap;
+  if (seg1->buffer == nullptr || seg2->buffer == nullptr) {
+    double min_gap = std::abs(seg1->delay - seg2->delay);
     odb::dbMaster* min_buffer_seg1 = nullptr;
     odb::dbMaster* min_buffer_seg2 = nullptr;
-
-    double min_buffer_delay_seg1 = 0;
-    double min_buffer_delay_seg2 = 0;
-    double min_buffer_cap_seg1 = 0;
-    double min_buffer_cap_seg2 = 0;
 
     for (int i = 0; i <= buffer_count; i++) {
       for (int j = 0; j <= buffer_count; j++) {
         odb::dbMaster* buffer_seg1 = nullptr;
         odb::dbMaster* buffer_seg2 = nullptr;
-        double seg1_delay, seg2_delay, seg1_cap, seg2_cap;
+        double seg1_delay, seg2_delay;
 
         bool insert_buffer = false;
         if (seg1->buffer == nullptr && i < buffer_count) {
@@ -333,13 +295,11 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
           // get buffer delay&input cap
           auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
                                                      seg1->cap, reinterpret_cast<sta::Sta*>(_openSta));
-          seg1_cap = lrl::DelayCalc::bufferInputCap(libertyCell);
           seg1_delay = seg1->delay + result.delay;
 
           insert_buffer = true;
         } else {
           seg1_delay = seg1->delay;
-          seg1_cap = seg1->cap;
         }
 
         if (seg2->buffer == nullptr && j < buffer_count) {
@@ -350,49 +310,31 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
           // get buffer delay&input cap
           auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
                                                      seg2->cap, reinterpret_cast<sta::Sta*>(_openSta));
-          seg2_cap = lrl::DelayCalc::bufferInputCap(libertyCell);
           seg2_delay = seg2->delay + result.delay;
 
           insert_buffer = true;
         } else {
           seg2_delay = seg2->delay;
-          seg2_cap = seg2->cap;
         }
 
         if (insert_buffer) {
-          double gap = calcMergePointByElmore(seg1_delay, seg2_delay, seg1_cap,
-                                              seg2_cap, d, d1, d2, wire_delay1, wire_delay2);
+          double gap = std::abs(seg1_delay - seg2_delay);
           if (gap < min_gap) {
             min_gap = gap;
             min_buffer_seg1 = buffer_seg1;
             min_buffer_seg2 = buffer_seg2;
-            min_buffer_delay_seg1 = seg1_delay;
-            min_buffer_delay_seg2 = seg2_delay;
-            min_buffer_cap_seg1 = seg1_cap;
-            min_buffer_cap_seg2 = seg2_cap;
           }
         }
       }
     }
 
-    if (min_buffer_seg1 != nullptr) {
-      seg1->buffer = min_buffer_seg1;
-      seg1->delay = min_buffer_delay_seg1;
-      seg1->cap = min_buffer_cap_seg1;
-      seg1->slew_degradation = 0;
-      seg1->fanout = 1;
-    }
-    if (min_buffer_seg2 != nullptr) {
-      seg2->buffer = min_buffer_seg2;
-      seg2->delay = min_buffer_delay_seg2;
-      seg2->cap = min_buffer_cap_seg2;
-      seg2->slew_degradation = 0;
-      seg2->fanout = 1;
-    }
+    if (min_buffer_seg1 != nullptr) insertBuffer(seg1, min_buffer_seg1, type);
+    if (min_buffer_seg2 != nullptr) insertBuffer(seg2, min_buffer_seg2, type);
+
   }
 
-  // TODO: maybe not a good choice
-  if (std::abs(seg1->delay - seg2->delay) > _options->getBalanceDelayThreshold()) {
+  delay_gap = std::abs(seg1->delay - seg2->delay);
+  if (delay_gap > _options->getBalanceDelayThreshold()) {
     // try to insert more buffers to balance delay
     Segment* small_delay_seg;
     Segment* large_delay_seg;
@@ -405,120 +347,83 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
     }
 
     if(small_delay_seg->buffer != nullptr) {
-      while (large_delay_seg->delay - small_delay_seg->delay > _options->getMergeDelayThreshold()) {
+      while (large_delay_seg->delay - small_delay_seg->delay > _options->getBalanceDelayThreshold()) {
+
+        auto min_gap = std::numeric_limits<double>::max();
+        odb::dbMaster* buffer;
+        for (int i = 0; i < buffer_count; i++) {
+
+          // insert a buffer into small delay seg
+          sta::Cell *masterCell = _network->dbToSta(_techChar->getBufferList()[i]);
+          sta::LibertyCell *libertyCell = _network->libertyCell(masterCell);
+          auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
+                                                     small_delay_seg->cap, reinterpret_cast<sta::Sta *>(_openSta));
+
+          auto gap = std::abs(large_delay_seg->delay - small_delay_seg->delay - result.delay);
+          if (gap < min_gap) {
+            buffer = _techChar->getBufferList()[i];
+            min_gap = gap;
+          }
+        }
+
         // insert a buffer into small delay seg
-        sta::Cell* masterCell = _network->dbToSta(_techChar->getCharBuffer());
-        sta::LibertyCell* libertyCell = _network->libertyCell(masterCell);
-
-        // get buffer delay&input cap
-        auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
-                                                   small_delay_seg->cap, reinterpret_cast<sta::Sta*>(_openSta));
-        float load_cap = lrl::DelayCalc::bufferInputCap(libertyCell);
-
-        small_delay_seg->more_buffers.push_back(_techChar->getCharBuffer());
-        small_delay_seg->delay += result.delay;
-        small_delay_seg->cap = load_cap;
+        insertBuffer(small_delay_seg, buffer, type);
       }
 
       //reorder buffers for easy to build clock nets
       int add_buffer_size = small_delay_seg->more_buffers.size();
       if( add_buffer_size > 0) {
-        auto first_buffer = small_delay_seg->buffer;
-        small_delay_seg->buffer = small_delay_seg->more_buffers.back();
-        small_delay_seg->more_buffers.pop_back();
-        std::reverse(small_delay_seg->more_buffers.begin(), small_delay_seg->more_buffers.end());
-        small_delay_seg->more_buffers.push_back(first_buffer);
-
         calcMergePointByElmore(seg1->delay, seg2->delay, seg1->cap,
                                seg2->cap, d, d1, d2, wire_delay1, wire_delay2);
 
 
-        logger_->info(CTS, 212, " Add {} buffers to balance in clock {}.", add_buffer_size, _clock.getName());
+        logger_->info(CTS, 212, " Add {} buffers to balance in clock {}, delay gap {} -> {}.",
+                      add_buffer_size, _clock.getName(), delay_gap * 1e9, std::abs(seg1->delay - seg2->delay) * 1e9);
       }
     }
   }
 }
 
-void NNCBuilder::fixMaxFanoutByBuffer(Segment* seg1, Segment* seg2, double distance,
-                                      double& p_cap, int& p_fanout) {
-  int max_fanout = _options->getMaxFanout();
-  if (max_fanout > 0 && p_fanout > max_fanout) {
-    auto buffer = _techChar->getCharBuffer();
-    float seg1_delay = seg1->delay;
-    float seg2_delay = seg2->delay;
+int NNCBuilder::fixSlewByBuffer(Segment* seg, odb::dbMaster* buffer,
+                                double max_load_distance, double max_load_slew) {
+  double slew = max_load_distance;
+  int inserted_buffers = 0;
+  while (slew > _options->getSlewDegradationBound()) {
+    insertBuffer(seg, buffer, "fixSlew");
+    inserted_buffers ++;
 
-    bool fix_max_fanout = false;
-    if (seg1_delay < seg2_delay) {
-      if (seg1->buffer == nullptr) {
-        insertBuffer(seg1, buffer);
-        fix_max_fanout = true;
-      }
-    } else if (seg2_delay < seg1_delay) {
-      if (seg2->buffer == nullptr) {
-        insertBuffer(seg2, buffer);
-        fix_max_fanout = true;
-      }
-    } else {
-      if (seg1->buffer == nullptr) {
-        insertBuffer(seg1, buffer);
-        fix_max_fanout = true;
-      }
-      if (seg2->buffer == nullptr) {
-        insertBuffer(seg2, buffer);
-        fix_max_fanout = true;
-      }
-    }
-
-    if (!fix_max_fanout) {
-      logger_->warn(CTS, 214, " Can not fix max fanout with delay {} and {}, with fanout {} and {}.",
-                    seg1_delay, seg2_delay, seg1->cap, seg2->cap);
-    } else {
-      p_fanout = seg1->fanout + seg2->fanout;
-      p_cap = seg1->cap + seg2->cap + _techChar->getCapPerDBU() * distance / 2.0;
-    }
+    double wire_distance = max_load_distance / (inserted_buffers + 1);
+    double load_cap = seg->cap + wire_distance * _techChar->getCapPerDBU();
+    double wire_delay = _techChar->getResPerDBU() * wire_distance * load_cap;
+    slew = wire_slew_coefficient * wire_delay;
   }
+  logger_->info(CTS, 222, " Insert {} buffers to fix slew degradation.", inserted_buffers);
+
+  return inserted_buffers;
 }
 
 void NNCBuilder::fixCapByBuffer(Segment* seg1, Segment* seg2,
                                 double distance, double& p_cap) {
   float max_buffer_load_cap = _options->getBufferMaxLoadCap();
-  if (p_cap > max_buffer_load_cap) {
-    auto buffer = _techChar->getCharBuffer();
-    float seg1_delay = seg1->delay;
-    float seg2_delay = seg2->delay;
+  if (p_cap <= max_buffer_load_cap) return;
 
-    bool fix_max_load_cap = false;
-    if (seg1_delay < seg2_delay) {
-      if (seg1->buffer == nullptr) {
-        insertBuffer(seg1, buffer);
-        fix_max_load_cap = true;
-      }
-    } else if (seg2_delay < seg1_delay) {
-      if (seg2->buffer == nullptr) {
-        insertBuffer(seg2, buffer);
-        fix_max_load_cap = true;
-      }
-    } else {
-      if (seg1->buffer == nullptr) {
-        insertBuffer(seg1, buffer);
-        fix_max_load_cap = true;
-      }
-      if (seg2->buffer == nullptr) {
-        insertBuffer(seg2, buffer);
-        fix_max_load_cap = true;
-      }
-    }
-
-    if (!fix_max_load_cap) {
-      logger_->warn(CTS, 213, " Can not fix max load Capacitance with delay {} and {},"
-                    "with load cap {} and {}.", seg1_delay, seg2_delay, seg1->cap, seg2->cap);
-    } else {
-      p_cap = seg1->cap + seg2->cap + _techChar->getCapPerDBU() * distance / 2.0;
-    }
-  }
+  auto buffer = _techChar->getCharBuffer();
+  Segment* small_delay_seg = seg1->delay > seg2->delay ? seg2 : seg1;
+  insertBuffer(small_delay_seg, buffer, "fixCap");
 }
 
-void NNCBuilder::insertBuffer(Segment* seg, odb::dbMaster* buffer) {
+
+void NNCBuilder::fixMaxFanoutByBuffer(Segment* seg1, Segment* seg2) {
+  int max_fanout = _options->getMaxFanout();
+  if (max_fanout <= 0 || seg1->fanout + seg2->fanout <= max_fanout) return;
+
+  auto buffer = _techChar->getCharBuffer();
+  Segment* small_delay_seg = seg1->delay > seg2->delay ? seg2 : seg1;
+  insertBuffer(small_delay_seg, buffer, "fixFanout");
+}
+
+void NNCBuilder::insertBuffer(Segment* seg, odb::dbMaster* buffer, std::string type) {
+
   sta::Cell* masterCell = _network->dbToSta(buffer);
   sta::LibertyCell* libertyCell = _network->libertyCell(masterCell);
 
@@ -526,10 +431,23 @@ void NNCBuilder::insertBuffer(Segment* seg, odb::dbMaster* buffer) {
 
   auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
                                              seg->cap, reinterpret_cast<sta::Sta*>(_openSta));
-  seg->cap = lrl::DelayCalc::bufferInputCap(libertyCell);
   seg->delay += result.delay;
-  seg->buffer = buffer;
+  seg->min_delay += result.delay;
+  seg->max_delay += result.delay;
+  logger_->info(CTS, 244, " insert buffer {} in {} for {}, buffer delay is {}, in slew {}, load cap {}",
+                _network->name(masterCell), seg->id, type, result.delay,  _options->getBufferTestInSlew() * 1e9,  seg->cap * 1e12);
+  logger_->info(CTS, 245, " id {}, skew is {}, min delay is {}, max delay is {}, wire distance {},  wire cap {}",
+                seg->id, (seg->max_delay - seg->min_delay) * 1e9, seg->min_delay * 1e9, seg->max_delay * 1e9,
+                seg->buffered_wire_distance, _techChar->getCapPerDBU() * seg->buffered_wire_distance * 1e12);
+
+  seg->cap = lrl::DelayCalc::bufferInputCap(libertyCell);
   seg->slew_degradation = 0;
+
+  if (seg->buffer == nullptr) {
+    seg->buffer = buffer;
+  } else {
+    seg->more_buffers.push_back(buffer);
+  }
 }
 
 // calculate the merging distance from Tsay's "An Exact Zero-Skew Clock Routing
@@ -662,7 +580,8 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
     max_id ++;
   }
 
-  bool skip_by_delay = true;
+  double step = _options->getMergeDelayThreshold();
+  double skip_delay_gap = step;
   while (segments.size() > 1) {
     std::unordered_map<Segment*, int, PtrDeepHash<Segment>, PtrDeepEq<Segment>> segment_map;
     std::vector<Edge> edges;
@@ -672,9 +591,9 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
       segment_map.emplace(segment, segment->id);
     }
 
-    relationGraphByBucket(segments, edges, skip_by_delay);
+    relationGraphByBucket(segments, edges, skip_delay_gap);
     if (edges.size() == 0) {
-      skip_by_delay = false;
+      skip_delay_gap = skip_delay_gap + step;
       continue ;
     }
 
@@ -686,7 +605,7 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
     for (auto edge : independent_set) {
       if(segment_map.find(edge.nodes[0]) != segment_map.end()
           && segment_map.find(edge.nodes[1]) != segment_map.end()) {
-        Segment* ms = mergeByDelay(edge.nodes[0], edge.nodes[1]);
+        Segment* ms = mergeByDelay(edge.nodes[0], edge.nodes[1], segments.size() == 2);
 
         TreeNode* node;
         if(segment_map.find(ms) != segment_map.end()) {
@@ -728,36 +647,64 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
     }
   }
 
-  topology->root = topology->id_node.find(segments[0]->id)->second;
+  auto root_node = topology->id_node.find(segments[0]->id)->second;
   topology->size = topology->id_node.size();
 
-  if (topology->root->segment->buffer == nullptr) { // add buffer into root of tree
-    insertBuffer(topology->root->segment, _techChar->getBufferList()[0]);
+  if (root_node->segment->buffer == nullptr) { // add buffer into root of tree
+    logger_->info(CTS, 247, " Insert root buffer into {}.", _clock.getName());
+    insertBuffer(root_node->segment,  _techChar->getCharBuffer(), "rootBuffer");
   }
 
   logger_->info(CTS, 205, " Tree topology has constructed, node size is {}.", topology->size);
 
-  logger_->info(CTS, 206, " Start to find the exact merge point for clock tree {}.", _clock.getName());
-
   // Find exact merge point placement(top down)
   GridPoint clock_source = GridPoint(_clock.getClockPinX(), _clock.getClockPinY());
   Segment source_seg = Segment(clock_source, clock_source);
-  double distance = calcDistance(&source_seg, topology->root->segment);
-
-  source_cap = topology->root->segment->cap + distance * _techChar->getCapPerDBU() / 2.0;
-  source_delay = topology->root->segment->delay + _techChar->getResPerDBU() * distance * source_cap;
-
-  logger_->info(CTS, 207, " Capacitance and delay for the source of clock tree {} is {} and {}.",
-                _clock.getName(), source_cap, source_delay);
+  double distance = calcDistance(&source_seg, root_node->segment);
+  logger_->info(CTS, 206, " Start to find the exact merge point for clock tree {}, distance between root and source is {}.",
+                _clock.getName(), distance);
 
   TRR trr = TRR(&source_seg, distance);
-  Segment* mp = trrIntersectSegment(trr, *topology->root->segment);
+  Segment* mp = trrIntersectSegment(trr, *root_node->segment);
   assert(mp != nullptr);
-  topology->root->loc = new GridPoint(mp->p1.x, mp->p1.y);
+  root_node->loc = new GridPoint(mp->p1.x, mp->p1.y);
 
   int node_count = 1;
   int sink_count = 0;
-  localEmbedding(topology->root, node_count, sink_count);
+  localEmbedding(root_node, node_count, sink_count);
+
+  topology->root = root_node;
+
+  if (_clock.getDriverPin() && _clock.getDriverPin()->getObjectType() == odb::dbITermObj) {
+    source_cap = topology->root->segment->cap + distance * _techChar->getCapPerDBU();
+    float cap_limit = _techChar->findCapacitanceLimit(
+        _network->dbToSta(static_cast<odb::dbITerm*>(_clock.getDriverPin()))) / 5;
+    if (cap_limit > 0 && source_cap > cap_limit) {
+      logger_->info(CTS, 248, " cap {} exceed limit {}.", source_cap, cap_limit);
+
+      auto new_root_node = new TreeNode(max_id + 1);
+      new_root_node->segment = root_node->segment;
+      new_root_node->segment->clearBuffer();
+      new_root_node->children.clear();
+      new_root_node->children.push_back(root_node);
+      new_root_node->loc = new GridPoint(_clock.getClockPinX(), _clock.getClockPinY());
+
+      insertBuffer(new_root_node->segment, _techChar->getCharBuffer(), "fixMaxWireLength");
+      topology->root = new_root_node;
+
+      distance = 0;
+    }
+  }
+
+  source_cap = topology->root->segment->cap + distance * _techChar->getCapPerDBU();
+  double wire_delay = _techChar->getResPerDBU() * distance * source_cap;
+  double source_slew = wire_slew_coefficient * wire_delay;
+  source_delay = topology->root->segment->delay + wire_delay;
+  max_delay = topology->root->segment->max_delay + wire_delay;
+  min_delay = topology->root->segment->min_delay + wire_delay;
+
+  logger_->info(CTS, 223, " Capacitance and delay/slew for the source of clock tree {} is {} and {}/{}, wire cap is  {}.",
+                _clock.getName(), source_cap, source_delay, source_slew,  distance * _techChar->getCapPerDBU());
 
   logger_->info(CTS, 208, " Found all the exact merge point for clock tree {}.", _clock.getName());
 
@@ -790,20 +737,8 @@ class XMap : public std::map< Key,std::vector<Segment*> > {
 };
 #endif
 
-bool NNCBuilder::skipMergeByDelay(Segment* g1, Segment* g2, double distance) {
-  double delay_gap = 0;
-
-  if (g1->delay > g2->delay) {
-    delay_gap = g1->delay - g2->delay- _techChar->getResPerDBU() * distance
-                      * (_techChar->getCapPerDBU() * distance + g2->cap);
-  } else if (g1->delay < g2->delay) {
-    delay_gap = g2->delay - g1->delay- _techChar->getResPerDBU() * distance
-                                            * (_techChar->getCapPerDBU() * distance + g1->cap);
-  } else {
-    return false;
-  }
-
-  if (delay_gap > _options->getMergeDelayThreshold()) {
+bool NNCBuilder::skipMergeByDelay(Segment* g1, Segment* g2, double skip_delay_gap) {
+  if (std::abs(g1->delay - g2->delay ) > skip_delay_gap) {
     return true;
   } else {
     return false;
@@ -811,7 +746,7 @@ bool NNCBuilder::skipMergeByDelay(Segment* g1, Segment* g2, double distance) {
 }
 
 void NNCBuilder::relationGraphByBucket(std::vector<Segment*> segs,
-                                       std::vector<Edge>& edges, bool skip_by_delay) {
+                                       std::vector<Edge>& edges, double skip_delay_gap) {
   double z_max = std::numeric_limits<double>::min();
   double w_max = std::numeric_limits<double>::min();
   double z_min = std::numeric_limits<double>::max();
@@ -888,7 +823,7 @@ void NNCBuilder::relationGraphByBucket(std::vector<Segment*> segs,
           // cost == distance, ignore the initial delay of the leaf node
           double distance = calcDistance(g, near_seg);
 
-          if (skip_by_delay && skipMergeByDelay(g, near_seg, distance)) {
+          if (skipMergeByDelay(g, near_seg, skip_delay_gap)) {
             continue ;
           }
           if (distance < min_distance) {
