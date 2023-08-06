@@ -1047,7 +1047,7 @@ void OpenDBAdapter::getWireBudgetingFromLrl()
     auto netsSize = block->getNets().size();
     rsz::Resizer::NetSlackMap ret;
     resizer_->getWorstSlackNets(ret, (int) netsSize);
-    for (int i; i < design_->nets_size(); i++) {
+    for (int i = 0; i < design_->nets_size(); i++) {
       auto net = design_->mutable_nets(i);
       auto odbNet = block->findNet(net->name().c_str());
       auto minSlackIter = ret.find(odbNet);

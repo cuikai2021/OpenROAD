@@ -105,7 +105,7 @@ std::string genTempFilePath(utl::Logger* logger, std::string fileExt)
 
 int exec(utl::Logger* logger, const std::vector<std::string>& args)
 {
-  std::string exe = std::move(getExe());
+  std::string exe = getExe();
   int ec = boost::process::system(exe, boost::process::args(args));
   switch (ec) {
     case 0:
@@ -180,8 +180,7 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     dbAdapter.loadDesignFromODB();
     auto design = dbAdapter.getDesign();
     BanyanCase byCase;
-    byCase.set_allocated_design(design.get());
-    design.release();
+    byCase.set_allocated_design(design.release());
     inPbFilePath = genTempFilePath(logger_, ".pb");
     std::ofstream pbfs;
     pbfs.open(inPbFilePath,
