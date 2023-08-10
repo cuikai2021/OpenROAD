@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package lrl_tdp; 
+
+//for all double value, 1e+30 means INF
+
+// only non-sequential internal arcs
+message Arc {
+    string instance = 1;
+    string pin_start = 2;
+    string pin_end = 3;
+
+    double input_slack = 4;
+    double output_slack = 5;
+    double input_arr = 6;
+    double output_arr = 7;
+    double arc_delay = 8;
+    double c_pins = 9; // current load cap
+    double c_max = 10; // load cap limit
+
+    repeated double delay_args = 11;
+    repeated double transition_args = 12;
+
+    double input_slew = 13;
+    double output_slew = 14;
+}
+
+message Port {
+    string port_name = 1;
+
+    bool is_input = 2;
+    bool is_output = 3;
+
+    double c_pins = 4; // effective when is_input = true
+    double c_max = 5; // effective when is_input = true
+    double output_slack = 6; // effective when is_output = true
+    double arr = 7;
+    double slew = 8;
+}
+
+message SeqPin {
+    string instance = 1;
+    string pin = 2;
+
+    bool is_start = 3;
+    bool is_end = 4;
+
+    double c_pins = 5; // exist when is_start = true, default = 0
+    double slack = 6;
+    double setup_args = 7; // exist when is_end = true, default = 0
+    double arr = 8;
+    double slew = 9;
+}
+
+message IncrTdpData {
+    repeated Arc arcs = 1;
+    repeated Port ports = 2;
+    repeated SeqPin seq_pins = 3;
+
+    double wire_cap = 4;
+    double wire_res = 5;
+}

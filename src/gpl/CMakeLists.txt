@@ -46,13 +46,12 @@ find_package(Eigen3 REQUIRED)
 
 swig_lib(NAME      gpl
          NAMESPACE gpl
-         I_FILE    src/gpl.i
-         SCRIPTS   src/replace.tcl src/linden.tcl
+         I_FILE    src/replace.i
+         SCRIPTS   src/replace.tcl
 )
 
 target_sources(gpl
   PRIVATE
-    src/MakeLindenGlobalPlace.cpp
     src/lindengp.cpp
     src/MakeReplace.cpp
     src/replace.cpp

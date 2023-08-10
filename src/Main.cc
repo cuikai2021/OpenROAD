@@ -184,12 +184,14 @@ main(int argc,
   setenv("LC_ALL", "en_US.UTF-8", /* override */ 1);
   setenv("LANG", "en_US.UTF-8", /* override */ 1);
 
+#if 1 // NOTE: You can disable the following signal handlers when using gdb, as it blocks gdb.
   // Generate a stacktrace on crash
   signal(SIGABRT, handler);
   signal(SIGBUS, handler);
   signal(SIGFPE, handler);
   signal(SIGILL, handler);
   signal(SIGSEGV, handler);
+#endif
 
   if (argc == 2 && stringEq(argv[1], "-help")) {
     showUsage(argv[0], init_filename);

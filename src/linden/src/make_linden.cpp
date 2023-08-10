@@ -5,16 +5,16 @@
 #include "gpl/lindengp.h"
 
 namespace sta {
-extern const char *gpl_tcl_inits[];
+extern const char *linden_tcl_inits[];
 }
 
 extern "C" {
-extern int Gpl_Init(Tcl_Interp* interp);
+extern int Linden_Init(Tcl_Interp* interp);
 }
 
 namespace ord {
 
-gpl::LindenGlobalPlace* 
+gpl::LindenGlobalPlace*
 makeLindenGlobalPlace() {
   return new gpl::LindenGlobalPlace();
 }
@@ -22,8 +22,8 @@ makeLindenGlobalPlace() {
 void
 initLindenGlobalPlace(OpenRoad* openroad) {
   Tcl_Interp* tcl_interp = openroad->tclInterp();
-  Gpl_Init(tcl_interp);
-  sta::evalTclInit(tcl_interp, sta::gpl_tcl_inits);
+  Linden_Init(tcl_interp);
+  sta::evalTclInit(tcl_interp, sta::linden_tcl_inits);
   openroad->getLindenGlobalPlace()->init(openroad->getDb(), openroad->getLogger());
 }
 

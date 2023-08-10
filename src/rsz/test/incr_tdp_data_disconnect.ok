@@ -1,0 +1,1305 @@
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13, library unsupported feature technology.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22, library unsupported feature revision.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23, library unsupported feature default_cell_leakage_power.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29, library unsupported feature default_arc_mode.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30, library unsupported feature default_constraint_arc_mode.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31, library unsupported feature default_leakage_power_density.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33, library unsupported feature clk_width.
+[WARNING STA-1001] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 72, library unsupported feature normalized_driver_waveform.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 75, library unsupported feature driver_waveform_name.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 85, library unsupported feature library_features.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 94, library unsupported feature driver_model.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 95, library unsupported feature in_place_swap_mode.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 98, library unsupported feature min_pulse_width_mode.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 104, library unsupported feature simulation.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 110, library unsupported feature switching_power_split_model.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 242, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 244, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 245, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 248, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 253, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 258, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 263, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 496, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 877, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 879, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 880, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 883, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 888, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 893, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 898, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1131, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1512, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1514, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1515, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1518, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1523, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1528, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1533, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 1766, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2147, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2149, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2150, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2153, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2158, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2163, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2168, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2401, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2782, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2784, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2785, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2788, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2793, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2798, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 2803, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3036, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3417, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3419, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3420, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3423, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3428, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3433, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3438, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 3671, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4052, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4054, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4055, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4058, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4063, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4068, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4073, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4306, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4623, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4625, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4626, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4629, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4634, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4639, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4644, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 4832, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5100, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5102, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5103, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5106, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5111, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5116, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5121, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5309, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5577, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5579, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5580, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5583, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5588, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5593, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5598, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 5786, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6054, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6056, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6057, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6060, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6065, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6070, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6075, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6263, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6531, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6533, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6534, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6537, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6542, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6547, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6552, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 6740, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7008, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7010, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7011, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7014, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7019, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7024, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7029, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7217, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7453, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7455, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7456, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7459, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7464, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7469, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7474, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7617, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7804, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7806, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7807, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7810, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7815, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7820, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7825, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 7968, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8155, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8157, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8158, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8161, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8166, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8171, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8176, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8319, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8506, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8508, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8509, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8512, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8517, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8522, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8527, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8670, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8857, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8859, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8860, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8863, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8868, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8873, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 8878, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9021, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9208, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9210, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9211, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9214, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9219, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9224, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9229, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9372, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9559, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9561, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9562, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9565, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9570, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9575, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9580, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9723, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9910, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9912, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9913, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9916, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9921, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9926, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 9931, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10074, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10261, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10263, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10264, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10267, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10272, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10277, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10282, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10425, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10612, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10614, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10615, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10618, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10623, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10628, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10633, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10776, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10963, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10965, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10966, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10969, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10974, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10979, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 10984, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11127, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11314, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11316, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11317, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11320, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11325, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11330, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11335, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11478, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11665, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11667, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11668, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11671, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11676, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11681, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11686, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 11829, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12112, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12114, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12115, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12118, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12123, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12128, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12133, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12366, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12747, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12749, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12750, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12753, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12758, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12763, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 12768, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13001, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13382, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13384, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13385, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13388, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13393, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13398, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13403, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 13636, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14017, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14019, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14020, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14023, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14028, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14033, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14038, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14271, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14652, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14654, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14655, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14658, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14663, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14668, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14673, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 14906, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 15287, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 15289, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 15290, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 15293, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 15298, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 15303, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 15308, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 15541, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16050, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16052, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16053, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16056, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16061, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16066, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16071, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16349, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16715, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16717, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16718, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16721, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16726, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16731, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16736, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 16924, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17192, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17194, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17195, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17198, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17203, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17208, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17213, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17401, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17669, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17671, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17672, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17675, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17680, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17685, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17690, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 17878, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18146, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18148, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18149, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18152, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18157, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18162, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18167, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18355, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18623, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18625, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18626, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18629, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18634, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18639, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18644, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 18832, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19100, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19102, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19103, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19106, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19111, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19116, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19121, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19309, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19577, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19579, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19580, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19583, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19588, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19593, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19598, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 19786, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20054, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20056, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20057, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20060, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20065, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20070, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20075, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20263, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20531, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20533, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20534, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20537, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20542, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20547, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20552, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 20740, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21008, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21010, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21011, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21014, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21019, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21024, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21029, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21217, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21485, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21487, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21488, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21491, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21496, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21501, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21506, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21694, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21962, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21964, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21965, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21968, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21973, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21978, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 21983, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22171, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22503, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22505, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22506, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22509, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22514, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22519, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22524, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 22757, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23138, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23140, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23141, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23144, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23149, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23154, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23159, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23392, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23773, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23775, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23776, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23779, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23784, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23789, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 23794, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24027, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24408, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24410, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24411, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24414, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24419, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24424, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24429, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 24662, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25043, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25045, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25046, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25049, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25054, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25059, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25064, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25297, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25678, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25680, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25681, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25684, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25689, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25694, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25699, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 25932, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26249, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26251, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26252, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26255, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26260, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26265, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26270, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26458, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26726, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26728, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26729, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26732, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26737, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26742, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26747, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 26935, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27203, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27205, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27206, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27209, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27214, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27219, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27224, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27412, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27680, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27682, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27683, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27686, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27691, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27696, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27701, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 27889, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28157, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28159, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28160, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28163, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28168, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28173, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28178, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28366, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28634, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28636, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28637, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28640, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28645, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28650, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28655, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 28843, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29175, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29177, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29178, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29181, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29186, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29191, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29196, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29429, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29810, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29812, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29813, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29816, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29821, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29826, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 29831, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30064, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30445, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30447, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30448, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30451, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30456, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30461, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30466, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 30699, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31080, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31082, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31083, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31086, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31091, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31096, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31101, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31334, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31715, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31717, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31718, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31721, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31726, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31731, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31736, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 31969, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32350, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32352, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32353, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32356, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32361, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32366, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32371, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32604, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32985, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32987, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32988, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32991, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 32996, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33001, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33006, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33239, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33620, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33622, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33623, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33626, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33631, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33636, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33641, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 33874, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34255, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34257, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34258, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34261, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34266, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34271, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34276, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34509, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34890, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34892, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34893, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34896, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34901, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34906, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 34911, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35144, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35525, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35527, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35528, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35531, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35536, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35541, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35546, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 35779, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36160, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36162, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36163, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36166, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36171, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36176, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36181, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36414, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36683, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36685, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36686, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36689, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36694, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36699, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36704, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36802, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36924, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36926, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36927, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36930, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36935, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36940, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 36945, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37043, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37165, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37167, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37168, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37171, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37176, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37181, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37186, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37284, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37406, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37408, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37409, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37412, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37417, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37422, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37427, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37525, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37647, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37649, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37650, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37653, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37658, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37663, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37668, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37766, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37888, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37890, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37891, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37894, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37899, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37904, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 37909, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38007, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38129, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38131, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38132, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38135, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38140, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38145, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38150, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38248, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38386, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38388, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38389, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38392, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38397, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38402, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38407, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38550, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38737, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38739, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38740, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38743, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38748, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38753, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38758, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 38901, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39088, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39090, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39091, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39094, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39099, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39104, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39109, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39252, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39439, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39441, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39442, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39445, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39450, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39455, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39460, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39603, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39790, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39792, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39793, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39796, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39801, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39806, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39811, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 39954, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40141, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40143, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40144, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40147, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40152, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40157, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40162, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40305, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40524, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40526, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40527, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40530, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40535, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40540, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40545, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 40733, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41001, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41003, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41004, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41007, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41012, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41017, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41022, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41210, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41478, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41480, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41481, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41484, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41489, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41494, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41499, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41687, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41955, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41957, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41958, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41961, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41966, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41971, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 41976, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42164, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42432, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42434, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42435, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42438, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42443, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42448, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42453, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42641, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42909, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42911, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42912, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42915, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42920, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42925, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 42930, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43118, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43386, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43388, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43389, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43392, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43397, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43402, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43407, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43595, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43863, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43865, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43866, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43869, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43874, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43879, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 43884, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44072, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44340, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44342, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44343, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44346, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44351, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44356, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44361, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44549, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44761, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44763, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44764, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44767, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44772, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44777, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44782, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44825, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44890, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44892, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44893, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44896, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44901, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44906, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44911, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 44954, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45019, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45021, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45022, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45025, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45030, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45035, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45040, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45083, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45148, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45150, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45151, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45154, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45159, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45164, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45169, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45212, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45277, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45279, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45280, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45283, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45288, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45293, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45298, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45341, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45406, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45408, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45409, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45412, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45417, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45422, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45427, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45470, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45535, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45537, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45538, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45541, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45546, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45551, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45556, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45599, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45664, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45666, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45667, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45670, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45675, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45680, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45685, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45728, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45793, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45795, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45796, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45799, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45804, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45809, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45814, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45857, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45922, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45924, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45925, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45928, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45933, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45938, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45943, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 45986, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46051, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46053, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46054, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46057, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46062, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46067, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46072, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46115, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46180, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46182, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46183, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46186, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46191, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46196, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46201, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46244, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46309, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46311, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46312, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46315, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46320, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46325, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46330, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46373, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46438, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46440, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46441, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46444, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46449, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46454, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46459, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46502, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46567, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46569, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46570, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46573, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46578, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46583, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46588, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46631, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46696, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46698, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46699, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46702, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46707, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46712, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46717, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46760, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46825, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46827, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46828, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46831, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46836, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46841, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46846, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46889, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46954, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46956, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46957, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46960, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46965, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46970, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 46975, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47018, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47083, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47085, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47086, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47089, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47094, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47099, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47104, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47147, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47212, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47214, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47215, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47218, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47223, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47228, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47233, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47276, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47341, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47343, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47344, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47347, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47352, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47357, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47362, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47405, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47470, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47472, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47473, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47476, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47481, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47486, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47491, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47534, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47599, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47601, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47602, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47605, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47610, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47615, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47620, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47663, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47728, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47730, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47731, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47734, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47739, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47744, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47749, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47792, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47857, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47859, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47860, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47863, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47868, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47873, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47878, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47921, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47986, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47988, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47989, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47992, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 47997, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48002, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48007, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48050, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48115, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48117, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48118, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48121, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48126, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48131, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48136, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48179, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48244, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48246, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48247, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48250, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48255, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48260, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48265, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48308, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48373, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48375, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48376, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48379, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48384, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48389, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48394, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48437, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48502, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48504, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48505, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48508, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48513, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48518, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48523, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48566, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48631, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48633, library unsupported feature driver_waveform_fall.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48634, library unsupported feature driver_waveform_rise.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48637, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48642, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48647, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48652, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48695, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48752, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48756, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48761, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48766, library unsupported feature physical_connection.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48771, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48779, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48788, library unsupported feature power_down_function.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48796, library unsupported feature cell_footprint.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48800, library unsupported feature related_bias_pin.
+[WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 48805, library unsupported feature physical_connection.
+[WARNING STA-1002] message limit reached, this message will no longer print
+[INFO ODB-0222] Reading LEF file: sky130hd/sky130hd.tlef
+[INFO ODB-0223]     Created 13 technology layers
+[INFO ODB-0224]     Created 25 technology vias
+[INFO ODB-0226] Finished LEF file:  sky130hd/sky130hd.tlef
+[INFO ODB-0222] Reading LEF file: sky130hd/sky130hd_std_cell.lef
+[INFO ODB-0225]     Created 437 library cells
+[INFO ODB-0226] Finished LEF file:  sky130hd/sky130hd_std_cell.lef
+worst slack -0.03
+Design area 100 u^2 100% utilization.
+[LRL-TDP] write incr tdp data pb file to: results/incr_tdp_data.pb
+
+-------test the dumped result-------
+[LRL-TDP] read pb_file from:results/incr_tdp_data.pb
+<wire_cap>: 1e-11
+<wire_res>: 100000
+port_name: clk
+is_input: true
+  c_pins: 2.926e-15
+  c_max: 1e+30
+is_output: false
+  output_slack: -2.51175e-11
+arr: 2.75e-09
+slew: 0
+----------------------
+port_name: in1
+is_input: true
+  c_pins: 3.105e-15
+  c_max: 1e+30
+is_output: false
+  output_slack: 4.11617e-09
+arr: 1e-10
+slew: 0
+----------------------
+port_name: in2
+is_input: true
+  c_pins: 0
+  c_max: 1e+30
+is_output: false
+  output_slack: 1e+30
+arr: 0
+slew: 0
+----------------------
+port_name: mode
+is_input: true
+  c_pins: 6.144e-15
+  c_max: 1e+30
+is_output: false
+  output_slack: 1e+30
+arr: 0
+slew: 0
+----------------------
+port_name: out
+is_input: false
+  c_pins: 0
+  c_max: 1e+30
+is_output: true
+  output_slack: 1e+30
+arr: 0
+slew: 0
+----------------------
+seq_instance: r2
+seq_pin_name: D
+slack: 4.11617e-09
+is_start: false
+is_end: true
+  setup_args: -0.437764
+arr: 1e-10
+slew: 0
+----------------------
+seq_instance: r2
+seq_pin_name: SCD
+slack: 1e+30
+is_start: false
+is_end: true
+  setup_args: -0.436296
+arr: 1e-10
+slew: 0
+----------------------
+seq_instance: r2
+seq_pin_name: SCE
+slack: 1e+30
+is_start: false
+is_end: true
+  setup_args: -0.435929
+arr: 0
+slew: 0
+----------------------
+seq_instance: r2
+seq_pin_name: CLK
+slack: -2.51175e-11
+is_start: true
+  c_pins: 2.926e-15
+is_end: false
+arr: 2.75e-09
+slew: 0
+----------------------
+seq_instance: r3
+seq_pin_name: D
+slack: -2.51172e-11
+is_start: false
+is_end: true
+  setup_args: -0.437764
+arr: 4.17438e-09
+slew: 1.09314e-10
+----------------------
+seq_instance: r3
+seq_pin_name: SCD
+slack: 1e+30
+is_start: false
+is_end: true
+  setup_args: -0.436296
+arr: 1.24429e-09
+slew: 2.0884e-10
+----------------------
+seq_instance: r3
+seq_pin_name: SCE
+slack: 1e+30
+is_start: false
+is_end: true
+  setup_args: -0.435929
+arr: 0
+slew: 0
+----------------------
+seq_instance: r3
+seq_pin_name: CLK
+slack: 1e+30
+is_start: true
+  c_pins: 2.926e-15
+is_end: false
+arr: 2.75e-09
+slew: 0
+----------------------
+  instance: b1
+  pin_start: A
+  pin_end: X
+  input_slack: 1.17125e-09
+  output_slack: 1.17125e-09
+  input_arr: 1.24429e-09
+  output_arr: 2.32679e-09
+  input_slew: 7.95538e-11
+  output_slew: 6.7388e-11
+  arc_delay: 1.38609e-09
+  c_max: 3.33415e-13
+  c_pins: 1.219e-15
+  delay_args: 
+    a0: 0.530967
+    a1: 16752
+  transition_args: 
+    a0: -0.0134329
+    a1: 10690.2
+----------------------
+  instance: b2
+  pin_start: A
+  pin_end: X
+  input_slack: -2.51175e-11
+  output_slack: -2.51175e-11
+  input_arr: 1.24429e-09
+  output_arr: 1.55148e-09
+  input_slew: 2.0884e-10
+  output_slew: 1.34289e-10
+  arc_delay: 3.07193e-10
+  c_max: 2.28129e-13
+  c_pins: 1.872e-15
+  delay_args: 
+    a0: 0.558847
+    a1: 33667.9
+  transition_args: 
+    a0: 0.00497668
+    a1: 44278.3
+----------------------
+  instance: b3
+  pin_start: A
+  pin_end: X
+  input_slack: -2.51175e-11
+  output_slack: -2.51174e-11
+  input_arr: 1.55148e-09
+  output_arr: 1.80369e-09
+  input_slew: 5.40017e-11
+  output_slew: 4.95277e-11
+  arc_delay: 2.64432e-10
+  c_max: 2.28129e-13
+  c_pins: 1.3e-15
+  delay_args: 
+    a0: 0.590555
+    a1: 15341.7
+  transition_args: 
+    a0: -0.00247889
+    a1: 12517.7
+----------------------
+  instance: b4
+  pin_start: A
+  pin_end: X
+  input_slack: -2.51174e-11
+  output_slack: -2.51172e-11
+  input_arr: 1.80369e-09
+  output_arr: 2.86651e-09
+  input_slew: 4.95277e-11
+  output_slew: 7.23647e-11
+  arc_delay: 1.37697e-09
+  c_max: 3.33415e-13
+  c_pins: 1.678e-15
+  delay_args: 
+    a0: 0.537883
+    a1: 13031.7
+  transition_args: 
+    a0: -0.00546529
+    a1: 9558.16
+----------------------
+  instance: b5
+  pin_start: A
+  pin_end: X
+  input_slack: -2.51172e-11
+  output_slack: -2.51172e-11
+  input_arr: 2.86651e-09
+  output_arr: 3.14669e-09
+  input_slew: 7.23647e-11
+  output_slew: 5.40016e-11
+  arc_delay: 2.80177e-10
+  c_max: 2.28129e-13
+  c_pins: 1.678e-15
+  delay_args: 
+    a0: 0.589755
+    a1: 12581.7
+  transition_args: 
+    a0: -0.00032027
+    a1: 11587.7
+----------------------
+  instance: b6
+  pin_start: A
+  pin_end: X
+  input_slack: -2.51172e-11
+  output_slack: -2.51172e-11
+  input_arr: 3.14669e-09
+  output_arr: 3.40955e-09
+  input_slew: 5.40016e-11
+  output_slew: 4.82453e-11
+  arc_delay: 2.62869e-10
+  c_max: 2.28129e-13
+  c_pins: 1.198e-15
+  delay_args: 
+    a0: 0.590555
+    a1: 15341.7
+  transition_args: 
+    a0: -0.00247889
+    a1: 12517.7
+----------------------
+  instance: r2
+  pin_start: CLK
+  pin_end: Q
+  input_slack: -2.51175e-11
+  output_slack: -2.51175e-11
+  input_arr: 0
+  output_arr: 1.24429e-09
+  input_slew: 0
+  output_slew: 2.0884e-10
+  arc_delay: 1.24429e-09
+  c_max: 3.09763e-13
+  c_pins: 4.943e-15
+  delay_args: 
+    a0: 0.557627
+    a1: 24029.5
+  transition_args: 
+    a0: 0.0387276
+    a1: 31890.1
+----------------------
+  instance: u2
+  pin_start: B
+  pin_end: X
+  input_slack: -2.51172e-11
+  output_slack: -2.51172e-11
+  input_arr: 3.40955e-09
+  output_arr: 4.17438e-09
+  input_slew: 4.82453e-11
+  output_slew: 1.09314e-10
+  arc_delay: 7.64828e-10
+  c_max: 5.45512e-13
+  c_pins: 1.388e-15
+  delay_args: 
+    a0: 0.560565
+    a1: 15495.1
+  transition_args: 
+    a0: 0.00536005
+    a1: 7088.37
+----------------------
+  instance: u2
+  pin_start: A
+  pin_end: X
+  input_slack: 1.17125e-09
+  output_slack: -2.51172e-11
+  input_arr: 2.32679e-09
+  output_arr: 4.17438e-09
+  input_slew: 6.7388e-11
+  output_slew: 1.09314e-10
+  arc_delay: 6.51227e-10
+  c_max: 5.45512e-13
+  c_pins: 1.388e-15
+  delay_args: 
+    a0: 0.547751
+    a1: 14291.5
+  transition_args: 
+    a0: -0.00192761
+    a1: 6676.06
+----------------------

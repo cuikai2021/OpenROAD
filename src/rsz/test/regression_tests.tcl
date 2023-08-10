@@ -3,6 +3,8 @@ record_tests {
 
   repair_setup1_no_buffer
   repair_setup1_no_rc_chage
+  incr_tdp_data
+  incr_tdp_data_disconnect
 
   add_tie_cell_const_out_pin
   add_tie_cell_error_arg

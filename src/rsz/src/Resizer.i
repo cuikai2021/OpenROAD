@@ -42,12 +42,17 @@
 #include "sta/Delay.hh"
 #include "sta/Liberty.hh"
 
+#include "rsz/IncrTdpDataWriter.hh"
+
 namespace ord {
 // Defined in OpenRoad.i
 rsz::Resizer *
 getResizer();
 void
 ensureLinked();
+
+OpenRoad*
+getOpenRoad();
 }
 
 namespace sta {
@@ -65,6 +70,7 @@ typedef PinSet TmpPinSet;
 
 } // namespace
 
+using ord::getOpenRoad;
 using ord::getResizer;
 using ord::ensureLinked;
 
@@ -462,7 +468,7 @@ repair_net_cmd(Net *net,
 {
   ensureLinked();
   Resizer *resizer = getResizer();
-  resizer->repairNet(net, max_length, slew_margin, cap_margin); 
+  resizer->repairNet(net, max_length, slew_margin, cap_margin);
 }
 
 void
@@ -660,6 +666,22 @@ report_worst_slack_net(int limit)
   Resizer *resizer = getResizer();
   resizer->reportWorstSlackNets(limit);
 }
+
+void
+write_tdp_data(const char* filename)
+{
+  ensureLinked();
+  IncrTdpDataWriter writer(getOpenRoad());
+  writer.serialize(filename);
+}
+
+void
+read_tdp_data(const char* filename)
+{
+  IncrTdpDataWriter writer(getOpenRoad());
+  writer.deserialize(filename);
+}
+
 
 } // namespace
 

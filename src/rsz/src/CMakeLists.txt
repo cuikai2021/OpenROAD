@@ -49,8 +49,8 @@ target_sources(rsz
     Rebuffer.cc
     SteinerTree.cc
     EstimateWireParasitics.cc
-
     envflags.cpp
+    pb/IncrTdpDataWriter.cc
 )
 
 target_include_directories(rsz
@@ -72,6 +72,7 @@ target_link_libraries(rsz
     envflag
   PRIVATE
     banyan_pb
+    rsz_pb
 )
 
 messages(
