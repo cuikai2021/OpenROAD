@@ -61,6 +61,7 @@ class Banyan : public ord::OpenRoad::Observer
   void drcPatch();
   void clearWires(bool excludeClock, bool excludeSignal);
   void regression_RC(const char *spef, const char *setRC_tcl);
+  void savedb(std::string dbfile);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
                            odb::dbTech* tech,

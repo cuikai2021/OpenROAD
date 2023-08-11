@@ -67,7 +67,7 @@ std::vector<GmVirtualPin> GridlessMaze::run()
     auto res = x.get();
     ans.insert(ans.end(), res.begin(), res.end());
   }
-  int ansCnt = 0;
+
   std::vector<GmVirtualPin> tmp;
   for (auto& x : ans) {
     bool ok = true;

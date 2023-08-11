@@ -12,12 +12,6 @@ proc banyan_drc_patch {} {
   banyan::drcPatch
 }
 
-proc banyan_merge_wire_segment { } {
-  banyan::mergeWireSegment
-}
-
-
-
 sta::define_cmd_args "banyan_clear_wires" {
   [-exclude_signal] \
   [-exclude_clock] \
@@ -38,3 +32,12 @@ sta::define_cmd_args "regression_RC" { spef setRC_tcl }
 proc regression_RC { spef setRC_tcl } {
   banyan::regression_RC_cmd $spef $setRC_tcl
 }
+
+proc banyan_save_db { dbfile } {
+  banyan::saveDB $dbfile
+}
+
+proc banyan_merge_wire_segment { } {
+  banyan::mergeWireSegment
+}
+

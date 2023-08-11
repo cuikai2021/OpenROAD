@@ -34,10 +34,7 @@ namespace banyan {
 
 void banyan(std::vector<std::string> args)
 {
-    int status = ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
-    if (status == 0) {
-      ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
-    }
+    ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
 }
 
 void banyanClearWires(bool excludeClock, bool excludeSignal)
@@ -68,6 +65,11 @@ void drcPatch()
 void regression_RC_cmd(const char *spef, const char *setRC_tcl)
 {
     ord::OpenRoad::openRoad()->getBanyan()->regression_RC(spef, setRC_tcl);
+}
+
+void saveDB(std::string dbfile)
+{
+    ord::OpenRoad::openRoad()->getBanyan()->savedb(dbfile);
 }
 
 }

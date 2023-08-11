@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 #include "BanyanGraphics.hpp"
 #include "ByAdapter.hpp"
@@ -205,7 +206,8 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
 
   defer _(nullptr, [&](...) {
     if (updateDB) {
-      logger_->info(utl::BY, 1, "Writing banyan result {} to eden ...", outPbFilePath);
+      logger_->info(
+          utl::BY, 1, "Writing banyan result {} to eden ...", outPbFilePath);
       BanyanCase byrst;
       std::ifstream outfs;
       outfs.open(outPbFilePath);
@@ -256,48 +258,30 @@ int Banyan::m1GridlessMaze()
 
 void Banyan::mergeWireSegment()
 {
-  auto bydb = ByAdapter(db_, logger_).getByDb();
-  for (auto& net : bydb->getNets()) {
-    if (net->isSpecial()) {
-      continue;
-    }
-    std::vector<std::shared_ptr<ByBox>> rectWires;
-    std::unordered_map<std::string, std::vector<std::shared_ptr<ByBox>>>
-        layerWire;
-    for (auto& wire : net->getWires()) {
-      auto lineWidth
-          = db_->getTech()->findLayer(wire->getLayerName().c_str())->getWidth();
-      if (wire->isLineBox(lineWidth)) {
-        layerWire[wire->getLayerName()].emplace_back(wire);
-      } else {
-        rectWires.emplace_back(wire);
-      }
-    }
-    for (auto& [layer, wires] : layerWire) {
-      BsPolygon90Set s;
-      for (const auto& b : wires) {
-        s += *b;
-      }
-      auto lineWidth = db_->getTech()->findLayer(layer.c_str())->getWidth();
-      std::vector<ByBox> res;
-      bsp::get_max_rectangles(res, s);
-      auto info = std::make_shared<ByBoxInfo>(layer,
-                                              net->getName(),
-                                              std::nullopt,
-                                              std::nullopt,
-                                              std::nullopt,
-                                              ByBoxInfo::WIRE);
-      for (const auto& b : res) {
-        if (b.isLineBox(lineWidth)) {
-          rectWires.emplace_back(std::make_shared<ByBox>(
-              b.xMin(), b.yMin(), b.xMax(), b.yMax(), info));
-        }
-      }
-    }
-    net->mutableWires() = rectWires;
+  const auto processor_count = std::thread::hardware_concurrency();
+  auto dbfile = genTempFilePath(logger_, ".pb");
+  savedb(dbfile);
+  std::vector<std::string> args;
+  if (processor_count > 1) {
+    args.push_back("--cores");
+    args.push_back(std::to_string(processor_count + 1));
   }
-  logger_->info(utl::BY, 1, "wire merged!");
-  ByAdapter::updateWire(db_, bydb);
+  args.push_back("merge_wire_segments");
+  args.push_back("--log_level");
+  args.push_back("info");
+  args.push_back("--techlef");
+  args.push_back(techfile_name_);
+  args.push_back("--db");
+  args.push_back(dbfile);
+  auto outPbFilePath = genTempFilePath(logger_, ".pb");
+  args.push_back("--save_db");
+  args.push_back(outPbFilePath);
+  auto status = main(args, true);
+  if (status == SUCCESS) {
+    logger_->info(utl::BY, 1, "banyan merge wire segments completed.");
+  } else {
+    logger_->info(utl::BY, 1, "banyan merge wire segments failed.");
+  }
 }
 
 void Banyan::runGui()
@@ -347,6 +331,21 @@ void Banyan::clearWires(bool excludeClock, bool excludeSignal)
   }
 }
 
-
+void Banyan::savedb(std::string dbfile)
+{
+  OpenDBAdapter dbAdapter(db_, stt_builder_, logger_, laurel_, resizer_, true);
+  dbAdapter.loadDesignFromODB();
+  auto design = dbAdapter.getDesign();
+  BanyanCase byCase;
+  byCase.set_allocated_design(design.get());
+  design.release();
+  std::ofstream pbfs;
+  pbfs.open(dbfile,
+            std::ofstream::in | std::ofstream::out | std::ofstream::trunc);
+  if (!byCase.SerializeToOstream(&pbfs)) {
+    logger_->error(utl::BY, 1, "save protobuf file to {} fail", dbfile);
+  }
+  pbfs.close();
+}
 
 }  // namespace banyan
