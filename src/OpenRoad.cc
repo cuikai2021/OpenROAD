@@ -166,7 +166,6 @@ OpenRoad::OpenRoad()
 
 OpenRoad::~OpenRoad()
 {
-  linden::deleteLindenDp(this);
   deleteDbVerilogNetwork(verilog_network_);
   deleteDbSta(sta_);
   deleteIoplacer(ioPlacer_);

@@ -1,29 +1,21 @@
 include("openroad")
 
+file(GLOB tcls *.tcl itdp/*.tcl)
 swig_lib(NAME      linden
          NAMESPACE linden
          I_FILE    linden.i
-         SCRIPTS   linden.tcl
+         SCRIPTS   ${tcls}
 )
 
+file(GLOB cpps *.cpp itdp/*.cpp)
 target_sources(linden
 PRIVATE
-    make_linden.cpp
-    envflags.cpp
-    lindendp.cc
-    lefdef_dumper.cc
-    scanchain.cpp
-    ignored_nets.cpp
-    relevance_verify.cpp
-    itdp/linden_incr_tdp.cpp
-    itdp/linden_lpbased_postdrv_itdp.cpp
-    itdp/linden_lpbased_postdrv_itdp.db.cpp
+    ${cpps}
 )
 
 target_include_directories(linden
 PUBLIC
     ../include
-    ../gpl/include
     ${OPENROAD_HOME}/include
 )
 

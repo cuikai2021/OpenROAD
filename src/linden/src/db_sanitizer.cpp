@@ -1,11 +1,11 @@
-#include <tcl.h>
-#include "gpl/LindenDBSanitizer.hpp"
+#include "linden/db_sanitizer.hpp"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "utl/Logger.h"
+#include <tcl.h>
 
 namespace linden {
-  
+
 LindenDBSanitizer::LindenDBSanitizer() {
   db_ = ::ord::OpenRoad::openRoad()->getDb();
   logger_ = ::ord::OpenRoad::openRoad()->getLogger();
@@ -64,7 +64,7 @@ bool LindenDBSanitizer::isFiller(odb::dbInst *inst) const {
     // These cells' master name contains "FIL", but they are fixed after the Floorplan.
     return false;
   }
-  return (isFillerInstByName(inst) || isFillerInstByMasterType(inst)) && 
+  return (isFillerInstByName(inst) || isFillerInstByMasterType(inst)) &&
           isUnconnected(inst);
 }
 
@@ -77,7 +77,7 @@ size_t LindenDBSanitizer::removeFillers() {
     if (isFiller(inst)) {
       ++remove_filler_cnt;
       odb::dbInst::destroy(inst);
-    }    
+    }
   }
   return remove_filler_cnt;
 }

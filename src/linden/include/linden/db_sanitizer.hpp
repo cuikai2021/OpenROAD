@@ -1,5 +1,6 @@
 #pragma once
 #include <set>
+#include <cstddef>
 
 namespace odb {
 class dbInst;
@@ -11,7 +12,7 @@ class Logger;
 }
 
 namespace linden {
-  
+
 class LindenDBSanitizer {
 public:
   LindenDBSanitizer();

@@ -82,7 +82,6 @@ target_sources(gpl
     src/lindengp.db.cpp
     src/lindengp.ip.cpp
     src/lindenmp.cpp
-    src/LindenDBSanitizer.cpp
 )
 
 messages(TARGET gpl)

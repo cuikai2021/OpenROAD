@@ -45,3 +45,9 @@ DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL,
     "Enable the calculation of change in cell relative position",
     false
 );
+
+DEFINE_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE,
+    "Debug: specify the root directory to place `lindendp`",
+    "/build/bin/lindendp"
+)
+
