@@ -7,6 +7,7 @@
 #include "ord/OpenRoad.hh"
 #include "incr_tdp_data.pb.h"
 #include "fassert.hpp"
+#include <spdlog/spdlog.h>
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
@@ -42,7 +43,7 @@ void LocalIncrTdpData::validate() const noexcept {
 
 LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
     string pb_file(path);
-    cout << "pb file: " << pb_file << endl;
+    spdlog::info("pb file: {}", pb_file);
     ifstream fin(pb_file);
     lrl_tdp::IncrTdpData incr_tdp_data;
     bool ret = incr_tdp_data.ParseFromIstream(&fin);
@@ -76,24 +77,22 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
         const lrl_tdp::Arc& pb_arc
     ) {
         if (res_arc.input_pin == nullptr) {
-            cout << "WARNING: " << pb_arc.instance() + "/" + pb_arc.pin_start();
-            cout << " cannot be found in Linden DB." << endl;
+            spdlog::warn("WARNING: {} cannot be found in Linden DB.", pb_arc.instance() + "/" + pb_arc.pin_start());
             auto odb_net = pinname2net(cell, pb_arc.pin_start());
             FASSERT(odb_net);
             auto net_type = odb_net->getSigType();
             FASSERT(net_type == odb::dbSigType::GROUND || net_type == odb::dbSigType::POWER);
-            cout << "It is connected to VDD/VSS." << endl;
+            spdlog::info("It is connected to VDD/VSS.");
             return false;
         }
         if (res_arc.output_pin == nullptr) {
-            cout << "WARNING: " << pb_arc.instance() + "/" + pb_arc.pin_end();
-            cout << " cannot be found in Linden DB." << endl;
+            spdlog::warn("WARNING: {} cannot be found in Linden DB.", pb_arc.instance() + "/" + pb_arc.pin_end());
             auto odb_net = pinname2net(cell, pb_arc.pin_end());
             FASSERT(!odb_net
                     || (odb_net->getSigType() != odb::dbSigType::SIGNAL
                         && odb_net->getSigType() != odb::dbSigType::CLOCK))
             (odb_net->getName());
-            cout << "The output pin does not belong to any net." << endl;
+            spdlog::info("The output pin does not belong to any net.");
             return false;
         }
         return true;
@@ -104,13 +103,12 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
         const lrl_tdp::SeqPin& pb_seq_pin
     ) {
         if (res_seq_pin.pin == nullptr) {
-            cout << "WARNING: " << pb_seq_pin.instance() + "/" + pb_seq_pin.pin();
-            cout << " cannot be found in Linden DB." << endl;
+            spdlog::warn("WARNING: {} cannot be found in Linden DB.", pb_seq_pin.instance() + "/" + pb_seq_pin.pin());
             auto odb_net = pinname2net(cell, pb_seq_pin.pin());
             FASSERT(odb_net);
             auto net_type = odb_net->getSigType();
             FASSERT(net_type == odb::dbSigType::GROUND || net_type == odb::dbSigType::POWER);
-            cout << "It is connected to VDD/VSS." << endl;
+            spdlog::info("It is connected to VDD/VSS.");
             return false;
         }
         return true;
@@ -152,7 +150,7 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
         if (pb_port.port_name().find("CLK") != std::string::npos ||
             pb_port.port_name().find("clk") != std::string::npos)
         {
-            cout << "Ignored port: " << pb_port.port_name() << endl;
+            spdlog::info("Ignored port: {}", pb_port.port_name());
             return true;
         }
         return false;
@@ -225,13 +223,11 @@ LPBasedPostDrvItdp::LPBasedPostDrvItdp()
     db_ = ord::OpenRoad::openRoad()->getDb();
 }
 
-// FIXME: replace cout to be spdlog logging
-
 void LPBasedPostDrvItdp::run(const char* pb_path) {
     shared_ptr<linden::db::Database> ldb = create_linden_db();
     LocalIncrTdpData local_incr_tdp_data = read_pb(*ldb, pb_path);
 
-    cout << "TDP: Finished reading data from pb file" << endl;
+    spdlog::info("TDP: Finished reading data from pb file: {}", pb_path);
 
     linden::tdp::TdpConfig config(local_incr_tdp_data.wire_cap,
                                   local_incr_tdp_data.wire_res,

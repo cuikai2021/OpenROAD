@@ -19,6 +19,7 @@ using namespace linden::tool::lpsolver;
 namespace linden {
 namespace tdp {
 
+namespace {
 // https://engineering.purdue.edu/~chengkok/ee695K/lec3a.pdf
 const double K_D = 0.69;
 const double K_S = 2.2;
@@ -26,20 +27,23 @@ const double K_S = 2.2;
 const double length_unit = 1e-9; // unit conversion from nm to m (linden to Open STA)
 const int64_t time_unit = 1e9;   // unit conversion from s to an arbitrary time unit
 const int64_t s2ns_unit = 1e9;   // unit conversion from s to ns
-
+const int64_t netlength_scaling_unit = 1e10;
+const int64_t cload_scaling_unit = 1e3;
 // REMARK: every length(wire-length, move distance, etc) is multiplied by length_unit
 // then the right hand side of every constraint (i.e., the constant term) is multiplied by time_unit
 
 // the default setting is 1e-7, the value should between [1e-7, WNS]
 // , where the WNS is around 0.1 ~ 1ns
 // FIXME: @Xudan to check the more accurate(smaller lp_error) after the stability issue is fixed.
-const double lp_error = 1e-3;   
+const double lp_error = 1e-7;
 
 // Decompose circuit into multiple subcircuits
-// decomposing has benefit on: 1) runtime; 2) solvability 
+// decomposing has benefit on: 1) runtime; 2) solvability
 // TODO: This config var can be removed after we confirmed the correctness of decomposing.
 // TODO: check the checker of decomposing.
-const bool decompose = true;
+const bool decompose = false;// fix it
+    
+}  // namespace
 
 typedef std::pair<const Pin*, const Pin*> Segment;  // wire segment
 
@@ -190,19 +194,19 @@ void print_cell_slack_distribution(
     sort(slacks.begin(), slacks.end());
     auto data_size = slacks.size();
 
-    cout << "Slack Data of cells (in ns): " << endl;
-    cout << "Num of data points: " << data_size;
-    cout << " Num of cells: " << linden_db->cells().size() << endl;
-    cout << "WNS: " << slacks[0] << endl;
+    spdlog::info("Slack Data of cells (in ns): ");
+    spdlog::info("Num of data points: {}", data_size);
+    spdlog::info("Num of cells: {}", linden_db->cells().size());
+    spdlog::info("WNS: {}", slacks[0]);
     if (data_size >= 500) {
-        cout << "Top 500 slack: [" << slacks[0] << ", " << slacks[499] << "]" << endl;
+        spdlog::info("Top 500 slack: [{}, {}]", slacks[0], slacks[499]);
     }
     for (auto p : {1, 5, 10, 20, 50}) {
-        cout << "Top " << p << "% slack: " << slacks[data_size / (100/p)] << endl;
+        spdlog::info("Top {}% slack: {}", p, slacks[data_size / (100/p)]);
     }
 
     size_t cnt = count_if(slacks.begin(), slacks.end(), [](auto v) { return v < 0.0; });
-    cout << "num of negative slacks cells: " << cnt << endl;
+    spdlog::info("Num of negative-slack cells: {}", cnt);
 }
 
 void report_delays(
@@ -250,14 +254,13 @@ void report_delays(
             auto& net = driver->net();
             for (auto p : net.pins()) {
                 auto pin = &p.get();
-                if (equal_pins(driver, pin) || pin2arr.find(pin) == pin2arr.end()) {
+                if (equal_pins(driver, pin) || !pin2arr.contains(pin)) {
                     continue;
                 }
                 double wire_delay = pin2arr.at(pin) - pin2arr.at(driver);
                 if (wire_delay < 0.0) {
-                    cout << "WARNING: Segment: " << get_pin_varname(driver) << " ---> "
-                    << get_pin_varname(pin)
-                    << " has negative delay: " << wire_delay * time_unit << endl;
+                    spdlog::warn("Seqment: {} ---> {} has negative delay: {}",
+                        get_pin_varname(driver), get_pin_varname(pin), wire_delay * time_unit);
                 }
                 wire_delays.emplace_back(wire_delay);
             }
@@ -277,14 +280,14 @@ void report_delays(
 
     auto print_delay_stats = [] (const std::string& desc, deque<double>& delays) {
         auto print_delay = [] (const std::string& prefix, double delay) {
-            cout << prefix << delay * s2ns_unit << endl;
+            spdlog::info("{}: {}", prefix, delay * time_unit);
         };
         FASSERT(delays.size() > 0);
 
         sort(delays.begin(), delays.end(), greater<double>());
         const double mean = std::reduce(delays.begin(), delays.end()) / delays.size();
-        cout << "---------------------------------------------------------" << endl;
-        cout << desc << " stats (in ns): " << " num of data points: " << delays.size() << endl;
+        spdlog::info("---------------------------------------------------------");
+        spdlog::info("{} stats (in ns): num of data points: {}", desc, delays.size());
         print_delay("max: "    , *delays.begin());
         print_delay("min: "    , *delays.rbegin());
         print_delay("mean: "   , mean);
@@ -298,6 +301,20 @@ void report_delays(
     print_delay_stats("wire delay", wire_delays);
 }
 
+unordered_set<const Net*> get_clk_nets(const deque<SeqPin>& seq_pins)
+{
+    unordered_set<const Net*> clk_nets;
+    for (auto& seqpin : seq_pins) {
+        if (seqpin.is_start) {  // start point of reg is CK
+            //FIXME： 直接根据名字来，太粗暴了。无论liberty里还是lef里，都会有pin type的信息，应该根据pin type来判断
+            FASSERT(seqpin.pin->name() != "Q")("unexpected seq start pin from the pb file")(seqpin.pin->name());
+            auto& net = seqpin.pin->net();
+            clk_nets.insert(&net);
+        }
+    }
+    return clk_nets;
+}
+
 // select the top 5% cells with the worst slack
 // if 5% is greater than 500, then choose 500.
 // also, do not take cells with positive slack into consideration
@@ -307,17 +324,33 @@ select_movable_cells(
     const deque<TimingArc>& timing_arcs,
     const deque<SeqPin>& seq_pins)
 {
+    const auto clk_nets = get_clk_nets(seq_pins);
+    const auto non_clknet_driving_cells = [&]() {
+        // cells that are driving clk_net
+        unordered_set<const Cell*> non_clknet_driving_cells;
+        for(auto arc:timing_arcs){
+            auto driving_net = &arc.output_pin->net();
+            if(!clk_nets.contains(driving_net)){
+                non_clknet_driving_cells.insert(&arc.output_pin->cell()->get());
+            }
+        }
+        return non_clknet_driving_cells;
+    }();
+
     Cell2WorstSlackBuilder builder(timing_arcs, seq_pins);
     const auto cells = builder.sorted_cells();
 
-    const int UPPER_BOUND = 500;
+    const int UPPER_BOUND = 200;
     size_t upper_bound = min(int(cells.size() * 0.05), UPPER_BOUND);
     unordered_set<const Cell*> movable_cells;
     for (auto cell : cells) {
-        if (movable_cells.size() >= upper_bound) {
+        if (movable_cells.size() == upper_bound) {
             break;
         }
-        if (!cell->fixed()) {
+        if (builder.cell2ws[cell] >= 0.0) {
+            break;
+        }
+        if (!cell->fixed() && non_clknet_driving_cells.contains(cell)) {
             movable_cells.insert(cell);
         }
     }
@@ -362,16 +395,6 @@ unordered_set<const Net*> find_movable_nets(
     const unordered_set<const Cell*>& movable_cells,
     const deque<SeqPin>& seq_pins)
 {
-    unordered_set<const Net*> clk_nets;
-    for (auto& seqpin : seq_pins) {
-        if (seqpin.is_start) {  // start point of reg is CK
-            //FIXME： 直接根据名字来，太粗暴了。无论liberty里还是lef里，都会有pin type的信息，应该根据pin type来判断
-            FASSERT(seqpin.pin->name() != "Q")("unexpected seq start pin from the pb file")(seqpin.pin->name());
-            auto& net = seqpin.pin->net();
-            clk_nets.insert(&net);
-        }
-    }
-
     auto is_tie_net = [](auto net) {
         auto pins = net->pins();
         if (pins.size() != 2) {
@@ -389,6 +412,8 @@ unordered_set<const Net*> find_movable_nets(
         }
         return false;
     };
+
+    const auto clk_nets = get_clk_nets(seq_pins);
     auto is_clk_net = [&](auto net) {
         return clk_nets.contains(net);
     };
@@ -427,7 +452,7 @@ unordered_set<const Net*> find_movable_nets(
     for (auto& arc : timing_arcs) {
         TimingArc* arc_ptr = &const_cast<TimingArc&>(arc);
         auto inpin = arc.input_pin;
-        if (inpin2arc.find(inpin) == inpin2arc.end()) {
+        if (!inpin2arc.contains(inpin)) {
             deque<TimingArc*> arcs;
             arcs.emplace_back(arc_ptr);
             inpin2arc.insert({inpin, arcs});
@@ -436,7 +461,7 @@ unordered_set<const Net*> find_movable_nets(
         }
 
         auto outpin = arc.output_pin;
-        if (outpin2arc.find(outpin) == outpin2arc.end()) {
+        if (!outpin2arc.contains(outpin)) {
             deque<TimingArc*> arcs;
             arcs.emplace_back(arc_ptr);
             outpin2arc.insert({outpin, arcs});
@@ -458,7 +483,7 @@ unordered_set<const Net*> find_movable_nets(
         auto inpin = arc.input_pin;
         auto outpin = arc.output_pin;
         const Net* net = &(outpin->net());
-        if (movable_nets.find(net) != movable_nets.end()) {
+        if (movable_nets.contains(net)) {
             // avoid repeated receivers (improve runtime later)
             if (find(receivers.begin(), receivers.end(), inpin) == receivers.end()) {
                 receivers.emplace_back(inpin);
@@ -470,7 +495,7 @@ unordered_set<const Net*> find_movable_nets(
         if (port.is_input) {
             auto pin = port.bterm;
             const Net* net = &(pin->net());
-            if (movable_nets.find(net) != movable_nets.end()) {
+            if (movable_nets.contains(net)) {
                 drivers.emplace_back(pin);
             }
         }
@@ -511,7 +536,7 @@ unordered_set<const Net*> find_movable_nets(
         while (!drivers.empty()) {
             auto seg_startpin = drivers.back();
             // skip if this point has been reached earlier
-            if (bfs_intermediates.find(seg_startpin) != bfs_intermediates.end()) {
+            if (bfs_intermediates.contains(seg_startpin)) {
                 drivers.pop_back();
                 continue;
             }
@@ -522,12 +547,12 @@ unordered_set<const Net*> find_movable_nets(
                 if (equal_pins(seg_endpin, seg_startpin)) {
                     continue;
                 }
-                if (iopins.find(seg_endpin) == iopins.end()) {
+                if (!iopins.contains(seg_endpin)) {
                     start_points.erase(seg_endpin);
                 }
                 // only add a receiver to deque if it is not an endpoint
-                if (port_seqcell_ends.find(seg_endpin) == port_seqcell_ends.end() &&
-                    bfs_intermediates.find(seg_endpin) == bfs_intermediates.end())
+                if (!port_seqcell_ends.contains(seg_endpin) &&
+                    !bfs_intermediates.contains(seg_endpin))
                 {
                     // avoid repeated receivers (improve runtime later)
                     if (find(receivers.begin(), receivers.end(), seg_endpin) ==
@@ -535,7 +560,7 @@ unordered_set<const Net*> find_movable_nets(
                     {
                         receivers.emplace_back(seg_endpin);
                     }
-                } else if (port_seqcell_ends.find(seg_endpin) != port_seqcell_ends.end()) {
+                } else if (port_seqcell_ends.contains(seg_endpin)) {
                     end_points.insert(seg_endpin);
                 }
                 Segment seg = make_pair(seg_startpin, seg_endpin);
@@ -548,11 +573,11 @@ unordered_set<const Net*> find_movable_nets(
         // get related arcs from receivers
         while(!receivers.empty()) {
             auto arc_inpin = receivers.back();
-            if (bfs_intermediates.find(arc_inpin) != bfs_intermediates.end()) {
+            if (bfs_intermediates.contains(arc_inpin)) {
                 receivers.pop_back();
                 continue;
             }
-            if (inpin2arc.find(arc_inpin) == inpin2arc.end()) {
+            if (!inpin2arc.contains(arc_inpin)) {
                 receivers.pop_back();
                 bfs_intermediates.insert(arc_inpin);
                 continue;
@@ -561,12 +586,12 @@ unordered_set<const Net*> find_movable_nets(
             for (auto arc : arcs) {
                 auto arc_outpin = arc->output_pin;
                 output_timing_arcs.emplace_back(*arc);
-                if (iopins.find(arc_outpin) == iopins.end()) {
+                if (!iopins.contains(arc_outpin)) {
                     start_points.erase(arc_outpin);
                 }
                 // only add a driver to deque if it is not an endpoint
-                FASSERT(port_seqcell_ends.find(arc_outpin) == port_seqcell_ends.end());
-                if (bfs_intermediates.find(arc_outpin) == bfs_intermediates.end())
+                FASSERT(!port_seqcell_ends.contains(arc_outpin));
+                if (!bfs_intermediates.contains(arc_outpin))
                 {
                     // avoid repeated drivers
                     if (find(drivers.begin(), drivers.end(), arc_outpin) ==
@@ -593,8 +618,8 @@ unordered_set<const Net*> find_movable_nets(
         // add arcs which are not added
         for (auto arc : arcs) {
             auto inpin = arc->input_pin;
-            if (bfs_intermediates.find(inpin) == bfs_intermediates.end() &&
-                start_points.find(inpin) == start_points.end())
+            if (!bfs_intermediates.contains(inpin) &&
+                !start_points.contains(inpin))
             {
                 output_timing_arcs.emplace_back(*arc);
                 start_points.insert(inpin);
@@ -626,10 +651,8 @@ void construct_effective_subcirsuit(
         auto outpin = arc.output_pin;
         drivers.insert(outpin);
         for (auto pin : {inpin, outpin}) {
-            if (pin2arcs.find(pin) == pin2arcs.end()) {
-                deque<const TimingArc*> arcs_deque;
-                arcs_deque.emplace_back(&arc);
-                pin2arcs.insert({pin, arcs_deque});
+            if (!pin2arcs.contains(pin)) {
+                pin2arcs.insert({pin, {&arc}});
             } else {
                 pin2arcs.at(pin).emplace_back(&arc);
             }
@@ -651,7 +674,7 @@ void construct_effective_subcirsuit(
         auto pins = net->pins();
         for (auto p : pins) {
             auto pin = &p.get();
-            if (pin2arcs.find(pin) != pin2arcs.end()) { // pin on timing arc
+            if (pin2arcs.contains(pin)) { // pin on timing arc
                 auto& arcs = pin2arcs.at(pin);
                 for (auto arc : arcs) {
                     add_arcs.insert(arc);
@@ -671,10 +694,10 @@ void construct_effective_subcirsuit(
         const Pin* net_driver = nullptr;
         for (auto p : pins) {
             auto pin = &p.get();
-            if (drivers.find(pin) != drivers.end()) {
+            if (drivers.contains(pin)) {
                 net_driver = pin;
                 break;
-            } else if (pin2port.find(pin) != pin2port.end()) {
+            } else if (pin2port.contains(pin)) {
                 if (pin2port.at(pin)->is_input) {
                     net_driver = pin;
                     break;
@@ -696,14 +719,14 @@ void construct_effective_subcirsuit(
     for (auto& arc : output_timing_arcs) {
         auto inpin = arc.input_pin;
         auto netin = &(inpin->net());
-        if (movable_nets.find(netin) == movable_nets.end()) {
+        if (!movable_nets.contains(netin)) {
             start_points.insert(inpin);
         }
         auto outpin = arc.output_pin;
         auto netout = &(outpin->net());
-        if (movable_nets.find(netout) == movable_nets.end()) {
+        if (!movable_nets.contains(netout)) {
             // auto cell = &(outpin->cell()->get());
-            // FASSERT(movable_cells.find(cell) == movable_cells.end())
+            // FASSERT(!movable_cells.contains(cell))
             //     (cell->name());
             end_points.insert(outpin);
         }
@@ -711,7 +734,7 @@ void construct_effective_subcirsuit(
     for (auto& port : ports) {
         auto pin = port.bterm;
         auto net = &(pin->net());
-        if (movable_nets.find(net) == movable_nets.end()) {
+        if (!movable_nets.contains(net)) {
             continue;
         }
         if (port.is_input) {
@@ -723,7 +746,7 @@ void construct_effective_subcirsuit(
     for (auto& seqpin : seq_pins) {
         auto pin = seqpin.pin;
         auto net = &(pin->net());
-        if (movable_nets.find(net) == movable_nets.end()) {
+        if (!movable_nets.contains(net)) {
             continue;
         }
         if (seqpin.is_end) {
@@ -760,19 +783,15 @@ deque<Subcircuit> decompose_problem(
     for (auto& arc : timing_arcs) {
         TimingArc* arc_ptr = &const_cast<TimingArc&>(arc);
         auto inpin = arc.input_pin;
-        if (inpin2arc.find(inpin) == inpin2arc.end()) {
-            deque<TimingArc*> arcs;
-            arcs.emplace_back(arc_ptr);
-            inpin2arc.insert({inpin, arcs});
+        if (!inpin2arc.contains(inpin)) {
+            inpin2arc.insert({inpin, {arc_ptr}});
         } else {
             inpin2arc.at(inpin).emplace_back(arc_ptr);
         }
 
         auto outpin = arc.output_pin;
-        if (outpin2arc.find(outpin) == outpin2arc.end()) {
-            deque<TimingArc*> arcs;
-            arcs.emplace_back(arc_ptr);
-            outpin2arc.insert({outpin, arcs});
+        if (!outpin2arc.contains(outpin)) {
+            outpin2arc.insert({outpin, {arc_ptr}});
         } else {
             outpin2arc.at(outpin).emplace_back(arc_ptr);
         }
@@ -783,10 +802,8 @@ deque<Subcircuit> decompose_problem(
     for (auto& seg : segments) {
         Segment* seg_ptr = &const_cast<Segment&>(seg);
         auto driver = seg.first;
-        if (driver2segs.find(driver) == driver2segs.end()) {
-            deque<Segment*> segs;
-            segs.emplace_back(seg_ptr);
-            driver2segs.insert({driver, segs});
+        if (!driver2segs.contains(driver)) {
+            driver2segs.insert({driver, {seg_ptr}});
         } else {
             driver2segs.at(driver).emplace_back(seg_ptr);
         }
@@ -795,7 +812,7 @@ deque<Subcircuit> decompose_problem(
     // perform bfs
     unordered_set<const Pin*> reached_start_points;
     for (auto start : start_points) {
-        if (reached_start_points.find(start) != reached_start_points.end()) {
+        if (reached_start_points.contains(start)) {
             continue;
         }
         unordered_set<const Pin*> all_reached_pins;
@@ -807,14 +824,14 @@ deque<Subcircuit> decompose_problem(
             pin_queue.pop_front();
             // add its neighbors to queue
             auto net = &(vertex->net());
-            if (movable_nets.find(net) != movable_nets.end()) {
+            if (movable_nets.contains(net)) {
                 auto pins = net->pins();
                 for (auto p : pins) {
                     auto pin = &p.get();
                     if (equal_pins(pin, vertex)) {
                         continue;
                     }
-                    if (all_reached_pins.find(pin) == all_reached_pins.end() &&
+                    if (!all_reached_pins.contains(pin) &&
                         find(pin_queue.begin(), pin_queue.end(), pin) ==
                         pin_queue.end())
                     {
@@ -826,12 +843,12 @@ deque<Subcircuit> decompose_problem(
             if (cell_opt.has_value()) {
                 auto cell = &(cell_opt->get());
                 // pins on non-movable cells
-                if (movable_cells.find(cell) == movable_cells.end()) {
-                    if (inpin2arc.find(vertex) != inpin2arc.end()) {
+                if (!movable_cells.contains(cell)) {
+                    if (inpin2arc.contains(vertex)) {
                         auto& arcs = inpin2arc.at(vertex);
                         for (auto arc : arcs) {
                             auto pin = arc->output_pin;
-                            if (all_reached_pins.find(pin) == all_reached_pins.end() &&
+                            if (!all_reached_pins.contains(pin) &&
                                 find(pin_queue.begin(), pin_queue.end(), pin) ==
                                 pin_queue.end())
                             {
@@ -839,11 +856,11 @@ deque<Subcircuit> decompose_problem(
                             }
                         }
                     }
-                    if (outpin2arc.find(vertex) != outpin2arc.end()) {
+                    if (outpin2arc.contains(vertex)) {
                         auto& arcs = outpin2arc.at(vertex);
                         for (auto arc : arcs) {
                             auto pin = arc->input_pin;
-                            if (all_reached_pins.find(pin) == all_reached_pins.end() &&
+                            if (!all_reached_pins.contains(pin) &&
                                 find(pin_queue.begin(), pin_queue.end(), pin) ==
                                 pin_queue.end())
                             {
@@ -858,7 +875,7 @@ deque<Subcircuit> decompose_problem(
                         if (equal_pins(pin, vertex)) {
                             continue;
                         }
-                        if (all_reached_pins.find(pin) == all_reached_pins.end() &&
+                        if (!all_reached_pins.contains(pin) &&
                             find(pin_queue.begin(), pin_queue.end(), pin) ==
                             pin_queue.end())
                         {
@@ -869,7 +886,7 @@ deque<Subcircuit> decompose_problem(
             }
         }
         for (auto pin : all_reached_pins) {
-            if (start_points.find(pin) != start_points.end()) {
+            if (start_points.contains(pin)) {
                 reached_start_points.insert(pin);
             }
         }
@@ -887,30 +904,30 @@ deque<Subcircuit> decompose_problem(
         unordered_set<const Segment*> add_segs;
 
         for (auto pin : all_reached_pins) {
-            if (start_points.find(pin) != start_points.end()) {
+            if (start_points.contains(pin)) {
                 sub_start_points.insert(pin);
             }
-            if (end_points.find(pin) != end_points.end()) {
+            if (end_points.contains(pin)) {
                 sub_end_points.insert(pin);
             }
             auto cell_opt = pin->cell();
             if (cell_opt.has_value()) {
                 auto cell = &(cell_opt->get());
-                if (movable_cells.find(cell) != movable_cells.end()) {
+                if (movable_cells.contains(cell)) {
                     sub_movable_cells.insert(cell);
                 }
             }
             auto net = &(pin->net());
-            if (movable_nets.find(net) != movable_nets.end()) {
+            if (movable_nets.contains(net)) {
                 sub_movable_nets.insert(net);
             }
-            if (inpin2arc.find(pin) != inpin2arc.end()) {
+            if (inpin2arc.contains(pin)) {
                 auto arcs = inpin2arc.at(pin);
                 for (auto arc : arcs) {
                     add_arcs.insert(arc);
                 }
             }
-            if (driver2segs.find(pin) != driver2segs.end()) {
+            if (driver2segs.contains(pin)) {
                 auto segs = driver2segs.at(pin);
                 for (auto seg : segs) {
                     add_segs.insert(seg);
@@ -943,16 +960,16 @@ void add_netlength_constraints(
         auto cell_pos_y = cell_variable(cell, "y");
         prob.mut_variable_bound(cell_pos_x).mut_lower_bound() =
             max(cell->rect().cx() - cell_move_bound,
-                double(core.lx() + cell->rect().dx() / 2)) * unit;
+                double(core.lx() + cell->rect().dx() / 2)) * unit / netlength_scaling_unit;
         prob.mut_variable_bound(cell_pos_x).mut_upper_bound() =
             min(cell->rect().cx() + cell_move_bound,
-                double(core.ux() - cell->rect().dx() / 2)) * unit;
+                double(core.ux() - cell->rect().dx() / 2)) * unit / netlength_scaling_unit;
         prob.mut_variable_bound(cell_pos_y).mut_lower_bound() =
             max(cell->rect().cy() - cell_move_bound,
-                double(core.ly() + cell->rect().dy() / 2)) * unit;
+                double(core.ly() + cell->rect().dy() / 2)) * unit / netlength_scaling_unit;
         prob.mut_variable_bound(cell_pos_y).mut_upper_bound() =
             min(cell->rect().cy() + cell_move_bound,
-                double(core.uy() - cell->rect().dy() / 2)) * unit;
+                double(core.uy() - cell->rect().dy() / 2)) * unit / netlength_scaling_unit;
     }
 
     for (auto net : movable_nets) {
@@ -971,28 +988,28 @@ void add_netlength_constraints(
                 auto y = p.get().c(Y);
                 if (x < min_lx) {
                     min_lx = x;
-                    prob.mut_variable_bound(net_lx).mut_upper_bound() = x * unit;
+                    prob.mut_variable_bound(net_lx).mut_upper_bound() = x * unit / netlength_scaling_unit;
                 }
                 if (x > max_ux) {
                     max_ux = x;
-                    prob.mut_variable_bound(net_ux).mut_lower_bound() = x * unit;
+                    prob.mut_variable_bound(net_ux).mut_lower_bound() = x * unit / netlength_scaling_unit;
                 }
                 if (y < min_ly) {
                     min_ly = y;
-                    prob.mut_variable_bound(net_ly).mut_upper_bound() = y * unit;
+                    prob.mut_variable_bound(net_ly).mut_upper_bound() = y * unit / netlength_scaling_unit;
                 }
                 if (y > max_uy) {
                     max_uy = y;
-                    prob.mut_variable_bound(net_uy).mut_lower_bound() = y * unit;
+                    prob.mut_variable_bound(net_uy).mut_lower_bound() = y * unit / netlength_scaling_unit;
                 }
             } else {
                 FASSERT(p.get().term_type() == Pin::TERM_TYPE::ODB_ITERM);
                 auto cell = &(p.get().cell()->get());
-                if (movable_cells.find(cell) != movable_cells.end()) {
+                if (movable_cells.contains(cell)) {
                     auto cell_pos_x = cell_variable(cell, "x");
                     auto cell_pos_y = cell_variable(cell, "y");
-                    auto pin_offset_x = p.get().offset(X) * unit;
-                    auto pin_offset_y = p.get().offset(Y) * unit;
+                    auto pin_offset_x = p.get().offset(X) * unit / netlength_scaling_unit;
+                    auto pin_offset_y = p.get().offset(Y) * unit / netlength_scaling_unit;
                     for (auto& tuple :
                         {make_tuple(net_lx, cell_pos_x, pin_offset_x),
                         make_tuple(cell_pos_x, net_ux, -pin_offset_x),
@@ -1009,19 +1026,19 @@ void add_netlength_constraints(
                     auto y = p.get().c(Y);
                     if (x < min_lx) {
                         min_lx = x;
-                        prob.mut_variable_bound(net_lx).mut_upper_bound() = x * unit;
+                        prob.mut_variable_bound(net_lx).mut_upper_bound() = x * unit / netlength_scaling_unit;
                     }
                     if (x > max_ux) {
                         max_ux = x;
-                        prob.mut_variable_bound(net_ux).mut_lower_bound() = x * unit;
+                        prob.mut_variable_bound(net_ux).mut_lower_bound() = x * unit / netlength_scaling_unit;
                     }
                     if (y < min_ly) {
                         min_ly = y;
-                        prob.mut_variable_bound(net_ly).mut_upper_bound() = y * unit;
+                        prob.mut_variable_bound(net_ly).mut_upper_bound() = y * unit / netlength_scaling_unit;
                     }
                     if (y > max_uy) {
                         max_uy = y;
-                        prob.mut_variable_bound(net_uy).mut_lower_bound() = y * unit;
+                        prob.mut_variable_bound(net_uy).mut_lower_bound() = y * unit / netlength_scaling_unit;
                     }
                 }
             }
@@ -1029,7 +1046,7 @@ void add_netlength_constraints(
     }
 
     for (auto net : movable_nets) {
-        auto old_wl = hpwl(net) * unit;
+        auto old_wl = hpwl(net) * unit / netlength_scaling_unit;
         auto cons = prob.add_constraint();
         cons.mut_lower_bound() = old_wl;
         cons.mut_upper_bound() = old_wl;
@@ -1062,7 +1079,7 @@ void add_seglength_constraints(
     auto core = linden_db->core_region();
     for (auto& seg : segments) {
         auto net = &(seg.first->net());
-        if (movable_nets.find(net) == movable_nets.end()) {
+        if (!movable_nets.contains(net)) {
             continue;
         }
         if (net->pins().size() == 2) {
@@ -1083,28 +1100,28 @@ void add_seglength_constraints(
                 auto y = pin->c(Y);
                 if (x < min_lx) {
                     min_lx = x;
-                    prob.mut_variable_bound(seg_lx).mut_upper_bound() = x * unit;
+                    prob.mut_variable_bound(seg_lx).mut_upper_bound() = x * unit / netlength_scaling_unit;
                 }
                 if (x > max_ux) {
                     max_ux = x;
-                    prob.mut_variable_bound(seg_ux).mut_lower_bound() = x * unit;
+                    prob.mut_variable_bound(seg_ux).mut_lower_bound() = x * unit / netlength_scaling_unit;
                 }
                 if (y < min_ly) {
                     min_ly = y;
-                    prob.mut_variable_bound(seg_ly).mut_upper_bound() = y * unit;
+                    prob.mut_variable_bound(seg_ly).mut_upper_bound() = y * unit / netlength_scaling_unit;
                 }
                 if (y > max_uy) {
                     max_uy = y;
-                    prob.mut_variable_bound(seg_uy).mut_lower_bound() = y * unit;
+                    prob.mut_variable_bound(seg_uy).mut_lower_bound() = y * unit / netlength_scaling_unit;
                 }
             } else {
                 FASSERT(pin->term_type() == Pin::TERM_TYPE::ODB_ITERM);
                 auto cell = &(pin->cell()->get());
-                if (movable_cells.find(cell) != movable_cells.end()) {
+                if (movable_cells.contains(cell)) {
                     auto cell_pos_x = cell_variable(cell, "x");
                     auto cell_pos_y = cell_variable(cell, "y");
-                    auto pin_offset_x = pin->offset(X) * unit;
-                    auto pin_offset_y = pin->offset(Y) * unit;
+                    auto pin_offset_x = pin->offset(X) * unit / netlength_scaling_unit;
+                    auto pin_offset_y = pin->offset(Y) * unit / netlength_scaling_unit;
                     for (auto& tuple :
                         {make_tuple(seg_lx, cell_pos_x, pin_offset_x),
                         make_tuple(cell_pos_x, seg_ux, -pin_offset_x),
@@ -1121,19 +1138,19 @@ void add_seglength_constraints(
                     auto y = pin->c(Y);
                     if (x < min_lx) {
                         min_lx = x;
-                        prob.mut_variable_bound(seg_lx).mut_upper_bound() = x * unit;
+                        prob.mut_variable_bound(seg_lx).mut_upper_bound() = x * unit / netlength_scaling_unit;
                     }
                     if (x > max_ux) {
                         max_ux = x;
-                        prob.mut_variable_bound(seg_ux).mut_lower_bound() = x * unit;
+                        prob.mut_variable_bound(seg_ux).mut_lower_bound() = x * unit / netlength_scaling_unit;
                     }
                     if (y < min_ly) {
                         min_ly = y;
-                        prob.mut_variable_bound(seg_ly).mut_upper_bound() = y * unit;
+                        prob.mut_variable_bound(seg_ly).mut_upper_bound() = y * unit / netlength_scaling_unit;
                     }
                     if (y > max_uy) {
                         max_uy = y;
-                        prob.mut_variable_bound(seg_uy).mut_lower_bound() = y * unit;
+                        prob.mut_variable_bound(seg_uy).mut_lower_bound() = y * unit / netlength_scaling_unit;
                     }
                 }
             }
@@ -1142,7 +1159,7 @@ void add_seglength_constraints(
 
     for (auto& seg : segments) {
         auto net = &(seg.first->net());
-        if (movable_nets.find(net) != movable_nets.end()) {
+        if (movable_nets.contains(net)) {
             if (net->pins().size() == 2) {
                 auto cons = prob.add_constraint();
                 cons.mut_lower_bound() = 0.0;
@@ -1175,7 +1192,7 @@ void add_timing_arc_constraints(
     unordered_set<const Pin*> outpin_record;
     for (auto& arc : timing_arcs) {
         auto outpin = arc.output_pin;
-        if (outpin_record.find(outpin) != outpin_record.end()) {
+        if (outpin_record.contains(outpin)) {
             continue;
         }
         outpin_record.insert(outpin);
@@ -1185,8 +1202,8 @@ void add_timing_arc_constraints(
         auto cons = prob.add_constraint();
         cons.mut_lower_bound() = 0.0;
         cons.mut_upper_bound() = 0.0;
-        cons[var] = 1.0 / wire_cap;
-        cons[net_variable(net, "delta_netlength")] = -1.0;
+        cons[var] = 1.0 ;
+        cons[net_variable(net, "delta_netlength")] = -wire_cap * netlength_scaling_unit * cload_scaling_unit;
 
         // ignore this constraint for cmax, which may result in no solution
         // add upper bound for delta_cload
@@ -1199,7 +1216,7 @@ void add_timing_arc_constraints(
     for (auto& arc : timing_arcs) {
         auto outpin = arc.output_pin;
         auto inslope = arc.input_slew;
-        if (outpin2max_inslope.find(outpin) == outpin2max_inslope.end()) {
+        if (!outpin2max_inslope.contains(outpin)) {
             outpin2max_inslope.insert({outpin, inslope});
         } else if (inslope > outpin2max_inslope.at(outpin)) {
             outpin2max_inslope.at(outpin) = inslope;
@@ -1222,13 +1239,16 @@ void add_timing_arc_constraints(
         cons.mut_lower_bound() = 0.0;
         cons.mut_upper_bound() = 0.0;
         cons[arc_variable(arc, "delta_delay")] = 1.0;
-        cons[pin_variable(outpin, "delta_cload")] = -A1;
-        cons[pin_variable(inpin, "delta_inslope")] = -A2;
+        cons[pin_variable(outpin, "delta_cload")] = -A1 / cload_scaling_unit;
+        if(fabs(A2)>1e-2){
+           cons[pin_variable(inpin, "delta_inslope")] = -A2;
+        }
+
 
         // lower bound on delta arc delay (should not make delay < 0)
         FASSERT(arc.arc_delay >= 0.0) (arc.arc_delay);
-        prob.mut_variable_bound(arc_variable(arc, "delta_delay")).mut_lower_bound() =
-            -arc.arc_delay * time_unit;
+        // prob.mut_variable_bound(arc_variable(arc, "delta_delay")).mut_lower_bound() =
+        //     -arc.arc_delay * time_unit;
 
         // outslope
         // Remark: outslope of an output pin is the maximum outslope among
@@ -1238,8 +1258,10 @@ void add_timing_arc_constraints(
         auto cons2 = prob.add_constraint();
         cons2.mut_lower_bound() = B2 * (inslope - max_inslope) * time_unit;
         cons2[pin_variable(outpin, "delta_outslope")] = 1.0;
-        cons2[pin_variable(outpin, "delta_cload")] = -B1;
-        cons2[pin_variable(inpin, "delta_inslope")] = -B2;
+        cons2[pin_variable(outpin, "delta_cload")] = -B1 / cload_scaling_unit;
+        if(fabs(B2)>1e-2){
+            cons2[pin_variable(inpin, "delta_inslope")] = -B2;
+        }
     }
 }
 
@@ -1287,7 +1309,7 @@ void add_net_constraints(
     // if wire_delay is considered
     for (auto& seg : segments) {
         auto net = &(seg.first->net());
-        if (movable_nets.find(net) != movable_nets.end()) {
+        if (movable_nets.contains(net)) {
             // delta_seglength squared
             for (size_t i = 0; i < 9; ++i) {
                 auto C1 = 3 * delta_wl_bound * std::pow(0.5, i + 1);
@@ -1398,7 +1420,7 @@ void add_sequantial_constraints(
     // for all endpoints
     for (auto& seq_pin : seq_pins) {
         auto pin = seq_pin.pin;
-        if (end_points.find(pin) == end_points.end()) {
+        if (!end_points.contains(pin)) {
             continue;
         }
         auto cons = prob.add_constraint();
@@ -1406,8 +1428,9 @@ void add_sequantial_constraints(
         cons.mut_upper_bound() = 0.0;
         cons[pin_variable(pin, "delta_required")] = 1.0;
         FASSERT(seq_pin.setup_arg.has_value());
-        cons[pin_variable(pin, "delta_inslope")] = *seq_pin.setup_arg;
-
+        if(fabs(*seq_pin.setup_arg)>1e-2){
+            cons[pin_variable(pin, "delta_inslope")] = (*seq_pin.setup_arg);
+        }
         // need to bound delta_inslope here from below to ensure that
         // the lp problem is bounded
         auto inslope = seq_pin.slew;
@@ -1434,7 +1457,7 @@ void add_boundary_constraints(
     for (auto& arc : timing_arcs) {
         auto inpin = arc.input_pin;
         auto outpin = arc.output_pin;
-        if (start_points.find(inpin) == start_points.end()) {
+        if (!start_points.contains(inpin)) {
             continue;
         }
         auto B1 = arc.transition_args[1];
@@ -1445,7 +1468,7 @@ void add_boundary_constraints(
         cons.mut_lower_bound() = 0.0;
         cons.mut_upper_bound() = 0.0;
         cons[var1] = 1.0;
-        cons[var2] = -wire_cap * B1;
+        cons[var2] = -wire_cap * B1 * netlength_scaling_unit;
 
         auto A1 = arc.delay_args[1];
         auto var3 = pin_variable(inpin, "delta_arrival");
@@ -1453,12 +1476,12 @@ void add_boundary_constraints(
         cons2.mut_lower_bound() = 0.0;
         cons2.mut_upper_bound() = 0.0;
         cons2[var3] = 1.0;
-        cons2[var2] = -wire_cap * A1;
+        cons2[var2] = -wire_cap * A1 * netlength_scaling_unit;
     }
 
     // sequential cell startpoints
     for (auto& seq_pin : seq_pins) {
-        if (start_points.find(seq_pin.pin) == start_points.end()) {
+        if (!start_points.contains(seq_pin.pin)) {
             continue;
         }
         auto pin = seq_pin.pin;
@@ -1471,7 +1494,7 @@ void add_boundary_constraints(
     }
     // port startpoints
     for (auto& port : ports) {
-        if (start_points.find(port.bterm) == start_points.end()) {
+        if (!start_points.contains(port.bterm)) {
             continue;
         }
         auto pin = port.bterm;
@@ -1486,7 +1509,7 @@ void add_boundary_constraints(
     // combinational logic cell endpoints
     for (auto& arc : timing_arcs) {
         auto pin = arc.output_pin;
-        if (end_points.find(pin) == end_points.end()) {
+        if (!end_points.contains(pin)) {
             continue;
         }
         auto cons = prob.add_constraint();
@@ -1499,7 +1522,7 @@ void add_boundary_constraints(
     // sequential cell endpoints
     for (auto& seq_pin : seq_pins) {
         auto pin = seq_pin.pin;
-        if (end_points.find(pin) == end_points.end()) {
+        if (!end_points.contains(pin)) {
             continue;
         }
         auto cons = prob.add_constraint();
@@ -1513,7 +1536,7 @@ void add_boundary_constraints(
     // port endpoints
     for (auto& port : ports) {
         auto pin = port.bterm;
-        if (end_points.find(pin) == end_points.end()) {
+        if (!end_points.contains(pin)) {
             continue;
         }
         auto cons = prob.add_constraint();
@@ -1541,12 +1564,15 @@ void add_timing_metrics_constraints(
     // objective
     auto obj = prob.max_objective();
 
+    double weight_for_wns = 1.0;
+    double weight_for_tns = 0.5  / end_points.size();
+    double weight_for_delta_netlength = -1.0;
+
     if (add_wns) {
-        obj["WNS"] = 1e9;
+        obj["WNS"] = weight_for_wns;
     }
     if (add_tns) {
-        double weight = 1.0 / end_points.size();
-        obj["delta_TNS"] = 0.5 * weight * 1e9;
+        obj["delta_TNS"] = weight_for_tns;
     }
 
     auto tns_cons = prob.add_constraint();
@@ -1555,17 +1581,17 @@ void add_timing_metrics_constraints(
     tns_cons["delta_TNS"] = 1.0;
     // add abs_delta_netlength in obj to penalize netlength change
     for (auto net : movable_nets) {
-        obj[net_variable(net, "abs_delta_netlength")] = -1.0;
+        obj[net_variable(net, "abs_delta_netlength")] = weight_for_delta_netlength;
     }
 
     // combinational logic cell endpoints
     unordered_set<const Pin*> outpin_record;
     for (auto& arc : timing_arcs) {
         auto pin = arc.output_pin;
-        if (end_points.find(pin) == end_points.end()) {
+        if (!end_points.contains(pin)) {
             continue;
         }
-        if (outpin_record.find(pin) != outpin_record.end()) {
+        if (outpin_record.contains(pin)) {
             continue;
         }
         outpin_record.insert(pin);
@@ -1601,7 +1627,7 @@ void add_timing_metrics_constraints(
         }
         auto pin = seq_pin.pin;
         auto old_slack = seq_pin.slack * time_unit;
-        if (end_points.find(pin) == end_points.end()) {
+        if (!end_points.contains(pin)) {
             if (old_slack < wns_unchanged_ends) {
                 wns_unchanged_ends = old_slack;
             }
@@ -1640,7 +1666,7 @@ void add_timing_metrics_constraints(
         auto pin = port.bterm;
         FASSERT(port.output_slack.has_value());
         auto old_slack = *port.output_slack * time_unit;
-        if (end_points.find(pin) == end_points.end()) {
+        if (!end_points.contains(pin)) {
             if (old_slack < wns_unchanged_ends) {
                 wns_unchanged_ends = old_slack;
             }
@@ -1666,22 +1692,22 @@ void add_timing_metrics_constraints(
         tns_cons[var] = -1.0;
     }
 
-    // TBD: wns can be fixed better than max(old_wns,0), upper_bound may not be set 
+    // TBD: wns can be fixed better than max(old_wns,0), upper_bound may not be set
     double wns_upper_bound = max(old_wns, 0.0);
     prob.mut_variable_bound("WNS").mut_upper_bound() = wns_upper_bound;
-    cout << "WNS of unchanged ends: " << wns_unchanged_ends << endl;
-    cout << "Old WNS of subcircuit: " << old_wns << endl;
+    spdlog::info("WNS of unchanged ends: {}", wns_unchanged_ends);
+    spdlog::info("Old WNS of subcircuit: {}", old_wns);
 }
 
 // a function to check if each assumption is true
 // assumption1: all nets have one driver
-bool assumption_checker(shared_ptr<Database> linden_db,
+void assumption_checker(shared_ptr<Database> linden_db,
                         const deque<TimingArc>& timing_arcs,
                         const deque<Port>& ports)
 {
     // assumption1
     // two types of drivers (1) a start point (input port)
-    //                      (2) end of an arc
+    //                      (2) end of an arc (output pin)
     unordered_set<const Pin*> drivers;
     for (auto& arc : timing_arcs) {
         drivers.insert(arc.output_pin);
@@ -1693,307 +1719,357 @@ bool assumption_checker(shared_ptr<Database> linden_db,
     }
 
     for (auto& net : linden_db->nets()) {
-        size_t driver_cnt = 0;
-        for (auto pin : net.pins()) {
-            driver_cnt += drivers.count(&pin.get());
-        }
-        if (driver_cnt > 1) {   // < 1 because we ignore clk nets in pb file
-            cout << "There are " << driver_cnt << " drivers in net: " << net.name() << endl;
-            return false;
+        const size_t driver_cnt = std::count_if(
+            net.pins().begin(), net.pins().end(), [&drivers](const auto& pin) {
+                return drivers.contains(&pin.get());
+            });
+        if (driver_cnt > 1) {
+            spdlog::error("net {} has {} drivers", net.name(), driver_cnt);
         }
     }
-
-    return true;
+    spdlog::info("assumption_checker passed: all nets have one driver");
 }
 
 // subcircuit break point checker
 // check: every point that is not an endpoint should have an edge (arc / seg)
 // pointing outwards
 // This makes sure that there is no break point in any path
-bool subcircuit_break_checker(const Subcircuit& circuit) {
+void subcircuit_break_checker(const Subcircuit& circuit) {
     auto& start_points = circuit.start_points;
     auto& end_points = circuit.end_points;
     auto& timing_arcs = circuit.timing_arcs;
     auto& segments = circuit.segments;
 
     // preparation: pin2arc, pin2seg
-    unordered_map<const Pin*, deque<TimingArc*>> pin2arc;
-    for (auto& arc : timing_arcs) {
-        TimingArc* arc_ptr = &const_cast<TimingArc&>(arc);
-        auto inpin = arc.input_pin;
-        if (pin2arc.find(inpin) == pin2arc.end()) {
-            deque<TimingArc*> arcs;
-            arcs.emplace_back(arc_ptr);
-            pin2arc.insert({inpin, arcs});
-        } else {
-            pin2arc.at(inpin).emplace_back(arc_ptr);
+    auto pin2arc = [&]() {
+        unordered_map<const Pin*, deque<const TimingArc*>> pin2arc;
+        for (auto& arc : timing_arcs) {
+            auto inpin = arc.input_pin;
+            if (!pin2arc.contains(inpin)) {
+                pin2arc.insert({inpin, {&arc}});
+            } else {
+                pin2arc[inpin].emplace_back(&arc);
+            }
         }
-    }
-
-    unordered_map<const Pin*, deque<Segment*>> pin2seg;
-    for (auto& seg : segments) {
-        Segment* seg_ptr = &const_cast<Segment&>(seg);
-        auto inpin = seg.first;
-        if (pin2seg.find(inpin) == pin2seg.end()) {
-            deque<Segment*> segs;
-            segs.emplace_back(seg_ptr);
-            pin2seg.insert({inpin, segs});
-        } else {
-            pin2seg.at(inpin).emplace_back(seg_ptr);
+        return pin2arc;
+    }();
+    auto pin2seg = [&]() {
+        unordered_map<const Pin*, deque<const Segment*>> pin2seg;
+        for (const auto& seg : segments) {
+            auto inpin = seg.first;
+            if (!pin2seg.contains(inpin)) {
+                pin2seg.insert({inpin, {&seg}});
+            } else {
+                pin2seg[inpin].emplace_back(&seg);
+            }
         }
-    }
+        return pin2seg;
+    }();
 
     // collect all pins, excluding the endpoints
-    unordered_set<const Pin*> all_pins;
-    for (auto pin : start_points) {
-        all_pins.insert(pin);
-    }
+    auto all_pins = [&]() {
+        unordered_set<const Pin*> all_pins = start_points;
+        for (const auto& arc : timing_arcs) {
+            all_pins.insert(arc.input_pin);
+            if (!end_points.contains(arc.output_pin)) {
+                all_pins.insert(arc.output_pin);
+            }
+        }
+        for (const auto& seg : segments) {
+            all_pins.insert(seg.first);
+            if (!end_points.contains(seg.second)) {
+                all_pins.insert(seg.second);
+            }
+        }
+        return all_pins;
+    }();
 
-    for (auto& arc : timing_arcs) {
-        all_pins.insert(arc.input_pin);
-        if (end_points.find(arc.output_pin) == end_points.end()) {
-            all_pins.insert(arc.output_pin);
+    for (const auto& pin : all_pins) {
+        if (!pin2arc.contains(pin) && !pin2seg.contains(pin)) {
+            spdlog::error("subcircuit_break_checker failed: Break Pin: {}", get_pin_varname(pin));
         }
     }
-
-    for (auto& seg : segments) {
-        all_pins.insert(seg.first);
-        if (end_points.find(seg.second) == end_points.end()) {
-            all_pins.insert(seg.second);
-        }
-    }
-
-    for (auto pin : all_pins) {
-        if (pin2seg.find(pin) == pin2seg.end() &&
-            pin2arc.find(pin) == pin2arc.end())
-        {
-            cout << "Break Checker: ";
-            cout << "Break Pin: " << get_pin_varname(pin) << endl;
-            return false;
-        }
-    }
-
-    return true;
+    spdlog::info("subcircuit_break_checker Passed");
 }
 
 // circuit decomposition checker
 // check: the disjoint union should be the original circuit
-bool decompose_checker(
+void decompose_checker(
     const Subcircuit& large_circuit,
     const deque<Subcircuit>& small_circuits)
 {
-    // start and end points check
     auto& large_start_points = large_circuit.start_points;
     auto& large_end_points = large_circuit.end_points;
-    size_t n1 = 0;
-    size_t n2 = 0;
-    for (auto& circuit : small_circuits) {
-        auto& small_start_points = circuit.start_points;
-        auto& small_end_points = circuit.end_points;
-        n1 += small_start_points.size();
-        n2 += small_end_points.size();
-        for (auto p : small_start_points) {
-            if (large_start_points.find(p) == large_start_points.end()) {
-                cout << "Decompose_checker: Incorrect start points" << endl;
-                return false;
-            }
-        }
-        for (auto p : small_end_points) {
-            if (large_end_points.find(p) == large_end_points.end()) {
-                cout << "Decompose_checker: Incorrect end points" << endl;
-                return false;
-            }
-        }
-    }
-    FASSERT(n1 == large_start_points.size()) (n1)(large_start_points.size());
-    FASSERT(n2 == large_end_points.size()) (n2)(large_end_points.size());
-
-    // timing arcs and segs
-    size_t n3 = 0;
-    size_t n4 = 0;
     auto& large_arcs = large_circuit.timing_arcs;
     auto& large_segs = large_circuit.segments;
 
-    for (auto& circuit : small_circuits) {
-        n3 += circuit.timing_arcs.size();
-        n4 += circuit.segments.size();
-        for (auto& arc : circuit.timing_arcs) {
-            auto inpin = arc.input_pin;
-            auto outpin = arc.output_pin;
-            bool found = false;
-            for (auto arc2 : large_arcs) {
-                auto inpin2 = arc2.input_pin;
-                auto outpin2 = arc2.output_pin;
-                if (equal_pins(inpin, inpin2) && equal_pins(outpin, outpin2)) {
-                    found = true;
-                }
-            }
-            if (!found) {
-                cout << "Fail to find Arc: ";
-                cout << get_pin_varname(inpin) << " ---> " << get_pin_varname(outpin) << endl;
-                cout << "Decompose_checker: Incorrect timing arcs" << endl;
-                return false;
-            }
-        }
-        for (auto& seg : circuit.segments) {
-            auto inpin = seg.first;
-            auto outpin = seg.second;
-            bool found = false;
-            for (auto seg2 : large_segs) {
-                auto inpin2 = seg2.first;
-                auto outpin2 = seg2.second;
-                if (equal_pins(inpin, inpin2) && equal_pins(outpin, outpin2)) {
-                    found = true;
-                }
-            }
-            if (!found) {
-                cout << "Fail to find Segment: ";
-                cout << get_pin_varname(inpin) << " ---> " << get_pin_varname(outpin) << endl;
-                cout << "Decompose_checker: Incorrect segments" << endl;
-                return false;
-            }
-        }
-    }
-    FASSERT(n3 == large_arcs.size()) (n3)(large_arcs.size());
-    FASSERT(n4 == large_segs.size()) (n4)(large_segs.size());
+    auto check_start_end_points = [&]() {
+        for (auto& circuit : small_circuits) {
+            auto& small_start_points = circuit.start_points;
+            auto& small_end_points = circuit.end_points;
 
-    return true;
+            for (const auto& p : small_start_points) {
+                if (!large_start_points.contains(p)) {
+                    spdlog::error("Decompose_checker: Incorrect start points");
+                }
+            }
+            for (const auto& p : small_end_points) {
+                if (!large_end_points.contains(p)) {
+                    spdlog::error("Decompose_checker: Incorrect end points");
+                }
+            }
+        }
+    };
+    check_start_end_points();
+
+    auto check_start_end_points_number = [&]() {
+        size_t n1 = 0;
+        size_t n2 = 0;
+        for (auto& circuit : small_circuits) {
+            n1 += circuit.start_points.size();
+            n2 += circuit.end_points.size();
+        }
+        if (n1 != large_start_points.size()) {
+            spdlog::error("Decompose_checker: mismatch on number of start points:"
+            "large_start_points={}, sum_small_start_points{}", large_start_points.size(), n1);
+        }
+        if (n2 != large_end_points.size()) {
+            spdlog::error("Decompose_checker: mismatch on number of end points:"
+            "large_end_points={}, sum_small_end_points{}", large_end_points.size(), n2);
+        }
+    };
+    check_start_end_points_number();
+
+    auto check_arcs = [&]() {
+        for (auto& circuit : small_circuits) {
+            for (auto& arc : circuit.timing_arcs) {
+                auto inpin = arc.input_pin;
+                auto outpin = arc.output_pin;
+                bool found = false;
+                for (auto arc2 : large_arcs) {
+                    auto inpin2 = arc2.input_pin;
+                    auto outpin2 = arc2.output_pin;
+                    if (equal_pins(inpin, inpin2) && equal_pins(outpin, outpin2)) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    spdlog::error("Decompose_checker: Incorrect timing arcs\n",
+                                  "Fail to find Arc: {} ---> {}",
+                                  get_pin_varname(inpin),
+                                  get_pin_varname(outpin));
+                }
+            }
+        }
+    };
+    check_arcs();
+
+    auto check_segments = [&]() {
+        for (auto& circuit : small_circuits) {
+            for (auto& seg : circuit.segments) {
+                auto inpin = seg.first;
+                auto outpin = seg.second;
+                bool found = false;
+                for (auto seg2 : large_segs) {
+                    auto inpin2 = seg2.first;
+                    auto outpin2 = seg2.second;
+                    if (equal_pins(inpin, inpin2) && equal_pins(outpin, outpin2)) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    spdlog::error("Decompose_checker: Incorrect segments\n",
+                                  "Fail to find Segment: {} ---> {}",
+                                  get_pin_varname(inpin),
+                                  get_pin_varname(outpin));
+                }
+            }
+        }
+    };
+    check_segments();
+
+    auto check_timing_arcs_segs_number = [&]() {
+        size_t n3 = 0;
+        size_t n4 = 0;
+        for (auto& circuit : small_circuits) {
+            n3 += circuit.timing_arcs.size();
+            n4 += circuit.segments.size();
+        }
+        if (n3 != large_arcs.size()) {
+            spdlog::error("Decompose_checker: mismatch on number of timing arcs:"
+                "large_arcs={}, sum_small_circuits_arcs={}", large_arcs.size(), n3);
+        }
+        if (n4 != large_segs.size()) {
+            spdlog::error("Decompose_checker: mismatch on number of segments:"
+                "large_segs={}, sum_small_circuits_segs={}", large_segs.size(), n4);
+        }
+    };
+    check_timing_arcs_segs_number();
+
+    spdlog::info("Decomposition Checker Passed");
 }
 
-// TDB: check whether the solution satisfies all constraints
-bool feasiblility_checker(
+// TBD: check whether the solution satisfies all constraints
+void feasiblility_checker(
     shared_ptr<Database> linden_db,
     optional<unordered_map<string, double>> solution,
     const unordered_set<const Cell*>& movable_cells,
     const unordered_set<const Net*>& movable_nets)
 {
-    bool res = true;
-    auto unit = length_unit * time_unit;
-    auto& core = linden_db->core_region();
+    const auto unit = length_unit * time_unit;
+    const auto& core = linden_db->core_region();
+    auto get_pin_location = [&](const Pin& pin) -> Point {
+        int64_t x = 0;
+        int64_t y = 0;
+        if (pin.term_type() == Pin::TERM_TYPE::ODB_BTERM) {
+            x = pin.c(X);
+            y = pin.c(Y);
+        } else {
+            auto cell = &(pin.cell()->get());
+            if (movable_cells.contains(cell)) {
+                auto cell_pos_x = (*solution).at(cell_variable(cell, "x"));
+                auto cell_pos_y = (*solution).at(cell_variable(cell, "y"));
+                auto pin_offset_x = pin.offset(X);
+                auto pin_offset_y = pin.offset(Y);
+                x = cell_pos_x + pin_offset_x;
+                y = cell_pos_y + pin_offset_y;
+            } else {
+                x = pin.c(X);
+                y = pin.c(Y);
+            }
+        }
+        return {x, y};
+    };
 
-    for (auto net : movable_nets) {
-        // check bbox of movable nets
+    auto check_bbox_of_movable_net = [&](const Net* net) {
         int64_t min_lx = core.ux();
         int64_t max_ux = core.lx();
         int64_t min_ly = core.uy();
         int64_t max_uy = core.ly();
         for (auto& pin : net->pins()) {
-            int64_t x = 0;
-            int64_t y = 0;
-            if (pin.get().term_type() == Pin::TERM_TYPE::ODB_BTERM) {
-                x = pin.get().c(X);
-                y = pin.get().c(Y);
-            } else {
-                auto cell = &(pin.get().cell()->get());
-                if (movable_cells.find(cell) != movable_cells.end()) {
-                    auto cell_pos_x = (*solution).at(cell_variable(cell, "x"));
-                    auto cell_pos_y = (*solution).at(cell_variable(cell, "y"));
-                    auto pin_offset_x = pin.get().offset(X);
-                    auto pin_offset_y = pin.get().offset(Y);
-                    x = cell_pos_x + pin_offset_x;
-                    y = cell_pos_y + pin_offset_y;
-                } else {
-                    x = pin.get().c(X);
-                    y = pin.get().c(Y);
-                }
+            auto loc = get_pin_location(pin.get());
+            if (loc.x() < min_lx) {
+                min_lx = loc.x();
             }
-            if (x < min_lx) {
-                min_lx = x;
+            if (loc.x() > max_ux) {
+                max_ux = loc.x();
             }
-            if (x > max_ux) {
-                max_ux = x;
+            if (loc.y() < min_ly) {
+                min_ly = loc.y();
             }
-            if (y < min_ly) {
-                min_ly = y;
-            }
-            if (y > max_uy) {
-                max_uy = y;
+            if (loc.y() > max_uy) {
+                max_uy = loc.y();
             }
         }
+        //FIXME: check the error here
+    };
+
+    auto sgn = [&](double x) -> int {
+        double eps = lp_error;
+        if (fabs(x) < eps)
+        return 0;
+        if (x < 0)
+        return -1;
+        else
+        return 1;
+    };
+
+    auto check_delta_netlenght = [&](const Net* net) {
         auto net_lx = (*solution).at(net_variable(net, "lx"));
         auto net_ux = (*solution).at(net_variable(net, "ux"));
         auto net_ly = (*solution).at(net_variable(net, "ly"));
         auto net_uy = (*solution).at(net_variable(net, "uy"));
-
         // check delta_netlength and abs_delta_netlength
-        auto old_wl = hpwl(net) * unit;
-        auto new_wl = (net_ux - net_lx + net_uy - net_ly) * unit;
-        auto delta_netlength = (*solution).at(net_variable(net, "delta_netlength"));
-        auto delta_netlength_error = abs(delta_netlength - (new_wl - old_wl));
-        if (delta_netlength_error * 1e5 - lp_error * unit * 1e5 > 0.0) {
-            cout << "Feasiblility Error: delta_netlength_error: ";
-            cout << delta_netlength_error << " lp_error: " << lp_error * unit << endl;
-            res = false;
+        auto old_wl = hpwl(net) * unit / netlength_scaling_unit ;
+        auto new_wl = (net_ux - net_lx + net_uy - net_ly) * unit ;
+        auto delta_netlength = (*solution).at(net_variable(net, "delta_netlength")) ;
+        auto delta_netlength_error = abs(delta_netlength - (new_wl - old_wl)) ;
+        if (sgn(delta_netlength_error) != 0) {
+            spdlog::error("Feasiblility Error: delta_netlength_error: {} lp_error: {}",
+                          delta_netlength_error, lp_error * unit);
         }
         auto abs_delta_netlength = (*solution).at(net_variable(net, "abs_delta_netlength"));
-        auto abs_delta_netlength_error = abs(abs(delta_netlength) - abs_delta_netlength);
-        if (abs_delta_netlength_error * 1e5 - lp_error * unit * 1e5 > 0.0) {
-            cout << "Feasiblility Error: abs_delta_netlength_error: ";
-            cout << delta_netlength_error << " lp_error: " << lp_error * unit << endl;
-            res = false;
+        auto abs_delta_netlength_error = abs(abs(delta_netlength) - abs_delta_netlength) ;
+        if (sgn(abs_delta_netlength_error) != 0) {
+            spdlog::error("Feasiblility Error: abs_delta_netlength_error: {} lp_error: {}",
+                          abs_delta_netlength_error, lp_error * unit);
         }
+    };
+
+    for (auto net : movable_nets) {
+        check_bbox_of_movable_net(net);
+        check_delta_netlenght(net);
     }
-    return res;
+    spdlog::info("Feasiblility Checker Passed");
 }
 
 // check the arrival time propagation
-bool arrival_time_checker(
+void arrival_time_checker(
     optional<unordered_map<string, double>> solution,
     const Subcircuit& circuit,
     const deque<Port>& ports,
     const deque<SeqPin>& seq_pins)
 {
-    auto& timing_arcs = circuit.timing_arcs;
-    auto& segments = circuit.segments;
-    unordered_map<const Pin*, deque<const TimingArc*>> outpin2arc;
-    unordered_map<const Pin*, deque<const Segment*>> outpin2seg;
-    for (auto& arc : timing_arcs) {
-        auto outpin = arc.output_pin;
-        if (outpin2arc.find(outpin) == outpin2arc.end()) {
-            deque<const TimingArc*> arc_set;
-            arc_set.emplace_back(&arc);
-            outpin2arc.insert({outpin, arc_set});
-        } else {
-            outpin2arc.at(outpin).emplace_back(&arc);
-        }
-    }
-
-    for (auto& seg : segments) {
-        auto outpin = seg.second;
-        if (outpin2seg.find(outpin) == outpin2seg.end()) {
-            deque<const Segment*> seg_set;
-            seg_set.emplace_back(&seg);
-            outpin2seg.insert({outpin, seg_set});
-        } else {
-            outpin2seg.at(outpin).emplace_back(&seg);
-        }
-    }
-
-    // check arrival time propagation of segs
-    for (auto& pair : outpin2seg) {
-        auto outpin = pair.first;
-        auto out_delta_arrival =
-            (*solution).at(pin_variable(outpin, "delta_arrival"));
-        auto& seg_set = pair.second;
-
-        for (auto seg : seg_set) {
-            auto inpin = seg->first;
-            auto in_delta_arrival =
-                (*solution).at(pin_variable(inpin, "delta_arrival"));
-            auto seg_delta_delay =
-                (*solution).at(seg_variable(*seg, "delta_delay"));
-            if (abs(in_delta_arrival + seg_delta_delay - out_delta_arrival) > lp_error) {
-                cout << "Arrival Time Error: " << endl;
-                cout << "Seg: " << get_pin_varname(inpin) << " ---> " << get_pin_varname(outpin) << endl;
-                cout << "Delta input arrival: " << in_delta_arrival;
-                cout << "Delta out arrival: " << out_delta_arrival;
-                cout << "Delta arc delay: " << seg_delta_delay << endl;
-                return false;
+    const auto& timing_arcs = circuit.timing_arcs;
+    const auto& segments = circuit.segments;
+    const auto outpin2arc = [&]() {
+        unordered_map<const Pin*, deque<const TimingArc*>> outpin2arc;
+        for (auto& arc : timing_arcs) {
+            auto outpin = arc.output_pin;
+            if (!outpin2arc.contains(outpin)) {
+                outpin2arc.insert({outpin, {&arc}});
+            } else {
+                outpin2arc.at(outpin).emplace_back(&arc);
             }
         }
-    }
+        return outpin2arc;
+    }();
 
-    // check arrival time propagation of arcs
+    const auto outpin2seg = [&]() {
+        unordered_map<const Pin*, deque<const Segment*>> outpin2seg;
+        for (auto& seg : segments) {
+            auto outpin = seg.second;
+            if (!outpin2seg.contains(outpin)) {
+                outpin2seg.insert({outpin, {&seg}});
+            } else {
+                outpin2seg.at(outpin).emplace_back(&seg);
+            }
+        }
+        return outpin2seg;
+    }();
+
+    // check arrival time propagation of segs
+    auto check_arrival_time_propagation_of_segs = [&]() {
+        for (auto& pair : outpin2seg) {
+            auto outpin = pair.first;
+            auto out_delta_arrival
+                = (*solution).at(pin_variable(outpin, "delta_arrival"));
+            auto& seg_set = pair.second;
+            for (auto seg : seg_set) {
+                auto inpin = seg->first;
+                auto in_delta_arrival =
+                    (*solution).at(pin_variable(inpin, "delta_arrival"));
+                auto seg_delta_delay =
+                    (*solution).at(seg_variable(*seg, "delta_delay"));
+                if (abs(in_delta_arrival + seg_delta_delay - out_delta_arrival) > lp_error) {
+                  spdlog::error(
+                      "Arrival Time Error: \n"
+                      "Seg: {} ---> {} \n"
+                      "Delta input arrival: {} \n"
+                      "Delta out arrival: {} \n"
+                      "Delta arc delay: {} \n",
+                      get_pin_varname(inpin),
+                      get_pin_varname(outpin),
+                      in_delta_arrival,
+                      out_delta_arrival,
+                      seg_delta_delay);
+                }
+            }
+        }
+    };
+    check_arrival_time_propagation_of_segs();
+
+    // FIXME: check arrival time propagation of arcs
     // for (auto& pair : outpin2arc) {
     //     auto outpin = pair.first;
     //     auto out_delta_arrival =
@@ -2017,79 +2093,73 @@ bool arrival_time_checker(
     //         // an extra source of error coming from two modes of arrival times
     //         auto lb = (arc->input_arr + arc->arc_delay - arc->output_arr) * time_unit;
     //         if (out_arrival < in_arrival + arc_delay - lp_error - lb) {
-    //             cout << "Arrival Time Error: " << endl;
-    //             cout << "Arc: " << get_pin_varname(inpin) << " ---> " << get_pin_varname(outpin) << endl;
-    //             cout << "Input arrival: " << in_arrival;
-    //             cout << " Out arrival: " << out_arrival;
-    //             cout << " Arc delay: " << arc_delay << endl;
-    //             cout << " lb: " << lb << endl;
+    //           spdlog::info("Arrival Time Error: \n"
+    //                         "Arc: {} ---> {} \n"
+    //                         "Input arrival: {} \n"
+    //                         "Out arrival: {} \n"
+    //                         "Arc delay: {} \n"
+    //                         "lb: {} \n",
+    //                         get_pin_varname(inpin),
+    //                         get_pin_varname(outpin),
+    //                         in_arrival,
+    //                         out_arrival,
+    //                         arc_delay,
+    //                         lb);
     //             return false;
     //         }
     //     }
     // }
 
-    return true;
+    spdlog::info("Arrival Time Checker Passed");
 }
 
 // check whether it is better than doing nothing
-bool optimality_checker(
+void optimality_checker(
     optional<unordered_map<string, double>> solution,
     const deque<SeqPin>& seq_pins,
     const deque<Port>& ports,
     bool check_wns,
     bool check_tns)
 {
+    auto update_wns_tns = [](double& wns, double& tns, double slack) {
+        slack *= time_unit;
+        if (slack < wns) {
+            wns = slack;
+        }
+        if (slack < 0) {
+            tns += slack;
+        }
+    };
     double old_wns = DBL_MAX;
     double old_tns = 0.0;
     for (auto& seq_pin : seq_pins) {
         if (!seq_pin.is_end) {
             continue;
         }
-        auto slack = seq_pin.slack * time_unit;
-        // wns
-        if (slack < old_wns) {
-            old_wns = slack;
-        }
-        // tns
-        if (slack < 0) {
-            old_tns += slack;
-        }
+        update_wns_tns(old_wns, old_tns, seq_pin.slack);
     }
     for (auto& port : ports) {
         if (!port.is_output) {
             continue;
         }
-        auto slack = *port.output_slack * time_unit;
-        // wns
-        if (slack < old_wns) {
-            old_wns = slack;
-        }
-        // tns
-        if (slack < 0) {
-            old_tns += slack;
-        }
+        update_wns_tns(old_wns, old_tns, *port.output_slack);
     }
 
-    bool wns_res = true;
-    bool tns_res = true;
     if (check_wns) {
         double new_wns = (*solution).at("WNS");
-        cout << "Old WNS = " << old_wns << " new estimated WNS of the changed part = " << new_wns << endl;
+        spdlog::info("Old WNS = {} new estimated WNS of the changed part = {}", old_wns, new_wns);
         if (new_wns <= old_wns - lp_error) {
-            wns_res = false;
-            cout << "Optimality Error: WNS becomes worse" << endl;
+            spdlog::error("Optimality Error: WNS becomes worse");
         }
     }
     if (check_tns) {
         double new_tns = (*solution).at("delta_TNS") + old_tns;
-        cout << "Old TNS = " << old_tns << " new estimated TNS = " << new_tns << endl;
+        spdlog::info("Old TNS = {} new estimated TNS = {}", old_tns, new_tns);
         if (new_tns <= old_tns - lp_error) {
-            tns_res = false;
-            cout << "Optimality Error: TNS becomes worse" << endl;
+            spdlog::error("Optimality Error: TNS becomes worse");
         }
     }
-
-    return wns_res && tns_res;
+    spdlog::info("Optimality Checker Passed");
 }
 
 // solve the lp problem for a sub-circuit
@@ -2124,7 +2194,6 @@ bool timing_driven_partial_move(
     add_timing_metrics_constraints(prob, subcircuit.movable_nets, subcircuit.timing_arcs,
                                     seq_pins, ports, subcircuit.end_points,
                                     config.wns, config.tns);
-
     // lp solve
     operations_research::MPSolverParameters params;
     params.SetDoubleParam(
@@ -2148,9 +2217,9 @@ bool timing_driven_partial_move(
     }
 
     // run checkers
-    FASSERT(feasiblility_checker(linden_db, solution, subcircuit.movable_cells, subcircuit.movable_nets));
-    FASSERT(optimality_checker(solution, seq_pins, ports, config.wns, config.tns));
-    FASSERT(arrival_time_checker(solution, subcircuit, ports, seq_pins));
+    feasiblility_checker(linden_db, solution, subcircuit.movable_cells, subcircuit.movable_nets);
+    optimality_checker(solution, seq_pins, ports, config.wns, config.tns);
+    arrival_time_checker(solution, subcircuit, ports, seq_pins);
 
     // move cells
     double subcircuit_total_movement = 0.0;
@@ -2162,12 +2231,12 @@ bool timing_driven_partial_move(
         for (auto dim : {X, Y}) {
             auto old_loc = cell->rect().c(dim);
             auto cell_pos = cell_variable(cell, dim == X ? "x" : "y");
-            auto new_loc = int64_t((*solution).at(cell_pos));
+            auto new_loc = int64_t((*solution).at(cell_pos)*netlength_scaling_unit);
             target_locs[dim] = new_loc;
             m_distances[dim] = abs(new_loc - old_loc);
         }
         const_cast<Cell*>(cell)->move_to({target_locs[X], target_locs[Y]});
-        auto movement = m_distances[X] + m_distances[Y]; 
+        auto movement = m_distances[X] + m_distances[Y];
         subcircuit_total_movement += movement;
         if (max_movement < movement) {
             max_movement = movement;
@@ -2178,18 +2247,16 @@ bool timing_driven_partial_move(
     }
 
     total_movement += subcircuit_total_movement;
-    cout << "Subcircuit average movement: " << subcircuit_total_movement / subcircuit.movable_cells.size() << " nm" << endl;
-    cout << "Subcircuit maximum movement: " << max_movement << " nm" << endl;
-    cout << "Cells with large movement: " << endl;
+    spdlog::info("Subcircuit average movement: {} nm", subcircuit_total_movement / subcircuit.movable_cells.size());
+    spdlog::info("Subcircuit maximum movement: {} nm", max_movement);
+    spdlog::info("Cells with large movement: ");
     for (auto& tuple : cells_with_large_movement) {
-        cout << get<0>(tuple)->name() << " moves: " << "(";
-        cout << get<1>(tuple) << ", " << get<2>(tuple) << ")" << endl;
+        spdlog::info("{} moves: ({}, {})", get<0>(tuple)->name(), get<1>(tuple), get<2>(tuple));
     }
     wns_res = (*solution).at("WNS");
     if (config.tns) {
-        cout << "delta_TNS: " << (*solution).at("delta_TNS") << endl;
+        spdlog::info("delta_TNS: {}", (*solution).at("delta_TNS"));
     }
-
     return true;
 }
 
@@ -2200,28 +2267,31 @@ void timing_driven_cell_move(
     const deque<SeqPin>& seq_pins,
     const TdpConfig config)
 {
+    const std::string dot_line = "---------------------------------------------------------";
+    const std::string dot_2lines = dot_line + dot_line;
+
     // show slack info
-    cout << "---------------------------------------------------------" << endl;
+    spdlog::info(dot_line);
     print_cell_slack_distribution(linden_db, timing_arcs, seq_pins);
     report_delays(linden_db, timing_arcs, ports, seq_pins);
-    cout << "---------------------------------------------------------" << endl;
-    cout << "wire cap: " << config.wire_cap << " wire res: " << config.wire_res << endl;
-    cout << "---------------------------------------------------------" << endl;
+
+    spdlog::info(dot_line);
+    spdlog::info("wire_cap={}, wire_res={}", config.wire_cap, config.wire_res);
+    spdlog::info(dot_line);
+    
     // assumption check
-    FASSERT(assumption_checker(linden_db, timing_arcs, ports));
-    cout << "Assumption Checker Passed" << endl;
+    assumption_checker(linden_db, timing_arcs, ports);
 
     // select movable cells
     auto movable_cells = move(select_movable_cells(linden_db, timing_arcs, seq_pins));
     // extend_movable_cells(linden_db, movable_cells);
     auto movable_nets = move(find_movable_nets(linden_db, movable_cells, seq_pins));
     
-    cout << "---------------------------------------------------------";
-    cout << "---------------------------------------------------------" << endl;
-    cout << "Original Circuit: " << endl;
-    cout << "num movable cells: " << movable_cells.size();
-    cout << " num movable nets: " << movable_nets.size();
-    cout << " num arcs: " << timing_arcs.size();
+    spdlog::info(dot_2lines);
+    spdlog::info("Original Circuit: ");
+    spdlog::info("num movable cells: {}", movable_cells.size());
+    spdlog::info("num movable nets: {}", movable_nets.size());
+    spdlog::info("num timing arcs: {}", timing_arcs.size());
     size_t n_start = std::count_if(ports.begin(), ports.end(), [](const auto& port) {
         return port.is_input;
     });
@@ -2234,32 +2304,33 @@ void timing_driven_cell_move(
     n_end += std::count_if(seq_pins.begin(), seq_pins.end(), [](const auto& seqpin) {
         return seqpin.is_end;
     });
-    cout << " num start points: " << n_start;
-    cout << " num end points: " << n_end << endl;
-    cout << "---------------------------------------------------------";
-    cout << "---------------------------------------------------------" << endl;
+    spdlog::info("num start points: {}", n_start);
+    spdlog::info("num end points: {}", n_end);
+    spdlog::info(dot_2lines);
+
+    auto print_subcircuit_info = [](const std::string& desc, const Subcircuit& subcircuit) {
+        spdlog::info("{}: ", desc);
+        spdlog::info("num movable cells: {}", subcircuit.movable_cells.size());
+        spdlog::info("num movable nets: {}", subcircuit.movable_nets.size());
+        spdlog::info("num timing arcs: {}", subcircuit.timing_arcs.size());
+        spdlog::info("num segs: {}", subcircuit.segments.size());
+        spdlog::info("num start points: {}", subcircuit.start_points.size());
+        spdlog::info("num end points: {}", subcircuit.end_points.size());
+    };
     // shrink problem size by considering only a small part of the timing graph
     Subcircuit large_subcircuit;
     construct_effective_subcirsuit(linden_db, movable_cells, movable_nets, timing_arcs,
                         ports, seq_pins, large_subcircuit);
-    cout << "Shrinked Circuit: " << endl;
-    cout << "num movable cells: " << large_subcircuit.movable_cells.size();
-    cout << " num movable nets: " << large_subcircuit.movable_nets.size();
-    cout << " num arcs: " << large_subcircuit.timing_arcs.size();
-    cout << " num segs: " << large_subcircuit.segments.size();
-    cout << " num start points: " << large_subcircuit.start_points.size();
-    cout << " num end points: " << large_subcircuit.end_points.size() << endl;
-    cout << "---------------------------------------------------------";
-    cout << "---------------------------------------------------------" << endl;
+    print_subcircuit_info("Shrinked Circuit", large_subcircuit);
+    spdlog::info(dot_2lines);
 
     deque<Subcircuit> small_subcircuits;
     if (decompose) {
         // decompose the shrinked circuit into smaller independent parts
         small_subcircuits = move(decompose_problem(linden_db, large_subcircuit,
                                                         ports, seq_pins));
-        FASSERT(decompose_checker(large_subcircuit, small_subcircuits));
-        cout << "Decomposition Checker Passed" << endl;
-        cout << "Decomposed into " << small_subcircuits.size() << " subcircuits" << endl;
+        decompose_checker(large_subcircuit, small_subcircuits);
+        spdlog::info("Decomposed into {} subcircuits", small_subcircuits.size());
     } else {
         small_subcircuits.emplace_back(large_subcircuit);
     }
@@ -2269,46 +2340,40 @@ void timing_driven_cell_move(
     size_t circuit_cnt = 1;
     for (auto& subcircuit : small_subcircuits) {
         if (decompose) {
-            cout << "---------------------------------------------------------";
-            cout << "---------------------------------------------------------" << endl;
-            cout << "TDP: subcircuit #" << circuit_cnt << endl;
-            cout << "num movable cells: " << subcircuit.movable_cells.size();
-            cout << " num movable nets: " << subcircuit.movable_nets.size();
-            cout << " num arcs: " << subcircuit.timing_arcs.size();
-            cout << " num segs: " << subcircuit.segments.size();
-            cout << " num start points: " << subcircuit.start_points.size();
-            cout << " num end points: " << subcircuit.end_points.size() << endl;
-            FASSERT(!subcircuit.end_points.empty())
-            ("No end points. Might be a clock net which should have been skipped in previous stage.");
+            spdlog::info(dot_2lines);
+            spdlog::info("TDP: subcircuit #{}", circuit_cnt);
+            print_subcircuit_info("Subcircuit", subcircuit);
+            if (subcircuit.end_points.empty()) {
+                spdlog::error("No end points. Might be a clock net which should have been skipped in previous stage.");
+            }
         }
-
-        FASSERT(subcircuit_break_checker(subcircuit));
-        cout << "Break Checker Passed" << endl;
-
-        cout << "Solving LP ..." << endl;
+        subcircuit_break_checker(subcircuit);
+        spdlog::info("Solving LP ...");
         double wns = 0.0;
-        bool solved = timing_driven_partial_move(linden_db, ports, seq_pins,
-                                                subcircuit, config,
-                                                total_movement, wns);
+        bool solved = timing_driven_partial_move(linden_db,
+                                                 ports,
+                                                 seq_pins,
+                                                 subcircuit,
+                                                 config,
+                                                 total_movement,
+                                                 wns);
         if (wns < wns_overall) {
             wns_overall = wns;
         }
         if (solved) {
-            cout << "LP is solved successfully" << endl;
+            spdlog::info("LP is solved successfully");
         } else {
-            cout << "Fail to solve LP: No valid move" << endl;
+            spdlog::info("Fail to solve LP: No valid move");
         }
         circuit_cnt++;
     }
 
-    cout << "---------------------------------------------------------";
-    cout << "---------------------------------------------------------" << endl;
-    cout << "Overall: " << endl;
-    cout << "Total Movement: " << total_movement;
-    cout << " Average Movement: " << 1.0 * total_movement / movable_cells.size() << endl;
-    cout << "New estimated WNS: " << wns_overall << endl;
-    cout << "---------------------------------------------------------";
-    cout << "---------------------------------------------------------" << endl;
+    spdlog::info(dot_2lines);
+    spdlog::info("Overall:");
+    spdlog::info("Total Movement: {}", total_movement);
+    spdlog::info("Average Movement: {}", 1.0 * total_movement / movable_cells.size());
+    spdlog::info("New estimated WNS: {}", wns_overall);
+    spdlog::info(dot_2lines);
 }
 
 }  // namespace tdp

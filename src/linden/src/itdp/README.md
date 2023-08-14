@@ -1,4 +1,4 @@
-# Linden LP-Based Postdrv ITDP
+# Linden LP-based Post-DRV Incremental Timing-Driven Placement
 
 ## Description
 
@@ -18,7 +18,7 @@ Differences are as follows:
 
 ## Usage
 
-Use the following command to perform Linden LP-Based Postdrv ITDP:
+Use the following command to perform Linden LP-based Post-DRV Incremental Timing-Driven Placement:
 ```
 linden_lpbased_postdrv_itdp -timing_data_file <pb_file>
 ```
@@ -42,3 +42,7 @@ You can generate the timing_data pb file with the following instructions:
     ```
 
 After linden_lpbased_postdrv_itdp, legalization should be followed.
+
+---
+ReleaseNotes: 
+- [Linden LP-based Post-DRV Incremental Timing-Driven Placement Release v230813](https://z36j6ypbg0.feishu.cn/docx/DquVdMhfUoPTqHxw6fTcDPGInmh)
