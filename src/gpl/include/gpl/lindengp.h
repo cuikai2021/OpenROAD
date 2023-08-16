@@ -47,8 +47,6 @@ class LindenGlobalPlace
     use_uniform_density_ = use_uniform_density;
   }
 
-  void setZigzag(bool zigzag) { zigzag_ = zigzag; }
-
   void setPadLeft(int padding) { padLeft_ = padding; }
   void setPadRight(int padding) { padRight_ = padding; }
 
@@ -83,7 +81,6 @@ class LindenGlobalPlace
   float density_;
   float overflow_;
   bool use_uniform_density_;
-  bool zigzag_;
 
   bool cgr_mode_;
 

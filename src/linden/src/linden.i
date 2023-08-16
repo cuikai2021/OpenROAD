@@ -24,8 +24,6 @@ using gpl::LindenGlobalPlace;
 
 %}
 
-%include "../../Exception.i"
-
 %inline %{ // lindengp
 
 void lindengp_run_cmd()
@@ -50,12 +48,6 @@ void set_linden_use_uniform_density_cmd(bool use_uniform_density)
 {
   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
   lindengp->setUniformDensity(use_uniform_density);
-}
-
-void set_linden_zigzag_cmd(bool zigzag)
-{
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setZigzag(zigzag);
 }
 
 void set_linden_pad_left_cmd(int pad)
@@ -161,8 +153,6 @@ void linden_lpbased_postdrv_itdp(const char* pb_path)
 
 %inline %{
 
-namespace linden {
-
 class StrDeque {
 public:
     explicit StrDeque() {}
@@ -175,17 +165,15 @@ public:
 
 int lindendp_gogogo(StrDeque& args) {
     ord::OpenRoad* ord = ord::OpenRoad::openRoad();
-    DetailedPlacer dp(*ord);
+    linden::DetailedPlacer dp(*ord);
     return dp.go(args.elems_);
 }
 
 int linden_incr_legalize(StrDeque& args) {
     ord::OpenRoad* ord = ord::OpenRoad::openRoad();
-    IncrLegalizer leg(*ord);
+    linden::IncrLegalizer leg(*ord);
     return leg.go(args.elems_);
 
 }
-
-} // namespace linden
 
 %}

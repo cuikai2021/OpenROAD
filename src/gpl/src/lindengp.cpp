@@ -32,7 +32,6 @@ LindenGlobalPlace::LindenGlobalPlace()
       density_(1.0),
       overflow_(0.1),
       use_uniform_density_(false),
-      zigzag_(false),
       cgr_mode_(false),
       net_weight_max_(1.9),
       timing_overflows_{},
@@ -82,18 +81,10 @@ void LindenGlobalPlace::init()
     cfg.target_density = density_;
     cfg.target_overflow = overflow_;
     cfg.use_uniform_density = use_uniform_density_;
-    cfg.zigzag = zigzag_;
     cfg.cgr_mode = cgr_mode_;
     cfg.cgr_params_file
         = ord::OpenRoad::openRoad()->getCongestionRepair()->getCGRParamsFile();
     cfg.routability_driven = routability_driven_;
-    {
-      linden::dp::LefDefDumper dumper;
-      dumper.run(*ord::OpenRoad::openRoad());
-      cfg.input_def = dumper.def();
-      cfg.tech_lef = dumper.tech_lef();
-      cfg.lib_lefs = dumper.lib_lefs();
-    }
     lindengp_ = linden::gpl::Placer::create(linden_db_, cfg);
   }
 }
@@ -103,8 +94,6 @@ void LindenGlobalPlace::change_to_cgr_mode()
   routability_driven_ = true;
   initialPlacePolicy_ = "def";
 
-  // disable gp-dp zigzag mode here
-  zigzag_ = false;
   cgr_mode_ = true;
 
   {  // FIXME: is it necessary to load the following from pb file?
@@ -145,7 +134,7 @@ void LindenGlobalPlace::run()
         routability_driven_ = false;
         break;
       }
-    } else if (!zigzag_ && overflow <= overflow_) {
+    } else if (overflow <= overflow_) {
       break;
     }
     if (LINDEN_GP_CELL_RELATIVE_POS_CAL()) {
@@ -182,7 +171,7 @@ void LindenGlobalPlace::run()
       }
     }
   }
-  metrics::Config mcfg = metrics::Config::sink_to_stderr(); 
+  metrics::Config mcfg = metrics::Config::sink_to_stderr();
   if (auto opt = LINDEN_GP_METRICS_FILE(); opt) {
     mcfg = metrics::Config::sink_to_file(*opt);
   }

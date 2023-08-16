@@ -1,6 +1,5 @@
 sta::define_cmd_args "linden_global_placement" {\
     [-uniform_density] \
-    [-zigzag true|false] \
     [-timing_driven] \
     [-routability_driven]\
     [-density target_density]\
@@ -18,7 +17,6 @@ proc linden_global_placement { args } {
       -initial_place_policy \
       -density \
       -overflow \
-      -zigzag \
       -focus_insts \
       -focus_nets \
       -pad_left -pad_right} \
@@ -27,13 +25,6 @@ proc linden_global_placement { args } {
       -timing_driven \
       -routability_driven \
     }
-
-  # zigzag settings
-  set zigzag false
-  if { [info exists keys(-zigzag)] } {
-    set zigzag $keys(-zigzag)
-  }
-  linden::set_linden_zigzag_cmd $zigzag
 
   # density settings
   set target_density 1.0
@@ -99,12 +90,12 @@ proc linden_global_placement { args } {
   }
 }
 
-namespace eval linden {
+namespace eval gpl {
 
 proc linden_global_placement_debug { args } {
   sta::parse_key_args "linden_global_placement_debug" args \
       keys {-pause -update} \
-      flags {-draw_bins -initial}
+      flags {-initial}
 
   set pause 10
   if { [info exists keys(-pause)] } {
