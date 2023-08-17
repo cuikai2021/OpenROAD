@@ -720,42 +720,32 @@ void TechChar::initCharacterizationNoLUT()
   if (masterVector.size() < 1) {
     _logger->error(CTS, 273, "Buffer not found. Check your -buf_list input.");
   }
-  odb::dbMaster* testBuf = nullptr;
+
+  float slew = 0.0;
+  float cap = 0.0;
+  bool slewExist = false;
+  bool capExist = false;
+  float maxLoadCap = 0.0;
   for (const std::string& masterString : masterVector) {
-    testBuf = _db->findMaster(masterString.c_str());
+    odb::dbMaster* testBuf = _db->findMaster(masterString.c_str());
     if (testBuf == nullptr) {
       _logger->error(CTS, 274, "Buffer {} not found. Check your -buf_list input.", masterString);
     } else {
       _bufferList.push_back(testBuf);
     }
     _masterNames.insert(masterString);
-  }
 
-  std::string bufMasterName = _options->getRootBuffer();
-  _charBuf = _db->findMaster(bufMasterName.c_str());
-
-  // Gets the max slew and max cap if they weren't added as parameters.
-  float slew = 0.0;
-  float cap = 0.0;
-  sta::Cell* masterCell = _db_network->dbToSta(_charBuf);
-  sta::LibertyCell* libertyCell = _db_network->libertyCell(masterCell);
-  bool slewExist = false;
-  bool capExist = false;
-
-  if (!libertyCell) {
-    _logger->error(CTS, 296, "No Liberty cell found for {}.", bufMasterName);
-  } else {
-    getBufferMaxSlewMaxCap(libertyCell, slew, slewExist, cap, capExist, true);
-    if (!slewExist || !capExist) {  // In case buffer does not have tables
-      _logger->warn(CTS, 267,
-                    "Could not find mid slew/max cap values for buffer {}. "
-                    "Using library values.", bufMasterName);
-      sta::LibertyLibrary* staLib = libertyCell->libertyLibrary();
-      staLib->defaultMaxSlew(slew, slewExist);
-      staLib->defaultMaxCapacitance(cap, capExist);
+    sta::Cell* cell = _db_network->dbToSta(testBuf);
+    getBufferMaxSlewMaxCap(_db_network->libertyCell(cell), slew, slewExist, cap, capExist, false);
+    if (cap > maxLoadCap) {
+      maxLoadCap = cap;
+      _charBuf = testBuf;
     }
   }
 
+  sta::Cell* masterCell = _db_network->dbToSta(_charBuf);
+  sta::LibertyCell* libertyCell = _db_network->libertyCell(masterCell);
+  getBufferMaxSlewMaxCap(libertyCell, slew, slewExist, cap, capExist, true);
   if (!slewExist || !capExist) {
     _logger->error(CTS, 277, "Liberty library does not have mid slew or mid cap values.");
   }
