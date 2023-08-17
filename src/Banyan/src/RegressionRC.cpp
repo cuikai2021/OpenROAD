@@ -1,34 +1,72 @@
 #include "banyan/Banyan.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <valarray>
-
-#include "DBAdapter.hpp"
+#include <vector>
 
 #include <eigen3/Eigen/Dense>
+#include "DBAdapter.hpp"
+#include "ord/OpenRoad.hh"
+#include "utl/Logger.h"
 
 namespace banyan {
 
 inline namespace {
 
-std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(odb::dbBlock* block, const char *spef) {
+std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
+    odb::dbBlock* block,
+    const char* spef)
+{
   std::string s, _;
   std::ifstream fin(spef);
   auto s_next = [&s, &fin]() {
     do {
       if (not std::getline(fin, s))
         return false;
-    } while(s.empty());
+    } while (s.empty());
     return true;
   };
 
-  while (s != "*NAME_MAP")
+  std::optional<double> r_unit, c_unit;
+  while (s != "*NAME_MAP") {
+    if (s.starts_with("*R_UNIT ")) {
+      std::stringstream ss(s);
+      std::string buf;
+      double unit;
+      ss >> buf >> unit >> buf;
+      if (buf == "OHM")
+        r_unit = unit * 1;
+      else if (buf == "KOHM")
+        r_unit = unit * 1000;
+      else
+        ord::OpenRoad::openRoad()->getLogger()->error(
+            utl::BY, 5, "unsupported Res unit in spef");
+    } else if (s.starts_with("*C_UNIT ")) {
+      std::stringstream ss(s);
+      std::string buf;
+      double unit;
+      ss >> buf >> unit >> buf;
+      if (buf == "FF")
+        c_unit = unit * 1;
+      else if (buf == "PF")
+        c_unit = unit * 1000;
+      else
+        ord::OpenRoad::openRoad()->getLogger()->error(
+            utl::BY, 6, "unsupported Cap unit in spef");
+    }
     assert(s_next());
+  }
+  if (!r_unit || !c_unit)
+    ord::OpenRoad::openRoad()->getLogger()->error(
+      utl::BY, 7, "there isnot R/C unit in spef");
   assert(s_next());
 
   std::unordered_map<std::string, odb::dbNet*> id2net;
@@ -73,7 +111,10 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(odb::d
         RC.first += res;
       }
     }
-    if (RC.first==0)
+
+    RC.first  *= *r_unit;
+    RC.second *= *c_unit;
+    if (RC.first == 0)
       RC_data.erase(net);
   }
 }
