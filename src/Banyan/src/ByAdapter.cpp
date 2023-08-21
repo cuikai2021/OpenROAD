@@ -401,6 +401,9 @@ std::shared_ptr<ByDb> banyan::ByAdapter::getByDb()
         for (auto mPin : mTerm->getMPins()) {
           std::unordered_map<std::string, std::vector<odb::dbBox*>> layerBoxes;
           for (auto box : mPin->getGeometry()) {
+            if (box->getTechLayer()==nullptr) {
+              continue;
+            }
             layerBoxes[box->getTechLayer()->getName()].emplace_back(box);
           }
           auto curPin
@@ -433,6 +436,9 @@ std::shared_ptr<ByDb> banyan::ByAdapter::getByDb()
         for (auto mPin : mTerm->getMPins()) {
           std::unordered_map<std::string, std::vector<odb::dbBox*>> layerBoxes;
           for (auto box : mPin->getGeometry()) {
+            if (box->getTechLayer() == nullptr) {
+              continue;
+            }
             layerBoxes[box->getTechLayer()->getName()].emplace_back(box);
           }
           auto curPin
