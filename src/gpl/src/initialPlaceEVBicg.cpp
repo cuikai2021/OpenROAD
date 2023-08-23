@@ -1,8 +1,8 @@
 #include <Eigen/IterativeLinearSolvers>
 
-#include "graphics.h"
+#include "gpl/graphics.h"
 #include "initialPlaceEV.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "plot.h"
 #include "utl/Logger.h"
 

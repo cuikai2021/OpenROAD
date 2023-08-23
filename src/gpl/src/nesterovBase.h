@@ -38,9 +38,9 @@
 #include <vector>
 #include <string>
 
-#include "dimension.h"
+#include "gpl/dimension.h"
 #include "point.h"
-#include "rect.h"
+#include "gpl/rect.h"
 #include "waWirelengthModel.h"
 
 namespace odb {

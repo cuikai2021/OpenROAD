@@ -3,11 +3,11 @@
 #include <iostream>
 
 #include "eigs.h"
-#include "graphics.h"
+#include "gpl/graphics.h"
 #include "netModelB2B.h"
 #include "octave/dMatrix.h"
 #include "octave/dSparse.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "plot.h"
 #include "utl/Logger.h"
 

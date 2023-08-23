@@ -1,8 +1,8 @@
 #include <tcl.h>
 #include "sta/StaMain.hh"
 #include "ord/OpenRoad.hh"
-#include "gpl/MakeLindenGlobalPlace.h"
-#include "gpl/lindengp.h"
+#include "linden/MakeLindenGlobalPlace.h"
+#include "linden/lindengp.hpp"
 
 namespace sta {
 extern const char *linden_tcl_inits[];

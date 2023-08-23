@@ -52,7 +52,6 @@ swig_lib(NAME      gpl
 
 target_sources(gpl
   PRIVATE
-    src/lindengp.cpp
     src/MakeReplace.cpp
     src/replace.cpp
     src/initialPlace.cpp
@@ -76,12 +75,6 @@ target_sources(gpl
     src/routeBase.cpp
     src/timingBase.cpp
     src/graphics.cpp
-    src/lindengp.rdp.cpp
-    src/lindengp.tdp.cpp
-    src/lindengp.focus.cpp
-    src/lindengp.db.cpp
-    src/lindengp.ip.cpp
-    src/lindenmp.cpp
 )
 
 messages(TARGET gpl)
@@ -94,18 +87,17 @@ target_include_directories(gpl
 )
 
 target_link_libraries(gpl
+  PUBLIC
+    Eigen3::Eigen
   PRIVATE
     utl
-    Eigen3::Eigen
     gui
     odb
     OpenSTA
-    Banyan
     stt
     rsz
     grt
     linden
-    cgr
     sc
     fassert
     ${OCTAVE_LIBRARY}

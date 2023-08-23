@@ -37,7 +37,7 @@
 #include <memory>
 #include <vector>
 
-#include "dimension.h"
+#include "gpl/dimension.h"
 #include "odb/db.h"
 
 namespace utl {

@@ -9,10 +9,10 @@
 #include <set>
 
 #include "eigs.h"
-#include "graphics.h"
+#include "gpl/graphics.h"
 #include "maxDensity.h"
 #include "odb/dbTypes.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "utl/Logger.h"
 #include "netModelStar.h"
 

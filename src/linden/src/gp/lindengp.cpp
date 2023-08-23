@@ -1,14 +1,14 @@
-#include "gpl/lindengp.h"
+#include "linden/lindengp.hpp"
 
 #include "cgr/congestionRepair.hpp"
 #include "envflag/envflag.hpp"
 #include "fassert.hpp"
-#include "graphics.h"
+#include "gpl/graphics.h"
 #include "linden/gpl/placer_config.hpp"
 #include "linden/lefdef_dumper.hpp"
 #include "linden/relevance_verify.hpp"
 #include "ord/OpenRoad.hh"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "rsz/Resizer.hh"
 #include "utl/Logger.h"
 #include "utl/metrics.hpp"
@@ -176,7 +176,7 @@ void LindenGlobalPlace::run()
     mcfg = metrics::Config::sink_to_file(*opt);
   }
   metrics::Reporter metrics_reporter(mcfg);
-  metrics_reporter["gp::iter"] = iter + 1;
+  metrics_reporter["gp"]["iter"] = iter + 1;
 
   lindengp_->done();
 

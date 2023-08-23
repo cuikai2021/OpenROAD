@@ -1,6 +1,6 @@
 #pragma once
 
-#include "initialPlace.h"
+#include "gpl/initialPlace.h"
 
 namespace gpl {
 

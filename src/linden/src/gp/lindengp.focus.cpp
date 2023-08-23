@@ -1,5 +1,5 @@
 
-#include "gpl/lindengp.h"
+#include "linden/lindengp.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
 #include <fstream>

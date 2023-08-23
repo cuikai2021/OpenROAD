@@ -31,13 +31,13 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "initialPlaceBicgstab.h"
+#include "gpl/initialPlaceBicgstab.h"
 
 #include <Eigen/IterativeLinearSolvers>
 
-#include "graphics.h"
+#include "gpl/graphics.h"
 #include "netModelB2B.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "plot.h"
 #include "utl/Logger.h"
 

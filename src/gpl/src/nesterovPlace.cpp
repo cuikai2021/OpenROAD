@@ -39,13 +39,13 @@
 
 #include "nesterovBase.h"
 #include "odb/db.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "routeBase.h"
 #include "timingBase.h"
 #include "utl/Logger.h"
 using namespace std;
 
-#include "graphics.h"
+#include "gpl/graphics.h"
 #include "ord/Version.hh"
 #include "plot.h"
 

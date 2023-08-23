@@ -31,9 +31,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "initialPlace.h"
+#include "gpl/initialPlace.h"
 
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "utl/Logger.h"
 
 namespace gpl {

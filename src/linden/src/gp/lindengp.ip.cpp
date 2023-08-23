@@ -1,14 +1,12 @@
-#include "gpl/lindengp.h"
+#include "linden/lindengp.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include "envflag/envflag.hpp"
 #include "fassert.hpp"
-#include "initialPlace.h"
-#include "initialPlaceBicgstab.h"
-#include "initialPlaceDef.h"
-#include "initialPlaceDirichlet.h"
-#include "initialPlaceEV.h"
+#include "gpl/initialPlace.h"
+#include "gpl/initialPlaceBicgstab.h"
+#include "gpl/initialPlaceDef.h"
 #include "ord/OpenRoad.hh"
 
 IMPORT_STR_FLAG(LINDEN_INITIAL_PLACEMENT_RESULT_IN_DEF_FILE)
@@ -38,12 +36,6 @@ void LindenGlobalPlace::doInitialPlace()
   if (initialPlacePolicy_ == "def") {
     ip_ = std::move(
         std::unique_ptr<InitialPlace>(new InitialPlaceDef(ipVars, pb_, log_)));
-  } else if (initialPlacePolicy_ == "ev") {
-    ip_ = std::move(
-        std::unique_ptr<InitialPlace>(new InitialPlaceEV(ipVars, pb_, log_)));
-  } else if (initialPlacePolicy_ == "dirichlet") {
-    ip_ = std::move(std::unique_ptr<InitialPlace>(
-        new InitialPlaceDirichlet(ipVars, pb_, log_)));
   } else {  // default
     ip_ = std::move(std::unique_ptr<InitialPlace>(
         new InitialPlaceBicgstab(ipVars, pb_, log_)));

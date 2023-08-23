@@ -37,8 +37,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "dimension.h"
-#include "rect.h"
+#include "gpl/dimension.h"
+#include "gpl/rect.h"
 
 namespace odb {
 class dbDatabase;

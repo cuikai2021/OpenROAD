@@ -2,7 +2,7 @@
 
 #include <Eigen/SparseCore>
 
-#include "dimension.h"
+#include "gpl/dimension.h"
 #include "linden/ignored_nets.hpp"
 
 namespace gpl {

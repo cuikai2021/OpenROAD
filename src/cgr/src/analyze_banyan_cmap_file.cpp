@@ -87,7 +87,7 @@ auto analyze_rc_values(const linden::rdp::CongestionMap& cmap,
         continue;
       }
       const auto rc_metrics = get_rc_metrics(rc_vals, percentile_sz);
-      auto& r = reporter["rdp::banyan_cmap"][PERCENTILE_NAMES[i]]
+      auto& r = reporter["rdp"]["banyan_cmap"][PERCENTILE_NAMES[i]]
                         [dim == X ? "X" : "Y"];
       r["sum"] = rc_metrics.sum;
       r["max"] = rc_metrics.max;
@@ -98,7 +98,7 @@ auto analyze_rc_values(const linden::rdp::CongestionMap& cmap,
     }
   }
   const auto congestion = cmap.getCurRouteCongestionValue();
-  reporter["rdp::banyan_cmap"]["FinalRC"] = congestion;
+  reporter["rdp"]["banyan_cmap"]["FinalRC"] = congestion;
 }
 
 }  // namespace

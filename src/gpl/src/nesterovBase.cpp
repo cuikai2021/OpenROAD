@@ -39,7 +39,7 @@
 
 #include "fft.h"
 #include "odb/db.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "util.h"
 #include "utl/Logger.h"
 

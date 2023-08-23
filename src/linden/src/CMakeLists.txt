@@ -7,7 +7,7 @@ swig_lib(NAME      linden
          SCRIPTS   ${tcls}
 )
 
-file(GLOB cpps *.cpp itdp/*.cpp)
+file(GLOB cpps *.cpp itdp/*.cpp gp/*.cpp mp/*.cpp)
 target_sources(linden
 PRIVATE
     ${cpps}
@@ -23,6 +23,9 @@ target_link_libraries(linden
 PUBLIC
     rsz_pb
     gpl
+    cgr
+    Banyan
+    sc
     rsz
     odb
     utl

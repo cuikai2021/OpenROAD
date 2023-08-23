@@ -1,4 +1,4 @@
-#include "gpl/lindengp.h"
+#include "linden/lindengp.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -16,7 +16,7 @@
 #include "linden/geom/point.hpp"
 #include "linden/rdp/congestion_estimation.hpp"
 #include "odb/db.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "sc/ScanChain.h"
 #include "utl/Logger.h"
 

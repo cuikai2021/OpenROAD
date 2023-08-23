@@ -35,7 +35,7 @@
 #include "CImg.h"
 
 #include "plot.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "nesterovBase.h"
 #include <unordered_map>
 

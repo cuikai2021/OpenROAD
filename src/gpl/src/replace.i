@@ -1,8 +1,7 @@
 %{
 #include "ord/OpenRoad.hh"
 #include "gpl/Replace.h"
-#include "gpl/lindengp.h"
-#include "gpl/lindenmp.hpp"
+
 #include <memory>
 
 namespace ord {

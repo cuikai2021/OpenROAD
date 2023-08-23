@@ -1,4 +1,4 @@
-#include "linden/linden.hpp"
+#include "linden/lindendp.hpp"
 #include "fassert.hpp"
 #include "linden/lefdef_dumper.hpp"
 #include "toml++/toml.h"
@@ -204,8 +204,8 @@ void report_metrics() {
   // TODO:
   // 1. shall we convert tns and wns to numbers?
   // 2. shall metrics hierarchically indexed?
-  reporter["dp::tns"] = tns;
-  reporter["dp::wns"] = wns;
+  reporter["dp"]["tns"] = tns;
+  reporter["dp"]["wns"] = wns;
 }
 
 } // namespace

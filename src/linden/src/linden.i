@@ -1,8 +1,8 @@
 %{
-#include "linden/linden.hpp"
+#include "linden/lindendp.hpp"
 #include "ord/OpenRoad.hh"
-#include "gpl/lindengp.h"
-#include "gpl/lindenmp.hpp"
+#include "linden/lindengp.hpp"
+#include "linden/lindenmp.hpp"
 #include "linden/linden_lpbased_postdrv_itdp.hpp"
 #include "linden/db_sanitizer.hpp"
 #include <memory>

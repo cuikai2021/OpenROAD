@@ -1,9 +1,9 @@
 
-#include "gpl/lindengp.h"
+#include "linden/lindengp.hpp"
 
 #include "db_sta/dbNetwork.hh"
 #include "db_sta/dbSta.hh"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "rsz/Resizer.hh"
 #include "sta/Fuzzy.hh"
 #include "sta/Units.hh"
@@ -98,8 +98,8 @@ void LindenGlobalPlace::report_metrics(metrics::Reporter& reporter)
   // TODO:
   // 1. shall we convert tns and wns to numbers?
   // 2. shall metrics hierarchically indexed?
-  reporter["gp::tns"] = tns;
-  reporter["gp::wns"] = wns;
+  reporter["gp"]["tns"] = tns;
+  reporter["gp"]["wns"] = wns;
 }
 
 }  // namespace gpl

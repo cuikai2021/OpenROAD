@@ -35,16 +35,16 @@
 
 #include <iostream>
 
-#include "graphics.h"
-#include "initialPlace.h"
-#include "initialPlaceBicgstab.h"
-#include "initialPlaceDef.h"
+#include "gpl/graphics.h"
+#include "gpl/initialPlace.h"
+#include "gpl/initialPlaceBicgstab.h"
+#include "gpl/initialPlaceDef.h"
 #include "initialPlaceDirichlet.h"
 #include "initialPlaceEV.h"
 #include "nesterovBase.h"
 #include "nesterovPlace.h"
 #include "odb/db.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "plot.h"
 #include "routeBase.h"
 #include "rsz/Resizer.hh"

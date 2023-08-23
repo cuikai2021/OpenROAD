@@ -73,7 +73,7 @@
 #include "mpl/MakeMacroPlacer.h"
 #include "mpl2/MakeMacroPlacer.h"
 #include "gpl/MakeReplace.h"
-#include "gpl/MakeLindenGlobalPlace.h"
+#include "linden/MakeLindenGlobalPlace.h"
 #include "cgr/MakeCongestionRepair.hpp"
 #include "grt/MakeGlobalRouter.h"
 #include "cts/MakeTritoncts.h"
@@ -88,8 +88,8 @@
 #include "pdn/MakePdnGen.hh"
 #include "dst/MakeDistributed.h"
 #include "stt/MakeSteinerTreeBuilder.h"
-#include "linden/linden.hpp"
-#include "gpl/lindenmp.hpp"
+#include "linden/lindendp.hpp"
+#include "linden/lindenmp.hpp"
 #include "sc/MakeScanChain.h"
 
 namespace sta {

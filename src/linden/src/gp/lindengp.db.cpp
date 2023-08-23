@@ -1,10 +1,10 @@
-#include "gpl/lindengp.h"
+#include "linden/lindengp.hpp"
 
 #include <unordered_set>
 
 #include "linden/scanchain.hpp"
 #include "odb/db.h"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "utl/Logger.h"
 #include "linden/ignored_nets.hpp"
 

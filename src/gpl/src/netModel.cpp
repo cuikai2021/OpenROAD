@@ -2,7 +2,7 @@
 
 #include "envflag/envflag.hpp"
 #include "linden/ignored_nets.hpp"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_IGNORED_NETS_MAX_FANOUT);
 

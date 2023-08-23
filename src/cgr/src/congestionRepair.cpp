@@ -2,7 +2,7 @@
 
 #include "fassert.hpp"
 #include "envflag/envflag.hpp"
-#include "gpl/lindengp.h"
+#include "linden/lindengp.hpp"
 #include "ord/OpenRoad.hh"
 #include "utl/Logger.h"
 

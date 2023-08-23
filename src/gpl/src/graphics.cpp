@@ -1,4 +1,4 @@
-#include "graphics.h"
+#include "gpl/graphics.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -14,7 +14,7 @@
 #include "nesterovBase.h"
 #include "nesterovPlace.h"
 #include "ord/OpenRoad.hh"
-#include "placerBase.h"
+#include "gpl/placerBase.h"
 #include "utl/Logger.h"
 
 namespace gpl {

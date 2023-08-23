@@ -35,7 +35,7 @@
 
 #include <set>
 
-#include "initialPlace.h"
+#include "gpl/initialPlace.h"
 #include "octave/dMatrix.h"
 #include "octave/dSparse.h"
 
