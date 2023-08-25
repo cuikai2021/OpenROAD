@@ -112,10 +112,10 @@ public:
 
   virtual void deleteInstance(Instance *inst) override;
   virtual void deleteNet(Net *net) override;
-  virtual void connectPin(Instance *inst,
+  virtual Pin* connectPin(Instance *inst,
 			  Port *port,
 			  Net *net) override;
-  virtual void connectPin(Instance *inst,
+  virtual Pin* connectPin(Instance *inst,
 			  LibertyPort *port,
 			  Net *net) override;
   virtual void disconnectPin(Pin *pin) override;

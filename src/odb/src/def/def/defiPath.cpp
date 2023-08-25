@@ -55,12 +55,21 @@ defData(data)
 
 
 defiPath::defiPath(defiPath *defiPathRef) 
+: keys_(NULL),
+data_(NULL),
+numUsed_(0),
+numAllocated_(0),
+pointer_(NULL),
+numX_(0),
+numY_(0),
+stepX_(0),
+stepY_(0),
+deltaX_(0),
+deltaY_(0),
+mask_(0),
+defData(NULL)
 {
     *this = *defiPathRef;
-
-    defiPathRef->pointer_ = NULL;
-    defiPathRef->keys_ = NULL;
-    defiPathRef->data_ = NULL;    
 }
 
 DEF_COPY_CONSTRUCTOR_C( defiPath ) 
@@ -172,6 +181,7 @@ defData(prev.defData) {
 DEF_ASSIGN_OPERATOR_C( defiPath ) {
     CHECK_SELF_ASSIGN
     this->defData = prev.defData;
+    Destroy();
     this->keys_ = NULL;
     this->data_ = NULL;
     this->pointer_ = NULL;
@@ -766,10 +776,7 @@ void defiPath::bumpSize(int size) {
     newKeys[i] = keys_[i];
     newData[i] = data_[i];
   }
-
-  if (keys_) free((char*)(keys_));
-  if (data_) free((char*)(data_));
-
+  Destroy();
   keys_ = newKeys;
   data_ = newData;
   numAllocated_ = size;

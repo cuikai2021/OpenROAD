@@ -211,7 +211,8 @@ makeBlockSta(ord::OpenRoad *openroad,
 {
   dbSta *sta = openroad->getSta();
   dbSta *sta2 = new dbSta;
-  sta2->makeComponents();
+  // This line is removed because it has already been called in sta2->initVars
+  //sta2->makeComponents();
   sta2->initVars(sta->tclInterp(), openroad->getDb(), gui::Gui::get(),
                  openroad->getLogger());
   sta2->getDbNetwork()->setBlock(block);
@@ -237,6 +238,7 @@ dbSta::dbSta() :
 dbSta::~dbSta()
 {
   delete path_renderer_;
+  delete db_cbk_;
   deleteModes();
 }
 
@@ -411,22 +413,22 @@ dbSta::deleteNet(Net *net)
   network->deleteNet(net);
 }
 
-void
+Pin*
 dbSta::connectPin(Instance *inst,
                   Port *port,
                   Net *net)
 {
   NetworkEdit *network = networkCmdEdit();
-  network->connect(inst, port, net);
+  return network->connect(inst, port, net);
 }
 
-void
+Pin*
 dbSta::connectPin(Instance *inst,
                   LibertyPort *port,
                   Net *net)
 {
   NetworkEdit *network = networkCmdEdit();
-  network->connect(inst, port, net);
+  return network->connect(inst, port, net);
 }
 
 void
