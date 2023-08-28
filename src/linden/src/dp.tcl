@@ -13,7 +13,9 @@ proc linden_detailed_placement { args } {
 }
 
 sta::define_cmd_args "linden_incremental_legalize" {
-    --high-priority-cells cell-names
+    [--critical-cells cell-names]
+    [--baseline baseline.def]
+    [--timing-data timing.pb]
     [--filler-list filler-masters]
     [--not-to-stop-when-illegal]
 }

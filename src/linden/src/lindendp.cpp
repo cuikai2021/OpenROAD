@@ -29,7 +29,7 @@
 using namespace std;
 
 IMPORT_STR_FLAG(LINDEN_DP_METRICS_FILE);
-IMPORT_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE);
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR);
 
 extern "C" {
 extern int Linden_Init(Tcl_Interp *interp);
@@ -59,11 +59,17 @@ IncrLegalizer::IncrLegalizer(::ord::OpenRoad& ord)
 
 namespace {
 
-std::filesystem::path getExe() {
-    return std::filesystem::path(LINDENDP_EXE());
+std::filesystem::path get_basic_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "lindendp";
 }
 
-string outputDefName(const string& basename) {
+std::filesystem::path get_incr_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "linden-incremental-legalizer";
+}
+
+string output_def_name(const string& basename) {
     string res(basename);
     res.append(".out.def");
     cout << "out def: " << res << endl;
@@ -71,17 +77,10 @@ string outputDefName(const string& basename) {
 }
 
 int exec(
-    const string& input_cfg,
-    const string& outdef,
+    const std::filesystem::path& exe,
+    const deque<string>& args,
     bool not_stop_when_illegal)
 {
-    deque<string> args;
-    args.push_back("--input-config");
-    args.push_back(input_cfg);
-    args.push_back("--to");
-    args.push_back(outdef);
-    args.push_back("--cell-only");
-    auto exe = std::move(getExe());
     if (!std::filesystem::exists(exe)) {
         spdlog::error("Cannot find {}", exe);
         throw std::runtime_error("fail to run lindendp");
@@ -113,20 +112,56 @@ int exec(
     throw std::runtime_error("fail to run lindendp");
 }
 
+int exec_basic_dp(
+    const string& input_cfg,
+    const string& outdef,
+    bool not_stop_when_illegal)
+{
+    deque<string> args;
+    args.push_back("--input-config");
+    args.push_back(input_cfg);
+    args.push_back("--to");
+    args.push_back(outdef);
+    args.push_back("--cell-only");
+    auto exe = std::move(get_basic_dp_exe());
+    return exec(exe, args, not_stop_when_illegal);
+}
+
+int exec_incr_dp(
+    const string& input_cfg,
+    const string& outdef,
+    const optional<string>& baseline,
+    bool not_stop_when_illegal)
+{
+    deque<string> args;
+    args.push_back("--input-config");
+    args.push_back(input_cfg);
+    args.push_back("--to");
+    args.push_back(outdef);
+    args.push_back("--cell-only");
+    if (baseline) {
+        args.push_back("--baseline");
+        args.push_back(*baseline);
+    }
+    auto exe = std::move(get_incr_dp_exe());
+    return exec(exe, args, not_stop_when_illegal);
+}
+
 struct InputArgs
 {
     deque<string> lefs;
     string def;
     optional<deque<string>> selected_fillers;
     optional<string> timing_data;
+    optional<deque<string>> critical_cells;
 };
 
-string writeInputConfig(
+string write_input_config(
     const InputArgs& args,
     const string& basename)
 {
     auto root = toml::table{
-        {"version", "1.0"},
+        {"version", "1.2"},
     };
     {
         toml::array lefs;
@@ -153,6 +188,13 @@ string writeInputConfig(
     if (auto const& td = args.timing_data; td) {
         root.emplace("timing-data", *td);
     }
+    if (auto const& cc = args.critical_cells; cc) {
+        toml::array critical_cells;
+        for(auto const& c: *cc) {
+            critical_cells.push_back(c);
+        }
+        root.emplace("critical-cells", critical_cells);
+    }
 
     string filename = basename;
     filename.append(".toml");
@@ -163,7 +205,7 @@ string writeInputConfig(
     return filename;
 }
 
-void skip_whitespaces(string_view& str, const string& whitespace) {
+void skip_whitespaces(string_view& str, const string_view& whitespace) noexcept {
     size_t n = str.find_first_not_of(whitespace);
     if (n == string_view::npos) {
         str = string_view();
@@ -172,7 +214,7 @@ void skip_whitespaces(string_view& str, const string& whitespace) {
     }
 }
 
-string_view nonwhitespaces(const string_view& str, const string& whitespace) {
+string_view nonwhitespaces(const string_view& str, const string_view& whitespace) noexcept {
     size_t n = str.find_first_of(whitespace);
     if (n == string_view::npos) {
         return str;
@@ -181,12 +223,29 @@ string_view nonwhitespaces(const string_view& str, const string& whitespace) {
     }
 }
 
+deque<string> split(const string& raw, const string_view& seps) noexcept {
+    deque<string> res;
+    string_view view(raw);
+    for(;;) {
+        skip_whitespaces(view, seps);
+        if (view.empty()) {
+            break;
+        }
+        auto const& r = nonwhitespaces(view, seps);
+        FASSERT(!r.empty())
+            (view);
+        res.push_back(string(r));
+        view = view.substr(r.length());
+    }
+    return res;
+}
+
 void report_metrics() {
   rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
   rs->estimateParasitics(rsz::ParasiticsSrc::placement);
   auto sta = ::ord::OpenRoad::openRoad()->getSta();
 
-  const int DIGITS = 2;
+  const int DIGITS = 5;
   auto total_negative_slack = sta->totalNegativeSlack(sta::MinMax::max());
 
   sta::Slack worst_slack;
@@ -203,10 +262,11 @@ void report_metrics() {
   metrics::Reporter reporter(mcfg);
   // TODO:
   // 1. shall we convert tns and wns to numbers?
-  // 2. shall metrics hierarchically indexed?
   reporter["dp"]["tns"] = tns;
   reporter["dp"]["wns"] = wns;
 }
+
+char const WHITESPACES[] = " \t\n";
 
 } // namespace
 
@@ -236,21 +296,7 @@ int DetailedPlacer::go(deque<string>& args)
     }
 
     if (filler_list) {
-        deque<string> selected_fillers;
-        string_view lst(*filler_list);
-        string whitespace(" \t\n");
-        for(;; ) {
-            skip_whitespaces(lst, whitespace);
-            if (lst.empty()) {
-                break;
-            }
-            auto const& filler = nonwhitespaces(lst, whitespace);
-            FASSERT(!filler.empty())
-                (lst);
-            selected_fillers.push_back(string(filler));
-            lst = lst.substr(filler.length());
-        }
-        input_cfg.selected_fillers = std::move(selected_fillers);
+        input_cfg.selected_fillers = std::move(split(*filler_list, WHITESPACES));
     }
 
     dp::LefDefDumper dumper;
@@ -264,9 +310,9 @@ int DetailedPlacer::go(deque<string>& args)
     input_cfg.lefs = dumper.lib_lefs();
     input_cfg.lefs.push_front(tech);
 
-    string input_cfg_fn = std::move(writeInputConfig(input_cfg, basename));
-    string outdef = std::move(outputDefName(basename));
-    int ret = exec(input_cfg_fn, outdef, not_stop_when_illegal);
+    string input_cfg_fn = std::move(write_input_config(input_cfg, basename));
+    string outdef = std::move(output_def_name(basename));
+    int ret = exec_basic_dp(input_cfg_fn, outdef, not_stop_when_illegal);
     openroad_.readDef(outdef.c_str(), false, false, true);
     report_metrics();
     return ret;
@@ -277,6 +323,8 @@ int IncrLegalizer::go(deque<string>& args)
     InputArgs input_cfg;
     optional<string> filler_list = nullopt;
     bool not_stop_when_illegal = false;
+    optional<string> baseline = nullopt;
+    optional<string> critical_cells = nullopt;
     for(; !args.empty(); args.pop_front()) {
         const auto& s = args.front();
         if (strcmp(s.c_str(), "--filler-list") == 0) {
@@ -289,27 +337,34 @@ int IncrLegalizer::go(deque<string>& args)
             filler_list = args.front();
         } else if (strcmp(s.c_str(), "--not-to-stop-when-illegal") == 0) {
             not_stop_when_illegal = true;
+        } else if (strcmp(s.c_str(), "--timing-data") == 0) {
+            args.pop_front();
+            input_cfg.timing_data = args.front();
+        } else if (strcmp(s.c_str(), "--baseline") == 0) {
+            args.pop_front();
+            if (args.empty()) {
+                spdlog::error(
+                    "Required a DEF file as the baseline.");
+            }
+            baseline = args.front();
+        } else if (strcmp(s.c_str(), "--critical-cells") == 0) {
+            args.pop_front();
+            if (args.empty()) {
+                spdlog::error(
+                    "Required a list of critical cells, separated by whitespaces, "
+                    "e.g,. \"cell0 cell1\".");
+            }
+            critical_cells = args.front();
         } else {
             spdlog::info("ignore arg: {}", s);
         }
     }
 
     if (filler_list) {
-        deque<string> selected_fillers;
-        string_view lst(*filler_list);
-        string whitespace(" \t\n");
-        for(;; ) {
-            skip_whitespaces(lst, whitespace);
-            if (lst.empty()) {
-                break;
-            }
-            auto const& filler = nonwhitespaces(lst, whitespace);
-            FASSERT(!filler.empty())
-                (lst);
-            selected_fillers.push_back(string(filler));
-            lst = lst.substr(filler.length());
-        }
-        input_cfg.selected_fillers = std::move(selected_fillers);
+        input_cfg.selected_fillers = std::move(split(*filler_list, WHITESPACES));
+    }
+    if (critical_cells) {
+        input_cfg.critical_cells = std::move(split(*critical_cells, WHITESPACES));
     }
 
     dp::LefDefDumper dumper;
@@ -323,9 +378,9 @@ int IncrLegalizer::go(deque<string>& args)
     input_cfg.lefs = dumper.lib_lefs();
     input_cfg.lefs.push_front(tech);
 
-    string input_cfg_fn = std::move(writeInputConfig(input_cfg, basename));
-    string outdef = std::move(outputDefName(basename));
-    int ret = exec(input_cfg_fn, outdef, not_stop_when_illegal);
+    string input_cfg_fn = std::move(write_input_config(input_cfg, basename));
+    string outdef = std::move(output_def_name(basename));
+    int ret = exec_incr_dp(input_cfg_fn, outdef, baseline, not_stop_when_illegal);
     openroad_.readDef(outdef.c_str(), false, false, true);
     report_metrics();
     return ret;

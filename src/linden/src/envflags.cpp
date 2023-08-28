@@ -46,8 +46,8 @@ DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL,
     false
 );
 
-DEFINE_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE,
-    "Debug: specify the root directory to place `lindendp`",
-    "/build/bin/lindendp"
+DEFINE_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR,
+    "Debug: specify the root directory to place `lindendp` and `linden-incremental-legalizer`",
+    "/build/bin/"
 )
 
