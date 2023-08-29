@@ -263,6 +263,19 @@ target_include_directories(eden
     ../include
 )
 
+find_library(GPREF NAME tcmalloc_and_profiler
+  PATHS 
+  /usr/lib
+  /usr/lib64
+  /usr/local/lib
+  /usr/local/lib64)
+
+if(GPREF)
+  set(PREF_LIBRARIES tcmalloc_and_profiler)
+else()
+  set(PREF_LIBRARIES )
+endif()
+
 target_link_libraries(eden
   ifp
   openroad_swig
@@ -300,6 +313,7 @@ target_link_libraries(eden
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
+  ${PREF_LIBRARIES}
 )
 
 # tclReadline
