@@ -1,7 +1,6 @@
 #include "banyan/Banyan.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <fstream>
@@ -20,6 +19,13 @@
 namespace banyan {
 
 inline namespace {
+
+void assert_(bool expr) {
+  [[unlikely]]
+  if (!expr)
+    ord::OpenRoad::openRoad()->getLogger()
+      ->error(utl::BY, 5, "assert failed in regression_RC");
+}
 
 std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
     odb::dbBlock* block,
@@ -62,19 +68,19 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
         ord::OpenRoad::openRoad()->getLogger()->error(
             utl::BY, 6, "unsupported Cap unit in spef");
     }
-    assert(s_next());
+    assert_(s_next());
   }
   if (!r_unit || !c_unit)
     ord::OpenRoad::openRoad()->getLogger()->error(
       utl::BY, 7, "there isnot R/C unit in spef");
-  assert(s_next());
+  assert_(s_next());
 
   std::unordered_map<std::string, odb::dbNet*> id2net;
-  for (; s != "*PORTS"; assert(s_next())) {
+  for (; s != "*PORTS"; assert_(s_next())) {
     std::stringstream ss(s);
     std::string id, name;
     ss >> id >> name;
-    assert(ss.eof());
+    assert_(ss.eof());
     id2net[id] = block->findNet(name.c_str());
   }
 
@@ -92,10 +98,10 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
     auto net = id2net[id];
     auto& RC = RC_data[net];
     ss >> RC.second;
-    assert(ss.eof());
+    assert_(ss.eof());
 
     bool in_res_section = false;
-    for (; s != "*END"; assert(s_next())) {
+    for (; s != "*END"; assert_(s_next())) {
       if (s == "*RES")
         in_res_section = true;
       else if (s == "*CONN")
@@ -107,7 +113,7 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
         ss.str(s);
         double res;
         ss >> _ >> _ >> _ >> res;
-        assert(ss.eof());
+        assert_(ss.eof());
         RC.first += res;
       }
     }
@@ -156,7 +162,7 @@ statNetLaWireLens(odb::dbDatabase* db, const std::vector<std::string>& route_lay
 
 std::pair<std::valarray<std::pair<double, double>>, std::pair<double, double>>
 rcLinearRegression(std::vector<std::valarray<int>> _len_mat, std::vector<std::pair<double, double>> _rc_mat) {
-  assert(not _len_mat.empty());
+  assert_(not _len_mat.empty());
   auto net_cnt = _len_mat.size();
   auto la_cnt = _len_mat.front().size();
 
@@ -195,7 +201,7 @@ void dumpUnitRC2tcl(const std::pair<std::valarray<std::pair<double, double>>, st
                    route_layers[la].c_str(), uc, ur);
   }
   auto [ur, uc] = urcs.second;
-  assert(ur > 1e-8 && uc > 1e-8);
+  assert_(ur > 1e-8 && uc > 1e-8);
   std::fprintf(fd, "\nset_wire_rc -capacitance %.11f -resistance %.11f\n", uc, ur);
   fclose(fd);
 }
