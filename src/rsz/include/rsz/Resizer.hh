@@ -336,6 +336,10 @@ public:
   void getWorstSlackNets(NetSlackMap& result, size_t limit = 100);
   void reportWorstSlackNets(size_t limit);
 
+  typedef std::unordered_map<Pin*, Slack> SnkSlackMap;
+  void getSinkSlacks(dbNet* net, SnkSlackMap& result);
+  void reportAllSinkSlacks();
+
 protected:
   void init();
   void ensureBlock();

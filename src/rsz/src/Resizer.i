@@ -668,6 +668,15 @@ report_worst_slack_net(int limit)
 }
 
 void
+report_all_sink_slacks()
+{
+  // for debug
+  ensureLinked();
+  Resizer *resizer = getResizer();
+  resizer->reportAllSinkSlacks();
+}
+
+void
 write_tdp_data(const char* filename)
 {
   ensureLinked();

@@ -4450,4 +4450,39 @@ void Resizer::reportWorstSlackNets(size_t limit)
   }
 }
 
+void Resizer::getSinkSlacks(dbNet* net, SnkSlackMap& result)
+{
+  init();
+  sta_->ensureGraph();
+  Net* sta_net = db_network_->dbToSta(net);
+  NetPinIterator *pin_iter = network_->pinIterator(sta_net);
+  while (pin_iter->hasNext()) {
+    Pin* pin = pin_iter->next();
+    if (network_->isLoad(pin)) {
+      Vertex *vertex = graph_->pinLoadVertex(pin);
+      Slack pin_slack = sta_->vertexSlack(vertex, MinMax::max());
+      result.insert({pin, pin_slack});
+    }
+  }
+}
+
+void Resizer::reportAllSinkSlacks()
+{
+  printf("=> reportAllSinkSlacks: \n");
+  Instance* top = network_->topInstance();
+  sta::NetIterator *iter = network_->netIterator(top);
+  while (iter->hasNext()) {
+    Net* net = iter->next();
+    dbNet* db_net = db_network_->staToDb(net);
+    SnkSlackMap map;
+    getSinkSlacks(db_net, map);
+    printf("----------\n  => net: %s\n", network_->pathName(net));
+    for (auto& ele : map) {
+      const char* snk_name = network_->pathName(ele.first);
+      printf("    => sink: (slack = %e) %s\n", ele.second, snk_name);
+    }
+  }
+}
+
+
 } // namespace
