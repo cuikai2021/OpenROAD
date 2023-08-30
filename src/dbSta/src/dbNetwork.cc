@@ -1091,6 +1091,7 @@ dbNetwork::connect(Instance *inst,
       staToDb(dir, sig_type, io_type);
       bterm->setSigType(sig_type);
       bterm->setIoType(io_type);
+      makeTopPort(bterm);
     }
     pin = dbToSta(bterm);
   }
