@@ -45,6 +45,7 @@ class Laurel;
 namespace sta {
 class Pin;
 class PortDirection;
+class dbNetwork;
 }
 
 namespace stt {
@@ -91,6 +92,8 @@ class OpenDBAdapter
   MacroClass odbMacroClass2Banyan(odb::dbMaster* master);
 
   VirtualPin gmVirtualPin2VirtualPin(const GmVirtualPin& gmvpin);
+
+  sta::Pin* pin2StaPin(sta::dbNetwork* network, Pin* pin);
 
   void getDesignFromODB();
   void getDefViaFromODB();

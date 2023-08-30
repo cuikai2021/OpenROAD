@@ -11,11 +11,11 @@
 #include <unordered_map>
 #include <utility>
 
-#include "ord/OpenRoad.hh"
 #include "ByAdapter.hpp"
 #include "GridlessMaze.hpp"
 #include "GroupedRange.hpp"
 #include "db_sta/dbNetwork.hh"
+#include "db_sta/dbSta.hh"
 #include "lrl/Laurel.hh"
 #include "odb/ZException.h"
 #include "odb/db.h"
@@ -27,13 +27,11 @@
 #include "rsz/Resizer.hh"
 #include "rsz/SteinerTree.hh"
 #include "sta/Delay.hh"
+#include "sta/Liberty.hh"
 #include "sta/Network.hh"
 #include "sta/PortDirection.hh"
 #include "stt/SteinerTreeBuilder.h"
 #include "utl/Logger.h"
-#include "ord/OpenRoad.hh"
-#include "db_sta/dbSta.hh"
-#include "sta/Liberty.hh"
 
 namespace banyan {
 
@@ -1038,6 +1036,21 @@ void OpenDBAdapter::getBlockagesFromODB()
   }
 }
 
+sta::Pin* OpenDBAdapter::pin2StaPin(sta::dbNetwork* network, Pin* pin)
+{
+  auto chip = db_->getChip();
+  auto block = chip->getBlock();
+  auto instanceName = pin->instancename();
+  if (pin->has_portname()) {
+    auto inst = block->findInst(instanceName.c_str());
+    auto iterm = inst->findITerm(pin->portname().value().c_str());
+    return network->dbToSta(iterm);
+  } else {
+    auto bterm = block->findBTerm(instanceName.c_str());
+    return network->dbToSta(bterm);
+  }
+}
+
 void OpenDBAdapter::getWireBudgetingFromLrl()
 {
   sta::dbNetwork* network = ::ord::OpenRoad::openRoad()->getDbNetwork();
@@ -1051,8 +1064,32 @@ void OpenDBAdapter::getWireBudgetingFromLrl()
       auto net = design_->mutable_nets(i);
       auto odbNet = block->findNet(net->name().c_str());
       auto minSlackIter = ret.find(odbNet);
-      if (minSlackIter != ret.end() && minSlackIter->second < 0) {
-        net->mutable_minslack()->set_value(minSlackIter->second);
+      if (minSlackIter == ret.end()) {
+        logger_->warn(
+            utl::BY, 1, "can not find worst slack for net {}", net->name());
+      }
+      rsz::Resizer::SnkSlackMap snkslacks;
+      resizer_->getSinkSlacks(odbNet, snkslacks);
+      for (int j = 0; j < net->pins_size(); j++) {
+        auto pin = net->mutable_pins(j);
+        auto stapin = pin2StaPin(network, pin);
+        if (network->isDriver(stapin) && minSlackIter != ret.end()) {
+          pin->mutable_minslack()->set_value(minSlackIter->second);
+        } else {
+          auto sinkSlackIter = snkslacks.find(stapin);
+          if (sinkSlackIter == snkslacks.end()) {
+            auto instname = pin->instancename();
+            auto portname = pin->portname().value();
+            logger_->warn(utl::BY,
+                          1,
+                          "can not find slack for net {} sink {} {}",
+                          net->name(),
+                          instname,
+                          portname);
+          } else {
+            pin->mutable_minslack()->set_value(sinkSlackIter->second);
+          }
+        }
       }
     }
   }
