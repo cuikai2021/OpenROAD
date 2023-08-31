@@ -1226,6 +1226,13 @@ void OpenDBAdapter::updateDB(const Design& design)
     if (netInOpenDB == nullptr) {
       continue;
     }
+    if (net.has_nondefaultrule()) {
+      auto NDRName = net.nondefaultrule().value();
+      auto odbNDR = tech->findNonDefaultRule(NDRName.c_str());
+      netInOpenDB->setNonDefaultRule(odbNDR);
+    } else {
+      netInOpenDB->setNonDefaultRule(nullptr);
+    }
 
     auto wire = netInOpenDB->getWire();
     if (wire != nullptr) {
