@@ -377,7 +377,7 @@ ClockInst* TritonCTS::getClockFromInst(odb::dbInst* inst)
 void TritonCTS::writeDataToDb()
 {
   for (TreeBuilder* builder : *_builders) {
-    writeClockNetsToDb(builder->getClock());
+    if (builder->getClock().getBufferCount() > 0) writeClockNetsToDb(builder->getClock());
   }
 
   int total_sink = 0;
@@ -756,14 +756,7 @@ TreeBuilder* TritonCTS::initClock(odb::dbNet* net,
     }
   }
 
-  if (clockNet.getNumSinks() < 2) {
-    _logger->warn(CTS,
-                  41,
-                  "Net \"{}\" has {} sinks. Skipping...",
-                  clockNet.getName(),
-                  clockNet.getNumSinks());
-    return nullptr;
-  } else if (clockNet.getNumSinks() == 0) {
+  if (clockNet.getNumSinks() == 0) {
     _logger->warn(
         CTS, 42, "Net \"{}\" has no sinks. Skipping...", clockNet.getName());
     return nullptr;
@@ -842,12 +835,14 @@ void TritonCTS::writeClockNetsToDb(Clock& clockNet)
 
   createClockBuffers(clockNet);
 
-  // connect top buffer on the clock pin
-  std::string topClockInstName = clockNet.getName() + "_clkbuf_0";
-  odb::dbInst* topClockInst = _block->findInst(topClockInstName.c_str());
-  odb::dbITerm* topClockInstInputPin = getFirstInput(topClockInst);
-  topClockInstInputPin->connect(topClockNet);
+  for (auto bufferName : clockNet.getTopBufferNames()) {
+    odb::dbInst* topClockInst = _block->findInst(bufferName.c_str());
+    odb::dbITerm* topClockInstInputPin = getFirstInput(topClockInst);
+    topClockInstInputPin->connect(topClockNet);
+  }
+  for (auto inst : clockNet.getTopInsts())  inst->getDbInputPin()->connect(topClockNet);
   topClockNet->setSigType(odb::dbSigType::CLOCK);
+
 
   std::map<int, uint> fanoutcount;
 

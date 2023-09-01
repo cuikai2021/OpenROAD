@@ -73,6 +73,17 @@ class Segment {
     }
   }
 
+  double highZ() { return std::max(p1.z(), p2.z()); }
+  double lowZ() { return std::min(p1.z(), p2.z()); }
+  double highW() { return std::max(p1.w(), p2.w()); }
+  double lowW() { return std::min(p1.w(), p2.w()); }
+
+  // calcDistance refer from paper Equispreading Tree in Manhattan Distance by M.Edahiro
+  double calcDistance(Segment* s) {
+    return std::max(std::max(this->lowZ(), s->lowZ()) - std::min(this->highZ(), s->highZ()),
+                    std::max(this->lowW(), s->lowW()) - std::min(this->highW(), s->highW()));
+  }
+
   bool isLeaf() const { return p1 == p2; }
   bool operator==(const Segment& rhs) const { return (p1 == rhs.p1 && p2 == rhs.p2); }
   size_t hash() const {
@@ -235,6 +246,98 @@ class TRR {
     }
     return nullptr;
   }
+
+  static void calcBoundary(TRR& trr, std::vector<GridPoint>& trr_boundary_grid) {
+    if (trr.core->slope() > 0) {// clock-wise
+      trr_boundary_grid.emplace_back(trr.core->p1.x, trr.core->p1.y - trr.radius);
+      trr_boundary_grid.emplace_back(trr.core->p2.x + trr.radius, trr.core->p2.y);
+      trr_boundary_grid.emplace_back(trr.core->p2.x, trr.core->p2.y + trr.radius);
+      trr_boundary_grid.emplace_back(trr.core->p1.x - trr.radius, trr.core->p1.y);
+    } else if (trr.core->slope() < 0) {
+      trr_boundary_grid.emplace_back(trr.core->p1.x + trr.radius, trr.core->p1.y);
+      trr_boundary_grid.emplace_back(trr.core->p2.x, trr.core->p2.y + trr.radius);
+      trr_boundary_grid.emplace_back(trr.core->p2.x - trr.radius, trr.core->p2.y);
+      trr_boundary_grid.emplace_back(trr.core->p1.x,trr.core->p1.y - trr.radius);
+    } else { // leaf node
+      trr_boundary_grid.emplace_back(trr.core->p1.x, trr.core->p1.y - trr.radius);
+      trr_boundary_grid.emplace_back(trr.core->p1.x + trr.radius, trr.core->p1.y);
+      trr_boundary_grid.emplace_back(trr.core->p1.x, trr.core->p1.y + trr.radius);
+      trr_boundary_grid.emplace_back(trr.core->p1.x - trr.radius,trr.core->p1.y);
+    }
+  }
+
+  static Segment* trrIntersect(TRR& trr1, TRR& trr2) {
+    std::vector<GridPoint> trr1_boundary_grid;
+    std::vector<GridPoint> trr2_boundary_grid;
+    std::vector<Segment> trr1_sides;
+    std::vector<Segment> trr2_sides;
+
+    calcBoundary(trr1, trr1_boundary_grid);
+    calcBoundary(trr2, trr2_boundary_grid);
+
+    for (int i = 0; i < 3; i++) {
+      trr1_sides.emplace_back(trr1_boundary_grid[i], trr1_boundary_grid[i + 1]);
+      trr2_sides.emplace_back(trr2_boundary_grid[i], trr2_boundary_grid[i + 1]);
+    }
+    trr1_sides.emplace_back(trr1_boundary_grid[3], trr1_boundary_grid[0]);
+    trr2_sides.emplace_back(trr2_boundary_grid[3], trr2_boundary_grid[0]);
+
+    std::vector<Segment*> mss;
+    // for 4*4 check intersect
+    for (auto& seg1 : trr1_sides) {
+      for (auto& seg2 : trr2_sides) {
+        Segment* seg = seg1.intersect(seg2);
+        if (seg != nullptr) {
+          bool can_add = true;
+
+          for (auto ms : mss) {
+            if (*seg == *ms) {
+              can_add = false;
+              break;
+            }
+          }
+
+          if (can_add) {
+            mss.emplace_back(seg);
+          }
+        }
+      }
+    }
+
+    //return line first
+    for (auto ms : mss) {
+      if (!(ms->p1 == ms->p2)) {
+        return ms;
+      }
+    }
+    if( std::size(mss) > 0 ) {
+      return mss[0];
+    }
+
+    return nullptr;
+  }
+
+  static Segment* trrIntersectSegment(TRR& trr, Segment& seg)
+  {
+    std::vector<GridPoint> trr_boundary_grid;
+    std::vector<Segment> trr_sides;
+
+    calcBoundary(trr, trr_boundary_grid);
+
+    for (int i = 0; i < 3; i++) {
+      trr_sides.emplace_back(trr_boundary_grid[i], trr_boundary_grid[i + 1]);
+    }
+    trr_sides.emplace_back(trr_boundary_grid[3], trr_boundary_grid[0]);
+
+    for (auto& side : trr_sides) {
+      Segment* ret = side.intersect(seg);
+      if (ret != nullptr) {
+        return ret;
+      }
+    }
+
+    return nullptr;
+  }
 };
 
 class Edge {
@@ -323,9 +426,8 @@ class NNCBuilder : public TreeBuilder {
   void buildSolution(TreeTopology* tree);
   void plotSolution(TreeTopology* tree);
   bool skipMergeByDelay(Segment* g1, Segment* g2, double skip_delay_gap);
-  void buildSolutionInner(TreeNode* node,
-                          std::queue<TreeNode*>& buffer_queue,
-                          std::vector<TreeNode*>& net_nodes);
+  void buildSolutionInner(TreeNode* node, std::queue<TreeNode*>& buffer_queue,
+                          std::vector<TreeNode*>& net_nodes, bool build_top_level);
   void localEmbedding(TreeNode* node, int& node_count, int& sink_count);
   int fixSlewByBuffer(Segment* seg, odb::dbMaster* buffer, double max_load_distance, double max_load_slew);
   void insertBuffer(Segment* seg, odb::dbMaster* buffer, std::string type);
@@ -334,6 +436,7 @@ class NNCBuilder : public TreeBuilder {
   void balanceDelayByBuffer(Segment* seg1, Segment* seg2,
                             double d, bool final_lopp, double& d1, double& d2,
                             double& wire_delay1, double& wire_delay2);
+  std::vector<Segment *> init();
 };
 
 }  // namespace cts

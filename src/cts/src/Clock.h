@@ -269,6 +269,12 @@ class Clock
   int getClockPinX() const { return _clockPinX; }
   int getClockPinY() const { return _clockPinY; }
 
+  int getBufferCount() const { return _clockBuffers.size(); }
+  std::vector<std::string> getTopBufferNames() const { return _topBufferNames; }
+  void addTopBuffer(std::string bufferName) { _topBufferNames.push_back(getName() + "_" + bufferName); }
+  std::vector<ClockInst*> getTopInsts() const { return _topInsts; }
+  void addTopInst(ClockInst* inst) { _topInsts.push_back(inst); }
+
 
  private:
   std::string _netName;
@@ -280,6 +286,8 @@ class Clock
   std::deque<ClockInst> _sinks;
   std::deque<ClockInst> _clockBuffers;
   std::deque<SubNet> _subNets;
+  std::vector<std::string> _topBufferNames;
+  std::vector<ClockInst*> _topInsts;
   std::unordered_map<std::string, ClockInst*> _mapNameToInst;
 
   odb::dbNet* _netObj = nullptr;

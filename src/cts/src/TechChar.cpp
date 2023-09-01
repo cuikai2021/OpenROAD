@@ -769,7 +769,9 @@ void TechChar::initCharacterizationNoLUT()
 
   getBufferMaxSlewMaxCap(libertyCell, slew, slewExist, cap, capExist, false);
   if (_options->getBufferMaxLoadCap() < 0) {
-    _options->setBufferMaxLoadCap(cap / 5);
+    _options->setBufferMaxLoadCap(cap / 3);
+    _logger->info(CTS, 276, "Max load cap for {} is {}",
+                  _charBuf->getConstName(), _options->getBufferMaxLoadCap() * 1e12);
   }
   _options->setMaxCharSlew(slew);
 

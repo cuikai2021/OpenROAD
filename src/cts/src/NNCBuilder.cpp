@@ -21,20 +21,38 @@ using utl::Logger;
 void NNCBuilder::run() {
   logger_->info(CTS, 201, "Generating NCC topology for net {}.", _clock.getName());
   logger_->info(CTS, 202, " Total number of sinks: {}.", _clock.getNumSinks());
+  std::vector<Segment *> segs = init();
 
+  TreeTopology* tree_topology = constructTopo(segs);
+  buildSolution(tree_topology); // build information for writing buffer instance/net to db
+
+  if (_options->getPlotSolution()) {
+    plotSolution(tree_topology);
+  }
+
+  delete tree_topology;
+}
+
+struct GatingCellInfo {
+  GatingCellInfo() {}
+  GatingCellInfo(float c, float d, float d_max, float d_min) : cap(c), delay(d), max_delay(d_max), min_delay(d_min) {}
+  float cap;
+  float delay;
+  float max_delay;
+  float min_delay;
+};
+
+std::vector<Segment *> NNCBuilder::init() {
   //get the delay&cap of the root of the subtrees
-  std::map<std::string, std::pair<float, float>> cell_cap_delay_map;
-  std::map<std::string, std::pair<double, double>> cell_max_min_delay_map;
-  if (this->getChildren().size() > 0) {
-    for (auto child : this->getChildren()) {
+  std::map<std::string, GatingCellInfo> cell_info_map;
+  if (getChildren().size() > 0) {
+    for (auto child : getChildren()) {
       NNCBuilder *builder = dynamic_cast<NNCBuilder*>(child);
       odb::dbObject* driverPin = builder->getClock().getDriverPin();
       if (driverPin && driverPin->getObjectType() == odb::dbITermObj) {
         odb::dbInst* drivingInst = (static_cast<odb::dbITerm*>(driverPin))->getInst();
-        cell_cap_delay_map[drivingInst->getConstName()] = std::make_pair(
-            builder->source_cap, builder->source_delay);
-        cell_max_min_delay_map[drivingInst->getConstName()] = std::make_pair(
-            builder->max_delay, builder->min_delay);
+        cell_info_map[drivingInst->getConstName()] = GatingCellInfo(builder->source_cap, builder->source_delay,
+                                                                    builder->max_delay, builder->min_delay);
       }
     }
   }
@@ -49,166 +67,39 @@ void NNCBuilder::run() {
     seg->fanout = 1;
 
     odb::dbInst* instance = sink.getDbInputPin()->getInst();
-    if ((instance->isCore() || instance->isPad()) && cell_cap_delay_map.size() > 0) {
-      auto pos = cell_cap_delay_map.find(instance->getConstName());
-      if (pos != cell_cap_delay_map.end()) {
+    if ((instance->isCore() || instance->isPad()) && cell_info_map.size() > 0) {
+      auto pos = cell_info_map.find(instance->getConstName());
+      if (pos != cell_info_map.end()) {
         reset_child_count ++;
 
-        auto cap_delay = pos->second;
+        auto cell_info = pos->second;
         seg->gate_cell = true;
 
         sta::LibertyCell* liberty_cell = _network->libertyCell(instance);
         assert(liberty_cell != nullptr);
         auto result = lrl::DelayCalc::maxGateDelay(liberty_cell, _options->getBufferTestInSlew(),
-                                                   cap_delay.first, reinterpret_cast<sta::Sta*>(_openSta));
-        seg->delay = cap_delay.second + result.delay;
+                                                   cell_info.cap, reinterpret_cast<sta::Sta*>(_openSta));
+        seg->delay = cell_info.delay + result.delay;
+        seg->max_delay = cell_info.max_delay;
+        seg->min_delay = cell_info.min_delay;
 
         logger_->info(CTS, 203, " Reset the delay for cell {} as {}, clock gating delay is {}, load cap is {}.",
-                      instance->getConstName(), seg->delay, result.delay, cap_delay.first);
-      }
-      auto delay_pos = cell_max_min_delay_map.find(instance->getConstName());
-      if (delay_pos != cell_max_min_delay_map.end()) {
-        seg->max_delay = delay_pos->second.first;
-        seg->min_delay = delay_pos->second.second;
+                      instance->getConstName(), seg->delay, result.delay, cell_info.cap);
       }
     }
 
     segs.emplace_back(seg);
   });
 
-  if (this->getChildren().size() != reset_child_count) {
+  if (getChildren().size() != reset_child_count) {
     // make sure all clock gating has new delay/capacitance
-    logger_->warn(CTS, 221, "sub tree {}, reset size {}", this->getChildren().size(), reset_child_count);
+    logger_->warn(CTS, 221, "sub tree {}, reset size {}", getChildren().size(), reset_child_count);
   }
-
-  TreeTopology* tree_topology = constructTopo(segs);
-  buildSolution(tree_topology); // build information for writing buffer instance/net to db
-
-  if (_options->getPlotSolution()) {
-    plotSolution(tree_topology);
-  }
-
-  delete tree_topology;
-}
-
-// z = x+y
-static inline double calcHighZ(Segment* g) {
-  return std::max(g->p1.z(), g->p2.z());
-}
-
-static inline double calcLowZ(Segment* g) {
-  return std::min(g->p1.z(), g->p2.z());
-}
-
-// w = x-y
-static inline double calcHighW(Segment* g) {
-  return std::max(g->p1.w(), g->p2.w());
-}
-
-static inline double calcLowW(Segment* g) {
-  return std::min(g->p1.w(), g->p2.w());
-}
-
-// calcDistance refer from paper Equispreading Tree in Manhattan Distance by M.Edahiro
-static double calcDistance(Segment* g1, Segment* g2) {
-  return std::max(std::max(calcLowZ(g1), calcLowZ(g2)) - std::min(calcHighZ(g1), calcHighZ(g2)),
-                  std::max(calcLowW(g1), calcLowW(g2)) - std::min(calcHighW(g1), calcHighW(g2)));
-}
-
-static void calcBoundary(TRR& trr, std::vector<GridPoint>& trr_boundary_grid) {
-  if (trr.core->slope() > 0) {// clock-wise
-    trr_boundary_grid.emplace_back(trr.core->p1.x, trr.core->p1.y - trr.radius);
-    trr_boundary_grid.emplace_back(trr.core->p2.x + trr.radius, trr.core->p2.y);
-    trr_boundary_grid.emplace_back(trr.core->p2.x, trr.core->p2.y + trr.radius);
-    trr_boundary_grid.emplace_back(trr.core->p1.x - trr.radius, trr.core->p1.y);
-  } else if (trr.core->slope() < 0) {
-    trr_boundary_grid.emplace_back(trr.core->p1.x + trr.radius, trr.core->p1.y);
-    trr_boundary_grid.emplace_back(trr.core->p2.x, trr.core->p2.y + trr.radius);
-    trr_boundary_grid.emplace_back(trr.core->p2.x - trr.radius, trr.core->p2.y);
-    trr_boundary_grid.emplace_back(trr.core->p1.x,trr.core->p1.y - trr.radius);
-  } else { // leaf node
-    trr_boundary_grid.emplace_back(trr.core->p1.x, trr.core->p1.y - trr.radius);
-    trr_boundary_grid.emplace_back(trr.core->p1.x + trr.radius, trr.core->p1.y);
-    trr_boundary_grid.emplace_back(trr.core->p1.x, trr.core->p1.y + trr.radius);
-    trr_boundary_grid.emplace_back(trr.core->p1.x - trr.radius,trr.core->p1.y);
-  }
-}
-
-static Segment* trrIntersect(TRR& trr1, TRR& trr2) {
-  std::vector<GridPoint> trr1_boundary_grid;
-  std::vector<GridPoint> trr2_boundary_grid;
-  std::vector<Segment> trr1_sides;
-  std::vector<Segment> trr2_sides;
-
-  calcBoundary(trr1, trr1_boundary_grid);
-  calcBoundary(trr2, trr2_boundary_grid);
-
-  for (int i = 0; i < 3; i++) {
-    trr1_sides.emplace_back(trr1_boundary_grid[i], trr1_boundary_grid[i + 1]);
-    trr2_sides.emplace_back(trr2_boundary_grid[i], trr2_boundary_grid[i + 1]);
-  }
-  trr1_sides.emplace_back(trr1_boundary_grid[3], trr1_boundary_grid[0]);
-  trr2_sides.emplace_back(trr2_boundary_grid[3], trr2_boundary_grid[0]);
-
-  std::vector<Segment*> mss;
-  // for 4*4 check intersect
-  for (auto& seg1 : trr1_sides) {
-    for (auto& seg2 : trr2_sides) {
-      Segment* seg = seg1.intersect(seg2);
-      if (seg != nullptr) {
-        bool can_add = true;
-
-        for (auto ms : mss) {
-          if (*seg == *ms) {
-            can_add = false;
-            break;
-          }
-        }
-
-        if (can_add) {
-          mss.emplace_back(seg);
-        }
-      }
-    }
-  }
-
-  //return line first
-  for (auto ms : mss) {
-    if (!(ms->p1 == ms->p2)) {
-      return ms;
-    }
-  }
-  if( std::size(mss) > 0 ) {
-    return mss[0];
-  }
-
-  return nullptr;
-}
-
-static Segment* trrIntersectSegment(TRR& trr, Segment& seg)
-{
-  std::vector<GridPoint> trr_boundary_grid;
-  std::vector<Segment> trr_sides;
-
-  calcBoundary(trr, trr_boundary_grid);
-
-  for (int i = 0; i < 3; i++) {
-    trr_sides.emplace_back(trr_boundary_grid[i], trr_boundary_grid[i + 1]);
-  }
-  trr_sides.emplace_back(trr_boundary_grid[3], trr_boundary_grid[0]);
-
-  for (auto& side : trr_sides) {
-    Segment* ret = side.intersect(seg);
-    if (ret != nullptr) {
-      return ret;
-    }
-  }
-
-  return nullptr;
+  return segs;
 }
 
 Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop) {
-  double d = calcDistance(seg1, seg2);
+  double d = seg1->calcDistance(seg2);
 
   //check max load capacitance
   double p_cap = seg1->cap + seg2->cap + d * _techChar->getCapPerDBU();
@@ -227,7 +118,7 @@ Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop)
 
   TRR trr1 = TRR(seg1, d1);
   TRR trr2 = TRR(seg2, d2);
-  Segment* ms = trrIntersect(trr1, trr2);
+  Segment* ms = TRR::trrIntersect(trr1, trr2);
   if (ms == nullptr) {
     logger_->error(CTS, 210, " Can not find intersection between two TRRs, {} and {}.",trr1, trr2);
   }
@@ -271,7 +162,6 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
                                       double& wire_delay1, double& wire_delay2) {
   std::string type = "balanceDelay";
   float delay_gap = std::abs(seg1->delay - seg2->delay);
-  int buffer_count = _techChar->getBufferList().size();
   if (delay_gap < _options->getBalanceDelayThreshold())
     return;
 
@@ -280,15 +170,15 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
     odb::dbMaster* min_buffer_seg1 = nullptr;
     odb::dbMaster* min_buffer_seg2 = nullptr;
 
-    for (int i = 0; i <= buffer_count; i++) {
-      for (int j = 0; j <= buffer_count; j++) {
+    for (int i = 0; i <= 1; i++) {
+      for (int j = 0; j <= 1; j++) {
         odb::dbMaster* buffer_seg1 = nullptr;
         odb::dbMaster* buffer_seg2 = nullptr;
         double seg1_delay, seg2_delay;
 
         bool insert_buffer = false;
-        if (seg1->buffer == nullptr && i < buffer_count) {
-          buffer_seg1 = _techChar->getBufferList()[i];
+        if (seg1->buffer == nullptr && i == 0) {
+          buffer_seg1 = _techChar->getCharBuffer();
           sta::Cell* masterCell = _network->dbToSta(buffer_seg1);
           sta::LibertyCell* libertyCell = _network->libertyCell(masterCell);
 
@@ -302,8 +192,8 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
           seg1_delay = seg1->delay;
         }
 
-        if (seg2->buffer == nullptr && j < buffer_count) {
-          buffer_seg2 = _techChar->getBufferList()[j];
+        if (seg2->buffer == nullptr && j == 0) {
+          buffer_seg2 = _techChar->getCharBuffer();
           sta::Cell* masterCell = _network->dbToSta(buffer_seg2);
           sta::LibertyCell* libertyCell = _network->libertyCell(masterCell);
 
@@ -348,29 +238,10 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
 
     if(small_delay_seg->buffer != nullptr) {
       while (large_delay_seg->delay - small_delay_seg->delay > _options->getBalanceDelayThreshold()) {
-
-        auto min_gap = std::numeric_limits<double>::max();
-        odb::dbMaster* buffer;
-        for (int i = 0; i < buffer_count; i++) {
-
-          // insert a buffer into small delay seg
-          sta::Cell *masterCell = _network->dbToSta(_techChar->getBufferList()[i]);
-          sta::LibertyCell *libertyCell = _network->libertyCell(masterCell);
-          auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
-                                                     small_delay_seg->cap, reinterpret_cast<sta::Sta *>(_openSta));
-
-          auto gap = std::abs(large_delay_seg->delay - small_delay_seg->delay - result.delay);
-          if (gap < min_gap) {
-            buffer = _techChar->getBufferList()[i];
-            min_gap = gap;
-          }
-        }
-
         // insert a buffer into small delay seg
-        insertBuffer(small_delay_seg, buffer, type);
+        insertBuffer(small_delay_seg, _techChar->getCharBuffer(), type);
       }
 
-      //reorder buffers for easy to build clock nets
       int add_buffer_size = small_delay_seg->more_buffers.size();
       if( add_buffer_size > 0) {
         calcMergePointByElmore(seg1->delay, seg2->delay, seg1->cap,
@@ -486,39 +357,6 @@ double NNCBuilder::calcMergePointByElmore(const double seg1_delay, const double 
 
 }
 
-#if 0
-static Segment* merge(Segment* seg1, Segment* seg2) {
-  double d = calcDistance(seg1, seg2);
-
-  double d1, d2;
-
-  if(std::abs(seg1->delay - seg2->delay) > d) {
-    if(seg1->delay > seg2->delay) {
-      d1 = 0;
-      d2 = d;
-    } else {
-      d1 = d;
-      d2 = 0;
-    }
-  } else {
-    d2 = (double)(seg1->delay - seg2->delay + d)/2.0;
-    d1 = d - d2;
-  }
-
-  TRR trr1 = TRR(seg1, d1);
-  TRR trr2 = TRR(seg2, d2);
-
-  Segment* ms = trrIntersect(trr1, trr2);
-  assert(ms != nullptr);
-
-  seg1->distance = d1;
-  seg2->distance = d2;
-  ms->delay = d2 + seg2->delay;
-
-  return ms;
-}
-#endif
-
 void deleteSegment(std::vector<Segment*>& segments, Segment* seg) {
   std::vector<Segment*>::iterator it;
   for (it = segments.begin(); it != segments.end();) {
@@ -558,7 +396,7 @@ void NNCBuilder::localEmbedding(TreeNode* node, int& node_count, int& sink_count
     if ((int)child->segment->distance == 0 ) {
       logger_->warn(CTS, 211, " two nodes at the same point {}.", *node->loc);
     }
-    Segment* mp = trrIntersectSegment(trr, *child->segment);
+    Segment* mp = TRR::trrIntersectSegment(trr, *child->segment);
     assert(mp != nullptr);
     child->loc = new GridPoint(mp->p1.x, mp->p1.y);
     delete temp;
@@ -650,22 +488,17 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
   auto root_node = topology->id_node.find(segments[0]->id)->second;
   topology->size = topology->id_node.size();
 
-  if (root_node->segment->buffer == nullptr) { // add buffer into root of tree
-    logger_->info(CTS, 247, " Insert root buffer into {}.", _clock.getName());
-    insertBuffer(root_node->segment,  _techChar->getCharBuffer(), "rootBuffer");
-  }
-
   logger_->info(CTS, 205, " Tree topology has constructed, node size is {}.", topology->size);
 
   // Find exact merge point placement(top down)
   GridPoint clock_source = GridPoint(_clock.getClockPinX(), _clock.getClockPinY());
   Segment source_seg = Segment(clock_source, clock_source);
-  double distance = calcDistance(&source_seg, root_node->segment);
+  double distance = root_node->segment->calcDistance(&source_seg);
   logger_->info(CTS, 206, " Start to find the exact merge point for clock tree {}, distance between root and source is {}.",
                 _clock.getName(), distance);
 
   TRR trr = TRR(&source_seg, distance);
-  Segment* mp = trrIntersectSegment(trr, *root_node->segment);
+  Segment* mp = TRR::trrIntersectSegment(trr, *root_node->segment);
   assert(mp != nullptr);
   root_node->loc = new GridPoint(mp->p1.x, mp->p1.y);
 
@@ -678,7 +511,7 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
   if (_clock.getDriverPin() && _clock.getDriverPin()->getObjectType() == odb::dbITermObj) {
     source_cap = topology->root->segment->cap + distance * _techChar->getCapPerDBU();
     float cap_limit = _techChar->findCapacitanceLimit(
-        _network->dbToSta(static_cast<odb::dbITerm*>(_clock.getDriverPin()))) / 5;
+        _network->dbToSta(static_cast<odb::dbITerm*>(_clock.getDriverPin()))) / 3;
     if (cap_limit > 0 && source_cap > cap_limit) {
       logger_->info(CTS, 248, " cap {} exceed limit {}.", source_cap, cap_limit);
 
@@ -694,6 +527,9 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
 
       distance = 0;
     }
+  } else {
+    logger_->info(CTS, 278, " Insert root buffer into {}.", _clock.getName());
+    insertBuffer(root_node->segment, _techChar->getCharBuffer(), "rootBuffer");
   }
 
   source_cap = topology->root->segment->cap + distance * _techChar->getCapPerDBU();
@@ -714,29 +550,6 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
   return topology;
 }
 
-#if 0
-struct Key {
-  int z;
-  int w;
-  bool operator < (const Key& k) const {
-    if (z < k.z) return true;
-    if (w < k.w) return true;
-    return false;
-  }
-};
-class XMap : public std::map< Key,std::vector<Segment*> > {
-  void insert(Segment* s, ) {
-    s->z()
-  }
-  void findZStart(int z) {
-    return find(Key(z, -1)) + 1;
-  }
-  void findZEnd(int z) {
-    return find(Key(z, int_max));
-  }
-};
-#endif
-
 bool NNCBuilder::skipMergeByDelay(Segment* g1, Segment* g2, double skip_delay_gap) {
   if (std::abs(g1->delay - g2->delay ) > skip_delay_gap) {
     return true;
@@ -752,12 +565,6 @@ void NNCBuilder::relationGraphByBucket(std::vector<Segment*> segs,
   double z_min = std::numeric_limits<double>::max();
   double w_min = std::numeric_limits<double>::max();
 
-#define MIN_ALL(a, b, c) \
-  std::min(std::min(b, c), a)
-
-#define MAX_ALL(a, b, c) \
-  std::max(std::max(b, c), a)
-
   // calculate the diameter of all points(segments)
   for (auto seg : segs) {
     double z1 = seg->p1.z();
@@ -765,13 +572,11 @@ void NNCBuilder::relationGraphByBucket(std::vector<Segment*> segs,
     double w1 = seg->p1.w();
     double w2 = seg->p2.w();
 
-    z_min = MIN_ALL(z_min, z1, z2);
-    w_min = MIN_ALL(w_min, w1, w2);
-    z_max = MAX_ALL(z_max, z1, z2);
-    w_max = MAX_ALL(w_max, w1, w2);
+    z_min = std::min({z_min, z1, z2});
+    w_min = std::min({w_min, w1, w2});
+    z_max = std::max({z_max, z1, z2});
+    w_max = std::max({w_max, w1, w2});
   }
-#undef MIN
-#undef MAX
 
   // calculate the bucket number and bucket size
   double D = std::max(z_max - z_min, w_max - w_min);
@@ -821,7 +626,7 @@ void NNCBuilder::relationGraphByBucket(std::vector<Segment*> segs,
           }
 
           // cost == distance, ignore the initial delay of the leaf node
-          double distance = calcDistance(g, near_seg);
+          double distance = g->calcDistance(near_seg);
 
           if (skipMergeByDelay(g, near_seg, skip_delay_gap)) {
             continue ;
@@ -949,15 +754,20 @@ std::pair<double, double> NNCBuilder::evalBufInterval(TreeNode* node, std::vecto
 }
 
 void NNCBuilder::buildSolutionInner(TreeNode* node, std::queue<TreeNode*>& buffer_queue,
-                                    std::vector<TreeNode*>& net_nodes) {
+                                    std::vector<TreeNode*>& net_nodes, bool build_top_level) {
   if (node->segment->sinkInst) {
     net_nodes.push_back(node);
+    if (build_top_level) { _clock.addTopInst(node->segment->sinkInst); build_top_level = false; }
   }
 
   if (node->segment->buffer) {
     buffer_queue.push(node);
     net_nodes.push_back(node);
 
+    if (build_top_level) {
+      _clock.addTopBuffer("buffer_" + std::to_string(node->id));
+      build_top_level = false;
+    }
     _clock.addClockBuffer("buffer_" + std::to_string(node->id),
                           node->segment->buffer->getConstName(), node->loc->x, node->loc->y);
 
@@ -965,7 +775,7 @@ void NNCBuilder::buildSolutionInner(TreeNode* node, std::queue<TreeNode*>& buffe
   }
 
   for (auto child : node->children) {
-    buildSolutionInner(child, buffer_queue, net_nodes);
+    buildSolutionInner(child, buffer_queue, net_nodes, build_top_level);
   }
 
 }
@@ -973,10 +783,23 @@ void NNCBuilder::buildSolutionInner(TreeNode* node, std::queue<TreeNode*>& buffe
 void NNCBuilder::buildSolution(TreeTopology* tree) {
   std::queue<TreeNode*> buffer_queue;
 
+  bool build_top_level = true;
   TreeNode* node = tree->root;
-  buffer_queue.push(node);
+  if (node->segment->buffer) {
+    _clock.addClockBuffer("buffer_" + std::to_string(node->id),
+                          node->segment->buffer->getConstName(), node->loc->x, node->loc->y);
+    _clock.addTopBuffer("buffer_" + std::to_string(node->id));
+    buffer_queue.push(node);
+    build_top_level = false;
+  } else {
+    std::vector<TreeNode*> net_nodes;
+    for (auto child : node->children) {
+      buildSolutionInner(child, buffer_queue, net_nodes, build_top_level);
+    }
+    build_top_level = false;
+  }
+
   //add root buffer
-  _clock.addClockBuffer("clkbuf_0", node->segment->buffer->getConstName(), node->loc->x, node->loc->y);
   int net_count = 0;
 
   while(!buffer_queue.empty()) {
@@ -988,7 +811,7 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
     net_nodes.push_back(node);
 
     for (auto child : node->children) {
-      buildSolutionInner(child, buffer_queue, net_nodes);
+      buildSolutionInner(child, buffer_queue, net_nodes, build_top_level);
     }
 
     Clock::SubNet& clock_sub_net = _clock.addSubNet("net_" + std::to_string(net_count));
@@ -997,9 +820,6 @@ void NNCBuilder::buildSolution(TreeTopology* tree) {
     for (auto net_node : net_nodes) {
       if (net_node->segment->buffer) {
         auto instance = _clock.findClockByName(_clock.getName() + "_buffer_" + std::to_string(net_node->id));
-        if (net_node == tree->root) {
-          instance = _clock.findClockByName(_clock.getName() + "_clkbuf_0");
-        }
         assert(instance != nullptr);
 
         if (net_node->segment->more_buffers.size() > 0 && net_node == node) {

@@ -213,7 +213,7 @@ TritonCTS forced slew degradation on these wires.
 [INFO CTS-0047]     Number of keys in characterization LUT: 603.
 [INFO CTS-0048]     Actual min input cap: 1.
 [INFO CTS-0007] Net "clk1" found for clock "clk".
-[WARNING CTS-0041] Net "clk1" has 0 sinks. Skipping...
+[WARNING CTS-0042] Net "clk1" has no sinks. Skipping...
 [INFO CTS-0010]  Clock net "clk2" has 2 sinks.
 [INFO CTS-0008] TritonCTS found 1 clock nets.
 [INFO CTS-0097] Characterization used 1 buffer(s) types.

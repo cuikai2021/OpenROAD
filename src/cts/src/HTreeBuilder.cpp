@@ -299,6 +299,8 @@ void HTreeBuilder::run()
   }
 
   createClockSubNets();
+
+  _clock.addTopBuffer("clkbuf_0");
 }
 
 unsigned HTreeBuilder::computeNumberOfSinksPerSubRegion(unsigned level) const
