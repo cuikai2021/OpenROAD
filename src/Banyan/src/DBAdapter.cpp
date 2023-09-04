@@ -66,6 +66,12 @@ bool OpenDBAdapter::isLegalized()
     inst->getLocation(x, y);
     auto y2h = std::make_pair(y, inst->getMaster()->getHeight());
     if (rows.count(y2h) <= 0) {
+      logger_->warn(utl::BY,
+                    1,
+                    "can not find row for instance {} loc [{},{}]",
+                    inst->getName(),
+                    x,
+                    y);
       return false;
     }
     insts[y2h].emplace_back(PlyRect(x,
@@ -79,7 +85,20 @@ bool OpenDBAdapter::isLegalized()
     auto rects = yh2Insts.second;
     PlyPolygonSet plyset;
     plyset += rects;
-    if (ply::area(plyset.self_intersect()) > 0) {
+    auto self_intersects = plyset.self_intersect();
+    if (ply::area(self_intersects) > 0) {
+      logger_->warn(utl::BY, 1, "instances overlaped:");
+      std::vector<PlyRect> intersectRects;
+      self_intersects.get_rectangles(intersectRects);
+      for (auto rect : intersectRects) {
+        logger_->warn(utl::BY,
+                      1,
+                      "\toverlaped rect: ( {}, {} ) ( {}, {} )",
+                      ply::xl(rect),
+                      ply::yl(rect),
+                      ply::xh(rect),
+                      ply::yh(rect));
+      }
       return false;
     }
   }
@@ -101,6 +120,26 @@ bool OpenDBAdapter::isLegalized()
     auto region = instsPlyset.interact(rowsPlyset);
 
     if (instsArea != ply::area(region)) {
+      logger_->warn(utl::BY, 1, "instances exceed rows:");
+
+      for (auto rect : instsRects) {
+        logger_->warn(utl::BY,
+                      1,
+                      "\tinst rect: ( {}, {} ) ( {}, {} )",
+                      ply::xl(rect),
+                      ply::yl(rect),
+                      ply::xh(rect),
+                      ply::yh(rect));
+      }
+      for (auto rect : rowsRects) {
+        logger_->warn(utl::BY,
+                      1,
+                      "\trow rect: ( {}, {} ) ( {}, {} )",
+                      ply::xl(rect),
+                      ply::yl(rect),
+                      ply::xh(rect),
+                      ply::yh(rect));
+      }
       return false;
     }
   }
