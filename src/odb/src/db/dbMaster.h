@@ -99,6 +99,9 @@ class _dbMaster : public _dbObject
   dbMPinItr* _mpin_itr;
   dbTargetItr* _target_itr;
 
+  mutable bool overlapCached = false;
+  mutable bool hasOverlap = false;
+
   _dbMaster(_dbDatabase* db);
   _dbMaster(_dbDatabase* db, const _dbMaster& m);
   ~_dbMaster();

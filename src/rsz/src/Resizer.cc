@@ -1929,25 +1929,22 @@ Resizer::area(dbMaster *master)
   if (!master->isCoreAutoPlaceable()) {
     return 0;
   }
+  if (!master->hasOverlapObstruction())
+	return dbuToMeters(master->getWidth()) * dbuToMeters(master->getHeight());
 
   struct dbMasterAreaCache : public std::unordered_map<dbMaster*, double> {};
   static dbMasterAreaCache dbMasterAreaCacheInstance;
   auto areaIter = dbMasterAreaCacheInstance.find(master);
   if (areaIter != dbMasterAreaCacheInstance.end()) return areaIter->second;
-
-  // TODO: thread lock should be used here for multi-thread mode
-  bool hasOverlap = false;
   double res = 0.0;
   for (auto const &obs : master->getObstructions()) {
     auto layer = obs->getTechLayer();
     if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
-      hasOverlap = true;
       odb::Rect rect;
       obs->getBox(rect);
       res += dbuToMeters(rect.dx()) * dbuToMeters(rect.dy());
     }
   } 
-  if (!hasOverlap) res = dbuToMeters(master->getWidth()) * dbuToMeters(master->getHeight());
   dbMasterAreaCacheInstance.insert({master, res});
   return res;
 }
