@@ -210,10 +210,12 @@ Resizer::init(OpenRoad *openroad,
   incr_groute_ = nullptr;
   db_network_ = sta->getDbNetwork();
   copyState(sta);
-  // Define swig TCL commands.
-  Rsz_Init(interp);
-  // Eval encoded sta TCL sources.
-  evalTclInit(interp, sta::rsz_tcl_inits);
+  if (interp) {
+    // Define swig TCL commands.
+    Rsz_Init(interp);
+    // Eval encoded sta TCL sources.
+    evalTclInit(interp, sta::rsz_tcl_inits);
+  }
 }
 
 ////////////////////////////////////////////////////////////////
