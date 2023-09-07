@@ -1093,6 +1093,11 @@ sta::Pin* OpenDBAdapter::pin2StaPin(sta::dbNetwork* network, Pin* pin)
 void OpenDBAdapter::getWireBudgetingFromLrl()
 {
   sta::dbNetwork* network = ::ord::OpenRoad::openRoad()->getDbNetwork();
+  auto sta = ::ord::OpenRoad::openRoad()->getSta();
+  auto unitCap = resizer_->wireSignalCapacitance(sta->cmdCorner());
+  odb::dbTech* tech = db_->getTech();
+  auto dbu = tech->getDbUnitsPerMicron();
+  logger_->info(utl::BY, 1, "unit cap {}", unitCap);
   if (network->isLinked()) {
     auto chip = db_->getChip();
     auto block = chip->getBlock();
@@ -1130,6 +1135,16 @@ void OpenDBAdapter::getWireBudgetingFromLrl()
           }
         }
       }
+      double wire_cap = resizer_->wireCap(odbNet);
+      net->set_capbudget(wire_cap);
+      int64 wire_len = (int64) (wire_cap / unitCap * METER_TO_MICRON * dbu);
+      net->set_wirelenbudget(wire_len);
+      logger_->warn(utl::BY,
+                    1,
+                    "budgeting for net {} cap {} wirelen {}",
+                    net->name(),
+                    wire_cap,
+                    wire_len);
     }
   }
 }

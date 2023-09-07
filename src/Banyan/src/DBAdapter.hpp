@@ -59,6 +59,7 @@ class Resizer;
 namespace banyan {
 
 constexpr int DEFAULT_WIRE_EXT = 0;
+constexpr int METER_TO_MICRON = 1000000;
 
 class OpenDBAdapter
 {
@@ -114,7 +115,7 @@ class OpenDBAdapter
                 utl::Logger* logger,
                 lrl::Laurel* laurel,
                 rsz::Resizer* resizer,
-                bool timingDriven = false)
+                bool timingDriven = true)
       : db_(db),
         sttBuilder_(sttBuilder_),
         logger_(logger),
