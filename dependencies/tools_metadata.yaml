@@ -25,8 +25,7 @@
 - name: linden-integrate
   repo: file://src/linden/gpl
   file: |-
-    bin/design-inspector:/build/bin/design-inspector:755
-    bin/lindendp:/build/bin/lindendp:755
+    bin/*:/build/bin/:755
     lib/liblegendre_rule_fast.so:/build/lib/liblegendre_rule_fast.so
 
 - name: bamboo
