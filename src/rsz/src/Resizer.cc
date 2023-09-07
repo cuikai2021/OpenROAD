@@ -4483,5 +4483,47 @@ void Resizer::reportAllSinkSlacks()
   }
 }
 
+float Resizer::wireCap(dbNet* net) const
+{
+  Net* sta_net = db_network_->dbToSta(net);
+  return wireCap(sta_net);
+}
+
+float Resizer::wireCap(Net* net) const
+{
+  NetConnectedPinIterator *pin_iter = network_->pinIterator(net);
+  Pin* drvr_pin = nullptr;
+  while (pin_iter->hasNext()) {
+    drvr_pin = pin_iter->next();
+    if (!network_->isLoad(drvr_pin))
+      break;
+  }
+  if(!drvr_pin) {
+    printf("[WARNING] not found drvr pin of net: %s\n", network_->pathName(drvr_pin));
+    return 0;
+  }
+
+  Corner* corner = sta_->cmdCorner();
+  const DcalcAnalysisPt* dcalc_ap = corner->findDcalcAnalysisPt(max_);
+  float max = -INF;
+  for (auto& drvr_rf : RiseFall::range()) {
+    float wire_cap = wireCap(drvr_pin, drvr_rf, dcalc_ap);
+    if(fuzzyLess(max, wire_cap))
+      max = wire_cap;
+  }
+  return max;
+}
+
+float Resizer::wireCap(Pin* drvr_pin,
+                        const RiseFall *rf,
+                        const DcalcAnalysisPt *dcalc_ap) const
+{
+  sta::GraphDelayCalc* calc = sta_->graphDelayCalc();
+  Parasitic* drvr_parasitic = sta_->arcDelayCalc()->findParasitic(drvr_pin, rf, dcalc_ap);
+  float wire_cap, pin_cap;
+  calc->loadCap(drvr_pin, drvr_parasitic, rf, dcalc_ap, pin_cap, wire_cap);
+  return wire_cap;
+}
+
 
 } // namespace

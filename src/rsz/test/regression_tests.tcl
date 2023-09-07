@@ -1,6 +1,7 @@
 record_tests {
   gcd_report_all_net_sinks
   gcd_report_worst_net
+  gcd_report_net_cap
 
   repair_setup1_no_buffer
   repair_setup1_no_rc_chage

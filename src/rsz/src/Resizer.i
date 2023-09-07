@@ -677,6 +677,15 @@ report_all_sink_slacks()
 }
 
 void
+report_wire_cap(Net* net)
+{
+  // for debug
+  ensureLinked();
+  Resizer *resizer = getResizer();
+  printf("wire_cap = %e\n", resizer->wireCap(net));
+}
+
+void
 write_tdp_data(const char* filename)
 {
   ensureLinked();

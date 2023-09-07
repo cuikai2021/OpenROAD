@@ -340,6 +340,11 @@ public:
   void getSinkSlacks(dbNet* net, SnkSlackMap& result);
   void reportAllSinkSlacks();
 
+  // the load wire cap for driver pin
+  float wireCap(dbNet* net) const;
+  float wireCap(Net* net) const;
+  float wireCap(Pin* drvr_pin, const RiseFall *rf, const DcalcAnalysisPt *dcalc_ap) const;
+
 protected:
   void init();
   void ensureBlock();
