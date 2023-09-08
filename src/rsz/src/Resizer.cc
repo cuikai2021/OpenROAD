@@ -4499,7 +4499,7 @@ float Resizer::wireCap(Net* net) const
       break;
   }
   if(!drvr_pin) {
-    printf("[WARNING] not found drvr pin of net: %s\n", network_->pathName(drvr_pin));
+    logger_->warn(RSZ, 217, "not found drvr pin of net: {}", network_->name(net));
     return 0;
   }
 
