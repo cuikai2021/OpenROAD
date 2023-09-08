@@ -753,16 +753,10 @@ void TechChar::initCharacterizationNoLUT()
   if (_options->getBufferTestInSlew() < 0) {
     _options->setBufferTestInSlew(slew);
   }
-  if (_options->getSlewDegradationBound() < 0) {
-    _options->setSlewDegradationBound(slew);
-  }
 
   auto result = lrl::DelayCalc::maxGateDelay(libertyCell, _options->getBufferTestInSlew(),
                                              cap, reinterpret_cast<sta::Sta*>(_openSta));
 
-  if (_options->getMergeDelayThreshold() < 0) {
-    _options->setMergeDelayThreshold(result.delay / 2);
-  }
   if (_options->getBalanceDelayThreshold() < 0) {
     _options->setBalanceDelayThreshold(result.delay / 2);
   }

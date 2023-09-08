@@ -80,8 +80,8 @@ std::vector<Segment *> NNCBuilder::init() {
         auto result = lrl::DelayCalc::maxGateDelay(liberty_cell, _options->getBufferTestInSlew(),
                                                    cell_info.cap, reinterpret_cast<sta::Sta*>(_openSta));
         seg->delay = cell_info.delay + result.delay;
-        seg->max_delay = cell_info.max_delay;
-        seg->min_delay = cell_info.min_delay;
+        seg->max_delay = cell_info.max_delay + result.delay;
+        seg->min_delay = cell_info.min_delay + result.delay;
 
         logger_->info(CTS, 203, " Reset the delay for cell {} as {}, clock gating delay is {}, load cap is {}.",
                       instance->getConstName(), seg->delay, result.delay, cell_info.cap);
@@ -236,21 +236,19 @@ void NNCBuilder::balanceDelayByBuffer(Segment* seg1,  Segment* seg2,
       large_delay_seg = seg2;
     }
 
-    if(small_delay_seg->buffer != nullptr) {
-      while (large_delay_seg->delay - small_delay_seg->delay > _options->getBalanceDelayThreshold()) {
-        // insert a buffer into small delay seg
-        insertBuffer(small_delay_seg, _techChar->getCharBuffer(), type);
-      }
+    while (large_delay_seg->delay - small_delay_seg->delay > _options->getBalanceDelayThreshold()) {
+      // insert a buffer into small delay seg
+      insertBuffer(small_delay_seg, _techChar->getCharBuffer(), type);
+    }
 
-      int add_buffer_size = small_delay_seg->more_buffers.size();
-      if( add_buffer_size > 0) {
-        calcMergePointByElmore(seg1->delay, seg2->delay, seg1->cap,
-                               seg2->cap, d, d1, d2, wire_delay1, wire_delay2);
+    int add_buffer_size = small_delay_seg->more_buffers.size();
+    if( add_buffer_size > 0) {
+      calcMergePointByElmore(seg1->delay, seg2->delay, seg1->cap,
+                             seg2->cap, d, d1, d2, wire_delay1, wire_delay2);
 
 
-        logger_->info(CTS, 212, " Add {} buffers to balance in clock {}, delay gap {} -> {}.",
-                      add_buffer_size, _clock.getName(), delay_gap * 1e9, std::abs(seg1->delay - seg2->delay) * 1e9);
-      }
+      logger_->info(CTS, 212, " Add {} buffers to balance in clock {}, delay gap {} -> {}.",
+                    add_buffer_size, _clock.getName(), delay_gap * 1e9, std::abs(seg1->delay - seg2->delay) * 1e9);
     }
   }
 }

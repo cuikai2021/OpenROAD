@@ -282,11 +282,10 @@ class CtsOptions
   std::string _nncTopoPb;
   bool _nncBanyan = false;
   float buffer_in_slew = -1;
-  float slew_degradation_bound = -1;
-  float merge_delay_threshold = -1;
+  float slew_degradation_bound = 5.0e-10;
+  float merge_delay_threshold = 5.0e-11;
   float balance_delay_threshold = -1;
   float buffer_max_load_cap = -1;
-  //  float max_slew_limit = 5.0e-10;
   unsigned _max_fanout = 0;
   double avg_distance = 0;
   bool _metric_json_format = false;
