@@ -283,7 +283,7 @@ class CtsOptions
   bool _nncBanyan = false;
   float buffer_in_slew = -1;
   float slew_degradation_bound = 5.0e-10;
-  float merge_delay_threshold = 5.0e-11;
+  float merge_delay_threshold = 2.0e-10;
   float balance_delay_threshold = -1;
   float buffer_max_load_cap = -1;
   unsigned _max_fanout = 0;

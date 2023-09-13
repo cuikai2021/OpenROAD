@@ -415,7 +415,7 @@ class NNCBuilder : public TreeBuilder {
   void relationGraphByBucket(std::vector<Segment*> segs, std::vector<Edge>& edges, double skip_delay_gap);
   void findIndependentSet(std::vector<Edge>& edges, int K, int k, std::vector<Edge>& indep_edges);
   TreeTopology* constructTopo(std::vector<Segment*>& segments);
-  Segment* mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop);
+  Segment* mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop, int max_id);
   double calcMergePointByElmore(const double seg1_delay, const double seg2_delay,
                                 const double seg1_cap, const double seg2_cap,
                                 double d, double& d1, double& d2,
@@ -437,6 +437,7 @@ class NNCBuilder : public TreeBuilder {
                             double d, bool final_lopp, double& d1, double& d2,
                             double& wire_delay1, double& wire_delay2);
   std::vector<Segment *> init();
+  void BufferRootNode(TreeTopology *topology, int max_id, TreeNode* root_node);
 };
 
 }  // namespace cts

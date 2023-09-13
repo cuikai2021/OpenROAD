@@ -98,23 +98,25 @@ std::vector<Segment *> NNCBuilder::init() {
   return segs;
 }
 
-Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop) {
+Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop, int max_id) {
   double d = seg1->calcDistance(seg2);
 
-  //check max load capacitance
-  double p_cap = seg1->cap + seg2->cap + d * _techChar->getCapPerDBU();
-  fixCapByBuffer(seg1, seg2, d, p_cap);
   fixMaxFanoutByBuffer(seg1, seg2);
 
   double d1, d2, wire_delay1, wire_delay2;
   balanceDelayByBuffer(seg1, seg2, d, final_loop, d1, d2, wire_delay1, wire_delay2);
+
+  double p_cap = seg1->cap + seg2->cap + _techChar->getCapPerDBU() * d;
+  if (p_cap > _options->getBufferMaxLoadCap() * 1.5) {
+    insertBuffer(seg1, _techChar->getCharBuffer(), "fixCap");
+    insertBuffer(seg2, _techChar->getCharBuffer(), "fixCap");
+    p_cap = seg1->cap + seg2->cap + _techChar->getCapPerDBU() * d;
+  }
+
+  int p_fanout = seg1->fanout + seg2->fanout;
   calcMergePointByElmore(seg1->delay, seg2->delay,
                          seg1->cap, seg2->cap, d, d1, d2,
                          wire_delay1, wire_delay2);
-
-  // reset fanout & cap for merge point
-  int p_fanout = seg1->fanout + seg2->fanout;
-  p_cap = seg1->cap + seg2->cap + _techChar->getCapPerDBU() * d;
 
   TRR trr1 = TRR(seg1, d1);
   TRR trr2 = TRR(seg2, d2);
@@ -129,6 +131,7 @@ Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop)
   ms->min_delay = std::min(seg1->delay + wire_delay1, seg2->delay + wire_delay2);
   ms->max_delay = std::max(seg1->delay + wire_delay1, seg2->delay + wire_delay2);
   ms->cap = p_cap;
+  ms->id = max_id;
 
   // slew degradation from "Fast Algorithms For Slew Constrained Minimum Cost Buffering"
   double s_wire_seg1 = wire_slew_coefficient * wire_delay1;
@@ -147,6 +150,10 @@ Segment* NNCBuilder::mergeByDelay(Segment* seg1, Segment* seg2, bool final_loop)
 
   ms->fanout = p_fanout;
   ms->slew_degradation = p_slew_degradation;
+
+  if (p_cap > _options->getBufferMaxLoadCap()) {
+    insertBuffer(ms, _techChar->getCharBuffer(), "fixCap");
+  }
 
   double buffered_wire_distance = 0.0;
   if (!seg1->buffer) buffered_wire_distance += seg1->buffered_wire_distance;
@@ -391,7 +398,7 @@ void NNCBuilder::localEmbedding(TreeNode* node, int& node_count, int& sink_count
 
     Segment* temp = new Segment(*node->loc, *node->loc);
     TRR trr = TRR(temp, child->segment->distance);
-    if ((int)child->segment->distance == 0 ) {
+    if ((int)child->segment->distance == 0 && !child->segment->sinkInst ) {
       logger_->warn(CTS, 211, " two nodes at the same point {}.", *node->loc);
     }
     Segment* mp = TRR::trrIntersectSegment(trr, *child->segment);
@@ -414,6 +421,13 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
     node->segment = segment;
     topology->id_node.emplace(max_id, node);
     max_id ++;
+
+    //make a virtual TreeNode
+    TreeNode* child = new TreeNode(0);
+    child->segment = new Segment(segment->p1, segment->p2);
+    child->segment->sinkInst = segment->sinkInst;
+    segment->sinkInst = nullptr;
+    node->children.push_back(child);
   }
 
   double step = _options->getMergeDelayThreshold();
@@ -441,7 +455,7 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
     for (auto edge : independent_set) {
       if(segment_map.find(edge.nodes[0]) != segment_map.end()
           && segment_map.find(edge.nodes[1]) != segment_map.end()) {
-        Segment* ms = mergeByDelay(edge.nodes[0], edge.nodes[1], segments.size() == 2);
+        Segment* ms = mergeByDelay(edge.nodes[0], edge.nodes[1], segments.size() == 2, max_id);
 
         TreeNode* node;
         if(segment_map.find(ms) != segment_map.end()) {
@@ -504,41 +518,7 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
   int sink_count = 0;
   localEmbedding(root_node, node_count, sink_count);
 
-  topology->root = root_node;
-
-  if (_clock.getDriverPin() && _clock.getDriverPin()->getObjectType() == odb::dbITermObj) {
-    source_cap = topology->root->segment->cap + distance * _techChar->getCapPerDBU();
-    float cap_limit = _techChar->findCapacitanceLimit(
-        _network->dbToSta(static_cast<odb::dbITerm*>(_clock.getDriverPin()))) / 3;
-    if (cap_limit > 0 && source_cap > cap_limit) {
-      logger_->info(CTS, 248, " cap {} exceed limit {}.", source_cap, cap_limit);
-
-      auto new_root_node = new TreeNode(max_id + 1);
-      new_root_node->segment = root_node->segment;
-      new_root_node->segment->clearBuffer();
-      new_root_node->children.clear();
-      new_root_node->children.push_back(root_node);
-      new_root_node->loc = new GridPoint(_clock.getClockPinX(), _clock.getClockPinY());
-
-      insertBuffer(new_root_node->segment, _techChar->getCharBuffer(), "fixMaxWireLength");
-      topology->root = new_root_node;
-
-      distance = 0;
-    }
-  } else {
-    logger_->info(CTS, 278, " Insert root buffer into {}.", _clock.getName());
-    insertBuffer(root_node->segment, _techChar->getCharBuffer(), "rootBuffer");
-  }
-
-  source_cap = topology->root->segment->cap + distance * _techChar->getCapPerDBU();
-  double wire_delay = _techChar->getResPerDBU() * distance * source_cap;
-  double source_slew = wire_slew_coefficient * wire_delay;
-  source_delay = topology->root->segment->delay + wire_delay;
-  max_delay = topology->root->segment->max_delay + wire_delay;
-  min_delay = topology->root->segment->min_delay + wire_delay;
-
-  logger_->info(CTS, 223, " Capacitance and delay/slew for the source of clock tree {} is {} and {}/{}, wire cap is  {}.",
-                _clock.getName(), source_cap, source_delay, source_slew,  distance * _techChar->getCapPerDBU());
+  BufferRootNode(topology, max_id, root_node);
 
   logger_->info(CTS, 208, " Found all the exact merge point for clock tree {}.", _clock.getName());
 
@@ -546,6 +526,48 @@ TreeTopology* NNCBuilder::constructTopo(std::vector<Segment*>& segments) {
   assert(_clock.getNumSinks() == sink_count);
 
   return topology;
+}
+
+void NNCBuilder::BufferRootNode(TreeTopology *topology, int max_id, TreeNode* root_node) {
+  GridPoint clock_source = GridPoint(_clock.getClockPinX(), _clock.getClockPinY());
+  Segment source_seg = Segment(clock_source, clock_source);
+  double distance = root_node->segment->calcDistance(&source_seg);
+
+  bool insert_root_buffer = true;
+  if (_clock.getDriverPin() && _clock.getDriverPin()->getObjectType() == odb::dbITermObj) { //gating cell
+    source_cap = root_node->segment->cap + distance * _techChar->getCapPerDBU();
+    float cap_limit = _techChar->findCapacitanceLimit(
+        _network->dbToSta(static_cast<odb::dbITerm*>(_clock.getDriverPin()))) / 3;
+    if (cap_limit > 0 && source_cap > cap_limit) {
+      logger_->info(CTS, 248, " cap {} exceed limit {}.", source_cap, cap_limit);
+    } else {
+      insert_root_buffer = false;
+    }
+  }
+
+  auto new_root_node = new TreeNode(max_id + 1);
+  new_root_node->loc = new GridPoint(_clock.getClockPinX(), _clock.getClockPinY());
+  new_root_node->segment = new Segment(*new_root_node->loc, *new_root_node->loc);
+  new_root_node->children.push_back(root_node);
+
+  new_root_node->segment->cap = root_node->segment->cap + distance * _techChar->getCapPerDBU();
+  float wire_delay = _techChar->getResPerDBU() * distance * new_root_node->segment->cap;;
+  new_root_node->segment->delay = root_node->segment->delay + wire_delay;
+  new_root_node->segment->max_delay = root_node->segment->max_delay + wire_delay;
+  new_root_node->segment->min_delay = root_node->segment->min_delay + wire_delay;
+  topology->root = new_root_node;
+
+  if (insert_root_buffer) {
+    logger_->info(CTS, 278, " Insert root buffer into {}.", _clock.getName());
+    insertBuffer(topology->root->segment, _techChar->getCharBuffer(), "fixMaxWireLength");
+  }
+
+  source_cap = topology->root->segment->cap;
+  source_delay = topology->root->segment->delay;
+  max_delay = topology->root->segment->max_delay;
+  min_delay = topology->root->segment->min_delay;
+  logger_->info(CTS, 223, " Capacitance and delay for the source of clock tree {} is {} and {}, wire cap is  {}.",
+                _clock.getName(), source_cap, source_delay, distance * _techChar->getCapPerDBU());
 }
 
 bool NNCBuilder::skipMergeByDelay(Segment* g1, Segment* g2, double skip_delay_gap) {
