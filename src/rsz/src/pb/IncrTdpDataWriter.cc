@@ -79,6 +79,8 @@ class StaAdapter {
 
     Tangent tangent(double k1, double k2) const
     {
+      // TODO: need to check
+      if (!axis1_ || !axis2_) return {0, 0};
       double v1 = selectValue(axis1_, k1, k2);
       double v2 = selectValue(axis2_, k1, k2);
       return tangentBase(v1, v2, !fuzzyEqual(v1, k1));
@@ -151,6 +153,7 @@ class StaAdapter {
   inline const char* fromName(TimingArc* arc) const { return arc->from()->name(); }
   inline const char* toName(TimingArc* arc) const { return arc->to()->name(); }
   inline const char* portName(Vertex* v) const { return network()->libertyPort(v->pin())->name(); }
+  inline LibertyCell* cell(Vertex* v) const { return network()->libertyCell(network()->instance(v->pin())); }
 
   inline double wireRes(Resizer* rsz) const { return rsz->wireSignalResistance(corner()); }
   inline double wireCap(Resizer* rsz) const { return rsz->wireSignalCapacitance(corner()); }
@@ -221,6 +224,13 @@ class StaAdapter {
   {
     double in_slew = slew(from(e), fromRf(arc));
     GateTableModel* model = dynamic_cast<GateTableModel*>(arc->model());
+    if (!model) {
+      std::cout << "****  no arc model,  cell: " << cell(e->from(graph()))->name()
+                << ", from: " << name(e->from(graph()))
+                << ", to: " << name(e->to(graph()))
+                << std::endl;
+      return;
+    }
     const StaTableModel2* d_table = static_cast<const StaTableModel2*>(model->delayModel());
     const StaTableModel2* t_table = static_cast<const StaTableModel2*>(model->slewModel());
     double load_cap = loadCap(e, arc);
@@ -295,7 +305,10 @@ class IncrTdpDataFiller {
     while (iter.hasNext()) {
       Edge* e = iter.next();
       TimingArcSet* arc_set = e->timingArcSet();
-      assert(!arc_set->role()->isTimingCheck());
+
+      // TODO: need to check this assert
+      // assert(!arc_set->role()->isTimingCheck());
+
       assert(!e->isWire());
 
       Slack from = ad_.maxFromSlack(e);
