@@ -305,6 +305,7 @@ class IncrTdpDataFiller {
     while (iter.hasNext()) {
       Edge* e = iter.next();
       TimingArcSet* arc_set = e->timingArcSet();
+      if(e->isWire() || arc_set->role()->isTimingCheck()) continue;
 
       // TODO: need to check this assert
       // assert(!arc_set->role()->isTimingCheck());
@@ -339,7 +340,7 @@ class IncrTdpDataFiller {
     while (iter.hasNext()) {
       Edge* e = iter.next();
       TimingArcSet* arc_set = e->timingArcSet();
-      if(e->isWire()) continue;
+      if(e->isWire() || !arc_set->role()->isTimingCheck()) continue;
       assert(arc_set->role()->isTimingCheck());
 
       TimingArcSetArcIterator arc_iter(arc_set);
