@@ -46,7 +46,7 @@ alias mkd="mk debug"
 alias mkr="mk release"
 alias mkp="mk performance"
 alias rtst="stepin ./test/regression"
-alias t="mkd; rtst lrl"
+alias t="icb fetch ./src/Laurel -w .; mkd; rtst lrl"
 alias rt="stepin $EDEN"
 alias dbg="stepin gdb -args $EDEN"
 
@@ -71,7 +71,7 @@ function run_heap_perf {
   filePre=$case.heap.$id
   stepin "export HEAPPROFILE=\"$filePre.prof\";
           $EDEN -exit $case;
-          for hfile in $(ls \${HEAPPROFILE}.*.heap); do
+          for hfile in \$(ls \${HEAPPROFILE}.*.heap); do
             pprof $EDEN \$hfile -pdf > \$hfile.pdf;
           done"
   touch $filePre.pdf
