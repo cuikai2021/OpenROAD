@@ -1,0 +1,91 @@
+# Add the following 10 lines to ~/.bashrc
+
+# if [ -f `pwd`/.bashrc.laurel ]; then
+#     . `pwd`/.bashrc.laurel
+# fi
+# function internal_cd {
+#   cd $*
+#   if [ -f `pwd`/.bashrc.laurel ]; then
+#     . `pwd`/.bashrc.laurel
+#   fi
+# }
+# alias cd=internal_cd
+
+
+
+EDEN=./build/src/eden
+
+function stepin {
+  script=./etc/BuildOrRunInDocker.sh
+  build_type=$(readlink build)
+  if [ $build_type = "build_performance" ]; then
+    script=./etc/Perf.sh
+  fi
+  if [ $# == 0 ]; then
+    $script bash
+  else
+    $script $*
+  fi
+}
+
+function mk {
+  model=build_$1
+  mkdir -p $model
+  rm ./build
+  ln -s $model build
+  numThreads=$(($(nproc) / 2))
+  options="-cmake=-DCMAKE_BUILD_TYPE=Debug"
+  if [ $model = "build_release" ]; then
+    options=""
+  fi
+  build_cmd="./etc/Build.sh $options -threads=$numThreads -dir=$model"
+  stepin $build_cmd
+}
+
+alias mkd="mk debug" 
+alias mkr="mk release"
+alias mkp="mk performance"
+alias rtst="stepin ./test/regression"
+alias t="mkd; rtst lrl"
+alias rt="stepin $EDEN"
+alias dbg="stepin gdb -args $EDEN"
+
+
+function perf_file_id {
+  attribute=$1
+  case=$2
+  for i in {1..1000}; do
+    file=$case.$attribute.$i.pdf
+    if [ ! -e $file ]; then
+      id=$i
+      break
+    fi
+  done
+  return $id
+}
+
+function run_heap_perf {
+  case=$1
+  perf_file_id heap $case
+  id=$?
+  filePre=$case.heap.$id
+  stepin "export HEAPPROFILE=\"$filePre.prof\";
+          $EDEN -exit $case;
+          for hfile in $(ls \${HEAPPROFILE}.*.heap); do
+            pprof $EDEN \$hfile -pdf > \$hfile.pdf;
+          done"
+  touch $filePre.pdf
+  echo "----- $filePre.pdf -----"
+}
+
+function run_cpu_perf {
+  case=$1
+  perf_file_id cpu $case
+  id=$?
+  filePre=$case.cpu.$id
+  stepin "export CPUPROFILE=\"$filePre.prof\";
+          $EDEN -exit $case;
+          pprof $EDEN $filePre.prof -pdf > $filePre.pdf"
+  echo "----- $filePre.pdf -----"
+}
+
