@@ -66,7 +66,7 @@ proc configure_cts_characterization { args } {
   }
 }
 
-sta::define_cmd_args "clock_tree_synthesis" {[-wire_unit unit]
+sta::define_cmd_args "clock_tree_synthesis_old" {[-wire_unit unit]
                                              [-buf_list buflist] \
                                              [-root_buf buf] \
                                              [-clk_nets nets] \
@@ -87,8 +87,8 @@ sta::define_cmd_args "clock_tree_synthesis" {[-wire_unit unit]
                                              [-nnc_builder [-nnc_topo_pb pb_file] [-nnc_banyan]]
                                             }
 
-proc clock_tree_synthesis { args } {
-  sta::parse_key_args "clock_tree_synthesis" args \
+proc clock_tree_synthesis_old { args } {
+  sta::parse_key_args "clock_tree_synthesis_old" args \
     keys {-root_buf -buf_list -wire_unit -clk_nets -out_path -sink_clustering_size -num_static_layers\
           -sink_clustering_buffer -distance_between_buffers -branching_point_buffers_distance -clustering_exponent\
           -clustering_unbalance_ratio -sink_clustering_max_diameter -sink_clustering_levels -tree_buf\
@@ -96,7 +96,7 @@ proc clock_tree_synthesis { args } {
           -nnc_topo_pb}\
     flags {-post_cts_disable -sink_clustering_enable -balance_levels -nnc_builder -nnc_banyan}
 
-  sta::check_argc_eq0 "clock_tree_synthesis" $args
+  sta::check_argc_eq0 "clock_tree_synthesis_old" $args
 
   cts::set_disable_post_cts [info exists flags(-post_cts_disable)]
 
