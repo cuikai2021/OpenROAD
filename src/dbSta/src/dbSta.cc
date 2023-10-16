@@ -217,6 +217,7 @@ makeBlockSta(ord::OpenRoad *openroad,
                  openroad->getLogger());
   sta2->getDbNetwork()->setBlock(block);
   sta2->copyUnits(sta->units());
+  sta2->setArcDelayCalc(sta->arcDelayCalc());
   return sta2;
 }
 
