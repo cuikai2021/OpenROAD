@@ -62,9 +62,9 @@ void drcPatch()
     ord::OpenRoad::openRoad()->getBanyan()->drcPatch();
 }
 
-void regression_RC_cmd(const char *spef, const char *setRC_tcl)
+void regression_RC_cmd(const char *spef, const char *setRC_tcl, const char *plot_file_prefix)
 {
-    ord::OpenRoad::openRoad()->getBanyan()->regression_RC(spef, setRC_tcl);
+    ord::OpenRoad::openRoad()->getBanyan()->regression_RC(spef, setRC_tcl, plot_file_prefix);
 }
 
 void saveDB(std::string dbfile)

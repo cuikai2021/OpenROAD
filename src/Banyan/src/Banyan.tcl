@@ -27,10 +27,16 @@ proc banyan_clear_wires { args } {
   banyan::banyanClearWires $ex_signal $ex_clock
 }
 
-sta::define_cmd_args "regression_RC" { spef setRC_tcl }
+sta::define_cmd_args "regression_RC" { spef setRC_tcl [-plot file_prefix] }
 
-proc regression_RC { spef setRC_tcl } {
-  banyan::regression_RC_cmd $spef $setRC_tcl
+proc regression_RC { spef setRC_tcl args } {
+  sta::parse_key_args "regression_RC" args keys {-plot} flags {}
+  set plot ""
+  if { [info exists keys(-plot)] } {
+    set plot $keys(-plot)
+  }
+
+  banyan::regression_RC_cmd $spef $setRC_tcl $plot
 }
 
 proc banyan_save_db { dbfile } {

@@ -206,9 +206,59 @@ void dumpUnitRC2tcl(const std::pair<std::valarray<std::pair<double, double>>, st
   fclose(fd);
 }
 
+void dumpPlotPython(const std::vector<std::valarray<int>>& len_mat,
+                    const std::vector<std::pair<double, double>>& RC_mat,
+                    std::pair<double, double> unit_rc,
+                    const std::string& plot_file_prefix
+) {
+  if (plot_file_prefix.empty())
+    return;
+
+  std::stringstream len_p, real_r_v, real_c_v, pred_r_v, pred_c_v;
+  auto add_char = [&](char c) {
+    len_p << c;
+    real_r_v << c;
+    real_c_v << c;
+    pred_r_v << c;
+    pred_c_v << c;
+  };
+  add_char('[');
+  for (size_t i = 0; i<len_mat.size(); i++) {
+    auto len = len_mat[i].sum();
+    len_p << len;
+    real_r_v << RC_mat[i].first;
+    real_c_v << RC_mat[i].second;
+    pred_r_v << len * unit_rc.first;
+    pred_c_v << len * unit_rc.second;
+    add_char(',');
+  }
+  add_char(']');
+
+  auto temp = R"(
+import matplotlib.pyplot as plt
+lens = %s
+real = %s
+pred = %s
+
+plt.scatter(lens, real, c='blue', s=2)
+plt.scatter(lens, pred, c='cyan', s=2)
+plt.xlabel('wire len')
+plt.ylabel('%s')
+plt.show()
+)";
+
+  auto fp_r = fopen((plot_file_prefix + "_r.py").c_str(), "w");
+  fprintf(fp_r, temp, len_p.str().c_str(), real_r_v.str().c_str(), pred_r_v.str().c_str(), "resistance");
+  fclose(fp_r);
+
+  auto fp_c = fopen((plot_file_prefix + "_c.py").c_str(), "w");
+  fprintf(fp_c, temp, len_p.str().c_str(), real_c_v.str().c_str(), pred_c_v.str().c_str(), "capacitor");
+  fclose(fp_c);
+}
+
 } // inline namespace
 
-void Banyan::regression_RC(const char *spef, const char *setRC_tcl)
+void Banyan::regression_RC(const char *spef, const char *setRC_tcl, const char *plot_file_prefix)
 {
   // TODO: 区分 clock net / signal net
   //            拥塞区域...
@@ -222,15 +272,21 @@ void Banyan::regression_RC(const char *spef, const char *setRC_tcl)
   auto nlwl = statNetLaWireLens(db_, route_layers);
   std::vector<std::valarray<int>> len_mat;
   std::vector<std::pair<double, double>> RC_mat;
+  size_t no_rc_net_cnt = 0;
   for (auto& [net, rc] : RC_data) {
     auto iter = nlwl.find(net);
-    if (iter == nlwl.end())
+    if (iter == nlwl.end()) {
+      no_rc_net_cnt++;
       continue;
+    }
     len_mat.push_back(std::move(iter->second));
     RC_mat.push_back(rc);
   }
+  if (no_rc_net_cnt != 0)
+    logger_->warn(utl::BY, 8, "there are {} nets which donot have RC data in spef", no_rc_net_cnt);
   auto urcs = rcLinearRegression(len_mat, RC_mat);
   dumpUnitRC2tcl(urcs, setRC_tcl, route_layers);
+  dumpPlotPython(len_mat, RC_mat, urcs.second, plot_file_prefix);
 }
 
 }  // namespace banyan
