@@ -47,8 +47,8 @@ alias mkr="mk release"
 alias mkp="mk performance"
 alias rtst="stepin ./test/regression"
 alias t="icb fetch ./src/Laurel -w .; mkd; rtst lrl"
-alias rt="stepin $EDEN"
-alias dbg="stepin gdb -args $EDEN"
+alias rt="stepin rlwrap $EDEN"
+alias dbg="stepin rlwrap gdb -args $EDEN"
 
 
 function perf_file_id {

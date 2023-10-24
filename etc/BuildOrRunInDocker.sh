@@ -20,5 +20,5 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/maxhs,dst=/build/bin/maxhs \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/lindendp,dst=/build/bin/lindendp \
   --entrypoint /bin/bash \
-  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20230418T0353Z_8aa01a3 \
+  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20231023T0630Z_5d25c06 \
   -c "cd $workdir; $cmd"
