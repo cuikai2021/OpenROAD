@@ -36,6 +36,7 @@
 if (NOT USE_SYSTEM_ABC)
 
   set(ABC_USE_NAMESPACE "abc")
+  set(ABC_USE_NO_READLINE 1)
 
   # abc does not have "platform" support for macos so force it to use stdint.h
   if (CMAKE_OSX_SYSROOT)
