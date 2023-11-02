@@ -17,6 +17,7 @@
 #include "db_sta/dbNetwork.hh"
 #include "db_sta/dbSta.hh"
 #include "lrl/Laurel.hh"
+#include "lrl/Timer/Timer.hh"
 #include "odb/ZException.h"
 #include "odb/db.h"
 #include "odb/dbShape.h"
@@ -1102,38 +1103,17 @@ void OpenDBAdapter::getWireBudgetingFromLrl()
     auto chip = db_->getChip();
     auto block = chip->getBlock();
     auto netsSize = block->getNets().size();
-    rsz::Resizer::NetSlackMap ret;
-    resizer_->getWorstSlackNets(ret, (int) netsSize);
+
+    lrl::GBAReporter gba;
+    gba.update();
+
     for (int i = 0; i < design_->nets_size(); i++) {
       auto net = design_->mutable_nets(i);
       auto odbNet = block->findNet(net->name().c_str());
-      auto minSlackIter = ret.find(odbNet);
-      if (minSlackIter == ret.end()) {
-        logger_->warn(
-            utl::BY, 1, "can not find worst slack for net {}", net->name());
-      }
-      rsz::Resizer::SnkSlackMap snkslacks;
-      resizer_->getSinkSlacks(odbNet, snkslacks);
       for (int j = 0; j < net->pins_size(); j++) {
         auto pin = net->mutable_pins(j);
         auto stapin = pin2StaPin(network, pin);
-        if (network->isDriver(stapin) && minSlackIter != ret.end()) {
-          pin->mutable_minslack()->set_value(minSlackIter->second);
-        } else {
-          auto sinkSlackIter = snkslacks.find(stapin);
-          if (sinkSlackIter == snkslacks.end()) {
-            auto instname = pin->instancename();
-            auto portname = pin->portname().value();
-            logger_->warn(utl::BY,
-                          1,
-                          "can not find slack for net {} sink {} {}",
-                          net->name(),
-                          instname,
-                          portname);
-          } else {
-            pin->mutable_minslack()->set_value(sinkSlackIter->second);
-          }
-        }
+        pin->mutable_minslack()->set_value(gba.slack(gba.network().vertex(stapin)));
       }
       double wire_cap = resizer_->wireCap(odbNet);
       net->set_capbudget(wire_cap);

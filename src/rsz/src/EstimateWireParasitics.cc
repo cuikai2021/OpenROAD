@@ -243,7 +243,6 @@ Resizer::estimateParasitics(ParasiticsSrc src)
 {
   switch (src) {
   case ParasiticsSrc::placement:
-    sta_->deleteParasitics();
     estimateWireParasitics();
     break;
   case ParasiticsSrc::global_routing:
