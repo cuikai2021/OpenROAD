@@ -1,6 +1,7 @@
 import os
 import sys
 import click
+import datetime
 from pathlib import Path
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -8,6 +9,13 @@ CURRENT_DIR = os.getcwd()
 os.chdir(ROOT_DIR)
 sys.path.append(ROOT_DIR)
 from dependencies import tool, utils
+
+def gen_tag():
+    now = datetime.utcnow().strftime(r'%Y%m%dT%H%MZ')
+    rev = sp.check_output(['git', 'rev-parse', '--short', 'HEAD'])
+    rev = str(rev, encoding='UTF-8').strip()
+    tag = '%s_%s' % (now, rev)
+    return tag
 
 @click.group()
 @click.option('-b', '--base-image')
@@ -29,9 +37,9 @@ tools_by_name.append("ALL")
 def release(ctx, ignore_exist_manifest, build_type, **kwargs):
     kwargs.update(ctx.obj)
     if kwargs['base_image'] is None:
-        kwargs['base_image'] = f'{utils.DOCKER_REGISTRY}/icb/eden_build_ubuntu:latest'
+        kwargs['base_image'] = f'{utils.DOCKER_REGISTRY}/icb/eden_build:latest'
     if kwargs['docker_tag'] is None:
-        kwargs['docker_tag'] = 'latest'
+        kwargs['docker_tag'] = gen_tag()
     if build_type is None:
         build_type = 'release'
 
@@ -82,7 +90,7 @@ def release(ctx, ignore_exist_manifest, build_type, **kwargs):
 
     utils.docker_build(
         docker_file = '/tmp/Dockerfile/Dockerfile.release',
-        docker_name = f'eden_{build_type}_ubuntu',
+        docker_name = f'eden_{build_type}',
         build_args = {
             'EDEN_BUILD_IMAGE': kwargs['base_image']
         },
@@ -93,40 +101,23 @@ def release(ctx, ignore_exist_manifest, build_type, **kwargs):
 
 @cli.command()
 @click.pass_context
-def build_deps(ctx, **kwargs):
+def codequality(ctx, **kwargs):
     kwargs.update(ctx.obj)
     if kwargs['base_image'] is None:
-        kwargs['base_image'] = f'{utils.DOCKER_REGISTRY}/icb/eden_base_ubuntu:latest'
+        kwargs['base_image'] = f'{utils.DOCKER_REGISTRY}/icb/eden_dev:latest'
     if kwargs['docker_tag'] is None:
-        files = []
-        for file in Path(ROOT_DIR).rglob("*.so"):
-            files.append(file.absolute())
-        kwargs['docker_tag'] = utils.get_sha1sum(files)[:7]
+        kwargs['docker_tag'] = gen_tag()
 
     utils.docker_build(
-        docker_file = 'docker/Dockerfile.build',
-        docker_name = 'eden_build_ubuntu',
+        docker_file = 'docker/Dockerfile.CodeQuality',
+        docker_name = 'eden_codequality',
         build_args = {
-            'eden_base_image': kwargs['base_image']
+            'EDEN_BUILD_IMAGE': kwargs['base_image']
         },
         context = '.',
         **kwargs
     )
 
-
-@cli.command()
-@click.pass_context
-def base(ctx, **kwargs):
-    kwargs.update(ctx.obj)
-    if kwargs['docker_tag'] is None:
-        kwargs['docker_tag'] = 'latest'
-    utils.docker_build(
-        docker_file = 'docker/Dockerfile.base',
-        docker_name = 'eden_base_ubuntu',
-        build_target = 'base',
-        context = '.',
-        **kwargs
-    )
 
 @cli.command()
 @click.pass_context
