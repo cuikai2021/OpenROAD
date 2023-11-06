@@ -6,13 +6,15 @@ WORKDIR /Eden
 
 # Build
 RUN cmake \
+    # code coverage
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_CXX_FLAGS="-fprofile-arcs \ 
-    -ftest-coverage" \
-    -DCMAKE_EXE_LINKER_FLAGS=-lgcov \ 
+    -DCMAKE_CXX_FLAGS="-fprofile-arcs  -ftest-coverage" \
+    -DCMAKE_EXE_LINKER_FLAGS=-lgcov \
+    # memory leak
+    -DUSE_LINDEN_DEBUG_LIBS=ON \
     -B build . && cmake --build build -j 8
 
-# final stage
+# ------ second stage ----- 
 FROM ${EDEN_BUILD_IMAGE}
 
 RUN --mount=type=bind,src=/Eden/build,dst=/tmp,from=build \
@@ -32,6 +34,9 @@ ENV PATH=$PATH:/build/bin/
 COPY src/linden/gpl/bin/* /build/bin/
 COPY src/linden/gpl/lib/liblegendre_rule_fast.so /build/lib/liblegendre_rule_fast.so
 
-# install lcov
+# install lcov && fastcov
 RUN apt-get update && \
-    apt install -y lcov time
+    apt install -y lcov time python3 python3-pip && \
+    pip3 install fastcov -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+ENV LSAN_OPTIONS="exitcode=0"
