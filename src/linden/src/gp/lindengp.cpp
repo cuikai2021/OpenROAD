@@ -89,6 +89,11 @@ void LindenGlobalPlace::init()
   }
 }
 
+void LindenGlobalPlace::enableContinuation()
+{
+  cgr_mode_ = true;
+}
+
 void LindenGlobalPlace::change_to_cgr_mode()
 {
   routability_driven_ = true;

@@ -97,6 +97,11 @@ void set_linden_focus_nets_cmd(const char* focus_nets_file_name) {
   lindengp->setFocusNets(focus_nets_file_name);
 }
 
+void enable_linden_continuation() {
+  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+  lindengp->enableContinuation();
+}
+
 %} // inline lindengp
 
 %inline %{ // linden

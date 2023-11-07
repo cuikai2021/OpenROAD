@@ -67,6 +67,8 @@ class LindenGlobalPlace
 
   void setFocusNets(const char* focus_nets_file_name);
 
+  void enableContinuation();
+
  private:
   odb::dbDatabase* db_;
   utl::Logger* log_;
