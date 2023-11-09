@@ -3,7 +3,7 @@ name: Laurel QoR
 about: Tigris Weekly Regression Reported Issue
 title: "[WeekXXXX/$PROCESS/Flow011] $Stage $Cat on $designs"
 labels: Laurel, QoR
-assignees: ''
+assignees: cuikai2021
 
 ---
 
