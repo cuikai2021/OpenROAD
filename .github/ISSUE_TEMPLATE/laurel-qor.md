@@ -2,7 +2,7 @@
 name: Laurel QoR
 about: Tigris Weekly Regression Reported Issue
 title: "[WeekXXXX/$PROCESS/Flow011] $Stage $Cat on $designs"
-labels: ''
+labels: Laurel, QoR
 assignees: ''
 
 ---
