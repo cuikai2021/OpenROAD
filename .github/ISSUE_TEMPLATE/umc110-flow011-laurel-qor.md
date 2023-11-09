@@ -1,5 +1,5 @@
 ---
-name: Laurel QoR
+name: UMC110 Flow#011 Laurel QoR
 about: Tigris Weekly Regression Reported Issue
 title: "[WeekXXXX/UMC110/Flow#011] $Stage $Cat on $designs"
 labels: Laurel, QoR

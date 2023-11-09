@@ -1,5 +1,5 @@
 ---
-name: Laurel CRASH
+name: UMC110 Flow#011 Laurel CRASH
 about: Tigris Weekly Regression Reported Issue
 title: "[WeekXXXX/UMC110/Flow#011] $Stage CRASH on $designs"
 labels: Laurel, CRASH
