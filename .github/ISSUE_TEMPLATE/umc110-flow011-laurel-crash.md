@@ -1,8 +1,8 @@
 ---
-name: Laurel QoR
+name: Laurel CRASH
 about: Tigris Weekly Regression Reported Issue
-title: "[WeekXXXX/$PROCESS/Flow011] $Stage $Cat on $designs"
-labels: Laurel, QoR
+title: "[WeekXXXX/UMC110/Flow#011] $Stage CRASH on $designs"
+labels: Laurel, CRASH
 assignees: cuikai2021
 
 ---
