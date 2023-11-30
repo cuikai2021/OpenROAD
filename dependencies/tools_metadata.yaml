@@ -14,6 +14,7 @@
   file: |-
     banyan:/build/bin/:755
     maxhs:/build/bin/:755
+    minjog:/build/bin/:755
     banyan_dprouter.so:/build/lib/banyan_dprouter.so
     banyan_gmap.so:/build/lib/banyan_gmap.so
     banyan_maze.so:/build/lib/banyan_maze.so
