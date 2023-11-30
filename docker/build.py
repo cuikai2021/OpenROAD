@@ -2,7 +2,6 @@ import os
 import sys
 import click
 import datetime
-from pathlib import Path
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 CURRENT_DIR = os.getcwd()
@@ -100,6 +99,7 @@ def release(ctx, ignore_exist_manifest, build_type, **kwargs):
 
 
 @cli.command()
+@click.option('--build-target', type=click.Choice(['build', 'flow']), default="flow", help='build docker target')
 @click.pass_context
 def codequality(ctx, **kwargs):
     kwargs.update(ctx.obj)
@@ -107,6 +107,10 @@ def codequality(ctx, **kwargs):
         kwargs['base_image'] = f'{utils.DOCKER_REGISTRY}/icb/eden_dev:latest'
     if kwargs['docker_tag'] is None:
         kwargs['docker_tag'] = gen_tag()
+
+    if kwargs["build_target"] == "build" and kwargs["push"]:
+        print("Error: Can not push target as build docker which has Eden src code!")
+        return
 
     utils.docker_build(
         docker_file = 'docker/Dockerfile.CodeQuality',
