@@ -2325,9 +2325,6 @@ Resizer::addTieCell(const char* tie_lo_cname,
   vector<Net*> gnd_nets, pwr_nets;
   auto net_iter = network_->netIterator(network_->topInstance());
   for (auto net : staIter2StableDeque(net_iter)) {
-    if (db_network_->isSpecial(net)) {
-      continue;
-    }
     if (network_->isGround(net)) {
       gnd_nets.push_back(net);
     } else if (network_->isPower(net)) {
@@ -2335,6 +2332,15 @@ Resizer::addTieCell(const char* tie_lo_cname,
     }
   }
   delete net_iter;
+
+  auto is_special_pin = [this](Pin* pin) {
+    FASSERT(pin != nullptr);
+    odb::dbITerm *iterm;
+    odb::dbBTerm *bterm;
+    db_network_->staToDb(pin, iterm, bterm);
+    return (iterm != nullptr && iterm->isSpecial())
+      ||   (bterm != nullptr && bterm->isSpecial());
+  };
 
   auto make_tie_cell = [this, top_inst(network_->topInstance())](LibertyCell* lib_cell, const char* base_name, Pin* adjacentPin) {
     auto tie_name = makeUniqueInstName(base_name, true);
@@ -2366,7 +2372,7 @@ Resizer::addTieCell(const char* tie_lo_cname,
     parasiticsInvalid(net);
   };
 
-  auto batch_connect = [this, &make_tie_cell, &connect](
+  auto batch_connect = [this, &make_tie_cell, &connect, &is_special_pin](
     vector<Net*>& nets, const char* tie_cname, const char* tie_pname,
     const char* tie_base_name, const char* tie_log_name
   ) {
@@ -2374,11 +2380,22 @@ Resizer::addTieCell(const char* tie_lo_cname,
     size_t new_tie_cell_count = 0;
     for (auto net : nets) {
       auto pin_iter = network_->connectedPinIterator(net);
+      Pin* left_pin = nullptr;
       for (auto pin : staIter2StableDeque(pin_iter)) {
+        // Intention: some DEFs have net and special net with same name,
+        // and OpenDB merges both to one net. So we need skip the pin from special net.
+        if (is_special_pin(pin)) {
+          // Ensure that non-special net is empty when there is no left pin.
+          FASSERT(db_network_->isSpecial(net));
+          continue;
+        }
         // Intention: When a pin is a top output port,
         // different net and pin names introduce an extra verilog assigment that connects the port and the net.
         // Use the same name to avoid such assignments.
         if (strcmp(network_->name(pin), network_->name(net)) == 0) {
+          FASSERT(!db_network_->isSpecial(net));
+          FASSERT(left_pin == nullptr);
+          left_pin = pin;
           continue;
         }
         connect(pin, make_tie_cell(tie_cell, tie_base_name, pin), tie_port);
@@ -2386,15 +2403,12 @@ Resizer::addTieCell(const char* tie_lo_cname,
       }
       delete pin_iter;
 
-      pin_iter = network_->connectedPinIterator(net);
-      auto pin = pin_iter->hasNext() ? pin_iter->next() : nullptr;
-      FASSERT(not pin_iter->hasNext())("A net should have at most 1 pin left");
-      delete pin_iter;
-
-      if (pin != nullptr) {
+      if (left_pin != nullptr) {
         db_network_->staToDb(net)->setSigType(odb::dbSigType::SIGNAL);
-        sta_->connectPin(make_tie_cell(tie_cell, tie_base_name, pin), tie_port, net);
+        sta_->connectPin(make_tie_cell(tie_cell, tie_base_name, left_pin), tie_port, net);
         new_tie_cell_count += 1;
+        parasiticsInvalid(net);
+      } else if (db_network_->isSpecial(net)) {
         parasiticsInvalid(net);
       } else {
         sta_->deleteNet(net);
