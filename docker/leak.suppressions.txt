@@ -1,0 +1,7 @@
+# These are known leaks.
+
+leak:OpenRoadTCL_wrap.cxx
+leak:asan_malloc_linux.cpp
+
+# sta
+leak:dbStaTCL_wrap.cxx

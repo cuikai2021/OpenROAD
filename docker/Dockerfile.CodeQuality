@@ -40,4 +40,6 @@ ENV PATH=$PATH:/build/bin/
 COPY src/linden/gpl/bin/* /build/bin/
 COPY src/linden/gpl/lib/liblegendre_rule_fast.so /build/lib/liblegendre_rule_fast.so
 
-ENV LSAN_OPTIONS="exitcode=0"
+# memory leak
+COPY docker/leak.suppressions.txt /leak.suppressions.txt
+ENV LSAN_OPTIONS="exitcode=0 suppressions=/leak.suppressions.txt"
