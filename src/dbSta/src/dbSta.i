@@ -5,6 +5,7 @@
 #include "db_sta/dbNetwork.hh"
 #include "ord/OpenRoad.hh"
 #include "sta/VerilogWriter.hh"
+#include "db_sta/report_timing.hpp"
 
 namespace ord {
 // Defined in OpenRoad.i
@@ -150,10 +151,18 @@ write_verilog_cmd(const char *filename,
   Sta *sta = Sta::sta();
   Network *network = sta->network();
   sta::writeVerilog(
-    filename, sort, include_pwr_gnd, 
+    filename, sort, include_pwr_gnd,
     pt_compatible, remove_cells, network
   );
   delete remove_cells;
+}
+
+void report_timing_cmd(
+  std::string output_file,
+  bool suppress_details,
+  bool suppress_path)
+{
+  dbsta::report_timing(output_file, suppress_details, suppress_path);
 }
 
 %} // inline
