@@ -79,8 +79,6 @@ class StaAdapter {
 
     Tangent tangent(double k1, double k2) const
     {
-      // TODO: need to check
-      if (!axis1_ || !axis2_) return {0, 0};
       double v1 = selectValue(axis1_, k1, k2);
       double v2 = selectValue(axis2_, k1, k2);
       return tangentBase(v1, v2, !fuzzyEqual(v1, k1));
@@ -97,6 +95,8 @@ class StaAdapter {
     //    return value: first is `slew arg`, second is `cap arg`
     Tangent tangent(double v1, double v2) const
     {
+      if (!table_->axis1() || !table_->axis2()) return {0, 0};
+
       StaTable2* table = static_cast<StaTable2*>(table_);
       return table->tangent(v1, v2);
     }
@@ -288,7 +288,8 @@ class IncrTdpDataFiller {
 
     Tangent d = {0, 0};
     Tangent t = {0, 0};
-    ad_.tangent(e, arc, d, t);
+    //bypass the calculation of tangent
+//    ad_.tangent(e, arc, d, t);
 
     pb_arc->add_delay_args(d.first);
     pb_arc->add_delay_args(d.second);
