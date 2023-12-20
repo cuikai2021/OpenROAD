@@ -294,14 +294,14 @@ Resizer::ensureBlock()
 }
 
 void
-Resizer::init()
+Resizer::init(bool ensureArea)
 {
   // Abbreviated copyState
   db_network_ = sta_->getDbNetwork();
   sta_->ensureLevelized();
   graph_ = sta_->graph();
   ensureBlock();
-  ensureDesignArea();
+  if (ensureArea) ensureDesignArea();
   ensureLevelDrvrVertices();
   sta_->ensureClkNetwork();
 }

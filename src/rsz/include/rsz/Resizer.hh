@@ -346,7 +346,7 @@ public:
   float wireCap(Pin* drvr_pin, const RiseFall *rf, const DcalcAnalysisPt *dcalc_ap) const;
 
 protected:
-  void init();
+  void init(bool ensureArea = true);
   void ensureBlock();
   void ensureDesignArea();
   void ensureLevelDrvrVertices();
