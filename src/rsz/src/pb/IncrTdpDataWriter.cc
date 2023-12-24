@@ -65,7 +65,7 @@ class StaAdapter {
       size_t id2 = axis2_->findAxisIndex(v2);
       double dx1 = axis1_->axisValue(id1 + 1) - axis1_->axisValue(id1);
       double dx2 = axis2_->axisValue(id2 + 1) - axis2_->axisValue(id2);
-    
+
       double y00 = tableValue(id1, id2);
       double dy1 = tableValue(id1 + 1, id2) - y00;
       double dy2 = tableValue(id1, id2 + 1) - y00;
@@ -158,11 +158,11 @@ class StaAdapter {
   inline double wireRes(Resizer* rsz) const { return rsz->wireSignalResistance(corner()); }
   inline double wireCap(Resizer* rsz) const { return rsz->wireSignalCapacitance(corner()); }
   inline double slew(Vertex* v, const RiseFall* rf) const { return graph()->slew(v, rf, apIndex()); }
-  inline double loadCap(Edge* e, TimingArc* arc) const 
+  inline double loadCap(Edge* e, TimingArc* arc) const
   { return sta_->graphDelayCalc()->loadCap(to(e)->pin(), toRf(arc), ap()); }
   inline double loadCap(Vertex* v) const
   { return sta_->graphDelayCalc()->loadCap(v->pin(), ap()); }
-  
+
   inline Delay arcDelay(Edge* e, TimingArc* arc) const { return graph()->arcDelay(e, arc, apIndex()); }
   inline Slack maxSlack(Vertex* v) const { return sta_->vertexSlack(v, max()); }
   inline Slack maxFromSlack(Edge* e) const { return maxSlack(from(e)); }
@@ -286,15 +286,24 @@ class IncrTdpDataFiller {
     pb_arc->set_c_max(ad_.capLimit(arc->to()));
     pb_arc->set_c_pins(ad_.loadCap(e, arc));
 
-    Tangent d = {0, 0};
-    Tangent t = {0, 0};
-    //bypass the calculation of tangent
-//    ad_.tangent(e, arc, d, t);
-
-    pb_arc->add_delay_args(d.first);
-    pb_arc->add_delay_args(d.second);
-    pb_arc->add_transition_args(t.first);
-    pb_arc->add_transition_args(t.second);
+    // FIXME:
+    // The implementation about forming linear model is buggy.
+    // And it is not used by linden so far.
+    // So, disable it.
+    //
+    // Tangent d = {0, 0};
+    // Tangent t = {0, 0};
+    // ad_.tangent(e, arc, d, t);
+    // pb_arc->add_delay_args(d.first);
+    // pb_arc->add_delay_args(d.second);
+    // pb_arc->add_transition_args(t.first);
+    // pb_arc->add_transition_args(t.second);
+    pb_arc->clear_delay_args();
+    pb_arc->add_delay_args(0.0);
+    pb_arc->add_delay_args(0.0);
+    pb_arc->clear_transition_args();
+    pb_arc->add_transition_args(0.0);
+    pb_arc->add_transition_args(0.0);
 
     pb_arc->set_input_slew(ad_.slew(e->from(ad_.graph()), arc->fromTrans()->asRiseFall()));
     pb_arc->set_output_slew(ad_.slew(e->to(ad_.graph()), arc->toTrans()->asRiseFall()));
@@ -325,7 +334,7 @@ class IncrTdpDataFiller {
         if(worst_.arc_delay < arc_delay)
           worst_ = {arc_delay, arc, e};
       }
-  
+
       if(!worst_.valid())
         continue;
 
@@ -336,27 +345,32 @@ class IncrTdpDataFiller {
 
   double worstArcSetupArg(Vertex* v) const
   {
-    TimingArcInfo worst;
-    VertexInEdgeIterator iter(v, ad_.graph());
-    while (iter.hasNext()) {
-      Edge* e = iter.next();
-      TimingArcSet* arc_set = e->timingArcSet();
-      if(e->isWire() || !arc_set->role()->isTimingCheck()) continue;
-      assert(arc_set->role()->isTimingCheck());
+    // FIXME:
+    // The implementation about forming linear model is buggy.
+    // And it is not used by linden so far.
+    // So, disable it.
+    //
+    // TimingArcInfo worst;
+    // VertexInEdgeIterator iter(v, ad_.graph());
+    // while (iter.hasNext()) {
+    //   Edge* e = iter.next();
+    //   TimingArcSet* arc_set = e->timingArcSet();
+    //   if(e->isWire() || !arc_set->role()->isTimingCheck()) continue;
+    //   assert(arc_set->role()->isTimingCheck());
 
-      TimingArcSetArcIterator arc_iter(arc_set);
-      while(arc_iter.hasNext()) {
-        TimingArc* arc = arc_iter.next();
-        Delay arc_delay = ad_.arcDelay(e, arc);
-        if(worst.arc_delay < arc_delay)
-          worst = {arc_delay, arc, e};
-      }
-    }
-    if(worst.valid()) {
-      Tangent setup = {0, 0};
-      ad_.tangentSetup(worst.edge, worst.arc, setup);
-      return setup.first; // output slew, means Q slew
-    }
+    //   TimingArcSetArcIterator arc_iter(arc_set);
+    //   while(arc_iter.hasNext()) {
+    //     TimingArc* arc = arc_iter.next();
+    //     Delay arc_delay = ad_.arcDelay(e, arc);
+    //     if(worst.arc_delay < arc_delay)
+    //       worst = {arc_delay, arc, e};
+    //   }
+    // }
+    // if(worst.valid()) {
+    //   Tangent setup = {0, 0};
+    //   ad_.tangentSetup(worst.edge, worst.arc, setup);
+    //   return setup.first; // output slew, means Q slew
+    // }
     return 0;
   }
 
@@ -364,7 +378,7 @@ class IncrTdpDataFiller {
     VertexOutEdgeIterator next_iter(v, ad_.graph());
     size_t next_sz = 0;
     while (next_iter.hasNext()) { next_iter.next(); ++next_sz; }
-    
+
     VertexInEdgeIterator pre_iter(v, ad_.graph());
     size_t pre_sz = 0;
     while (pre_iter.hasNext()) { pre_iter.next(); ++pre_sz; }
@@ -390,6 +404,8 @@ class IncrTdpDataFiller {
     pb_seq_pin->set_instance(ad_.instName(v));
     pb_seq_pin->set_pin(ad_.portName(v));
 
+    pb_seq_pin->clear_c_pins();
+    pb_seq_pin->clear_setup_args();
     if (is_clk && !is_clk_gate) {
       pb_seq_pin->set_is_start(dir->isAnyInput());
       pb_seq_pin->set_is_end(dir->isAnyOutput());
@@ -419,11 +435,11 @@ class IncrTdpDataFiller {
     LibertyPort *port = ad_.port(v);
     if(!port)
       return;
-    
+
     LibertyCell* cell = port->libertyCell();
     if(!cell)
       return;
-    
+
     if(cell->hasSequentials() || cell->isClockGate()) {
       if (ad_.isDrvr(v)) {
         VertexOutEdgeIterator iter(v, ad_.graph());

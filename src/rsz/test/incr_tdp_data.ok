@@ -1065,7 +1065,7 @@ seq_pin_name: GATE
 slack: 4.27937e-09
 is_start: false
 is_end: true
-  setup_args: -0.402904
+  setup_args: 0
 arr: 1e-10
 slew: 0
 ----------------------
@@ -1074,7 +1074,7 @@ seq_pin_name: SCE
 slack: 1e+30
 is_start: false
 is_end: true
-  setup_args: -0.406573
+  setup_args: 0
 arr: 0
 slew: 0
 ----------------------
@@ -1083,7 +1083,7 @@ seq_pin_name: D
 slack: 4.11617e-09
 is_start: false
 is_end: true
-  setup_args: -0.437764
+  setup_args: 0
 arr: 1e-10
 slew: 0
 ----------------------
@@ -1092,7 +1092,7 @@ seq_pin_name: SCD
 slack: 1e+30
 is_start: false
 is_end: true
-  setup_args: -0.436296
+  setup_args: 0
 arr: 1e-10
 slew: 0
 ----------------------
@@ -1101,7 +1101,7 @@ seq_pin_name: SCE
 slack: 1e+30
 is_start: false
 is_end: true
-  setup_args: -0.435929
+  setup_args: 0
 arr: 0
 slew: 0
 ----------------------
@@ -1119,7 +1119,7 @@ seq_pin_name: D
 slack: -2.51172e-11
 is_start: false
 is_end: true
-  setup_args: -0.437764
+  setup_args: 0
 arr: 4.17438e-09
 slew: 1.09314e-10
 ----------------------
@@ -1128,7 +1128,7 @@ seq_pin_name: SCD
 slack: 1e+30
 is_start: false
 is_end: true
-  setup_args: -0.436296
+  setup_args: 0
 arr: 1.24429e-09
 slew: 2.0884e-10
 ----------------------
@@ -1137,7 +1137,7 @@ seq_pin_name: SCE
 slack: 1e+30
 is_start: false
 is_end: true
-  setup_args: -0.435929
+  setup_args: 0
 arr: 0
 slew: 0
 ----------------------
