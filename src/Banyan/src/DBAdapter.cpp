@@ -49,6 +49,10 @@ bool OpenDBAdapter::isLegalized()
   auto chip = db_->getChip();
   auto block = chip->getBlock();
 
+  odb::Rect core;
+  db_->getChip()->getBlock()->getCoreArea(core);
+  PlyRect coreRect(core.xMin(), core.yMin(), core.xMax(), core.yMax());
+  logger_->info(utl::BY, 1, "core area {} {} {} {}",core.xMin(), core.yMin(), core.xMax(), core.yMax());
   std::unordered_map<Y2Height, std::vector<PlyRect>, pair_hash> rows;
   for (auto row : block->getMultiHeightRows()) {
     odb::Rect rowBox;
@@ -59,6 +63,12 @@ bool OpenDBAdapter::isLegalized()
   }
   std::unordered_map<Y2Height, std::vector<PlyRect>, pair_hash> insts;
   for (auto inst : block->getInsts()) {
+    odb::Rect instBBox;
+    inst->getBBox()->getBox(instBBox);
+    PlyRect instRect(instBBox.xMin(), instBBox.yMin(), instBBox.xMax(), instBBox.yMax());
+    if (!ply::contains(coreRect, instRect, true)) {
+      continue;
+    }
     if (!inst->isCore() && !inst->isEndCap()) {
       continue;
     }
@@ -973,8 +983,8 @@ void OpenDBAdapter::getMacrosFromODB()
           logger_->warn(
               utl::BY,
               4,
-              "there is macro that is not contained in the libs, such as {}",
-              macroName);
+              "there is macro term that is not contained in the libs, such as {}/{}",
+              macroName, mterm->getName());
           had_warn_no_liberty = true;
         }
         pin->set_direction(odbIOType2Banyan(mterm->getIoType()));
