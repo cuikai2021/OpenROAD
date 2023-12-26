@@ -3,6 +3,7 @@
 #include "linden/geom/point.hpp"
 #include "linden/geom/bbox.hpp"
 #include "linden/lindenmp.hpp"
+#include "linden/odb_util.hpp"
 #include "gpl/graphics.h"
 #include "gpl/placerBase.h"
 #include "sta/StaMain.hh"
@@ -18,6 +19,7 @@
 
 using ord::OpenRoad;
 using namespace std;
+using namespace linden::odb_util;
 
 IMPORT_STR_FLAG(LINDEN_MP_METRICS_FILE);
 
@@ -33,71 +35,6 @@ namespace lindenmp {
 
 namespace {
 
-linden::geom::Rect core_region(odb::dbDatabase& odb) noexcept
-{
-    odb::dbBlock* block = odb.getChip()->getBlock();
-    odb::Rect coreRect;
-    block->getCoreArea(coreRect);
-    return linden::geom::Rect{
-        coreRect.xMin(),
-        coreRect.yMin(),
-        coreRect.xMax(),
-        coreRect.yMax()
-    };
-}
-
-bool inst_x_y_rotated(odb::dbInst& inst) noexcept
-{
-    switch (inst.getOrient()) {
-    case odb::dbOrientType::R0:
-    case odb::dbOrientType::R180:
-    case odb::dbOrientType::MY:
-    case odb::dbOrientType::MX: {
-        return false;
-    }
-    default: {
-        return true;
-    }
-    }
-}
-
-linden::geom::Rect inst_located_shape(odb::dbInst& inst) noexcept
-{
-    int llx, lly;
-    inst.getLocation(llx, lly);
-
-    auto master = inst.getMaster();
-    assert(master != nullptr);
-    int64_t w = master->getWidth();
-    int64_t h = master->getHeight();
-    if (inst_x_y_rotated(inst)) {
-        std::swap(w, h);
-    }
-    int64_t urx = llx + w;
-    int64_t ury = lly + h;
-
-    // TODO:
-    // https://z36j6ypbg0.feishu.cn/wiki/wikcnjt6NhO7NdlmIzHZCr67tvm#fN3LzT
-    // It is nature to align models of std cells between mGP and cGP.
-    // However, the necessarity of cell inflation (as well as left/right padding)
-    // is in question. So, we engage no inflation right now.
-    return linden::geom::Rect{llx, lly, urx, ury};
-}
-
-bool inst_is_fixed(odb::dbInst& inst) noexcept
-{
-    switch (inst.getPlacementStatus()) {
-    case odb::dbPlacementStatus::LOCKED:
-    case odb::dbPlacementStatus::FIRM:
-    case odb::dbPlacementStatus::COVER: {
-        return true;
-    }
-    default: {
-        return false;
-    }
-    }
-}
-
 void build_cells(
     linden::db::Database& ldb,
     odb::dbDatabase& odb,
@@ -106,14 +43,13 @@ void build_cells(
     odb::dbBlock* block = odb.getChip()->getBlock();
     auto insts = block->getInsts();
     for(odb::dbInst* inst: insts) {
-        auto type = inst->getMaster()->getType();
-        if (!type.isCore() && !type.isBlock() && type != odb::dbMasterType::RING) {
+        if (!is_supported(*inst)) {
             continue;
         }
 
         auto located_shape = inst_located_shape(*inst);
         auto is_macro = inst->getMaster()->getType().isBlock();
-        auto is_fixed = inst_is_fixed(*inst);
+        bool is_fixed = linden::odb_util::is_fixed(*inst);
         if (is_fixed) {
             auto effective = located_shape.intersect(core);
             if (effective && effective->area() > 0) {
@@ -138,7 +74,7 @@ void init_nets(
 {
     odb::dbBlock* block = odb.getChip()->getBlock();
     for(auto net: block->getNets()) {
-        if (net->getSigType() != odb::dbSigType::SIGNAL && net->getSigType() != odb::dbSigType::CLOCK) {
+        if (!is_supported(*net)) {
             continue;
         }
         auto name = net->getName();
@@ -153,7 +89,7 @@ void build_pins(
 {
     odb::dbBlock* block = odb.getChip()->getBlock();
     for(auto net: block->getNets()) {
-        if (net->getSigType() != odb::dbSigType::SIGNAL && net->getSigType() != odb::dbSigType::CLOCK) {
+        if (!is_supported(*net)) {
             continue;
         }
         auto l_net = ldb.odb2net(net);

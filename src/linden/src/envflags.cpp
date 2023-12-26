@@ -51,3 +51,8 @@ DEFINE_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR,
     "/build/bin/"
 )
 
+DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP,
+    "Disable timestamp in spdlog, when run in regression mode",
+    false
+)
+

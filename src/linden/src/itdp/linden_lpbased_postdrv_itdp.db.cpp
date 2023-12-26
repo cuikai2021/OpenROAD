@@ -3,89 +3,16 @@
 #include "linden/geom/rect.hpp"
 #include "linden/geom/point.hpp"
 #include "linden/geom/bbox.hpp"
+#include "linden/odb_util.hpp"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "fassert.hpp"
 
 using namespace std;
 using namespace odb;
+using namespace linden::odb_util;
 
 namespace {
-
-linden::geom::Rect core_region(odb::dbDatabase& odb) noexcept
-{
-    odb::dbBlock* block = odb.getChip()->getBlock();
-    odb::Rect coreRect;
-    block->getCoreArea(coreRect);
-    return linden::geom::Rect{
-        coreRect.xMin(),
-        coreRect.yMin(),
-        coreRect.xMax(),
-        coreRect.yMax()
-    };
-}
-
-bool inst_x_y_rotated(odb::dbInst& inst) noexcept
-{
-    bool x_y_rotated = false;
-    switch (inst.getOrient()) {
-      case dbOrientType::R0:
-      case dbOrientType::R180:
-      case dbOrientType::MY:
-      case dbOrientType::MX: {
-        x_y_rotated = false;
-      } break;
-      case dbOrientType::R90:
-      case dbOrientType::R270:
-      case dbOrientType::MYR90:
-      case dbOrientType::MXR90: {
-        x_y_rotated = true;
-      } break;
-      default: {
-        FASSERT(0 && "unknown orient ");
-      } break;
-    };
-    return x_y_rotated;
-}
-
-linden::geom::Rect inst_located_shape(odb::dbInst& inst) noexcept
-{
-    int llx, lly;
-    inst.getLocation(llx, lly);
-
-    auto master = inst.getMaster();
-    assert(master != nullptr);
-    int64_t w = master->getWidth();
-    int64_t h = master->getHeight();
-    if (inst_x_y_rotated(inst)) {
-        std::swap(w, h);
-    }
-    int64_t urx = llx + w;
-    int64_t ury = lly + h;
-    return linden::geom::Rect{llx, lly, urx, ury};
-}
-
-bool is_fixed(odb::dbInst& inst) noexcept
-{
-    bool is_fixed = false;
-    switch (inst.getPlacementStatus()) {
-        case dbPlacementStatus::NONE:
-        case dbPlacementStatus::UNPLACED:
-        case dbPlacementStatus::SUGGESTED:
-        case dbPlacementStatus::PLACED: {
-            is_fixed = false;
-        } break;
-        case dbPlacementStatus::LOCKED:
-        case dbPlacementStatus::FIRM:
-        case dbPlacementStatus::COVER:{
-            is_fixed = true;
-        } break;
-        default: {
-            FASSERT(0 && "unknown placement status");
-        } break;
-    }
-    return is_fixed;
-}
 
 bool is_macro(odb::dbInst* inst, int64_t site_height) {
     FASSERT(inst != nullptr);
@@ -110,16 +37,6 @@ linden::geom::Point get_site_size(odb::dbBlock* block) {
     return siteSize;
 }
 
-bool is_supported(odb::dbInst* inst) {
-    auto type = inst->getMaster()->getType();
-    return type.isCore() || type.isBlock() || type == odb::dbMasterType::RING || inst->getMaster()->isPad();
-}
-
-bool is_supported(dbNet* net) {
-    auto ty = net->getSigType();
-    return ty == odb::dbSigType::SIGNAL || ty == odb::dbSigType::CLOCK;
-}
-
 void build_cells(
     linden::db::Database& ldb,
     odb::dbDatabase& odb,
@@ -129,7 +46,7 @@ void build_cells(
     auto insts = block->getInsts();
     auto site_size = get_site_size(block);
     for(odb::dbInst* inst: insts) {
-        if (!is_supported(inst)) {
+        if (!is_supported(*inst)) {
             continue;
         }
 
@@ -159,7 +76,7 @@ void init_nets(
 {
     odb::dbBlock* block = odb.getChip()->getBlock();
     for(auto net: block->getNets()) {
-        if (!is_supported(net)) {
+        if (!is_supported(*net)) {
             continue;
         }
         auto name = net->getName();
@@ -174,7 +91,7 @@ void build_pins(
 {
     odb::dbBlock* block = odb.getChip()->getBlock();
     for(auto net: block->getNets()) {
-        if (!is_supported(net)) {
+        if (!is_supported(*net)) {
             continue;
         }
         auto l_net = ldb.odb2net(net);
