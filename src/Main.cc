@@ -170,8 +170,10 @@ int main(int argc, char** argv)
 }
 #else
 static void handler(int) {
-  std::cerr << "Stack trace:\n";
-  std::cerr << boost::stacktrace::stacktrace();
+  std::cerr << "Both fetching stack traces and manipulating IO in signal handlers are undefined behaviours. "
+    << "So, do never rely on them.\n"
+    << "Stack trace:\n"
+    << boost::stacktrace::stacktrace();
   exit(1);
 }
 

@@ -146,17 +146,25 @@ if (NOT ALLOW_WARNINGS)
 endif()
 
 add_compile_options(
+  -g
   -Wall
   -Wredundant-decls
   -Wformat-security
   -Wno-sign-compare
+  # ========
+  # for fetching better stacktraces
+  -fno-omit-frame-pointer
+  -fno-pie
+  -DBOOST_STACKTRACE_USE_BACKTRACE
+  # ========
   $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
   $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
 )
 
-if (ENABLE_DEBUG_INFO)
-  add_compile_options(-g)
-endif()
+# ========
+# for fetching better stacktraces
+add_link_options(-rdynamic -no-pie)
+# ========
 
 IF(USE_LINDEN_DEBUG_LIBS)
   add_link_options(--coverage -fsanitize=address)
@@ -264,7 +272,7 @@ target_include_directories(eden
 )
 
 find_library(GPREF NAME tcmalloc_and_profiler
-  PATHS 
+  PATHS
   /usr/lib
   /usr/lib64
   /usr/local/lib
@@ -310,10 +318,12 @@ target_link_libraries(eden
   linden
   sc
   cgr
+  ${Boost_STACKTRACE_BACKTRACE_LIBRARY}
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
   ${PREF_LIBRARIES}
+  backtrace
 )
 
 # tclReadline
