@@ -1,15 +1,7 @@
-
 proc banyan { args } {
+  set now [clock format [clock seconds] -format %y%m%d-%T-%Z]
+  utl::info BY 6 "run banyan with args: `$args' at $now"
   banyan::banyan $args
-}
-
-proc banyan_run_gui {} {
-  puts "banyan_run_gui"
-  banyan::banyanRunGui
-}
-
-proc banyan_drc_patch {} {
-  banyan::drcPatch
 }
 
 sta::define_cmd_args "banyan_clear_wires" {
@@ -39,11 +31,12 @@ proc regression_RC { spef setRC_tcl args } {
   banyan::regression_RC_cmd $spef $setRC_tcl $plot
 }
 
+sta::define_cmd_args "banyan_save_db" { dbfile }
 proc banyan_save_db { dbfile } {
   banyan::saveDB $dbfile
 }
 
-proc banyan_merge_wire_segment { } {
-  banyan::mergeWireSegment
+sta::define_cmd_args "banyan_load_db" { dbfile }
+proc banyan_load_db { dbfile } {
+  banyan::loadDB $dbfile
 }
-

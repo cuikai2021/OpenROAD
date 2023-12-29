@@ -1,12 +1,10 @@
 #pragma once
 
 #include <deque>
-#include <iostream>
 #include <list>
 #include <map>
+#include <optional>
 
-#include "Global.hpp"
-#include "GridlessMaze.hpp"
 #include "banyan_db.pb.h"
 #include "db.h"
 #include "string.h"
@@ -58,7 +56,7 @@ class Resizer;
 
 namespace banyan {
 
-constexpr int DEFAULT_WIRE_EXT = 0;
+constexpr int DEFAULT_WIRE_EXT = -1;
 constexpr int METER_TO_MICRON = 1000000;
 
 class OpenDBAdapter
@@ -68,19 +66,22 @@ class OpenDBAdapter
 
  protected:
   odb::dbDatabase* db_;
-  stt::SteinerTreeBuilder* sttBuilder_;
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
   rsz::Resizer* resizer_;
-  bool timingDriven_ ;
+  sta::dbNetwork* sta_db_network_; // call ensureStaDB before use
+  bool timingDriven_;
+  bool had_warn_no_liberty_;
 
   std::set<std::string> instPinNames;
-  std::set<std::string> macroNames;
 
 
   NetUse odbNetType2NetUse(odb::dbSigType sigType);
   std::optional<SpecialWireShape> odbSWireShape(odb::dbWireShapeType shapeType);
 
+  // work for both odb::dbVia and odb::dbTechVia
+  template<typename odbVia>
+  Via* odbVia2Via(odbVia* odbvia);
   Pin odbITerm2Pin(odb::dbITerm* iterm);
   Pin odbBTerm2Pin(odb::dbBTerm* bterm);
   std::deque<SpecialWire> dbSWire2SpecialWires(odb::dbSWire* odbSWire);
@@ -90,11 +91,9 @@ class OpenDBAdapter
   PinDirection odbIOType2Banyan(odb::dbIoType type);
   PinDirection staPortDirection2Banyan(sta::PortDirection* pd);
   ComponentOrient odbOrient2Banyan(odb::dbOrientType type);
-  MacroClass odbMacroClass2Banyan(odb::dbMaster* master);
-
-  VirtualPin gmVirtualPin2VirtualPin(const GmVirtualPin& gmvpin);
 
   sta::Pin* pin2StaPin(sta::dbNetwork* network, Pin* pin);
+  void ensureStaDB();
 
   void getDesignFromODB();
   void getDefViaFromODB();
@@ -105,23 +104,23 @@ class OpenDBAdapter
   void getBlockagesFromODB();
   void getIOPinsFromODB();
   void getInstancesFromODB();
-  void getMacrosFromODB();
+  void getRowsFromODB();
   void getWireBudgetingFromLrl();
   bool isLegalized();
 
  public:
   OpenDBAdapter(odb::dbDatabase* db,
-                stt::SteinerTreeBuilder* sttBuilder_,
                 utl::Logger* logger,
                 lrl::Laurel* laurel,
                 rsz::Resizer* resizer,
                 bool timingDriven = true)
       : db_(db),
-        sttBuilder_(sttBuilder_),
         logger_(logger),
         laurel_(laurel),
         resizer_(resizer),
-        timingDriven_(timingDriven)
+        sta_db_network_(nullptr),
+        timingDriven_(timingDriven),
+        had_warn_no_liberty_(false)
   {
     if (auto techlef = db->getTech(); techlef == nullptr) {
       logger_->error(

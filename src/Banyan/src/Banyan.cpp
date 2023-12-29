@@ -8,18 +8,9 @@
 #include <sstream>
 #include <thread>
 
-#include "BanyanGraphics.hpp"
-#include "ByAdapter.hpp"
 #include "DBAdapter.hpp"
-#include "DrcPatch.hpp"
-#include "Global.hpp"
-#include "GridlessMaze.hpp"
-#include "PinCluster.hpp"
-#include "UnionFind.hpp"
-#include "ViaCandidate.hpp"
 #include "banyan_instance_movement.pb.h"
 #include "cgr/congestionRepair.hpp"
-#include "magic_enum.hpp"
 #include "odb/db.h"
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
@@ -122,7 +113,6 @@ int exec(utl::Logger* logger, const std::vector<std::string>& args)
 
 int Banyan::main(std::vector<std::string> args, bool updateDB)
 {
-  std::string techlef = "";
   std::string inPbFilePath = "";
   std::string outPbFilePath = "";
   std::vector<std::string> unregister;
@@ -132,7 +122,7 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   desc.add_options()                                                         //
       ("help,h", "")                                                         //
       ("timing_driven", "")                                                  //
-      ("techlef", po::value<std::string>(&techlef), "")                      //
+      ("techlef", po::value<std::string>(), "")                              //
       ("save_db", po::value<std::string>(&outPbFilePath), "")                //
       ("db", po::value<std::string>(&inPbFilePath), "")                      //
       ("unregister", po::value<std::vector<std::string>>(&unregister), "");  //
@@ -170,12 +160,18 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
 
   if (!vm.count("techlef")) {
     args.push_back("--techlef");
-    args.push_back(techfile_name_);
+    args.push_back(tech_lef_file_name_);
+  }
+
+  // 重复路径可在 banyan bin 处处理。应该不存在 LEF 冲突的情况。
+  for (const auto& lef : other_lef_file_names_) {
+    args.push_back("--lef");
+    args.push_back(lef);
   }
 
   bool timingDriven = vm.count("timing_driven");
   OpenDBAdapter dbAdapter(
-      db_, stt_builder_, logger_, laurel_, resizer_, timingDriven);
+      db_, logger_, laurel_, resizer_, timingDriven);
 
   if (!vm.count("db")) {
     dbAdapter.loadDesignFromODB();
@@ -224,8 +220,6 @@ int Banyan::cmap(const std::string& cmapPb, bool cgr_mode)
 {
   std::vector<std::string> args;
   args.push_back("route");
-  args.push_back("--techlef");
-  args.push_back(techfile_name_);
 
   const auto max_layer
       = ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
@@ -245,70 +239,6 @@ int Banyan::cmap(const std::string& cmapPb, bool cgr_mode)
   }
 
   return main(args, false);
-}
-
-int Banyan::m1GridlessMaze()
-{
-  auto bydb = ByAdapter(db_, logger_).getByDb();
-  auto gm = GridlessMaze(db_, bydb, logger_, GridlessMaze::MEDIUN);
-  gm.run();
-  ByAdapter::updateWire(db_, bydb);
-  return SUCCESS;
-}
-
-void Banyan::mergeWireSegment()
-{
-  const auto processor_count = std::thread::hardware_concurrency();
-  auto dbfile = genTempFilePath(logger_, ".pb");
-  savedb(dbfile);
-  std::vector<std::string> args;
-  if (processor_count > 1) {
-    args.push_back("--cores");
-    args.push_back(std::to_string(processor_count + 1));
-  }
-  args.push_back("merge_wire_segments");
-  args.push_back("--log_level");
-  args.push_back("info");
-  args.push_back("--techlef");
-  args.push_back(techfile_name_);
-  args.push_back("--db");
-  args.push_back(dbfile);
-  auto outPbFilePath = genTempFilePath(logger_, ".pb");
-  args.push_back("--save_db");
-  args.push_back(outPbFilePath);
-  auto status = main(args, true);
-  if (status == SUCCESS) {
-    logger_->info(utl::BY, 1, "banyan merge wire segments completed.");
-  } else {
-    logger_->info(utl::BY, 1, "banyan merge wire segments failed.");
-  }
-}
-
-void Banyan::runGui()
-{
-  auto bydb = ByAdapter(db_, logger_).getByDb();
-  std::unique_ptr<BanyanGraphics> graphics;
-  if (BanyanGraphics::guiActive()) {
-    graphics = std::make_unique<BanyanGraphics>(logger_);
-  }
-  if (graphics) {
-    graphics->status("Open nets polygons");
-    auto netPolygons = bydb->getOpenNetPolygons();
-    logger_->info(utl::BY, 1, "open:{}", netPolygons.size());
-    std::unordered_map<std::string, std::vector<std::pair<BsPoint, BsPoint>>>
-        netMst;
-    for (const auto& [netName, netPls] : netPolygons) {
-      netMst[netName] = ByDb::getPolygonsMst(netPls);
-    }
-    graphics->drawPolygons(netPolygons, netMst);
-  }
-  return;
-}
-
-void Banyan::drcPatch()
-{
-  auto dp = DrcPatch(db_, logger_);
-  dp.run();
 }
 
 void Banyan::clearWires(bool excludeClock, bool excludeSignal)
@@ -333,7 +263,7 @@ void Banyan::clearWires(bool excludeClock, bool excludeSignal)
 
 void Banyan::savedb(std::string dbfile)
 {
-  OpenDBAdapter dbAdapter(db_, stt_builder_, logger_, laurel_, resizer_, true);
+  OpenDBAdapter dbAdapter(db_, logger_, laurel_, resizer_, true);
   dbAdapter.loadDesignFromODB();
   auto design = dbAdapter.getDesign();
   BanyanCase byCase;
@@ -346,6 +276,14 @@ void Banyan::savedb(std::string dbfile)
     logger_->error(utl::BY, 1, "save protobuf file to {} fail", dbfile);
   }
   pbfs.close();
+}
+
+void Banyan::loaddb(std::string dbflie)
+{
+  OpenDBAdapter dbAdapter(db_, logger_, nullptr, nullptr);
+  dbAdapter.loadDesignFromBanyanDB(dbflie);
+  auto design = dbAdapter.getDesign();
+  dbAdapter.updateDB(*design);
 }
 
 }  // namespace banyan

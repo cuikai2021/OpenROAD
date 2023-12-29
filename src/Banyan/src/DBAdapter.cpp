@@ -1,21 +1,27 @@
-
 #include "DBAdapter.hpp"
 
-#include <assert.h>
 #include <lemon/dijkstra.h>
 #include <lemon/list_graph.h>
 
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <boost/polygon/polygon.hpp>
-#include <cmath>
+#include <cassert>
+#include <deque>
+#include <fstream>
+#include <limits>
+#include <map>
+#include <set>
+#include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
-#include "ByAdapter.hpp"
-#include "GridlessMaze.hpp"
-#include "GroupedRange.hpp"
+#include "banyan_db.pb.h"
+#include "dbTypes.h"
 #include "db_sta/dbNetwork.hh"
 #include "db_sta/dbSta.hh"
+#include "lef/lef.pb.h"
 #include "lrl/Laurel.hh"
 #include "lrl/Timer/Timer.hh"
 #include "odb/ZException.h"
@@ -44,119 +50,23 @@ using namespace boost::polygon::operators;
 typedef ply::rectangle_data<int> PlyRect;
 typedef ply::polygon_90_set_data<int> PlyPolygonSet;
 
-bool OpenDBAdapter::isLegalized()
+inline namespace {
+// work for both odb::Rect and odb::odbBox
+template <typename T>
+Rect* box2pb(T* ob)
 {
-  auto chip = db_->getChip();
-  auto block = chip->getBlock();
-
-  odb::Rect core;
-  db_->getChip()->getBlock()->getCoreArea(core);
-  PlyRect coreRect(core.xMin(), core.yMin(), core.xMax(), core.yMax());
-  logger_->info(utl::BY, 1, "core area {} {} {} {}",core.xMin(), core.yMin(), core.xMax(), core.yMax());
-  std::unordered_map<Y2Height, std::vector<PlyRect>, pair_hash> rows;
-  for (auto row : block->getMultiHeightRows()) {
-    odb::Rect rowBox;
-    row->getBBox(rowBox);
-    auto y2h = std::make_pair(rowBox.yMin(), rowBox.dy());
-    rows[y2h].emplace_back(
-        PlyRect(rowBox.xMin(), rowBox.yMin(), rowBox.xMax(), rowBox.yMax()));
-  }
-  std::unordered_map<Y2Height, std::vector<PlyRect>, pair_hash> insts;
-  for (auto inst : block->getInsts()) {
-    odb::Rect instBBox;
-    inst->getBBox()->getBox(instBBox);
-    PlyRect instRect(instBBox.xMin(), instBBox.yMin(), instBBox.xMax(), instBBox.yMax());
-    if (!ply::contains(coreRect, instRect, true)) {
-      continue;
-    }
-    if (!inst->isCore() && !inst->isEndCap()) {
-      continue;
-    }
-    int x = 0;
-    int y = 0;
-    inst->getLocation(x, y);
-    auto y2h = std::make_pair(y, inst->getMaster()->getHeight());
-    if (rows.count(y2h) <= 0) {
-      logger_->warn(utl::BY,
-                    1,
-                    "can not find row for instance {} loc [{},{}]",
-                    inst->getName(),
-                    x,
-                    y);
-      return false;
-    }
-    insts[y2h].emplace_back(PlyRect(x,
-                                    y,
-                                    x + inst->getMaster()->getWidth(),
-                                    y + inst->getMaster()->getHeight()));
-  }
-
-  for (auto yh2Insts : insts) {
-    // auto yh = yh2Insts.first;
-    auto rects = yh2Insts.second;
-    PlyPolygonSet plyset;
-    plyset += rects;
-    auto self_intersects = plyset.self_intersect();
-    if (ply::area(self_intersects) > 0) {
-      logger_->warn(utl::BY, 1, "instances overlaped:");
-      std::vector<PlyRect> intersectRects;
-      self_intersects.get_rectangles(intersectRects);
-      for (auto rect : intersectRects) {
-        logger_->warn(utl::BY,
-                      1,
-                      "\toverlaped rect: ( {}, {} ) ( {}, {} )",
-                      ply::xl(rect),
-                      ply::yl(rect),
-                      ply::xh(rect),
-                      ply::yh(rect));
-      }
-      return false;
-    }
-  }
-
-  for (auto yh2Rows : rows) {
-    auto yh = yh2Rows.first;
-    auto instsRects = insts[yh];
-    if (instsRects.size() <= 0) {
-      continue;
-    }
-    auto rowsRects = yh2Rows.second;
-    PlyPolygonSet rowsPlyset;
-    rowsPlyset += rowsRects;
-
-    PlyPolygonSet instsPlyset;
-    instsPlyset += instsRects;
-
-    auto instsArea = ply::area(instsPlyset);
-    auto region = instsPlyset.interact(rowsPlyset);
-
-    if (instsArea != ply::area(region)) {
-      logger_->warn(utl::BY, 1, "instances exceed rows:");
-
-      for (auto rect : instsRects) {
-        logger_->warn(utl::BY,
-                      1,
-                      "\tinst rect: ( {}, {} ) ( {}, {} )",
-                      ply::xl(rect),
-                      ply::yl(rect),
-                      ply::xh(rect),
-                      ply::yh(rect));
-      }
-      for (auto rect : rowsRects) {
-        logger_->warn(utl::BY,
-                      1,
-                      "\trow rect: ( {}, {} ) ( {}, {} )",
-                      ply::xl(rect),
-                      ply::yl(rect),
-                      ply::xh(rect),
-                      ply::yh(rect));
-      }
-      return false;
-    }
-  }
-
-  return true;
+  int xl = ob->xMin();
+  int yl = ob->yMin();
+  int xh = ob->xMax();
+  int yh = ob->yMax();
+  auto r = new Rect();
+  r->mutable_lowleft()->set_x(xl);
+  r->mutable_lowleft()->set_y(yl);
+  r->mutable_upright()->set_x(xh);
+  r->mutable_upright()->set_y(yh);
+  return r;
 }
+}  // namespace
 
 PinDirection OpenDBAdapter::odbIOType2Banyan(odb::dbIoType type)
 {
@@ -207,24 +117,6 @@ ComponentOrient OpenDBAdapter::odbOrient2Banyan(odb::dbOrientType type)
       return ComponentOrient::FW;
   }
   return ComponentOrient::N;
-}
-
-MacroClass OpenDBAdapter::odbMacroClass2Banyan(odb::dbMaster* master)
-{
-  if (master->isBlock()) {
-    return MacroClass::MACRO_BLOCK;
-  } else if (master->isCore()) {
-    return MacroClass::MACRO_CORE;
-  } else if (master->isCover()) {
-    return MacroClass::MACRO_COVER;
-  } else if (master->isEndCap()) {
-    return MacroClass::MACRO_ENDCAP;
-  } else if (master->isFiller()) {
-    return MacroClass::MACRO_ENDCAP;
-  } else if (master->isPad()) {
-    return MacroClass::MACRO_PAD;
-  }
-  return MacroClass::MACRO_RING;
 }
 
 NetUse OpenDBAdapter::odbNetType2NetUse(odb::dbSigType sigType)
@@ -305,6 +197,24 @@ Pin OpenDBAdapter::odbITerm2Pin(odb::dbITerm* iterm)
 
   pin.set_instancename(inst->getName());
   pin.mutable_portname()->set_value(mterm->getName());
+
+  ensureStaDB();
+  auto sta_port = sta_db_network_->dbToSta(mterm);
+  auto sta_lib_port = sta_db_network_->libertyPort(sta_port);
+  if (sta_lib_port != nullptr) {
+    auto sta_direction = sta_lib_port->direction();
+    pin.set_direction(staPortDirection2Banyan(sta_direction));
+  } else {
+    if (not had_warn_no_liberty_) {
+      logger_->warn(
+          utl::BY,
+          4,
+          "there is macro that is not contained in the libs, such as {}",
+          inst->getConstName());
+      had_warn_no_liberty_ = true;
+    }
+    pin.set_direction(odbIOType2Banyan(mterm->getIoType()));
+  }
   return pin;
 }
 
@@ -312,6 +222,7 @@ Pin OpenDBAdapter::odbBTerm2Pin(odb::dbBTerm* bterm)
 {
   Pin pin;
   pin.set_instancename(bterm->getName());
+  pin.set_direction(odbIOType2Banyan(bterm->getIoType()));
   return pin;
 }
 
@@ -346,12 +257,19 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
     auto line = wireSeg->mutable_line();
 
     auto start = line->mutable_start();
-    start->mutable_extvalue()->set_value(beginExt);
+    if (beginExt != DEFAULT_WIRE_EXT){
+      start->mutable_extvalue()->set_value(beginExt);
+    }else{
+      start->clear_extvalue();
+    }
     start->mutable_point()->set_x(beginX);
     start->mutable_point()->set_y(beginY);
-
     auto end = line->mutable_end();
-    end->mutable_extvalue()->set_value(endExt);
+    if (endExt != DEFAULT_WIRE_EXT) {
+      end->mutable_extvalue()->set_value(endExt);
+    }else{
+      end->clear_extvalue()
+    }
     end->mutable_point()->set_x(endX);
     end->mutable_point()->set_y(endY);
 
@@ -361,7 +279,6 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
   auto doAddRect = [&](const std::string& layerName,
                        int x,
                        int y,
-                       int ext,
                        int deltaX1,
                        int deltaY1,
                        int deltaX2,
@@ -377,9 +294,8 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
     auto wireRect = wireSeg->mutable_rect();
 
     auto point = wireRect->mutable_point();
-    point->mutable_extvalue()->set_value(ext);
-    point->mutable_point()->set_x(x);
-    point->mutable_point()->set_y(y);
+    point->set_x(x);
+    point->set_y(y);
 
     auto rect = wireRect->mutable_rect();
     rect->mutable_lowleft()->set_x(std::min(x1, x2));
@@ -393,8 +309,7 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
   auto doAddVia = [&](const std::string& layerName,
                       const std::string& viaName,
                       int x,
-                      int y,
-                      int ext) {
+                      int y) {
     Wire wire;
     wire.set_layername(layerName);
     auto wireSeg = wire.add_segments();
@@ -403,9 +318,8 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
     wireVia->set_vianame(viaName);
 
     auto point = wireVia->mutable_point();
-    point->mutable_extvalue()->set_value(ext);
-    point->mutable_point()->set_x(x);
-    point->mutable_point()->set_y(y);
+    point->set_x(x);
+    point->set_y(y);
 
     wires.push_back(wire);
   };
@@ -474,8 +388,7 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
         doAddVia(decode.getLayer()->getName(),
                  decode.getVia()->getName(),
                  prevX,
-                 prevY,
-                 prevExt);
+                 prevY);
         break;
       }
 
@@ -484,8 +397,7 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
         doAddVia(decode.getLayer()->getName(),
                  decode.getTechVia()->getName(),
                  prevX,
-                 prevY,
-                 prevExt);
+                 prevY);
         break;
       }
 
@@ -500,7 +412,6 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
         doAddRect(decode.getLayer()->getName(),
                   prevX,
                   prevY,
-                  prevExt,
                   deltaX1,
                   deltaY1,
                   deltaX2,
@@ -541,8 +452,8 @@ std::deque<SpecialWire> OpenDBAdapter::dbSWire2SpecialWires(
       odbSBox->getViaXY(x, y);
 
       via->set_vianame(viaNameFromViaBox(odbSBox));
-      via->mutable_point()->mutable_point()->set_x(x);
-      via->mutable_point()->mutable_point()->set_y(y);
+      via->mutable_point()->set_x(x);
+      via->mutable_point()->set_y(y);
     } else {
       swire.set_layername(odbSBox->getTechLayer()->getName());
       int x1 = odbSBox->xMin();
@@ -592,67 +503,69 @@ void OpenDBAdapter::getDesignFromODB()
   coreAreaUR->set_y(odbCoreArea.yMax());
 }
 
+template <typename odbVia>
+Via* OpenDBAdapter::odbVia2Via(odbVia* odbvia)
+{
+  auto tech = this->db_->getTech();
+  auto via = new Via();
+  via->set_name(odbvia->getConstName());
+  if constexpr (std::is_same_v<odbVia, odb::dbTechVia>)
+    via->set_default_(odbvia->isDefault());
+  else {
+    auto techvia = odbvia->getTechVia();
+    via->set_default_(techvia != nullptr && techvia->isDefault());
+  }
+
+  std::map<int, std::deque<Geometry>> idxToGeos;
+  for (auto box : odbvia->getBoxes()) {
+    auto layerIdx = box->getTechLayer()->getNumber();
+    Geometry geo;
+    geo.set_allocated_rect(box2pb(box));
+    idxToGeos[layerIdx].push_back(geo);
+  }
+  int addedLayer = 0;
+  for (auto const& [index, geos] : idxToGeos) {
+    auto layerName = tech->findLayer(index)->getConstName();
+    switch (addedLayer) {
+      case 0: {
+        auto botLayer = via->mutable_bottomlayer();
+        botLayer->set_layername(layerName);
+        for (auto const& x : geos) {
+          *botLayer->mutable_geometries()->Add() = x;
+        }
+        break;
+      }
+      case 1: {
+        auto cutLayer = via->mutable_cutlayer();
+        cutLayer->set_layername(layerName);
+        for (auto const& x : geos) {
+          *cutLayer->mutable_geometries()->Add() = x;
+        }
+        break;
+      }
+      case 2: {
+        auto topLayer = via->mutable_toplayer();
+        topLayer->set_layername(layerName);
+        for (auto const& x : geos) {
+          *topLayer->mutable_geometries()->Add() = x;
+        }
+        break;
+      }
+    }
+    addedLayer++;
+  }
+  return via;
+}
+
 void OpenDBAdapter::getDefViaFromODB()
 {
   auto chip = db_->getChip();
   auto block = chip->getBlock();
-  auto tech = db_->getTech();
-  std::map<std::string, int> layerNameIndex;
-  std::map<int, std::string> indexToLayerName;
-
-  int index = 0;
-  for (auto layer : tech->getLayers()) {
-    layerNameIndex[layer->getName()] = index;
-    indexToLayerName[index] = layer->getName();
-    index++;
-  }
 
   for (auto via : block->getVias()) {
-    auto pbVia = design_->add_vias();
-    pbVia->set_name(via->getName());
-    std::map<int, std::deque<Geometry>> idxToGeos;
-    for (auto box : via->getBoxes()) {
-      auto layerName = box->getTechLayer()->getName();
-      auto layerIdx = layerNameIndex.at(layerName);
-      Geometry geo;
-      auto rect = geo.mutable_rect();
-      rect->mutable_lowleft()->set_x(box->xMin());
-      rect->mutable_lowleft()->set_y(box->yMin());
-      rect->mutable_upright()->set_x(box->xMax());
-      rect->mutable_upright()->set_y(box->yMax());
-      idxToGeos[layerIdx].push_back(geo);
-    }
-
-    int addedLayer = 0;
-    for (auto const& [index, geos] : idxToGeos) {
-      auto layerName = indexToLayerName[index];
-      switch (addedLayer) {
-        case 0: {
-          auto botLayer = pbVia->mutable_bottomlayer();
-          botLayer->set_name(layerName);
-          for (auto const& x : geos) {
-            *botLayer->mutable_geometries()->Add() = x;
-          }
-          break;
-        }
-        case 1: {
-          auto cutLayer = pbVia->mutable_cutlayer();
-          cutLayer->set_name(layerName);
-          for (auto const& x : geos) {
-            *cutLayer->mutable_geometries()->Add() = x;
-          }
-          break;
-        }
-        case 2: {
-          auto topLayer = pbVia->mutable_toplayer();
-          topLayer->set_name(layerName);
-          for (auto const& x : geos) {
-            *topLayer->mutable_geometries()->Add() = x;
-          }
-          break;
-        }
-      }
-      addedLayer++;
+    auto techvia = via->getTechVia();
+    if (!techvia || !techvia->getNonDefaultRule()) {
+      design_->mutable_vias()->AddAllocated(odbVia2Via(via));
     }
   }
 }
@@ -702,47 +615,6 @@ void OpenDBAdapter::getRoutingLayersFromODB()
   }
 }
 
-VirtualPin OpenDBAdapter::gmVirtualPin2VirtualPin(const GmVirtualPin& gmvpin)
-{
-  auto tech = db_->getTech();
-  VirtualPin vpin;
-  for (auto pinname : gmvpin.names) {
-    auto pin = vpin.add_pins();
-    assert(pinname.first != "" && pinname.second != "");
-    pin->set_instancename(pinname.first);
-    pin->mutable_portname()->set_value(pinname.second);
-  }
-
-  odb::dbTechLayer* techlayer = nullptr;
-  for (auto layer : tech->getLayers()) {
-    if (layer->getType() == odb::dbTechLayerType::ROUTING) {
-      techlayer = layer;
-      break;
-    }
-  }
-
-  auto wire = vpin.add_wires();
-  wire->set_layername(techlayer->getName());
-
-  for (auto line : gmvpin.lines) {
-    auto b = line.toBox(techlayer->getWidth());
-    auto wireSeg = wire->add_segments();
-    auto wireRect = wireSeg->mutable_rect();
-
-    auto point = wireRect->mutable_point();
-    point->mutable_point()->set_x(b.xMin());
-    point->mutable_point()->set_y(b.yMin());
-
-    auto rect = wireRect->mutable_rect();
-    rect->mutable_lowleft()->set_x(0);
-    rect->mutable_lowleft()->set_y(0);
-    rect->mutable_upright()->set_x(b.dx());
-    rect->mutable_upright()->set_y(b.dy());
-  }
-
-  return vpin;
-}
-
 void OpenDBAdapter::getNDRsFromODB()
 {
   auto chip = db_->getChip();
@@ -769,30 +641,33 @@ void OpenDBAdapter::getNDRsFromODB()
 
     odbNDR->getLayerRules(odbLayerRules);
     for (auto odbLayerRule : odbLayerRules) {
-      auto layerRule = ndr->add_layerrules();
+      auto layerRule = ndr->add_layers();
       layerRule->set_layername(odbLayerRule->getLayer()->getConstName());
       layerRule->set_width(odbLayerRule->getWidth());
-      layerRule->set_spacing(odbLayerRule->getSpacing());
-      layerRule->set_wireext(odbLayerRule->getWireExtension());
+      if (auto sp = odbLayerRule->getSpacing(); sp != odbLayerRule->getLayer()->getSpacing()) {
+        layerRule->mutable_spacing()->set_value(sp);
+      }
+      if (auto we = odbLayerRule->getWireExtension(); we != 0 && we != uint(odbLayerRule->getWidth() / 2)) {
+        layerRule->mutable_wireextension()->set_value(we);
+      }
     }
 
     odbNDR->getVias(odbVias);
-    for (auto odbPin : odbVias) {
-      auto viaName = odbPin->getConstName();
-      ndr->add_vianames()->assign(viaName);
+    for (auto odbVia : odbVias) {
+      ndr->mutable_vias()->AddAllocated(odbVia2Via(odbVia));
     }
     odbVias.clear();
     odbNDR->getUseVias(odbVias);
-    for (auto odbPin : odbVias) {
-      auto viaName = odbPin->getConstName();
-      ndr->add_vianames()->assign(viaName);
+    for (auto odbVia : odbVias) {
+      auto viaName = odbVia->getConstName();
+      ndr->add_usevias()->assign(viaName);
     }
     odbVias.clear();
 
     odbNDR->getUseViaRules(odbViaRules);
     for (auto odbViaRule : odbViaRules) {
       auto viaRuleName = odbViaRule->getName();
-      ndr->add_viarulenames()->assign(viaRuleName);
+      ndr->add_useviarules()->assign(viaRuleName);
     }
     odbViaRules.clear();
 
@@ -803,19 +678,12 @@ void OpenDBAdapter::getNDRsFromODB()
         continue;
       }
       auto min_cuts = ndr->add_mincuts();
-      min_cuts->set_layername(odbLayer->getConstName());
-      min_cuts->set_count(count);
+      min_cuts->set_cutlayer(odbLayer->getConstName());
+      min_cuts->set_cutsnum(count);
     }
   };
-  // Ref: If a nondefault rule name collides with an existing LEF or DEF
-  // nondefault rule name that has different parameters, the application should
-  // use the DEF definition when reading this DEF file, though it can change the
-  // DEF nondefault rule name to make it unique. So, handle NDRs in block before
-  // NDRs in tech.
+  // Banyan has its own lef parser, so only dump NDRs defined in DEF.
   for (auto odbNDR : block->getNonDefaultRules()) {
-    handleSingleNDR(odbNDR);
-  }
-  for (auto odbNDR : tech->getNonDefaultRules()) {
     handleSingleNDR(odbNDR);
   }
 }
@@ -824,24 +692,6 @@ void OpenDBAdapter::getNetsFromODB()
 {
   auto chip = db_->getChip();
   auto block = chip->getBlock();
-  auto designLegalized = isLegalized();
-  std::unordered_map<std::string, std::deque<VirtualPin>> net2Vpins;
-  if (designLegalized) {
-    logger_->warn(utl::BY, 1, "legalized design, run gridless maze on m1");
-    auto bydb = ByAdapter(db_, logger_).getByDb();
-    auto gm = GridlessMaze(db_, bydb, logger_, GridlessMaze::HIGH);
-    auto vpins = gm.run();
-    for (auto vpin : vpins) {
-      if (net2Vpins.find(vpin.netName) != net2Vpins.end()) {
-        net2Vpins[vpin.netName].push_back(gmVirtualPin2VirtualPin(vpin));
-      } else {
-        std::deque<VirtualPin> netVpins{gmVirtualPin2VirtualPin(vpin)};
-        net2Vpins[vpin.netName] = netVpins;
-      }
-    }
-  } else {
-    logger_->warn(utl::BY, 1, "unlegalized design, skip gridless maze on m1");
-  }
 
   for (auto odbNet : block->getNets()) {
     if (odbNet->isSpecial()) {
@@ -850,11 +700,6 @@ void OpenDBAdapter::getNetsFromODB()
     auto net = design_->add_nets();
     net->set_name(odbNet->getName());
     net->set_use(odbNetType2NetUse(odbNet->getSigType()));
-
-    auto vpins = net->mutable_virtualpins();
-    for (const auto& vpin : net2Vpins[odbNet->getName()]) {
-      *vpins->Add() = vpin;
-    }
 
     for (auto iterm : odbNet->getITerms()) {
       *net->mutable_pins()->Add() = odbITerm2Pin(iterm);
@@ -938,7 +783,6 @@ void OpenDBAdapter::getInstancesFromODB()
     auto component = design_->add_instances();
     component->set_name(instance->getName());
     component->set_macroname(master->getName());
-    macroNames.insert(master->getName());
     component->set_orient(odbOrient2Banyan(instance->getOrient()));
     auto point = component->mutable_origin();
 
@@ -947,112 +791,6 @@ void OpenDBAdapter::getInstancesFromODB()
     instance->getOrigin(x, y);
     point->set_x(x);
     point->set_y(y);
-  }
-}
-
-void OpenDBAdapter::getMacrosFromODB()
-{
-  auto sta_db_network_ = ord::OpenRoad::openRoad()->getSta()->getDbNetwork();
-  bool had_warn_no_liberty = false;
-  for (auto macroName : macroNames) {
-    auto master = db_->findMaster(macroName.c_str());
-    assert(master != nullptr);
-    auto macro = design_->add_macros();
-    macro->set_name(master->getName());
-    macro->set_width(master->getWidth());
-    macro->set_height(master->getHeight());
-
-    int x = 0;
-    int y = 0;
-    master->getOrigin(x, y);
-    auto point = macro->mutable_origin();
-    point->set_x(x);
-    point->set_y(y);
-    macro->set_mclass(odbMacroClass2Banyan(master));
-    for (auto mterm : master->getMTerms()) {
-      auto pin = macro->add_pins();
-      pin->set_name(mterm->getName());
-
-      auto sta_port = sta_db_network_->dbToSta(mterm);
-      auto sta_lib_port = sta_db_network_->libertyPort(sta_port);
-      if (sta_lib_port != nullptr) {
-        auto sta_direction = sta_lib_port->direction();
-        pin->set_direction(staPortDirection2Banyan(sta_direction));
-      } else {
-        if (not had_warn_no_liberty) {
-          logger_->warn(
-              utl::BY,
-              4,
-              "there is macro term that is not contained in the libs, such as {}/{}",
-              macroName, mterm->getName());
-          had_warn_no_liberty = true;
-        }
-        pin->set_direction(odbIOType2Banyan(mterm->getIoType()));
-      }
-      for (auto mpin : mterm->getMPins()) {
-        for (auto odbBox : mpin->getGeometry()) {
-          auto geo = pin->add_port();
-          if (odbBox->isVia()) {
-            auto via = geo->mutable_via();
-
-            int x;
-            int y;
-            odbBox->getViaXY(x, y);
-
-            via->set_vianame(viaNameFromViaBox(odbBox));
-            via->mutable_point()->mutable_point()->set_x(x);
-            via->mutable_point()->mutable_point()->set_y(y);
-          } else {
-            odb::Rect odbRect;
-            odbBox->getBox(odbRect);
-
-            if (odbRect.xMax() <= odbRect.xMin()
-                || odbRect.yMax() <= odbRect.yMin()) {
-              logger_->info(utl::BY,
-                            1,
-                            "skip invalid rect {} {} {} {}",
-                            odbRect.xMin(),
-                            odbRect.yMin(),
-                            odbRect.xMax(),
-                            odbRect.yMax());
-              continue;
-            }
-
-            auto box = geo->mutable_box();
-            box->set_layername(odbBox->getTechLayer()->getName());
-            auto rect = box->mutable_rect();
-            rect->mutable_lowleft()->set_x(odbRect.xMin());
-            rect->mutable_lowleft()->set_y(odbRect.yMin());
-            rect->mutable_upright()->set_x(odbRect.xMax());
-            rect->mutable_upright()->set_y(odbRect.yMax());
-          }
-        }
-      }
-    }
-    for (auto obs : master->getObstructions()) {
-      auto geo = macro->add_obss();
-
-      std::string layerName = obs->getTechLayer()->getName();
-
-      if (obs->xMax() <= obs->xMin() || obs->yMax() <= obs->yMin()) {
-        logger_->info(utl::BY,
-                      1,
-                      "skip invalid rect {} {} {} {}",
-                      obs->xMin(),
-                      obs->yMin(),
-                      obs->xMax(),
-                      obs->yMax());
-        continue;
-      }
-
-      auto box = geo->mutable_box();
-      box->set_layername(layerName);
-      auto rect = box->mutable_rect();
-      rect->mutable_lowleft()->set_x(obs->xMin());
-      rect->mutable_lowleft()->set_y(obs->yMin());
-      rect->mutable_upright()->set_x(obs->xMax());
-      rect->mutable_upright()->set_y(obs->yMax());
-    }
   }
 }
 
@@ -1066,10 +804,6 @@ void OpenDBAdapter::getBlockagesFromODB()
   for (auto odbBlockage : block->getObstructions()) {
     auto layerName = odbBlockage->getBBox()->getTechLayer()->getName();
 
-    int xl = odbBlockage->getBBox()->xMin();
-    int yl = odbBlockage->getBBox()->yMin();
-    int xh = odbBlockage->getBBox()->xMax();
-    int yh = odbBlockage->getBBox()->yMax();
     auto obs = design_->add_blockages();
     BlockageUse use = BlockageUse::OBS;
     if (rtBlockageIdSet.find(odbBlockage->getId()) != rtBlockageIdSet.end()) {
@@ -1078,11 +812,18 @@ void OpenDBAdapter::getBlockagesFromODB()
     obs->set_use(use);
     auto box = obs->add_boxes();
     box->set_layername(layerName);
-    auto rect = box->mutable_rect();
-    rect->mutable_lowleft()->set_x(xl);
-    rect->mutable_lowleft()->set_y(yl);
-    rect->mutable_upright()->set_x(xh);
-    rect->mutable_upright()->set_y(yh);
+    box->set_allocated_rect(box2pb(odbBlockage->getBBox()));
+  }
+}
+
+void OpenDBAdapter::getRowsFromODB()
+{
+  for (auto row : db_->getChip()->getBlock()->getRows()) {
+    if (row->getDirection() != odb::dbRowDir::HORIZONTAL)
+      logger_->error(utl::BY, 9, "Banyan dont support non-horizontal row");
+    odb::Rect b;
+    row->getBBox(b);
+    design_->mutable_rows()->AddAllocated(box2pb(&b));
   }
 }
 
@@ -1099,6 +840,11 @@ sta::Pin* OpenDBAdapter::pin2StaPin(sta::dbNetwork* network, Pin* pin)
     auto bterm = block->findBTerm(instanceName.c_str());
     return network->dbToSta(bterm);
   }
+}
+
+void OpenDBAdapter::ensureStaDB() {
+  if (sta_db_network_ == nullptr)
+    sta_db_network_ = ord::OpenRoad::openRoad()->getSta()->getDbNetwork();
 }
 
 void OpenDBAdapter::getWireBudgetingFromLrl()
@@ -1148,11 +894,11 @@ void OpenDBAdapter::loadDesignFromODB()
   getRoutingLayersFromODB();
   getIOPinsFromODB();
   getInstancesFromODB();
-  getMacrosFromODB();
   getNDRsFromODB();
   getNetsFromODB();
   getSpecialNetsFromODB();
   getBlockagesFromODB();
+  getRowsFromODB();
   getWireBudgetingFromLrl();
 }
 
@@ -1177,7 +923,7 @@ void OpenDBAdapter::updateDB(const Design& design)
     auto layerInOpenDB = tech->findLayer(layerName.c_str());
     _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
 
-    auto point = pbvia.point().point();
+    auto point = pbvia.point();
     _wire_encoder.addPoint(point.x(), point.y());
     auto vianame = pbvia.vianame();
     odb::dbTechVia* tech_via = tech->findVia(vianame.c_str());
@@ -1208,7 +954,7 @@ void OpenDBAdapter::updateDB(const Design& design)
           auto ll = rect.rect().lowleft();
           auto ur = rect.rect().upright();
 
-          auto point = rect.point().point();
+          auto point = rect.point();
           _wire_encoder.addPoint((int) point.x(), (int) point.y());
           _wire_encoder.addRect(
               (int) ll.x(), (int) ll.y(), (int) ur.x(), (int) ur.y());
@@ -1224,44 +970,6 @@ void OpenDBAdapter::updateDB(const Design& design)
       } else if (pbWireSeg.has_via()) {
         pbVia2ODBVia(layerName, pbWireSeg.via());
       }
-    }
-  };
-
-  auto updateAccessPoint = [&](const PinAccessPoint& pbAccessPoint) {
-    auto layerName = pbAccessPoint.layername();
-    switch (pbAccessPoint.ap_case()) {
-      case PinAccessPoint::ApCase::kOnTrack:
-        // do nothing
-        break;
-      case PinAccessPoint::ApCase::kDropVia: {
-        auto dropvia = pbAccessPoint.dropvia();
-        pbWire2ODBWire(dropvia.via());
-        break;
-      }
-      case PinAccessPoint::ApCase::kCoverTracks: {
-        auto covertracks = pbAccessPoint.covertracks();
-        pbWire2ODBWire(covertracks.line());
-        for (auto block : covertracks.blocks()) {
-          pbWire2ODBWire(block);
-        }
-        break;
-      }
-      case PinAccessPoint::ApCase::kMazePaths: {
-        auto mazepaths = pbAccessPoint.mazepaths();
-        if (mazepaths.has_via()) {
-          pbWire2ODBWire(mazepaths.via());
-        }
-        if (mazepaths.has_line()) {
-          pbWire2ODBWire(mazepaths.line());
-        }
-        for (auto pbWire : mazepaths.blocks()) {
-          pbWire2ODBWire(pbWire);
-        }
-        break;
-      }
-      default:
-        // do nothing
-        break;
     }
   };
 
@@ -1285,25 +993,10 @@ void OpenDBAdapter::updateDB(const Design& design)
     wire = odb::dbWire::create(netInOpenDB);
     _wire_encoder.begin(wire);
 
-    for (auto pbPin : net.pins()) {
-      if (pbPin.aps_size() <= 0) {
-        continue;
-      }
-      for (auto pbAccessPoint : pbPin.aps()) {
-        updateAccessPoint(pbAccessPoint);
-      }
-    }
-
-    for (auto pbVPin : net.virtualpins()) {
-      for (auto pbAccessPoint : pbVPin.aps()) {
-        updateAccessPoint(pbAccessPoint);
-      }
-      for (auto pbWire : pbVPin.wires()) {
-        pbWire2ODBWire(pbWire);
-      }
-    }
-
     for (auto pbWire : net.wires()) {
+      pbWire2ODBWire(pbWire);
+    }
+    for (auto pbWire : net.pinaccesswires()) {
       pbWire2ODBWire(pbWire);
     }
 

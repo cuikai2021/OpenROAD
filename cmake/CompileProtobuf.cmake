@@ -46,15 +46,19 @@ function(protoc)
 
     set(cpps "")
     foreach(pb IN LISTS protos)
+        get_filename_component(_pb_abs_dir ${pb} DIRECTORY)
+        file(RELATIVE_PATH _pb_rel_dir ${pb_dir} ${_pb_abs_dir})
         get_filename_component(pb_base ${pb} NAME_WLE)
-        list(APPEND cpps "${cpp_out}/${pb_base}.pb.cc")
+        list(APPEND cpps "${cpp_out}/${_pb_rel_dir}/${pb_base}.pb.cc")
     endforeach()
 
     set(outs "")
     foreach(pb IN LISTS protos)
+        get_filename_component(_pb_abs_dir ${pb} DIRECTORY)
+        file(RELATIVE_PATH _pb_rel_dir ${pb_dir} ${_pb_abs_dir})
         get_filename_component(pb_base ${pb} NAME_WLE)
-        list(APPEND outs "${cpp_out}/${pb_base}.pb.h")
-        list(APPEND outs "${cpp_out}/${pb_base}.pb.cc")
+        list(APPEND outs "${cpp_out}/${_pb_rel_dir}/${pb_base}.pb.h")
+        list(APPEND outs "${cpp_out}/${_pb_rel_dir}/${pb_base}.pb.cc")
     endforeach()
 
     add_custom_command(

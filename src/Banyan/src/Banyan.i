@@ -1,5 +1,4 @@
 %{
-
 #include "ord/OpenRoad.hh"
 #include "banyan/Banyan.h"
 
@@ -22,7 +21,6 @@ using std::vector;
   $1 = args;
 }
 
-
 %typemap(in) std::string {
   char *cstr = Tcl_GetStringFromObj($input, 0);
   std::string str = cstr;
@@ -30,6 +28,7 @@ using std::vector;
 }
 
 %inline %{
+
 namespace banyan {
 
 void banyan(std::vector<std::string> args)
@@ -42,26 +41,6 @@ void banyanClearWires(bool excludeClock, bool excludeSignal)
     ord::OpenRoad::openRoad()->getBanyan()->clearWires(excludeClock, excludeSignal);
 }
 
-void mergeWireSegment()
-{
-    ord::OpenRoad::openRoad()->getBanyan()->mergeWireSegment();
-}
-
-void m1GridlessMaze()
-{
-    ord::OpenRoad::openRoad()->getBanyan()->m1GridlessMaze();
-}
-
-void banyanRunGui()
-{
-    ord::OpenRoad::openRoad()->getBanyan()->runGui();
-}
-
-void drcPatch()
-{
-    ord::OpenRoad::openRoad()->getBanyan()->drcPatch();
-}
-
 void regression_RC_cmd(const char *spef, const char *setRC_tcl, const char *plot_file_prefix)
 {
     ord::OpenRoad::openRoad()->getBanyan()->regression_RC(spef, setRC_tcl, plot_file_prefix);
@@ -72,10 +51,11 @@ void saveDB(std::string dbfile)
     ord::OpenRoad::openRoad()->getBanyan()->savedb(dbfile);
 }
 
+void loadDB(std::string dbfile)
+{
+    ord::OpenRoad::openRoad()->getBanyan()->loaddb(dbfile);
+}
+
 }
 
 %} // inline
-
-
-
-

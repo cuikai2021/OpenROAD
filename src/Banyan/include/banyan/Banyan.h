@@ -16,7 +16,6 @@
 #include <string>
 #include <vector>
 
-#include "ByDb.hpp"
 #include "ord/OpenRoad.hh"
 #include "odb/db.h"
 
@@ -55,20 +54,19 @@ class Banyan : public ord::OpenRoad::Observer
 
   int main(std::vector<std::string> args, bool updateDB);
   int cmap(const std::string& cmapPb, bool cgr_mode);
-  void mergeWireSegment();
-  int m1GridlessMaze();
-  void runGui();
-  void drcPatch();
   void clearWires(bool excludeClock, bool excludeSignal);
   void regression_RC(const char *spef, const char *setRC_tcl, const char *plot_file_prefix);
   void savedb(std::string dbfile);
+  void loaddb(std::string dbfile);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
                            odb::dbTech* tech,
-                           odb::dbLib* library) override
+                           odb::dbLib*) override
   {
     if (tech) {
-      techfile_name_ = filename;
+      tech_lef_file_name_ = filename;
+    } else {
+      other_lef_file_names_.emplace_back(filename);
     }
   }
 
@@ -78,7 +76,8 @@ class Banyan : public ord::OpenRoad::Observer
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
   rsz::Resizer* resizer_;
-  std::string techfile_name_;
+  std::string tech_lef_file_name_;
+  std::vector<std::string> other_lef_file_names_;
 };  // class Banyan
 
 }  // namespace banyan
