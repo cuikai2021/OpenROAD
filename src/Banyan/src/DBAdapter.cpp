@@ -268,7 +268,7 @@ std::deque<Wire> OpenDBAdapter::odbWires2Wires(odb::dbWire* odbWires)
     if (endExt != DEFAULT_WIRE_EXT) {
       end->mutable_extvalue()->set_value(endExt);
     }else{
-      end->clear_extvalue()
+      end->clear_extvalue();
     }
     end->mutable_point()->set_x(endX);
     end->mutable_point()->set_y(endY);
