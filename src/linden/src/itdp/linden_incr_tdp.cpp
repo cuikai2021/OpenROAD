@@ -42,7 +42,7 @@ const double LP_ERROR = 1e-7;
 // TODO: This config var can be removed after we confirmed the correctness of decomposing.
 // TODO: check the checker of decomposing.
 const bool DECOMPOSE = false; // fix it
-    
+
 }  // namespace
 
 typedef std::pair<const Pin*, const Pin*> Segment;  // wire segment
@@ -223,7 +223,7 @@ void report_delays(
     const deque<TimingArc>& timing_arcs,
     const deque<Port>& ports,
     const deque<SeqPin>& seq_pins)
-{   
+{
     auto pin2arr = [&]() {
         unordered_map<const Pin*, double> pin2arr;
         auto update_pin2arr = [&](const Pin* pin, double arrival_time) {
@@ -232,7 +232,7 @@ void report_delays(
                 pin2arr[pin] = arrival_time;
             }
         };
-        
+
         for (auto& arc : timing_arcs) {
             update_pin2arr(arc.input_pin, arc.input_arr);
             update_pin2arr(arc.output_pin, arc.output_arr);
@@ -426,7 +426,7 @@ unordered_set<const Net*> find_movable_nets(
     auto is_clk_net = [&](auto net) {
         return clk_nets.contains(net);
     };
-    
+
     unordered_set<const Net*> movable_nets;
     for (auto cell : movable_cells) {
         auto const& nets = cell2nets(cell);
@@ -667,7 +667,7 @@ void construct_effective_subcirsuit(
     auto add_arcs = [&]() {
         unordered_set<const TimingArc*> add_arcs;
         ranges::for_each(movable_nets, [&](const auto& net) {
-            ranges::for_each(net->pins() 
+            ranges::for_each(net->pins()
                             | views::filter([&](const auto& pin) { return pin2arcs.contains(&pin.get()); }) ,
                 [&](const auto& pin) {
                     const auto& arcs = pin2arcs.at(&pin.get());
@@ -697,8 +697,8 @@ void construct_effective_subcirsuit(
             }
         }();
         FASSERT(net_driver != nullptr)(net->name());
-        ranges::for_each(pins 
-                        | views::transform([](const auto& p) { return &p.get(); }) 
+        ranges::for_each(pins
+                        | views::transform([](const auto& p) { return &p.get(); })
                         | views::filter([&](const auto& p) { return !equal_pins(p, net_driver); }),
             [&](const auto& pin) {
                 output_segments.emplace_back(std::make_pair(net_driver, pin));
@@ -710,21 +710,21 @@ void construct_effective_subcirsuit(
     };
 
     // find start points and end points
-    ranges::for_each(output_timing_arcs 
+    ranges::for_each(output_timing_arcs
                     | ranges::views::filter([&](const auto &arc) { return not is_movable_net(arc.input_pin->net()); })
                     | ranges::views::transform([](const auto &arc) { return arc.input_pin; }),
         [&start_points](const auto &pin) {
             start_points.insert(pin);
         }
     );
-    ranges::for_each(output_timing_arcs 
+    ranges::for_each(output_timing_arcs
                     | ranges::views::filter([&](const auto &arc) { return not is_movable_net(arc.output_pin->net()); })
                     | ranges::views::transform([](const auto &arc) { return arc.output_pin; }),
         [&end_points](const auto &pin) {
             end_points.insert(pin);
         }
     );
-    ranges::for_each(ports 
+    ranges::for_each(ports
                     | ranges::views::filter([&](const auto &port) { return is_movable_net(port.bterm->net()); })
                     | ranges::views::filter([](const auto &port) { return port.is_input; })
                     | ranges::views::transform([](const auto &port) { return port.bterm; }),
@@ -732,7 +732,7 @@ void construct_effective_subcirsuit(
             start_points.insert(pin);
         }
     );
-    ranges::for_each(ports 
+    ranges::for_each(ports
                     | ranges::views::filter([&](const auto &port) { return is_movable_net(port.bterm->net()); })
                     | ranges::views::filter([](const auto &port) { return port.is_output; })
                     | ranges::views::transform([](const auto &port) { return port.bterm; }),
@@ -743,7 +743,7 @@ void construct_effective_subcirsuit(
 
     // ignore seqpin's start points as they are clk pins
 
-    ranges::for_each(seq_pins 
+    ranges::for_each(seq_pins
                     | ranges::views::filter([&movable_nets](const auto &seqpin) { return movable_nets.contains(&(seqpin.pin->net())); })
                     | ranges::views::filter([](const auto &seqpin) { return seqpin.is_end; })
                     | ranges::views::transform([](const auto &seqpin) { return seqpin.pin; }),
@@ -841,7 +841,7 @@ deque<Subcircuit> decompose_problem(
 
     // create the corresponding subcircuit
     auto construct_subcircuit = [&](const unordered_set<const Pin*> &reached) {
-        Subcircuit sc;  
+        Subcircuit sc;
         std::copy_if(reached.begin(), reached.end(), std::inserter(sc.start_points, sc.start_points.end()), [&](const auto &pin) {
             return start_points.contains(pin);
         });
@@ -849,7 +849,7 @@ deque<Subcircuit> decompose_problem(
             return end_points.contains(pin);
         });
 
-        ranges::for_each(reached 
+        ranges::for_each(reached
                         | ranges::views::filter([](const auto &pin) { return pin->cell().has_value(); })
                         | ranges::views::transform([](const auto &pin) { return &(pin->cell()->get()); })
                         | ranges::views::filter([&movable_cells](const auto &cell) { return movable_cells.contains(cell); }),
@@ -858,7 +858,7 @@ deque<Subcircuit> decompose_problem(
             }
         );
 
-        ranges::for_each(reached 
+        ranges::for_each(reached
                         | ranges::views::transform([](const auto &pin) { return &(pin->net()); })
                         | ranges::views::filter([&movable_nets](const auto &net) { return movable_nets.contains(net); }),
             [&](const auto &net) {
@@ -867,7 +867,7 @@ deque<Subcircuit> decompose_problem(
         );
 
         unordered_set<const TimingArc*> add_arcs;
-        ranges::for_each(reached 
+        ranges::for_each(reached
                         | ranges::views::filter([&pin2arc](const auto &pin) { return pin2arc.contains(pin); })
                         | ranges::views::transform([&pin2arc](const auto &pin) { return pin2arc.at(pin); }),
             [&add_arcs](const auto &arcs) {
@@ -879,7 +879,7 @@ deque<Subcircuit> decompose_problem(
         });
 
         unordered_set<const Segment*> add_segs;
-        ranges::for_each(reached 
+        ranges::for_each(reached
                         | ranges::views::filter([&driver2segs](const auto &pin) { return driver2segs.contains(pin); })
                         | ranges::views::transform([&driver2segs](const auto &pin) { return driver2segs.at(pin); }),
             [&add_segs](const auto &segs) {
@@ -1871,74 +1871,9 @@ void feasiblility_checker(
     const unordered_set<const Net*>& movable_nets)
 {
     const auto unit = itdpconfig::LENGTH_UNIT * itdpconfig::TIME_UNIT;
-    const auto& core = linden_db->core_region();
-    auto get_pin_location = [&](const Pin& pin) -> DoublePoint {
-        double x = 0;
-        double y = 0;
-        if (pin.term_type() == Pin::TERM_TYPE::ODB_BTERM) {
-            x = pin.c(X) / itdpconfig::NETLENGTH_SCALING_UNIT;
-            y = pin.c(Y) / itdpconfig::NETLENGTH_SCALING_UNIT;
-        } else {
-            auto cell = &(pin.cell()->get());
-            if (movable_cells.contains(cell)) {
-                auto cell_pos_x = (*solution).at(cell_variable(cell, "x"));
-                auto cell_pos_y = (*solution).at(cell_variable(cell, "y"));
-                auto pin_offset_x = pin.offset(X) / itdpconfig::NETLENGTH_SCALING_UNIT;
-                auto pin_offset_y = pin.offset(Y) / itdpconfig::NETLENGTH_SCALING_UNIT;
-                x = cell_pos_x + pin_offset_x;
-                y = cell_pos_y + pin_offset_y;
-            } else {
-                x = pin.c(X) / itdpconfig::NETLENGTH_SCALING_UNIT;
-                y = pin.c(Y) / itdpconfig::NETLENGTH_SCALING_UNIT;
-            }
-        }
-        return {x, y};
-    };
 
     auto double_ne0 = [&](double x) {
         return fabs(x) > itdpconfig::LP_ERROR;
-    };
-
-    auto check_bbox_of_movable_net = [&](const Net* net) {
-        double min_lx = core.ux() / itdpconfig::NETLENGTH_SCALING_UNIT;
-        double max_ux = core.lx() / itdpconfig::NETLENGTH_SCALING_UNIT;
-        double min_ly = core.uy() / itdpconfig::NETLENGTH_SCALING_UNIT;
-        double max_uy = core.ly() / itdpconfig::NETLENGTH_SCALING_UNIT;
-        for (auto& pin : net->pins()) {
-            auto loc = get_pin_location(pin.get());
-            if (loc.x() < min_lx) {
-                min_lx = loc.x();
-            }
-            if (loc.x() > max_ux) {
-                max_ux = loc.x();
-            }
-            if (loc.y() < min_ly) {
-                min_ly = loc.y();
-            }
-            if (loc.y() > max_uy) {
-                max_uy = loc.y();
-            }
-        }
-        auto net_lx = (*solution).at(net_variable(net, "lx"));
-        auto net_ux = (*solution).at(net_variable(net, "ux"));
-        auto net_ly = (*solution).at(net_variable(net, "ly"));
-        auto net_uy = (*solution).at(net_variable(net, "uy"));
-        if (double_ne0(net_lx - min_lx)) {
-            spdlog::error("Feasiblility Error: net_lx: {} min_lx: {}",
-                          net_lx, min_lx);
-        }
-        if (double_ne0(net_ly - min_ly)) {
-            spdlog::error("Feasiblility Error: net_ly: {} min_ly: {}",
-                          net_ly, min_ly);
-        }
-        if (double_ne0(net_ux - max_ux)) {
-            spdlog::error("Feasiblility Error: net_ux: {} max_ux: {}",
-                          net_ux, max_ux);
-        }
-        if (double_ne0(net_uy - max_uy)) {
-            spdlog::error("Feasiblility Error: net_uy: {} max_uy: {}",
-                          net_uy, max_uy);
-        }
     };
 
     auto check_delta_netlenght = [&](const Net* net) {
@@ -1953,22 +1888,19 @@ void feasiblility_checker(
         auto delta_netlength_error = abs(delta_netlength - (new_wl - old_wl)) ;
         if (double_ne0(delta_netlength_error)) {
             spdlog::error("Feasiblility Error: delta_netlength_error: {} lp_error: {}",
-                          delta_netlength_error, itdpconfig::LP_ERROR * unit);
+                delta_netlength_error, itdpconfig::LP_ERROR * unit);
         }
         auto abs_delta_netlength = (*solution).at(net_variable(net, "abs_delta_netlength"));
         auto abs_delta_netlength_error = abs(abs(delta_netlength) - abs_delta_netlength) ;
         if (double_ne0(abs_delta_netlength_error)) {
             spdlog::error("Feasiblility Error: abs_delta_netlength_error: {} lp_error: {}",
-                          abs_delta_netlength_error, itdpconfig::LP_ERROR * unit);
+                abs_delta_netlength_error, itdpconfig::LP_ERROR * unit);
         }
     };
 
     for (auto net : movable_nets) {
-        #if 0 
         // FIXME: check_bbox_of_movable_net is not working
         //        Should check on critical-nets only.
-        check_bbox_of_movable_net(net);
-        #endif 
         check_delta_netlenght(net);
     }
     spdlog::info("Feasiblility Checker Passed");
@@ -2239,7 +2171,7 @@ void timing_driven_cell_move(
     spdlog::info(dot_line);
     spdlog::info("wire_cap={}, wire_res={}", config.wire_cap, config.wire_res);
     spdlog::info(dot_line);
-    
+
     // assumption check
     assumption_checker(linden_db, timing_arcs, ports);
 
@@ -2247,7 +2179,7 @@ void timing_driven_cell_move(
     auto movable_cells = move(select_movable_cells(linden_db, timing_arcs, seq_pins));
     // extend_movable_cells(linden_db, movable_cells);
     auto movable_nets = move(find_movable_nets(linden_db, movable_cells, seq_pins));
-    
+
     spdlog::info(dot_2lines);
     spdlog::info("Original Circuit: ");
     spdlog::info("num movable cells: {}", movable_cells.size());
