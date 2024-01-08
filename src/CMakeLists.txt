@@ -166,9 +166,19 @@ add_compile_options(
 add_link_options(-rdynamic -no-pie)
 # ========
 
-IF(USE_LINDEN_DEBUG_LIBS)
+if (ENABLE_GCOV)
+  add_compile_options(--coverage)
+  add_link_options(--coverage)
+endif()
+
+if (ENABLE_LIBASAN)
+  add_compile_options(-fsanitize=address)
+  add_link_options(-fsanitize=address)
+endif()
+
+if(USE_LINDEN_DEBUG_LIBS)
   add_link_options(--coverage -fsanitize=address)
-ENDIF(USE_LINDEN_DEBUG_LIBS)
+endif()
 
 ################################################################
 

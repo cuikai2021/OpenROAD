@@ -1,10 +1,13 @@
 #include "linden/lindendp.hpp"
 #include "fassert.hpp"
 #include "linden/lefdef_dumper.hpp"
+#include "pblefdef.pb.h"
 #include "toml++/toml.h"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "rsz/Resizer.hh"
+#include "lrl/CircuitModifier/CircuitModifier.hh"
+#include "lrl/Laurel.hh"
 #include "sta/StaMain.hh"
 #include "sta/Units.hh"
 #include "utl/metrics.hpp"
@@ -71,7 +74,7 @@ std::filesystem::path get_incr_dp_exe() {
 
 string output_def_name(const string& basename) {
     string res(basename);
-    res.append(".out.def");
+    res.append(".out.pbdef");
     cout << "out def: " << res << endl;
     return res;
 }
@@ -240,33 +243,76 @@ deque<string> split(const string& raw, const string_view& seps) noexcept {
     return res;
 }
 
-void report_metrics() {
-  rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
-  rs->estimateParasitics(rsz::ParasiticsSrc::placement);
-  auto sta = ::ord::OpenRoad::openRoad()->getSta();
+char const WHITESPACES[] = " \t\n";
 
-  const int DIGITS = 5;
-  auto total_negative_slack = sta->totalNegativeSlack(sta::MinMax::max());
-
-  sta::Slack worst_slack;
-  sta::Vertex* worst_vertex;
-  sta->worstSlack(sta::MinMax::max(), worst_slack, worst_vertex);
-
-  auto tns = sta->units()->timeUnit()->asString(total_negative_slack, DIGITS);
-  auto wns = sta->units()->timeUnit()->asString(worst_slack, DIGITS);
-
-  metrics::Config mcfg = metrics::Config::sink_to_stderr();
-  if(auto opt = LINDEN_DP_METRICS_FILE(); opt) {
-    mcfg = metrics::Config::sink_to_file(*opt);
-  }
-  metrics::Reporter reporter(mcfg);
-  // TODO:
-  // 1. shall we convert tns and wns to numbers?
-  reporter["dp"]["tns"] = tns;
-  reporter["dp"]["wns"] = wns;
+odb::dbOrientType::Value pb_to_dbOrientType(pblefdef::Orient pb) noexcept
+{
+    switch (pb) {
+        case pblefdef::Orient::NORTH: return odb::dbOrientType::R0;
+        case pblefdef::Orient::SOUTH: return odb::dbOrientType::R180;
+        case pblefdef::Orient::EAST: return odb::dbOrientType::R270;
+        case pblefdef::Orient::WEST: return odb::dbOrientType::R90;
+        case pblefdef::Orient::FLIPPED_NORTH: return odb::dbOrientType::MY;
+        case pblefdef::Orient::FLIPPED_SOUTH: return odb::dbOrientType::MX;
+        case pblefdef::Orient::FLIPPED_EAST: return odb::dbOrientType::MYR90;
+        case pblefdef::Orient::FLIPPED_WEST: return odb::dbOrientType::MXR90;
+        default: {
+            FASSERT(false).what("unreachable!");
+            return odb::dbOrientType::R0;
+        }
+    }
 }
 
-char const WHITESPACES[] = " \t\n";
+void read_back(const string& outdef)
+{
+    pblefdef::DesignExchangeFormat def;
+    {
+        ifstream fin(outdef);
+        if (!fin) {
+            spdlog::error("Cannot open result DEF from Linden detailed placer: {}", outdef);
+            throw std::runtime_error("Cannot open result DEF from Linden detailed placer.");
+        }
+        bool ret = def.ParseFromIstream(&fin);
+        if (!ret) {
+            spdlog::error("Cannot parse result DEF from Linden detailed placer: {}", outdef);
+            throw std::runtime_error("Cannot parse result DEF from Linden detailed placer.");
+        }
+    }
+    ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
+    sta::dbNetwork& db_network = *ord.getDbNetwork();
+    sta::dbSta& sta = *ord.getSta();
+    sta::Network& sta_network = *sta.network();
+    lrl::NetworkModifier cm(&ord);
+    for(size_t i = 0, sz = def.components_size(); i < sz; ++i) {
+        const pblefdef::DesignExchangeFormat_Component& comp = def.components(i);
+        const string& cell_name = comp.name();
+        FASSERT(comp.has_place());
+        const pblefdef::DesignExchangeFormat_Place& place = comp.place();
+        FASSERT(place.has_position());
+        const pblefdef::Point& target_pos = place.position();
+        odb::Point target_pt(target_pos.x() / 1000, target_pos.y() / 1000); // pm to nm
+        odb::dbOrientType target_orient(pb_to_dbOrientType(place.orient()));
+
+        sta::Instance* sta_inst = sta_network.findInstance(cell_name.c_str());
+        FASSERT(sta_inst != nullptr)
+            .what("Linden DP so far does not add/remove cells. So, everything must be there in ODB & STA.");
+        odb::dbInst* odb_inst = db_network.staToDb(sta_inst);
+        FASSERT(odb_inst != nullptr)
+            .what("Linden DP so far does not add/remove cells. So, everything must be there in ODB & STA.");
+        odb::dbMaster* master = odb_inst->getMaster();
+        odb::Rect bbox;
+        master->getPlacementBoundary(bbox);
+        odb::dbTransform t(target_orient);
+        t.apply(bbox);
+        odb::Point real_target_pt(
+            target_pt.x() - bbox.xMin(),
+            target_pt.y() - bbox.yMin());
+
+        cm.moveInst(sta_inst, real_target_pt, target_orient.getValue());
+    }
+    rsz::Resizer& resizer = *ord.getResizer();
+    resizer.estimateParasitics(rsz::ParasiticsSrc::placement);
+}
 
 } // namespace
 
@@ -313,8 +359,7 @@ int DetailedPlacer::go(deque<string>& args)
     string input_cfg_fn = std::move(write_input_config(input_cfg, basename));
     string outdef = std::move(output_def_name(basename));
     int ret = exec_basic_dp(input_cfg_fn, outdef, not_stop_when_illegal);
-    openroad_.readDef(outdef.c_str(), false, false, true);
-    report_metrics();
+    read_back(outdef);
     return ret;
 }
 
@@ -381,8 +426,7 @@ int IncrLegalizer::go(deque<string>& args)
     string input_cfg_fn = std::move(write_input_config(input_cfg, basename));
     string outdef = std::move(output_def_name(basename));
     int ret = exec_incr_dp(input_cfg_fn, outdef, baseline, not_stop_when_illegal);
-    openroad_.readDef(outdef.c_str(), false, false, true);
-    report_metrics();
+    read_back(outdef);
     return ret;
 }
 

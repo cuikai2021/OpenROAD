@@ -35,4 +35,5 @@ PUBLIC
     prettyprint
     tomlpp
     linden_pb
+    linden_proto
 )

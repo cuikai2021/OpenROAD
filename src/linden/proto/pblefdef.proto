@@ -1,0 +1,779 @@
+syntax = "proto3";
+package pblefdef;
+
+message LibraryExchangeFormat {
+    Version version = 1;
+    BusBitChars bus_bit_chars = 2;
+    DividerChar divider_char = 3;
+
+    oneof optional_manufacturing_grid {
+        int64 manufacturing_grid = 4; // in picometres
+    }
+
+    enum ClearanceMeasure {
+        EUCLIDEAN = 0;
+        MAXXY = 1;
+    }
+    oneof optional_clearance_measure {
+        ClearanceMeasure clearance_measure = 5;
+    }
+
+    bool fixed_mask = 6;
+
+    message UseMinSpacing {
+        bool obs = 1;
+    }
+    UseMinSpacing use_min_spacing = 7;
+
+    Units units = 8;
+    repeated PropertyDefinition property_definitions = 9;
+
+    message Site {
+        bytes name = 1;
+
+        enum Class {
+            PAD = 0;
+            CORE = 1;
+        }
+        Class class = 2;
+        Size size = 3;
+        Symmetry symmetry = 4;
+    }
+    repeated Site sites = 10;
+
+    message Layer {
+        bytes name = 1;
+
+        oneof optional_mask {
+            int64 mask = 2;
+        }
+
+        repeated Property properties = 3;
+
+        enum Measure {
+            PEAK = 0;
+            AVERAGE = 1;
+            ROOT_MEAN_SQUARE = 2;
+        }
+
+        message MasterSlice {}
+        message Overlap {}
+        message Cut {
+            message Spacing {
+                int64 cut_spacing = 1; // in picometres
+                bool center_to_center = 2;
+                bool same_net = 3;
+
+                message SecondLayer {
+                    bytes name = 1;
+                    bool stack = 2;
+                }
+                message AdjacentCuts {
+                    int64 adjacent_cuts = 1;
+                    int64 within = 2; // in picometres
+                    bool except_same_pg_net = 3;
+                }
+                message ParallelOverlap {
+                }
+                oneof rule {
+                    SecondLayer second_layer = 4;
+                    AdjacentCuts adjacent_cuts = 5;
+                    ParallelOverlap parallel_overlap = 6;
+                    int64 area = 7; // in pm^2
+                }
+            }
+            repeated Spacing spacing = 1;
+
+            message SpacingEntry {
+                int64 cut_within = 1; // in picometres
+                int64 orthogonal_spacing = 2; // in picometres
+            }
+            repeated SpacingEntry spacing_table = 2;
+
+            oneof optional_width {
+                int64 width = 3; // in picometres
+            }
+
+            message Enclosure {
+                enum Position {
+                    BOTH = 0;
+                    ABOVE = 1;
+                    BELOW = 2;
+                }
+                Position position = 1;
+                int64 overhang1 = 2; // in picometres
+                int64 overhang2 = 3; // in picometres
+
+                message EnclosureWidth {
+                    int64 min_width = 1; // in picometres
+
+                    oneof optional_except_extra_cut {
+                        int64 cut_within = 2; // in picometres
+                    }
+                }
+                oneof width_or_length {
+                    EnclosureWidth width = 4;
+                    int64 length = 5; // in picometres
+                }
+            }
+            repeated Enclosure enclosures = 4;
+
+            message AcCurrentDensity {
+                Measure measure = 1;
+
+                message Table {
+                    repeated double frequencies = 1; // MHz
+                    repeated int64 cut_areas = 2; // in pm^2
+                    repeated double currents = 3; // in mA/um
+                }
+                oneof density {
+                    double value = 2; // in mA/um
+                    Table table = 3;
+                }
+            }
+            repeated AcCurrentDensity ac_current_densities = 5;
+
+            message DcCurrentDensity {
+                message Table {
+                    repeated int64 cut_areas = 1; // in pm^2
+                    repeated double currents = 2; // in mA/um
+                }
+                oneof density {
+                    double value = 1; // in mA/um
+                    Table table = 2;
+                }
+            }
+            DcCurrentDensity dc_current_density = 6;
+        }
+        message Routing {
+            enum Direction {
+                HORIZONTAL = 0;
+                VERTICAL = 1;
+                DIAG45 = 2;
+                DIAG135 = 3;
+            }
+            Direction direction = 1;
+
+            message Pitch {
+                int64 x = 1; // in picometres
+                int64 y = 2; // in picometres.
+            }
+            Pitch pitch = 2;
+
+            int64 default_width = 3; // in picometres
+
+            message Offset {
+                int64 x = 1; // in picometres
+                int64 y = 2; // in picometres
+            }
+            Offset offset = 4;
+
+            oneof optional_height {
+                int64 height = 5; // in picometres
+            }
+
+            oneof optional_thickness {
+                int64 thickness = 6; // in picometres
+            }
+
+            oneof optional_fill_active_spacing {
+                int64 fill_active_spacing = 7; // in picometres
+            }
+
+            oneof optional_max_width {
+                int64 max_width = 8;  // in picometres
+            }
+
+            oneof optional_min_width {
+                int64 min_width = 9; // in picometres
+            }
+
+            oneof optional_min_area {
+                int64 min_area = 10; // in pm^2
+            }
+
+            message MinEnclosedArea {
+                int64 area = 1; // in pm^2
+                oneof optional_width {
+                    int64 width = 2; // in picometres
+                }
+            }
+            repeated MinEnclosedArea min_enclosed_areas = 11;
+
+            message MinimumCut {
+                int64 num_cuts = 1;
+                int64 width = 2; // in picometres
+                oneof optional_cut_distance {
+                    int64 cut_distance = 3; // in picometres
+                }
+
+                enum ConnectFrom {
+                    FROM_BOTH = 0;
+                    FROM_ABOVE = 1;
+                    FROM_BELOW = 2;
+                }
+                ConnectFrom from = 4;
+
+                message MinCutLength {
+                    int64 length = 1; // in picometres
+                    int64 distance = 2; // in picometres
+                }
+                MinCutLength length = 5;
+            }
+            repeated MinimumCut min_cuts = 12;
+
+            oneof optional_min_density {
+                double min_density = 13; // in percentages
+            }
+
+            oneof optional_max_density {
+                double max_density = 14; // in percentages
+            }
+
+            message AcCurrentDensity {
+                Measure measure = 1;
+
+                message Table {
+                    repeated double frequencies = 1; // MHz
+                    repeated int64 widths = 2; // in pm
+                    repeated double currents = 3; // in mA/um
+                }
+                oneof density {
+                    double value = 2; // in mA/um
+                    Table table = 3;
+                }
+            }
+            repeated AcCurrentDensity ac_current_densities = 15;
+
+            message DcCurrentDensity {
+                message Table {
+                    repeated int64 widths = 1; // in pm
+                    repeated double currents = 2; // in mA/um
+                }
+                oneof density {
+                    double value = 1; // in mA/um
+                    Table table = 2;
+                }
+            }
+            DcCurrentDensity dc_current_density = 16;
+        }
+        message Implant {}
+        oneof layer_instance {
+            MasterSlice master_slice = 4;
+            Overlap overlap = 5;
+            Cut cut = 6;
+            Routing routing = 7;
+            Implant implant = 8;
+        }
+    } // layer
+    repeated Layer layers = 11;
+
+    message Macro {
+        bytes name = 1;
+
+        message ClassCore {
+            enum Type {
+                FEED_THRU = 0;
+                TIE_HIGH = 1;
+                TIE_LOW = 2;
+                SPACER = 3;
+                ANTENNA_CELL = 4;
+                WELL_TAP = 5;
+            }
+            oneof optional_type {
+                Type type = 1;
+            }
+        }
+        message ClassCover {
+            bool bump = 1;
+        }
+        message ClassRing {}
+        message ClassBlock {
+            enum Option {
+                BLACKBOX = 0;
+                SOFT = 1;
+            }
+            oneof optional_opt {
+                Option option = 1;
+            }
+        }
+        message ClassPad {
+            enum Type {
+                INPUT = 0;
+                OUTPUT = 1;
+                IN_OUT = 2;
+                POWER = 3;
+                SPACER = 4;
+                AREA_IO = 5;
+            }
+            oneof optional_type {
+                Type type = 1;
+            }
+        }
+        message ClassEndcap {
+            enum Type {
+                PRE = 0;
+                POST = 1;
+                TOP_LEFT = 2;
+                TOP_RIGHT = 3;
+                BOTTOM_LEFT = 4;
+                BOTTOM_RIGHT = 5;
+            }
+            oneof optional_type {
+                Type type = 1;
+            }
+        }
+        oneof class {
+            ClassCore class_core = 2;
+            ClassCover class_cover = 3;
+            ClassRing class_ring = 4;
+            ClassBlock class_block = 5;
+            ClassPad class_pad = 6;
+            ClassEndcap class_endcap = 7;
+        }
+
+        message Foreign {
+            bytes name = 1;
+            Point origin = 2;
+        }
+        repeated Foreign foreigns = 8;
+
+        Point origin = 9;
+        Size size = 10;
+        Symmetry symmetry = 11;
+
+        message SiteRef {
+            bytes name = 1;
+        }
+        repeated SiteRef sites = 12;
+
+        message Pin {
+            bytes name = 1;
+
+            oneof optional_pin_dir {
+                PinDirection direction = 2;
+            }
+
+            oneof optional_use {
+                Use use = 3;
+            }
+
+            message Port {
+                enum PortClass {
+                    NONE = 0;
+                    CORE = 1;
+                    BUMP = 2;
+                }
+                repeated LayerGeometry layer_geometries = 1;
+                oneof optional_class {
+                    PortClass class = 2;
+                }
+            }
+            repeated Port ports = 4;
+        }
+        repeated Pin pins = 13;
+
+        message Obs {
+            repeated LayerGeometry layers = 1;
+        }
+        Obs obs = 14;
+    } // Macro
+    repeated Macro macros = 12;
+}
+
+message DesignExchangeFormat {
+    Version version = 1;
+    BusBitChars bus_bit_chars = 2;
+    DividerChar divider_char = 3;
+    oneof optional_design {
+        bytes design = 4;
+    }
+    oneof optional_dbu {
+        Units.DbFactor dbu = 5;
+    }
+
+    message DieArea {
+        repeated Point points = 1;
+    }
+    DieArea die_area = 6;
+
+    message Row {
+        bytes name = 1;
+        bytes site_name = 2;
+        Point start = 3;
+        Orient orient = 4;
+
+        message Repeat {
+            int64 x_num = 1;
+            int64 y_num = 2;
+            Point step = 3;
+        }
+        Repeat repeat = 5;
+    }
+    repeated Row rows = 7;
+
+    message Component {
+        bytes name = 1;
+        bytes model_name = 2;
+
+        enum Source {
+            NETLIST = 0;
+            DIST = 1;
+            TIMING = 2;
+            USER = 3;
+        }
+        oneof optional_source {
+            Source source = 3;
+        }
+
+        Place place = 4; // this field will be unpresented if the component is unplaced.
+
+        message Halo {
+            bool soft = 1;
+            int64 left = 2; // in pm
+            int64 right = 3; // in pm
+            int64 top = 4; // in pm
+            int64 bottom = 5; // in pm
+        }
+        Halo halo = 5;
+    }
+    repeated Component components = 8;
+
+    message Pin {
+        bytes name = 1;
+        bytes net_name = 2;
+
+        oneof optional_pin_dir {
+            PinDirection direction = 3;
+        }
+        oneof optional_use {
+            Use usage = 4;
+        }
+
+        message Port {
+            message RectPort {
+                bytes name = 1;
+                Rect shape = 2;
+            }
+            repeated RectPort layers = 1;
+
+            message PolygonPort {
+                bytes name = 1;
+                Polygon shape = 2;
+            }
+            repeated PolygonPort polygons = 2;
+
+            DesignExchangeFormat.Place place = 3;
+        }
+        repeated Port ports = 5;
+
+        bool special = 6;
+    }
+    repeated Pin pins = 9;
+
+    message Net {
+        bytes name = 1;
+
+        message PinRef {
+            message CellPinRef {
+                bytes cell_name = 1;
+                bytes pin_name = 2;
+            }
+            oneof pin {
+                bytes io = 1;
+                CellPinRef cell = 2;
+            }
+        }
+        repeated PinRef pins = 2;
+
+        oneof optional_use {
+            Use usage = 3;
+        }
+
+        enum Source {
+            DIST = 0;
+            NETLIST = 1;
+            TEST = 2;
+            TIMING = 3;
+            USER = 4;
+        }
+        oneof optional_source {
+            Source source = 4;
+        }
+
+        oneof optional_weight {
+            int64 weight = 5;
+        }
+
+        repeated Property properties = 6;
+    }
+    repeated Net nets = 10;
+
+    message Blockages {
+        message Placement {
+            repeated Rect geo = 1;
+
+            message Soft {}
+            oneof placeable {
+                Soft soft = 2;
+                float partial = 3;
+            }
+
+            bool push_down = 4;
+
+            oneof optional_component {
+                bytes component = 5;
+            }
+        }
+        repeated Placement placement = 1;
+    }
+    Blockages blockages = 11;
+
+    message Place {
+        enum Type {
+            FIXED = 0;
+            COVER = 1;
+            PLACED = 2;
+        }
+        Type type = 1;
+        Point position = 2;
+        Orient orient = 3;
+    }
+
+    message PropertyDefinition {
+        enum ObjectType {
+            COMPONENT = 0;
+            COMPONENTPIN = 1;
+            DESIGN = 2;
+            GROUP = 3;
+            NET = 4;
+            NONDEFAULTRULE = 5;
+            REGION = 6;
+            ROW = 7;
+            SPECIALNET = 8;
+        }
+        ObjectType object_type = 1;
+
+        bytes prop_name = 2;
+
+        enum PropType {
+            INTEGER = 0;
+            REAL = 1;
+            STRING = 2;
+        }
+        PropType prop_type = 3;
+
+        message Range {
+            bytes start = 1;
+            bytes end = 2;
+        }
+        oneof optional_range {
+            Range range = 4;
+        }
+        oneof optional_value {
+            bytes value = 5;
+        }
+    }
+
+    repeated PropertyDefinition property_definition = 12;
+
+    message Track {
+        message Mask {
+            int64 num = 1;
+            bool same = 2;
+        }
+
+        LineDirection direction = 1;
+        int64 start = 2;
+        int64 numtracks = 3;
+        int64 space = 4;
+        Mask mask = 5;
+        repeated bytes layer_names = 6;
+    }
+    repeated Track tracks = 13;
+
+    message GCellGrid {
+        LineDirection direction = 1;
+        int64 start = 2;
+        int64 num_plus_1 = 3;
+        int64 space = 4;
+    }
+
+    repeated GCellGrid gcell_grids = 14;
+}
+
+message Version {
+    uint32 major = 1;
+    uint32 minor = 2;
+    uint32 rev = 3;
+}
+
+message BusBitChars {
+    bytes content = 1;
+}
+
+message DividerChar {
+    bytes content = 1;
+}
+
+message Units {
+    oneof optional_time {
+        int64 nanoseconds = 1;
+    }
+
+    oneof optional_capacitance {
+        int64 picofarads = 2;
+    }
+
+    oneof optional_resistance {
+        int64 ohms = 3;
+    }
+
+    oneof optional_power {
+        int64 milliwatts = 4;
+    }
+
+    oneof optional_current {
+        int64 milliamps = 5;
+    }
+
+    oneof optional_voltage {
+        int64 volts = 6;
+    }
+
+    enum DbFactor {
+        V100 = 0;
+        V200 = 1;
+        V400 = 2;
+        V800 = 3;
+        V1000 = 4;
+        V2000 = 5;
+        V4000 = 6;
+        V8000 = 7;
+        V10000 = 8;
+        V20000 = 9;
+    }
+    oneof optional_db {
+        DbFactor database = 7;
+    }
+
+    oneof optional_frequency {
+        int64 megahertz = 8;
+    }
+}
+
+message PropertyDefinition {
+    enum ObjectType {
+        LAYER = 0;
+        LIBRARY = 1;
+        MACRO = 2;
+        NONDEFAULTRULE = 3;
+        PIN = 4;
+        VIA = 5;
+        VIARULE = 6;
+    }
+    ObjectType object_type = 1;
+
+    bytes prop_name = 2;
+
+    enum PropType {
+        INTEGER = 0;
+        REAL = 1;
+        STRING = 2;
+    }
+    PropType prop_type = 3;
+
+    message Range {
+        bytes start = 1;
+        bytes end = 2;
+    }
+    oneof value {
+        bytes single = 4; // when propType is STRING, surrounding '"'s are included.
+        Range range = 5;
+    }
+}
+
+message Point {
+    int64 x = 1; // in picometres
+    int64 y = 2; // in picometres
+}
+
+enum Orient {
+    NORTH = 0;
+    SOUTH = 1;
+    EAST = 2;
+    WEST = 3;
+    FLIPPED_NORTH = 4;
+    FLIPPED_SOUTH = 5;
+    FLIPPED_EAST = 6;
+    FLIPPED_WEST = 7;
+}
+
+message Size {
+    int64 width = 1; // in picometres
+    int64 height = 2; // in picometres
+}
+
+message Symmetry {
+    enum On {
+        X = 0;
+        Y = 1;
+        R90 = 2;
+    }
+    repeated On ons = 1;
+}
+
+enum PinDirection {
+    INPUT = 0;
+    OUTPUT = 1;
+    TRISTATE_OUTPUT = 2;
+    IN_OUT = 3;
+    FEED_THRU = 4;
+}
+
+enum LineDirection {
+    X = 0;
+    Y = 1;
+}
+
+enum Use {
+    SIGNAL = 0;
+    ANALOG = 1;
+    POWER = 2;
+    GROUND = 3;
+    CLOCK = 4;
+    TIE_OFF = 5;
+    SCAN = 6;
+    RESET = 7;
+}
+
+message LayerGeometry {
+    bytes layer_name = 1;
+
+    message LayerRect {
+        Rect shape = 1;
+    }
+    repeated LayerRect rects = 2;
+
+    message LayerPolygon {
+        Polygon shape = 1;
+    }
+    repeated LayerPolygon polygons = 3;
+}
+
+message Rect {
+    int64 llx = 1; // in picometres
+    int64 lly = 2; // in picometres
+    int64 urx = 3; // in picometres
+    int64 ury = 4; // in picometres
+}
+
+message Polygon {
+    // A sequence of adjacent corners, either clockwise or anti-clockwise, w.r.t., LEF-5.8 std.
+    repeated Point corners = 1;
+}
+
+message Property {
+    bytes name = 1;
+    bytes value = 2;
+}

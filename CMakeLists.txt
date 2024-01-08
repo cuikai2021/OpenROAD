@@ -61,7 +61,11 @@ option(USE_SYSTEM_OPENSTA "Use system shared OpenSTA library" OFF)
 # Allow to use external shared abc libraries
 option(USE_SYSTEM_ABC "Use system shared ABC library" OFF)
 
-option(ENABLE_DEBUG_INFO "Enable debug info by applying -g" OFF)
+option(USE_LINDEN_DEBUG_LIBS "Ready to link debug-level linden libs" OFF)
+
+option(ENABLE_GCOV "Enable support of gcov" OFF)
+option(ENABLE_LIBASAN "Enable address sanitizer" OFF)
+
 
 project(OpenROAD VERSION 1
   LANGUAGES CXX
