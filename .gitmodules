@@ -4,19 +4,19 @@
 [submodule "src/Banyan/banyan-integrate"]
 	path = src/Banyan/banyan-integrate
 	url = git@github.com:ICBench/banyan-integrate.git
-[submodule "src/abc"]
+[submodule "third-party/abc"]
 	path = third-party/abc
 	url = https://github.com/The-OpenROAD-Project/abc.git
-[submodule "testa"]
+[submodule "third-party/testa"]
 	path = third-party/testa
 	url = git@github.com:TimeExceed/testa.git
-[submodule "fassert"]
+[submodule "third-party/fassert"]
 	path = third-party/fassert
 	url = git@github.com:TimeExceed/fancy_assert.git
-[submodule "linden"]
+[submodule "src/linden/gpl"]
 	path = src/linden/gpl
 	url = git@github.com:ICBench/linden-integrate.git
-[submodule "tomlpp"]
+[submodule "third-party/tomlpp"]
 	path = third-party/tomlpp
 	url = git@github.com:marzer/tomlplusplus.git
 [submodule "src/Laurel"]
@@ -25,3 +25,4 @@
 [submodule "third-party/envflag"]
 	path = third-party/envflag
 	url = git@github.com:TimeExceed/envflag.git
+
