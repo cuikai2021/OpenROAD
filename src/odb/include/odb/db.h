@@ -9103,6 +9103,8 @@ public:
   const char* getName() const;
   dbITerm* getStart() const;
   dbITerm* getStop() const;
+  dbBTerm* getBTermStart() const;
+  dbBTerm* getBTermStop() const;
   const char* getPartitionName() const;
   uint getPartitionMaxBits() const;
   dbSet<dbScanChainList> getOrdered() const;
@@ -9110,6 +9112,8 @@ public:
 
   void setStart(dbITerm* t);
   void setStop(dbITerm* t);
+  void setStart(dbBTerm* t);
+  void setStop(dbBTerm* t);
   dbScanChainComp* createFloatingComp(dbInst* inst, dbITerm* in, dbITerm* out, int num_bits = 1);
   dbScanChainList* createOrderedList();
 };

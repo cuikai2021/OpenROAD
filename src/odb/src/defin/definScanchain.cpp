@@ -46,6 +46,14 @@ findTerm(dbBlock* blk, utl::Logger* _logger, const char* name) {
   return findTerm(blk, _logger, instname.c_str(), pinname.c_str());
 }
 
+static dbBTerm*
+findBTerm(dbBlock* blk, utl::Logger* _logger, const char* btermname) {
+  dbBTerm* t = blk->findBTerm(btermname);
+  if (!t)
+	_logger->warn(utl::ODB, 3003, "error: cannot find block level pin: %s/$s", btermname);
+  return t;
+}
+
 void
 definScanchains::end() {
   definScanchain* scR = scanchains.back();
@@ -55,20 +63,31 @@ definScanchains::end() {
 	 scR->partitionMaxBits);
 
   if (!scR->start.inst_name.empty()) {
-    dbITerm* start = nullptr;
-    if (!scR->start.pin_name.empty())
-      start = findTerm(_block, _logger, scR->start.inst_name.c_str(), scR->start.pin_name.c_str());
-    else
-      start = findTerm(_block, _logger, scR->start.inst_name.c_str());
-    sc->setStart(start);
+    if (scR->start.inst_name == "PIN") {
+      dbBTerm* start = findBTerm(_block, _logger, scR->start.pin_name.c_str());
+      sc->setStart(start);
+    } else {
+      dbITerm* start = nullptr;
+      if (!scR->start.pin_name.empty())
+        start = findTerm(_block, _logger, scR->start.inst_name.c_str(), scR->start.pin_name.c_str());
+      else
+        start = findTerm(_block, _logger, scR->start.inst_name.c_str());
+      sc->setStart(start);
+    }
   }
   if (!scR->stop.inst_name.empty()) {
-    dbITerm* stop = nullptr;
-    if (!scR->stop.pin_name.empty())
-	   stop = findTerm(_block, _logger, scR->stop.inst_name.c_str(), scR->stop.pin_name.c_str());
-    else
-	   stop = findTerm(_block, _logger, scR->stop.inst_name.c_str());
-    sc->setStop(stop);
+    
+    if (scR->stop.inst_name == "PIN") {
+      dbBTerm* stop = findBTerm(_block, _logger, scR->stop.pin_name.c_str());
+      sc->setStop(stop);
+    } else {
+      dbITerm* stop = nullptr;
+      if (!scR->stop.pin_name.empty())
+	    stop = findTerm(_block, _logger, scR->stop.inst_name.c_str(), scR->stop.pin_name.c_str());
+      else
+  	    stop = findTerm(_block, _logger, scR->stop.inst_name.c_str());
+      sc->setStop(stop);
+    }
   }
   if (scR->floating)
   for (auto & x: scR->floating->list) {

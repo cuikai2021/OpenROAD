@@ -8,6 +8,7 @@
 #include "dbDiff.hpp"
 #include "dbBlock.h"
 #include "dbITerm.h"
+#include "dbBTerm.h"
 #include "dbMTerm.h"
 #include "dbInst.h"
 
@@ -151,6 +152,8 @@ _dbScanChain::_dbScanChain(_dbDatabase* db, const _dbScanChain& rhs)
 	_common_scan_out(rhs._common_scan_out ? strdup(rhs._common_scan_out) : NULL),
 	_start(rhs._start),
 	_stop(rhs._stop),
+    _blkstart(rhs._blkstart),
+    _blkstop(rhs._blkstop),
 	_floating(new dbTable<_dbScanChainComp>(db, this, *rhs._floating)),
 	_ordered (new dbTable<_dbScanChainList>(db, this, *rhs._ordered)),
 	_partition_name(rhs._partition_name ? strdup(rhs._partition_name) : NULL),
@@ -175,6 +178,8 @@ _dbScanChain::operator==(const _dbScanChain& rhs) const {
   if (!STREQ(_common_scan_out, rhs._common_scan_out)) return false;
   if (_start    != rhs._start)      return false;
   if (_stop     != rhs._stop)       return false;
+  if (_blkstart != rhs._blkstart)   return false;
+  if (_blkstop  != rhs._blkstop)    return false;
   if (*_floating != *rhs._floating) return false;
   if (*_ordered  != *rhs._ordered)  return false;
   if (!STREQ(_partition_name, rhs._partition_name))   return false;
@@ -195,6 +200,8 @@ _dbScanChain::differences(dbDiff& diff, const char* field, const _dbScanChain& r
   DIFF_FIELD(_common_scan_out);
   DIFF_FIELD(_start);
   DIFF_FIELD(_stop);
+  DIFF_FIELD(_blkstart);
+  DIFF_FIELD(_blkstop);
   DIFF_TABLE(_floating);
   DIFF_TABLE(_ordered);
   DIFF_FIELD(_partition_name);
@@ -210,6 +217,8 @@ _dbScanChain::out(dbDiff& diff, char side, const char* field) const {
   DIFF_OUT_FIELD(_common_scan_out);
   DIFF_OUT_FIELD(_start);
   DIFF_OUT_FIELD(_stop);
+  DIFF_OUT_FIELD(_blkstart);
+  DIFF_OUT_FIELD(_blkstop);
   DIFF_OUT_TABLE(_floating);
   DIFF_OUT_TABLE(_ordered);
   DIFF_OUT_FIELD(_partition_name);
@@ -221,6 +230,7 @@ dbOStream&
 operator<<(dbOStream& stream, const _dbScanChain& sc) {
   stream << sc._name << sc._common_scan_in << sc._common_scan_out;
   stream << sc._start << sc._stop;
+  stream << sc._blkstart << sc._blkstop;
   stream << *sc._floating << *sc._ordered;
   stream << sc._partition_name << sc._partition_max_bits;
   return stream;
@@ -230,6 +240,7 @@ dbIStream&
 operator>>(dbIStream& stream, _dbScanChain& sc) {
   stream >> sc._name >> sc._common_scan_in >> sc._common_scan_out;
   stream >> sc._start >> sc._stop;
+  stream >> sc._blkstart >> sc._blkstop;
   stream >> *sc._floating >> *sc._ordered;
   stream >> sc._partition_name >> sc._partition_max_bits;
   return stream;
@@ -285,6 +296,18 @@ dbScanChain::setStop(dbITerm* t) {
   sc->_stop = t->getId();
 }
 
+void
+dbScanChain::setStart(dbBTerm* t) {
+  _dbScanChain* sc = (_dbScanChain*)this;
+  sc->_blkstart = t->getId();
+}
+
+void
+dbScanChain::setStop(dbBTerm* t) {
+  _dbScanChain* sc = (_dbScanChain*)this;
+  sc->_blkstop = t->getId();
+}
+
 dbScanChainComp*
 dbScanChainList::createComp(dbInst* inst, dbITerm* in, dbITerm* out, int num_bits) {
   _dbScanChainList* l = (_dbScanChainList*)this;
@@ -332,14 +355,28 @@ dbITerm*
 dbScanChain::getStart() const {
   _dbScanChain* sc = (_dbScanChain*)this;
   _dbBlock* blk = (_dbBlock*)sc->getOwner();
-  return (dbITerm*)blk->_iterm_tbl->getPtr(sc->_start);
+  return sc->_start.isValid() ? (dbITerm*)blk->_iterm_tbl->getPtr(sc->_start) : nullptr;
 }
 
 dbITerm*
 dbScanChain::getStop() const {
   _dbScanChain* sc = (_dbScanChain*)this;
   _dbBlock* blk = (_dbBlock*)sc->getOwner();
-  return (dbITerm*)blk->_iterm_tbl->getPtr(sc->_stop);
+  return sc->_stop.isValid() ? (dbITerm*)blk->_iterm_tbl->getPtr(sc->_stop) : nullptr;
+}
+
+dbBTerm*
+dbScanChain::getBTermStart() const {
+  _dbScanChain* sc = (_dbScanChain*)this;
+  _dbBlock* blk = (_dbBlock*)sc->getOwner();
+  return sc->_blkstart.isValid() ? (dbBTerm*)blk->_bterm_tbl->getPtr(sc->_blkstart) : nullptr;
+}
+
+dbBTerm*
+dbScanChain::getBTermStop() const {
+  _dbScanChain* sc = (_dbScanChain*)this;
+  _dbBlock* blk = (_dbBlock*)sc->getOwner();
+  return sc->_blkstop.isValid() ? (dbBTerm*)blk->_bterm_tbl->getPtr(sc->_blkstop) : nullptr;
 }
 
 const char*

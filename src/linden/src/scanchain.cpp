@@ -152,9 +152,31 @@ deque<PairedCell> cells_on_scanchains() {
 
     odb::dbDatabase& db = *ord->getDb();
     unordered_set<odb::dbInst*> cells_on_sc;
+    auto start_pin = [](odb::dbScanChain& sc) -> odb::dbITerm* {
+        if (auto res = sc.getStart(); res != nullptr) {
+            return res;
+        } else {
+            auto bterm = sc.getBTermStart();
+            FASSERT(bterm != nullptr);
+            return bterm->getITerm();
+        }
+    };
+    auto stop_pin = [](odb::dbScanChain& sc) -> odb::dbITerm* {
+        if (auto res = sc.getStop(); res != nullptr) {
+            return res;
+        } else {
+            auto bterm = sc.getBTermStop();
+            FASSERT(bterm != nullptr);
+            return bterm->getITerm();
+        }
+    };
     for (auto sc : db.getChip()->getBlock()->getScanChains()) {
-        cells_on_sc.insert(sc->getStart()->getInst());
-        cells_on_sc.insert(sc->getStop()->getInst());
+        if (auto p = start_pin(*sc); p != nullptr) {
+            cells_on_sc.insert(p->getInst());
+        }
+        if (auto p = stop_pin(*sc); p != nullptr) {
+            cells_on_sc.insert(p->getInst());
+        }
         for (auto comp : sc->getFloating()) {
             cells_on_sc.insert(comp->getScanIn()->getInst());
         }

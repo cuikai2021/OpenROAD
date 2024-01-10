@@ -2146,7 +2146,13 @@ void defout_impl::writeScanChains(dbBlock* block) {
      fprintf(_out, "- %s\n", sc->getName());
      //start
      dbITerm* start = sc->getStart();
-     fprintf(_out, "+ START %s %s\n", start->getInst()->getName().c_str(), start->getMTerm()->getName().c_str());
+     if (start)
+       fprintf(_out, "+ START %s %s\n", start->getInst()->getName().c_str(), start->getMTerm()->getName().c_str());
+     else {
+       dbBTerm* bterm = sc->getBTermStart();
+       assert(bterm);
+       fprintf(_out, "+ START PIN %s\n", bterm->getName().c_str());
+     }
      //floating
      writeScanChainsComps(sc->getFloating(), "FLOATING");
      //ordered
@@ -2161,7 +2167,13 @@ void defout_impl::writeScanChains(dbBlock* block) {
      }
      //stop
      dbITerm* stop  = sc->getStop();
-     fprintf(_out, "+ STOP %s %s ;\n\n", stop->getInst()->getName().c_str(), stop->getMTerm()->getName().c_str());
+     if (stop) 
+       fprintf(_out, "+ STOP %s %s ;\n\n", stop->getInst()->getName().c_str(), stop->getMTerm()->getName().c_str());
+     else {
+       dbBTerm* bterm = sc->getBTermStop();
+       assert(bterm);
+       fprintf(_out, "+ STOP PIN %s\n", bterm->getName().c_str());
+     }
   }
   fprintf(_out, "END SCANCHAINS\n");
 }

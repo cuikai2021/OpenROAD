@@ -13,11 +13,11 @@ class Node : public Point {
 };
 
 bool byYplusX(Node n1, Node n2) {
-  return n1.y + n1.x <= n2.y + n2.x;
+  return n1.y + n1.x < n2.y + n2.x;
 }
 
 bool byYminusX(Node n1, Node n2) {
-  return n1.y - n1.x <= n2.y - n2.x;
+  return n1.y - n1.x < n2.y - n2.x;
 }
 
 void ZhouSpanningGraphStrategy::construct(Graph *const &graph) const {
@@ -28,9 +28,9 @@ void ZhouSpanningGraphStrategy::construct(Graph *const &graph) const {
   }
 
   std::sort(nodes.begin(), nodes.end(), byYplusX);
-  auto comp_by_x = [](const Point& a, const Point& b) { return a.x >= b.x; };
+  auto comp_by_x = [](const Point& a, const Point& b) { return a.x > b.x; };
   std::map<Point, int, decltype(comp_by_x)> comp_by_x_map(comp_by_x);
-  auto comp_by_x_minus_y = [](const Point& a, const Point& b) { return a.x - a.y >= b.x - b.y; };
+  auto comp_by_x_minus_y = [](const Point& a, const Point& b) { return a.x - a.y > b.x - b.y; };
   std::map<Point, int, decltype(comp_by_x_minus_y)> comp_by_x_minus_y_map(comp_by_x_minus_y);
 
   for (size_t i = 0; i < nodes.size(); i++) {
@@ -55,9 +55,9 @@ void ZhouSpanningGraphStrategy::construct(Graph *const &graph) const {
   }
 
   std::sort(nodes.begin(), nodes.end(), byYminusX);
-  auto comp_by_y = [](const Point& a, const Point& b) { return a.y >= b.y; };
+  auto comp_by_y = [](const Point& a, const Point& b) { return a.y > b.y; };
   std::map<Point, int, decltype(comp_by_y)> comp_by_y_map(comp_by_y);
-  auto comp_by_x_plus_y = [](const Point& a, const Point& b) { return a.x + a.y >= b.x + b.y; };
+  auto comp_by_x_plus_y = [](const Point& a, const Point& b) { return a.x + a.y > b.x + b.y; };
   std::map<Point, int, decltype(comp_by_x_plus_y)> comp_by_x_plus_y_map(comp_by_x_plus_y);
 
   for (size_t i = 0; i < nodes.size(); i++) {

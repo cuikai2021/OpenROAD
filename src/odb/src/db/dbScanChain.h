@@ -10,6 +10,7 @@ namespace odb {
 template< class T> class dbTable;
 class _dbInst;
 class _dbITerm;
+class _dbBTerm;
 
 class _dbScanChainBase : public _dbObject {
 public:
@@ -59,6 +60,8 @@ public:
   char*                      _common_scan_out;
   dbId<_dbTerm>              _start;
   dbId<_dbTerm>              _stop;
+  dbId<_dbBTerm>             _blkstart;
+  dbId<_dbBTerm>             _blkstop;
   dbTable<_dbScanChainComp>* _floating;
   dbTable<_dbScanChainList>* _ordered;
   char*                      _partition_name;

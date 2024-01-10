@@ -46,7 +46,8 @@ void ScanChain::reorder() {
     assert(orders.size() == points.size() && orders[0] == 0);
 
     //assert the pin of START is output pin
-    assert(scan_chain->getStart()->isOutputSignal(false));
+    assert(!scan_chain->getStart() || scan_chain->getStart()->isOutputSignal(false));
+    assert(!scan_chain->getBTermStart() || scan_chain->getBTermStart()->getIoType() == odb::dbIoType::INPUT); // ?
 
     // reconnect the net with scan instances
     orders.pop_back(); //the last element is the stop of the chain, don't need to handle reconnect
@@ -55,14 +56,22 @@ void ScanChain::reorder() {
 }
 
 void ScanChain::initPoints(const odb::dbScanChain *scan_chain, std::vector<Point> &points) {
-  auto start_inst = scan_chain->getStart()->getInst();
   int chain_start_x, chain_start_y;
-  start_inst->getLocation(chain_start_x, chain_start_y);
+  if (scan_chain->getStart()) {
+    auto start_inst = scan_chain->getStart()->getInst();
+    start_inst->getLocation(chain_start_x, chain_start_y);
+  } else {
+    auto start_term = scan_chain->getBTermStart();
+    start_term->getFirstPinLocation(chain_start_x, chain_start_y);
+  }
   points.push_back(Point(chain_start_x, chain_start_y));
 
   auto floating_comps = scan_chain->getFloating();
   for (auto comp : floating_comps) {
     int x, y;
+    if (!comp->getInst()->isPlaced()) {
+      logger_->error(SC, 9, "instance {} is not placed.", comp->getInst()->getName());
+    }
     comp->getInst()->getLocation(x, y);
     points.push_back(Point(x, y));
   }
@@ -83,9 +92,14 @@ void ScanChain::initPoints(const odb::dbScanChain *scan_chain, std::vector<Point
     points.push_back(Point((start_x + stop_x) / 2, (start_y + stop_y) / 2));
   }
 
-  auto stop_inst = scan_chain->getStop()->getInst();
   int chain_stop_x, chain_stop_y;
-  stop_inst->getLocation(chain_stop_x, chain_stop_y);
+  if (scan_chain->getStop()) {
+    auto stop_inst = scan_chain->getStop()->getInst();
+    stop_inst->getLocation(chain_stop_x, chain_stop_y);
+  } else {
+    auto stop_bterm = scan_chain->getBTermStop();
+    stop_bterm->getFirstPinLocation(chain_stop_x, chain_stop_y);
+  }
   points.push_back(Point(chain_stop_x, chain_stop_y));
 }
 
@@ -176,23 +190,30 @@ void ScanChain::connectScanNet(const odb::dbScanChain *scan_chain,
     orig_ordered.push_back(std::pair(first_comp, last_comp));
   }
 
-  odb::dbITerm* next_sc_in;
+  odb::dbITerm* next_sc_in = nullptr;
+  odb::dbBTerm* next_sc_stop = nullptr;
   odb::dbNet* connect_net;
   for (int i = 0; i < orders.size(); ++i) {
     if (i == 0) {
-      connect_net = scan_chain->getStart()->getNet();
+      connect_net = scan_chain->getStart() ? scan_chain->getStart()->getNet() : scan_chain->getBTermStart()->getNet();
     } else {
       connect_net = getOrigComp(orders[i], true, orig_floatings, orig_ordered)->getScanOut()->getNet();
     }
 
     if (i == orders.size() - 1) {
       next_sc_in = scan_chain->getStop();
+      if (!next_sc_in) next_sc_stop = scan_chain->getBTermStop();
     } else {
       next_sc_in = getOrigComp(orders[i+1], false, orig_floatings, orig_ordered)->getScanIn();
     }
 
-    next_sc_in->disconnect();
-    next_sc_in->connect(connect_net);
+    if (next_sc_in) {
+      next_sc_in->disconnect();
+      next_sc_in->connect(connect_net);
+    } else {
+      next_sc_stop->disconnect();
+      next_sc_stop->connect(connect_net);
+    }
   }
 }
 
@@ -231,18 +252,25 @@ bool ScanChain::traceScanChain(const odb::dbScanChain *scan_chain, double& dista
 
   distance = 0;
   int x,y;
-  scan_chain->getStart()->getInst()->getLocation(x, y);
+  if (scan_chain->getStart()) {
+    scan_chain->getStart()->getInst()->getLocation(x, y);
+  } else {
+    scan_chain->getBTermStart()->getFirstPinLocation(x, y);
+  }
   Point pre_point = Point(x, y);
 
-  odb::dbITerm* out = scan_chain->getStart();
+  odb::dbNet* out = scan_chain->getStart() ? scan_chain->getStart()->getNet() : scan_chain->getBTermStart()->getNet();
   int inst_count = 0;
   while (out != nullptr) {
-    auto net = out->getNet();
+    auto net = out;
     if (net == nullptr) {
       return false;
     }
 
     odb::dbSet<odb::dbITerm> iterms = net->getITerms();
+    odb::dbSet<odb::dbBTerm> bterms = net->getBTerms();
+    assert(bterms.size() < 2);
+    auto bterm = bterms.size() ? *bterms.begin() : nullptr;
     out = nullptr;
 
     for (auto iterm : iterms) {
@@ -251,18 +279,20 @@ bool ScanChain::traceScanChain(const odb::dbScanChain *scan_chain, double& dista
         continue;
       }
 
-      if (iterm == scan_chain->getStop()) {
-        if (inst_count != iterm_2_comp.size()) {
-          logger_->warn(SC, 8, "Scan chain {} is incomplete in net format.", scan_chain->getName());
-          return false;
-        }
-        scan_chain->getStop()->getInst()->getLocation(x, y);
-        Point cur_point = Point(x, y);
-        distance += pre_point.distance(cur_point);
+      if (scan_chain->getStop()) {
+        if (iterm == scan_chain->getStop()) {
+            if (inst_count != iterm_2_comp.size()) {
+            logger_->warn(SC, 8, "Scan chain {} is incomplete in net format.", scan_chain->getName());
+            return false;
+            }
+            scan_chain->getStop()->getInst()->getLocation(x, y);
+            Point cur_point = Point(x, y);
+            distance += pre_point.distance(cur_point);
 
-        logger_->info(SC, 4, "Total wire length of scan chain {} is {}.", scan_chain->getName(), distance);
-        logger_->info(SC, 5, "Successfully traced scan chain {}, total {} scan bits.", scan_chain->getName(), inst_count);
-        return true;
+            logger_->info(SC, 4, "Total wire length of scan chain {} is {}.", scan_chain->getName(), distance);
+            logger_->info(SC, 5, "Successfully traced scan chain {}, total {} scan bits.", scan_chain->getName(), inst_count);
+            return true;
+        }
       }
 
       // whether scan input
@@ -277,7 +307,20 @@ bool ScanChain::traceScanChain(const odb::dbScanChain *scan_chain, double& dista
       distance += pre_point.distance(cur_point);
       pre_point = cur_point;
 
-      out = comp->getScanOut();
+      out = comp->getScanOut()->getNet();
+    }
+    if (bterm && bterm == scan_chain->getBTermStop()) {
+      if (inst_count != iterm_2_comp.size()) {
+        logger_->warn(SC, 8, "Scan chain {} is incomplete in net format.", scan_chain->getName());
+        return false;
+      }
+      scan_chain->getBTermStop()->getFirstPinLocation(x, y);
+      Point cur_point = Point(x, y);
+      distance += pre_point.distance(cur_point);
+
+      logger_->info(SC, 4, "Total wire length of scan chain {} is {}.", scan_chain->getName(), distance);
+      logger_->info(SC, 5, "Successfully traced scan chain {}, total {} scan bits.", scan_chain->getName(), inst_count);
+      return true;
     }
   }
 
