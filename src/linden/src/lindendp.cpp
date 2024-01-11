@@ -72,17 +72,20 @@ std::filesystem::path get_incr_dp_exe() {
     return dir / "linden-incremental-legalizer";
 }
 
-string output_def_name(const string& basename) {
+string output_def_name(const string& basename, bool suppress_output) {
     string res(basename);
     res.append(".out.pbdef");
-    cout << "out def: " << res << endl;
+    if (!suppress_output) {
+        cout << "out def: " << res << endl;
+    }
     return res;
 }
 
 int exec(
     const std::filesystem::path& exe,
     const deque<string>& args,
-    bool not_stop_when_illegal)
+    bool not_stop_when_illegal,
+    bool suppress_output)
 {
     if (!std::filesystem::exists(exe)) {
         spdlog::error("Cannot find {}", exe);
@@ -95,7 +98,14 @@ int exec(
         spdlog::error("Cannot execute {}", exe);
         throw std::runtime_error("fail to run lindendp");
     }
-    int ec = boost::process::system(string(exe), boost::process::args(args));
+    int ec = 0;
+    if (!suppress_output) {
+        ec = boost::process::system(string(exe), boost::process::args(args));
+    } else {
+        ec = boost::process::system(string(exe), boost::process::args(args),
+            boost::process::std_out > boost::process::null,
+            boost::process::std_err > boost::process::null);
+    }
     switch (ec)
     {
     case 0:
@@ -118,7 +128,8 @@ int exec(
 int exec_basic_dp(
     const string& input_cfg,
     const string& outdef,
-    bool not_stop_when_illegal)
+    bool not_stop_when_illegal,
+    bool suppress_output)
 {
     deque<string> args;
     args.push_back("--input-config");
@@ -127,14 +138,15 @@ int exec_basic_dp(
     args.push_back(outdef);
     args.push_back("--cell-only");
     auto exe = std::move(get_basic_dp_exe());
-    return exec(exe, args, not_stop_when_illegal);
+    return exec(exe, args, not_stop_when_illegal, suppress_output);
 }
 
 int exec_incr_dp(
     const string& input_cfg,
     const string& outdef,
     const optional<string>& baseline,
-    bool not_stop_when_illegal)
+    bool not_stop_when_illegal,
+    bool suppress_output)
 {
     deque<string> args;
     args.push_back("--input-config");
@@ -147,7 +159,7 @@ int exec_incr_dp(
         args.push_back(*baseline);
     }
     auto exe = std::move(get_incr_dp_exe());
-    return exec(exe, args, not_stop_when_illegal);
+    return exec(exe, args, not_stop_when_illegal, suppress_output);
 }
 
 struct InputArgs
@@ -161,7 +173,8 @@ struct InputArgs
 
 string write_input_config(
     const InputArgs& args,
-    const string& basename)
+    const string& basename,
+    bool suppress_output)
 {
     auto root = toml::table{
         {"version", "1.2"},
@@ -204,7 +217,9 @@ string write_input_config(
     ofstream fout(filename);
     fout << root;
     fout.close();
-    cout << "input-cfg: " << filename << endl;
+    if (!suppress_output) {
+        cout << "input-cfg: " << filename << endl;
+    }
     return filename;
 }
 
@@ -312,6 +327,7 @@ int DetailedPlacer::go(deque<string>& args)
     InputArgs input_cfg;
     optional<string> filler_list = nullopt;
     bool not_stop_when_illegal = false;
+    bool suppress_output = false;
     for(; !args.empty(); args.pop_front()) {
         const auto& s = args.front();
         if (strcmp(s.c_str(), "--filler-list") == 0) {
@@ -327,6 +343,9 @@ int DetailedPlacer::go(deque<string>& args)
         } else if (strcmp(s.c_str(), "--timing-data") == 0) {
             args.pop_front();
             input_cfg.timing_data = args.front();
+        } else if (strcmp(s.c_str(), "--suppress-output") == 0) {
+            // this is a secret arg. it is just for testing so far.
+            suppress_output = true;
         } else {
             spdlog::info("ignore arg: {}", s);
         }
@@ -338,7 +357,9 @@ int DetailedPlacer::go(deque<string>& args)
 
     dp::LefDefDumper dumper;
     dumper.run(openroad_);
-    dumper.print_dumped_files(std::cout);
+    if (!suppress_output) {
+        dumper.print_dumped_files(std::cout);
+    }
 
     string basename = dumper.basename();
 
@@ -347,9 +368,11 @@ int DetailedPlacer::go(deque<string>& args)
     input_cfg.lefs = dumper.lib_lefs();
     input_cfg.lefs.push_front(tech);
 
-    string input_cfg_fn = std::move(write_input_config(input_cfg, basename));
-    string outdef = std::move(output_def_name(basename));
-    int ret = exec_basic_dp(input_cfg_fn, outdef, not_stop_when_illegal);
+    string input_cfg_fn = std::move(
+        write_input_config(input_cfg, basename, suppress_output));
+    string outdef = std::move(output_def_name(basename, suppress_output));
+    int ret = exec_basic_dp(input_cfg_fn, outdef,
+        not_stop_when_illegal, suppress_output);
     read_back(outdef);
     return ret;
 }
@@ -361,6 +384,7 @@ int IncrLegalizer::go(deque<string>& args)
     bool not_stop_when_illegal = false;
     optional<string> baseline = nullopt;
     optional<string> critical_cells = nullopt;
+    bool suppress_output = false;
     for(; !args.empty(); args.pop_front()) {
         const auto& s = args.front();
         if (strcmp(s.c_str(), "--filler-list") == 0) {
@@ -391,6 +415,9 @@ int IncrLegalizer::go(deque<string>& args)
                     "e.g,. \"cell0 cell1\".");
             }
             critical_cells = args.front();
+        } else if (strcmp(s.c_str(), "--suppress-output") == 0) {
+            // this is a secret arg. it is just for testing so far.
+            suppress_output = true;
         } else {
             spdlog::info("ignore arg: {}", s);
         }
@@ -405,7 +432,9 @@ int IncrLegalizer::go(deque<string>& args)
 
     dp::LefDefDumper dumper;
     dumper.run(openroad_);
-    dumper.print_dumped_files(std::cout);
+    if (!suppress_output) {
+        dumper.print_dumped_files(std::cout);
+    }
 
     string basename = dumper.basename();
 
@@ -414,9 +443,11 @@ int IncrLegalizer::go(deque<string>& args)
     input_cfg.lefs = dumper.lib_lefs();
     input_cfg.lefs.push_front(tech);
 
-    string input_cfg_fn = std::move(write_input_config(input_cfg, basename));
-    string outdef = std::move(output_def_name(basename));
-    int ret = exec_incr_dp(input_cfg_fn, outdef, baseline, not_stop_when_illegal);
+    string input_cfg_fn = std::move(
+        write_input_config(input_cfg, basename, suppress_output));
+    string outdef = std::move(output_def_name(basename, suppress_output));
+    int ret = exec_incr_dp(input_cfg_fn, outdef,
+        baseline, not_stop_when_illegal, suppress_output);
     read_back(outdef);
     return ret;
 }
