@@ -279,10 +279,12 @@ void read_back(const string& outdef)
         }
     }
     ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
-    sta::dbNetwork& db_network = *ord.getDbNetwork();
     sta::dbSta& sta = *ord.getSta();
     sta::Network& sta_network = *sta.network();
     lrl::NetworkModifier cm(&ord);
+    odb::dbBlock& top = *(ord.getDb()->getChip()->getBlock());
+    int dbu = top.getDefUnits();
+    int64_t pm_per_dbu = 1'000'000 / dbu;
     for(size_t i = 0, sz = def.components_size(); i < sz; ++i) {
         const pblefdef::DesignExchangeFormat_Component& comp = def.components(i);
         const string& cell_name = comp.name();
@@ -290,25 +292,14 @@ void read_back(const string& outdef)
         const pblefdef::DesignExchangeFormat_Place& place = comp.place();
         FASSERT(place.has_position());
         const pblefdef::Point& target_pos = place.position();
-        odb::Point target_pt(target_pos.x() / 1000, target_pos.y() / 1000); // pm to nm
+        odb::Point target_pt(target_pos.x() / pm_per_dbu, target_pos.y() / pm_per_dbu); // pm to dbu
         odb::dbOrientType target_orient(pb_to_dbOrientType(place.orient()));
 
         sta::Instance* sta_inst = sta_network.findInstance(cell_name.c_str());
         FASSERT(sta_inst != nullptr)
             .what("Linden DP so far does not add/remove cells. So, everything must be there in ODB & STA.");
-        odb::dbInst* odb_inst = db_network.staToDb(sta_inst);
-        FASSERT(odb_inst != nullptr)
-            .what("Linden DP so far does not add/remove cells. So, everything must be there in ODB & STA.");
-        odb::dbMaster* master = odb_inst->getMaster();
-        odb::Rect bbox;
-        master->getPlacementBoundary(bbox);
-        odb::dbTransform t(target_orient);
-        t.apply(bbox);
-        odb::Point real_target_pt(
-            target_pt.x() - bbox.xMin(),
-            target_pt.y() - bbox.yMin());
 
-        cm.moveInst(sta_inst, real_target_pt, target_orient.getValue());
+        cm.moveInst(sta_inst, target_pt, target_orient.getValue());
     }
     rsz::Resizer& resizer = *ord.getResizer();
     resizer.estimateParasitics(rsz::ParasiticsSrc::placement);
