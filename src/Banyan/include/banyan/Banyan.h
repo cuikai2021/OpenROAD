@@ -55,7 +55,10 @@ class Banyan : public ord::OpenRoad::Observer
   int main(std::vector<std::string> args, bool updateDB);
   int cmap(const std::string& cmapPb, bool cgr_mode);
   void clearWires(bool excludeClock, bool excludeSignal);
-  void regression_RC(const char *spef, const char *setRC_tcl, const char *plot_file_prefix);
+  void regression_RC(const char* spef,
+                     const char* setRC_tcl,
+                     const char* plot_file_prefix,
+                     const char* corner_name);
   void savedb(std::string dbfile);
   void loaddb(std::string dbfile);
   // From ord::OpenRoad::Observer

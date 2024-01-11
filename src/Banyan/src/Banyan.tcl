@@ -19,16 +19,21 @@ proc banyan_clear_wires { args } {
   banyan::banyanClearWires $ex_signal $ex_clock
 }
 
-sta::define_cmd_args "regression_RC" { spef setRC_tcl [-plot file_prefix] }
+sta::define_cmd_args "regression_RC" { spef setRC_tcl [-plot file_prefix] [-corner corner_name] }
 
 proc regression_RC { spef setRC_tcl args } {
-  sta::parse_key_args "regression_RC" args keys {-plot} flags {}
+  sta::parse_key_args "regression_RC" args keys {-plot -corner} flags {}
   set plot ""
   if { [info exists keys(-plot)] } {
     set plot $keys(-plot)
   }
 
-  banyan::regression_RC_cmd $spef $setRC_tcl $plot
+  set corner ""
+  if { [info exists keys(-corner)] } {
+    set corner $keys(-corner)
+  }
+
+  banyan::regression_RC_cmd $spef $setRC_tcl $plot $corner
 }
 
 sta::define_cmd_args "banyan_save_db" { dbfile }

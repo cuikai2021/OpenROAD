@@ -41,9 +41,13 @@ void banyanClearWires(bool excludeClock, bool excludeSignal)
     ord::OpenRoad::openRoad()->getBanyan()->clearWires(excludeClock, excludeSignal);
 }
 
-void regression_RC_cmd(const char *spef, const char *setRC_tcl, const char *plot_file_prefix)
+void regression_RC_cmd(const char* spef,
+                       const char* setRC_tcl,
+                       const char* plot_file_prefix,
+                       const char* corner_name)
 {
-    ord::OpenRoad::openRoad()->getBanyan()->regression_RC(spef, setRC_tcl, plot_file_prefix);
+    ord::OpenRoad::openRoad()->getBanyan()->regression_RC(
+        spef, setRC_tcl, plot_file_prefix, corner_name);
 }
 
 void saveDB(std::string dbfile)
