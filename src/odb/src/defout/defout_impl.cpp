@@ -2172,7 +2172,7 @@ void defout_impl::writeScanChains(dbBlock* block) {
      else {
        dbBTerm* bterm = sc->getBTermStop();
        assert(bterm);
-       fprintf(_out, "+ STOP PIN %s\n", bterm->getName().c_str());
+       fprintf(_out, "+ STOP PIN %s ;\n", bterm->getName().c_str());
      }
   }
   fprintf(_out, "END SCANCHAINS\n");
