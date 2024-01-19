@@ -74,11 +74,14 @@ void set_tiehi_port_cmd(LibertyPort* tieHiport)
 
 void
 restructure_cmd(char* liberty_file_name, char* target, float slack_threshold,
-                int depth_threshold, char* workdir_name, char* abc_logfile)
+                int depth_threshold, char* workdir_name, char* abc_logfile,
+		bool icb,
+		bool single_op_cut,
+		char* script)
 {
   getRestructure()->setMode(target);
   getRestructure()->run(liberty_file_name, slack_threshold, depth_threshold,
-                        workdir_name, abc_logfile);
+                        workdir_name, abc_logfile, icb, single_op_cut,script);
 }
 
 // Locally Exposed for testing only..
@@ -91,9 +94,9 @@ void blif_add_instance(Blif* blif_, const char* inst_){
 }
 
 void blif_dump(Blif* blif_, const char* file_name){
-  getOpenRoad()->getSta()->ensureGraph();
-  getOpenRoad()->getSta()->ensureLevelized();
-  getOpenRoad()->getSta()->searchPreamble();
+  getOpenRoad()-> getSta() -> ensureGraph();
+  getOpenRoad() -> getSta() -> ensureLevelized();
+  getOpenRoad() -> getSta() -> searchPreamble();
   blif_->writeBlif(file_name);
 }
 

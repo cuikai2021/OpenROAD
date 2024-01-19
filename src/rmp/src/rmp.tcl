@@ -51,7 +51,10 @@ sta::define_cmd_args "restructure" { \
                                       [-slack_threshold slack]\
                                       [-depth_threshold depth]\
                                       [-target area|timing]\
-                                      [-liberty_file liberty_file]\
+				      [-liberty_file liberty_file]\
+				      [-icb]\
+				      [-s_cut]\
+				      [-script script_string]\
                                       [-tielo_port tielow_port]\
                                       [-tiehi_port tiehigh_port]\
                                       [-work_dir workdir_name]
@@ -59,7 +62,7 @@ sta::define_cmd_args "restructure" { \
 
 proc restructure { args } {
   sta::parse_key_args "restructure" args \
-    keys {-slack_threshold -depth_threshold -target -liberty_file -abc_logfile\
+    keys {-slack_threshold -depth_threshold -target -liberty_file -abc_logfile -icb -s_cut -script\
           -tielo_port -tiehi_port -work_dir} flags {}
 
   set slack_threshold_value 0
@@ -67,7 +70,23 @@ proc restructure { args } {
   set target "area"
   set workdir_name "."
   set abc_logfile ""
+  set so_cut 0
+  set icb_restr 0
+  set script_string ""
+    
+  if { [info exists keys(-s_cut)] } {
+    set so_cut 1
+  } 
+  if { [info exists keys(-script)] } {
+      set script_string $keys(-script)
+      puts "Using script $script_string"
+  } 
 
+  if { [info exists keys(-icb)] } {
+      set icb_restr 1
+      puts "Setting icb_restr"
+  } 
+    
   if { [info exists keys(-slack_threshold)] } {
     set slack_threshold_value $keys(-slack_threshold)
   } 
@@ -126,5 +145,6 @@ proc restructure { args } {
     set workdir_name $keys(-work_dir)
   }
 
-  rmp::restructure_cmd $liberty_file_name $target $slack_threshold_value $depth_threshold_value $workdir_name $abc_logfile
+
+  rmp::restructure_cmd $liberty_file_name $target $slack_threshold_value $depth_threshold_value $workdir_name $abc_logfile $icb_restr $so_cut $script_string
 }
