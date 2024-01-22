@@ -42,30 +42,47 @@
 #include <limits>
 #include <sstream>
 
+#include "sta/ParseBus.hh"
 #include "utl/Logger.h"
 
 namespace cts {
 
-void Clock::report(utl::Logger* _logger) const
+Clock::Clock(const std::string& netName,
+             const std::string& clockPin,
+             const std::string& sdcClockName,
+             int clockPinX,
+             int clockPinY)
+    : clockPin_(clockPin),
+      sdcClockName_(sdcClockName),
+      clockPinX_(clockPinX),
+      clockPinY_(clockPinY)
 {
-  _logger->report(" ************************************");
-  _logger->report(" *         Clock net report         *");
-  _logger->report(" ************************************");
-  _logger->report(" Net name: {}", _netName);
-  _logger->report(" Clock pin: {} ({}, {})", _clockPin, _clockPinX, _clockPinY);
-  _logger->report(" Number of sinks: ", _sinks.size());
-  _logger->report(" ***********************************");
+  // Hierarchy delimiters in the net name must be escape.  We use
+  // the name to construct buffer names later and the delimiters
+  // will confuse downstream tools like read_spef.
+  netName_ = sta::escapeChars(netName.c_str(), '/', '\0', '\\');
+}
 
-  _logger->report("\tPin name \tPos");
+void Clock::report(utl::Logger* logger) const
+{
+  logger->report(" ************************************");
+  logger->report(" *         Clock net report         *");
+  logger->report(" ************************************");
+  logger->report(" Net name: {}", netName_);
+  logger->report(" Clock pin: {} ({}, {})", clockPin_, clockPinX_, clockPinY_);
+  logger->report(" Number of sinks: ", sinks_.size());
+  logger->report(" ***********************************");
+
+  logger->report("\tPin name \tPos");
   forEachSink([&](const ClockInst& sink) {
-    _logger->report(
+    logger->report(
         "\t {} \t ({}, {})", sink.getName(), sink.getX(), sink.getY());
   });
 }
 
 Box<int> Clock::computeSinkRegion()
 {
-  double percentile = 0.01;
+  const double percentile = 0.01;
 
   std::vector<int> allPositionsX;
   std::vector<int> allPositionsY;
@@ -77,12 +94,12 @@ Box<int> Clock::computeSinkRegion()
   std::sort(allPositionsX.begin(), allPositionsX.end());
   std::sort(allPositionsY.begin(), allPositionsY.end());
 
-  unsigned numSinks = allPositionsX.size();
-  unsigned numOutliers = percentile * numSinks;
-  int xMin = allPositionsX[numOutliers];
-  int xMax = allPositionsX[numSinks - numOutliers - 1];
-  int yMin = allPositionsY[numOutliers];
-  int yMax = allPositionsY[numSinks - numOutliers - 1];
+  const unsigned numSinks = allPositionsX.size();
+  const unsigned numOutliers = percentile * numSinks;
+  const int xMin = allPositionsX[numOutliers];
+  const int xMax = allPositionsX[numSinks - numOutliers - 1];
+  const int yMin = allPositionsY[numOutliers];
+  const int yMax = allPositionsY[numSinks - numOutliers - 1];
 
   return Box<int>(xMin, yMin, xMax, yMax);
 }
@@ -90,40 +107,36 @@ Box<int> Clock::computeSinkRegion()
 Box<double> Clock::computeSinkRegionClustered(
     std::vector<std::pair<float, float>> sinks)
 {
-  std::vector<double> allPositionsX;
-  std::vector<double> allPositionsY;
-  for (const std::pair<float, float>& sinkLocation : sinks) {
-    allPositionsX.push_back(sinkLocation.first);
-    allPositionsY.push_back(sinkLocation.second);
+  auto xMin = std::numeric_limits<float>::max();
+  auto xMax = std::numeric_limits<float>::lowest();
+  auto yMin = std::numeric_limits<float>::max();
+  auto yMax = std::numeric_limits<float>::lowest();
+
+  for (const auto& [sinkX, sinkY] : sinks) {
+    xMin = std::min(xMin, sinkX);
+    xMax = std::max(xMax, sinkX);
+    yMin = std::min(yMin, sinkY);
+    yMax = std::max(yMax, sinkY);
   }
-
-  std::sort(allPositionsX.begin(), allPositionsX.end());
-  std::sort(allPositionsY.begin(), allPositionsY.end());
-
-  double xMin = allPositionsX[0];
-  double xMax = allPositionsX[(allPositionsX.size() - 1)];
-  double yMin = allPositionsY[0];
-  double yMax = allPositionsY[(allPositionsY.size() - 1)];
 
   return Box<double>(xMin, yMin, xMax, yMax);
 }
 
 Box<double> Clock::computeNormalizedSinkRegion(double factor)
 {
-  Box<int> sinkRegion = computeSinkRegion();
-  return sinkRegion.normalize(factor);
+  return computeSinkRegion().normalize(factor);
 }
 
 void Clock::forEachSink(const std::function<void(const ClockInst&)>& func) const
 {
-  for (const ClockInst& sink : _sinks) {
+  for (const ClockInst& sink : sinks_) {
     func(sink);
   }
 }
 
 void Clock::forEachSink(const std::function<void(ClockInst&)>& func)
 {
-  for (ClockInst& sink : _sinks) {
+  for (ClockInst& sink : sinks_) {
     func(sink);
   }
 }
@@ -131,14 +144,14 @@ void Clock::forEachSink(const std::function<void(ClockInst&)>& func)
 void Clock::forEachClockBuffer(
     const std::function<void(const ClockInst&)>& func) const
 {
-  for (const ClockInst& clockBuffer : _clockBuffers) {
+  for (const ClockInst& clockBuffer : clockBuffers_) {
     func(clockBuffer);
   }
 }
 
 void Clock::forEachClockBuffer(const std::function<void(ClockInst&)>& func)
 {
-  for (ClockInst& clockBuffer : _clockBuffers) {
+  for (ClockInst& clockBuffer : clockBuffers_) {
     func(clockBuffer);
   }
 }

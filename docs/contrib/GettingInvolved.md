@@ -3,11 +3,8 @@
 Thank you for taking the time to read this document and to contribute.
 The OpenROAD project will not reach all of its objectives without help!
 
-Possible ways to contribute:
+Possible ways to contribute to the OpenROAD application:
 
-- Open-source PDK information
-- Open-source Designs
-- Useful scripts
 - Tool improvements
 - New tools
 - Improvements to documentation, including this document
@@ -23,20 +20,6 @@ philosophy. We do have exceptions in the project, but over time we hope
 that all contributions will be BSD3, or some other permissive license such as MIT
 or Apache2.0.
 
-## Contributing Open Source PDK information and Designs
-
-If you have new design or PDK information to contribute, please add this
-to the repo
-[OpenROAD-flow-scripts](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/).
-In the
-[flow directory](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/tree/master/flow)
-you will see a directory for
-[designs](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/tree/master/flow/designs)
-with Makefiles to run them, and one for PDK
-[platforms](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/tree/master/flow/platforms)
-used by the designs. If you add a new PDK platform, be sure to add at
-least one design that uses it.
-
 ## Contributing Scripts and Code
 
 We follow the [Google C++ style guide](https://google.github.io/styleguide/cppguide.html).
@@ -44,7 +27,7 @@ If you find code in our project that does *not* follow this guide, then within e
 you edit, follow the style in that file.
 
 Please pay careful attention to the
-[tool checklist](DeveloperGuide.md#Tool Checklist) for all code. If you want
+[tool checklist](DeveloperGuide.md#tool-checklist) for all code. If you want
 to add or improve functionality in OpenROAD, please start with the
 top-level [app](https://github.com/The-OpenROAD-Project/OpenROAD/) repo. You
 can see in the `src` directory that submodules exist pointing to tested
@@ -78,11 +61,11 @@ project like OpenROAD with many application subcomponents, the software
 architecture can quickly get out of control. Changes with lots of new
 dependencies which are not necessary are less likely to be integrated.
 
-If you want to add Tcl code to define a new tool command, look at pdngen
+If you want to add Tcl code to define a new tool command, look at [pdngen](https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/src/pdn)
 as an example of how to do so. Take a look at the
-[cmake file](https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/CMakeLists.txt)
+[CMake file](https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/CMakeLists.txt)
 which automatically sources the Tcl code and the
-[Tcl file](https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/pdn/src/PdnGen.tcl)
+[Tcl file](https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/pdn/src/pdn.tcl)
 itself.
 
 To accept contributions, we require each commit to be made with a DCO (Developer

@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_FIG_H_
-#define _FR_FIG_H_
+#pragma once
 
 #include <memory>
 
@@ -39,7 +38,7 @@ class frFig : public frBlockObject
 {
  public:
   // getters
-  virtual void getBBox(Rect& box) const = 0;
+  virtual Rect getBBox() const = 0;
   // setters
   // others
   virtual void move(const dbTransform& xform) = 0;
@@ -127,5 +126,3 @@ class frPinFig : public frConnFig
 };
 
 }  // namespace fr
-
-#endif

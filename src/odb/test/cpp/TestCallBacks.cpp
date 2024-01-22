@@ -4,29 +4,30 @@
 
 #include "CallBack.h"
 #include "db.h"
-#include "helper.cpp"
-using namespace odb;
-using namespace std;
+#include "helper.h"
+
+namespace odb {
+namespace {
+
 BOOST_AUTO_TEST_SUITE(test_suite)
 dbDatabase* db;
-dbLib*      lib;
-dbBlock*    block;
-CallBack*   cb;
-void        setup()
+dbBlock* block;
+CallBack* cb;
+void setup()
 {
   cb = new CallBack();
   cb->clearEvents();
 }
 void tearDown()
 {
-  db->destroy(db);
+  dbDatabase::destroy(db);
   delete cb;
 }
 BOOST_AUTO_TEST_CASE(test_inst_and_iterm)
 {
   setup();
-  db        = createSimpleDB();
-  block     = db->getChip()->getBlock();
+  db = createSimpleDB();
+  block = db->getChip()->getBlock();
   dbNet* n1 = dbNet::create(block, "n1");
   cb->addOwner(block);
   dbInst* i1 = dbInst::create(block, db->findMaster("and2"), "i1");
@@ -48,8 +49,7 @@ BOOST_AUTO_TEST_CASE(test_inst_and_iterm)
   cb->clearEvents();
   i1->swapMaster(db->findMaster("or2"));
   BOOST_TEST(cb->events.size() == 2);
-  BOOST_TEST(cb->events[0]
-               == "PreSwap inst i1 from master and2 to master or2");
+  BOOST_TEST(cb->events[0] == "PreSwap inst i1 from master and2 to master or2");
   BOOST_TEST(cb->events[1] == "PostSwap inst i1 to master or2");
   cb->clearEvents();
   i1->setOrigin(100, 100);
@@ -74,7 +74,8 @@ BOOST_AUTO_TEST_CASE(test_inst_and_iterm)
   i1->findITerm("a")->disconnect();
   BOOST_TEST(cb->events.size() == 0);
 
-  i1->destroy(i1);
+  dbInst::destroy(i1);
+
   BOOST_TEST(cb->events.size() == 4);
   BOOST_TEST(cb->events[0] == "Destroy iterm a of inst i1");
   BOOST_TEST(cb->events[1] == "Destroy iterm b of inst i1");
@@ -85,7 +86,7 @@ BOOST_AUTO_TEST_CASE(test_inst_and_iterm)
 BOOST_AUTO_TEST_CASE(test_net)
 {
   setup();
-  db    = createSimpleDB();
+  db = createSimpleDB();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
   dbNet* n1 = dbNet::create(block, "n1");
@@ -100,10 +101,10 @@ BOOST_AUTO_TEST_CASE(test_net)
 BOOST_AUTO_TEST_CASE(test_bterm)
 {
   setup();
-  db    = create2LevetDbNoBTerms();
+  db = create2LevetDbNoBTerms();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
-  auto     n1  = block->findNet("n1");
+  auto n1 = block->findNet("n1");
   dbBTerm* IN1 = dbBTerm::create(n1, "IN1");
   IN1->setIoType(dbIoType::INPUT);
   BOOST_TEST(cb->events.size() == 3);
@@ -116,7 +117,8 @@ BOOST_AUTO_TEST_CASE(test_bterm)
   BOOST_TEST(cb->events[0] == "Predisconnect IN1");
   BOOST_TEST(cb->events[1] == "Postdisconnect IN1 from n1");
   cb->clearEvents();
-  IN1->destroy(IN1);
+  dbBTerm::destroy(IN1);
+
   BOOST_TEST(cb->events.size() == 1);
   BOOST_TEST(cb->events[0] == "Destroy IN1");
   tearDown();
@@ -124,7 +126,7 @@ BOOST_AUTO_TEST_CASE(test_bterm)
 BOOST_AUTO_TEST_CASE(test_bpin)
 {
   setup();
-  db    = create2LevetDbWithBTerms();
+  db = create2LevetDbWithBTerms();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
   dbBPin* pin = dbBPin::create(block->findBTerm("IN1"));
@@ -139,7 +141,7 @@ BOOST_AUTO_TEST_CASE(test_bpin)
 BOOST_AUTO_TEST_CASE(test_blockage)
 {
   setup();
-  db    = create2LevetDbWithBTerms();
+  db = create2LevetDbWithBTerms();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
   dbBlockage::create(block, 0, 0, 100, 100);
@@ -150,7 +152,7 @@ BOOST_AUTO_TEST_CASE(test_blockage)
 BOOST_AUTO_TEST_CASE(test_obstruction)
 {
   setup();
-  db    = create2LevetDbWithBTerms();
+  db = create2LevetDbWithBTerms();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
   dbObstruction* obs = dbObstruction::create(
@@ -166,33 +168,30 @@ BOOST_AUTO_TEST_CASE(test_obstruction)
 BOOST_AUTO_TEST_CASE(test_region)
 {
   setup();
-  db    = create2LevetDbWithBTerms();
+  db = create2LevetDbWithBTerms();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
   dbRegion* parent_region = dbRegion::create(block, "parent");
-  dbRegion::create(parent_region, "child");
-  BOOST_TEST(cb->events.size() == 2);
+  BOOST_TEST(cb->events.size() == 1);
   BOOST_TEST(cb->events[0] == "Create region parent");
-  BOOST_TEST(cb->events[1] == "Create region child");
   cb->clearEvents();
   dbBox::create(parent_region, 0, 0, 1, 1);
   BOOST_TEST(cb->events.size() == 1);
   BOOST_TEST(cb->events[0] == "Add box (0, 0) (1, 1) to region parent");
   cb->clearEvents();
   dbRegion::destroy(parent_region);
-  BOOST_TEST(cb->events.size() == 2);
-  BOOST_TEST(cb->events[0] == "Destroy region child");
-  BOOST_TEST(cb->events[1] == "Destroy region parent");
+  BOOST_TEST(cb->events.size() == 1);
+  BOOST_TEST(cb->events[0] == "Destroy region parent");
   tearDown();
 }
 BOOST_AUTO_TEST_CASE(test_row)
 {
   setup();
-  db    = create2LevetDbWithBTerms();
+  db = create2LevetDbWithBTerms();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
   dbSite* site = dbSite::create(db->findLib("lib1"), "site1");
-  dbRow*  row  = dbRow::create(
+  dbRow* row = dbRow::create(
       block, "row1", site, 0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, 20);
   BOOST_TEST(cb->events.size() == 1);
   BOOST_TEST(cb->events[0] == "Create row row1");
@@ -205,7 +204,7 @@ BOOST_AUTO_TEST_CASE(test_row)
 BOOST_AUTO_TEST_CASE(test_wire)
 {
   setup();
-  db    = create2LevetDbWithBTerms();
+  db = create2LevetDbWithBTerms();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
   dbWire* wire1 = dbWire::create(block->findNet("n1"));
@@ -233,14 +232,6 @@ BOOST_AUTO_TEST_CASE(test_wire)
   BOOST_TEST(cb->events[0] == "PreAppend wire");
   BOOST_TEST(cb->events[1] == "PostAppend wire");
   cb->clearEvents();
-  cb->pause();
-  dbWire* wire3 = dbWire::create(block);
-  cb->unpause();
-  dbWire::copy(wire1, wire3);
-  BOOST_TEST(cb->events.size() == 2);
-  BOOST_TEST(cb->events[0] == "PreCopy wire");
-  BOOST_TEST(cb->events[1] == "PostCopy wire");
-  cb->clearEvents();
 
   dbWire::destroy(wire2);
   BOOST_TEST(cb->events.size() == 1);
@@ -249,7 +240,7 @@ BOOST_AUTO_TEST_CASE(test_wire)
 BOOST_AUTO_TEST_CASE(test_swire)
 {
   setup();
-  db    = create2LevetDbWithBTerms();
+  db = create2LevetDbWithBTerms();
   block = db->getChip()->getBlock();
   cb->addOwner(block);
   dbSWire* wire = dbSWire::create(block->findNet("n1"), dbWireType::NOSHIELD);
@@ -272,3 +263,6 @@ BOOST_AUTO_TEST_CASE(test_swire)
   BOOST_TEST(cb->events[2] == "Destroy swire");
 }
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace
+}  // namespace odb

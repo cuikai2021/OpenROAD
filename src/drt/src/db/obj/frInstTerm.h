@@ -26,14 +26,13 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_INSTTERM_H_
-#define _FR_INSTTERM_H_
+#pragma once
 
 #include <memory>
 
 #include "db/obj/frBlockObject.h"
-#include "db/obj/frMTerm.h"
 #include "db/obj/frInst.h"
+#include "db/obj/frMTerm.h"
 #include "db/obj/frNet.h"
 #include "frBaseTypes.h"
 
@@ -67,44 +66,24 @@ class frInstTerm : public frBlockObject
   void setAPSize(int size) { ap_.resize(size, nullptr); }
   void setAccessPoint(int idx, frAccessPoint* in) { ap_[idx] = in; }
   void addAccessPoint(frAccessPoint* in) { ap_.push_back(in); }
+  void setAccessPoints(const std::vector<frAccessPoint*>& in) { ap_ = in; }
   // others
   frBlockObjectEnum typeId() const override { return frcInstTerm; }
   frAccessPoint* getAccessPoint(frCoord x, frCoord y, frLayerNum lNum);
   bool hasAccessPoint(frCoord x, frCoord y, frLayerNum lNum);
   void getShapes(std::vector<frRect>& outShapes, bool updatedTransform = false);
-  Rect getBBox();
+  Rect getBBox(bool updatedTransform);
+  void setIndexInOwner(int in) { index_in_owner_ = in; }
+  int getIndexInOwner() const { return index_in_owner_; }
 
  private:
+  // Place this first so it is adjacent to "int id_" inherited from
+  // frBlockObject, saving 8 bytes.
+  int index_in_owner_{0};
   frInst* inst_;
   frMTerm* term_;
   frNet* net_;
   std::vector<frAccessPoint*> ap_;  // follows pin index
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<frBlockObject>(*this);
-    (ar) & inst_;
-    (ar) & term_;
-    (ar) & net_;
-    (ar) & ap_;
-    if(fr::is_loading(ar)) {
-      if (inst_) {
-        std::unique_ptr<frInstTerm> ptr(this);
-        inst_->addInstTerm(std::move(ptr));
-      }
-
-      if (net_) {
-        net_->addInstTerm(this);
-      }
-    }
-  }
-
-  frInstTerm() = default;  // for serialization
-
-  friend class boost::serialization::access;
 };
 
 }  // namespace fr
-
-#endif

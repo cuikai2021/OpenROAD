@@ -112,9 +112,8 @@ _dbInst::_dbInst(_dbDatabase*)
   _flags._user_flag_1 = 0;
   _flags._user_flag_2 = 0;
   _flags._user_flag_3 = 0;
-  _flags._size_only = 0;
+  _flags._physical_only = 0;
   _flags._dont_touch = 0;
-  _flags._dont_size = 0;
   _flags._eco_create = 0;
   _flags._eco_destroy = 0;
   _flags._eco_modify = 0;
@@ -132,7 +131,7 @@ _dbInst::_dbInst(_dbDatabase*)
 
 _dbInst::_dbInst(_dbDatabase*, const _dbInst& i)
     : _flags(i._flags),
-      _name(NULL),
+      _name(nullptr),
       _x(i._x),
       _y(i._y),
       _weight(i._weight),
@@ -146,6 +145,7 @@ _dbInst::_dbInst(_dbDatabase*, const _dbInst& i)
       _module_next(i._module_next),
       _group_next(i._group_next),
       _region_prev(i._region_prev),
+      _module_prev(i._module_prev),
       _hierarchy(i._hierarchy),
       _iterms(i._iterms),
       _halo(i._halo),
@@ -181,6 +181,7 @@ dbOStream& operator<<(dbOStream& stream, const _dbInst& inst)
   stream << inst._module_next;
   stream << inst._group_next;
   stream << inst._region_prev;
+  stream << inst._module_prev;
   stream << inst._hierarchy;
   stream << inst._iterms;
   stream << inst._halo;
@@ -206,6 +207,7 @@ dbIStream& operator>>(dbIStream& stream, _dbInst& inst)
   stream >> inst._module_next;
   stream >> inst._group_next;
   stream >> inst._region_prev;
+  stream >> inst._module_prev;
   stream >> inst._hierarchy;
   stream >> inst._iterms;
   stream >> inst._halo;
@@ -236,10 +238,7 @@ bool _dbInst::operator==(const _dbInst& rhs) const
   if (_flags._user_flag_3 != rhs._flags._user_flag_3)
     return false;
 
-  if (_flags._size_only != rhs._flags._size_only)
-    return false;
-
-  if (_flags._dont_size != rhs._flags._dont_size)
+  if (_flags._physical_only != rhs._flags._physical_only)
     return false;
 
   if (_flags._dont_touch != rhs._flags._dont_touch)
@@ -293,6 +292,9 @@ bool _dbInst::operator==(const _dbInst& rhs) const
   if (_region_prev != rhs._region_prev)
     return false;
 
+  if (_module_prev != rhs._module_prev)
+    return false;
+
   if (_hierarchy != rhs._hierarchy)
     return false;
 
@@ -322,9 +324,8 @@ void _dbInst::differences(dbDiff& diff,
   DIFF_FIELD(_flags._user_flag_1);
   DIFF_FIELD(_flags._user_flag_2);
   DIFF_FIELD(_flags._user_flag_3);
-  DIFF_FIELD(_flags._size_only);
+  DIFF_FIELD(_flags._physical_only);
   DIFF_FIELD(_flags._dont_touch);
-  DIFF_FIELD(_flags._dont_size);
   DIFF_FIELD(_flags._source);
   DIFF_FIELD(_x);
   DIFF_FIELD(_y);
@@ -339,6 +340,7 @@ void _dbInst::differences(dbDiff& diff,
   DIFF_FIELD(_module_next);
   DIFF_FIELD(_group_next);
   DIFF_FIELD(_region_prev);
+  DIFF_FIELD(_module_prev);
   DIFF_FIELD(_hierarchy);
   DIFF_OBJECT(_halo, lhs_blk->_box_tbl, rhs_blk->_box_tbl);
   DIFF_FIELD(pin_access_idx_);
@@ -360,9 +362,7 @@ void _dbInst::differences(dbDiff& diff,
     for (itr = rhs_set.begin(); itr != rhs_set.end(); ++itr)
       rhs_vec.push_back(*itr);
 
-#ifndef WIN32  // This line cause a compiler error in visual stdio 6.0
     set_symmetric_diff(diff, "_iterms", lhs_vec, rhs_vec);
-#endif
   }
 
   DIFF_END
@@ -378,9 +378,8 @@ void _dbInst::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_FIELD(_flags._user_flag_1);
   DIFF_OUT_FIELD(_flags._user_flag_2);
   DIFF_OUT_FIELD(_flags._user_flag_3);
-  DIFF_OUT_FIELD(_flags._size_only);
+  DIFF_OUT_FIELD(_flags._physical_only);
   DIFF_OUT_FIELD(_flags._dont_touch);
-  DIFF_OUT_FIELD(_flags._dont_size);
   DIFF_OUT_FIELD(_flags._source);
   DIFF_OUT_FIELD(_x);
   DIFF_OUT_FIELD(_y);
@@ -395,6 +394,7 @@ void _dbInst::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_FIELD(_module_next);
   DIFF_OUT_FIELD(_group_next);
   DIFF_OUT_FIELD(_region_prev);
+  DIFF_OUT_FIELD(_module_prev);
   DIFF_OUT_FIELD(_hierarchy);
   DIFF_OUT_FIELD(pin_access_idx_);
 
@@ -459,11 +459,10 @@ bool dbInst::rename(const char* name)
   return true;
 }
 
-void dbInst::getOrigin(int& x, int& y)
+Point dbInst::getOrigin()
 {
   _dbInst* inst = (_dbInst*) this;
-  x = inst->_x;
-  y = inst->_y;
+  return {inst->_x, inst->_y};
 }
 
 void dbInst::setOrigin(int x, int y)
@@ -472,9 +471,16 @@ void dbInst::setOrigin(int x, int y)
   _dbBlock* block = (_dbBlock*) inst->getOwner();
   int prev_x = inst->_x;
   int prev_y = inst->_y;
-  // Do Nothin if same origin, But What if uninitialized and x=y=0
   if (prev_x == x && prev_y == y)
     return;
+  if (getPlacementStatus().isFixed()) {
+    inst->getLogger()->error(utl::ODB,
+                             359,
+                             "Attempt to change the origin of {} instance {}",
+                             getPlacementStatus().getString(),
+                             getName());
+  }
+
   for (auto callback : block->_callbacks)
     callback->inDbPreMoveInst(this);
 
@@ -523,6 +529,14 @@ void dbInst::getLocation(int& x, int& y) const
   y = bbox->_shape._rect.yMin();
 }
 
+Point dbInst::getLocation() const
+{
+  int x;
+  int y;
+  getLocation(x, y);
+  return {x, y};
+}
+
 void dbInst::setLocation(int x, int y)
 {
   dbMaster* master = getMaster();
@@ -552,6 +566,15 @@ void dbInst::setOrient(dbOrientType orient)
     return;
   _dbInst* inst = (_dbInst*) this;
   _dbBlock* block = (_dbBlock*) inst->getOwner();
+
+  if (getPlacementStatus().isFixed()) {
+    inst->getLogger()->error(
+        utl::ODB,
+        360,
+        "Attempt to change the orientation of {} instance {}",
+        getPlacementStatus().getString(),
+        getName());
+  }
   for (auto callback : block->_callbacks)
     callback->inDbPreMoveInst(this);
   uint prev_flags = flagsToUInt(inst);
@@ -585,6 +608,10 @@ void dbInst::setPlacementStatus(dbPlacementStatus status)
   _dbInst* inst = (_dbInst*) this;
   _dbBlock* block = (_dbBlock*) inst->getOwner();
 
+  if (inst->_flags._status == status) {
+    return;
+  }
+
   for (auto callback : block->_callbacks) {
     callback->inDbInstPlacementStatusBefore(this, status);
   }
@@ -604,11 +631,10 @@ void dbInst::setPlacementStatus(dbPlacementStatus status)
   }
 }
 
-void dbInst::getTransform(dbTransform& t)
+dbTransform dbInst::getTransform()
 {
   _dbInst* inst = (_dbInst*) this;
-  t = dbTransform(inst->_flags._orient, Point(inst->_x, inst->_y));
-  return;
+  return dbTransform(inst->_flags._orient, Point(inst->_x, inst->_y));
 }
 
 void dbInst::setTransform(dbTransform& t)
@@ -623,12 +649,11 @@ static void getParentTransform(dbInst* inst, dbTransform& t)
 {
   dbInst* parent = inst->getParent();
 
-  if (parent == NULL)
+  if (parent == nullptr)
     t = dbTransform();
   else {
     getParentTransform(parent, t);
-    dbTransform x;
-    parent->getTransform(x);
+    dbTransform x = parent->getTransform();
     x.concat(t);
     t = x;
   }
@@ -637,8 +662,7 @@ static void getParentTransform(dbInst* inst, dbTransform& t)
 void dbInst::getHierTransform(dbTransform& t)
 {
   getParentTransform(this, t);
-  dbTransform x;
-  getTransform(x);
+  dbTransform x = getTransform();
   x.concat(t);
   t = x;
   return;
@@ -811,18 +835,6 @@ void dbInst::clearUserFlag3()
         this, _dbInst::FLAGS, prev_flags, flagsToUInt(inst));
 }
 
-void dbInst::setSizeOnly(bool v)
-{
-  _dbInst* inst = (_dbInst*) this;
-  inst->_flags._size_only = v;
-}
-
-bool dbInst::isSizeOnly()
-{
-  _dbInst* inst = (_dbInst*) this;
-  return inst->_flags._size_only == 1;
-}
-
 void dbInst::setDoNotTouch(bool v)
 {
   _dbInst* inst = (_dbInst*) this;
@@ -833,26 +845,6 @@ bool dbInst::isDoNotTouch()
 {
   _dbInst* inst = (_dbInst*) this;
   return inst->_flags._dont_touch == 1;
-}
-
-void dbInst::setDoNotSize(bool v)
-{
-  _dbInst* inst = (_dbInst*) this;
-  inst->_flags._dont_size = v;
-}
-
-bool dbInst::isDoNotSize()
-{
-  _dbInst* inst = (_dbInst*) this;
-  return inst->_flags._dont_size == 1;
-}
-
-bool dbInst::canBeRemoved()
-{
-  _dbInst* inst = (_dbInst*) this;
-  return !(inst->_flags._dont_touch ||
-		   inst->_flags._dont_size ||
-		   inst->_flags._size_only);
 }
 
 dbBlock* dbInst::getBlock()
@@ -904,8 +896,8 @@ dbITerm* dbInst::findITerm(const char* name)
   dbMaster* master = getMaster();
   _dbMTerm* mterm = (_dbMTerm*) master->findMTerm((dbBlock*) block, name);
 
-  if (mterm == NULL)
-    return NULL;
+  if (mterm == nullptr)
+    return nullptr;
 
   return (dbITerm*) block->_iterm_tbl->getPtr(inst->_iterms[mterm->_order_id]);
 }
@@ -915,7 +907,7 @@ dbRegion* dbInst::getRegion()
   _dbInst* inst = (_dbInst*) this;
 
   if (inst->_region == 0)
-    return NULL;
+    return nullptr;
 
   _dbBlock* block = (_dbBlock*) inst->getOwner();
   _dbRegion* r = block->_region_tbl->getPtr(inst->_region);
@@ -927,7 +919,7 @@ dbModule* dbInst::getModule()
   _dbInst* inst = (_dbInst*) this;
 
   if (inst->_module == 0)
-    return NULL;
+    return nullptr;
 
   _dbBlock* block = (_dbBlock*) inst->getOwner();
   _dbModule* module = block->_module_tbl->getPtr(inst->_module);
@@ -939,7 +931,7 @@ dbGroup* dbInst::getGroup()
   _dbInst* inst = (_dbInst*) this;
 
   if (inst->_group == 0)
-    return NULL;
+    return nullptr;
 
   _dbBlock* block = (_dbBlock*) inst->getOwner();
   _dbGroup* group = block->_group_tbl->getPtr(inst->_group);
@@ -951,7 +943,7 @@ dbBox* dbInst::getHalo()
   _dbInst* inst = (_dbInst*) this;
 
   if (inst->_halo == 0)
-    return NULL;
+    return nullptr;
 
   _dbBlock* block = (_dbBlock*) inst->getOwner();
   _dbBox* b = block->_box_tbl->getPtr(inst->_halo);
@@ -968,10 +960,10 @@ void dbInst::getConnectivity(std::vector<dbInst*>& result,
     dbITerm* iterm = *iterm_itr;
     dbNet* net = iterm->getNet();
 
-    if (net == NULL)
+    if (net == nullptr)
       continue;
 
-    if ((net != NULL) && (((_dbNet*) net)->_flags._sig_type != type))
+    if ((net != nullptr) && (((_dbNet*) net)->_flags._sig_type != type))
       continue;
 
     dbSet<dbITerm> net_iterms = net->getITerms();
@@ -1056,7 +1048,7 @@ bool dbInst::bindBlock(dbBlock* block_, bool force)
   _dbHier* hier = _dbHier::create(this, block_);
 
   // _dbHier::create fails if bterms cannot be mapped (1-to-1) to mterms
-  if (hier == NULL) {
+  if (hier == nullptr) {
     getImpl()->getLogger()->warn(utl::ODB, 43, "_dbHier::create fails");
     return false;
   }
@@ -1079,7 +1071,7 @@ dbBlock* dbInst::getChild()
   _dbInst* inst = (_dbInst*) this;
 
   if (inst->_hierarchy == 0)
-    return NULL;
+    return nullptr;
 
   _dbBlock* block = (_dbBlock*) inst->getOwner();
   _dbChip* chip = (_dbChip*) block->getOwner();
@@ -1104,7 +1096,7 @@ dbSet<dbInst> dbInst::getChildren()
 {
   dbBlock* child = getChild();
 
-  if (child == NULL)
+  if (child == nullptr)
     return dbSet<dbInst>(child, &dbNullIterator::null_iterator);
 
   return child->getInsts();
@@ -1155,17 +1147,17 @@ bool dbInst::swapMaster(dbMaster* new_master_)
   const char* newMasterName = new_master_->getConstName();
   const char* oldMasterName = this->getMaster()->getConstName();
 
-  /*
-  if (strcmp(this->getConstName(), "BW1_BUF440357")==0) {
-      notice(0, "Trying to swapMaster FROM %s TO %s %s\n",
-  new_master_->getConstName(), this->getMaster()->getConstName(),
-          new_master_->getConstName(),
-          this->getConstName());
-  }
-  */
   _dbInst* inst = (_dbInst*) this;
   _dbBlock* block = (_dbBlock*) inst->getOwner();
   dbMaster* old_master_ = getMaster();
+
+  if (inst->_flags._dont_touch) {
+    inst->getLogger()->error(
+        utl::ODB,
+        368,
+        "Attempt to change master of dont_touch instance {}",
+        inst->_name);
+  }
 
   if (inst->_hierarchy) {
     getImpl()->getLogger()->warn(utl::ODB,
@@ -1266,7 +1258,7 @@ bool dbInst::swapMaster(dbMaster* new_master_)
       = block->_inst_hdr_hash.find(((_dbMaster*) new_master_)->_id);
 
   // create a new inst-hdr if needed
-  if (new_inst_hdr == NULL) {
+  if (new_inst_hdr == nullptr) {
     new_inst_hdr = (_dbInstHdr*) dbInstHdr::create((dbBlock*) block,
                                                    (dbMaster*) new_master_);
     ZASSERT(new_inst_hdr);
@@ -1294,13 +1286,10 @@ bool dbInst::swapMaster(dbMaster* new_master_)
   sortITerm itermCmp(block);
   std::sort(inst->_iterms.begin(), inst->_iterms.end(), itermCmp);
 
-  // Notification - payam 01/18/2006
+  // Notification
   for (cbitr = block->_callbacks.begin(); cbitr != block->_callbacks.end();
        ++cbitr)
     (*cbitr)->inDbInstSwapMasterAfter(this);
-
-  // notice(0, "dbSwap_END %s -> %s %s\n", old_master_->getConstName(),
-  // this->getMaster()->getConstName(), this->getConstName());
 
   return true;
 }
@@ -1317,28 +1306,36 @@ uint dbInst::getPinAccessIdx() const
   return inst->pin_access_idx_;
 }
 
-
-dbInst* dbInst::create(dbBlock* block_, dbMaster* master_, const char* name_)
+dbInst* dbInst::create(dbBlock* block_,
+                       dbMaster* master_,
+                       const char* name_,
+                       bool physical_only)
 {
-  return create(block_, master_, name_, NULL);
+  return create(block_, master_, name_, nullptr, physical_only);
 }
 
 dbInst* dbInst::create(dbBlock* block_,
                        dbMaster* master_,
                        const char* name_,
-                       dbRegion* region)
+                       dbRegion* region,
+                       bool physical_only)
 {
   _dbBlock* block = (_dbBlock*) block_;
   _dbMaster* master = (_dbMaster*) master_;
   _dbInstHdr* inst_hdr = block->_inst_hdr_hash.find(master->_id);
-  if (inst_hdr == NULL) {
+  if (inst_hdr == nullptr) {
     inst_hdr
         = (_dbInstHdr*) dbInstHdr::create((dbBlock*) block, (dbMaster*) master);
     ZASSERT(inst_hdr);
   }
 
-  if (block->_inst_hash.hasMember(name_))
-    return NULL;
+  if (block->_inst_hash.hasMember(name_)) {
+    block->getImpl()->getLogger()->error(
+        utl::ODB,
+        385,
+        "Attempt to create instance with duplicate name: {}",
+        name_);
+  }
 
   if (block->_journal) {
     debugPrint(block->getImpl()->getLogger(),
@@ -1382,6 +1379,11 @@ dbInst* dbInst::create(dbBlock* block_,
 
   block->add_rect(box->_shape._rect);
 
+  inst->_flags._physical_only = physical_only;
+  if (!physical_only) {
+    block_->getTopModule()->addInst((dbInst*) inst);
+  }
+
   if (region) {
     region->addInst((dbInst*) inst);
     std::list<dbBlockCallBackObj*>::iterator cbitr;
@@ -1409,10 +1411,58 @@ dbInst* dbInst::create(dbBlock* block_,
   return (dbInst*) inst;
 }
 
+dbInst* dbInst::create(dbBlock* top_block,
+                       dbBlock* child_block,
+                       const char* name)
+{
+  if (top_block->findInst(name)) {
+    top_block->getImpl()->getLogger()->error(
+        utl::ODB,
+        436,
+        "Attempt to create instance with duplicate name: {}",
+        name);
+  }
+  // Find or create a dbLib to put the new dbMaster in.
+  dbDatabase* db = top_block->getDataBase();
+  dbTech* tech = child_block->getTech();
+  dbLib* lib = nullptr;
+  for (auto l : db->getLibs()) {
+    if (l->getTech() == tech) {
+      lib = l;
+      break;
+    }
+  }
+  if (!lib) {
+    std::string lib_name = child_block->getName() + tech->getName();
+    lib = dbLib::create(db, lib_name.c_str(), child_block->getTech());
+  }
+  auto master = dbMaster::create(lib, child_block->getName().c_str());
+  master->setType(dbMasterType::BLOCK);
+  auto bbox = child_block->getBBox();
+  master->setWidth(bbox->getDX());
+  master->setHeight(bbox->getDY());
+  for (auto term : child_block->getBTerms()) {
+    dbMTerm::create(
+        master, term->getName().c_str(), term->getIoType(), term->getSigType());
+  }
+  master->setFrozen();
+  auto inst = dbInst::create(top_block, master, name);
+  inst->bindBlock(child_block);
+
+  return inst;
+}
+
 void dbInst::destroy(dbInst* inst_)
 {
   _dbInst* inst = (_dbInst*) inst_;
   _dbBlock* block = (_dbBlock*) inst->getOwner();
+
+  if (inst->_flags._dont_touch) {
+    inst->getLogger()->error(utl::ODB,
+                             362,
+                             "Attempt to destroy dont_touch instance {}",
+                             inst->_name);
+  }
 
   dbRegion* region = inst_->getRegion();
 
@@ -1421,7 +1471,7 @@ void dbInst::destroy(dbInst* inst_)
 
   dbModule* module = inst_->getModule();
   if (module)
-    module->removeInst(inst_);
+    ((_dbModule*) module)->removeInst(inst_);
 
   if (inst->_group)
     inst_->getGroup()->removeInst(inst_);
@@ -1516,7 +1566,7 @@ dbInst* dbInst::getValidInst(dbBlock* block_, uint dbid_)
 {
   _dbBlock* block = (_dbBlock*) block_;
   if (!block->_inst_tbl->validId(dbid_))
-    return NULL;
+    return nullptr;
   return (dbInst*) block->_inst_tbl->getPtr(dbid_);
 }
 dbITerm* dbInst::getFirstOutput()
@@ -1538,28 +1588,7 @@ dbITerm* dbInst::getFirstOutput()
   }
   getImpl()->getLogger()->warn(
       utl::ODB, 47, "instance {} has no output pin", getConstName());
-  return NULL;
-}
-dbITerm* dbInst::getFirstInput()
-{
-  dbSet<dbITerm> iterms = getITerms();
-  dbSet<dbITerm>::iterator iitr;
-
-  for (iitr = iterms.begin(); iitr != iterms.end(); ++iitr) {
-    dbITerm* tr = *iitr;
-
-    if ((tr->getSigType() == dbSigType::GROUND)
-        || (tr->getSigType() == dbSigType::POWER))
-      continue;
-
-    if (tr->getIoType() != dbIoType::INPUT)
-      continue;
-
-    return tr;
-  }
-  getImpl()->getLogger()->warn(
-      utl::ODB, 470, "instance {} has no input pin", getConstName());
-  return NULL;
+  return nullptr;
 }
 
 }  // namespace odb

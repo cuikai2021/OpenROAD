@@ -25,7 +25,7 @@
 /*                                                                            */
 /*  $Author: dell $                                                       */
 /*  $Revision: #1 $                                                           */
-/*  $Date: 2017/06/06 $                                                       */
+/*  $Date: 2020/09/29 $                                                       */
 /*  $State:  $                                                                */
 /* ************************************************************************** */
 /* ************************************************************************** */
@@ -40,7 +40,6 @@
  * or defwWriter.h.
  */
 
-
 #ifndef CDEFIUSER_H
 #define CDEFIUSER_H
 
@@ -49,8 +48,8 @@
 #include "defiBlockage.h"
 #include "defiComponent.h"
 #include "defiDebug.h"
-#include "defiFill.h"
 #include "defiFPC.h"
+#include "defiFill.h"
 #include "defiGroup.h"
 #include "defiIOTiming.h"
 #include "defiMisc.h"
@@ -69,7 +68,6 @@
 #include "defiSlot.h"
 #include "defiTimingDisable.h"
 #include "defiVia.h"
-
 
 /* General utilities. */
 /* #include "defiMalloc.hpp" */

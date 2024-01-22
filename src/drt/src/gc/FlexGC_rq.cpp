@@ -30,9 +30,7 @@
 
 #include "frRTree.h"
 #include "gc/FlexGC_impl.h"
-#include "serialization.h"
 
-using namespace std;
 using namespace fr;
 
 struct FlexGCWorkerRegionQuery::Impl
@@ -50,20 +48,16 @@ struct FlexGCWorkerRegionQuery::Impl
 
   FlexGCWorker* gcWorker_;
   std::vector<RTree<gcSegment*, segment_t>> polygon_edges_;  // merged
-  std::vector<RTree<gcRect*>> max_rectangles_;  // merged
+  std::vector<RTree<gcRect*>> max_rectangles_;               // merged
   std::vector<RTree<gcRect>>
       spc_rectangles_;  // rects that require nondefault spacing that intersects
                         // tapered max rects
 
  private:
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version);
-
-  friend class boost::serialization::access;
 };
 
 FlexGCWorkerRegionQuery::FlexGCWorkerRegionQuery(FlexGCWorker* in)
-    : impl_(make_unique<Impl>())
+    : impl_(std::make_unique<Impl>())
 {
   impl_->gcWorker_ = in;
 }
@@ -78,69 +72,71 @@ void FlexGCWorkerRegionQuery::addPolygonEdge(gcSegment* edge)
 {
   segment_t boosts(point_t(edge->low().x(), edge->low().y()),
                    point_t(edge->high().x(), edge->high().y()));
-  impl_->polygon_edges_[edge->getLayerNum()].insert(make_pair(boosts, edge));
+  impl_->polygon_edges_[edge->getLayerNum()].insert(
+      std::make_pair(boosts, edge));
 }
 
 void FlexGCWorkerRegionQuery::Impl::addPolygonEdge(
     gcSegment* edge,
-    vector<vector<pair<segment_t, gcSegment*>>>& allShapes)
+    std::vector<std::vector<std::pair<segment_t, gcSegment*>>>& allShapes)
 {
   segment_t boosts(point_t(edge->low().x(), edge->low().y()),
                    point_t(edge->high().x(), edge->high().y()));
-  allShapes[edge->getLayerNum()].push_back(make_pair(boosts, edge));
+  allShapes[edge->getLayerNum()].push_back(std::make_pair(boosts, edge));
 }
 
 void FlexGCWorkerRegionQuery::addMaxRectangle(gcRect* rect)
 {
   Rect r(gtl::xl(*rect), gtl::yl(*rect), gtl::xh(*rect), gtl::yh(*rect));
-  impl_->max_rectangles_[rect->getLayerNum()].insert(make_pair(r, rect));
+  impl_->max_rectangles_[rect->getLayerNum()].insert(std::make_pair(r, rect));
 }
 
 void FlexGCWorkerRegionQuery::addSpcRectangle(gcRect* rect)
 {
   Rect r(gtl::xl(*rect), gtl::yl(*rect), gtl::xh(*rect), gtl::yh(*rect));
-  impl_->spc_rectangles_[rect->getLayerNum()].insert(make_pair(r, *rect));
+  impl_->spc_rectangles_[rect->getLayerNum()].insert(std::make_pair(r, *rect));
 }
 
 void FlexGCWorkerRegionQuery::Impl::addMaxRectangle(
     gcRect* rect,
-    vector<vector<rq_box_value_t<gcRect*>>>& allShapes)
+    std::vector<std::vector<rq_box_value_t<gcRect*>>>& allShapes)
 {
   Rect boostr(gtl::xl(*rect), gtl::yl(*rect), gtl::xh(*rect), gtl::yh(*rect));
-  allShapes[rect->getLayerNum()].push_back(make_pair(boostr, rect));
+  allShapes[rect->getLayerNum()].push_back(std::make_pair(boostr, rect));
 }
 
 void FlexGCWorkerRegionQuery::Impl::addSpcRectangle(
     gcRect* rect,
-    vector<vector<rq_box_value_t<gcRect>>>& allShapes)
+    std::vector<std::vector<rq_box_value_t<gcRect>>>& allShapes)
 {
   Rect box(gtl::xl(*rect), gtl::yl(*rect), gtl::xh(*rect), gtl::yh(*rect));
-  allShapes[rect->getLayerNum()].push_back(make_pair(box, *rect));
+  allShapes[rect->getLayerNum()].push_back(std::make_pair(box, *rect));
 }
 
 void FlexGCWorkerRegionQuery::removePolygonEdge(gcSegment* edge)
 {
   segment_t boosts(point_t(edge->low().x(), edge->low().y()),
                    point_t(edge->high().x(), edge->high().y()));
-  impl_->polygon_edges_[edge->getLayerNum()].remove(make_pair(boosts, edge));
+  impl_->polygon_edges_[edge->getLayerNum()].remove(
+      std::make_pair(boosts, edge));
 }
 
 void FlexGCWorkerRegionQuery::removeMaxRectangle(gcRect* rect)
 {
   Rect r(gtl::xl(*rect), gtl::yl(*rect), gtl::xh(*rect), gtl::yh(*rect));
-  impl_->max_rectangles_[rect->getLayerNum()].remove(make_pair(r, rect));
+  impl_->max_rectangles_[rect->getLayerNum()].remove(std::make_pair(r, rect));
 }
 
 void FlexGCWorkerRegionQuery::removeSpcRectangle(gcRect* rect)
 {
   Rect r(gtl::xl(*rect), gtl::yl(*rect), gtl::xh(*rect), gtl::yh(*rect));
-  impl_->spc_rectangles_[rect->getLayerNum()].remove(make_pair(r, *rect));
+  impl_->spc_rectangles_[rect->getLayerNum()].remove(std::make_pair(r, *rect));
 }
 
 void FlexGCWorkerRegionQuery::queryPolygonEdge(
     const box_t& box,
     const frLayerNum layerNum,
-    vector<pair<segment_t, gcSegment*>>& result) const
+    std::vector<std::pair<segment_t, gcSegment*>>& result) const
 {
   impl_->polygon_edges_[layerNum].query(bgi::intersects(box),
                                         back_inserter(result));
@@ -149,7 +145,7 @@ void FlexGCWorkerRegionQuery::queryPolygonEdge(
 void FlexGCWorkerRegionQuery::queryPolygonEdge(
     const Rect& box,
     const frLayerNum layerNum,
-    vector<pair<segment_t, gcSegment*>>& result) const
+    std::vector<std::pair<segment_t, gcSegment*>>& result) const
 {
   box_t boostb(point_t(box.xMin(), box.yMin()),
                point_t(box.xMax(), box.yMax()));
@@ -207,24 +203,21 @@ void FlexGCWorkerRegionQuery::Impl::init(int numLayers)
   max_rectangles_.resize(numLayers);
   spc_rectangles_.clear();
   spc_rectangles_.resize(numLayers);
-  vector<vector<pair<segment_t, gcSegment*>>> allPolygonEdges(numLayers);
-  vector<vector<rq_box_value_t<gcRect*>>> allMaxRectangles(numLayers);
-  vector<vector<rq_box_value_t<gcRect>>> allSpcRectangles(numLayers);
+  std::vector<std::vector<std::pair<segment_t, gcSegment*>>> allPolygonEdges(
+      numLayers);
+  std::vector<std::vector<rq_box_value_t<gcRect*>>> allMaxRectangles(numLayers);
+  std::vector<std::vector<rq_box_value_t<gcRect>>> allSpcRectangles(numLayers);
 
-  int cntPolygonEdge = 0;
-  int cntMaxRectangle = 0;
   for (auto& net : gcWorker_->getNets()) {
     for (auto& pins : net->getPins()) {
       for (auto& pin : pins) {
         for (auto& edges : pin->getPolygonEdges()) {
           for (auto& edge : edges) {
             addPolygonEdge(edge.get(), allPolygonEdges);
-            cntPolygonEdge++;
           }
         }
         for (auto& rect : pin->getMaxRectangles()) {
           addMaxRectangle(rect.get(), allMaxRectangles);
-          cntMaxRectangle++;
         }
       }
     }
@@ -232,14 +225,11 @@ void FlexGCWorkerRegionQuery::Impl::init(int numLayers)
       addSpcRectangle(spcRect.get(), allSpcRectangles);
   }
 
-  int cntRTPolygonEdge = 0;
-  int cntRTMaxRectangle = 0;
-   for (int i = 0; i < numLayers; i++) {
-    polygon_edges_[i] = boost::move(RTree<gcSegment*, segment_t>(allPolygonEdges[i]));
+  for (int i = 0; i < numLayers; i++) {
+    polygon_edges_[i]
+        = boost::move(RTree<gcSegment*, segment_t>(allPolygonEdges[i]));
     max_rectangles_[i] = boost::move(RTree<gcRect*>(allMaxRectangles[i]));
     spc_rectangles_[i] = boost::move(RTree<gcRect>(allSpcRectangles[i]));
-    cntRTPolygonEdge += polygon_edges_[i].size();
-    cntRTMaxRectangle += max_rectangles_[i].size();
   }
 }
 
@@ -258,7 +248,7 @@ void FlexGCWorkerRegionQuery::addToRegionQuery(gcNet* net)
     }
   }
   for (auto& spcR : net->getSpecialSpcRects()) {
-      addSpcRectangle(spcR.get());
+    addSpcRectangle(spcR.get());
   }
 }
 
@@ -276,32 +266,7 @@ void FlexGCWorkerRegionQuery::removeFromRegionQuery(gcNet* net)
       }
     }
   }
-  for (auto& spcR: net->getSpecialSpcRects()) {
-      removeSpcRectangle(spcR.get());
+  for (auto& spcR : net->getSpecialSpcRects()) {
+    removeSpcRectangle(spcR.get());
   }
 }
-
-template <class Archive>
-void FlexGCWorkerRegionQuery::Impl::serialize(Archive& ar,
-                                              const unsigned int version)
-{
-  (ar) & gcWorker_;
-  (ar) & polygon_edges_;
-  (ar) & max_rectangles_;
-  (ar) & spc_rectangles_;
-}
-
-template <class Archive>
-void FlexGCWorkerRegionQuery::serialize(Archive& ar, const unsigned int version)
-{
-  (ar) & impl_;
-}
-
-// Explicit instantiations
-template void FlexGCWorkerRegionQuery::serialize<InputArchive>(
-    InputArchive& ar,
-    const unsigned int file_version);
-
-template void FlexGCWorkerRegionQuery::serialize<OutputArchive>(
-    OutputArchive& ar,
-    const unsigned int file_version);

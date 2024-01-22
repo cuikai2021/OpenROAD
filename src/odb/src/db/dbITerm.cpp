@@ -234,7 +234,7 @@ dbNet* dbITerm::getNet()
   _dbBlock* block = (_dbBlock*) iterm->getOwner();
 
   if (iterm->_net == 0)
-    return NULL;
+    return nullptr;
 
   _dbNet* net = block->_net_tbl->getPtr(iterm->_net);
   return (dbNet*) net;
@@ -260,7 +260,7 @@ dbBTerm* dbITerm::getBTerm()
   _dbInst* inst = block->_inst_tbl->getPtr(iterm->_inst);
 
   if (inst->_hierarchy == 0)
-    return NULL;
+    return nullptr;
 
   _dbHier* hier = block->_hier_tbl->getPtr(inst->_hierarchy);
 
@@ -268,6 +268,11 @@ dbBTerm* dbITerm::getBTerm()
   _dbBlock* child = chip->_block_tbl->getPtr(hier->_child_block);
   dbId<_dbBTerm> bterm = hier->_child_bterms[iterm->_flags._mterm_idx];
   return (dbBTerm*) child->_bterm_tbl->getPtr(bterm);
+}
+
+std::string dbITerm::getName(const char separator) const
+{
+  return getInst()->getName() + separator + getMTerm()->getName();
 }
 
 dbBlock* dbITerm::getBlock() const
@@ -305,78 +310,19 @@ bool dbITerm::isSpecial()
 void dbITerm::setSpecial()
 {
   _dbITerm* iterm = (_dbITerm*) this;
-  //_dbBlock * block = (_dbBlock *) getOwner();
-  // dimitri_fix: need to FIX on FULL_ECO uint prev_flags = flagsToUInt(iterm);
-#ifdef FULL_ECO
-  uint prev_flags = flagsToUInt(iterm);
-#endif
-
   iterm->_flags._special = 1;
-
-#ifdef FULL_ECO
-  if (block->_journal) {
-    debugPrint(getImpl()->getLogger(),
-               utl::ODB,
-               "DB_ECO",
-               1,
-               "ECO: Iterm {}, setSpecial",
-               getId());
-    block->_journal->updateField(
-        this, _dbNet::FLAGS, prev_flags, flagsToUInt(iterm));
-  }
-#endif
 }
 
 void dbITerm::clearSpecial()
 {
   _dbITerm* iterm = (_dbITerm*) this;
-  //_dbBlock * block = (_dbBlock *) getOwner();
-  // dimitri_fix: need to FIX on FULL_ECO //uint prev_flags =
-  // flagsToUInt(iterm);
-#ifdef FULL_ECO
-  uint prev_flags = flagsToUInt(iterm);
-#endif
-
   iterm->_flags._special = 0;
-
-#ifdef FULL_ECO
-  if (block->_journal) {
-    debugPrint(getImpl()->getLogger(),
-               utl::ODB,
-               "DB_ECO",
-               1,
-               "ECO: Iterm {}, clearSpecial\n",
-               getId());
-    block->_journal->updateField(
-        this, _dbNet::FLAGS, prev_flags, flagsToUInt(iterm));
-  }
-#endif
 }
 
 void dbITerm::setSpef(uint v)
 {
   _dbITerm* iterm = (_dbITerm*) this;
-  //_dbBlock * block = (_dbBlock *) getOwner();
-  // dimitri_fix: need to FIX on FULL_ECO //uint prev_flags =
-  // flagsToUInt(iterm);
-#ifdef FULL_ECO
-  uint prev_flags = flagsToUInt(iterm);
-#endif
-
   iterm->_flags._spef = v;
-
-#ifdef FULL_ECO
-  if (block->_journal) {
-    debugPrint(getImpl()->getLogger(),
-               utl::ODB,
-               "DB_ECO",
-               1,
-               "ECO: Iterm {}, setSpef",
-               getId());
-    block->_journal->updateField(
-        this, _dbNet::FLAGS, prev_flags, flagsToUInt(iterm));
-  }
-#endif
 }
 
 bool dbITerm::isSpef()
@@ -406,51 +352,13 @@ bool dbITerm::isConnected()
 void dbITerm::setConnected()
 {
   _dbITerm* iterm = (_dbITerm*) this;
-  // dimitri_fix: need to FIX on FULL_ECO uint prev_flags = flagsToUInt(iterm);
-#ifdef FULL_ECO
-  _dbBlock* block = (_dbBlock*) getOwner();
-  uint prev_flags = flagsToUInt(iterm);
-#endif
-
   iterm->_flags._connected = 1;
-
-#ifdef FULL_ECO
-  if (block->_journal) {
-    debugPrint(getImpl()->getLogger(),
-               utl::ODB,
-               "DB_ECO",
-               1,
-               "ECO: Iterm {}, setConnected",
-               getId());
-    block->_journal->updateField(
-        this, _dbNet::FLAGS, prev_flags, flagsToUInt(iterm));
-  }
-#endif
 }
 
 void dbITerm::clearConnected()
 {
   _dbITerm* iterm = (_dbITerm*) this;
-  // uint prev_flags = flagsToUInt(iterm);
-#ifdef FULL_ECO
-  _dbBlock* block = (_dbBlock*) getOwner();
-  uint prev_flags = flagsToUInt(iterm);
-#endif
-
   iterm->_flags._connected = 0;
-
-#ifdef FULL_ECO
-  if (block->_journal) {
-    debugPrint(getImpl()->getLogger(),
-               utl::ODB,
-               "DB_ECO",
-               1,
-               "ECO: Iterm {}, clearConnected",
-               getId());
-    block->_journal->updateField(
-        this, _dbNet::FLAGS, prev_flags, flagsToUInt(iterm));
-  }
-#endif
 }
 
 void dbITerm::connect(dbNet* net_)
@@ -462,6 +370,29 @@ void dbITerm::connect(dbNet* net_)
   // Do Nothing if already connected
   if (iterm->_net == net->getOID())
     return;
+
+  _dbInst* inst = iterm->getInst();
+  if (inst->_flags._dont_touch) {
+    inst->getLogger()->error(
+        utl::ODB,
+        369,
+        "Attempt to connect iterm of dont_touch instance {}",
+        inst->_name);
+  }
+
+  if (net->_flags._dont_touch) {
+    inst->getLogger()->error(utl::ODB,
+                             373,
+                             "Attempt to connect iterm to dont_touch net {}",
+                             net->_name);
+  }
+
+  if (net_->getBlock() != getInst()->getBlock()) {
+    inst->getLogger()->error(utl::ODB,
+                             433,
+                             "Connecting instances on different dies into "
+                             "one net is currently not supported");
+  }
 
   if (iterm->_net != 0)
     disconnect();
@@ -509,8 +440,25 @@ void dbITerm::disconnect()
   if (iterm->_net == 0)
     return;
 
+  _dbInst* inst = iterm->getInst();
+  if (inst->_flags._dont_touch) {
+    inst->getLogger()->error(
+        utl::ODB,
+        370,
+        "Attempt to disconnect iterm of dont_touch instance {}",
+        inst->_name);
+  }
+
   _dbBlock* block = (_dbBlock*) iterm->getOwner();
   _dbNet* net = block->_net_tbl->getPtr(iterm->_net);
+
+  if (net->_flags._dont_touch) {
+    inst->getLogger()->error(utl::ODB,
+                             372,
+                             "Attempt to disconnect iterm of dont_touch net {}",
+                             net->_name);
+  }
+
   for (auto callback : block->_callbacks)
     callback->inDbITermPreDisconnect(this);
   if (block->_journal) {
@@ -607,8 +555,7 @@ Rect dbITerm::getBBox()
 {
   dbMTerm* term = getMTerm();
   Rect bbox = term->getBBox();
-  odb::dbTransform inst_xfm;
-  getInst()->getTransform(inst_xfm);
+  const odb::dbTransform inst_xfm = getInst()->getTransform();
   inst_xfm.apply(bbox);
   return bbox;
 }
@@ -619,13 +566,8 @@ bool dbITerm::getAvgXY(int* x, int* y)
   int nn = 0;
   double xx = 0.0;
   double yy = 0.0;
-  int px;
-  int py;
   dbInst* inst = getInst();
-  inst->getOrigin(px, py);
-  Point origin = Point(px, py);
-  dbOrientType orient = inst->getOrient();
-  dbTransform transform(orient, origin);
+  const dbTransform transform = inst->getTransform();
 
   dbSet<dbMPin> mpins = mterm->getMPins();
   dbSet<dbMPin>::iterator mpin_itr;
@@ -635,8 +577,7 @@ bool dbITerm::getAvgXY(int* x, int* y)
     dbSet<dbBox>::iterator box_itr;
     for (box_itr = boxes.begin(); box_itr != boxes.end(); box_itr++) {
       dbBox* box = *box_itr;
-      Rect rect;
-      box->getBox(rect);
+      Rect rect = box->getBox();
       transform.apply(rect);
       xx += rect.xMin() + rect.xMax();
       yy += rect.yMin() + rect.yMax();
@@ -678,8 +619,7 @@ void dbITerm::setAccessPoint(dbMPin* pin, dbAccessPoint* ap)
     iterm->aps_[pin->getImpl()->getOID()] = ap->getImpl()->getOID();
     _dbAccessPoint* _ap = (_dbAccessPoint*) ap;
     _ap->iterms_.push_back(iterm->getOID());
-  }
-  else
+  } else
     iterm->aps_[pin->getImpl()->getOID()] = dbId<_dbAccessPoint>();
 }
 
@@ -689,12 +629,10 @@ std::map<dbMPin*, std::vector<dbAccessPoint*>> dbITerm::getAccessPoints() const
   auto mterm = getMTerm();
   uint pin_access_idx = getInst()->getPinAccessIdx();
   std::map<dbMPin*, std::vector<dbAccessPoint*>> aps;
-  for(auto mpin : mterm->getMPins())
-  {
+  for (auto mpin : mterm->getMPins()) {
     _dbMPin* pin = (_dbMPin*) mpin;
-    if(pin->aps_.size() > pin_access_idx) {
-      for(auto id : pin->aps_[pin_access_idx])
-      {
+    if (pin->aps_.size() > pin_access_idx) {
+      for (const auto& id : pin->aps_[pin_access_idx]) {
         aps[mpin].push_back((dbAccessPoint*) block->ap_tbl_->getPtr(id));
       }
     }
@@ -717,14 +655,12 @@ std::vector<dbAccessPoint*> dbITerm::getPrefAccessPoints() const
 
 std::vector<Rect> dbITerm::getGeometries() const
 {
-  dbTransform transform;
-  getInst()->getTransform(transform);
+  const dbTransform transform = getInst()->getTransform();
 
   std::vector<Rect> geometries;
   for (dbMPin* mpin : getMTerm()->getMPins()) {
     for (dbBox* box : mpin->getGeometry()) {
-      Rect rect;
-      box->getBox(rect);
+      Rect rect = box->getBox();
       transform.apply(rect);
       geometries.push_back(rect);
     }

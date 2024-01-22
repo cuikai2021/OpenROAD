@@ -1,199 +1,17 @@
 [INFO ODB-0222] Reading LEF file: Nangate45/Nangate45.lef
 [INFO ODB-0223]     Created 22 technology layers
 [INFO ODB-0224]     Created 27 technology vias
-[INFO ODB-0225]     Created 134 library cells
+[INFO ODB-0225]     Created 135 library cells
 [INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 40, library unsupported feature date.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 41, library unsupported feature revision.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 42, library unsupported feature comment.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 45, library unsupported feature technology.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 47, library unsupported feature in_place_swap_mode.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 48, library unsupported feature library_features.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 68, library unsupported feature process_corner.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 86, library unsupported feature default_leakage_power_density.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 87, library unsupported feature default_cell_leakage_power.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 308, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 535, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 762, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 989, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 1320, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 1651, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 1982, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 2433, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 2884, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 3335, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 3338, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 3395, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 3894, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 4393, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 4892, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 6015, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 7138, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 8261, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 9048, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 9835, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 10622, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 12557, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 14492, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 16427, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 21206, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 25985, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 30764, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 30895, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 31026, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 31157, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 31288, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 31419, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 31550, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 31681, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 31812, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 31943, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 32243, library unsupported feature clock_gate_test_pin.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 32697, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 32997, library unsupported feature clock_gate_test_pin.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 33451, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 33751, library unsupported feature clock_gate_test_pin.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 34205, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 34505, library unsupported feature clock_gate_test_pin.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 34959, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 35311, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 35663, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 36015, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 36367, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 38755, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 41143, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 42178, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 43213, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 44248, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 45283, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 45713, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 46143, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 46495, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 46847, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 47199, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 47551, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49133, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49136, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49159, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49162, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49185, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49188, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49211, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49214, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49237, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49240, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49263, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49266, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49289, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49853, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 49984, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50115, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50246, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50377, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50508, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50639, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50642, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50673, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50676, library unsupported feature dont_touch.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 50707, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 51296, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 51885, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 52112, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 52339, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 52566, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 52897, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 53228, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 53559, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 54010, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 54461, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 54912, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 55139, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 55366, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 55593, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 55924, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 56255, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 56586, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 57037, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 57488, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 57939, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 58438, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 58937, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 59436, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 60559, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 61682, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 62805, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 66600, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 67387, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 68174, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 68961, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 70896, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 72831, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 74766, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 79545, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 84324, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 89103, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 89330, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 89557, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 89784, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 90115, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 90446, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 90777, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 91228, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 91679, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 92130, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 92478, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 93305, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 93840, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 101445, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 101793, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 102620, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 103155, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 110760, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 110977, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 111678, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 112093, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 114726, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 114943, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 115644, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 116059, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 118692, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 118909, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 119324, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 119739, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 122658, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 122875, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 123290, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 123705, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 126624, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 126776, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 127071, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 127362, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 128089, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 128241, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 128536, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 128827, library unsupported feature nextstate_type.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 129554, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 129806, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 130058, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 130310, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 130562, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 130814, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 131066, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 131697, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 132096, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 132495, library unsupported feature drive_strength.
-[WARNING STA-1002] Nangate45/Nangate45_typ.lib line 132894, library unsupported feature drive_strength.
-[INFO ODB-0127] Reading DEF file: gcd.def
 [INFO ODB-0128] Design: gcd
 [INFO ODB-0130]     Created 54 pins.
 [INFO ODB-0131]     Created 676 components and 2850 component-terminals.
 [INFO ODB-0133]     Created 579 nets and 1498 connections.
-[INFO ODB-0134] Finished DEF file: gcd.def
 [INFO GRT-0020] Min routing layer: metal2
 [INFO GRT-0021] Max routing layer: metal10
 [INFO GRT-0022] Global adjustment: 0%
 [INFO GRT-0023] Grid origin: (0, 0)
-[WARNING GRT-0043] No OR_DEFAULT vias defined.
+[INFO GRT-0043] No OR_DEFAULT vias defined.
 [INFO GRT-0088] Layer metal1  Track-Pitch = 0.1400  line-2-Via Pitch: 0.1350
 [INFO GRT-0088] Layer metal2  Track-Pitch = 0.1900  line-2-Via Pitch: 0.1400
 [INFO GRT-0088] Layer metal3  Track-Pitch = 0.1400  line-2-Via Pitch: 0.1400
@@ -215,44 +33,45 @@
 Layer     Direction    Resources     Resources    Reduction (%)
 ---------------------------------------------------------------
 metal1     Horizontal          0             0          0.00%
-metal2     Vertical        24816         24581          0.95%
-metal3     Horizontal      33840         33028          2.40%
-metal4     Vertical        15792         15698          0.60%
-metal5     Horizontal      15792         15410          2.42%
-metal6     Vertical        15792         15698          0.60%
-metal7     Horizontal       4512          4370          3.15%
-metal8     Vertical         4512          4512          0.00%
-metal9     Horizontal       2256          2162          4.17%
-metal10    Vertical         2256          2209          2.08%
+metal2     Vertical        25163         24628          2.13%
+metal3     Horizontal      33840         33120          2.13%
+metal4     Vertical        16039         15698          2.13%
+metal5     Horizontal      15792         15404          2.46%
+metal6     Vertical        16039         15642          2.48%
+metal7     Horizontal       4512          4416          2.13%
+metal8     Vertical         4610          4512          2.13%
+metal9     Horizontal       2256          2208          2.13%
+metal10    Vertical         2305          2256          2.13%
 ---------------------------------------------------------------
 
-[INFO GRT-0197] Via related to pin nodes: 2113
-[INFO GRT-0198] Via related Steiner nodes: 87
+[INFO GRT-0197] Via related to pin nodes: 2138
+[INFO GRT-0198] Via related Steiner nodes: 93
 [INFO GRT-0199] Via filling finished.
-[INFO GRT-0111] Final number of vias: 2595
-[INFO GRT-0112] Final usage 3D: 11171
+[INFO GRT-0111] Final number of vias: 2682
+[INFO GRT-0112] Final usage 3D: 11387
 
 [INFO GRT-0096] Final congestion report:
 Layer         Resource        Demand        Usage (%)    Max H / Max V / Total Overflow
 ---------------------------------------------------------------------------------------
 metal1               0             0            0.00%             0 /  0 /  0
-metal2           24581          1703            6.93%             0 /  0 /  0
-metal3           33028          1683            5.10%             0 /  0 /  0
-metal4           15698             0            0.00%             0 /  0 /  0
-metal5           15410             0            0.00%             0 /  0 /  0
-metal6           15698             0            0.00%             0 /  0 /  0
-metal7            4370             0            0.00%             0 /  0 /  0
+metal2           24628          1561            6.34%             0 /  0 /  0
+metal3           33120          1643            4.96%             0 /  0 /  0
+metal4           15698            44            0.28%             0 /  0 /  0
+metal5           15404            44            0.29%             0 /  0 /  0
+metal6           15642            49            0.31%             0 /  0 /  0
+metal7            4416             0            0.00%             0 /  0 /  0
 metal8            4512             0            0.00%             0 /  0 /  0
-metal9            2162             0            0.00%             0 /  0 /  0
-metal10           2209             0            0.00%             0 /  0 /  0
+metal9            2208             0            0.00%             0 /  0 /  0
+metal10           2256             0            0.00%             0 /  0 /  0
 ---------------------------------------------------------------------------------------
-Total           117668          3386            2.88%             0 /  0 /  0
+Total           117884          3341            2.83%             0 /  0 /  0
 
-[INFO GRT-0018] Total wirelength: 10336 um
+[INFO GRT-0018] Total wirelength: 10319 um
+[INFO GRT-0014] Routed nets: 563
 Net clk
  Pin capacitance: 29.975-33.238
- Wire capacitance: 17.722-17.722
- Total capacitance: 47.697-50.959
+ Wire capacitance: 17.589-17.589
+ Total capacitance: 47.564-50.826
  Number of drivers: 1
  Number of loads: 35
  Number of pins: 36

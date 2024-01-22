@@ -1,4 +1,5 @@
-# optimize_mirroring ignore BLOCKs
+source "helpers.tcl"
+# optimize_mirroring ignore BLOCKs, unconnected pins
 read_lef Nangate45/Nangate45.lef
 read_lef extra.lef
 read_def mirror2.def

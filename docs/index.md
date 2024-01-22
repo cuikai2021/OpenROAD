@@ -37,28 +37,16 @@ The paper is also available from [ACM Digital Library](https://dl.acm.org/doi/10
 Other publications and presentations are
 linked [here](https://theopenroadproject.org/publications/).
 
-## Code of conduct
-
-Please read our code of conduct [here](../CODE_OF_CONDUCT.md).
-
 ## Documentation
 
 The OpenROAD Project has two releases:
 
-### [Application](https://github.com/The-OpenROAD-Project/OpenROAD)
+- Application ([github](https://github.com/The-OpenROAD-Project/OpenROAD)) ([docs](main/README.md)): The application is a standalone binary for digital place and route that can be used by any other RTL-GDSII flow controller.
+- Flow ([github](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts)) ([docs](https://openroad-flow-scripts.readthedocs.io/en/latest/)): This is the native OpenROAD flow that consists of a set of integrated scripts for an autonomous RTL-GDSII flow using OpenROAD and other open-source tools.
 
-The application is a standalone binary capable of performing RTL-to-GDSII SoC design,
-from logic synthesis and floorplanning through detailed routing with metal fill insertion,
-signoff parasitic extraction and timing analysis.
+## Code of conduct
 
-See documentation for the application [here](../README.md).
-
-### [Flow](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts)
-
-The flow is a set of integrated scripts that allow for RTL-to-GDSII flow
-using open-source tools.
-
-See documentation for the flow [here](user/GettingStarted.md).
+Please read our code of conduct [here](main/CODE_OF_CONDUCT.md).
 
 ## How to contribute
 
@@ -69,6 +57,9 @@ If you are a **developer** with EDA background, learn more about how you
 can use OpenROAD as the infrastructure for your tools in the
 [Developer Guide](contrib/DeveloperGuide.md) section.
 
+OpenROAD uses Git for version control and contributions. 
+Get familiarised with a quickstart tutorial to contribution [here](contrib/GitGuide.md).
+
 ## How to get in touch
 
 We maintain the following channels for communication:
@@ -77,10 +68,8 @@ We maintain the following channels for communication:
 -   Twitter: <https://twitter.com/OpenROAD_EDA>
 -   Issues and bugs:
     -   OpenROAD: <https://github.com/The-OpenROAD-Project/OpenROAD/issues>
-    -   OpenROAD Flow: <https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/issues>
 -   Discussions:
     -   OpenROAD: <https://github.com/The-OpenROAD-Project/OpenROAD/discussions>
-    -   OpenROAD Flow: <https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/discussions>
 -   Inquiries: openroad@eng.ucsd.edu
 
 See also our [FAQs](user/FAQS.md).

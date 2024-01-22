@@ -38,6 +38,9 @@ swig_lib(NAME         dpo
          SCRIPTS      src/Optdp.tcl
 )
 
+# https://github.com/The-OpenROAD-Project/OpenROAD/issues/1186
+find_package(LEMON NAMES LEMON lemon REQUIRED)
+
 target_sources(dpo
   PRIVATE
     src/Optdp.cpp
@@ -46,7 +49,6 @@ target_sources(dpo
     src/network.cxx
     src/router.cxx
     src/utility.cxx
-    src/plotgnu.cxx
     src/legalize_shift.cxx
     src/detailed.cxx
     src/detailed_manager.cxx
@@ -64,6 +66,7 @@ target_sources(dpo
 target_include_directories(dpo
   PUBLIC
     include
+    ${LEMON_INCLUDE_DIRS}
 )
 
 target_link_libraries(dpo
@@ -71,9 +74,7 @@ target_link_libraries(dpo
     odb
     OpenSTA
     utl
-    dpl
-    lemon
-    glpk
+    dpl_lib
 )
 
 messages(
@@ -87,3 +88,28 @@ add_custom_target(optdp_tags etags -o TAGS
   ${OPTDP_HOME}/include/dpo/*.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+if (Python3_FOUND AND BUILD_PYTHON)
+  swig_lib(NAME          dpo_py
+           NAMESPACE     dpo
+           LANGUAGE      python
+           I_FILE        src/Optdp-py.i
+           SWIG_INCLUDES ${PROJECT_SOURCE_DIR}/include/dpo
+                         ${ODB_HOME}/src/swig/common
+                         ${ODB_HOME}/src/swig/python
+           SCRIPTS       ${CMAKE_CURRENT_BINARY_DIR}/dpo_py.py
+  )
+
+  target_include_directories(dpo_py
+    PUBLIC
+      include
+      include/dpo
+  )
+
+  target_link_libraries(dpo_py
+    PUBLIC
+      dpo
+      odb
+  )
+
+endif()

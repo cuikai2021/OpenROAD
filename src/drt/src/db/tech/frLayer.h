@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_LAYER_H_
-#define _FR_LAYER_H_
+#pragma once
 
 #include <set>
 
@@ -35,7 +34,9 @@
 #include "db/obj/frVia.h"
 #include "db/tech/frConstraint.h"
 #include "frBaseTypes.h"
-
+namespace odb {
+class dbTechLayer;
+}
 namespace fr {
 namespace io {
 class Parser;
@@ -47,14 +48,16 @@ class frLayer
   friend class io::Parser;
   // constructor
   frLayer()
-      : type(dbTechLayerType::IMPLANT),
+      : db_layer_(nullptr),
+        fakeCut(false),
+        fakeMasterslice(false),
         layerNum(0),
-        pitch(0),
         width(0),
+        wrongDirWidth(0),
         minWidth(0),
-        numMasks(1),
         defaultViaDef(nullptr),
         hasMinStepViol(false),
+        unidirectional(false),
         minSpc(nullptr),
         spacingSamenet(nullptr),
         spacingInfluence(nullptr),
@@ -77,6 +80,7 @@ class frLayer
         lef58MinStepConstraints(),
         minWidthConstraint(nullptr),
         minimumcutConstraints(),
+        lef58MinimumcutConstraints(),
         lef58RectOnlyConstraint(nullptr),
         lef58RightWayOnGridOnlyConstraint(nullptr),
         lef58CutSpacingTableSameNetMetalConstraint(nullptr),
@@ -87,14 +91,15 @@ class frLayer
         drEolCon()
   {
   }
-  frLayer(frLayerNum layerNumIn, const frString& nameIn)
-      : type(dbTechLayerType::IMPLANT),
+  frLayer(frLayerNum layerNumIn,
+          const frString& nameIn)  // remove name from signature
+      : db_layer_(nullptr),
+        fakeCut(false),
+        fakeMasterslice(false),
         layerNum(layerNumIn),
-        name(nameIn),
-        pitch(0),
         width(0),
+        wrongDirWidth(0),
         minWidth(-1),
-        numMasks(1),
         defaultViaDef(nullptr),
         minSpc(nullptr),
         spacingSamenet(nullptr),
@@ -117,44 +122,79 @@ class frLayer
         lef58MinStepConstraints(),
         minWidthConstraint(nullptr),
         minimumcutConstraints(),
+        lef58MinimumcutConstraints(),
         lef58RectOnlyConstraint(nullptr),
         lef58RightWayOnGridOnlyConstraint(nullptr)
   {
   }
   // setters
-  void setNumMasks(frUInt4 numMasksIn) { numMasks = numMasksIn; }
+  void setDbLayer(odb::dbTechLayer* dbLayer) { db_layer_ = dbLayer; }
+  void setFakeCut(bool fakeCutIn) { fakeCut = fakeCutIn; }
+  void setFakeMasterslice(bool fakeMastersliceIn)
+  {
+    fakeMasterslice = fakeMastersliceIn;
+  }
   void setLayerNum(frLayerNum layerNumIn) { layerNum = layerNumIn; }
-  void setName(const frString& nameIn) { name = nameIn; }
-  void setPitch(frUInt4 in) { pitch = in; }
   void setWidth(frUInt4 widthIn) { width = widthIn; }
   void setMinWidth(frUInt4 minWidthIn) { minWidth = minWidthIn; }
-  void setDir(dbTechLayerDir dirIn) { dir = dirIn; }
   void setDefaultViaDef(frViaDef* in) { defaultViaDef = in; }
-  void addConstraint(const std::shared_ptr<frConstraint>& consIn)
-  {
-    constraints.push_back(consIn);
-  }
-  void setType(dbTechLayerType typeIn) { type = typeIn; }
+  void addConstraint(frConstraint* consIn) { constraints.push_back(consIn); }
   void addViaDef(frViaDef* viaDefIn) { viaDefs.insert(viaDefIn); }
   void setHasVia2ViaMinStepViol(bool in) { hasMinStepViol = in; }
+  void setUnidirectional(bool in) { unidirectional = in; }
   // getters
-  frUInt4 getNumMasks() const { return numMasks; }
+  odb::dbTechLayer* getDbLayer() const { return db_layer_; }
+  bool isFakeCut() const { return fakeCut; }
+  bool isFakeMasterslice() const { return fakeMasterslice; }
+  frUInt4 getNumMasks() const
+  {
+    return (fakeCut || fakeMasterslice) ? 1 : db_layer_->getNumMasks();
+  }
   frLayerNum getLayerNum() const { return layerNum; }
-  void getName(frString& nameIn) const { nameIn = name; }
-  frString getName() const { return name; }
-  frUInt4 getPitch() const { return pitch; }
+  void getName(frString& nameIn) const
+  {
+    nameIn = (fakeCut)           ? "FR_VIA"
+             : (fakeMasterslice) ? "FR_MASTERSLICE"
+                                 : db_layer_->getName();
+  }
+  frString getName() const
+  {
+    return (fakeCut)           ? "Fr_VIA"
+           : (fakeMasterslice) ? "FR_MASTERSLICE"
+                               : db_layer_->getName();
+  }
+  frUInt4 getPitch() const
+  {
+    return (fakeCut || fakeMasterslice) ? 0 : db_layer_->getPitch();
+  }
   frUInt4 getWidth() const { return width; }
+  frUInt4 getWrongDirWidth() const { return db_layer_->getWrongWayWidth(); }
   frUInt4 getMinWidth() const { return minWidth; }
-  dbTechLayerDir getDir() const { return dir; }
-  bool isVertical() { return dir == dbTechLayerDir::VERTICAL; }
-  bool isHorizontal() { return dir == dbTechLayerDir::HORIZONTAL; }
+  dbTechLayerDir getDir() const
+  {
+    if (fakeCut || fakeMasterslice)
+      return dbTechLayerDir::NONE;
+    return db_layer_->getDirection();
+  }
+  bool isVertical() const
+  {
+    return (fakeCut || fakeMasterslice)
+               ? false
+               : db_layer_->getDirection() == dbTechLayerDir::VERTICAL;
+  }
+  bool isHorizontal() const
+  {
+    return (fakeCut || fakeMasterslice)
+               ? false
+               : db_layer_->getDirection() == dbTechLayerDir::HORIZONTAL;
+  }
   bool isUnidirectional() const
   {
-    // We don't handle coloring so any double/triple patterned
+    // We don't handle coloring so any multiple patterned
     // layer is treated as unidirectional.
     // RectOnly could allow for a purely wrong-way rect but
     // we ignore that rare case and treat it as unidirectional.
-    return getNumMasks() > 1 || getLef58RectOnlyConstraint();
+    return getNumMasks() > 1 || getLef58RectOnlyConstraint() || unidirectional;
   }
   frSegStyle getDefaultSegStyle() const
   {
@@ -167,15 +207,16 @@ class frLayer
   frViaDef* getDefaultViaDef() const { return defaultViaDef; }
   bool hasVia2ViaMinStepViol() { return hasMinStepViol; }
   std::set<frViaDef*> getViaDefs() const { return viaDefs; }
-  frCollection<std::shared_ptr<frConstraint>> getConstraints() const
+  dbTechLayerType getType() const
   {
-    frCollection<std::shared_ptr<frConstraint>> constraintsOut;
-    for (auto constraint : constraints) {
-      constraintsOut.push_back(constraint.lock());
-    }
-    return constraintsOut;
+    if (fakeCut)
+      return dbTechLayerType::CUT;
+
+    if (fakeMasterslice)
+      return dbTechLayerType::MASTERSLICE;
+
+    return db_layer_->getType();
   }
-  dbTechLayerType getType() const { return type; }
 
   // cut class (new)
   void addCutClass(frLef58CutClass* in)
@@ -300,9 +341,31 @@ class frLayer
   {
     lef58SpacingEndOfLineConstraints.push_back(constraintIn);
   }
+
+  // spacing wrong direction
+  bool hasLef58SpacingWrongDirConstraints() const
+  {
+    return !lef58SpacingWrongDirConstraints.empty();
+  }
+  const frCollection<frLef58SpacingWrongDirConstraint*>&
+  getLef58SpacingWrongDirConstraints() const
+  {
+    return lef58SpacingWrongDirConstraints;
+  }
+
+  void addLef58SpacingWrongDirConstraint(
+      frLef58SpacingWrongDirConstraint* constraintIn)
+  {
+    lef58SpacingWrongDirConstraints.push_back(constraintIn);
+  }
+
   // new functions
   bool hasMinSpacing() const { return (minSpc); }
   frConstraint* getMinSpacing() const { return minSpc; }
+  frCoord getMinSpacingValue(frCoord width1,
+                             frCoord width2,
+                             frCoord prl,
+                             bool use_min_spacing);
   void setMinSpacing(frConstraint* in, bool verbose = false)
   {
     if (verbose && minSpc != nullptr) {
@@ -484,7 +547,7 @@ class frLayer
   {
     frCoord s = 0;
     for (auto con : getCutSpacing()) {
-      s = max(s, con->getCutSpacing());
+      s = std::max(s, con->getCutSpacing());
     }
     return s;
   }
@@ -495,6 +558,13 @@ class frLayer
     } else {
       return (!cutConstraints.empty());
     }
+  }
+  bool haslef58CutSpacing(bool samenet = false) const
+  {
+    if (samenet) {
+      return (!lef58CutSpacingSamenetConstraints.empty());
+    }
+    return !lef58CutSpacingConstraints.empty();
   }
   bool hasInterLayerCutSpacing(frLayerNum layerNum, bool samenet = false) const
   {
@@ -537,6 +607,20 @@ class frLayer
     return minimumcutConstraints;
   }
   bool hasMinimumcut() const { return (!minimumcutConstraints.empty()); }
+
+  void addLef58MinimumcutConstraint(frLef58MinimumcutConstraint* in)
+  {
+    lef58MinimumcutConstraints.push_back(in);
+  }
+  const std::vector<frLef58MinimumcutConstraint*>&
+  getLef58MinimumcutConstraints() const
+  {
+    return lef58MinimumcutConstraints;
+  }
+  bool hasLef58Minimumcut() const
+  {
+    return (!lef58MinimumcutConstraints.empty());
+  }
 
   void addMinEnclosedAreaConstraint(frMinEnclosedAreaConstraint* in)
   {
@@ -605,6 +689,47 @@ class frLayer
     return (!lef58EolKeepOutConstraints.empty());
   }
 
+  void addMetalWidthViaConstraint(frMetalWidthViaConstraint* in)
+  {
+    metalWidthViaConstraints.push_back(in);
+  }
+
+  const std::vector<frMetalWidthViaConstraint*>& getMetalWidthViaConstraints()
+      const
+  {
+    return metalWidthViaConstraints;
+  }
+  void addLef58AreaConstraint(frLef58AreaConstraint* in)
+  {
+    lef58AreaConstraints.push_back(in);
+  }
+
+  const std::vector<frLef58AreaConstraint*>& getLef58AreaConstraints() const
+  {
+    return lef58AreaConstraints;
+  }
+
+  bool hasLef58AreaConstraint() const
+  {
+    return (!lef58AreaConstraints.empty());
+  }
+
+  void addKeepOutZoneConstraint(frLef58KeepOutZoneConstraint* in)
+  {
+    keepOutZoneConstraints.push_back(in);
+  }
+
+  const std::vector<frLef58KeepOutZoneConstraint*>& getKeepOutZoneConstraints()
+      const
+  {
+    return keepOutZoneConstraints;
+  }
+
+  bool hasKeepOutZoneConstraints() const
+  {
+    return (!keepOutZoneConstraints.empty());
+  }
+
   void setLef58SameNetInterCutSpcTblConstraint(
       frLef58CutSpacingTableConstraint* con)
   {
@@ -663,28 +788,34 @@ class frLayer
     drEolCon.eolWithin = within;
   }
 
-  const drEolSpacingConstraint& getDrEolSpacingConstraint() const { return drEolCon; }
+  const drEolSpacingConstraint& getDrEolSpacingConstraint() const
+  {
+    return drEolCon;
+  }
 
   void printAllConstraints(utl::Logger* logger);
 
  protected:
-  dbTechLayerType type;
+  odb::dbTechLayer* db_layer_;
+  bool fakeCut;
+  bool fakeMasterslice;
   frLayerNum layerNum;
-  frString name;
-  frUInt4 pitch;
   frUInt4 width;
+  frUInt4 wrongDirWidth;
   frUInt4 minWidth;
-  frUInt4 numMasks;
-  dbTechLayerDir dir;
   frViaDef* defaultViaDef;
   bool hasMinStepViol;
+  bool unidirectional;
   std::set<frViaDef*> viaDefs;
   std::vector<frLef58CutClass*> cutClasses;
   std::map<std::string, int> name2CutClassIdxMap;
-  frCollection<std::weak_ptr<frConstraint>> constraints;
+  frCollection<frConstraint*> constraints;
 
   frCollection<frLef58SpacingEndOfLineConstraint*>
       lef58SpacingEndOfLineConstraints;
+
+  frCollection<frLef58SpacingWrongDirConstraint*>
+      lef58SpacingWrongDirConstraints;
 
   frConstraint* minSpc;
   frSpacingSamenetConstraint* spacingSamenet;
@@ -717,6 +848,7 @@ class frLayer
   std::vector<frLef58EolExtensionConstraint*> lef58EolExtConstraints;
   frMinWidthConstraint* minWidthConstraint;
   std::vector<frMinimumcutConstraint*> minimumcutConstraints;
+  std::vector<frLef58MinimumcutConstraint*> lef58MinimumcutConstraints;
   frLef58RectOnlyConstraint* lef58RectOnlyConstraint;
   frLef58RightWayOnGridOnlyConstraint* lef58RightWayOnGridOnlyConstraint;
 
@@ -729,55 +861,9 @@ class frLayer
 
   std::vector<frLef58CornerSpacingConstraint*> lef58CornerSpacingConstraints;
   std::vector<frLef58EolKeepOutConstraint*> lef58EolKeepOutConstraints;
+  std::vector<frMetalWidthViaConstraint*> metalWidthViaConstraints;
+  std::vector<frLef58AreaConstraint*> lef58AreaConstraints;
+  std::vector<frLef58KeepOutZoneConstraint*> keepOutZoneConstraints;
   drEolSpacingConstraint drEolCon;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & type;
-    (ar) & layerNum;
-    (ar) & name;
-    (ar) & pitch;
-    (ar) & width;
-    (ar) & minWidth;
-    (ar) & numMasks;
-    (ar) & dir;
-    (ar) & defaultViaDef;
-    (ar) & hasMinStepViol;
-    (ar) & viaDefs;
-    (ar) & cutClasses;
-    (ar) & name2CutClassIdxMap;
-    (ar) & constraints;
-    (ar) & lef58SpacingEndOfLineConstraints;
-    (ar) & minSpc;
-    (ar) & spacingSamenet;
-    (ar) & spacingInfluence;
-    (ar) & eols;
-    (ar) & cutConstraints;
-    (ar) & cutSpacingSamenetConstraints;
-    (ar) & interLayerCutSpacingConstraints;
-    (ar) & interLayerCutSpacingSamenetConstraints;
-    (ar) & interLayerCutSpacingConstraintsMap;
-    (ar) & interLayerCutSpacingSamenetConstraintsMap;
-    (ar) & lef58CutSpacingConstraints;
-    (ar) & lef58CutSpacingSamenetConstraints;
-    (ar) & recheckConstraint;
-    (ar) & shortConstraint;
-    (ar) & offGridConstraint;
-    (ar) & minEnclosedAreaConstraints;
-    (ar) & nonSufficientMetalConstraint;
-    (ar) & areaConstraint;
-    (ar) & minStepConstraint;
-    (ar) & lef58MinStepConstraints;
-    (ar) & minWidthConstraint;
-    (ar) & minimumcutConstraints;
-    (ar) & lef58RectOnlyConstraint;
-    (ar) & lef58RightWayOnGridOnlyConstraint;
-    (ar) & lef58CornerSpacingConstraints;
-    (ar) & drEolCon;
-  }
-  friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

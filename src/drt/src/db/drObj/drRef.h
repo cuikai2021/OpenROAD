@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _DR_REF_H_
-#define _DR_REF_H_
+#pragma once
 
 #include "db/drObj/drFig.h"
 #include "odb/dbTypes.h"
@@ -38,8 +37,8 @@ class drRef : public drPinFig
  public:
   // getters
   virtual dbOrientType getOrient() const = 0;
-  virtual void getOrigin(Point& tmpOrigin) const = 0;
-  virtual void getTransform(dbTransform& xform) const = 0;
+  virtual Point getOrigin() const = 0;
+  virtual dbTransform getTransform() const = 0;
   // setters
   virtual void setOrient(const dbOrientType& tmpOrient) = 0;
   virtual void setOrigin(const Point& tmpPoint) = 0;
@@ -58,5 +57,3 @@ class drRef : public drPinFig
   friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

@@ -39,6 +39,7 @@ namespace odb {
 class dbTechLayer;
 class dbNet;
 class dbInst;
+class dbSite;
 }  // namespace odb
 
 namespace gui {
@@ -53,9 +54,13 @@ class Options
   virtual Qt::BrushStyle pattern(const odb::dbTechLayer* layer) = 0;
   virtual QColor placementBlockageColor() = 0;
   virtual Qt::BrushStyle placementBlockagePattern() = 0;
+  virtual QColor regionColor() = 0;
+  virtual Qt::BrushStyle regionPattern() = 0;
   virtual QColor instanceNameColor() = 0;
   virtual QFont instanceNameFont() = 0;
-  virtual QColor rowColor() = 0;
+  virtual QColor itermLabelColor() = 0;
+  virtual QFont itermLabelFont() = 0;
+  virtual QColor siteColor(odb::dbSite* site) = 0;
   virtual bool isVisible(const odb::dbTechLayer* layer) = 0;
   virtual bool isSelectable(const odb::dbTechLayer* layer) = 0;
   virtual bool isNetVisible(odb::dbNet* net) = 0;
@@ -64,13 +69,18 @@ class Options
   virtual bool isInstanceSelectable(odb::dbInst* inst) = 0;
   virtual bool areInstanceNamesVisible() = 0;
   virtual bool areInstancePinsVisible() = 0;
+  virtual bool areInstancePinsSelectable() = 0;
+  virtual bool areInstancePinNamesVisible() = 0;
   virtual bool areInstanceBlockagesVisible() = 0;
   virtual bool areFillsVisible() = 0;
   virtual bool areBlockagesVisible() = 0;
   virtual bool areBlockagesSelectable() = 0;
   virtual bool areObstructionsVisible() = 0;
   virtual bool areObstructionsSelectable() = 0;
-  virtual bool areRowsVisible() = 0;
+  virtual bool areSitesVisible() = 0;
+  virtual bool areSitesSelectable() = 0;
+  virtual bool isSiteSelectable(odb::dbSite* site) = 0;
+  virtual bool isSiteVisible(odb::dbSite* site) = 0;
   virtual bool arePrefTracksVisible() = 0;
   virtual bool areNonPrefTracksVisible() = 0;
 
@@ -84,10 +94,16 @@ class Options
   virtual bool areSelectedVisible() = 0;
 
   virtual bool isScaleBarVisible() const = 0;
-  virtual bool arePinMarkersVisible() const = 0;
+  virtual bool areIOPinsVisible() const = 0;
   virtual QFont pinMarkersFont() = 0;
   virtual bool areAccessPointsVisible() const = 0;
   virtual bool areRegionsVisible() const = 0;
+  virtual bool areRegionsSelectable() const = 0;
+  virtual bool isManufacturingGridVisible() const = 0;
+
+  virtual bool isModuleView() const = 0;
+
+  virtual bool isGCellGridVisible() const = 0;
 };
 
 }  // namespace gui

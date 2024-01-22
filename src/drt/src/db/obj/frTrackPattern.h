@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_TRACKPATTERN_H_
-#define _FR_TRACKPATTERN_H_
+#pragma once
 
 #include "db/obj/frBlockObject.h"
 #include "frBaseTypes.h"
@@ -82,21 +81,6 @@ class frTrackPattern : public frBlockObject
   frUInt4 numTracks_;
   frUInt4 trackSpacing_;
   frLayerNum layerNum_;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<frBlockObject>(*this);
-    (ar) & horizontal_;
-    (ar) & startCoord_;
-    (ar) & numTracks_;
-    (ar) & trackSpacing_;
-    (ar) & layerNum_;
-  }
-
-  friend class boost::serialization::access;
 };
 
 }  // namespace fr
-
-#endif

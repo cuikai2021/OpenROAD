@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "dbTypes.h"
@@ -254,8 +256,6 @@ class dbWireEncoder
   ///
   int addPoint(int x, int y, uint property = 0);
 
-  int addVirtualPoint(int x, int y, uint property = 0);
-
   ///
   /// Add a path-point with an extension. The junction-id of this point is
   /// returned.
@@ -352,6 +352,27 @@ class dbWireEncoder
   /// Add a rect (aka patch wire) relative the previous point
   ///
   void addRect(int deltaX1, int deltaY1, int deltaX2, int deltaY2);
+
+  ///
+  /// Sets the mask color of shapes following this call.
+  ///
+  void setColor(uint8_t mask_color);
+
+  ///
+  /// Clears the mask color. Shapes following this call will have no mask color.
+  ///
+  void clearColor();
+
+  ///
+  /// Sets the via mask color of shapes following this call.
+  ///
+  void setViaColor(uint8_t bottom_color, uint8_t cut_color, uint8_t top_color);
+
+  ///
+  /// Clears the via mask color. Shapes following this call will have no mask
+  /// color.
+  ///
+  void clearViaColor();
 
   ///
   /// Connect an iterm to the previous point.
@@ -501,7 +522,6 @@ class dbWireDecoder
             /// wire from previous point to first point of path
     POINT,  /// A point on a path.
     POINT_EXT,  /// A point on a path with an extension.
-	POINT_VIRTUAL, /// A point virtual connect to the previous
     VIA,        /// A VIA instance on a path.
     TECH_VIA,   /// A TECH-VIA instance on a path with an extension.
     RECT,       /// A rect / patch wire
@@ -509,6 +529,13 @@ class dbWireDecoder
     BTERM,      /// A dbBTerm connected to the previous point/via
     RULE,       /// Use non-default rule
     END_DECODE  /// No more path elements to decode.
+  };
+
+  struct ViaColor
+  {
+    uint8_t bottom_color;
+    uint8_t cut_color;
+    uint8_t top_color;
   };
 
  private:
@@ -532,6 +559,8 @@ class dbWireDecoder
   int _deltaY1;
   int _deltaX2;
   int _deltaY2;
+  std::optional<uint8_t> _color;
+  std::optional<ViaColor> _viacolor;
 
   unsigned char nextOp(int& value);
   unsigned char nextOp(uint& value);
@@ -583,7 +612,7 @@ class dbWireDecoder
   void getPoint(int& x, int& y, int& ext) const;
 
   ///
-  /// Get the property of this POINT, POINT_EXT, POINT_VIRTUAL
+  /// Get the property of this POINT, POINT_EXT
   ///
   uint getProperty() const;
 
@@ -634,6 +663,16 @@ class dbWireDecoder
   /// junction-id of the previous point from which this branch emerges.
   ///
   int getJunctionValue() const;
+
+  ///
+  /// Get the current mask color.
+  ///
+  std::optional<uint8_t> getColor() const;
+
+  ///
+  /// Get the current via mask color.
+  ///
+  std::optional<ViaColor> getViaColor() const;
 };
 
 ///

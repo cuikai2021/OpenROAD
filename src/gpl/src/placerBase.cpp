@@ -31,25 +31,36 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "gpl/placerBase.h"
+#include "placerBase.h"
 
 #include <odb/db.h>
-#include <odb/dbTransform.h>
 
 #include <iostream>
+#include <utility>
 
-#include "fassert.hpp"
-#include "linden/geom/point.hpp"
-#include "linden/geom/rect.hpp"
 #include "nesterovBase.h"
-#include "util.h"
 #include "utl/Logger.h"
 
 namespace gpl {
 
-using namespace odb;
-using namespace std;
+using odb::dbBlock;
+using odb::dbBlockage;
+using odb::dbBox;
+using odb::dbBPin;
+using odb::dbBTerm;
+using odb::dbInst;
+using odb::dbITerm;
+using odb::dbMPin;
+using odb::dbNet;
+using odb::dbPlacementStatus;
+using odb::dbPowerDomain;
+using odb::dbRow;
+using odb::dbSet;
+using odb::dbSigType;
+using odb::Rect;
 using utl::GPL;
+
+static int fastModulo(int input, int ceil);
 
 static std::pair<int, int> getMinMaxIdx(int ll,
                                         int uu,
@@ -67,15 +78,7 @@ static int64_t getOverlapWithCoreArea(Die& die, Instance& inst);
 ////////////////////////////////////////////////////////
 // Instance
 
-Instance::Instance()
-    : IntRect(),
-      inst_(nullptr),
-      extId_(INT_MIN),
-      is_macro_(false),
-      is_locked_(false),
-      max_density_(1.0)
-{
-}
+Instance::Instance() = default;
 
 // for movable real instances
 Instance::Instance(odb::dbInst* inst,
@@ -86,43 +89,15 @@ Instance::Instance(odb::dbInst* inst,
     : Instance()
 {
   inst_ = inst;
-  bool x_y_rotated = false;
-  switch (inst->getOrient()) {
-    case dbOrientType::R0:
-    case dbOrientType::R180:
-    case dbOrientType::MY:
-    case dbOrientType::MX: {
-      x_y_rotated = false;
-    } break;
-    case dbOrientType::R90:
-    case dbOrientType::R270:
-    case dbOrientType::MYR90:
-    case dbOrientType::MXR90: {
-      x_y_rotated = true;
-    } break;
-    default: {
-      FASSERT(0 && "unknown orient ");
-    } break;
-  };
-
   dbBox* bbox = inst->getBBox();
-  int lx_, ly_;
   inst->getLocation(lx_, ly_);
-  auto master = inst_->getMaster();
-  assert(master != nullptr);
-  int64_t w = master->getWidth();
-  int64_t h = master->getHeight();
-  if (x_y_rotated) {
-    std::swap(w, h);
-  }
-  auto ux_ = lx_ + w;
-  auto uy_ = ly_ + h;
+  ux_ = lx_ + bbox->getDX();
+  uy_ = ly_ + bbox->getDY();
 
   if (isPlaceInstance()) {
     lx_ -= padLeft;
     ux_ += padRight;
   }
-  rect_.reset(lx_, ly_, ux_, uy_);
 
   // Masters more than row_limit rows tall are treated as macros
   constexpr int row_limit = 6;
@@ -138,26 +113,24 @@ Instance::Instance(odb::dbInst* inst,
                  inst->getMaster()->getName(),
                  row_limit);
   }
-
-  // TODO
-  // need additional adjustment
-  // if instance (macro) is fixed and
-  // its coordi is not multiple of rows' integer.
 }
 
 // for dummy instances
-Instance::Instance(int lx, int ly, int ux, int uy)
-    : IntRect(lx, ly, ux, uy),
-      inst_(nullptr),
-      extId_(INT_MIN),
-      is_macro_(false),
-      is_locked_(false),
-      max_density_(1.0)
+Instance::Instance(int lx, int ly, int ux, int uy) : Instance()
 {
+  inst_ = nullptr;
+  lx_ = lx;
+  ly_ = ly;
+  ux_ = ux;
+  uy_ = uy;
 }
 
 Instance::~Instance()
 {
+  inst_ = nullptr;
+  lx_ = ly_ = 0;
+  ux_ = uy_ = 0;
+  pins_.clear();
 }
 
 bool Instance::isFixed() const
@@ -167,23 +140,10 @@ bool Instance::isFixed() const
     return true;
   }
 
-  switch (inst_->getPlacementStatus()) {
-    case dbPlacementStatus::NONE:
-    case dbPlacementStatus::UNPLACED:
-    case dbPlacementStatus::SUGGESTED:
-    case dbPlacementStatus::PLACED:
-      return false;
-      break;
-    case dbPlacementStatus::LOCKED:
-    case dbPlacementStatus::FIRM:
-    case dbPlacementStatus::COVER:
-      return true;
-      break;
-  }
-  return false;
+  return inst_->getPlacementStatus().isFixed();
 }
 
-bool Instance::isInstance() const   //
+bool Instance::isInstance() const
 {
   return (inst_ != nullptr);
 }
@@ -198,19 +158,13 @@ bool Instance::isDummy() const
   return (inst_ == nullptr);
 }
 
-float Instance::max_density() const
-{
-  return max_density_;
-}
-
-float& Instance::max_density()
-{
-  return max_density_;
-}
-
 void Instance::setLocation(int x, int y)
 {
-  rect_.moveTo(x, y);
+  ux_ = x + (ux_ - lx_);
+  uy_ = y + (uy_ - ly_);
+
+  lx_ = x;
+  ly_ = y;
 
   // pins update
   for (auto& pin : pins_) {
@@ -220,7 +174,12 @@ void Instance::setLocation(int x, int y)
 
 void Instance::setCenterLocation(int x, int y)
 {
-  rect_.moveDelta(x - cx(), y - cy());
+  const int halfX = (ux_ - lx_) / 2;
+  const int halfY = (uy_ - ly_) / 2;
+  lx_ = x - halfX;
+  ly_ = y - halfY;
+  ux_ = x + halfX;
+  uy_ = y + halfY;
 
   // pins update
   for (auto& pin : pins_) {
@@ -233,14 +192,14 @@ void Instance::dbSetPlaced()
   inst_->setPlacementStatus(dbPlacementStatus::PLACED);
 }
 
-void Instance::dbSetPlacementStatus(dbPlacementStatus ps)
+void Instance::dbSetPlacementStatus(const dbPlacementStatus& ps)
 {
   inst_->setPlacementStatus(ps);
 }
 
 void Instance::dbSetLocation()
 {
-  inst_->setLocation(lx(), ly());
+  inst_->setLocation(lx_, ly_);
 }
 
 void Instance::dbSetLocation(int x, int y)
@@ -255,9 +214,49 @@ void Instance::dbSetCenterLocation(int x, int y)
   dbSetLocation();
 }
 
+int Instance::lx() const
+{
+  return lx_;
+}
+
+int Instance::ly() const
+{
+  return ly_;
+}
+
+int Instance::ux() const
+{
+  return ux_;
+}
+
+int Instance::uy() const
+{
+  return uy_;
+}
+
+int Instance::cx() const
+{
+  return (lx_ + ux_) / 2;
+}
+
+int Instance::cy() const
+{
+  return (ly_ + uy_) / 2;
+}
+
+int Instance::dx() const
+{
+  return (ux_ - lx_);
+}
+
+int Instance::dy() const
+{
+  return (uy_ - ly_);
+}
+
 int64_t Instance::area() const
 {
-  return rect_.area();
+  return static_cast<int64_t>(dx()) * dy();
 }
 
 void Instance::addPin(Pin* pin)
@@ -290,19 +289,30 @@ void Instance::unlock()
   is_locked_ = false;
 }
 
+static int snapDown(int value, int origin, int step)
+{
+  return ((value - origin) / step) * step + origin;
+}
+
+static int snapUp(int value, int origin, int step)
+{
+  return ((value + step - 1 - origin) / step) * step + origin;
+}
+
+void Instance::snapOutward(const odb::Point& origin, int step_x, int step_y)
+{
+  lx_ = snapDown(lx_, origin.x(), step_x);
+  ly_ = snapDown(ly_, origin.y(), step_y);
+  ux_ = snapUp(ux_, origin.x(), step_x);
+  uy_ = snapUp(uy_, origin.y(), step_y);
+}
+
 ////////////////////////////////////////////////////////
 // Pin
 
 Pin::Pin()
-    : term_(nullptr),
-      inst_(nullptr),
-      net_(nullptr),
-      center_(),
-      offsetCx_(0),
-      offsetCy_(0),
-      iTermField_(0),
+    : iTermField_(0),
       bTermField_(0),
-      isUnplaceIOPin_(0),
       minPinXField_(0),
       minPinYField_(0),
       maxPinXField_(0),
@@ -330,11 +340,9 @@ std::string Pin::name() const
     return "DUMMY";
   }
   if (isITerm()) {
-    return dbITerm()->getInst()->getName() + '/'
-           + dbITerm()->getMTerm()->getName();
-  } else {
-    return dbBTerm()->getName();
+    return dbITerm()->getName();
   }
+  return dbBTerm()->getName();
 }
 
 void Pin::setITerm()
@@ -347,40 +355,44 @@ void Pin::setBTerm()
   bTermField_ = 1;
 }
 
-void Pin::setMinPin(DIMENSION dim)
+void Pin::setMinPinX()
 {
-  if (dim == X) {
-    minPinXField_ = 1;
-  } else {
-    minPinYField_ = 1;
-  }
+  minPinXField_ = 1;
 }
 
-void Pin::setMaxPin(DIMENSION dim)
+void Pin::setMinPinY()
 {
-  if (dim == X) {
-    maxPinXField_ = 1;
-  } else {
-    maxPinYField_ = 1;
-  }
+  minPinYField_ = 1;
 }
 
-void Pin::unsetMinPin(DIMENSION dim)
+void Pin::setMaxPinX()
 {
-  if (dim == X) {
-    minPinXField_ = 0;
-  } else {
-    minPinYField_ = 0;
-  }
+  maxPinXField_ = 1;
 }
 
-void Pin::unsetMaxPin(DIMENSION dim)
+void Pin::setMaxPinY()
 {
-  if (dim == X) {
-    maxPinXField_ = 0;
-  } else {
-    maxPinYField_ = 0;
-  }
+  maxPinYField_ = 1;
+}
+
+void Pin::unsetMinPinX()
+{
+  minPinXField_ = 0;
+}
+
+void Pin::unsetMinPinY()
+{
+  minPinYField_ = 0;
+}
+
+void Pin::unsetMaxPinX()
+{
+  maxPinXField_ = 0;
+}
+
+void Pin::unsetMaxPinY()
+{
+  maxPinYField_ = 0;
 }
 
 bool Pin::isITerm() const
@@ -393,24 +405,34 @@ bool Pin::isBTerm() const
   return (bTermField_ == 1);
 }
 
-bool Pin::isMinPin(DIMENSION dim) const
+bool Pin::isMinPinX() const
 {
-  return dim == X ? (minPinXField_ == 1) : (minPinYField_ == 1);
+  return (minPinXField_ == 1);
 }
 
-bool Pin::isMaxPin(DIMENSION dim) const
+bool Pin::isMinPinY() const
 {
-  return dim == X ? (maxPinXField_ == 1) : (maxPinYField_ == 1);
+  return (minPinYField_ == 1);
+}
+
+bool Pin::isMaxPinX() const
+{
+  return (maxPinXField_ == 1);
+}
+
+bool Pin::isMaxPinY() const
+{
+  return (maxPinYField_ == 1);
 }
 
 int Pin::cx() const
 {
-  return center_.getX();
+  return cx_;
 }
 
 int Pin::cy() const
 {
-  return center_.getY();
+  return cy_;
 }
 
 int Pin::offsetCx() const
@@ -451,17 +473,15 @@ void Pin::updateCoordi(odb::dbITerm* iTerm)
   int lx = iTerm->getInst()->getBBox()->xMin();
   int ly = iTerm->getInst()->getBBox()->yMin();
 
-  int half_w = iTerm->getInst()->getMaster()->getWidth() / 2;
-  int half_h = iTerm->getInst()->getMaster()->getHeight() / 2;
+  int instCenterX = iTerm->getInst()->getMaster()->getWidth() / 2;
+  int instCenterY = iTerm->getInst()->getMaster()->getHeight() / 2;
 
   // Pin SHAPE is NOT FOUND;
   // (may happen on OpenDB bug case)
-  Point offset_ll;
   if (offsetLx == INT_MAX || offsetLy == INT_MAX || offsetUx == INT_MIN
       || offsetUy == INT_MIN) {
     // offset is center of instances
-    offset_ll.x() = half_w;
-    offset_ll.y() = half_h;
+    offsetCx_ = offsetCy_ = 0;
   }
   // usual case
   else {
@@ -472,13 +492,12 @@ void Pin::updateCoordi(odb::dbITerm* iTerm)
     // from (origin: 0,0)
     // to (origin: instCenterX, instCenterY)
     //
-    offset_ll.x() = (offsetLx + offsetUx) / 2;
-    offset_ll.y() = (offsetLy + offsetUy) / 2;
+    offsetCx_ = (offsetLx + offsetUx) / 2 - instCenterX;
+    offsetCy_ = (offsetLy + offsetUy) / 2 - instCenterY;
   }
 
-  center_.set(lx + offset_ll.x(), ly + offset_ll.y());
-  offsetCx_ = offset_ll.x() - half_w;
-  offsetCy_ = offset_ll.y() - half_h;
+  cx_ = lx + instCenterX + offsetCx_;
+  cy_ = ly + instCenterY + offsetCy_;
 }
 
 //
@@ -500,18 +519,24 @@ void Pin::updateCoordi(odb::dbBTerm* bTerm)
   }
 
   if (lx == INT_MAX || ly == INT_MAX || ux == INT_MIN || uy == INT_MIN) {
-    setUnplaceIOPin(true);
+    std::string msg = std::string(bTerm->getConstName())
+                      + " toplevel port is not placed!\n";
+    msg += "       Replace will regard " + std::string(bTerm->getConstName())
+           + " is placed in (0, 0)";
+    slog_->warn(GPL, 1, msg);
   }
 
   // Just center
   offsetCx_ = offsetCy_ = 0;
 
-  center_.set((lx + ux) / 2, (ly + uy) / 2);
+  cx_ = (lx + ux) / 2;
+  cy_ = (ly + uy) / 2;
 }
 
 void Pin::updateLocation(const Instance* inst)
 {
-  center_.set(inst->cx() + offsetCx_, inst->cy() + offsetCy_);
+  cx_ = inst->cx() + offsetCx_;
+  cy_ = inst->cy() + offsetCy_;
 }
 
 void Pin::setInstance(Instance* inst)
@@ -542,9 +567,8 @@ Pin::~Pin()
 ////////////////////////////////////////////////////////
 // Net
 
-Net::Net() : IntRect(), net_(nullptr)
-{
-}
+Net::Net() = default;
+
 Net::Net(odb::dbNet* net, bool skipIoMode) : Net()
 {
   net_ = net;
@@ -553,37 +577,70 @@ Net::Net(odb::dbNet* net, bool skipIoMode) : Net()
 
 Net::~Net()
 {
+  net_ = nullptr;
+  lx_ = ly_ = ux_ = uy_ = 0;
+}
+
+int Net::lx() const
+{
+  return lx_;
+}
+
+int Net::ly() const
+{
+  return ly_;
+}
+
+int Net::ux() const
+{
+  return ux_;
+}
+
+int Net::uy() const
+{
+  return uy_;
+}
+
+int Net::cx() const
+{
+  return (lx_ + ux_) / 2;
+}
+
+int Net::cy() const
+{
+  return (ly_ + uy_) / 2;
 }
 
 int64_t Net::hpwl() const
 {
-  return rect_.dx() + rect_.dy();
+  if (ux_ < lx_) {  // dangling net
+    return 0;
+  }
+  return static_cast<int64_t>(ux_ - lx_) + (uy_ - ly_);
 }
 
 void Net::updateBox(bool skipIoMode)
 {
-  bool first = true;
+  lx_ = INT_MAX;
+  ly_ = INT_MAX;
+  ux_ = INT_MIN;
+  uy_ = INT_MIN;
   for (dbITerm* iTerm : net_->getITerms()) {
     dbBox* box = iTerm->getInst()->getBBox();
-    Rect r(box->xMin(), box->yMin(), box->xMax(), box->yMax());
-    if (first) {
-      rect_ = r;
-      first = false;
-    } else {
-      rect_.merge(r);
-    }
+    lx_ = std::min(box->xMin(), lx_);
+    ly_ = std::min(box->yMin(), ly_);
+    ux_ = std::max(box->xMax(), ux_);
+    uy_ = std::max(box->yMax(), uy_);
   }
 
   if (skipIoMode == false) {
     for (dbBTerm* bTerm : net_->getBTerms()) {
       for (dbBPin* bPin : bTerm->getBPins()) {
-        const Rect& r = bPin->getBBox();
-        if (first) {
-          rect_ = r;
-          first = false;
-        } else {
-          rect_.merge(r);
-        }
+        Rect bbox = bPin->getBBox();
+        lx_ = std::min(bbox.xMin(), lx_);
+        ly_ = std::min(bbox.yMin(), ly_);
+        ux_ = std::max(bbox.xMax(), ux_);
+        uy_ = std::max(bbox.yMax(), uy_);
       }
     }
   }
@@ -602,9 +659,7 @@ odb::dbSigType Net::getSigType() const
 ////////////////////////////////////////////////////////
 // Die
 
-Die::Die() : die_(), core_()
-{
-}
+Die::Die() = default;
 
 Die::Die(const odb::Rect& dieRect, const odb::Rect& coreRect) : Die()
 {
@@ -614,16 +669,74 @@ Die::Die(const odb::Rect& dieRect, const odb::Rect& coreRect) : Die()
 
 Die::~Die()
 {
+  dieLx_ = dieLy_ = dieUx_ = dieUy_ = 0;
+  coreLx_ = coreLy_ = coreUx_ = coreUy_ = 0;
 }
 
 void Die::setDieBox(const odb::Rect& dieRect)
 {
-  die_ = dieRect;
+  dieLx_ = dieRect.xMin();
+  dieLy_ = dieRect.yMin();
+  dieUx_ = dieRect.xMax();
+  dieUy_ = dieRect.yMax();
 }
 
 void Die::setCoreBox(const odb::Rect& coreRect)
 {
-  core_ = coreRect;
+  coreLx_ = coreRect.xMin();
+  coreLy_ = coreRect.yMin();
+  coreUx_ = coreRect.xMax();
+  coreUy_ = coreRect.yMax();
+}
+
+int Die::dieCx() const
+{
+  return (dieLx_ + dieUx_) / 2;
+}
+
+int Die::dieCy() const
+{
+  return (dieLy_ + dieUy_) / 2;
+}
+
+int Die::dieDx() const
+{
+  return dieUx_ - dieLx_;
+}
+
+int Die::dieDy() const
+{
+  return dieUy_ - dieLy_;
+}
+
+int Die::coreCx() const
+{
+  return (coreLx_ + coreUx_) / 2;
+}
+
+int Die::coreCy() const
+{
+  return (coreLy_ + coreUy_) / 2;
+}
+
+int Die::coreDx() const
+{
+  return coreUx_ - coreLx_;
+}
+
+int Die::coreDy() const
+{
+  return coreUy_ - coreLy_;
+}
+
+int64_t Die::dieArea() const
+{
+  return static_cast<int64_t>(dieDx()) * static_cast<int64_t>(dieDy());
+}
+
+int64_t Die::coreArea() const
+{
+  return static_cast<int64_t>(coreDx()) * static_cast<int64_t>(coreDy());
 }
 
 PlacerBaseVars::PlacerBaseVars()
@@ -638,28 +751,14 @@ void PlacerBaseVars::reset()
 }
 
 ////////////////////////////////////////////////////////
-// PlacerBase
+// PlacerBaseCommon
 
-PlacerBase::PlacerBase()
-    : db_(nullptr),
-      log_(nullptr),
-      pbVars_(),
-      siteSizeX_(0),
-      siteSizeY_(0),
-      placeInstsArea_(0),
-      nonPlaceInstsArea_(0),
-      dummyInstsArea_(0),
-      fixedInstsArea_(0),
-      macroInstsArea_(0),
-      stdInstsArea_(0),
-      instsPadding_()
-{
-}
+PlacerBaseCommon::PlacerBaseCommon() = default;
 
-PlacerBase::PlacerBase(odb::dbDatabase* db,
-                       PlacerBaseVars pbVars,
-                       utl::Logger* log)
-    : PlacerBase()
+PlacerBaseCommon::PlacerBaseCommon(odb::dbDatabase* db,
+                                   PlacerBaseVars pbVars,
+                                   utl::Logger* log)
+    : PlacerBaseCommon()
 {
   db_ = db;
   log_ = log;
@@ -667,38 +766,12 @@ PlacerBase::PlacerBase(odb::dbDatabase* db,
   init();
 }
 
-PlacerBase::~PlacerBase()
+PlacerBaseCommon::~PlacerBaseCommon()
 {
   reset();
 }
 
-void PlacerBase::fixIOPinsLocation()
-{
-  for (auto pin : pins_) {
-    if (pin->isUnplacedIOPin()) {
-      assert(pin->isBTerm());
-      if (pin->net()->pins().size() == 2) {
-        for (auto p : pin->net()->pins()) {
-          if (p->instance()) {
-            pin->updateLocation(p->instance());
-            pin->setUnplaceIOPin(false);
-            const std::string msg = pin->name() + " top level port is not placed, reset to its connected pad location";
-            slog_->warn(GPL, 1, msg);
-            break;
-          }
-        }
-      }
-      if (pin->isUnplacedIOPin()) {
-        string msg = pin->name() + " toplevel port is not placed!\n";
-        msg += "       Replace will regard " + pin->name()
-               + " is placed in (0, 0)";
-        slog_->warn(GPL, 1, msg);
-      }
-    }
-  }
-}
-
-void PlacerBase::init()
+void PlacerBaseCommon::init()
 {
   slog_ = log_;
 
@@ -707,38 +780,40 @@ void PlacerBase::init()
   dbBlock* block = db_->getChip()->getBlock();
 
   // die-core area update
-  dbSet<dbRow> rows = block->getRows();
-  odb::Rect coreRect;
-  block->getCoreArea(coreRect);
-  odb::Rect dieRect;
-  block->getDieArea(dieRect);
+  odb::dbSite* site = nullptr;
+  for (auto* row : block->getRows()) {
+    if (row->getSite()->getClass() != odb::dbSiteClass::PAD) {
+      site = row->getSite();
+      break;
+    }
+  }
+  if (site == nullptr) {
+    log_->error(GPL, 305, "Unable to find a site");
+  }
+  odb::Rect coreRect = block->getCoreArea();
+  odb::Rect dieRect = block->getDieArea();
 
   if (!dieRect.contains(coreRect)) {
-    coreRect.print("coreRect:");
-    dieRect.print("dieRect:");
     log_->error(GPL, 118, "core area outside of die.");
   }
 
   die_ = Die(dieRect, coreRect);
 
   // siteSize update
-  dbRow* firstRow = *(rows.begin());
-  siteSizeX_ = firstRow->getSite()->getWidth();
-  siteSizeY_ = firstRow->getSite()->getHeight();
+  siteSizeX_ = site->getWidth();
+  siteSizeY_ = site->getHeight();
 
   log_->info(GPL, 3, "SiteSize: {} {}", siteSizeX_, siteSizeY_);
   log_->info(GPL, 4, "CoreAreaLxLy: {} {}", die_.coreLx(), die_.coreLy());
   log_->info(GPL, 5, "CoreAreaUxUy: {} {}", die_.coreUx(), die_.coreUy());
 
-  instsPadding_.init(pbVars_.padLeft, pbVars_.padRight, siteSizeX_);
-
   // insts fill with real instances
   dbSet<dbInst> insts = block->getInsts();
   instStor_.reserve(insts.size());
+  insts_.reserve(instStor_.size());
   for (dbInst* inst : insts) {
     auto type = inst->getMaster()->getType();
-    if (!type.isCore() && !type.isBlock() && type != dbMasterType::RING
-        && !inst->getMaster()->isPad()) {
+    if (!type.isCore() && !type.isBlock()) {
       continue;
     }
     Instance myInst(inst,
@@ -746,86 +821,43 @@ void PlacerBase::init()
                     pbVars_.padRight * siteSizeX_,
                     siteSizeY_,
                     log_);
+
+    // Fixed instaces need to be snapped outwards to the nearest site
+    // boundary.  A partially overlapped site is unusable and this
+    // is the simplest way to ensure it is counted as fully used.
+    if (myInst.isFixed()) {
+      myInst.snapOutward(coreRect.ll(), siteSizeX_, siteSizeY_);
+    }
+
     instStor_.push_back(myInst);
-    instsPadding_.add(myInst);
+
+    if (myInst.dy() > siteSizeY_ * 6) {
+      macroInstsArea_ += myInst.area();
+    }
 
     dbBox* bbox = inst->getBBox();
-    if (bbox->getDY() > die_.coreDy())
+    if (bbox->getDY() > die_.coreDy()) {
       log_->error(
           GPL, 119, "instance {} height is larger than core.", inst->getName());
-    if (bbox->getDX() > die_.coreDx())
-      log_->warn(
+    }
+    if (bbox->getDX() > die_.coreDx()) {
+      log_->error(
           GPL, 120, "instance {} width is larger than core.", inst->getName());
+    }
   }
 
-  // insts fill with fake instances (fragmented row or blockage)
-  initInstsForUnusableSites();
-
-  // init inst ptrs and areas
-  insts_.reserve(instStor_.size());
   for (auto& inst : instStor_) {
-    if (inst.isInstance()) {
-      instMap_[inst.dbInst()] = &inst;
-      if (inst.isFixed()) {
-        // Check whether fixed instance is
-        // within the corearea
-        //
-        // outside of corearea is none of RePlAce's business
-        if (isCoreAreaOverlap(die_, inst)) {
-          const auto area = getOverlapWithCoreArea(die_, inst);
-          fixedInsts_.push_back(&inst);
-          fixedInstsArea_ += area;
-          nonPlaceInsts_.push_back(&inst);
-          nonPlaceInstsArea_ += area;
-        }
-      } else {
-        if (inst.dbInst()->getMaster()->isPad()) {
-          std::string msg
-              = "Warning: PAD cell " + inst.dbInst()->getName()
-                + " is not FIXED:"
-                + std::string(inst.dbInst()->getPlacementStatus().getString());
-          slog_->warn(GPL, 1, msg);
-        }
-        placeInsts_.push_back(&inst);
-        const auto instArea = inst.area();
-        placeInstsArea_ += instArea;
-        // macro cells should be
-        // macroInstsArea_
-        if (inst.dy() > siteSizeY_ * 6) {
-          macroInstsArea_ += instArea;
-        }
-        // smaller or equal height cells should be
-        // stdInstArea_
-        else {
-          stdInstsArea_ += instArea;
-        }
-      }
-    } else if (inst.isDummy()) {
-      const auto area = inst.area();
-      dummyInsts_.push_back(&inst);
-      dummyInstsArea_ += area;
-      nonPlaceInsts_.push_back(&inst);
-      nonPlaceInstsArea_ += area;
-    }
+    instMap_[inst.dbInst()] = &inst;
     insts_.push_back(&inst);
+
+    if (!inst.isFixed()) {
+      placeInsts_.push_back(&inst);
+    }
   }
 
   // nets fill
   dbSet<dbNet> nets = block->getNets();
   netStor_.reserve(nets.size());
-
-  size_t pin_cnt = 0;
-  for (dbNet* net : nets) {
-    dbSigType netType = net->getSigType();
-    // escape nets with VDD/VSS/reset nets
-    if (netType == dbSigType::SIGNAL || netType == dbSigType::CLOCK) {
-      pin_cnt += net->getITerms().size();
-      if (pbVars_.skipIoMode == false) {
-        pin_cnt += net->getBTerms().size();
-      }
-    }
-  }
-  pinStor_.reserve(pin_cnt);
   for (dbNet* net : nets) {
     dbSigType netType = net->getSigType();
 
@@ -835,236 +867,70 @@ void PlacerBase::init()
       netStor_.push_back(myNet);
 
       // this is safe because of "reserve"
-      Net* myNetPtr = &netStor_.back();
+      Net* myNetPtr = &netStor_[netStor_.size() - 1];
       netMap_[net] = myNetPtr;
 
       for (dbITerm* iTerm : net->getITerms()) {
-        // note that, DB's ITerm can have
-        // VDD/VSS pins.
-        //
-        // Escape those pins
-        pinStor_.emplace_back(iTerm);
-        Pin* pin = &pinStor_.back();
-        pin->setNet(myNetPtr);
-        auto inst = dbToPb(iTerm->getInst());
-        pin->setInstance(inst);
-        pinMap_[(void*) iTerm] = pin;
-
-        // only CORE and BLOCK inst are in the instStor_
-        // others, like PAD|RING|ENDCAP insts are not in the map
-        if (inst) {
-          inst->addPin(pin);
-        }
-        myNetPtr->addPin(pin);
+        Pin myPin(iTerm);
+        myPin.setNet(myNetPtr);
+        myPin.setInstance(dbToPb(iTerm->getInst()));
+        pinStor_.push_back(myPin);
       }
 
       if (pbVars_.skipIoMode == false) {
         for (dbBTerm* bTerm : net->getBTerms()) {
-          pinStor_.emplace_back(bTerm);
-          Pin* pin = &pinStor_.back();
-          pin->setNet(myNetPtr);
-          pinMap_[(void*) bTerm] = pin;
-          myNetPtr->addPin(pin);
+          Pin myPin(bTerm);
+          myPin.setNet(myNetPtr);
+          pinStor_.push_back(myPin);
         }
       }
     }
   }
-  assert(pinStor_.size() == pin_cnt);
 
+  // pinMap_ and pins_ update
   pins_.reserve(pinStor_.size());
   for (auto& pin : pinStor_) {
+    if (pin.isITerm()) {
+      pinMap_[(void*) pin.dbITerm()] = &pin;
+    } else if (pin.isBTerm()) {
+      pinMap_[(void*) pin.dbBTerm()] = &pin;
+    }
     pins_.push_back(&pin);
   }
 
-  fixIOPinsLocation();
+  // instStor_'s pins_ fill
+  for (auto& inst : instStor_) {
+    if (!inst.isInstance()) {
+      continue;
+    }
+    for (dbITerm* iTerm : inst.dbInst()->getITerms()) {
+      // note that, DB's ITerm can have
+      // VDD/VSS pins.
+      //
+      // Escape those pins
+      Pin* curPin = dbToPb(iTerm);
+      if (curPin) {
+        inst.addPin(curPin);
+      }
+    }
+  }
 
+  // nets' pin update
   nets_.reserve(netStor_.size());
   for (auto& net : netStor_) {
+    for (dbITerm* iTerm : net.dbNet()->getITerms()) {
+      net.addPin(dbToPb(iTerm));
+    }
+    if (pbVars_.skipIoMode == false) {
+      for (dbBTerm* bTerm : net.dbNet()->getBTerms()) {
+        net.addPin(dbToPb(bTerm));
+      }
+    }
     nets_.push_back(&net);
   }
-
-  printInfo();
 }
 
-void PlacerBase::InstsPadding::add(const Instance& inst) noexcept
-{
-  if (!hasPadding()) {
-    return;
-  }
-  const auto& dbInst = inst.dbInst();
-  FASSERT(dbInst != nullptr);
-  int lx_, ly_;
-  dbInst->getLocation(lx_, ly_);
-  const auto& master = dbInst->getMaster();
-  FASSERT(master != nullptr);
-  int64_t w = master->getWidth();
-  int64_t h = master->getHeight();
-  area += inst.area() - w * h;
-  instsNum++;
-}
-
-// Use dummy instance to fill unusable sites.  Sites are unusable
-// due to fragmented rows or placement blockages.
-void PlacerBase::initInstsForUnusableSites()
-{
-  dbSet<dbRow> rows = db_->getChip()->getBlock()->getRows();
-
-  int siteCountX = (die_.coreUx() - die_.coreLx()) / siteSizeX_;
-  int siteCountY = (die_.coreUy() - die_.coreLy()) / siteSizeY_;
-
-  typedef enum
-  {
-    Empty,
-    Row,
-    FixedInst
-  } SiteStatus;
-
-  struct PlaceInfo
-  {
-    SiteStatus status;
-    float max_density;
-    bool operator==(const PlaceInfo& ano) const noexcept
-    {
-      return status == ano.status && max_density == ano.max_density;
-    }
-  };
-
-  //
-  // Initialize siteGrid as empty
-  //
-  std::vector<PlaceInfo> siteGrid(siteCountX * siteCountY,
-                                  PlaceInfo{Empty, 1.0});
-
-  // fill in rows' bbox
-  for (dbRow* row : rows) {
-    Rect rect;
-    row->getBBox(rect);
-
-    std::pair<int, int> pairX = getMinMaxIdx(
-        rect.xMin(), rect.xMax(), die_.coreLx(), siteSizeX_, 0, siteCountX);
-
-    std::pair<int, int> pairY = getMinMaxIdx(
-        rect.yMin(), rect.yMax(), die_.coreLy(), siteSizeY_, 0, siteCountY);
-
-    for (int i = pairX.first; i < pairX.second; i++) {
-      for (int j = pairY.first; j < pairY.second; j++) {
-        siteGrid[j * siteCountX + i] = {Row, 1.0};
-      }
-    }
-  }
-
-  // Mark blockage areas as empty so that their sites will be blocked.
-  for (dbBlockage* blockage : db_->getChip()->getBlock()->getBlockages()) {
-    dbBox* bbox = blockage->getBBox();
-    std::pair<int, int> pairX = getMinMaxIdx(
-        bbox->xMin(), bbox->xMax(), die_.coreLx(), siteSizeX_, 0, siteCountX);
-
-    std::pair<int, int> pairY = getMinMaxIdx(
-        bbox->yMin(), bbox->yMax(), die_.coreLy(), siteSizeY_, 0, siteCountY);
-
-    {
-      std::ostringstream msg;
-      msg << "Blockage: (" << bbox->xMin() << ", " << bbox->yMin() << ", "
-          << bbox->xMax() << ", " << bbox->yMax()
-          << "), max_density:" << blockage->getMaxDensity()
-          << ", SOFT=" << blockage->isSoft();
-      slog_->info(GPL, 1, msg.str());
-    }
-    dbInst* inst = blockage->getInstance();
-    if (inst && !inst->isFixed()) {
-      string msg
-          = "Blockages associated with moveable instances "
-            " are unsupported and ignored [inst: "
-            + inst->getName() + "]\n";
-      slog_->error(GPL, 3, msg);
-      continue;
-    }
-
-    auto max_density = blockage->getMaxDensity();
-    if (blockage->isSoft()) {
-      FASSERT(blockage->getMaxDensity() == 0.0)
-      (blockage->getMaxDensity())("Expect soft blockage's max_density be 0");
-      max_density = 0;
-    }
-    // convert maxdensity to a value between 0 and 1
-    float blockage_density = max_density / 100.0;
-    for (int j = pairY.first; j < pairY.second; j++) {
-      for (int i = pairX.first; i < pairX.second; i++) {
-        siteGrid[j * siteCountX + i] = {Empty, blockage_density};
-      }
-    }
-  }
-
-  // fill fixed instances' bbox
-  for (auto& inst : instStor_) {
-    if (!inst.isFixed()) {
-      continue;
-    }
-    std::vector<linden::geom::Rect> obs_overlap_layer;
-    auto master = inst.dbInst()->getMaster();
-    for (auto obs : master->getObstructions()) {
-      auto layer = obs->getTechLayer();
-      if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
-        odb::Rect rect;
-        obs->getBox(rect);
-        odb::dbTransform transform;
-        inst.dbInst()->getTransform(transform);
-        transform.apply(rect);
-        obs_overlap_layer.push_back(linden::geom::Rect(
-            rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
-      }
-    }
-    if (obs_overlap_layer.empty()) {
-      linden::geom::Rect rect(inst.lx(), inst.ly(), inst.ux(), inst.uy());
-      obs_overlap_layer.push_back(rect);
-    }
-    for (const auto& rect : obs_overlap_layer) {
-      std::pair<int, int> pairX = getMinMaxIdx(
-          rect.lx(), rect.ux(), die_.coreLx(), siteSizeX_, 0, siteCountX);
-      std::pair<int, int> pairY = getMinMaxIdx(
-          rect.ly(), rect.uy(), die_.coreLy(), siteSizeY_, 0, siteCountY);
-
-      for (int i = pairX.first; i < pairX.second; i++) {
-        for (int j = pairY.first; j < pairY.second; j++) {
-          siteGrid[j * siteCountX + i] = {FixedInst, 1.0};
-        }
-      }
-    }
-  }
-
-  //
-  // Search the "Empty" coordinates on site-grid
-  // --> These sites need to be dummyInstance
-  //
-  for (int j = 0; j < siteCountY; j++) {
-    for (int i = 0; i < siteCountX; i++) {
-      // if empty or partially empty spot found
-      if (siteGrid[j * siteCountX + i].status == Empty) {
-        int startX = i;
-        float density = siteGrid[j * siteCountX + i].max_density;
-        int endX = i + 1;
-        {
-          // find end points, and merge sites together
-          const auto& startSiteInfo = siteGrid[j * siteCountX + startX];
-          while (endX < siteCountX
-                 && siteGrid[j * siteCountX + endX] == startSiteInfo) {
-            ++endX;
-          }
-          i = endX - 1;
-        }
-        FASSERT(i >= startX);
-        Instance myInst(die_.coreLx() + siteSizeX_ * startX,
-                        die_.coreLy() + siteSizeY_ * j,
-                        die_.coreLx() + siteSizeX_ * endX,
-                        die_.coreLy() + siteSizeY_ * (j + 1));
-        myInst.max_density() = density;
-        instStor_.push_back(myInst);
-      }
-    }
-  }
-}
-
-void PlacerBase::reset()
+void PlacerBaseCommon::reset()
 {
   db_ = nullptr;
   pbVars_.reset();
@@ -1080,13 +946,9 @@ void PlacerBase::reset()
   instMap_.clear();
   pinMap_.clear();
   netMap_.clear();
-
-  placeInsts_.clear();
-  fixedInsts_.clear();
-  nonPlaceInsts_.clear();
 }
 
-int64_t PlacerBase::hpwl() const
+int64_t PlacerBaseCommon::hpwl() const
 {
   int64_t hpwl = 0;
   for (auto& net : nets_) {
@@ -1096,38 +958,317 @@ int64_t PlacerBase::hpwl() const
   return hpwl;
 }
 
-Instance* PlacerBase::dbToPb(odb::dbInst* inst) const
+Instance* PlacerBaseCommon::dbToPb(odb::dbInst* inst) const
 {
   auto instPtr = instMap_.find(inst);
   return (instPtr == instMap_.end()) ? nullptr : instPtr->second;
 }
 
-Pin* PlacerBase::dbToPb(odb::dbITerm* term) const
+Pin* PlacerBaseCommon::dbToPb(odb::dbITerm* term) const
 {
   auto pinPtr = pinMap_.find((void*) term);
   return (pinPtr == pinMap_.end()) ? nullptr : pinPtr->second;
 }
 
-Pin* PlacerBase::dbToPb(odb::dbBTerm* term) const
+Pin* PlacerBaseCommon::dbToPb(odb::dbBTerm* term) const
 {
   auto pinPtr = pinMap_.find((void*) term);
   return (pinPtr == pinMap_.end()) ? nullptr : pinPtr->second;
 }
 
-Net* PlacerBase::dbToPb(odb::dbNet* net) const
+Net* PlacerBaseCommon::dbToPb(odb::dbNet* net) const
 {
   auto netPtr = netMap_.find(net);
   return (netPtr == netMap_.end()) ? nullptr : netPtr->second;
 }
 
+void PlacerBaseCommon::printInfo() const
+{
+}
+
+void PlacerBaseCommon::unlockAll()
+{
+  for (auto inst : insts_) {
+    inst->unlock();
+  }
+}
+
+////////////////////////////////////////////////////////
+// PlacerBase
+
+PlacerBase::PlacerBase() = default;
+
+PlacerBase::PlacerBase(odb::dbDatabase* db,
+                       std::shared_ptr<PlacerBaseCommon> pbCommon,
+                       utl::Logger* log,
+                       odb::dbGroup* group)
+    : PlacerBase()
+{
+  db_ = db;
+  log_ = log;
+  pbCommon_ = std::move(pbCommon);
+  group_ = group;
+  init();
+}
+
+PlacerBase::~PlacerBase()
+{
+  reset();
+}
+
+void PlacerBase::init()
+{
+  slog_ = log_;
+
+  die_ = pbCommon_->die();
+
+  // siteSize update
+  siteSizeX_ = pbCommon_->siteSizeX();
+  siteSizeY_ = pbCommon_->siteSizeY();
+
+  for (auto& inst : pbCommon_->insts()) {
+    if (!inst->isInstance()) {
+      continue;
+    }
+
+    if (inst->dbInst() && inst->dbInst()->getGroup() != group_) {
+      continue;
+    }
+
+    if (inst->isFixed()) {
+      // Check whether fixed instance is
+      // within the corearea
+      //
+      // outside of corearea is none of RePlAce's business
+      if (isCoreAreaOverlap(die_, *inst)) {
+        fixedInsts_.push_back(inst);
+        nonPlaceInsts_.push_back(inst);
+        nonPlaceInstsArea_ += getOverlapWithCoreArea(die_, *inst);
+      }
+    } else {
+      placeInsts_.push_back(inst);
+      int64_t instArea = inst->area();
+      placeInstsArea_ += instArea;
+      // macro cells should be
+      // macroInstsArea_
+      if (inst->dy() > siteSizeY_ * 6) {
+        macroInstsArea_ += instArea;
+      }
+      // smaller or equal height cells should be
+      // stdInstArea_
+      else {
+        stdInstsArea_ += instArea;
+      }
+    }
+
+    insts_.push_back(inst);
+  }
+
+  // insts fill with fake instances (fragmented row or blockage)
+  initInstsForUnusableSites();
+
+  // handle newly added dummy instances
+  for (auto& inst : instStor_) {
+    if (inst.isDummy()) {
+      dummyInsts_.push_back(&inst);
+      nonPlaceInsts_.push_back(&inst);
+      nonPlaceInstsArea_ += inst.area();
+    }
+    insts_.push_back(&inst);
+  }
+
+  printInfo();
+}
+
+// Use dummy instance to fill unusable sites.  Sites are unusable
+// due to fragmented rows or placement blockages.
+void PlacerBase::initInstsForUnusableSites()
+{
+  dbSet<dbRow> rows = db_->getChip()->getBlock()->getRows();
+  dbSet<dbPowerDomain> pds = db_->getChip()->getBlock()->getPowerDomains();
+
+  int64_t siteCountX = (die_.coreUx() - die_.coreLx()) / siteSizeX_;
+  int64_t siteCountY = (die_.coreUy() - die_.coreLy()) / siteSizeY_;
+
+  enum PlaceInfo
+  {
+    Empty,
+    Row,
+    FixedInst
+  };
+
+  //
+  // Initialize siteGrid as empty
+  //
+  std::vector<PlaceInfo> siteGrid(siteCountX * siteCountY, PlaceInfo::Empty);
+
+  // check if this belongs to a group
+  // if there is a group, only mark the sites that belong to the group as Row
+  // if there is no group, then mark all as Row, and then for each power
+  // domain, mark the sites that belong to the power domain as Empty
+
+  if (group_ != nullptr) {
+    for (auto boundary : group_->getRegion()->getBoundaries()) {
+      Rect rect = boundary->getBox();
+
+      std::pair<int, int> pairX = getMinMaxIdx(
+          rect.xMin(), rect.xMax(), die_.coreLx(), siteSizeX_, 0, siteCountX);
+
+      std::pair<int, int> pairY = getMinMaxIdx(
+          rect.yMin(), rect.yMax(), die_.coreLy(), siteSizeY_, 0, siteCountY);
+
+      for (int i = pairX.first; i < pairX.second; i++) {
+        for (int j = pairY.first; j < pairY.second; j++) {
+          siteGrid[j * siteCountX + i] = Row;
+        }
+      }
+    }
+  } else {
+    // fill in rows' bbox
+    for (dbRow* row : rows) {
+      Rect rect = row->getBBox();
+
+      std::pair<int, int> pairX = getMinMaxIdx(
+          rect.xMin(), rect.xMax(), die_.coreLx(), siteSizeX_, 0, siteCountX);
+
+      std::pair<int, int> pairY = getMinMaxIdx(
+          rect.yMin(), rect.yMax(), die_.coreLy(), siteSizeY_, 0, siteCountY);
+
+      for (int i = pairX.first; i < pairX.second; i++) {
+        for (int j = pairY.first; j < pairY.second; j++) {
+          siteGrid[j * siteCountX + i] = Row;
+        }
+      }
+    }
+  }
+
+  // Mark blockage areas as empty so that their sites will be blocked.
+  for (dbBlockage* blockage : db_->getChip()->getBlock()->getBlockages()) {
+    dbInst* inst = blockage->getInstance();
+    if (inst && !inst->isFixed()) {
+      std::string msg
+          = "Blockages associated with moveable instances "
+            " are unsupported and ignored [inst: "
+            + inst->getName() + "]\n";
+      slog_->error(GPL, 3, msg);
+      continue;
+    }
+    dbBox* bbox = blockage->getBBox();
+    std::pair<int, int> pairX = getMinMaxIdx(
+        bbox->xMin(), bbox->xMax(), die_.coreLx(), siteSizeX_, 0, siteCountX);
+
+    std::pair<int, int> pairY = getMinMaxIdx(
+        bbox->yMin(), bbox->yMax(), die_.coreLy(), siteSizeY_, 0, siteCountY);
+
+    float filler_density = (100 - blockage->getMaxDensity()) / 100;
+    int cells = 0;
+    int filled = 0;
+
+    for (int j = pairY.first; j < pairY.second; j++) {
+      for (int i = pairX.first; i < pairX.second; i++) {
+        if (cells == 0 || filled / (float) cells <= filler_density) {
+          siteGrid[j * siteCountX + i] = Empty;
+          ++filled;
+        }
+        ++cells;
+      }
+    }
+  }
+
+  // fill fixed instances' bbox
+  for (auto& inst : pbCommon_->insts()) {
+    if (!inst->isFixed()) {
+      continue;
+    }
+    std::pair<int, int> pairX = getMinMaxIdx(
+        inst->lx(), inst->ux(), die_.coreLx(), siteSizeX_, 0, siteCountX);
+    std::pair<int, int> pairY = getMinMaxIdx(
+        inst->ly(), inst->uy(), die_.coreLy(), siteSizeY_, 0, siteCountY);
+
+    for (int i = pairX.first; i < pairX.second; i++) {
+      for (int j = pairY.first; j < pairY.second; j++) {
+        siteGrid[j * siteCountX + i] = FixedInst;
+      }
+    }
+  }
+
+  // In the case of top level power domain i.e no group,
+  // mark all other power domains as empty
+  if (group_ == nullptr) {
+    for (dbPowerDomain* pd : pds) {
+      if (pd->getGroup() != nullptr) {
+        for (auto boundary : pd->getGroup()->getRegion()->getBoundaries()) {
+          Rect rect = boundary->getBox();
+
+          std::pair<int, int> pairX = getMinMaxIdx(rect.xMin(),
+                                                   rect.xMax(),
+                                                   die_.coreLx(),
+                                                   siteSizeX_,
+                                                   0,
+                                                   siteCountX);
+
+          std::pair<int, int> pairY = getMinMaxIdx(rect.yMin(),
+                                                   rect.yMax(),
+                                                   die_.coreLy(),
+                                                   siteSizeY_,
+                                                   0,
+                                                   siteCountY);
+
+          for (int i = pairX.first; i < pairX.second; i++) {
+            for (int j = pairY.first; j < pairY.second; j++) {
+              siteGrid[j * siteCountX + i] = Empty;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  //
+  // Search the "Empty" coordinates on site-grid
+  // --> These sites need to be dummyInstance
+  //
+  for (int j = 0; j < siteCountY; j++) {
+    for (int i = 0; i < siteCountX; i++) {
+      // if empty spot found
+      if (siteGrid[j * siteCountX + i] == Empty) {
+        int startX = i;
+        // find end points
+        while (i < siteCountX && siteGrid[j * siteCountX + i] == Empty) {
+          i++;
+        }
+        int endX = i;
+        Instance myInst(die_.coreLx() + siteSizeX_ * startX,
+                        die_.coreLy() + siteSizeY_ * j,
+                        die_.coreLx() + siteSizeX_ * endX,
+                        die_.coreLy() + siteSizeY_ * (j + 1));
+        instStor_.push_back(myInst);
+      }
+    }
+  }
+}
+
+void PlacerBase::reset()
+{
+  db_ = nullptr;
+  instStor_.clear();
+  insts_.clear();
+  placeInsts_.clear();
+  fixedInsts_.clear();
+  nonPlaceInsts_.clear();
+}
+
 void PlacerBase::printInfo() const
 {
-  log_->info(GPL, 6, "NumInstances: {}", instStor_.size());
+  log_->info(GPL,
+             6,
+             "NumInstances: {}",
+             placeInsts_.size() + fixedInsts_.size() + dummyInsts_.size());
   log_->info(GPL, 7, "NumPlaceInstances: {}", placeInsts_.size());
   log_->info(GPL, 8, "NumFixedInstances: {}", fixedInsts_.size());
   log_->info(GPL, 9, "NumDummyInstances: {}", dummyInsts_.size());
-  log_->info(GPL, 10, "NumNets: {}", nets_.size());
-  log_->info(GPL, 11, "NumPins: {}", pins_.size());
+  log_->info(GPL, 10, "NumNets: {}", pbCommon_->nets().size());
+  log_->info(GPL, 11, "NumPins: {}", pbCommon_->pins().size());
 
   log_->info(GPL, 12, "DieAreaLxLy: {} {}", die_.dieLx(), die_.dieLy());
   log_->info(GPL, 13, "DieAreaUxUy: {} {}", die_.dieUx(), die_.dieUy());
@@ -1135,33 +1276,17 @@ void PlacerBase::printInfo() const
   log_->info(GPL, 15, "CoreAreaUxUy: {} {}", die_.coreUx(), die_.coreUy());
 
   const int64_t coreArea = die_.coreArea();
-  const int64_t whiteSpaceArea = coreArea - nonPlaceInstsArea_;
-  float util = static_cast<float>(placeInstsArea_) / whiteSpaceArea * 100;
-  float instsPaddingAreaUtil = static_cast<float>(instsPadding_.area) / whiteSpaceArea * 100;
+  float util = static_cast<float>(placeInstsArea_)
+               / (coreArea - nonPlaceInstsArea_) * 100;
 
   log_->info(GPL, 16, "CoreArea: {}", coreArea);
   log_->info(GPL, 17, "NonPlaceInstsArea: {}", nonPlaceInstsArea_);
+
   log_->info(GPL, 18, "PlaceInstsArea: {}", placeInstsArea_);
   log_->info(GPL, 19, "Util(%): {:.2f}", util);
 
   log_->info(GPL, 20, "StdInstsArea: {}", stdInstsArea_);
   log_->info(GPL, 21, "MacroInstsArea: {}", macroInstsArea_);
-  if (instsPadding_.hasPadding()) {
-    log_->info(GPL,
-               22,
-               "InstsPaddingInfo: Area: {}({:.2f}%), PadSites: ({}, {}), SiteSizeX: {}, "
-               "PaddedInstsNum: {}",
-               instsPadding_.area,
-               instsPaddingAreaUtil,
-               instsPadding_.padLeft,
-               instsPadding_.padLeft,
-               instsPadding_.siteSizeX,
-               instsPadding_.instsNum);
-  }
-#if 0  // debug only
-  std::cout << "fixedInstsArea: " << fixedInstsArea_ << std::endl;
-  std::cout << "dummyInstsArea: " << dummyInstsArea_ << std::endl;
-#endif
 
   if (util >= 100.1) {
     log_->error(GPL, 301, "Utilization exceeds 100%.");
@@ -1175,6 +1300,17 @@ void PlacerBase::unlockAll()
   }
 }
 
+int64_t PlacerBase::macroInstsArea() const
+{
+  return macroInstsArea_;
+}
+
+// https://stackoverflow.com/questions/33333363/built-in-mod-vs-custom-mod-function-improve-the-performance-of-modulus-op
+static int fastModulo(const int input, const int ceil)
+{
+  return input >= ceil ? input % ceil : input;
+}
+
 static std::pair<int, int> getMinMaxIdx(int ll,
                                         int uu,
                                         int coreLL,
@@ -1183,7 +1319,7 @@ static std::pair<int, int> getMinMaxIdx(int ll,
                                         int maxIdx)
 {
   int lowerIdx = (ll - coreLL) / siteSize;
-  int upperIdx = (util::fastModulo((uu - coreLL), siteSize) == 0)
+  int upperIdx = (fastModulo((uu - coreLL), siteSize) == 0)
                      ? (uu - coreLL) / siteSize
                      : (uu - coreLL) / siteSize + 1;
   return std::make_pair(std::max(minIdx, lowerIdx), std::min(maxIdx, upperIdx));
@@ -1191,52 +1327,21 @@ static std::pair<int, int> getMinMaxIdx(int ll,
 
 static bool isCoreAreaOverlap(Die& die, Instance& inst)
 {
-  int rectLx = max(die.coreLx(), inst.lx()),
-      rectLy = max(die.coreLy(), inst.ly()),
-      rectUx = min(die.coreUx(), inst.ux()),
-      rectUy = min(die.coreUy(), inst.uy());
+  int rectLx = std::max(die.coreLx(), inst.lx()),
+      rectLy = std::max(die.coreLy(), inst.ly()),
+      rectUx = std::min(die.coreUx(), inst.ux()),
+      rectUy = std::min(die.coreUy(), inst.uy());
   return !(rectLx >= rectUx || rectLy >= rectUy);
-}
-
-static int64_t getRectOverlapWithCoreArea(Die& die, const IntRect& rect)
-{
-  int64_t lx = max(die.coreLx(), rect.lx());
-  int64_t ly = max(die.coreLy(), rect.ly());
-  int64_t ux = min(die.coreUx(), rect.ux());
-  int64_t uy = min(die.coreUy(), rect.uy());
-  if (lx > ux || ly > uy) {
-    return 0;
-  }
-  return (ux - lx) * (uy - ly);
 }
 
 static int64_t getOverlapWithCoreArea(Die& die, Instance& inst)
 {
-  std::vector<IntRect> obs_overlap_layer;
-  if (inst.isMacro()) {
-    auto master = inst.dbInst()->getMaster();
-    for (auto const& obs : master->getObstructions()) {
-      auto layer = obs->getTechLayer();
-      if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
-        odb::Rect rect;
-        obs->getBox(rect);
-        odb::dbTransform transform;
-        inst.dbInst()->getTransform(transform);
-        transform.apply(rect);
-        obs_overlap_layer.push_back(
-            IntRect(rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
-      }
-    }
-  }
-  if (obs_overlap_layer.empty()) {
-    return getRectOverlapWithCoreArea(die, inst);
-  } else {
-    int64_t res = 0;
-    for (const auto& rect : obs_overlap_layer) {
-      res += getRectOverlapWithCoreArea(die, rect);
-    }
-    return res;
-  }
+  int rectLx = std::max(die.coreLx(), inst.lx()),
+      rectLy = std::max(die.coreLy(), inst.ly()),
+      rectUx = std::min(die.coreUx(), inst.ux()),
+      rectUy = std::min(die.coreUy(), inst.uy());
+  return static_cast<int64_t>(rectUx - rectLx)
+         * static_cast<int64_t>(rectUy - rectLy);
 }
 
 }  // namespace gpl

@@ -30,6 +30,8 @@
 #include <libgen.h>
 
 #include <array>
+#include <fstream>
+#include <vector>
 
 #include "odb/defin.h"
 #include "odb/lefin.h"
@@ -42,7 +44,9 @@ bool db_diff(odb::dbDatabase* db1, odb::dbDatabase* db2)
 {
   // Sadly the diff report is too implementation specific to reveal much about
   // the structural differences.
-  bool diffs = odb::dbDatabase::diff(db1, db2, nullptr, 2);
+  FILE* report = fopen("diffs.rpt", "w");
+  bool diffs = odb::dbDatabase::diff(db1, db2, report, 2);
+  fclose(report);
   if (diffs) {
     printf("Differences found.\n");
     odb::dbChip* chip1 = db1->getChip();
@@ -81,7 +85,7 @@ bool db_def_diff(odb::dbDatabase* db1, const char* def_filename)
   std::vector<odb::dbLib*> search_libs;
   for (odb::dbLib* lib : db2->getLibs())
     search_libs.push_back(lib);
-  def_reader.createChip(search_libs, def_filename);
+  def_reader.createChip(search_libs, def_filename, db1->getTech());
   if (db2->getChip())
     return db_diff(db1, db2);
   else
@@ -90,43 +94,34 @@ bool db_def_diff(odb::dbDatabase* db1, const char* def_filename)
 
 odb::dbLib* read_lef(odb::dbDatabase* db, const char* path)
 {
-  utl::Logger* logger = new utl::Logger(NULL);
+  utl::Logger* logger = new utl::Logger(nullptr);
   odb::lefin lefParser(db, logger, false);
   const char* libname = basename(const_cast<char*>(path));
   if (!db->getTech()) {
-    return lefParser.createTechAndLib(libname, path);
+    return lefParser.createTechAndLib(libname, libname, path);
   } else {
-    return lefParser.createLib(libname, path);
+    return lefParser.createLib(db->getTech(), libname, path);
   }
 }
 
-odb::dbChip* read_def(odb::dbDatabase* db, std::string path)
+odb::dbChip* read_def(odb::dbTech* tech, std::string path)
 {
-  utl::Logger* logger = new utl::Logger(NULL);
+  utl::Logger* logger = new utl::Logger(nullptr);
   std::vector<odb::dbLib*> libs;
-  for (auto* lib : db->getLibs()) {
-    libs.push_back(lib);
+  for (auto* lib : tech->getDb()->getLibs()) {
+    if (lib->getTech() == tech) {
+      libs.push_back(lib);
+    }
   }
-  odb::defin defParser(db, logger);
-  return defParser.createChip(libs, path.c_str());
-}
-
-odb::dbChip* read_def_incremental(odb::dbDatabase* db, std::string path)
-{
-  utl::Logger* logger = new utl::Logger(NULL);
-  std::vector<odb::dbLib*> libs;
-  for (auto* lib : db->getLibs()) {
-    libs.push_back(lib);
-  }
-  odb::defin defParser(db, logger, odb::defin::INCREMENTAL);
-  return defParser.createChip(libs, path.c_str());
+  odb::defin defParser(tech->getDb(), logger);
+  return defParser.createChip(libs, path.c_str(), tech);
 }
 
 int write_def(odb::dbBlock* block,
               const char* path,
               odb::defout::Version version)
 {
-  utl::Logger* logger = new utl::Logger(NULL);
+  utl::Logger* logger = new utl::Logger(nullptr);
   odb::defout writer(logger);
   writer.setVersion(version);
   return writer.writeBlock(block, path);
@@ -134,44 +129,60 @@ int write_def(odb::dbBlock* block,
 
 int write_lef(odb::dbLib* lib, const char* path)
 {
-  utl::Logger* logger = new utl::Logger(NULL);
-  odb::lefout writer(logger);
-  return writer.writeTechAndLib(lib, path);
+  utl::Logger* logger = new utl::Logger(nullptr);
+  std::ofstream os;
+  os.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  os.open(path);
+  odb::lefout writer(logger, os);
+  writer.writeTechAndLib(lib);
+  return true;
 }
 
 int write_tech_lef(odb::dbTech* tech, const char* path)
 {
-  utl::Logger* logger = new utl::Logger(NULL);
-  odb::lefout writer(logger);
-  return writer.writeTech(tech, path);
+  utl::Logger* logger = new utl::Logger(nullptr);
+  std::ofstream os;
+  os.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  os.open(path);
+  odb::lefout writer(logger, os);
+  writer.writeTech(tech);
+  return true;
 }
 int write_macro_lef(odb::dbLib* lib, const char* path)
 {
-  utl::Logger* logger = new utl::Logger(NULL);
-  odb::lefout writer(logger);
-  return writer.writeLib(lib, path);
+  utl::Logger* logger = new utl::Logger(nullptr);
+  std::ofstream os;
+  os.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  os.open(path);
+  odb::lefout writer(logger, os);
+  writer.writeLib(lib);
+  return true;
 }
 
 odb::dbDatabase* read_db(odb::dbDatabase* db, const char* db_path)
 {
-  if (db == NULL) {
+  if (db == nullptr) {
     db = odb::dbDatabase::create();
   }
-  FILE* fp = fopen(db_path, "rb");
-  if (!fp) {
-    int errnum = errno;
-    fprintf(stderr, "Error opening file: %s\n", strerror(errnum));
-    fprintf(stderr, "Errno: %d\n", errno);
-    return NULL;
+
+  std::ifstream file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit
+                  | std::ios::eofbit);
+  file.open(db_path, std::ios::binary);
+
+  try {
+    db->read(file);
+  } catch (const std::ios_base::failure& f) {
+    auto msg = fmt::format("odb file {} is invalid: {}", db_path, f.what());
+    throw std::ios_base::failure(msg);
   }
-  db->read(fp);
-  fclose(fp);
+
   return db;
 }
 
 int write_db(odb::dbDatabase* db, const char* db_path)
 {
-  FILE* fp = fopen(db_path, "wb");
+  std::ofstream fp(db_path, std::ios::binary);
   if (!fp) {
     int errnum = errno;
     fprintf(stderr, "Error opening file: %s\n", strerror(errnum));
@@ -179,7 +190,6 @@ int write_db(odb::dbDatabase* db, const char* db_path)
     return errno;
   }
   db->write(fp);
-  fclose(fp);
   return 1;
 }
 
@@ -302,6 +312,46 @@ void createSBoxes(odb::dbSWire* swire,
                   odb::dbWireShapeType type)
 {
   for (odb::Point point : points)
-    odb::dbSBox::create(
-        swire, via, point.getX(), point.getY(), type);
+    odb::dbSBox::create(swire, via, point.getX(), point.getY(), type);
+}
+
+void dumpAPs(odb::dbBlock* block, const std::string file_name)
+{
+  std::ofstream os(file_name);
+  for (auto inst : block->getInsts()) {
+    os << "Inst: " << inst->getName() << "\n";
+    for (auto iterm : inst->getITerms()) {
+      if (iterm->getSigType().isSupply()) {
+        continue;
+      }
+
+      auto mterm = iterm->getMTerm();
+      auto aps = iterm->getAccessPoints();
+      os << "  iterm: " << mterm->getName() << "\n";
+
+      for (auto mpin : mterm->getMPins()) {
+        auto bbox = mpin->getBBox();
+        os << "    pin (" << bbox.xMin() << ", " << bbox.yMin() << "):\n";
+
+        auto pin_aps_it = aps.find(mpin);
+        if (pin_aps_it == aps.end()) {
+          continue;
+        }
+        for (auto ap : pin_aps_it->second) {
+          std::vector<odb::dbDirection> dirs;
+          ap->getAccesses(dirs);
+          auto pt = ap->getPoint();
+          os << "      ap ";
+          os << "(" << pt.x() << ", " << pt.y() << ") ";
+          os << "layer=" << ap->getLayer()->getName() << " ";
+          os << "type=" << ap->getLowType().getString() << "/"
+             << ap->getHighType().getString() << " ";
+          for (const auto& dir : dirs) {
+            os << dir.getString() << " ";
+          }
+          os << "\n";
+        }
+      }
+    }
+  }
 }

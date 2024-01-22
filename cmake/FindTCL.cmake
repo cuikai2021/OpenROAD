@@ -1,5 +1,5 @@
-# OpenSTA, Static Timing Analyzer
-# Copyright (c) 2019, Parallax Software, Inc.
+# Copied from OpenSTA/cmake/FindTCL.cmake
+# Copyright (c) 2021, Parallax Software, Inc.
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +33,10 @@ set(TCL_POSSIBLE_NAMES tcl87 tcl8.7
 # tcl lib path guesses.
 if (NOT TCL_LIB_PATHS)
   if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(TCL_LIB_PATHS /usr/local/lib /opt/homebrew/opt/tcl-tk/lib)
+    set(TCL_LIB_PATHS /usr/local/lib
+      /opt/homebrew/opt/tcl-tk/lib
+      /usr/local/opt/tcl-tk/lib
+      )
     set(TCL_NO_DEFAULT_PATH TRUE)
   elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(TCL_LIB_PATHS /usr/lib /usr/local/lib)

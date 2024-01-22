@@ -1,4 +1,5 @@
-// Copyright (c) 2020, Parallax Software, Inc.
+// Copied from OpenSTA/tcl/Exception.i
+// Copyright (c) 2021, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,13 +15,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 %{
+#include <new>
 %}
 
 %exception {
   try { $function }
   catch (std::bad_alloc &) {
     fprintf(stderr, "Error: out of memory.");
-    exit(0);
+    exit(1);
   }
   // This catches std::runtime_error (utl::error) and sta::Exception.
   catch (std::exception &excp) {

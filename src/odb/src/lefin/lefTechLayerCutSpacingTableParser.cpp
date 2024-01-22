@@ -25,11 +25,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "boostParser.h"
 #include <iostream>
 #include <string>
 #include <vector>
 
+#include "boostParser.h"
 #include "db.h"
 #include "lefLayerPropParser.h"
 #include "lefin.h"
@@ -44,7 +44,7 @@ void createOrthongonalSubRule(
   odb::dbTechLayerCutSpacingTableOrthRule* rule
       = odb::dbTechLayerCutSpacingTableOrthRule::create(parser->layer);
   std::vector<std::pair<int, int>> table;
-  for (auto item : params)
+  for (const auto& item : params)
     table.push_back(
         {lefin->dbdist(at_c<0>(item)), lefin->dbdist(at_c<1>(item))});
   rule->setSpacingTable(table);
@@ -80,7 +80,7 @@ void setPrlForAlignedCut(
     odb::lefTechLayerCutSpacingTableParser* parser)
 {
   parser->curRule->setPrlForAlignedCut(true);
-  for (auto item : params) {
+  for (const auto& item : params) {
     auto from = at_c<0>(item).c_str();
     auto to = at_c<1>(item).c_str();
     parser->curRule->addPrlForAlignedCutEntry(from, to);
@@ -91,7 +91,7 @@ void setCenterToCenter(
     odb::lefTechLayerCutSpacingTableParser* parser)
 {
   parser->curRule->setCenterToCenterValid(true);
-  for (auto item : params) {
+  for (const auto& item : params) {
     auto from = at_c<0>(item).c_str();
     auto to = at_c<1>(item).c_str();
     parser->curRule->addCenterToCenterEntry(from, to);
@@ -102,7 +102,7 @@ void setCenterAndEdge(
     odb::lefTechLayerCutSpacingTableParser* parser)
 {
   parser->curRule->setCenterAndEdgeValid(true);
-  for (auto item : params) {
+  for (const auto& item : params) {
     auto from = at_c<0>(item).c_str();
     auto to = at_c<1>(item).c_str();
     parser->curRule->addCenterAndEdgeEntry(from, to);
@@ -133,7 +133,7 @@ void setPRL(
   if (maxxy.is_initialized())
     parser->curRule->setMaxXY(true);
 
-  for (auto item : items) {
+  for (const auto& item : items) {
     auto from = at_c<0>(item).c_str();
     auto to = at_c<1>(item).c_str();
     auto ccPrl = lefin->dbdist(at_c<2>(item));
@@ -157,7 +157,7 @@ void setExactAlignedSpacing(
       parser->curRule->setVertical(true);
   }
 
-  for (auto item : items) {
+  for (const auto& item : items) {
     auto cls = at_c<0>(item).c_str();
     auto ext = lefin->dbdist(at_c<1>(item));
     parser->curRule->addExactElignedEntry(cls, ext);
@@ -170,7 +170,7 @@ void setNonOppositeEnclosureSpacing(
     odb::lefin* lefin)
 {
   parser->curRule->setNonOppositeEnclosureSpacingValid(true);
-  for (auto item : params) {
+  for (const auto& item : params) {
     auto cls = at_c<0>(item).c_str();
     auto ext = lefin->dbdist(at_c<1>(item));
     parser->curRule->addNonOppEncSpacingEntry(cls, ext);
@@ -185,7 +185,7 @@ void setOppositeEnclosureResizeSpacing(
 {
   parser->curRule->setOppositeEnclosureResizeSpacingValid(true);
   std::vector<std::tuple<char*, int, int, int>> table;
-  for (auto item : params) {
+  for (const auto& item : params) {
     auto cls = at_c<0>(item).c_str();
     auto rsz1 = lefin->dbdist(at_c<1>(item));
     auto rsz2 = lefin->dbdist(at_c<2>(item));
@@ -205,7 +205,7 @@ void setEndExtension(
   auto ext = at_c<0>(params);
   auto items = at_c<1>(params);
   parser->curRule->setExtension(lefin->dbdist(ext));
-  for (auto item : items) {
+  for (const auto& item : items) {
     auto cls = at_c<0>(item).c_str();
     auto ext = lefin->dbdist(at_c<1>(item));
     parser->curRule->addEndExtensionEntry(cls, ext);
@@ -217,7 +217,7 @@ void setSideExtension(
     odb::lefin* lefin)
 {
   parser->curRule->setSideExtensionValid(true);
-  for (auto item : params) {
+  for (const auto& item : params) {
     auto cls = at_c<0>(item).c_str();
     auto ext = lefin->dbdist(at_c<1>(item));
     parser->curRule->addSideExtensionEntry(cls, ext);
@@ -271,11 +271,11 @@ void setCutClass(
   auto colsNamesAndFirstRowName = at_c<0>(params);
   auto firstRowWithOutName = at_c<1>(params);
   auto allRows = at_c<2>(params);
-  std::map<std::string, uint> cols;
-  std::map<std::string, uint> rows;
+  std::map<std::string, odb::uint> cols;
+  std::map<std::string, odb::uint> rows;
   std::vector<std::vector<std::pair<int, int>>> table;
-  uint colSz = colsNamesAndFirstRowName.size() - 1;
-  for (uint i = 0; i < colSz; i++) {
+  odb::uint colSz = colsNamesAndFirstRowName.size() - 1;
+  for (odb::uint i = 0; i < colSz; i++) {
     std::string name = at_c<0>(colsNamesAndFirstRowName[i]);
     auto OPTION = at_c<1>(colsNamesAndFirstRowName[i]);
     if (OPTION.is_initialized()) {
@@ -293,8 +293,8 @@ void setCutClass(
                at_c<1>(colsNamesAndFirstRowName[colSz]),
                firstRowWithOutName);
   allRows.insert(allRows.begin(), firstRow);
-  uint rowSz = allRows.size();
-  for (uint i = 0; i < rowSz; i++) {
+  odb::uint rowSz = allRows.size();
+  for (odb::uint i = 0; i < rowSz; i++) {
     std::string name = at_c<0>(allRows[i]);
     auto OPTION = at_c<1>(allRows[i]);
     auto items = at_c<2>(allRows[i]);
@@ -303,7 +303,7 @@ void setCutClass(
     }
     rows[name] = i;
     table.push_back(std::vector<std::pair<int, int>>(colSz));
-    for (uint j = 0; j < items.size(); j++) {
+    for (odb::uint j = 0; j < items.size(); j++) {
       auto item = items[j];
       auto spacing1 = at_c<0>(item);
       auto spacing2 = at_c<1>(item);
@@ -371,9 +371,6 @@ bool parse(
     odb::lefin* lefin,
     std::vector<std::pair<odb::dbObject*, std::string>>& incomplete_props)
 {
-  qi::rule<Iterator, std::string(), ascii::space_type> _string;
-  _string %= lexeme[(alpha >> *(char_ - ' ' - '\n' - '\t'))];
-
   qi::rule<std::string::iterator, space_type> ORTHOGONAL
       = (lit("SPACINGTABLE") >> lit("ORTHOGONAL")
          >> +(lit("WITHIN") >> double_ >> lit("SPACING") >> double_) >> lit(
@@ -427,11 +424,17 @@ bool parse(
           &setOppositeEnclosureResizeSpacing, _1, parser, lefin)];
 
   qi::rule<std::string::iterator, space_type> CUTCLASS
-      = (lit("CUTCLASS") >> +(_string >> -(string("SIDE") | string("END")))
-         >> +((string("-") | double_) >> (string("-") | double_))
+      = (lit("CUTCLASS")
+         >> +(_string
+              >> -(string("SIDE")
+                   | string("END")))  // FIRST ROW AND FIRST ENTRY OF SECOND ROW
+         >> +((string("-") | double_)
+              >> (string("-") | double_))  // REMAINING SECOND ROW
          >> *(_string >> -(string("SIDE") | string("END"))
-              >> +((string("-") | double_) >> (string("-") | double_))))
-          [boost::bind(&setCutClass, _1, parser, lefin)];
+              >> +((string("-") | double_)
+                   >> (string("-")
+                       | double_)))  // REMAINING ROWS (3rd and below)
+         )[boost::bind(&setCutClass, _1, parser, lefin)];
 
   qi::rule<std::string::iterator, space_type> DEFAULT
       = (lit("SPACINGTABLE")[boost::bind(&createDefSubRule, parser)]

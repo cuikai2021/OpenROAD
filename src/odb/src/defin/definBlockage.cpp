@@ -59,16 +59,17 @@ void definBlockage::init()
 void definBlockage::blockageRoutingBegin(const char* layer)
 {
   _layer = _tech->findLayer(layer);
-  _inst = NULL;
+  _inst = nullptr;
   _slots = false;
   _fills = false;
+  _except_pg_nets = false;
   _pushdown = false;
   _has_min_spacing = false;
   _has_effective_width = false;
   _min_spacing = 0;
   _effective_width = 0;
 
-  if (_layer == NULL) {
+  if (_layer == nullptr) {
     _logger->warn(
         utl::ODB, 88, "error: undefined layer ({}) referenced", layer);
     ++_errors;
@@ -79,7 +80,7 @@ void definBlockage::blockageRoutingComponent(const char* comp)
 {
   _inst = _block->findInst(comp);
 
-  if (_inst == NULL) {
+  if (_inst == nullptr) {
     _logger->warn(
         utl::ODB, 89, "error: undefined component ({}) referenced", comp);
     ++_errors;
@@ -96,9 +97,9 @@ void definBlockage::blockageRoutingFills()
   _fills = true;
 }
 
-void definBlockage::blockageRoutingExceptPGNet() 
+void definBlockage::blockageRoutingExceptPGNets()
 {
-  _except_pgnet = true;
+  _except_pg_nets = true;
 }
 
 void definBlockage::blockageRoutingPushdown()
@@ -120,7 +121,7 @@ void definBlockage::blockageRoutingEffectiveWidth(int width)
 
 void definBlockage::blockageRoutingRect(int x1, int y1, int x2, int y2)
 {
-  if (_layer == NULL)
+  if (_layer == nullptr)
     return;
 
   x1 = dbdist(x1);
@@ -132,9 +133,6 @@ void definBlockage::blockageRoutingRect(int x1, int y1, int x2, int y2)
 
   if (_pushdown)
     o->setPushedDown();
-
-  if (_except_pgnet)
-	o->setExceptPGNet();
 
   if (_fills)
     o->setFillObstruction();
@@ -151,7 +149,7 @@ void definBlockage::blockageRoutingRect(int x1, int y1, int x2, int y2)
 
 void definBlockage::blockageRoutingPolygon(const std::vector<Point>& points)
 {
-  if (_layer == NULL)
+  if (_layer == nullptr)
     return;
 
   definPolygon polygon(points);
@@ -168,11 +166,11 @@ void definBlockage::blockageRoutingPolygon(const std::vector<Point>& points)
     if (_pushdown)
       o->setPushedDown();
 
-    if (_except_pgnet)
-      o->setExceptPGNet();
-
     if (_fills)
       o->setFillObstruction();
+
+    if (_except_pg_nets)
+      o->setExceptPGNetsObstruction();
 
     if (_slots)
       o->setSlotObstruction();
@@ -190,10 +188,11 @@ void definBlockage::blockageRoutingEnd()
 
 void definBlockage::blockagePlacementBegin()
 {
-  _layer = NULL;
-  _inst = NULL;
+  _layer = nullptr;
+  _inst = nullptr;
   _slots = false;
   _fills = false;
+  _except_pg_nets = false;
   _pushdown = false;
   _soft = false;
   _max_density = 0.0;
@@ -203,7 +202,7 @@ void definBlockage::blockagePlacementComponent(const char* comp)
 {
   _inst = _block->findInst(comp);
 
-  if (_inst == NULL) {
+  if (_inst == nullptr) {
     _logger->warn(
         utl::ODB, 90, "error: undefined component ({}) referenced", comp);
     ++_errors;

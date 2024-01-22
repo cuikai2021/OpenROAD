@@ -26,19 +26,24 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_TECHOBJECT_H_
-#define _FR_TECHOBJECT_H_
+#pragma once
 
 #include <iostream>
 #include <map>
 #include <memory>
+#include <set>
 #include <vector>
 
 #include "db/obj/frVia.h"
 #include "db/tech/frLayer.h"
 #include "db/tech/frViaRuleGenerate.h"
 #include "frBaseTypes.h"
+#include "global.h"
 #include "utl/Logger.h"
+
+namespace odb {
+class dbTechLayer;
+}
 namespace fr {
 namespace io {
 class Parser;
@@ -87,6 +92,10 @@ class frTechObject
   {
     return viaRuleGenerates;
   }
+  bool hasUnidirectionalLayer(odb::dbTechLayer* dbLayer) const
+  {
+    return unidirectional_layers_.find(dbLayer) != unidirectional_layers_.end();
+  }
 
   // setters
   void setDBUPerUU(frUInt4 uIn) { dbUnit = uIn; }
@@ -100,6 +109,7 @@ class frTechObject
   }
   void addVia(std::unique_ptr<frViaDef> in)
   {
+    in->setId(vias.size());
     if (name2via.find(in->getName()) != name2via.end()) {
       std::cout << "Error: duplicated via definition for " << in->getName()
                 << "\n";
@@ -119,13 +129,25 @@ class frTechObject
     name2viaRuleGenerate[in->getName()] = in.get();
     viaRuleGenerates.push_back(std::move(in));
   }
-  void addConstraint(const std::shared_ptr<frConstraint>& constraintIn)
-  {
-    constraints.push_back(constraintIn);
-  }
   void addUConstraint(std::unique_ptr<frConstraint> in)
   {
+    in->setId(uConstraints.size());
+    auto type = in->typeId();
+    if (type == frConstraintTypeEnum::frcMinStepConstraint
+        || type == frConstraintTypeEnum::frcLef58MinStepConstraint) {
+      hasCornerSpacingConstraint_ = true;
+    }
     uConstraints.push_back(std::move(in));
+  }
+  frConstraint* getConstraint(int idx)
+  {
+    if (idx < uConstraints.size())
+      return uConstraints[idx].get();
+    return nullptr;
+  }
+  void setUnidirectionalLayer(odb::dbTechLayer* dbLayer)
+  {
+    unidirectional_layers_.insert(dbLayer);
   }
 
   // forbidden length table related
@@ -137,10 +159,20 @@ class frTechObject
                              frNonDefaultRule* ndr = nullptr)
   {
     int tableEntryIdx = getTableEntryIdx(!isPrevDown, !isCurrDown, !isCurrDirX);
-    return isIncluded(
-        (ndr ? ndr->via2ViaForbiddenLen
-             : via2ViaForbiddenLen)[tableLayerIdx][tableEntryIdx],
-        len);
+    return isIncluded((ndr ? ndr->via2ViaForbiddenLen
+                           : via2ViaForbiddenLen)[tableLayerIdx][tableEntryIdx],
+                      len);
+  }
+
+  // PRL table related
+  bool isVia2ViaPRL(int tableLayerIdx,
+                    bool isPrevDown,
+                    bool isCurrDown,
+                    bool isCurrDirX,
+                    frCoord len)
+  {
+    int tableEntryIdx = getTableEntryIdx(!isPrevDown, !isCurrDown, !isCurrDirX);
+    return len <= via2ViaPrlLen[tableLayerIdx][tableEntryIdx];
   }
 
   bool isViaForbiddenTurnLen(int tableLayerIdx,
@@ -188,7 +220,7 @@ class frTechObject
     return nonDefaultRules;
   }
 
-  frNonDefaultRule* getNondefaultRule(string name)
+  frNonDefaultRule* getNondefaultRule(std::string name)
   {
     for (std::unique_ptr<frNonDefaultRule>& nd : nonDefaultRules) {
       if (nd->getName() == name)
@@ -238,10 +270,14 @@ class frTechObject
     logger->info(DRT, 167, "List of default vias:");
     for (auto& layer : layers) {
       if (layer->getType() == dbTechLayerType::CUT
-          && layer->getLayerNum() >= 2 /*BOTTOM_ROUTING_LAYER*/) {
+          && layer->getLayerNum() >= BOTTOM_ROUTING_LAYER) {
         logger->report("  Layer {}", layer->getName());
-        logger->report("    default via: {}",
-                       layer->getDefaultViaDef()->getName());
+        if (layer->getDefaultViaDef() != nullptr) {
+          logger->report("    default via: {}",
+                         layer->getDefaultViaDef()->getName());
+        } else {
+          logger->report("    default via: none");
+        }
       }
     }
   }
@@ -249,6 +285,10 @@ class frTechObject
   friend class io::Parser;
   void setVia2ViaMinStep(bool in) { hasVia2viaMinStep_ = in; }
   bool hasVia2ViaMinStep() const { return hasVia2viaMinStep_; }
+  bool hasCornerSpacingConstraint() const
+  {
+    return hasCornerSpacingConstraint_;
+  }
 
   bool isHorizontalLayer(frLayerNum l)
   {
@@ -276,11 +316,10 @@ class frTechObject
   std::map<frString, frViaRuleGenerate*> name2viaRuleGenerate;
   std::vector<std::unique_ptr<frViaRuleGenerate>> viaRuleGenerates;
 
-  frCollection<std::shared_ptr<frConstraint>> constraints;
   std::vector<std::unique_ptr<frConstraint>> uConstraints;
   std::vector<std::unique_ptr<frNonDefaultRule>> nonDefaultRules;
 
-  template<typename T>
+  template <typename T>
   using ByLayer = std::vector<T>;
 
   // via2ViaForbiddenLen[z][0], prev via is down, curr via is down, forbidden x
@@ -300,6 +339,8 @@ class frTechObject
   // via2ViaForbiddenLen[z][7], prev via is up,   curr via is up,   forbidden y
   // dist range (for non-shape-based rule)
   ByLayer<std::array<ForbiddenRanges, 8>> via2ViaForbiddenLen;
+
+  ByLayer<std::array<frCoord, 8>> via2ViaPrlLen;
 
   // viaForbiddenTurnLen[z][0], last via is down, forbidden x dist range before
   // turn
@@ -333,6 +374,9 @@ class frTechObject
   // for up via
   ByLayer<std::array<bool, 4>> viaForbiddenThrough;
   bool hasVia2viaMinStep_ = false;
+  bool hasCornerSpacingConstraint_ = false;
+  // unidirectional layers
+  std::set<odb::dbTechLayer*> unidirectional_layers_;
 
   // forbidden length table related utilities
   int getTableEntryIdx(bool in1, bool in2)
@@ -377,33 +421,6 @@ class frTechObject
     return included;
   }
 
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & dbUnit;
-    (ar) & manufacturingGrid;
-    (ar) & layers;
-    (ar) & name2layer;
-    (ar) & name2via;
-    (ar) & vias;
-    (ar) & layer2Name2CutClass;
-    (ar) & layerCutClass;
-    (ar) & name2viaRuleGenerate;
-    (ar) & viaRuleGenerates;
-    (ar) & constraints;
-    (ar) & uConstraints;
-    (ar) & nonDefaultRules;
-    (ar) & via2ViaForbiddenLen;
-    (ar) & viaForbiddenTurnLen;
-    (ar) & viaForbiddenPlanarLen;
-    (ar) & line2LineForbiddenLen;
-    (ar) & viaForbiddenThrough;
-    (ar) & hasVia2viaMinStep_;
-  }
-
-  friend class boost::serialization::access;
   friend class FlexRP;
 };
 }  // namespace fr
-
-#endif

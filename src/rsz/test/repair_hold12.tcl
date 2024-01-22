@@ -1,4 +1,4 @@
-# repair_timing -hold with hold constraint but no setup constraiint
+# repair_timing -hold with hold constraint but no setup constraint
 source helpers.tcl
 read_liberty Nangate45/Nangate45_typ.lib
 read_lef Nangate45/Nangate45.lef
@@ -9,6 +9,7 @@ create_clock -period 2 clk
 set_output_delay -clock clk -min -0.3 out
 set_propagated_clock clk
 
+source Nangate45/Nangate45.rc
 set_wire_rc -layer metal1
 estimate_parasitics -placement
 

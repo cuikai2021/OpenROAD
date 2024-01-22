@@ -58,6 +58,7 @@ class _dbTechViaLayerRule;
 class _dbTechViaGenerateRule;
 class _dbBox;
 class _dbDatabase;
+class _dbMetalWidthViaMap;
 class dbTechLayerItr;
 class dbBoxItr;
 class dbIStream;
@@ -82,9 +83,10 @@ class _dbTech : public _dbObject
 {
  private:
   double _version;
-  char _version_buf[35];  // Tmp for outputting string
+
  public:
   // PERSISTANT-MEMBERS
+  std::string _name;
   int _via_cnt;
   int _layer_cnt;
   int _rlayer_cnt;
@@ -111,6 +113,7 @@ class _dbTech : public _dbObject
   dbTable<_dbTechViaLayerRule>* _via_layer_rule_tbl;
   dbTable<_dbTechViaGenerateRule>* _via_generate_rule_tbl;
   dbTable<_dbProperty>* _prop_tbl;
+  dbTable<_dbMetalWidthViaMap>* _metal_width_via_map_tbl;
   _dbNameCache* _name_cache;
 
   // NON-PERSISTANT-NON-STREAMED-MEMBERS
@@ -119,7 +122,7 @@ class _dbTech : public _dbObject
   dbPropertyItr* _prop_itr;
 
   double _getLefVersion() const;
-  const char* _getLefVersionStr() const;
+  std::string _getLefVersionStr() const;
   void _setLefVersion(double inver);
 
   _dbTech(_dbDatabase* db);

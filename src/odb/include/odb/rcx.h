@@ -37,9 +37,9 @@
 
 namespace rcx {
 
-// CoupleOptions seriously needs to be rewriten to use a class with named members.
-// -cherry 05/09/2021
-typedef std::array<int, 21> CoupleOptions;
-typedef void (*CoupleAndCompute)(CoupleOptions&, void*);
+// CoupleOptions seriously needs to be rewriten to use a class with named
+// members. -cherry 05/09/2021
+using CoupleOptions = std::array<int, 21>;
+using CoupleAndCompute = void (*)(CoupleOptions&, void*);
 
-}
+}  // namespace rcx

@@ -30,14 +30,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <algorithm>
-#include <iomanip>
-#include <set>
-#include <sstream>
 
 #include "DataType.h"
 #include "FastRoute.h"
@@ -67,16 +60,18 @@ void FastRouteCore::fixEmbeddedTrees()
   // check embedded trees only when maze router is called
   // i.e., when running overflow iterations
   if (overflow_iterations_ > 0) {
-    for (int netID = 0; netID < num_valid_nets_; netID++) {
-      checkAndFixEmbeddedTree(netID);
+    for (int netID = 0; netID < netCount(); netID++) {
+      if (!skipNet(netID)) {
+        checkAndFixEmbeddedTree(netID);
+      }
     }
   }
 }
 
 void FastRouteCore::checkAndFixEmbeddedTree(const int net_id)
 {
-  TreeEdge* treeedges = sttrees_[net_id].edges;
-  const int deg = sttrees_[net_id].deg;
+  const auto& treeedges = sttrees_[net_id].edges;
+  const int num_edges = sttrees_[net_id].num_edges();
 
   // group all edges that crosses the same position
   std::unordered_map<std::pair<short, short>,
@@ -87,8 +82,8 @@ void FastRouteCore::checkAndFixEmbeddedTree(const int net_id)
   auto cmp = [&](int a, int b) { return treeedges[a].len > treeedges[b].len; };
   std::map<int, std::vector<std::pair<short, short>>, decltype(cmp)>
       edges_to_blocked_pos_map(cmp);
-  for (int edgeID = 0; edgeID < 2 * deg - 3; edgeID++) {
-    TreeEdge* treeedge = &(treeedges[edgeID]);
+  for (int edgeID = 0; edgeID < num_edges; edgeID++) {
+    const TreeEdge* treeedge = &(treeedges[edgeID]);
     if (treeedge->len > 0) {
       int routeLen = treeedge->route.routelen;
       const std::vector<short>& gridsX = treeedge->route.gridsX;
@@ -129,7 +124,7 @@ bool FastRouteCore::areEdgesOverlapping(const int net_id,
     return false;
   }
 
-  TreeEdge* treeedges = sttrees_[net_id].edges;
+  auto& treeedges = sttrees_[net_id].edges;
   TreeEdge* treeedge = &(treeedges[edge_id]);
 
   int n1 = treeedge->n1;
@@ -164,7 +159,7 @@ void FastRouteCore::fixOverlappingEdge(
     std::vector<std::pair<short, short>>& blocked_positions)
 {
   TreeEdge* treeedge = &(sttrees_[net_id].edges[edge]);
-  TreeNode* treenodes = sttrees_[net_id].nodes;
+  auto& treenodes = sttrees_[net_id].nodes;
 
   auto sort_by_x = [](std::pair<short, short> a, std::pair<short, short> b) {
     return a.first < b.first;
@@ -177,18 +172,51 @@ void FastRouteCore::fixOverlappingEdge(
     std::vector<short> new_route_x, new_route_y;
     const TreeNode& startpoint = treenodes[treeedge->n1];
     const TreeNode& endpoint = treenodes[treeedge->n2];
+    if (startpoint.x == endpoint.x || startpoint.y == endpoint.y) {
+      return;
+    }
     routeLShape(
         startpoint, endpoint, blocked_positions, new_route_x, new_route_y);
 
-    treeedge->route.gridsX = new_route_x;
-    treeedge->route.gridsY = new_route_y;
+    // Updates the usage of the altered edge
+    const int edgeCost = nets_[net_id]->getEdgeCost();
+    for (int k = 0; k < treeedge->route.routelen;
+         k++) {  // remove the usages of the old edges
+      if (treeedge->route.gridsX[k] == treeedge->route.gridsX[k + 1]) {
+        if (treeedge->route.gridsY[k] != treeedge->route.gridsY[k + 1]) {
+          const int min_y = std::min(treeedge->route.gridsY[k],
+                                     treeedge->route.gridsY[k + 1]);
+          v_edges_[min_y][treeedge->route.gridsX[k]].usage -= edgeCost;
+        }
+      } else {
+        const int min_x = std::min(treeedge->route.gridsX[k],
+                                   treeedge->route.gridsX[k + 1]);
+        h_edges_[treeedge->route.gridsY[k]][min_x].usage -= edgeCost;
+      }
+    }
+    for (int k = 0; k < new_route_x.size() - 1;
+         k++) {  // update the usage for the new edges
+      if (new_route_x[k] == new_route_x[k + 1]) {
+        if (new_route_y[k] != new_route_y[k + 1]) {
+          const int min_y = std::min(new_route_y[k], new_route_y[k + 1]);
+          v_edges_[min_y][new_route_x[k]].usage += edgeCost;
+          v_used_ggrid_.insert(std::make_pair(min_y, new_route_x[k]));
+        }
+      } else {
+        const int min_x = std::min(new_route_x[k], new_route_x[k + 1]);
+        h_edges_[new_route_y[k]][min_x].usage += edgeCost;
+        h_used_ggrid_.insert(std::make_pair(new_route_y[k], min_x));
+      }
+    }
     treeedge->route.routelen = new_route_x.size() - 1;
+    treeedge->route.gridsX = std::move(new_route_x);
+    treeedge->route.gridsY = std::move(new_route_y);
   }
 }
 
 void FastRouteCore::bendEdge(
     TreeEdge* treeedge,
-    TreeNode* treenodes,
+    std::vector<TreeNode>& treenodes,
     std::vector<short>& new_route_x,
     std::vector<short>& new_route_y,
     std::vector<std::pair<short, short>>& blocked_positions)
@@ -274,6 +302,9 @@ void FastRouteCore::routeLShape(
       // point (startpoint.x, endpoint.y) not added yet, so it
       // need to be included in the for below
       first_x = startpoint.x;
+      if (startpoint.y == endpoint.y) {
+        first_x++;
+      }
     }
     for (short x = first_x; x <= endpoint.x; x++) {
       new_route_x.push_back(x);
@@ -299,12 +330,17 @@ void FastRouteCore::routeLShape(
       x = startpoint.x;
       // point (startpoint.x, startpoint.y) already
       // added, so can be skiped in the for below
-      first_y = startpoint.y + 1;
+      first_y
+          = (startpoint.y < endpoint.y) ? startpoint.y + 1 : startpoint.y - 1;
     } else {
       x = endpoint.x;
       // point (endpoint.x, startpoint.y) not added yet, so it
       // need to be included in the for below
       first_y = startpoint.y;
+      if (startpoint.x == endpoint.x) {
+        first_y
+            = (startpoint.y < endpoint.y) ? startpoint.y + 1 : startpoint.y - 1;
+      }
     }
     if (startpoint.y < endpoint.y) {
       for (short y = first_y; y <= endpoint.y; y++) {
@@ -327,8 +363,8 @@ void FastRouteCore::routeLShape(
 
 void FastRouteCore::convertToMazerouteNet(const int netID)
 {
-  TreeNode* treenodes = sttrees_[netID].nodes;
-  for (int edgeID = 0; edgeID < 2 * sttrees_[netID].deg - 3; edgeID++) {
+  auto& treenodes = sttrees_[netID].nodes;
+  for (int edgeID = 0; edgeID < sttrees_[netID].num_edges(); edgeID++) {
     TreeEdge* treeedge = &(sttrees_[netID].edges[edgeID]);
     const int edgelength = treeedge->len;
     const int n1 = treeedge->n1;
@@ -463,19 +499,23 @@ void FastRouteCore::convertToMazerouteNet(const int netID)
 
 void FastRouteCore::convertToMazeroute()
 {
-  for (int netID = 0; netID < num_valid_nets_; netID++) {
-    convertToMazerouteNet(netID);
+  for (int netID = 0; netID < netCount(); netID++) {
+    if (!skipNet(netID)) {
+      convertToMazerouteNet(netID);
+    }
   }
 
   for (int i = 0; i < y_grid_; i++) {
     for (int j = 0; j < x_grid_ - 1; j++) {
-      h_edges_[i][j].usage = h_edges_[i][j].est_usage;
+      // Add to keep the usage values of the last incremental routing performed
+      h_edges_[i][j].usage += h_edges_[i][j].est_usage;
     }
   }
 
   for (int i = 0; i < y_grid_ - 1; i++) {
     for (int j = 0; j < x_grid_; j++) {
-      v_edges_[i][j].usage = v_edges_[i][j].est_usage;
+      // Add to keep the usage values of the last incremental routing performed
+      v_edges_[i][j].usage += v_edges_[i][j].est_usage;
     }
   }
 
@@ -546,36 +586,32 @@ void FastRouteCore::updateCongestionHistory(const int upType,
   int maxlimit = 0;
 
   if (upType == 1) {
-    for (int i = 0; i < y_grid_; i++) {
-      for (int j = 0; j < x_grid_ - 1; j++) {
-        const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
+    for (const auto& [i, j] : h_used_ggrid_) {
+      const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
 
-        if (overflow > 0) {
-          h_edges_[i][j].last_usage += overflow;
-          h_edges_[i][j].congCNT++;
-        } else {
-          if (!stopDEC) {
-            h_edges_[i][j].last_usage = h_edges_[i][j].last_usage * 0.9;
-          }
+      if (overflow > 0) {
+        h_edges_[i][j].last_usage += overflow;
+        h_edges_[i][j].congCNT++;
+      } else {
+        if (!stopDEC) {
+          h_edges_[i][j].last_usage = h_edges_[i][j].last_usage * 0.9;
         }
-        maxlimit = std::max<int>(maxlimit, h_edges_[i][j].last_usage);
       }
+      maxlimit = std::max<int>(maxlimit, h_edges_[i][j].last_usage);
     }
 
-    for (int i = 0; i < y_grid_ - 1; i++) {
-      for (int j = 0; j < x_grid_; j++) {
-        const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
+    for (const auto& [i, j] : v_used_ggrid_) {
+      const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
 
-        if (overflow > 0) {
-          v_edges_[i][j].last_usage += overflow;
-          v_edges_[i][j].congCNT++;
-        } else {
-          if (!stopDEC) {
-            v_edges_[i][j].last_usage = v_edges_[i][j].last_usage * 0.9;
-          }
+      if (overflow > 0) {
+        v_edges_[i][j].last_usage += overflow;
+        v_edges_[i][j].congCNT++;
+      } else {
+        if (!stopDEC) {
+          v_edges_[i][j].last_usage = v_edges_[i][j].last_usage * 0.9;
         }
-        maxlimit = std::max<int>(maxlimit, v_edges_[i][j].last_usage);
       }
+      maxlimit = std::max<int>(maxlimit, v_edges_[i][j].last_usage);
     }
   } else if (upType == 2) {
     if (max_adj < ahth_) {
@@ -583,117 +619,105 @@ void FastRouteCore::updateCongestionHistory(const int upType,
     } else {
       stopDEC = false;
     }
-    for (int i = 0; i < y_grid_; i++) {
-      for (int j = 0; j < x_grid_ - 1; j++) {
-        const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
+    for (const auto& [i, j] : h_used_ggrid_) {
+      const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
 
-        if (overflow > 0) {
-          h_edges_[i][j].congCNT++;
-          h_edges_[i][j].last_usage += overflow;
-        } else {
-          if (!stopDEC) {
-            h_edges_[i][j].congCNT--;
-            h_edges_[i][j].congCNT = std::max<int>(0, h_edges_[i][j].congCNT);
-            h_edges_[i][j].last_usage = h_edges_[i][j].last_usage * 0.9;
-          }
+      if (overflow > 0) {
+        h_edges_[i][j].congCNT++;
+        h_edges_[i][j].last_usage += overflow;
+      } else {
+        if (!stopDEC) {
+          h_edges_[i][j].congCNT--;
+          h_edges_[i][j].congCNT = std::max<int>(0, h_edges_[i][j].congCNT);
+          h_edges_[i][j].last_usage = h_edges_[i][j].last_usage * 0.9;
         }
-        maxlimit = std::max<int>(maxlimit, h_edges_[i][j].last_usage);
       }
+      maxlimit = std::max<int>(maxlimit, h_edges_[i][j].last_usage);
     }
 
-    for (int i = 0; i < y_grid_ - 1; i++) {
-      for (int j = 0; j < x_grid_; j++) {
-        const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
+    for (const auto& [i, j] : v_used_ggrid_) {
+      const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
 
-        if (overflow > 0) {
-          v_edges_[i][j].congCNT++;
-          v_edges_[i][j].last_usage += overflow;
-        } else {
-          if (!stopDEC) {
-            v_edges_[i][j].congCNT--;
-            v_edges_[i][j].congCNT = std::max<int>(0, v_edges_[i][j].congCNT);
-            v_edges_[i][j].last_usage = v_edges_[i][j].last_usage * 0.9;
-          }
+      if (overflow > 0) {
+        v_edges_[i][j].congCNT++;
+        v_edges_[i][j].last_usage += overflow;
+      } else {
+        if (!stopDEC) {
+          v_edges_[i][j].congCNT--;
+          v_edges_[i][j].congCNT = std::max<int>(0, v_edges_[i][j].congCNT);
+          v_edges_[i][j].last_usage = v_edges_[i][j].last_usage * 0.9;
         }
-        maxlimit = std::max<int>(maxlimit, v_edges_[i][j].last_usage);
       }
+      maxlimit = std::max<int>(maxlimit, v_edges_[i][j].last_usage);
     }
 
   } else if (upType == 3) {
-    for (int i = 0; i < y_grid_; i++) {
-      for (int j = 0; j < x_grid_ - 1; j++) {
-        const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
+    for (const auto& [i, j] : h_used_ggrid_) {
+      const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
 
-        if (overflow > 0) {
-          h_edges_[i][j].congCNT++;
+      if (overflow > 0) {
+        h_edges_[i][j].congCNT++;
+        h_edges_[i][j].last_usage += overflow;
+      } else {
+        if (!stopDEC) {
+          h_edges_[i][j].congCNT--;
+          h_edges_[i][j].congCNT = std::max<int>(0, h_edges_[i][j].congCNT);
           h_edges_[i][j].last_usage += overflow;
-        } else {
-          if (!stopDEC) {
-            h_edges_[i][j].congCNT--;
-            h_edges_[i][j].congCNT = std::max<int>(0, h_edges_[i][j].congCNT);
-            h_edges_[i][j].last_usage += overflow;
-            h_edges_[i][j].last_usage
-                = std::max<int>(h_edges_[i][j].last_usage, 0);
-          }
+          h_edges_[i][j].last_usage
+              = std::max<int>(h_edges_[i][j].last_usage, 0);
         }
-        maxlimit = std::max<int>(maxlimit, h_edges_[i][j].last_usage);
       }
+      maxlimit = std::max<int>(maxlimit, h_edges_[i][j].last_usage);
     }
 
-    for (int i = 0; i < y_grid_ - 1; i++) {
-      for (int j = 0; j < x_grid_; j++) {
-        const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
+    for (const auto& [i, j] : v_used_ggrid_) {
+      const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
 
-        if (overflow > 0) {
-          v_edges_[i][j].congCNT++;
+      if (overflow > 0) {
+        v_edges_[i][j].congCNT++;
+        v_edges_[i][j].last_usage += overflow;
+      } else {
+        if (!stopDEC) {
+          v_edges_[i][j].congCNT--;
           v_edges_[i][j].last_usage += overflow;
-        } else {
-          if (!stopDEC) {
-            v_edges_[i][j].congCNT--;
-            v_edges_[i][j].last_usage += overflow;
-            v_edges_[i][j].last_usage
-                = std::max<int>(v_edges_[i][j].last_usage, 0);
-          }
+          v_edges_[i][j].last_usage
+              = std::max<int>(v_edges_[i][j].last_usage, 0);
         }
-        maxlimit = std::max<int>(maxlimit, v_edges_[i][j].last_usage);
       }
+      maxlimit = std::max<int>(maxlimit, v_edges_[i][j].last_usage);
     }
 
   } else if (upType == 4) {
-    for (int i = 0; i < y_grid_; i++) {
-      for (int j = 0; j < x_grid_ - 1; j++) {
-        const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
+    for (const auto& [i, j] : h_used_ggrid_) {
+      const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
 
-        if (overflow > 0) {
-          h_edges_[i][j].congCNT++;
-          h_edges_[i][j].last_usage += overflow;
-        } else {
-          if (!stopDEC) {
-            h_edges_[i][j].congCNT--;
-            h_edges_[i][j].congCNT = std::max<int>(0, h_edges_[i][j].congCNT);
-            h_edges_[i][j].last_usage = h_edges_[i][j].last_usage * 0.9;
-          }
+      if (overflow > 0) {
+        h_edges_[i][j].congCNT++;
+        h_edges_[i][j].last_usage += overflow;
+      } else {
+        if (!stopDEC) {
+          h_edges_[i][j].congCNT--;
+          h_edges_[i][j].congCNT = std::max<int>(0, h_edges_[i][j].congCNT);
+          h_edges_[i][j].last_usage = h_edges_[i][j].last_usage * 0.9;
         }
-        maxlimit = std::max<int>(maxlimit, h_edges_[i][j].last_usage);
       }
+      maxlimit = std::max<int>(maxlimit, h_edges_[i][j].last_usage);
     }
 
-    for (int i = 0; i < y_grid_ - 1; i++) {
-      for (int j = 0; j < x_grid_; j++) {
-        const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
+    for (const auto& [i, j] : v_used_ggrid_) {
+      const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
 
-        if (overflow > 0) {
-          v_edges_[i][j].congCNT++;
-          v_edges_[i][j].last_usage += overflow;
-        } else {
-          if (!stopDEC) {
-            v_edges_[i][j].congCNT--;
-            v_edges_[i][j].congCNT = std::max<int>(0, v_edges_[i][j].congCNT);
-            v_edges_[i][j].last_usage = v_edges_[i][j].last_usage * 0.9;
-          }
+      if (overflow > 0) {
+        v_edges_[i][j].congCNT++;
+        v_edges_[i][j].last_usage += overflow;
+      } else {
+        if (!stopDEC) {
+          v_edges_[i][j].congCNT--;
+          v_edges_[i][j].congCNT = std::max<int>(0, v_edges_[i][j].congCNT);
+          v_edges_[i][j].last_usage = v_edges_[i][j].last_usage * 0.9;
         }
-        maxlimit = std::max<int>(maxlimit, v_edges_[i][j].last_usage);
       }
+      maxlimit = std::max<int>(maxlimit, v_edges_[i][j].last_usage);
     }
   }
 
@@ -724,9 +748,9 @@ void FastRouteCore::setupHeap(const int netID,
       in_region_[i][j] = true;
   }
 
-  const TreeEdge* treeedges = sttrees_[netID].edges;
-  const TreeNode* treenodes = sttrees_[netID].nodes;
-  const int degree = sttrees_[netID].deg;
+  const auto& treeedges = sttrees_[netID].edges;
+  const auto& treenodes = sttrees_[netID].nodes;
+  const int num_terminals = sttrees_[netID].num_terminals;
 
   const int n1 = treeedges[edgeID].n1;
   const int n2 = treeedges[edgeID].n2;
@@ -738,21 +762,21 @@ void FastRouteCore::setupHeap(const int netID,
   src_heap.clear();
   dest_heap.clear();
 
-  if (degree == 2)  // 2-pin net
+  if (num_terminals == 2)  // 2-pin net
   {
     d1[y1][x1] = 0;
     src_heap.push_back(&d1[y1][x1]);
     d2[y2][x2] = 0;
     dest_heap.push_back(&d2[y2][x2]);
   } else {  // net with more than 2 pins
-    const int numNodes = 2 * degree - 2;
+    const int numNodes = sttrees_[netID].num_nodes;
 
     std::vector<bool> visited(numNodes, false);
     std::vector<int> queue(numNodes);
 
     // find all the grids on tree edges in subtree t1 (connecting to n1) and put
     // them into src_heap
-    if (n1 < degree) {  // n1 is a Pin node
+    if (n1 < num_terminals) {  // n1 is a Pin node
       // just need to put n1 itself into src_heap
       d1[y1][x1] = 0;
       src_heap.push_back(&d1[y1][x1]);
@@ -776,10 +800,11 @@ void FastRouteCore::setupHeap(const int netID,
         const int cur = queue[queuehead];
         queuehead++;
         visited[cur] = true;
-        if (cur < degree) {  // cur node isn't a Steiner node
+        if (cur < num_terminals) {  // cur node isn't a Steiner node
           continue;
         }
-        for (int i = 0; i < 3; i++) {
+        const int nbrcnt = treenodes[cur].nbr_count;
+        for (int i = 0; i < nbrcnt; i++) {
           const int nbr = treenodes[cur].nbr[i];
           const int edge = treenodes[cur].edge[i];
 
@@ -831,7 +856,7 @@ void FastRouteCore::setupHeap(const int netID,
     // find all the grids on subtree t2 (connect to n2) and put them into
     // dest_heap find all the grids on tree edges in subtree t2 (connecting to
     // n2) and put them into dest_heap
-    if (n2 < degree) {  // n2 is a Pin node
+    if (n2 < num_terminals) {  // n2 is a Pin node
       // just need to put n1 itself into src_heap
       d2[y2][x2] = 0;
       dest_heap.push_back(&d2[y2][x2]);
@@ -856,10 +881,11 @@ void FastRouteCore::setupHeap(const int netID,
         visited[cur] = true;
         queuehead++;
 
-        if (cur < degree) {  // cur node isn't a Steiner node
+        if (cur < num_terminals) {  // cur node isn't a Steiner node
           continue;
         }
-        for (int i = 0; i < 3; i++) {
+        const int nbrcnt = treenodes[cur].nbr_count;
+        for (int i = 0; i < nbrcnt; i++) {
           const int nbr = treenodes[cur].nbr[i];
           const int edge = treenodes[cur].edge[i];
 
@@ -914,10 +940,10 @@ void FastRouteCore::setupHeap(const int netID,
   }
 }
 
-int FastRouteCore::copyGrids(const TreeNode* treenodes,
+int FastRouteCore::copyGrids(const std::vector<TreeNode>& treenodes,
                              const int n1,
                              const int n2,
-                             const TreeEdge* treeedges,
+                             const std::vector<TreeEdge>& treeedges,
                              const int edge_n1n2,
                              std::vector<int>& gridsX_n1n2,
                              std::vector<int>& gridsY_n1n2)
@@ -929,6 +955,8 @@ int FastRouteCore::copyGrids(const TreeNode* treenodes,
   if (treeedges[edge_n1n2].n1 == n1)  // n1 is the first node of (n1, n2)
   {
     if (treeedges[edge_n1n2].route.type == RouteType::MazeRoute) {
+      gridsX_n1n2.resize(treeedges[edge_n1n2].route.routelen + 1);
+      gridsY_n1n2.resize(treeedges[edge_n1n2].route.routelen + 1);
       for (int i = 0; i <= treeedges[edge_n1n2].route.routelen; i++) {
         gridsX_n1n2[cnt] = treeedges[edge_n1n2].route.gridsX[i];
         gridsY_n1n2[cnt] = treeedges[edge_n1n2].route.gridsY[i];
@@ -937,6 +965,8 @@ int FastRouteCore::copyGrids(const TreeNode* treenodes,
     }     // MazeRoute
     else  // NoRoute
     {
+      gridsX_n1n2.resize(1);
+      gridsY_n1n2.resize(1);
       gridsX_n1n2[cnt] = n1x;
       gridsY_n1n2[cnt] = n1y;
       cnt++;
@@ -945,6 +975,8 @@ int FastRouteCore::copyGrids(const TreeNode* treenodes,
   else  // n2 is the first node of (n1, n2)
   {
     if (treeedges[edge_n1n2].route.type == RouteType::MazeRoute) {
+      gridsX_n1n2.resize(treeedges[edge_n1n2].route.routelen + 1);
+      gridsY_n1n2.resize(treeedges[edge_n1n2].route.routelen + 1);
       for (int i = treeedges[edge_n1n2].route.routelen; i >= 0; i--) {
         gridsX_n1n2[cnt] = treeedges[edge_n1n2].route.gridsX[i];
         gridsY_n1n2[cnt] = treeedges[edge_n1n2].route.gridsY[i];
@@ -953,6 +985,8 @@ int FastRouteCore::copyGrids(const TreeNode* treenodes,
     }     // MazeRoute
     else  // NoRoute
     {
+      gridsX_n1n2.resize(1);
+      gridsY_n1n2.resize(1);
       gridsX_n1n2[cnt] = n1x;
       gridsY_n1n2[cnt] = n1y;
       cnt++;
@@ -963,20 +997,20 @@ int FastRouteCore::copyGrids(const TreeNode* treenodes,
 }
 
 bool FastRouteCore::updateRouteType1(const int net_id,
-                                     const TreeNode* treenodes,
+                                     const std::vector<TreeNode>& treenodes,
                                      const int n1,
                                      const int A1,
                                      const int A2,
                                      const int E1x,
                                      const int E1y,
-                                     TreeEdge* treeedges,
+                                     std::vector<TreeEdge>& treeedges,
                                      const int edge_n1A1,
                                      const int edge_n1A2)
 {
-  std::vector<int> gridsX_n1A1(x_range_ + y_range_);
-  std::vector<int> gridsY_n1A1(x_range_ + y_range_);
-  std::vector<int> gridsX_n1A2(x_range_ + y_range_);
-  std::vector<int> gridsY_n1A2(x_range_ + y_range_);
+  std::vector<int> gridsX_n1A1;
+  std::vector<int> gridsY_n1A1;
+  std::vector<int> gridsX_n1A2;
+  std::vector<int> gridsY_n1A2;
 
   const int A1x = treenodes[A1].x;
   const int A1y = treenodes[A1].y;
@@ -1007,14 +1041,14 @@ bool FastRouteCore::updateRouteType1(const int net_id,
     int x_pos = tile_size_ * (E1x + 0.5) + x_corner_;
     int y_pos = tile_size_ * (E1y + 0.5) + y_corner_;
     if (verbose_)
-      logger_->warn(
+      logger_->error(
           GRT,
           169,
           "Net {}: Invalid index for position ({}, {}). Net degree: {}.",
-          netName(nets_[net_id]),
+          nets_[net_id]->getName(),
           x_pos,
           y_pos,
-          nets_[net_id]->numPins);
+          nets_[net_id]->getNumPins());
     return false;
   }
 
@@ -1100,7 +1134,7 @@ bool FastRouteCore::updateRouteType1(const int net_id,
 }
 
 bool FastRouteCore::updateRouteType2(const int net_id,
-                                     const TreeNode* treenodes,
+                                     const std::vector<TreeNode>& treenodes,
                                      const int n1,
                                      const int A1,
                                      const int A2,
@@ -1108,17 +1142,17 @@ bool FastRouteCore::updateRouteType2(const int net_id,
                                      const int C2,
                                      const int E1x,
                                      const int E1y,
-                                     TreeEdge* treeedges,
+                                     std::vector<TreeEdge>& treeedges,
                                      const int edge_n1A1,
                                      const int edge_n1A2,
                                      const int edge_C1C2)
 {
-  std::vector<int> gridsX_n1A1(x_range_ + y_range_);
-  std::vector<int> gridsY_n1A1(x_range_ + y_range_);
-  std::vector<int> gridsX_n1A2(x_range_ + y_range_);
-  std::vector<int> gridsY_n1A2(x_range_ + y_range_);
-  std::vector<int> gridsX_C1C2(x_range_ + y_range_);
-  std::vector<int> gridsY_C1C2(x_range_ + y_range_);
+  std::vector<int> gridsX_n1A1;
+  std::vector<int> gridsY_n1A1;
+  std::vector<int> gridsX_n1A2;
+  std::vector<int> gridsY_n1A2;
+  std::vector<int> gridsX_C1C2;
+  std::vector<int> gridsY_C1C2;
 
   const int A1x = treenodes[A1].x;
   const int A1y = treenodes[A1].y;
@@ -1189,10 +1223,10 @@ bool FastRouteCore::updateRouteType2(const int net_id,
           GRT,
           170,
           "Net {}: Invalid index for position ({}, {}). Net degree: {}.",
-          netName(nets_[net_id]),
+          nets_[net_id]->getName(),
           x_pos,
           y_pos,
-          nets_[net_id]->numPins);
+          nets_[net_id]->getNumPins());
     return false;
   }
 
@@ -1236,8 +1270,7 @@ bool FastRouteCore::updateRouteType2(const int net_id,
 
 void FastRouteCore::reInitTree(const int netID)
 {
-  const int deg = sttrees_[netID].deg;
-  const int numEdges = 2 * deg - 3;
+  const int numEdges = sttrees_[netID].num_edges();
   for (int edgeID = 0; edgeID < numEdges; edgeID++) {
     TreeEdge* treeedge = &(sttrees_[netID].edges[edgeID]);
     if (treeedge->len > 0) {
@@ -1245,20 +1278,22 @@ void FastRouteCore::reInitTree(const int netID)
       treeedge->route.gridsY.clear();
     }
   }
-  delete[] sttrees_[netID].nodes;
-  delete[] sttrees_[netID].edges;
+  sttrees_[netID].nodes.clear();
+  sttrees_[netID].edges.clear();
 
   Tree rsmt;
-  const float net_alpha = stt_builder_->getAlpha(nets_[netID]->db_net);
+  const float net_alpha = stt_builder_->getAlpha(nets_[netID]->getDbNet());
   // if failing tree was created with pd, fall back to flute with fluteNormal
   // first so the structs necessary for fluteCongest are filled
   if (net_alpha > 0.0) {
-    fluteNormal(netID, nets_[netID]->pinX, nets_[netID]->pinY, 2, 1.2, rsmt);
+    fluteNormal(
+        netID, nets_[netID]->getPinX(), nets_[netID]->getPinY(), 2, 1.2, rsmt);
   }
 
-  fluteCongest(netID, nets_[netID]->pinX, nets_[netID]->pinY, 2, 1.2, rsmt);
+  fluteCongest(
+      netID, nets_[netID]->getPinX(), nets_[netID]->getPinY(), 2, 1.2, rsmt);
 
-  if (nets_[netID]->deg > 3) {
+  if (nets_[netID]->getNumPins() > 3) {
     edgeShiftNew(rsmt, netID);
   }
 
@@ -1266,6 +1301,30 @@ void FastRouteCore::reInitTree(const int netID)
   newrouteLInMaze(netID);
   convertToMazerouteNet(netID);
   checkAndFixEmbeddedTree(netID);
+}
+
+float getCost(const int i,
+              const float logis_cof,
+              const float cost_height,
+              const int slope,
+              const int capacity,
+              const int cost_type)
+{
+  float cost;
+  if (cost_type == 2) {
+    if (i < capacity - 1)
+      cost = cost_height / (std::exp((capacity - i - 1) * logis_cof) + 1) + 1;
+    else
+      cost = cost_height / (std::exp((capacity - i - 1) * logis_cof) + 1) + 1
+             + cost_height / slope * (i - capacity);
+  } else {
+    if (i < capacity)
+      cost = cost_height / (std::exp((capacity - i) * logis_cof) + 1) + 1;
+    else
+      cost = cost_height / (std::exp((capacity - i) * logis_cof) + 1) + 1
+             + cost_height / slope * (i - capacity);
+  }
+  return cost;
 }
 
 void FastRouteCore::mazeRouteMSMD(const int iter,
@@ -1278,7 +1337,8 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
                                   const float logis_cof,
                                   const int via,
                                   const int slope,
-                                  const int L)
+                                  const int L,
+                                  float& slack_th)
 {
   // maze routing for multi-source, multi-destination
   int tmpX, tmpY;
@@ -1289,48 +1349,13 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
   h_cost_table_.resize(max_usage_multiplier * h_capacity_);
   v_cost_table_.resize(max_usage_multiplier * v_capacity_);
 
-  if (cost_type == 2) {
-    for (int i = 0; i < max_usage_multiplier * h_capacity_; i++) {
-      if (i < h_capacity_ - 1)
-        h_cost_table_[i]
-            = cost_height / (exp((float) (h_capacity_ - i - 1) * logis_cof) + 1)
-              + 1;
-      else
-        h_cost_table_[i]
-            = cost_height / (exp((float) (h_capacity_ - i - 1) * logis_cof) + 1)
-              + 1 + cost_height / slope * (i - h_capacity_);
-    }
-    for (int i = 0; i < max_usage_multiplier * v_capacity_; i++) {
-      if (i < v_capacity_ - 1)
-        v_cost_table_[i]
-            = cost_height / (exp((float) (v_capacity_ - i - 1) * logis_cof) + 1)
-              + 1;
-      else
-        v_cost_table_[i]
-            = cost_height / (exp((float) (v_capacity_ - i - 1) * logis_cof) + 1)
-              + 1 + cost_height / slope * (i - v_capacity_);
-    }
-  } else {
-    for (int i = 0; i < max_usage_multiplier * h_capacity_; i++) {
-      if (i < h_capacity_)
-        h_cost_table_[i]
-            = cost_height / (exp((float) (h_capacity_ - i) * logis_cof) + 1)
-              + 1;
-      else
-        h_cost_table_[i]
-            = cost_height / (exp((float) (h_capacity_ - i) * logis_cof) + 1) + 1
-              + cost_height / slope * (i - h_capacity_);
-    }
-    for (int i = 0; i < max_usage_multiplier * v_capacity_; i++) {
-      if (i < v_capacity_)
-        v_cost_table_[i]
-            = cost_height / (exp((float) (v_capacity_ - i) * logis_cof) + 1)
-              + 1;
-      else
-        v_cost_table_[i]
-            = cost_height / (exp((float) (v_capacity_ - i) * logis_cof) + 1) + 1
-              + cost_height / slope * (i - v_capacity_);
-    }
+  for (int i = 0; i < max_usage_multiplier * h_capacity_; i++) {
+    h_cost_table_[i]
+        = getCost(i, logis_cof, cost_height, slope, h_capacity_, cost_type);
+  }
+  for (int i = 0; i < max_usage_multiplier * v_capacity_; i++) {
+    v_cost_table_[i]
+        = getCost(i, logis_cof, cost_height, slope, v_capacity_, cost_type);
   }
 
   for (int i = 0; i < y_grid_; i++) {
@@ -1339,6 +1364,9 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
   }
 
   if (ordering) {
+    if (critical_nets_percentage_) {
+      slack_th = CalculatePartialSlack();
+    }
     StNetOrder();
   }
 
@@ -1352,19 +1380,23 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
 
   std::vector<bool> pop_heap2(y_grid_ * x_range_, false);
 
-  for (int nidRPC = 0; nidRPC < num_valid_nets_; nidRPC++) {
+  for (int nidRPC = 0; nidRPC < netCount(); nidRPC++) {
     const int netID = ordering ? tree_order_cong_[nidRPC].treeIndex : nidRPC;
 
-    const int deg = sttrees_[netID].deg;
+    if (skipNet(netID)) {
+      continue;
+    }
+
+    const int num_terminals = sttrees_[netID].num_terminals;
 
     const int origENG = expand;
 
     netedgeOrderDec(netID);
 
-    TreeEdge* treeedges = sttrees_[netID].edges;
-    TreeNode* treenodes = sttrees_[netID].nodes;
-    // loop for all the tree edges (2*deg-3)
-    const int num_edges = 2 * deg - 3;
+    auto& treeedges = sttrees_[netID].edges;
+    auto& treenodes = sttrees_[netID].nodes;
+    // loop for all the tree edges
+    const int num_edges = sttrees_[netID].num_edges();
     for (int edgeREC = 0; edgeREC < num_edges; edgeREC++) {
       const int edgeID = net_eo_[edgeREC].edgeID;
       TreeEdge* treeedge = &(treeedges[edgeID]);
@@ -1383,8 +1415,15 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
         continue;
       }
 
-      const bool enter = newRipupCheck(
-          treeedge, n1x, n1y, n2x, n2y, ripup_threshold, netID, edgeID);
+      const bool enter = newRipupCheck(treeedge,
+                                       n1x,
+                                       n1y,
+                                       n2x,
+                                       n2y,
+                                       ripup_threshold,
+                                       slack_th,
+                                       netID,
+                                       edgeID);
 
       if (!enter) {
         continue;
@@ -1398,10 +1437,16 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
       const int xmax = std::max(n1x, n2x);
 
       enlarge_ = std::min(origENG, (iter / 6 + 3) * treeedge->route.routelen);
-      const int regionX1 = std::max(xmin - enlarge_, 0);
-      const int regionX2 = std::min(xmax + enlarge_, x_grid_ - 1);
-      const int regionY1 = std::max(ymin - enlarge_, 0);
-      const int regionY2 = std::min(ymax + enlarge_, y_grid_ - 1);
+
+      int decrease = 0;
+
+      if (nets_[netID]->isCritical()) {
+        decrease = std::min((iter / 7) * 5, enlarge_ / 2);
+      }
+      const int regionX1 = std::max(xmin - enlarge_ + decrease, 0);
+      const int regionX2 = std::min(xmax + enlarge_ - decrease, x_grid_ - 1);
+      const int regionY1 = std::max(ymin - enlarge_ + decrease, 0);
+      const int regionY2 = std::min(ymax + enlarge_ - decrease, y_grid_ - 1);
 
       // initialize d1[][] and d2[][] as BIG_INT
       for (int i = regionY1; i <= regionY2; i++) {
@@ -1456,28 +1501,40 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
 
         // left
         if (curX > regionX1) {
-          float tmp;
+          float tmp, cost1, cost2;
+          const int pos1 = h_edges_[curY][curX - 1].usage_red()
+                           + L * h_edges_[curY][(curX - 1)].last_usage;
+
+          if (pos1 < h_cost_table_.size())
+            cost1 = h_cost_table_.at(pos1);
+          else
+            cost1 = getCost(
+                pos1, logis_cof, cost_height, slope, h_capacity_, cost_type);
+
           if ((preY == curY) || (d1[curY][curX] == 0)) {
-            tmp = d1[curY][curX]
-                  + h_cost_table_[h_edges_[curY][curX - 1].usage
-                                  + h_edges_[curY][curX - 1].red
-                                  + L * h_edges_[curY][(curX - 1)].last_usage];
+            tmp = d1[curY][curX] + cost1;
           } else {
             if (curX < regionX2 - 1) {
-              const int tmp_cost
-                  = d1[curY][curX + 1]
-                    + h_cost_table_[h_edges_[curY][curX].usage
-                                    + h_edges_[curY][curX].red
-                                    + L * h_edges_[curY][curX].last_usage];
+              const int pos2 = h_edges_[curY][curX].usage_red()
+                               + L * h_edges_[curY][curX].last_usage;
+
+              if (pos2 < h_cost_table_.size())
+                cost2 = h_cost_table_.at(pos2);
+              else
+                cost2 = getCost(pos2,
+                                logis_cof,
+                                cost_height,
+                                slope,
+                                h_capacity_,
+                                cost_type);
+
+              const int tmp_cost = d1[curY][curX + 1] + cost2;
 
               if (tmp_cost < d1[curY][curX] + via) {
                 hyper_h_[curY][curX] = true;
               }
             }
-            tmp = d1[curY][curX] + via
-                  + h_cost_table_[h_edges_[curY][curX - 1].usage
-                                  + h_edges_[curY][curX - 1].red
-                                  + L * h_edges_[curY][curX - 1].last_usage];
+            tmp = d1[curY][curX] + via + cost1;
           }
           tmpX = curX - 1;  // the left neighbor
 
@@ -1506,28 +1563,39 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
         }
         // right
         if (curX < regionX2) {
-          float tmp;
+          float tmp, cost1, cost2;
+          const int pos1 = h_edges_[curY][curX].usage_red()
+                           + L * h_edges_[curY][curX].last_usage;
+
+          if (pos1 < h_cost_table_.size())
+            cost1 = h_cost_table_.at(pos1);
+          else
+            cost1 = getCost(
+                pos1, logis_cof, cost_height, slope, h_capacity_, cost_type);
+
           if ((preY == curY) || (d1[curY][curX] == 0)) {
-            tmp = d1[curY][curX]
-                  + h_cost_table_[h_edges_[curY][curX].usage
-                                  + h_edges_[curY][curX].red
-                                  + L * h_edges_[curY][curX].last_usage];
+            tmp = d1[curY][curX] + cost1;
           } else {
             if (curX > regionX1 + 1) {
-              const int tmp_cost
-                  = d1[curY][curX - 1]
-                    + h_cost_table_[h_edges_[curY][curX - 1].usage
-                                    + h_edges_[curY][curX - 1].red
-                                    + L * h_edges_[curY][curX - 1].last_usage];
+              const int pos2 = h_edges_[curY][curX - 1].usage_red()
+                               + L * h_edges_[curY][curX - 1].last_usage;
+
+              if (pos2 < h_cost_table_.size())
+                cost2 = h_cost_table_.at(pos2);
+              else
+                cost2 = getCost(pos2,
+                                logis_cof,
+                                cost_height,
+                                slope,
+                                h_capacity_,
+                                cost_type);
+              const int tmp_cost = d1[curY][curX - 1] + cost2;
 
               if (tmp_cost < d1[curY][curX] + via) {
                 hyper_h_[curY][curX] = true;
               }
             }
-            tmp = d1[curY][curX] + via
-                  + h_cost_table_[h_edges_[curY][curX].usage
-                                  + h_edges_[curY][curX].red
-                                  + L * h_edges_[curY][curX].last_usage];
+            tmp = d1[curY][curX] + via + cost1;
           }
           tmpX = curX + 1;  // the right neighbor
 
@@ -1556,29 +1624,39 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
         }
         // bottom
         if (curY > regionY1) {
-          float tmp;
+          float tmp, cost1, cost2;
+          const int pos1 = v_edges_[curY - 1][curX].usage_red()
+                           + L * v_edges_[curY - 1][curX].last_usage;
+
+          if (pos1 < v_cost_table_.size())
+            cost1 = v_cost_table_.at(pos1);
+          else
+            cost1 = getCost(
+                pos1, logis_cof, cost_height, slope, v_capacity_, cost_type);
 
           if ((preX == curX) || (d1[curY][curX] == 0)) {
-            tmp = d1[curY][curX]
-                  + v_cost_table_[v_edges_[curY - 1][curX].usage
-                                  + v_edges_[curY - 1][curX].red
-                                  + L * v_edges_[curY - 1][curX].last_usage];
+            tmp = d1[curY][curX] + cost1;
           } else {
             if (curY < regionY2 - 1) {
-              const int tmp_cost
-                  = d1[curY + 1][curX]
-                    + v_cost_table_[v_edges_[curY][curX].usage
-                                    + v_edges_[curY][curX].red
-                                    + L * v_edges_[curY][curX].last_usage];
+              const int pos2 = v_edges_[curY][curX].usage_red()
+                               + L * v_edges_[curY][curX].last_usage;
+
+              if (pos2 < v_cost_table_.size())
+                cost2 = v_cost_table_.at(pos2);
+              else
+                cost2 = getCost(pos2,
+                                logis_cof,
+                                cost_height,
+                                slope,
+                                v_capacity_,
+                                cost_type);
+              const int tmp_cost = d1[curY + 1][curX] + cost2;
 
               if (tmp_cost < d1[curY][curX] + via) {
                 hyper_v_[curY][curX] = true;
               }
             }
-            tmp = d1[curY][curX] + via
-                  + v_cost_table_[v_edges_[curY - 1][curX].usage
-                                  + v_edges_[curY - 1][curX].red
-                                  + L * v_edges_[curY - 1][curX].last_usage];
+            tmp = d1[curY][curX] + via + cost1;
           }
           tmpY = curY - 1;  // the bottom neighbor
           if (d1[tmpY][curX]
@@ -1606,29 +1684,40 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
         }
         // top
         if (curY < regionY2) {
-          float tmp;
+          float tmp, cost1, cost2;
+          const int pos1 = v_edges_[curY][curX].usage_red()
+                           + L * v_edges_[curY][curX].last_usage;
+
+          if (pos1 < v_cost_table_.size())
+            cost1 = v_cost_table_.at(pos1);
+          else
+            cost1 = getCost(
+                pos1, logis_cof, cost_height, slope, v_capacity_, cost_type);
 
           if ((preX == curX) || (d1[curY][curX] == 0)) {
-            tmp = d1[curY][curX]
-                  + v_cost_table_[v_edges_[curY][curX].usage
-                                  + v_edges_[curY][curX].red
-                                  + L * v_edges_[curY][curX].last_usage];
+            tmp = d1[curY][curX] + cost1;
           } else {
             if (curY > regionY1 + 1) {
-              const int tmp_cost
-                  = d1[curY - 1][curX]
-                    + v_cost_table_[v_edges_[curY - 1][curX].usage
-                                    + v_edges_[curY - 1][curX].red
-                                    + L * v_edges_[curY - 1][curX].last_usage];
+              const int pos2 = v_edges_[curY - 1][curX].usage_red()
+                               + L * v_edges_[curY - 1][curX].last_usage;
+
+              if (pos2 < v_cost_table_.size())
+                cost2 = v_cost_table_.at(pos2);
+              else
+                cost2 = getCost(pos2,
+                                logis_cof,
+                                cost_height,
+                                slope,
+                                v_capacity_,
+                                cost_type);
+
+              const int tmp_cost = d1[curY - 1][curX] + cost2;
 
               if (tmp_cost < d1[curY][curX] + via) {
                 hyper_v_[curY][curX] = true;
               }
             }
-            tmp = d1[curY][curX] + via
-                  + v_cost_table_[v_edges_[curY][curX].usage
-                                  + v_edges_[curY][curX].red
-                                  + L * v_edges_[curY][curX].last_usage];
+            tmp = d1[curY][curX] + via + cost1;
           }
           tmpY = curY + 1;  // the top neighbor
           if (d1[tmpY][curX]
@@ -1719,7 +1808,7 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
 
       const int edge_n1n2 = edgeID;
       // (1) consider subtree1
-      if (n1 >= deg && (E1x != n1x || E1y != n1y))
+      if (n1 >= num_terminals && (E1x != n1x || E1y != n1y))
       // n1 is not a pin and E1!=n1, then make change to subtree1,
       // otherwise, no change to subtree1
       {
@@ -1769,10 +1858,10 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
                                            edge_n1A2);
           if (!route_ok) {
             if (verbose_)
-              logger_->warn(GRT,
-                            150,
-                            "Net {} has errors during updateRouteType1.",
-                            netName(nets_[netID]));
+              logger_->error(GRT,
+                             150,
+                             "Net {} has errors during updateRouteType1.",
+                             nets_[netID]->getName());
             reInitTree(netID);
             nidRPC--;
             break;
@@ -1806,7 +1895,7 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
               logger_->warn(GRT,
                             151,
                             "Net {} has errors during updateRouteType2.",
-                            netName(nets_[netID]));
+                            nets_[netID]->getName());
             reInitTree(netID);
             nidRPC--;
             break;
@@ -1870,7 +1959,7 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
       }    // n1 is not a pin and E1!=n1
 
       // (2) consider subtree2
-      if (n2 >= deg && (E2x != n2x || E2y != n2y))
+      if (n2 >= num_terminals && (E2x != n2x || E2y != n2y))
       // n2 is not a pin and E2!=n2, then make change to subtree2,
       // otherwise, no change to subtree2
       {
@@ -1923,7 +2012,7 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
               logger_->warn(GRT,
                             152,
                             "Net {} has errors during updateRouteType1.",
-                            netName(nets_[netID]));
+                            nets_[netID]->getName());
             reInitTree(netID);
             nidRPC--;
             break;
@@ -1958,7 +2047,7 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
               logger_->warn(GRT,
                             153,
                             "Net {} has errors during updateRouteType2.",
-                            netName(nets_[netID]));
+                            nets_[netID]->getName());
             reInitTree(netID);
             nidRPC--;
             break;
@@ -2036,7 +2125,7 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
         treeedges[edge_n1n2].route.gridsY[i] = gridsY[i];
       }
 
-      int edgeCost = nets_[netID]->edgeCost;
+      int edgeCost = nets_[netID]->getEdgeCost();
 
       // update edge usage
       for (int i = 0; i < cnt_n1n2 - 1; i++) {
@@ -2044,10 +2133,12 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
         {
           const int min_y = std::min(gridsY[i], gridsY[i + 1]);
           v_edges_[min_y][gridsX[i]].usage += edgeCost;
+          v_used_ggrid_.insert(std::make_pair(min_y, gridsX[i]));
         } else  /// if(gridsY[i]==gridsY[i+1])// a horizontal edge
         {
           const int min_x = std::min(gridsX[i], gridsX[i + 1]);
           h_edges_[gridsY[i]][min_x].usage += edgeCost;
+          h_used_ggrid_.insert(std::make_pair(gridsY[i], min_x));
         }
       }
     }  // loop edgeID
@@ -2055,6 +2146,197 @@ void FastRouteCore::mazeRouteMSMD(const int iter,
 
   h_cost_table_.clear();
   v_cost_table_.clear();
+}
+
+void FastRouteCore::findCongestedEdgesNets(
+    NetsPerCongestedArea& nets_in_congested_edges,
+    bool vertical)
+{
+  for (int netID = 0; netID < netCount(); netID++) {
+    if (nets_[netID] == nullptr) {
+      continue;
+    }
+
+    const auto& treeedges = sttrees_[netID].edges;
+    const int num_edges = sttrees_[netID].num_edges();
+
+    for (int edgeID = 0; edgeID < num_edges; edgeID++) {
+      const TreeEdge* treeedge = &(treeedges[edgeID]);
+      if (treeedge->len > 0) {
+        int routeLen = treeedge->route.routelen;
+        const std::vector<int16_t>& gridsX = treeedge->route.gridsX;
+        const std::vector<int16_t>& gridsY = treeedge->route.gridsY;
+        int lastX = tile_size_ * (gridsX[0] + 0.5) + x_corner_;
+        int lastY = tile_size_ * (gridsY[0] + 0.5) + y_corner_;
+
+        for (int i = 1; i <= routeLen; i++) {
+          const int xreal = tile_size_ * (gridsX[i] + 0.5) + x_corner_;
+          const int yreal = tile_size_ * (gridsY[i] + 0.5) + y_corner_;
+
+          // a zero-length edge does not store any congestion info.
+          if (lastX == xreal && lastY == yreal) {
+            continue;
+          }
+
+          bool vertical_edge = xreal == lastX;
+
+          if (vertical_edge == vertical) {
+            // the congestion information on an edge (x1, y1) -> (x2, y2) is
+            // stored only in (x1, y1), where x1 <= x2 and y1 <= y2. therefore,
+            // it gets the min between each value to properly define which nets
+            // are crossing a congested area.
+            int x = std::min(lastX, xreal);
+            int y = std::min(lastY, yreal);
+            NetsPerCongestedArea::iterator it
+                = nets_in_congested_edges.find({x, y});
+            if (it != nets_in_congested_edges.end()) {
+              it->second.nets.insert(nets_[netID]->getDbNet());
+            }
+          }
+
+          lastX = xreal;
+          lastY = yreal;
+        }
+      }
+    }
+  }
+}
+
+void FastRouteCore::getCongestionGrid(
+    std::vector<CongestionInformation>& congestionGridV,
+    std::vector<CongestionInformation>& congestionGridH)
+{
+  NetsPerCongestedArea nets_in_congested_edges;
+
+  for (int i = 0; i < y_grid_; i++) {
+    for (int j = 0; j < x_grid_ - 1; j++) {
+      const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
+      if (overflow > 0) {
+        const int xreal = tile_size_ * (j + 0.5) + x_corner_;
+        const int yreal = tile_size_ * (i + 0.5) + y_corner_;
+        const int usage = h_edges_[i][j].usage;
+        const int capacity = h_edges_[i][j].cap;
+        nets_in_congested_edges[{xreal, yreal}].congestion = {capacity, usage};
+      }
+    }
+  }
+  findCongestedEdgesNets(nets_in_congested_edges, false);
+  for (const auto& [edge, tile_info] : nets_in_congested_edges) {
+    TileCongestion congestion = tile_info.congestion;
+    const auto& segment
+        = GSegment(edge.first, edge.second, 1, edge.first, edge.second, 1);
+    const auto& horizontal_srcs
+        = nets_in_congested_edges[{segment.init_x, segment.init_y}].nets;
+    congestionGridH.push_back({segment, congestion, horizontal_srcs});
+  }
+  nets_in_congested_edges.clear();
+
+  for (int i = 0; i < y_grid_ - 1; i++) {
+    for (int j = 0; j < x_grid_; j++) {
+      const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
+      if (overflow > 0) {
+        const int xreal = tile_size_ * (j + 0.5) + x_corner_;
+        const int yreal = tile_size_ * (i + 0.5) + y_corner_;
+        const int usage = v_edges_[i][j].usage;
+        const int capacity = v_edges_[i][j].cap;
+        nets_in_congested_edges[{xreal, yreal}].congestion = {capacity, usage};
+      }
+    }
+  }
+  findCongestedEdgesNets(nets_in_congested_edges, true);
+  for (const auto& [edge, tile_info] : nets_in_congested_edges) {
+    TileCongestion congestion = tile_info.congestion;
+    const auto& segment
+        = GSegment(edge.first, edge.second, 1, edge.first, edge.second, 1);
+    const auto& vertical_srcs
+        = nets_in_congested_edges[{segment.init_x, segment.init_y}].nets;
+    congestionGridV.push_back({segment, congestion, vertical_srcs});
+  }
+}
+
+void FastRouteCore::setCongestionNets(std::set<odb::dbNet*>& congestion_nets,
+                                      int& posX,
+                                      int& posY,
+                                      int dir,
+                                      int& radius)
+{
+  // get Nets with overflow
+  for (int netID = 0; netID < netCount(); netID++) {
+    if (nets_[netID] == nullptr
+        || (congestion_nets.find(nets_[netID]->getDbNet())
+            != congestion_nets.end())) {
+      continue;
+    }
+
+    const auto& treeedges = sttrees_[netID].edges;
+    const int num_edges = sttrees_[netID].num_edges();
+
+    for (int edgeID = 0; edgeID < num_edges; edgeID++) {
+      const TreeEdge* treeedge = &(treeedges[edgeID]);
+      const std::vector<short>& gridsX = treeedge->route.gridsX;
+      const std::vector<short>& gridsY = treeedge->route.gridsY;
+      const std::vector<short>& gridsL = treeedge->route.gridsL;
+      const int routeLen = treeedge->route.routelen;
+
+      for (int i = 0; i < routeLen; i++) {
+        if (gridsL[i] != gridsL[i + 1]) {
+          continue;
+        }
+        if (gridsX[i] == gridsX[i + 1]) {  // a vertical edge
+          const int ymin = std::min(gridsY[i], gridsY[i + 1]);
+          if (abs(ymin - posY) <= radius && abs(gridsX[i] - posX) <= radius
+              && dir == 0) {
+            congestion_nets.insert(nets_[netID]->getDbNet());
+          }
+        } else if (gridsY[i] == gridsY[i + 1]) {  // a horizontal edge
+          const int xmin = std::min(gridsX[i], gridsX[i + 1]);
+          if (abs(gridsY[i] - posY) <= radius && abs(xmin - posX) <= radius
+              && dir == 1) {
+            congestion_nets.insert(nets_[netID]->getDbNet());
+          }
+        }
+      }
+    }
+  }
+}
+
+// The function will add the new nets to the congestion_nets set
+void FastRouteCore::getCongestionNets(std::set<odb::dbNet*>& congestion_nets)
+{
+  std::vector<int> xs, ys, dirs;
+  int n = 0;
+  // Find horizontal ggrids with congestion
+  for (const auto& [i, j] : h_used_ggrid_) {
+    const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
+    if (overflow > 0) {
+      xs.push_back(j);
+      ys.push_back(i);
+      dirs.push_back(1);
+      n++;
+    }
+  }
+  // Find vertical ggrids with congestion
+  for (const auto& [i, j] : v_used_ggrid_) {
+    const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
+    if (overflow > 0) {
+      xs.push_back(j);
+      ys.push_back(i);
+      dirs.push_back(0);
+      n++;
+    }
+  }
+
+  int old_size = congestion_nets.size();
+
+  // The radius around the congested zone is increased when no new nets are
+  // obtained
+  for (int radius = 0; radius < 5 && old_size == congestion_nets.size();
+       radius++) {
+    // Find nets for each congestion ggrid
+    for (int i = 0; i < n; i++) {
+      setCongestionNets(congestion_nets, xs[i], ys[i], dirs[i], radius);
+    }
+  }
 }
 
 int FastRouteCore::getOverflow2Dmaze(int* maxOverflow, int* tUsage)
@@ -2069,31 +2351,23 @@ int FastRouteCore::getOverflow2Dmaze(int* maxOverflow, int* tUsage)
   check2DEdgesUsage();
 
   int total_usage = 0;
-  int total_cap = 0;
-
-  for (int i = 0; i < y_grid_; i++) {
-    for (int j = 0; j < x_grid_ - 1; j++) {
-      total_usage += h_edges_[i][j].usage;
-      const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
-      total_cap += h_edges_[i][j].cap;
-      if (overflow > 0) {
-        H_overflow += overflow;
-        max_H_overflow = std::max(max_H_overflow, overflow);
-        numedges++;
-      }
+  for (const auto& [i, j] : h_used_ggrid_) {
+    total_usage += h_edges_[i][j].usage;
+    const int overflow = h_edges_[i][j].usage - h_edges_[i][j].cap;
+    if (overflow > 0) {
+      H_overflow += overflow;
+      max_H_overflow = std::max(max_H_overflow, overflow);
+      numedges++;
     }
   }
 
-  for (int i = 0; i < y_grid_ - 1; i++) {
-    for (int j = 0; j < x_grid_; j++) {
-      total_usage += v_edges_[i][j].usage;
-      const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
-      total_cap += v_edges_[i][j].cap;
-      if (overflow > 0) {
-        V_overflow += overflow;
-        max_V_overflow = std::max(max_V_overflow, overflow);
-        numedges++;
-      }
+  for (const auto& [i, j] : v_used_ggrid_) {
+    total_usage += v_edges_[i][j].usage;
+    const int overflow = v_edges_[i][j].usage - v_edges_[i][j].cap;
+    if (overflow > 0) {
+      V_overflow += overflow;
+      max_V_overflow = std::max(max_V_overflow, overflow);
+      numedges++;
     }
   }
 
@@ -2139,33 +2413,26 @@ int FastRouteCore::getOverflow2D(int* maxOverflow)
   int numedges = 0;
 
   int total_usage = 0;
-  int total_cap = 0;
 
-  for (int i = 0; i < y_grid_; i++) {
-    for (int j = 0; j < x_grid_ - 1; j++) {
-      total_usage += h_edges_[i][j].est_usage;
-      const int overflow = h_edges_[i][j].est_usage - h_edges_[i][j].cap;
-      total_cap += h_edges_[i][j].cap;
-      hCap += h_edges_[i][j].cap;
-      if (overflow > 0) {
-        H_overflow += overflow;
-        max_H_overflow = std::max(max_H_overflow, overflow);
-        numedges++;
-      }
+  for (const auto& [i, j] : h_used_ggrid_) {
+    total_usage += h_edges_[i][j].est_usage;
+    const int overflow = h_edges_[i][j].est_usage - h_edges_[i][j].cap;
+    hCap += h_edges_[i][j].cap;
+    if (overflow > 0) {
+      H_overflow += overflow;
+      max_H_overflow = std::max(max_H_overflow, overflow);
+      numedges++;
     }
   }
 
-  for (int i = 0; i < y_grid_ - 1; i++) {
-    for (int j = 0; j < x_grid_; j++) {
-      total_usage += v_edges_[i][j].est_usage;
-      const int overflow = v_edges_[i][j].est_usage - v_edges_[i][j].cap;
-      total_cap += v_edges_[i][j].cap;
-      vCap += v_edges_[i][j].cap;
-      if (overflow > 0) {
-        V_overflow += overflow;
-        max_V_overflow = std::max(max_V_overflow, overflow);
-        numedges++;
-      }
+  for (const auto& [i, j] : v_used_ggrid_) {
+    total_usage += v_edges_[i][j].est_usage;
+    const int overflow = v_edges_[i][j].est_usage - v_edges_[i][j].cap;
+    vCap += v_edges_[i][j].cap;
+    if (overflow > 0) {
+      V_overflow += overflow;
+      max_V_overflow = std::max(max_V_overflow, overflow);
+      numedges++;
     }
   }
 
@@ -2206,14 +2473,12 @@ int FastRouteCore::getOverflow3D()
   int max_V_overflow = 0;
 
   int total_usage = 0;
-  int cap = 0;
 
   for (int k = 0; k < num_layers_; k++) {
     for (int i = 0; i < y_grid_; i++) {
       for (int j = 0; j < x_grid_ - 1; j++) {
         total_usage += h_edges_3D_[k][i][j].usage;
         overflow = h_edges_3D_[k][i][j].usage - h_edges_3D_[k][i][j].cap;
-        cap += h_edges_3D_[k][i][j].cap;
 
         if (overflow > 0) {
           H_overflow += overflow;
@@ -2225,8 +2490,6 @@ int FastRouteCore::getOverflow3D()
       for (int j = 0; j < x_grid_; j++) {
         total_usage += v_edges_3D_[k][i][j].usage;
         overflow = v_edges_3D_[k][i][j].usage - v_edges_3D_[k][i][j].cap;
-        cap += v_edges_3D_[k][i][j].cap;
-
         if (overflow > 0) {
           V_overflow += overflow;
           max_V_overflow = std::max(max_V_overflow, overflow);
@@ -2313,6 +2576,22 @@ void FastRouteCore::InitLastUsage(const int upType)
       for (int j = 0; j < x_grid_; j++) {
         v_edges_[i][j].last_usage = v_edges_[i][j].last_usage * 0.2;
       }
+    }
+  }
+}
+
+void FastRouteCore::SaveLastRouteLen()
+{
+  for (int netID = 0; netID < netCount(); netID++) {
+    if (nets_[netID] == nullptr) {
+      continue;
+    }
+    auto& treeedges = sttrees_[netID].edges;
+    // loop for all the tree edges
+    const int num_edges = sttrees_[netID].num_edges();
+    for (int edgeID = 0; edgeID < num_edges; edgeID++) {
+      auto& edge = treeedges[edgeID];
+      edge.route.last_routelen = edge.route.routelen;
     }
   }
 }

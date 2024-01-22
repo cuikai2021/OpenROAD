@@ -31,29 +31,36 @@
 #include <memory>
 #include <vector>
 
+#include "FlexPA.h"
+#include "db/obj/frBlockObject.h"
 #include "frBaseTypes.h"
 #include "gui/gui.h"
 
 namespace odb {
 class dbDatabase;
-}
+class dbTechLayer;
+}  // namespace odb
 
 namespace fr {
 
 class frDesign;
 class frPin;
+class frBPin;
 class frInstTerm;
 class frBlock;
 class frMaster;
 class frAccessPoint;
 class frVia;
 class frMarker;
+class frInst;
+class frPathSeg;
+class frConnFig;
 
 // This class draws debugging graphics on the layout
 class FlexPAGraphics : public gui::Renderer
 {
  public:
-  // Debug pin acess
+  // Debug pin access
   FlexPAGraphics(frDebugSettings* settings,
                  frDesign* design,
                  odb::dbDatabase* db,
@@ -61,11 +68,11 @@ class FlexPAGraphics : public gui::Renderer
 
   void startPin(frBPin* pin,
                 frInstTerm* inst_term,
-                set<frInst*, frBlockObjectComp>* instClass);
-                
+                std::set<frInst*, frBlockObjectComp>* instClass);
+
   void startPin(frMPin* pin,
                 frInstTerm* inst_term,
-                set<frInst*, frBlockObjectComp>* instClass);
+                std::set<frInst*, frBlockObjectComp>* instClass);
 
   void setAPs(const std::vector<std::unique_ptr<frAccessPoint>>& aps,
               frAccessPointEnum lower_type,
@@ -79,9 +86,10 @@ class FlexPAGraphics : public gui::Renderer
                    const frPathSeg* seg,
                    const std::vector<std::unique_ptr<frMarker>>& markers);
 
-  void setObjsAndMakers(const vector<pair<frConnFig*, frBlockObject*>>& objs,
-                        const std::vector<std::unique_ptr<frMarker>>& markers,
-                        const FlexPA::PatternType type);
+  void setObjsAndMakers(
+      const std::vector<std::pair<frConnFig*, frBlockObject*>>& objs,
+      const std::vector<std::unique_ptr<frMarker>>& markers,
+      const FlexPA::PatternType type);
 
   // Show a message in the status bar
   void status(const std::string& message);
@@ -96,8 +104,8 @@ class FlexPAGraphics : public gui::Renderer
  private:
   Logger* logger_;
   frDebugSettings* settings_;
-  frInst* inst_; // from settings_->pinName
-  std::string term_name_; // from settings_->pinName
+  frInst* inst_;           // from settings_->pinName
+  std::string term_name_;  // from settings_->pinName
   gui::Gui* gui_;
   frPin* pin_;
   frInstTerm* inst_term_;

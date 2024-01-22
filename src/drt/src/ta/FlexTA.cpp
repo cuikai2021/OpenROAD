@@ -35,79 +35,22 @@
 #include <iostream>
 #include <sstream>
 
+#include "FlexTA_graphics.h"
 #include "db/infra/frTime.h"
 #include "frProfileTask.h"
 #include "global.h"
-
 #include "utl/exception.h"
 
-using namespace std;
-using namespace fr;
-
-using utl::ThreadException;
-
-int FlexTAWorker::main()
-{
-  using namespace std::chrono;
-  high_resolution_clock::time_point t0 = high_resolution_clock::now();
-  if (VERBOSE > 1) {
-    stringstream ss;
-    ss << endl
-       << "start TA worker (BOX) ("
-       << routeBox_.xMin() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-       << ", "
-       << routeBox_.yMin() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-       << ") ("
-       << routeBox_.xMax() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-       << ", "
-       << routeBox_.yMax() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
-       << ") ";
-    if (getDir() == dbTechLayerDir::HORIZONTAL) {
-      ss << "H";
-    } else {
-      ss << "V";
-    }
-    ss << endl;
-    cout << ss.str();
-  }
-
-  init();
-  if (isInitTA()) {
-      hardIroutesMode = true;
-      if (getTAIter() != -1)
-        sortIroutes();
-      assign();
-      hardIroutesMode = false;
-  }
-  if (getTAIter() != -1)
-        sortIroutes();
-  high_resolution_clock::time_point t1 = high_resolution_clock::now();
-  assign();
-  high_resolution_clock::time_point t2 = high_resolution_clock::now();
-  end();
-  high_resolution_clock::time_point t3 = high_resolution_clock::now();
-
-  duration<double> time_span0 = duration_cast<duration<double>>(t1 - t0);
-  duration<double> time_span1 = duration_cast<duration<double>>(t2 - t1);
-  duration<double> time_span2 = duration_cast<duration<double>>(t3 - t2);
-
-  if (VERBOSE > 1) {
-    stringstream ss;
-    ss << "time (INIT/ASSIGN/POST) " << time_span0.count() << " "
-       << time_span1.count() << " " << time_span2.count() << " " << endl;
-    cout << ss.str() << flush;
-  }
-  return 0;
-}
+namespace fr {
 
 int FlexTAWorker::main_mt()
 {
   ProfileTask profile("TA:main_mt");
   using namespace std::chrono;
-  high_resolution_clock::time_point t0 = high_resolution_clock::now();
+  auto t0 = high_resolution_clock::now();
   if (VERBOSE > 1) {
-    stringstream ss;
-    ss << endl
+    std::stringstream ss;
+    ss << std::endl
        << "start TA worker (BOX) ("
        << routeBox_.xMin() * 1.0 / getDesign()->getTopBlock()->getDBUPerUU()
        << ", "
@@ -122,38 +65,46 @@ int FlexTAWorker::main_mt()
     } else {
       ss << "V";
     }
-    ss << endl;
-    cout << ss.str();
+    ss << std::endl;
+    std::cout << ss.str();
   }
 
   init();
   if (isInitTA()) {
-      hardIroutesMode = true;
-      if (getTAIter() != -1)
-        sortIroutes();
-      assign();
-      hardIroutesMode = false;
+    hardIroutesMode = true;
+    sortIroutes();
+    assign();
+    hardIroutesMode = false;
   }
-  if (getTAIter() != -1)
-        sortIroutes();
-  high_resolution_clock::time_point t1 = high_resolution_clock::now();
+  sortIroutes();
+  auto t1 = high_resolution_clock::now();
   assign();
-  high_resolution_clock::time_point t2 = high_resolution_clock::now();
+  auto t2 = high_resolution_clock::now();
   // end();
-  high_resolution_clock::time_point t3 = high_resolution_clock::now();
+  auto t3 = high_resolution_clock::now();
 
-  duration<double> time_span0 = duration_cast<duration<double>>(t1 - t0);
-  duration<double> time_span1 = duration_cast<duration<double>>(t2 - t1);
-  duration<double> time_span2 = duration_cast<duration<double>>(t3 - t2);
+  auto time_span0 = duration_cast<duration<double>>(t1 - t0);
+  auto time_span1 = duration_cast<duration<double>>(t2 - t1);
+  auto time_span2 = duration_cast<duration<double>>(t3 - t2);
 
   if (VERBOSE > 1) {
-    stringstream ss;
+    std::stringstream ss;
     ss << "time (INIT/ASSIGN/POST) " << time_span0.count() << " "
-       << time_span1.count() << " " << time_span2.count() << " " << endl;
-    cout << ss.str() << flush;
+       << time_span1.count() << " " << time_span2.count() << " " << std::endl;
+    std::cout << ss.str() << std::flush;
   }
   return 0;
 }
+
+FlexTA::FlexTA(frDesign* in, Logger* logger, bool save_updates)
+    : tech_(in->getTech()),
+      design_(in),
+      logger_(logger),
+      save_updates_(save_updates)
+{
+}
+
+FlexTA::~FlexTA() = default;
 
 int FlexTA::initTA_helper(int iter,
                           int size,
@@ -166,131 +117,77 @@ int FlexTA::initTA_helper(int iter,
   auto& ygp = gCellPatterns.at(1);
   int sol = 0;
   numPanels = 0;
-  if (MAX_THREADS == 1) {
-    if (isH) {
-      for (int i = offset; i < (int) ygp.getCount(); i += size) {
-        FlexTAWorker worker(getDesign());
-        Rect beginBox, endBox;
-        getDesign()->getTopBlock()->getGCellBox(Point(0, i), beginBox);
-        getDesign()->getTopBlock()->getGCellBox(
-            Point((int) xgp.getCount() - 1,
-                    min(i + size - 1, (int) ygp.getCount() - 1)),
-            endBox);
-        Rect routeBox(
-            beginBox.xMin(), beginBox.yMin(), endBox.xMax(), endBox.yMax());
-        Rect extBox;
-        routeBox.bloat(ygp.getSpacing() / 2, extBox);
-        worker.setRouteBox(routeBox);
-        worker.setExtBox(extBox);
-        worker.setDir(dbTechLayerDir::HORIZONTAL);
-        worker.setTAIter(iter);
-        worker.main();
-        sol += worker.getNumAssigned();
-        numPanels++;
-        // if (VERBOSE > 0) {
-        //   cout <<"Done with " <<numAssigned <<"horizontal wires";
-        // }
+  std::vector<std::vector<std::unique_ptr<FlexTAWorker>>> workers;
+  if (isH) {
+    for (int i = offset; i < (int) ygp.getCount(); i += size) {
+      auto uworker
+          = std::make_unique<FlexTAWorker>(getDesign(), logger_, save_updates_);
+      auto& worker = *(uworker.get());
+      Rect beginBox = getDesign()->getTopBlock()->getGCellBox(Point(0, i));
+      Rect endBox = getDesign()->getTopBlock()->getGCellBox(
+          Point((int) xgp.getCount() - 1,
+                std::min(i + size - 1, (int) ygp.getCount() - 1)));
+      Rect routeBox(
+          beginBox.xMin(), beginBox.yMin(), endBox.xMax(), endBox.yMax());
+      Rect extBox;
+      routeBox.bloat(ygp.getSpacing() / 2, extBox);
+      worker.setRouteBox(routeBox);
+      worker.setExtBox(extBox);
+      worker.setDir(dbTechLayerDir::HORIZONTAL);
+      worker.setTAIter(iter);
+      if (workers.empty() || (int) workers.back().size() >= BATCHSIZETA) {
+        workers.emplace_back(std::vector<std::unique_ptr<FlexTAWorker>>());
       }
-    } else {
-      for (int i = offset; i < (int) xgp.getCount(); i += size) {
-        FlexTAWorker worker(getDesign());
-        Rect beginBox, endBox;
-        getDesign()->getTopBlock()->getGCellBox(Point(i, 0), beginBox);
-        getDesign()->getTopBlock()->getGCellBox(
-            Point(min(i + size - 1, (int) xgp.getCount() - 1),
-                    (int) ygp.getCount() - 1),
-            endBox);
-        Rect routeBox(
-            beginBox.xMin(), beginBox.yMin(), endBox.xMax(), endBox.yMax());
-        Rect extBox;
-        routeBox.bloat(xgp.getSpacing() / 2, extBox);
-        worker.setRouteBox(routeBox);
-        worker.setExtBox(extBox);
-        worker.setDir(dbTechLayerDir::VERTICAL);
-        worker.setTAIter(iter);
-        worker.main();
-        sol += worker.getNumAssigned();
-        numPanels++;
-        // if (VERBOSE > 0) {
-        //   cout <<"Done with " <<numAssigned <<"vertical wires";
-        // }
-      }
+      workers.back().emplace_back(std::move(uworker));
     }
   } else {
-    vector<vector<unique_ptr<FlexTAWorker>>> workers;
-    if (isH) {
-      for (int i = offset; i < (int) ygp.getCount(); i += size) {
-        auto uworker = make_unique<FlexTAWorker>(getDesign());
-        auto& worker = *(uworker.get());
-        Rect beginBox, endBox;
-        getDesign()->getTopBlock()->getGCellBox(Point(0, i), beginBox);
-        getDesign()->getTopBlock()->getGCellBox(
-            Point((int) xgp.getCount() - 1,
-                    min(i + size - 1, (int) ygp.getCount() - 1)),
-            endBox);
-        Rect routeBox(
-            beginBox.xMin(), beginBox.yMin(), endBox.xMax(), endBox.yMax());
-        Rect extBox;
-        routeBox.bloat(ygp.getSpacing() / 2, extBox);
-        worker.setRouteBox(routeBox);
-        worker.setExtBox(extBox);
-        worker.setDir(dbTechLayerDir::HORIZONTAL);
-        worker.setTAIter(iter);
-        if (workers.empty() || (int) workers.back().size() >= BATCHSIZETA) {
-          workers.push_back(vector<unique_ptr<FlexTAWorker>>());
-        }
-        workers.back().push_back(std::move(uworker));
+    for (int i = offset; i < (int) xgp.getCount(); i += size) {
+      auto uworker
+          = std::make_unique<FlexTAWorker>(getDesign(), logger_, save_updates_);
+      auto& worker = *(uworker.get());
+      Rect beginBox = getDesign()->getTopBlock()->getGCellBox(Point(i, 0));
+      Rect endBox = getDesign()->getTopBlock()->getGCellBox(
+          Point(std::min(i + size - 1, (int) xgp.getCount() - 1),
+                (int) ygp.getCount() - 1));
+      Rect routeBox(
+          beginBox.xMin(), beginBox.yMin(), endBox.xMax(), endBox.yMax());
+      Rect extBox;
+      routeBox.bloat(xgp.getSpacing() / 2, extBox);
+      worker.setRouteBox(routeBox);
+      worker.setExtBox(extBox);
+      worker.setDir(dbTechLayerDir::VERTICAL);
+      worker.setTAIter(iter);
+      if (workers.empty() || (int) workers.back().size() >= BATCHSIZETA) {
+        workers.emplace_back(std::vector<std::unique_ptr<FlexTAWorker>>());
       }
-    } else {
-      for (int i = offset; i < (int) xgp.getCount(); i += size) {
-        auto uworker = make_unique<FlexTAWorker>(getDesign());
-        auto& worker = *(uworker.get());
-        Rect beginBox, endBox;
-        getDesign()->getTopBlock()->getGCellBox(Point(i, 0), beginBox);
-        getDesign()->getTopBlock()->getGCellBox(
-            Point(min(i + size - 1, (int) xgp.getCount() - 1),
-                    (int) ygp.getCount() - 1),
-            endBox);
-        Rect routeBox(
-            beginBox.xMin(), beginBox.yMin(), endBox.xMax(), endBox.yMax());
-        Rect extBox;
-        routeBox.bloat(xgp.getSpacing() / 2, extBox);
-        worker.setRouteBox(routeBox);
-        worker.setExtBox(extBox);
-        worker.setDir(dbTechLayerDir::VERTICAL);
-        worker.setTAIter(iter);
-        if (workers.empty() || (int) workers.back().size() >= BATCHSIZETA) {
-          workers.push_back(vector<unique_ptr<FlexTAWorker>>());
-        }
-        workers.back().push_back(std::move(uworker));
-      }
+      workers.back().push_back(std::move(uworker));
     }
+  }
 
-    omp_set_num_threads(min(8, MAX_THREADS));
-    // parallel execution
-    // multi thread
-    for (auto& workerBatch : workers) {
-      ProfileTask profile("TA:batch");
-      ThreadException exception;
+  omp_set_num_threads(std::min(8, MAX_THREADS));
+  // parallel execution
+  // multi thread
+  for (auto& workerBatch : workers) {
+    ProfileTask profile("TA:batch");
+    utl::ThreadException exception;
 #pragma omp parallel for schedule(dynamic)
-      for (int i = 0; i < (int) workerBatch.size(); i++) {
-        try {
-          workerBatch[i]->main_mt();
+    for (int i = 0; i < (int) workerBatch.size(); i++) {
+      try {
+        workerBatch[i]->main_mt();
 #pragma omp critical
-          {
-            sol += workerBatch[i]->getNumAssigned();
-            numPanels++;
-          }
-        } catch (...) {
-          exception.capture();
+        {
+          sol += workerBatch[i]->getNumAssigned();
+          numPanels++;
         }
+      } catch (...) {
+        exception.capture();
       }
-      exception.rethrow();
-      for (int i = 0; i < (int) workerBatch.size(); i++) {
-        workerBatch[i]->end();
-      }
-      workerBatch.clear();
     }
+    exception.rethrow();
+    for (auto& worker : workerBatch) {
+      worker->end();
+    }
+    workerBatch.clear();
   }
   return sol;
 }
@@ -301,7 +198,7 @@ void FlexTA::initTA(int size)
   frTime t;
 
   if (VERBOSE > 1) {
-    cout << endl << "start initial track assignment ..." << endl;
+    std::cout << std::endl << "start initial track assignment ..." << std::endl;
   }
 
   auto bottomLNum = getDesign()->getTech()->getBottomLayerNum();
@@ -310,8 +207,7 @@ void FlexTA::initTA(int size)
     bottomLNum++;
     bottomLayer = getDesign()->getTech()->getLayer(bottomLNum);
   }
-  bool isBottomLayerH
-      = (bottomLayer->getDir() == dbTechLayerDir::HORIZONTAL);
+  bool isBottomLayerH = (bottomLayer->getDir() == dbTechLayerDir::HORIZONTAL);
 
   // H first
   if (isBottomLayerH) {
@@ -358,22 +254,18 @@ void FlexTA::searchRepair(int iter, int size, int offset)
   frTime t;
 
   if (VERBOSE > 1) {
-    if (iter == -1) {
-      cout << endl << "start polishing ..." << endl;
+    std::cout << std::endl << "start " << iter;
+    std::string suffix;
+    if (iter == 1 || (iter > 20 && iter % 10 == 1)) {
+      suffix = "st";
+    } else if (iter == 2 || (iter > 20 && iter % 10 == 2)) {
+      suffix = "nd";
+    } else if (iter == 3 || (iter > 20 && iter % 10 == 3)) {
+      suffix = "rd";
     } else {
-      cout << endl << "start " << iter;
-      string suffix;
-      if (iter == 1 || (iter > 20 && iter % 10 == 1)) {
-        suffix = "st";
-      } else if (iter == 2 || (iter > 20 && iter % 10 == 2)) {
-        suffix = "nd";
-      } else if (iter == 3 || (iter > 20 && iter % 10 == 3)) {
-        suffix = "rd";
-      } else {
-        suffix = "th";
-      }
-      cout << suffix << " optimization iteration ..." << endl;
+      suffix = "th";
     }
+    std::cout << suffix << " optimization iteration ..." << std::endl;
   }
   auto bottomLNum = getDesign()->getTech()->getBottomLayerNum();
   auto bottomLayer = getDesign()->getTech()->getLayer(bottomLNum);
@@ -381,8 +273,7 @@ void FlexTA::searchRepair(int iter, int size, int offset)
     bottomLNum++;
     bottomLayer = getDesign()->getTech()->getLayer(bottomLNum);
   }
-  bool isBottomLayerH
-      = (bottomLayer->getDir() == dbTechLayerDir::HORIZONTAL);
+  bool isBottomLayerH = (bottomLayer->getDir() == dbTechLayerDir::HORIZONTAL);
 
   // H first
   if (isBottomLayerH) {
@@ -423,6 +314,14 @@ void FlexTA::searchRepair(int iter, int size, int offset)
   }
 }
 
+void FlexTA::setDebug(frDebugSettings* settings, odb::dbDatabase* db)
+{
+  bool on = settings->debugTA;
+  graphics_ = on && FlexTAGraphics::guiActive()
+                  ? std::make_unique<FlexTAGraphics>(settings, design_, db)
+                  : nullptr;
+}
+
 int FlexTA::main()
 {
   ProfileTask profile("TA:main");
@@ -432,7 +331,14 @@ int FlexTA::main()
     logger_->info(DRT, 181, "Start track assignment.");
   }
   initTA(50);
+  if (graphics_) {
+    graphics_->endIter(0);
+  }
+
   searchRepair(1, 50, 0);
+  if (graphics_) {
+    graphics_->endIter(1);
+  }
 
   if (VERBOSE > 0) {
     logger_->info(DRT, 182, "Complete track assignment.");
@@ -442,3 +348,5 @@ int FlexTA::main()
   }
   return 0;
 }
+
+}  // namespace fr

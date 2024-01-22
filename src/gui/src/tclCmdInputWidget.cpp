@@ -32,29 +32,33 @@
 
 #include "tclCmdInputWidget.h"
 
-#include <regex>
-
 #include <QAbstractItemView>
+#include <QCoreApplication>
 #include <QMimeData>
 #include <QScrollBar>
 #include <QTextStream>
+#include <regex>
+
+#include "gui/gui.h"
+#include "ord/OpenRoad.hh"
+#include "spdlog/formatter.h"
 
 namespace gui {
 
-TclCmdInputWidget::TclCmdInputWidget(QWidget* parent) :
-    QPlainTextEdit(parent), line_height_(0), document_margins_(0),
-    max_height_(QWIDGETSIZE_MAX), interp_(nullptr),
-    context_menu_(nullptr), enable_highlighting_(nullptr),
-    enable_completion_(nullptr), highlighter_(nullptr),
-    completer_(nullptr), completer_options_(nullptr),
-    completer_commands_(nullptr), completer_start_of_command_(nullptr),
-    completer_end_of_command_(nullptr)
+TclCmdInputWidget::TclCmdInputWidget(QWidget* parent)
+    : CmdInputWidget("TCL", parent),
+      interp_(nullptr),
+      context_menu_(nullptr),
+      enable_highlighting_(nullptr),
+      enable_completion_(nullptr),
+      highlighter_(nullptr),
+      completer_(nullptr),
+      completer_options_(nullptr),
+      completer_commands_(nullptr),
+      completer_start_of_command_(nullptr),
+      completer_end_of_command_(nullptr)
 {
   setObjectName("tcl_scripting");  // for settings
-  setPlaceholderText("TCL commands");
-  setAcceptDrops(true);
-
-  determineLineHeight();
 
   // add option to default context menu to enable or disable syntax highlighting
   context_menu_.reset(createStandardContextMenu());
@@ -63,43 +67,72 @@ TclCmdInputWidget::TclCmdInputWidget(QWidget* parent) :
   enable_highlighting_->setCheckable(true);
   enable_highlighting_->setChecked(true);
   context_menu_->addAction(enable_highlighting_.get());
-  connect(enable_highlighting_.get(), SIGNAL(triggered()), this, SLOT(updateHighlighting()));
+  connect(enable_highlighting_.get(),
+          &QAction::triggered,
+          this,
+          &TclCmdInputWidget::updateHighlighting);
   enable_completion_ = std::make_unique<QAction>("Command completion", this);
   enable_completion_->setCheckable(true);
   enable_completion_->setChecked(true);
   context_menu_->addAction(enable_completion_.get());
-  connect(enable_completion_.get(), SIGNAL(triggered()), this, SLOT(updateCompletion()));
-
-  // precompute size for updating text box size
-  document_margins_ = 2 * (document()->documentMargin() + 3);
-
-  connect(this, SIGNAL(textChanged()), this, SLOT(updateSize()));
-  updateSize();
+  connect(enable_completion_.get(),
+          &QAction::triggered,
+          this,
+          &TclCmdInputWidget::updateCompletion);
 }
 
 TclCmdInputWidget::~TclCmdInputWidget()
 {
+  // restore old exit
+  Tcl_DeleteCommand(interp_, "exit");
+  std::string exit_rename
+      = fmt::format("rename {}exit exit", command_rename_prefix_);
+  Tcl_Eval(interp_, exit_rename.c_str());
 }
 
-void TclCmdInputWidget::setFont(const QFont& font)
+void TclCmdInputWidget::setTclInterp(
+    Tcl_Interp* interp,
+    bool do_init_openroad,
+    const std::function<void(void)>& post_or_init)
 {
-  QPlainTextEdit::setFont(font);
+  interp_ = interp;
 
-  determineLineHeight();
+  // Overwrite exit to allow Qt to handle exit
+  std::string exit_rename
+      = fmt::format("rename exit {}exit", command_rename_prefix_);
+  Tcl_Eval(interp_, exit_rename.c_str());
+  Tcl_CreateCommand(
+      interp_, "exit", TclCmdInputWidget::tclExitHandler, this, nullptr);
+
+  if (do_init_openroad) {
+    // OpenRoad is not initialized
+    emit commandAboutToExecute();
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    const bool setup_tcl_result = ord::tclAppInit(interp_) == TCL_OK;
+    post_or_init();
+    processTclResult(setup_tcl_result);
+    emit commandFinishedExecuting(setup_tcl_result);
+  } else {
+    post_or_init();
+  }
+
+  init();
 }
 
-void TclCmdInputWidget::determineLineHeight()
+int TclCmdInputWidget::tclExitHandler(ClientData instance_data,
+                                      Tcl_Interp* interp,
+                                      int argc,
+                                      const char** argv)
 {
-  QFontMetrics font_metrics = fontMetrics();
-  line_height_ = font_metrics.lineSpacing();
+  TclCmdInputWidget* widget = (TclCmdInputWidget*) instance_data;
 
-  double tab_indent_width = 2 * font_metrics.averageCharWidth();
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
-  // setTabStopWidth deprecated in 5.10
-  setTabStopDistance(tab_indent_width);
-#else
-  setTabStopWidth(tab_indent_width);
-#endif
+  // exit was called, so ensure continue after close is cleared
+  Gui::get()->clearContinueAfterClose();
+
+  // announces exit to Qt
+  emit widget->exiting();
+
+  return TCL_OK;
 }
 
 void TclCmdInputWidget::keyPressEvent(QKeyEvent* e)
@@ -108,63 +141,34 @@ void TclCmdInputWidget::keyPressEvent(QKeyEvent* e)
 
   // handle completer if it is visible
   if (completer_ != nullptr && completer_->popup()->isVisible()) {
-      // The following keys are forwarded by the completer to the widget
-    if (key == Qt::Key_Enter ||
-        key == Qt::Key_Return ||
-        key == Qt::Key_Escape ||
-        key == Qt::Key_Tab ||
-        key == Qt::Key_Backtab) {
+    // The following keys are forwarded by the completer to the widget
+    if (key == Qt::Key_Enter || key == Qt::Key_Return || key == Qt::Key_Escape
+        || key == Qt::Key_Tab || key == Qt::Key_Backtab) {
       // let the completer do default behavior
       e->ignore();
       return;
     }
   }
 
-  // handle regular command typing
-  bool has_control = e->modifiers().testFlag(Qt::ControlModifier);
-  if (key == Qt::Key_Enter || key == Qt::Key_Return) {
-    // Handle enter
-    if (has_control) {
-      // don't execute just insert the newline
-      // does not get inserted by Qt, so manually inserting
-      insertPlainText("\n");
-      return;
-    } else {
-      // Check if command complete and attempt to execute, otherwise do nothing
-      if (isCommandComplete(toPlainText().simplified().toStdString())) {
-        // execute command
-        emit completeCommand(text());
-        return;
-      }
-    }
-  } else if (key == Qt::Key_Down) {
-    // Handle down through history
-    // control+down immediate
-    if ((!textCursor().hasSelection() && !textCursor().movePosition(QTextCursor::Down))
-        || has_control) {
-      emit historyGoForward();
-      return;
-    }
-  } else if (key == Qt::Key_Up) {
-    // Handle up through history
-    // control+up immediate
-    if ((!textCursor().hasSelection() && !textCursor().movePosition(QTextCursor::Up))
-        || has_control) {
-      emit historyGoBack();
-      return;
-    }
+  if (handleHistoryKeyPress(e)) {
+    return;
   }
+
+  if (handleEnterKeyPress(e)) {
+    return;
+  }
+
+  const bool has_control = e->modifiers().testFlag(Qt::ControlModifier);
 
   // handle completer
   if (completer_ == nullptr) {
     // no completer
-    QPlainTextEdit::keyPressEvent(e);
-  }
-  else {
-    bool is_completer_shortcut = has_control && key == Qt::Key_E; // CTRL+E
+    CmdInputWidget::keyPressEvent(e);
+  } else {
+    bool is_completer_shortcut = has_control && key == Qt::Key_E;  // CTRL+E
     if (!is_completer_shortcut) {
       // forward keypress if it is not the completer shortcut
-      QPlainTextEdit::keyPressEvent(e);
+      CmdInputWidget::keyPressEvent(e);
     }
 
     if (e->text().isEmpty()) {
@@ -176,38 +180,38 @@ void TclCmdInputWidget::keyPressEvent(QKeyEvent* e)
     const swig_class* swig_type = swigBeforeCursor();
     bool is_variable = completion_prefix.startsWith("$");
     bool is_argument = completion_prefix.startsWith("-");
-    bool is_swig     = swig_type != nullptr;
+    bool is_swig = swig_type != nullptr;
 
-    bool show_popup = is_completer_shortcut; // shortcut enabled it
-    show_popup |= completion_prefix.length() >= completer_mimimum_length_; // minimum length
-    show_popup |= is_argument; // is argument
-    show_popup |= is_variable; // is variable
-    show_popup |= is_swig;     // is swig argument
+    bool show_popup = is_completer_shortcut;  // shortcut enabled it
+    show_popup |= completion_prefix.length()
+                  >= completer_mimimum_length_;  // minimum length
+    show_popup |= is_argument;                   // is argument
+    show_popup |= is_variable;                   // is variable
+    show_popup |= is_swig;                       // is swig argument
     if (!show_popup) {
       completer_->popup()->hide();
-    }
-    else {
+    } else {
       if (completion_prefix != completer_->completionPrefix()) {
         // prefix changed
         completer_->setCompletionPrefix(completion_prefix);
-        completer_->popup()->setCurrentIndex(completer_->completionModel()->index(0, 0));
+        completer_->popup()->setCurrentIndex(
+            completer_->completionModel()->index(0, 0));
 
         if (is_variable) {
           // complete with variables
           setCompleterVariables();
-        }
-        else {
-          TclCmdUserData* block_data = static_cast<TclCmdUserData*>(textCursor().block().userData());
+        } else {
+          TclCmdUserData* block_data
+              = static_cast<TclCmdUserData*>(textCursor().block().userData());
           if (is_argument && block_data != nullptr) {
             // get command arguments
             setCompleterArguments(block_data->commands);
-          }
-          else {
+          } else {
             if (is_swig) {
-              // previous item was of swig type, so complete with arguments for that type
+              // previous item was of swig type, so complete with arguments for
+              // that type
               setCompleterSWIG(swig_type);
-            }
-            else {
+            } else {
               // default to just commands
               setCompleterCommands();
             }
@@ -215,14 +219,16 @@ void TclCmdInputWidget::keyPressEvent(QKeyEvent* e)
         }
       }
 
-      // check if only one thing matches and its a complete match, then no need to show
-      if (completer_->completionCount() == 1 &&
-          completer_->currentCompletion() == completer_->completionPrefix()) {
+      // check if only one thing matches and its a complete match, then no need
+      // to show
+      if (completer_->completionCount() == 1
+          && completer_->currentCompletion()
+                 == completer_->completionPrefix()) {
         completer_->popup()->hide();
-      }
-      else {
+      } else {
         QRect cr = cursorRect();
-        cr.setWidth(completer_->popup()->sizeHintForColumn(0)
+        cr.setWidth(
+            completer_->popup()->sizeHintForColumn(0)
             + completer_->popup()->verticalScrollBar()->sizeHint().width());
         completer_->complete(cr);
       }
@@ -239,10 +245,10 @@ void TclCmdInputWidget::keyReleaseEvent(QKeyEvent* e)
     emit textChanged();
   }
 
-  QPlainTextEdit::keyReleaseEvent(e);
+  CmdInputWidget::keyReleaseEvent(e);
 }
 
-bool TclCmdInputWidget::isCommandComplete(const std::string& cmd)
+bool TclCmdInputWidget::isCommandComplete(const std::string& cmd) const
 {
   if (cmd.empty()) {
     return false;
@@ -256,77 +262,24 @@ bool TclCmdInputWidget::isCommandComplete(const std::string& cmd)
   return Tcl_CommandComplete(cmd.c_str());
 }
 
-// Slot to announce command executed
-void TclCmdInputWidget::commandExecuted(int return_code)
-{
-  if (return_code == TCL_OK) {
-    clear();
-  }
-}
-
-// Update the size of the widget to match text
-void TclCmdInputWidget::updateSize()
-{
-  int height = document()->size().toSize().height();
-  if (height < 1) {
-    height = 1; // ensure minimum is 1 line
-  }
-
-  // in px
-  int desired_height = height * line_height_ + document_margins_;
-
-  if (desired_height > max_height_) {
-    desired_height = max_height_; // ensure maximum from Qt suggestion
-  }
-
-  setFixedHeight(desired_height);
-
-  ensureCursorVisible();
-}
-
-// Handle dragged and drop script files
-void TclCmdInputWidget::dragEnterEvent(QDragEnterEvent* event)
-{
-  if (event->mimeData()->text().startsWith("file://")) {
-    event->accept();
-  }
-}
-
-void TclCmdInputWidget::dropEvent(QDropEvent* event)
-{
-  if (event->mimeData()->text().startsWith("file://")) {
-    event->accept();
-
-    // replace the content in the text area with the file
-    QFile drop_file(event->mimeData()->text().remove(0, 7).simplified());
-    if (drop_file.open(QIODevice::ReadOnly)) {
-      QTextStream file_data(&drop_file);
-      setText(file_data.readAll());
-      drop_file.close();
-    }
-  }
-}
-
 // setup syntax highlighter
-void TclCmdInputWidget::init(Tcl_Interp* interp)
+void TclCmdInputWidget::init()
 {
-  interp_ = interp;
-
   initOpenRoadCommands();
 
   const char* start_of_command = "(?:^|(?<=(?:\\s|\\[|\\{)))";
   const char* end_of_command = "(?:$|(?=(?:\\s|\\]|\\})))";
 
   // setup highlighter
-  highlighter_ = std::make_unique<TclCmdHighlighter>(document(),
-                                                     commands_,
-                                                     start_of_command,
-                                                     end_of_command);
+  highlighter_ = std::make_unique<TclCmdHighlighter>(
+      document(), commands_, start_of_command, end_of_command);
   updateHighlighting();
 
   // setup command completer
-  completer_start_of_command_ = std::make_unique<QRegularExpression>(start_of_command);
-  completer_end_of_command_ = std::make_unique<QRegularExpression>(end_of_command);
+  completer_start_of_command_
+      = std::make_unique<QRegularExpression>(start_of_command);
+  completer_end_of_command_
+      = std::make_unique<QRegularExpression>(end_of_command);
 
   // initialize the commands completion
   completer_commands_ = std::make_unique<QStringList>();
@@ -335,8 +288,7 @@ void TclCmdInputWidget::init(Tcl_Interp* interp)
   for (const auto& [cmd, or_cmd, args] : commands_) {
     if (or_cmd) {
       completer_commands_->append(cmd.c_str());
-    }
-    else {
+    } else {
       namespaces.append(cmd.c_str());
     }
   }
@@ -348,36 +300,9 @@ void TclCmdInputWidget::init(Tcl_Interp* interp)
   updateCompletion();
 }
 
-// replicate QLineEdit function
-QString TclCmdInputWidget::text()
+void TclCmdInputWidget::contextMenuEvent(QContextMenuEvent* event)
 {
-  return toPlainText();
-}
-
-// replicate QLineEdit function
-void TclCmdInputWidget::setText(const QString& text)
-{
-  setPlainText(text);
-  emit textChanged();
-}
-
-void TclCmdInputWidget::setMaximumHeight(int height)
-{
-  int min_height = line_height_ + document_margins_; // atleast one line
-  if (height < min_height) {
-    height = min_height;
-  }
-
-  // save max height, since it's overwritten by setFixedHeight
-  max_height_ = height;
-  QPlainTextEdit::setMaximumHeight(height);
-
-  updateSize();
-}
-
-void TclCmdInputWidget::contextMenuEvent(QContextMenuEvent *event)
-{
-    context_menu_->exec(event->globalPos());
+  context_menu_->exec(event->globalPos());
 }
 
 void TclCmdInputWidget::updateHighlighting()
@@ -385,8 +310,7 @@ void TclCmdInputWidget::updateHighlighting()
   if (highlighter_ != nullptr) {
     if (enable_highlighting_->isChecked()) {
       highlighter_->setDocument(document());
-    }
-    else {
+    } else {
       highlighter_->setDocument(nullptr);
     }
   }
@@ -407,10 +331,11 @@ void TclCmdInputWidget::updateCompletion()
 
     setCompleterCommands();
 
-    connect(completer_.get(), QOverload<const QString&>::of(&QCompleter::activated),
-            this, &TclCmdInputWidget::insertCompletion);
-  }
-  else {
+    connect(completer_.get(),
+            qOverload<const QString&>(&QCompleter::activated),
+            this,
+            &TclCmdInputWidget::insertCompletion);
+  } else {
     if (completer_ != nullptr) {
       completer_->disconnect(this);
 
@@ -423,16 +348,24 @@ void TclCmdInputWidget::updateCompletion()
 void TclCmdInputWidget::readSettings(QSettings* settings)
 {
   settings->beginGroup(objectName());
-  enable_highlighting_->setChecked(settings->value(enable_highlighting_keyword_, true).toBool());
-  enable_completion_->setChecked(settings->value(enable_completion_keyword_, true).toBool());
+  CmdInputWidget::readSettings(settings);
+
+  enable_highlighting_->setChecked(
+      settings->value(enable_highlighting_keyword_, true).toBool());
+  enable_completion_->setChecked(
+      settings->value(enable_completion_keyword_, true).toBool());
   settings->endGroup();
 }
 
 void TclCmdInputWidget::writeSettings(QSettings* settings)
 {
   settings->beginGroup(objectName());
-  settings->setValue(enable_highlighting_keyword_, enable_highlighting_->isChecked());
-  settings->setValue(enable_completion_keyword_, enable_completion_->isChecked());
+  CmdInputWidget::writeSettings(settings);
+
+  settings->setValue(enable_highlighting_keyword_,
+                     enable_highlighting_->isChecked());
+  settings->setValue(enable_completion_keyword_,
+                     enable_completion_->isChecked());
   settings->endGroup();
 }
 
@@ -443,16 +376,14 @@ void TclCmdInputWidget::parseOpenRoadArguments(const char* or_args,
   std::regex arg_matcher("\\-[a-zA-Z0-9_]+");
   std::string local_or_args = or_args;
 
-  std::regex_iterator<std::string::iterator> args_it(local_or_args.begin(),
-                                                     local_or_args.end(),
-                                                     arg_matcher);
+  std::regex_iterator<std::string::iterator> args_it(
+      local_or_args.begin(), local_or_args.end(), arg_matcher);
   std::regex_iterator<std::string::iterator> args_end;
   while (args_it != args_end) {
     args.insert(args_it->str());
     ++args_it;
   }
 }
-
 
 void TclCmdInputWidget::initOpenRoadCommands()
 {
@@ -463,7 +394,8 @@ void TclCmdInputWidget::initOpenRoadCommands()
     Tcl_Obj* cmd_names = Tcl_GetObjResult(interp_);
     int cmd_size;
     Tcl_Obj** cmds_objs;
-    if (Tcl_ListObjGetElements(interp_, cmd_names, &cmd_size, &cmds_objs) == TCL_OK) {
+    if (Tcl_ListObjGetElements(interp_, cmd_names, &cmd_size, &cmds_objs)
+        == TCL_OK) {
       for (int i = 0; i < cmd_size; i++) {
         commands_.push_back({Tcl_GetString(cmds_objs[i]), true, {}});
       }
@@ -472,10 +404,9 @@ void TclCmdInputWidget::initOpenRoadCommands()
 
   // create highlighting for commands and associated arguments
   for (auto& [cmd, ns, args] : commands_) {
-    parseOpenRoadArguments(Tcl_GetVar2(interp_,
-                                       "sta::cmd_args",
-                                       cmd.c_str(),
-                                       TCL_LEAVE_ERR_MSG), args);
+    parseOpenRoadArguments(
+        Tcl_GetVar2(interp_, "sta::cmd_args", cmd.c_str(), TCL_LEAVE_ERR_MSG),
+        args);
   }
 
   // get namespaces
@@ -489,7 +420,8 @@ void TclCmdInputWidget::initOpenRoadCommands()
       Tcl_Obj* cmd_names = Tcl_GetObjResult(interp_);
       int cmd_size;
       Tcl_Obj** cmds_objs;
-      if (Tcl_ListObjGetElements(interp_, cmd_names, &cmd_size, &cmds_objs) == TCL_OK) {
+      if (Tcl_ListObjGetElements(interp_, cmd_names, &cmd_size, &cmds_objs)
+          == TCL_OK) {
         for (int i = 0; i < cmd_size; i++) {
           std::string cmd = Tcl_GetString(cmds_objs[i]);
           // remove leading ::
@@ -509,7 +441,8 @@ void TclCmdInputWidget::collectNamespaces(std::set<std::string>& namespaces)
     Tcl_Obj* ns = Tcl_GetObjResult(interp_);
     int namespace_size;
     Tcl_Obj** namespace_objs;
-    if (Tcl_ListObjGetElements(interp_, ns, &namespace_size, &namespace_objs) == TCL_OK) {
+    if (Tcl_ListObjGetElements(interp_, ns, &namespace_size, &namespace_objs)
+        == TCL_OK) {
       for (int i = 0; i < namespace_size; i++) {
         namespaces.insert(Tcl_GetString(namespace_objs[i]));
       }
@@ -537,7 +470,8 @@ void TclCmdInputWidget::collectSWIGArguments()
         std::unique_ptr<QStringList> methods = std::make_unique<QStringList>();
 
         // loop through methods for each class to collect method names
-        for (swig_method* meth = cls->methods; meth != nullptr && meth->name; ++meth) {
+        for (swig_method* meth = cls->methods; meth != nullptr && meth->name;
+             ++meth) {
           methods->append(meth->name);
         }
 
@@ -561,8 +495,7 @@ void TclCmdInputWidget::setCompleterCommands()
   for (const QString& cmd : *completer_commands_) {
     if (add_colons) {
       options.append("::" + cmd);
-    }
-    else {
+    } else {
       options.append(cmd);
     }
   }
@@ -591,7 +524,8 @@ void TclCmdInputWidget::setCompleterArguments(const std::set<int>& cmds)
 
 void TclCmdInputWidget::setCompleterVariables()
 {
-  const std::string prefix = completer_->completionPrefix().mid(1).toStdString();
+  const std::string prefix
+      = completer_->completionPrefix().mid(1).toStdString();
 
   // fill with arguments
   QStringList variables;
@@ -600,8 +534,10 @@ void TclCmdInputWidget::setCompleterVariables()
 
   std::string tcl_cmd = "info vars " + prefix;
   // check if prefix ends with ":" and append ":" to complete namespace
-  if (!prefix.empty() && prefix.back() == ':' && // check if ends with :
-      (prefix.length() == 1 || prefix[prefix.length()-2] != ':')  ) { // check if is does not end with ::
+  if (!prefix.empty() && prefix.back() == ':' &&  // check if ends with :
+      (prefix.length() == 1
+       || prefix[prefix.length() - 2]
+              != ':')) {  // check if is does not end with ::
     tcl_cmd += ":";
   }
   tcl_cmd += "*";
@@ -610,7 +546,8 @@ void TclCmdInputWidget::setCompleterVariables()
     Tcl_Obj* var_names = Tcl_GetObjResult(interp_);
     int var_size;
     Tcl_Obj** vars_objs;
-    if (Tcl_ListObjGetElements(interp_, var_names, &var_size, &vars_objs) == TCL_OK) {
+    if (Tcl_ListObjGetElements(interp_, var_names, &var_size, &vars_objs)
+        == TCL_OK) {
       for (int i = 0; i < var_size; i++) {
         std::string var = Tcl_GetString(vars_objs[i]);
 
@@ -667,16 +604,18 @@ const QString TclCmdInputWidget::wordUnderCursor()
   cursor.select(QTextCursor::LineUnderCursor);
   const QString line = cursor.selectedText();
 
-  int start_of_word = line.lastIndexOf(*completer_start_of_command_.get(), cursor_position);
+  int start_of_word
+      = line.lastIndexOf(*completer_start_of_command_.get(), cursor_position);
   if (start_of_word == -1) {
     start_of_word = 0;
   }
-  int end_of_word   = line.indexOf(*completer_end_of_command_.get(), cursor_position);
+  int end_of_word
+      = line.indexOf(*completer_end_of_command_.get(), cursor_position);
   if (end_of_word == -1) {
     end_of_word = line.length();
   }
 
-  return line.mid(start_of_word, end_of_word-start_of_word);
+  return line.mid(start_of_word, end_of_word - start_of_word);
 }
 
 const swig_class* TclCmdInputWidget::swigBeforeCursor()
@@ -687,21 +626,25 @@ const swig_class* TclCmdInputWidget::swigBeforeCursor()
   cursor.select(QTextCursor::LineUnderCursor);
   const QString line = cursor.selectedText();
 
-  int end_of_word  = line.lastIndexOf(*completer_end_of_command_.get(), cursor_position - 1);
+  int end_of_word
+      = line.lastIndexOf(*completer_end_of_command_.get(), cursor_position - 1);
   if (end_of_word == -1) {
     end_of_word = 0;
   }
-  int start_of_word = line.lastIndexOf(*completer_start_of_command_.get(), end_of_word);
+  int start_of_word
+      = line.lastIndexOf(*completer_start_of_command_.get(), end_of_word);
   if (start_of_word == -1) {
     start_of_word = 0;
   }
 
-  const QString word = line.mid(start_of_word, end_of_word-start_of_word).trimmed();
+  const QString word
+      = line.mid(start_of_word, end_of_word - start_of_word).trimmed();
   const QString remainder = line.right(line.length() - end_of_word).trimmed();
 
   if (!remainder.isEmpty()) {
     const std::regex word_regex("^\\w+");
-    // check if remainder contains a non-word character, if yes, then it's not swig
+    // check if remainder contains a non-word character, if yes, then it's not
+    // swig
     if (!std::regex_search(remainder.toStdString(), word_regex)) {
       return nullptr;
     }
@@ -710,7 +653,8 @@ const swig_class* TclCmdInputWidget::swigBeforeCursor()
   std::string variable_content = word.toStdString();
   if (word.startsWith("$")) {
     // variable
-    const char* var_content = Tcl_GetVar(interp_, variable_content.substr(1).c_str(), TCL_GLOBAL_ONLY);
+    const char* var_content = Tcl_GetVar(
+        interp_, variable_content.substr(1).c_str(), TCL_GLOBAL_ONLY);
 
     if (var_content == nullptr) {
       // invalid variable
@@ -735,6 +679,51 @@ const swig_class* TclCmdInputWidget::swigBeforeCursor()
   }
 
   return nullptr;
+}
+
+void TclCmdInputWidget::executeCommand(const QString& cmd,
+                                       bool echo,
+                                       bool silent)
+{
+  if (cmd.isEmpty()) {
+    return;
+  }
+
+  if (echo && !silent) {
+    // Show the command that we executed
+    emit addCommandToOutput(cmd);
+  }
+
+  emit commandAboutToExecute();
+  QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+
+  const std::string command = cmd.toStdString();
+
+  const int return_code = Tcl_Eval(interp_, command.c_str());
+  const bool is_ok = return_code == TCL_OK;
+
+  if (!silent) {
+    // Show its output
+    processTclResult(is_ok);
+
+    if (is_ok) {
+      // record the successful command to tcl history command
+      Tcl_RecordAndEval(interp_, command.c_str(), TCL_NO_EVAL);
+      addCommandToHistory(QString::fromStdString(command));
+    }
+  } else {
+    if (!is_ok) {
+      // Show output on error despite silent
+      processTclResult(is_ok);
+    }
+  }
+
+  emit commandFinishedExecuting(is_ok);
+}
+
+void TclCmdInputWidget::processTclResult(bool is_ok)
+{
+  emit addResultToOutput(Tcl_GetString(Tcl_GetObjResult(interp_)), is_ok);
 }
 
 }  // namespace gui

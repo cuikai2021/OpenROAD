@@ -51,29 +51,20 @@ namespace bdata = boost::unit_test::data;
 // Fixture for GC tests
 struct GCFixture : public Fixture
 {
-  GCFixture() : worker(design->getTech(), logger.get())
-  {
-    auto db = odb::dbDatabase::create();
-    tech = odb::dbTech::create(db);
-  }
+  GCFixture() : worker(design->getTech(), logger.get()) {}
 
   void testMarker(frMarker* marker,
                   frLayerNum layer_num,
                   frConstraintTypeEnum type,
                   const Rect& expected_bbox)
   {
-    Rect bbox;
-    marker->getBBox(bbox);
+    Rect bbox = marker->getBBox();
 
     BOOST_TEST(marker->getLayerNum() == layer_num);
     BOOST_TEST(marker->getConstraint());
     TEST_ENUM_EQUAL(marker->getConstraint()->typeId(), type);
 
-    // TODO this expression can't be evaluated directly likely due to lack of
-    // iostream support in odb. Try removing this workaround after dbStreams are
-    // replaced with iostreams
-    bool test = (bbox == expected_bbox);
-    BOOST_TEST(test);
+    BOOST_TEST(bbox == expected_bbox);
   }
 
   void runGC()
@@ -92,7 +83,6 @@ struct GCFixture : public Fixture
   }
 
   FlexGCWorker worker;
-  odb::dbTech* tech;
 };
 
 BOOST_FIXTURE_TEST_SUITE(gc, GCFixture);
@@ -150,7 +140,7 @@ BOOST_AUTO_TEST_CASE(metal_short_obs)
   instTerm->addToNet(n1);
 
   n1->addInstTerm(instTerm);
-  auto instTermNode = make_unique<frNode>();
+  auto instTermNode = std::make_unique<frNode>();
   instTermNode->setPin(instTerm);
   instTermNode->setType(frNodeTypeEnum::frcPin);
   n1->addNode(instTermNode);
@@ -200,6 +190,38 @@ BOOST_AUTO_TEST_CASE(metal_non_sufficient)
              2,
              frConstraintTypeEnum::frcNonSufficientMetalConstraint,
              Rect(0, 0, 50, 50));
+}
+
+// Path seg less than min width flags a violation
+BOOST_DATA_TEST_CASE(min_cut,
+                     (bdata::make({1000, 199}) ^ bdata::make({false, true})),
+                     spacing,
+                     legal)
+{
+  // Setup
+  addLayer(design->getTech(), "v2", dbTechLayerType::CUT);
+  addLayer(design->getTech(), "m2", dbTechLayerType::ROUTING);
+  makeMinimumCut(2, 200, 200, spacing);
+  frNet* n1 = makeNet("n1");
+  frViaDef* vd1 = makeViaDef("v1", 3, {0, 0}, {200, 200});
+  makeVia(vd1, n1, {0, 0});
+  makePathseg(n1, 2, {0, 100}, {200, 100}, 200);
+  makePathseg(n1, 2, {200, 100}, {400, 100}, 100);
+  frViaDef* vd2 = makeViaDef("v2", 3, {0, 0}, {100, 100});
+  makeVia(vd2, n1, {400, 50});
+  runGC();
+
+  // Test the results
+  auto& markers = worker.getMarkers();
+  if (legal)
+    BOOST_TEST(markers.size() == 0);
+  else {
+    BOOST_TEST(markers.size() == 1);
+    testMarker(markers[0].get(),
+               2,
+               frConstraintTypeEnum::frcMinimumcutConstraint,
+               Rect(200, 50, 400, 150));
+  }
 }
 
 // Path seg less than min width flags a violation
@@ -317,6 +339,22 @@ BOOST_AUTO_TEST_CASE(corner_prl_no_violation)
   BOOST_TEST(worker.getMarkers().size() == 0);
 }
 
+BOOST_DATA_TEST_CASE(corner_to_corner, bdata::make({true, false}), legal)
+{
+  // Setup
+  auto con = makeCornerConstraint(2);
+  con->setCornerToCorner(legal);
+
+  frNet* n1 = makeNet("n1");
+  makePathseg(n1, 2, {0, 0}, {200, 0});
+  makePathseg(n1, 2, {350, 250}, {1000, 250});
+
+  runGC();
+
+  // Test the results
+  BOOST_TEST(worker.getMarkers().size() == (legal ? 0 : 1));
+}
+
 // Check violation for corner spacing on a concave corner
 BOOST_AUTO_TEST_CASE(corner_concave, *boost::unit_test::disabled())
 {
@@ -388,6 +426,14 @@ BOOST_DATA_TEST_CASE(spacing_prl,
 BOOST_DATA_TEST_CASE(design_rule_width, bdata::make({true, false}), legal)
 {
   // Setup
+  auto dbLayer = db_tech->findLayer("m1");
+  dbLayer->initTwoWidths(2);
+  dbLayer->addTwoWidthsIndexEntry(90);
+  dbLayer->addTwoWidthsIndexEntry(190);
+  dbLayer->addTwoWidthsSpacingTableEntry(0, 0, 0);
+  dbLayer->addTwoWidthsSpacingTableEntry(0, 1, 50);
+  dbLayer->addTwoWidthsSpacingTableEntry(1, 0, 50);
+  dbLayer->addTwoWidthsSpacingTableEntry(1, 1, 150);
   makeSpacingTableTwConstraint(2, {90, 190}, {-1, -1}, {{0, 50}, {50, 100}});
   /*
   WIDTH  90     0      50
@@ -569,6 +615,14 @@ BOOST_AUTO_TEST_CASE(spacing_table_infl_horizontal)
 BOOST_AUTO_TEST_CASE(spacing_table_twowidth)
 {
   // Setup
+  auto dbLayer = db_tech->findLayer("m1");
+  dbLayer->initTwoWidths(2);
+  dbLayer->addTwoWidthsIndexEntry(90);
+  dbLayer->addTwoWidthsIndexEntry(190);
+  dbLayer->addTwoWidthsSpacingTableEntry(0, 0, 0);
+  dbLayer->addTwoWidthsSpacingTableEntry(0, 1, 50);
+  dbLayer->addTwoWidthsSpacingTableEntry(1, 0, 50);
+  dbLayer->addTwoWidthsSpacingTableEntry(1, 1, 150);
   makeSpacingTableTwConstraint(2, {90, 190}, {-1, -1}, {{0, 50}, {50, 100}});
 
   frNet* n1 = makeNet("n1");
@@ -620,7 +674,7 @@ BOOST_AUTO_TEST_CASE(eol_endtoend)
   // Setup
   auto con = makeLef58SpacingEolConstraint(2);
   auto endToEnd
-      = make_shared<frLef58SpacingEndOfLineWithinEndToEndConstraint>();
+      = std::make_shared<frLef58SpacingEndOfLineWithinEndToEndConstraint>();
   con->getWithinConstraint()->setEndToEndConstraint(endToEnd);
   endToEnd->setEndToEndSpace(300);
   con->getWithinConstraint()->setSameMask(true);
@@ -640,6 +694,25 @@ BOOST_AUTO_TEST_CASE(eol_endtoend)
              frConstraintTypeEnum::frcLef58SpacingEndOfLineConstraint,
              Rect(100, 0, 350, 100));
 }
+
+BOOST_AUTO_TEST_CASE(eol_wrongdirspc)
+{
+  // Setup
+  auto con = makeLef58SpacingEolConstraint(2);
+  con->setWrongDirSpace(100);
+  db_tech->findLayer("m1")->setDirection(odb::dbTechLayerDir::VERTICAL);
+  frNet* n1 = makeNet("n1");
+
+  makePathseg(n1, 2, {0, 50}, {100, 50});
+  makePathseg(n1, 2, {250, 50}, {1000, 50});
+
+  runGC();
+
+  // Test the results
+  auto& markers = worker.getMarkers();
+  BOOST_TEST(markers.size() == 0);
+}
+
 BOOST_DATA_TEST_CASE(eol_ext_basic,
                      (bdata::make({30, 50})) ^ (bdata::make({true, false})),
                      ext,
@@ -667,6 +740,46 @@ BOOST_DATA_TEST_CASE(eol_ext_basic,
                  frConstraintTypeEnum::frcLef58EolExtensionConstraint,
                  Rect(500, 50, 690, 150));
   }
+}
+
+BOOST_AUTO_TEST_CASE(eol_prlend)
+{
+  // Setup
+  makeLef58SpacingEolConstraint(2,    // layer_num
+                                200,  // space
+                                200,  // width
+                                50,   // within
+                                400,  // end_prl_spacing
+                                50);  // end_prl
+
+  frNet* n1 = makeNet("n1");
+
+  makePathseg(n1, 2, {0, 50}, {100, 50});
+  makePathseg(n1, 2, {320, 100}, {1000, 100});
+
+  // Test if you have a non-prl case when you have prl rule
+  // this yields no violation
+  makePathseg(n1, 2, {0, 500}, {100, 500});
+  makePathseg(n1, 2, {320, 500}, {1000, 500});
+
+  // Test if you have a non-prl case when you have prl rule
+  // this still yields a violation
+  makePathseg(n1, 2, {0, 1000}, {100, 1000});
+  makePathseg(n1, 2, {220, 1000}, {1000, 1000});
+
+  runGC();
+
+  // Test the results
+  auto& markers = worker.getMarkers();
+  BOOST_TEST(markers.size() == 2);
+  testMarker(markers[0].get(),
+             2,
+             frConstraintTypeEnum::frcLef58SpacingEndOfLineConstraint,
+             Rect(100, 50, 320, 100));
+  testMarker(markers[1].get(),
+             2,
+             frConstraintTypeEnum::frcLef58SpacingEndOfLineConstraint,
+             Rect(100, 950, 220, 1050));
 }
 
 BOOST_DATA_TEST_CASE(eol_ext_paronly, (bdata::make({true, false})), parOnly)
@@ -850,17 +963,17 @@ BOOST_DATA_TEST_CASE(eol_min_max,
                  // eolSpacing to be neglected
   {
     if (max && legal)
-      y += 10;  // right(510) > max(500) --> minMax violated --> legal
+      y += 10;  // right(510) > std::max(500) --> minMax violated --> legal
     else if (!max && !legal)
-      y += 100;      // right(600) & left(500) >= min(500) --> minMax is met
-                     // --> illegal
+      y += 100;  // right(600) & left(500) >= std::min(500) --> minMax is met
+                 // --> illegal
   } else if (legal)  // both sides need to violate minMax to have no
                      // eolSpacing violations
   {
     if (max)
-      y += 110;  // right(610) & left(510) > max(500)
+      y += 110;  // right(610) & left(510) > std::max(500)
     else
-      y -= 10;  // right(490) & left(390) < min(500)
+      y -= 10;  // right(490) & left(390) < std::min(500)
   }
   makePathseg(n1, 2, {500, 0}, {500, y});
   makePathseg(n1, 2, {0, 700}, {1000, 700});
@@ -909,15 +1022,13 @@ BOOST_DATA_TEST_CASE(eol_enclose_cut,
   }
 }
 
-BOOST_DATA_TEST_CASE(cut_spc_tbl,
-                    (bdata::make({true, false})),
-                    viol)
+BOOST_DATA_TEST_CASE(cut_spc_tbl, (bdata::make({true, false})), viol)
 {
   // Setup
   addLayer(design->getTech(), "v2", dbTechLayerType::CUT);
   addLayer(design->getTech(), "m2", dbTechLayerType::ROUTING);
   makeCutClass(3, "Vx", 100, 200);
-  auto layer = odb::dbTechLayer::create(tech, "v2", odb::dbTechLayerType::CUT);
+  auto layer = db_tech->findLayer("v2");
   auto dbRule = odb::dbTechLayerCutSpacingTableDefRule::create(layer);
   dbRule->setDefault(100);
   dbRule->setVertical(true);
@@ -953,7 +1064,7 @@ BOOST_DATA_TEST_CASE(cut_spc_tbl,
 }
 
 BOOST_DATA_TEST_CASE(cut_spc_tbl_ex_aligned,
-                     (bdata::make({0, 1})) ^ (bdata::make({1, 0})),
+                     (bdata::make({0, 10})) ^ (bdata::make({1, 0})),
                      x,
                      viol)
 {
@@ -961,7 +1072,7 @@ BOOST_DATA_TEST_CASE(cut_spc_tbl_ex_aligned,
   addLayer(design->getTech(), "v2", dbTechLayerType::CUT);
   addLayer(design->getTech(), "m2", dbTechLayerType::ROUTING);
   makeCutClass(3, "Vx", 100, 100);
-  auto layer = odb::dbTechLayer::create(tech, "v2", odb::dbTechLayerType::CUT);
+  auto layer = db_tech->findLayer("v2");
   auto dbRule = odb::dbTechLayerCutSpacingTableDefRule::create(layer);
   dbRule->setDefault(200);
   dbRule->addExactElignedEntry("Vx", 250);
@@ -979,6 +1090,187 @@ BOOST_DATA_TEST_CASE(cut_spc_tbl_ex_aligned,
   auto& markers = worker.getMarkers();
 
   BOOST_TEST(markers.size() == viol);
+}
+
+BOOST_AUTO_TEST_CASE(metal_width_via_map)
+{
+  // Setup
+  addLayer(design->getTech(), "v2", dbTechLayerType::CUT);
+  addLayer(design->getTech(), "m2", dbTechLayerType::ROUTING);
+  frViaDef* vd_bar = makeViaDef("V2_BAR", 3, {0, 0}, {100, 100});
+  frViaDef* vd_large = makeViaDef("V2_LARGE", 3, {0, 0}, {200, 200});
+
+  auto db_layer = db_tech->findLayer("v2");
+  auto dbRule = odb::dbMetalWidthViaMap::create(db_tech);
+  dbRule->setAboveLayerWidthLow(300);
+  dbRule->setAboveLayerWidthHigh(300);
+  dbRule->setBelowLayerWidthLow(300);
+  dbRule->setBelowLayerWidthHigh(300);
+  dbRule->setCutLayer(db_layer);
+  dbRule->setViaName("V2_LARGE");
+
+  makeMetalWidthViaMap(3, dbRule);
+
+  frNet* n1 = makeNet("n1");
+  makePathseg(n1, 2, {0, 150}, {1000, 150}, 300);
+  makePathseg(n1, 4, {0, 150}, {1000, 150}, 300);
+  makeVia(vd_bar, n1, {100, 0});
+  makeVia(vd_large, n1, {300, 0});
+  runGC();
+
+  // Test the results
+  auto& markers = worker.getMarkers();
+
+  BOOST_TEST(markers.size() == 1);
+  testMarker(markers[0].get(),
+             3,
+             frConstraintTypeEnum::frcMetalWidthViaConstraint,
+             Rect(100, 0, 200, 100));
+}
+
+BOOST_DATA_TEST_CASE(cut_spc_parallel_overlap,
+                     (bdata::make({100, 50}) ^ bdata::make({false, true})),
+                     spacing,
+                     legal)
+{
+  // Setup
+  addLayer(design->getTech(), "v2", dbTechLayerType::CUT);
+  addLayer(design->getTech(), "m2", dbTechLayerType::ROUTING);
+  frViaDef* vd_bar = makeViaDef("V2_BAR", 3, {0, 0}, {100, 100});
+
+  makeLef58CutSpacingConstraint_parallelOverlap(3, spacing);
+
+  frNet* n1 = makeNet("n1");
+  frNet* n2 = makeNet("n2");
+  makeVia(vd_bar, n1, {0, 0});
+  makeVia(vd_bar, n2, {150, 0});
+  runGC();
+
+  // // Test the results
+  auto& markers = worker.getMarkers();
+  if (legal) {
+    BOOST_TEST(markers.size() == 0);
+  } else {
+    BOOST_TEST(markers.size() == 1);
+  }
+  if (!markers.empty()) {
+    testMarker(markers[0].get(),
+               3,
+               frConstraintTypeEnum::frcLef58CutSpacingConstraint,
+               Rect(100, 0, 150, 100));
+  }
+}
+
+BOOST_DATA_TEST_CASE(cut_spc_adjacent_cuts, (bdata::make({true, false})), lef58)
+{
+  // Setup
+  addLayer(design->getTech(), "v2", dbTechLayerType::CUT);
+  addLayer(design->getTech(), "m2", dbTechLayerType::ROUTING);
+  makeCutClass(3, "VA", 110, 110);
+  if (lef58) {
+    makeLef58CutSpacingConstraint_adjacentCut(3, 190, 3, 1, 200);
+    frNet* n1 = makeNet("n1");
+    frNet* n2 = makeNet("n2");
+    frNet* n3 = makeNet("n3");
+    frNet* n4 = makeNet("n4");
+    frViaDef* vd = makeViaDef("v", 3, {0, 0}, {110, 110});
+
+    makeVia(vd, n1, {1000, 1000});
+    makeVia(vd, n2, {1000, 820});
+    makeVia(vd, n3, {820, 1000});
+    makeVia(vd, n4, {1000, 1180});
+
+    runGC();
+
+    // Test the results
+    auto& markers = worker.getMarkers();
+
+    BOOST_TEST(markers.size() == 3);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(cut_keepoutzone)
+{
+  // Setup
+  addLayer(design->getTech(), "v2", dbTechLayerType::CUT);
+  addLayer(design->getTech(), "m2", dbTechLayerType::ROUTING);
+  frViaDef* vd_bar = makeViaDef("V2_BAR", 3, {0, 0}, {200, 150});
+  makeCutClass(3, "Vx", 150, 200);
+
+  auto db_layer = db_tech->findLayer("v2");
+  auto dbRule = odb::dbTechLayerKeepOutZoneRule::create(db_layer);
+  dbRule->setFirstCutClass("Vx");
+  dbRule->setEndSideExtension(51);
+  dbRule->setEndForwardExtension(51);
+  dbRule->setSideSideExtension(51);
+  dbRule->setSideForwardExtension(51);
+  makeKeepOutZoneRule(3, dbRule);
+
+  frNet* n1 = makeNet("n1");
+  makeVia(vd_bar, n1, {0, 0});
+  makeVia(vd_bar, n1, {150, 200});
+  runGC();
+
+  // // Test the results
+  auto& markers = worker.getMarkers();
+  BOOST_TEST(markers.size() == 1);
+  testMarker(markers[0].get(),
+             3,
+             frConstraintTypeEnum::frcLef58KeepOutZoneConstraint,
+             Rect(150, 150, 200, 200));
+}
+
+BOOST_DATA_TEST_CASE(route_wrong_direction_spc,
+                     (bdata::make({100, 50, 100, 100})
+                      ^ bdata::make({false, true, true, true})
+                      ^ bdata::make({false, false, true, false})
+                      ^ bdata::make({150, 150, 150, 150})
+                      ^ bdata::make({0, 0, 0, 50})),
+                     spacing,
+                     legal,
+                     noneolValid,
+                     noneolWidth,
+                     prlLength)
+{
+  // Setup
+  auto db_layer = db_tech->findLayer("m1");
+  db_layer->setDirection(odb::dbTechLayerDir::VERTICAL);
+  auto dbRule = odb::dbTechLayerWrongDirSpacingRule::create(db_layer);
+  dbRule->setWrongdirSpace(spacing);
+  if (noneolValid) {
+    dbRule->setNoneolValid(noneolValid);
+    dbRule->setNoneolWidth(noneolWidth);
+  }
+  if (prlLength != 0) {
+    dbRule->setPrlLength(prlLength);
+  }
+
+  makeLef58WrongDirSpcConstraint(2, dbRule);
+
+  frNet* n1 = makeNet("n1");
+  frNet* n2 = makeNet("n2");
+  makePathseg(n1, 2, {0, 50}, {100, 50}, 100);
+  if (prlLength != 0) {
+    makePathseg(n2, 2, {50, 200}, {150, 200}, 100);
+  } else {
+    makePathseg(n2, 2, {0, 200}, {100, 200}, 100);
+  }
+
+  runGC();
+
+  // // Test the results
+  auto& markers = worker.getMarkers();
+  if (legal) {
+    BOOST_TEST(markers.size() == 0);
+  } else {
+    BOOST_TEST(markers.size() == 1);
+  }
+  if (!markers.empty()) {
+    testMarker(markers[0].get(),
+               2,
+               frConstraintTypeEnum::frcLef58SpacingWrongDirConstraint,
+               Rect(0, 100, 100, 150));
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END();

@@ -34,11 +34,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 %{
+#include <cstdint>
+
 #include "cts/TritonCTS.h"
 #include "CtsOptions.h"
 #include "TechChar.h"
+#include "CtsGraphics.h"
 #include "ord/OpenRoad.hh"
-#include "banyan_cts.pb.h"
 
 namespace ord {
 // Defined in OpenRoad.i
@@ -48,41 +50,26 @@ getTritonCts();
 
 using namespace cts;
 using ord::getTritonCts;
-using sta::stringEq;
-using banyan::NetClockLevel;
 %}
 
 %include "../../Exception.i"
+%include "stdint.i"
 
-%typemap(in) NetClockLevel {
-  int length;
-  const char *arg = Tcl_GetStringFromObj($input, &length);
-  if (stringEq(arg, "top"))
-    $1 = NetClockLevel::CLK_LV_TOP;
-  else if (stringEq(arg, "trunk"))
-    $1 = NetClockLevel::CLK_LV_TRUNK;
-  else if (stringEq(arg, "trunk_leaf"))
-    $1 = NetClockLevel::CLK_LV_TRUNK_LEAF;
-  else if (stringEq(arg, "leaf"))
-    $1 = NetClockLevel::CLK_LV_LEAF;
-  else {
-    Tcl_SetResult(interp,const_cast<char*>("Error: clock net level."), TCL_STATIC);
-    return TCL_ERROR;
-  }
-}
+%ignore cts::CtsOptions::setObserver;
+%ignore cts::CtsOptions::getObserver;
 
 %inline %{
-
-void
-set_simple_cts(bool enable)
-{
-  getTritonCts()->getParms()->setSimpleCts(enable);
-}
 
 void
 set_sink_clustering(bool enable)
 {
   getTritonCts()->getParms()->setSinkClustering(enable);
+}
+
+void
+set_plot_option(bool plot)
+{
+  getTritonCts()->getParms()->setPlotSolution(plot);
 }
 
 void
@@ -112,25 +99,19 @@ set_wire_segment_distance_unit(unsigned unit)
 void
 set_root_buffer(const char* buffer)
 {
-  getTritonCts()->getParms()->setRootBuffer(buffer);
+  getTritonCts()->setRootBuffer(buffer);
 }
 
 void
-set_out_path(const char* path)
+set_slew_steps(int steps)
 {
-  getTritonCts()->getParms()->setOutputPath(path);
+  getTritonCts()->getParms()->setSlewSteps(steps);
 }
 
 void
-set_slew_inter(double slew)
+set_cap_steps(int steps)
 {
-  getTritonCts()->getParms()->setSlewInter(slew);
-}
-
-void
-set_cap_inter(double cap)
-{
-  getTritonCts()->getParms()->setCapInter(cap);
+  getTritonCts()->getParms()->setCapSteps(steps);
 }
 
 void
@@ -142,7 +123,7 @@ set_metric_output(const char* file)
 void
 set_debug_cmd()
 {
-  getTritonCts()->getParms()->setGuiDebug();
+  getTritonCts()->getParms()->setObserver(std::make_unique<CtsGraphics>());
 }
 
 void
@@ -158,23 +139,17 @@ set_tree_buf(const char* buffer)
 }
 
 void
-set_distance_between_buffers(double distance)
+set_distance_between_buffers(int distance)
 {
   getTritonCts()->getParms()->setSimpleSegmentsEnabled(true);
   getTritonCts()->getParms()->setBufferDistance(distance);
 }
 
 void
-set_branching_point_buffers_distance(double distance)
+set_branching_point_buffers_distance(int distance)
 {
   getTritonCts()->getParms()->setVertexBuffersEnabled(true);
   getTritonCts()->getParms()->setVertexBufferDistance(distance);
-}
-
-void
-set_disable_post_cts(bool disable)
-{
-  getTritonCts()->getParms()->setRunPostCtsOpt(!(disable));
 }
 
 void
@@ -192,7 +167,7 @@ set_clustering_unbalance_ratio(double ratio)
 void
 set_sink_clustering_size(unsigned size)
 {
-  getTritonCts()->getParms()->setSizeSinkClustering(size);
+  getTritonCts()->getParms()->setSinkClusteringSize(size);
 }
 
 void
@@ -210,7 +185,7 @@ set_num_static_layers(unsigned num)
 void
 set_sink_buffer(const char* buffer)
 {
-  getTritonCts()->getParms()->setSinkBuffer(buffer);
+  getTritonCts()->setSinkBuffer(buffer);
 }
 
 void
@@ -240,73 +215,43 @@ set_clock_nets(const char* names)
 void
 set_buffer_list(const char* buffers)
 {
-	getTritonCts()->setBufferList(buffers);
+  getTritonCts()->setBufferList(buffers);
+}
+
+void
+set_obstruction_aware(bool obs)
+{
+  getTritonCts()->getParms()->setObstructionAware(obs);
+}
+
+void
+set_apply_ndr(bool ndr)
+{
+  getTritonCts()->getParms()->setApplyNDR(ndr);
+}
+
+void
+set_insertion_delay(bool insDelay)
+{
+  getTritonCts()->getParms()->enableInsertionDelay(insDelay);
+}
+
+void
+set_sink_buffer_max_cap_derate(float derate)
+{
+  getTritonCts()->getParms()->setSinkBufferMaxCapDerate(derate);
+}
+
+void
+set_dummy_load(bool dummyLoad)
+{
+  getTritonCts()->getParms()->enableDummyLoad(dummyLoad);
 }
 
 void
 run_triton_cts()
 {
   getTritonCts()->runTritonCts();
-}
-
-void
-set_enable_nnc(bool nnc)
-{
-  getTritonCts()->getParms()->setEnableNNC(nnc);
-}
-
-void
-set_ncc_topo_pbfile(const char* file_name)
-{
-  getTritonCts()->getParms()->setNNCTopoPbFile(file_name);
-}
-
-void
-set_nnc_banyan(bool nnc)
-{
-  getTritonCts()->getParms()->setNNCBanyan(nnc);
-}
-
-void
-set_slew_degradation_bound(double bound)
-{
-  getTritonCts()->getParms()->setSlewDegradationBound(bound);
-}
-
-void
-set_merge_delay_threshold(double threshold)
-{
-  getTritonCts()->getParms()->setMergeDelayThreshold(threshold);
-}
-
-void
-set_buffer_test_in_slew(double in_slew)
-{
-  getTritonCts()->getParms()->setBufferTestInSlew(in_slew);
-}
-
-void
-set_max_fanout(unsigned fanout)
-{
-  getTritonCts()->getParms()->setMaxFanout(fanout);
-}
-
-void
-set_balance_delay_threshold(double delay)
-{
-  getTritonCts()->getParms()->setBalanceDelayThreshold(delay);
-}
-
-void
-set_json_metric_format(bool json_format)
-{
-  getTritonCts()->getParms()->setMetricJsonFormat(json_format);
-}
-
-void
-set_clock_net_ndr_cmd(NetClockLevel lv, const char *ndr_name)
-{
-  getTritonCts()->setNDR4Clock(lv, ndr_name);
 }
 
 %} //inline

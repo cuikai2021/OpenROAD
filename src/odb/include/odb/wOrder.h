@@ -32,25 +32,16 @@
 
 #pragma once
 
-#include "odb.h"
+namespace utl {
+class Logger;
+}
 
 namespace odb {
 
 class dbBlock;
 class dbNet;
 
-void orderWires(dbBlock* b,
-                bool force,
-                int cutLength = 0,
-                int maxLength = 0,
-                bool quiet = false);
-void orderWires(dbBlock* b,
-                const char* net_name_or_id,
-                bool force,
-                bool verbose = false,
-                bool quiet = false,
-                int cutLength = 0,
-                int maxLength = 0);
-void orderWires(dbNet* net, bool force, bool verbose = false);
+void orderWires(utl::Logger* logger, dbBlock* b);
+void orderWires(utl::Logger* logger, dbNet* net);
 
 }  // namespace odb

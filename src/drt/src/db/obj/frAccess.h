@@ -26,17 +26,18 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_ACCESS_H_
-#define _FR_ACCESS_H_
+#pragma once
 
 #include <iostream>
 
 #include "db/infra/frPoint.h"
 #include "db/obj/frBlockObject.h"
+#include "frShape.h"
 
 namespace fr {
 class frViaDef;
 class frPinAccess;
+class frMTerm;
 class frAccessPoint : public frBlockObject
 {
  public:
@@ -49,11 +50,24 @@ class frAccessPoint : public frBlockObject
         viaDefs_(),
         typeL_(frAccessPointEnum::OnGrid),
         typeH_(frAccessPointEnum::OnGrid),
-        aps_(nullptr)
+        aps_(nullptr),
+        pathSegs_()
+  {
+  }
+  frAccessPoint() : frAccessPoint({0, 0}, 0) {}
+  frAccessPoint(const frAccessPoint& rhs)
+      : frBlockObject(rhs),
+        point_(rhs.point_),
+        layerNum_(rhs.layerNum_),
+        accesses_(rhs.accesses_),
+        viaDefs_(rhs.viaDefs_),
+        typeL_(rhs.typeL_),
+        typeH_(rhs.typeH_),
+        aps_(nullptr),
+        pathSegs_(rhs.pathSegs_)
   {
   }
   // getters
-  void getPoint(Point& in) const { in = point_; }
   const Point& getPoint() const { return point_; }
   frLayerNum getLayerNum() const { return layerNum_; }
   bool hasAccess() const
@@ -114,6 +128,10 @@ class frAccessPoint : public frBlockObject
   {
     return viaDefs_[numCut - 1];
   }
+  const std::vector<std::vector<frViaDef*>>& getAllViaDefs() const
+  {
+    return viaDefs_;
+  }
   // e.g., getViaDef()     --> get best one-cut viadef
   // e.g., getViaDef(1)    --> get best one-cut viadef
   // e.g., getViaDef(2)    --> get best two-cut viadef
@@ -132,8 +150,10 @@ class frAccessPoint : public frBlockObject
       return typeH_;
     }
   }
+  bool isViaAllowed() const { return allow_via_; }
   // setters
   void setPoint(const Point& in) { point_ = in; }
+  void setLayer(const frLayerNum& layerNum) { layerNum_ = layerNum; }
   void setAccess(const frDirEnum& dir, bool isValid = true)
   {
     switch (dir) {
@@ -169,10 +189,14 @@ class frAccessPoint : public frBlockObject
       typeH_ = in;
     }
   }
+  void setAllowVia(bool in) { allow_via_ = in; }
   // others
   frBlockObjectEnum typeId() const override { return frcAccessPoint; }
   frCoord x() const { return point_.x(); }
   frCoord y() const { return point_.y(); }
+
+  void addPathSeg(frPathSeg ps) { pathSegs_.push_back(std::move(ps)); }
+  std::vector<frPathSeg>& getPathSegs() { return pathSegs_; }
 
  private:
   Point point_;
@@ -183,29 +207,26 @@ class frAccessPoint : public frBlockObject
   frAccessPointEnum typeL_;
   frAccessPointEnum typeH_;
   frPinAccess* aps_;
-
+  std::vector<frPathSeg> pathSegs_;
+  bool allow_via_{false};
   template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<frBlockObject>(*this);
-    (ar) & point_;
-    (ar) & layerNum_;
-    (ar) & accesses_;
-    (ar) & viaDefs_;
-    (ar) & typeL_;
-    (ar) & typeH_;
-    (ar) & aps_;
-  }
-
-  frAccessPoint() = default;  // for serialization
-
+  void serialize(Archive& ar, const unsigned int version);
   friend class boost::serialization::access;
 };
 
 class frPinAccess : public frBlockObject
 {
  public:
-  frPinAccess() : frBlockObject(), aps_() {}
+  frPinAccess() : frBlockObject(), aps_(), pin_(nullptr) {}
+  frPinAccess(const frPinAccess& rhs) : frBlockObject(rhs), pin_(rhs.pin_)
+  {
+    aps_.clear();
+    for (const auto& ap : rhs.aps_) {
+      aps_.push_back(std::make_unique<frAccessPoint>(*ap));
+      aps_.back()->addToPinAccess(this);
+    }
+  }
+
   // getters
   const std::vector<std::unique_ptr<frAccessPoint>>& getAccessPoints() const
   {
@@ -213,26 +234,23 @@ class frPinAccess : public frBlockObject
   }
   frAccessPoint* getAccessPoint(int idx) const { return aps_[idx].get(); }
   int getNumAccessPoints() const { return aps_.size(); }
+  frPin* getPin() const { return pin_; }
   // setters
   void addAccessPoint(std::unique_ptr<frAccessPoint> in)
   {
+    in->setId(aps_.size());
+    in->addToPinAccess(this);
     aps_.push_back(std::move(in));
   }
+  void setPin(frPin* in) { pin_ = in; }
   // others
   frBlockObjectEnum typeId() const override { return frcPinAccess; }
 
  private:
   std::vector<std::unique_ptr<frAccessPoint>> aps_;
-
+  frPin* pin_;
   template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<frBlockObject>(*this);
-    (ar) & aps_;
-  }
-
+  void serialize(Archive& ar, const unsigned int version);
   friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

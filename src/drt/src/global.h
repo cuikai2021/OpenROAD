@@ -26,22 +26,23 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GLOBAL_H_
-#define _GLOBAL_H_
+#pragma once
 
+#include <cstdint>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 
-#include "frBaseTypes.h"
 #include "db/obj/frMarker.h"
+#include "frBaseTypes.h"
 
-extern std::string GUIDE_FILE;
-extern std::string OUTGUIDE_FILE;
 extern std::string DBPROCESSNODE;
 extern std::string OUT_MAZE_FILE;
 extern std::string DRC_RPT_FILE;
+extern std::optional<int> DRC_RPT_ITER_STEP;
 extern std::string CMAP_FILE;
+extern std::string GUIDE_REPORT_FILE;
 // to be removed
 extern int OR_SEED;
 extern double OR_K;
@@ -62,19 +63,22 @@ extern bool USEMINSPACING_OBS;
 extern bool ENABLE_BOUNDARY_MAR_FIX;
 extern bool ENABLE_VIA_GEN;
 extern bool CLEAN_PATCHES;
+extern bool DO_PA;
+extern bool SINGLE_STEP_DR;
+extern bool SAVE_GUIDE_UPDATES;
 // extern int TEST;
 extern std::string VIAINPIN_BOTTOMLAYER_NAME;
 extern std::string VIAINPIN_TOPLAYER_NAME;
 extern fr::frLayerNum VIAINPIN_BOTTOMLAYERNUM;
 extern fr::frLayerNum VIAINPIN_TOPLAYERNUM;
-extern fr::frLayerNum VIAONLY_STDCELLPIN_BOTTOMLAYERNUM;
-extern fr::frLayerNum VIAONLY_STDCELLPIN_TOPLAYERNUM;
 
 extern fr::frLayerNum VIA_ACCESS_LAYERNUM;
 
 extern int MINNUMACCESSPOINT_MACROCELLPIN;
 extern int MINNUMACCESSPOINT_STDCELLPIN;
 extern int ACCESS_PATTERN_END_ITERATION_NUM;
+extern float CONGESTION_THRESHOLD;
+extern int MAX_CLIPSIZE_INCREASE;
 
 extern int END_ITERATION;
 
@@ -95,19 +99,20 @@ extern float TASHAPEBLOATWIDTH;
 extern fr::frUInt4 VIACOST;
 
 extern fr::frUInt4 GRIDCOST;
-extern fr::frUInt4 FIXEDSHAPECOST;
 extern fr::frUInt4 ROUTESHAPECOST;
 extern fr::frUInt4 MARKERCOST;
 extern fr::frUInt4 MARKERBLOATWIDTH;
 extern fr::frUInt4 BLOCKCOST;
 extern fr::frUInt4 GUIDECOST;
-extern float MARKERDECAY;
 extern float SHAPEBLOATWIDTH;
 extern int MISALIGNMENTCOST;
 
 // GR
 extern int HISTCOST;
 extern int CONGCOST;
+
+extern std::string REPAIR_PDN_LAYER_NAME;
+extern fr::frLayerNum GC_IGNORE_PDN_LAYER;
 
 #define DIRBITSIZE 3
 #define WAVEFRONTBUFFERSIZE 2
@@ -124,7 +129,7 @@ extern int CONGCOST;
 namespace odb {
 class Point;
 class Rect;
-}
+}  // namespace odb
 
 namespace fr {
 frCoord getGCELLGRIDX();
@@ -160,11 +165,8 @@ std::ostream& operator<<(std::ostream& os, const fr::frBlock& blockIn);
 std::ostream& operator<<(std::ostream& os, const fr::frInst& instIn);
 std::ostream& operator<<(std::ostream& os, const fr::frInstTerm& instTermIn);
 std::ostream& operator<<(std::ostream& os, const fr::frBTerm& termIn);
-//std::ostream& operator<<(std::ostream& os, const fr::frPin& pinIn);
 std::ostream& operator<<(std::ostream& os, const fr::frRect& pinFig);
 std::ostream& operator<<(std::ostream& os, const fr::frPolygon& pinFig);
-std::ostream& operator<<(std::ostream& os, const odb::Point& pIn);
-std::ostream& operator<<(std::ostream& os, const odb::Rect& box);
 std::ostream& operator<<(std::ostream& os, const fr::drConnFig& fig);
 std::ostream& operator<<(std::ostream& os, const frShape& fig);
 std::ostream& operator<<(std::ostream& os, const frConnFig& fig);
@@ -174,6 +176,7 @@ std::ostream& operator<<(std::ostream& os, const frBlockObject& fig);
 std::ostream& operator<<(std::ostream& os, const frNet& fig);
 std::ostream& operator<<(std::ostream& os, const drNet& n);
 std::ostream& operator<<(std::ostream& os, const frMarker& m);
-// namespace fr
+
+using utl::format_as;
+
 }  // namespace fr
-#endif

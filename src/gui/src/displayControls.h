@@ -52,28 +52,30 @@
 #include <set>
 #include <vector>
 
-#include "options.h"
-
-#include "gui/gui.h"
 #include "db_sta/dbNetwork.hh"
+#include "gui/gui.h"
+#include "odb/dbBlockCallBackObj.h"
+#include "options.h"
 
 namespace odb {
 class dbDatabase;
 class dbBlock;
 class dbNet;
 class dbInst;
+class dbSite;
 }  // namespace odb
 
 namespace sta {
 class dbSta;
 class LibertyCell;
-} // namespace sta
+}  // namespace sta
 
 namespace utl {
 class Logger;
-} // namespace utl
+}  // namespace utl
 
 namespace gui {
+class DbInstDescriptor;
 
 using CallbackFunction = std::function<void(bool)>;
 
@@ -100,11 +102,10 @@ class DisplayColorDialog : public QDialog
 {
   Q_OBJECT
  public:
-  DisplayColorDialog(QColor color,
+  DisplayColorDialog(const QColor& color,
                      Qt::BrushStyle pattern,
                      QWidget* parent = nullptr);
-  DisplayColorDialog(QColor color,
-                     QWidget* parent = nullptr);
+  DisplayColorDialog(const QColor& color, QWidget* parent = nullptr);
   ~DisplayColorDialog();
 
   QColor getSelectedColor() const { return color_; }
@@ -142,10 +143,11 @@ class DisplayControlModel : public QStandardItemModel
  public:
   DisplayControlModel(int user_data_item_idx, QWidget* parent = nullptr);
 
-  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
-  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-  Qt::DropActions supportedDropActions() const;
-  Qt::ItemFlags flags(const QModelIndex &index) const;
+  QVariant data(const QModelIndex& index,
+                int role = Qt::DisplayRole) const override;
+  QVariant headerData(int section,
+                      Qt::Orientation orientation,
+                      int role = Qt::DisplayRole) const override;
 
  private:
   const int user_data_item_idx_;
@@ -153,12 +155,15 @@ class DisplayControlModel : public QStandardItemModel
 
 // This class shows the user the set of layers & objects that
 // they can control the visibility and selectablity of.  The
-// controls are show in a tree view to provide grouping of
+// controls are shown in a tree view to provide grouping of
 // related options.
 //
 // It also implements the Options interface so that other clients can
 // access the data.
-class DisplayControls : public QDockWidget, public Options, public sta::dbNetworkObserver
+class DisplayControls : public QDockWidget,
+                        public Options,
+                        public sta::dbNetworkObserver,
+                        public odb::dbBlockCallBackObj
 {
   Q_OBJECT
 
@@ -166,14 +171,19 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   DisplayControls(QWidget* parent = nullptr);
   ~DisplayControls();
 
-  void setDb(odb::dbDatabase* db);
+  bool eventFilter(QObject* obj, QEvent* event) override;
+
+  void addTech(odb::dbTech* tech);
   void setLogger(utl::Logger* logger);
   void setSTA(sta::dbSta* sta);
+  void setDBInstDescriptor(DbInstDescriptor* desciptor);
 
   void readSettings(QSettings* settings);
   void writeSettings(QSettings* settings);
 
-  void setControlByPath(const std::string& path, bool is_visible, Qt::CheckState value);
+  void setControlByPath(const std::string& path,
+                        bool is_visible,
+                        Qt::CheckState value);
   bool checkControlByPath(const std::string& path, bool is_visible);
 
   void registerRenderer(Renderer* renderer);
@@ -184,16 +194,18 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
 
   void restoreTclCommands(std::vector<std::string>& cmds);
 
-  std::vector<std::string> getOrderedLabelNames();
-
   // From the Options API
   QColor color(const odb::dbTechLayer* layer) override;
   Qt::BrushStyle pattern(const odb::dbTechLayer* layer) override;
   QColor placementBlockageColor() override;
   Qt::BrushStyle placementBlockagePattern() override;
+  QColor regionColor() override;
+  Qt::BrushStyle regionPattern() override;
   QColor instanceNameColor() override;
   QFont instanceNameFont() override;
-  QColor rowColor() override;
+  QColor itermLabelColor() override;
+  QFont itermLabelFont() override;
+  QColor siteColor(odb::dbSite* site) override;
   bool isVisible(const odb::dbTechLayer* layer) override;
   bool isSelectable(const odb::dbTechLayer* layer) override;
   bool isNetVisible(odb::dbNet* net) override;
@@ -202,13 +214,18 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   bool isInstanceSelectable(odb::dbInst* inst) override;
   bool areInstanceNamesVisible() override;
   bool areInstancePinsVisible() override;
+  bool areInstancePinsSelectable() override;
+  bool areInstancePinNamesVisible() override;
   bool areInstanceBlockagesVisible() override;
   bool areFillsVisible() override;
   bool areBlockagesVisible() override;
   bool areBlockagesSelectable() override;
   bool areObstructionsVisible() override;
   bool areObstructionsSelectable() override;
-  bool areRowsVisible() override;
+  bool areSitesVisible() override;
+  bool areSitesSelectable() override;
+  bool isSiteVisible(odb::dbSite* site) override;
+  bool isSiteSelectable(odb::dbSite* site) override;
   bool arePrefTracksVisible() override;
   bool areNonPrefTracksVisible() override;
 
@@ -222,13 +239,23 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   bool areSelectedVisible() override;
 
   bool isScaleBarVisible() const override;
-  bool arePinMarkersVisible() const override;
+  bool areIOPinsVisible() const override;
   QFont pinMarkersFont() override;
   bool areAccessPointsVisible() const override;
   bool areRegionsVisible() const override;
+  bool areRegionsSelectable() const override;
+  bool isManufacturingGridVisible() const override;
+
+  bool isModuleView() const override;
+
+  bool isGCellGridVisible() const override;
 
   // API from dbNetworkObserver
   virtual void postReadLiberty() override;
+  virtual void postReadDb() override;
+
+  // API from dbBlockCallBackObj
+  void inDbRowCreate(odb::dbRow*) override;
 
  signals:
   // The display options have changed and clients need to update
@@ -240,15 +267,17 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
  public slots:
   // Tells this widget that a new design is loaded and the
   // options displayed need to match
-  void designLoaded(odb::dbBlock* block);
+  void blockLoaded(odb::dbBlock* block);
+
+  void setCurrentBlock(odb::dbBlock* block);
 
   // This is called by the check boxes to update the state
   void itemChanged(QStandardItem* item);
-  void displayItemSelected(const QItemSelection& selected);
+  void displayItemSelected(const QItemSelection& selection);
   void displayItemDblClicked(const QModelIndex& index);
 
  private slots:
-  void itemContextMenu(const QPoint &point);
+  void itemContextMenu(const QPoint& point);
 
  private:
   // The columns in the tree view
@@ -270,17 +299,6 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   };
 
   // The *Models are groups in the tree
-
-  // ADD_NEW_GUI_LABEL_HERE
-  struct LabelModels
-  {
-    ModelRow linden; 
-    ModelRow cmap_h; 
-    ModelRow cmap_v; 
-    ModelRow expander; 
-    ModelRow macro; 
-  };
-
   struct NetModels
   {
     ModelRow signal;
@@ -318,6 +336,17 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
     ModelRow clock_gates;
   };
 
+  struct PadModels
+  {
+    ModelRow input;
+    ModelRow output;
+    ModelRow inout;
+    ModelRow power;
+    ModelRow spacer;
+    ModelRow areaio;
+    ModelRow other;
+  };
+
   struct PhysicalModels
   {
     ModelRow fill;
@@ -327,6 +356,7 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
     ModelRow tie;
     ModelRow cover;
     ModelRow bump;
+    ModelRow other;
   };
 
   struct BlockageModels
@@ -350,16 +380,21 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
     ModelRow regions;
     ModelRow detailed;
     ModelRow selected;
+    ModelRow module;
+    ModelRow manufacturing_grid;
+    ModelRow gcell_grid;
   };
 
   struct InstanceShapeModels
   {
     ModelRow names;
     ModelRow pins;
+    ModelRow iterm_labels;
     ModelRow blockages;
   };
 
-  void techInit();
+  void techInit(odb::dbTech* tech);
+  void libInit(odb::dbDatabase* db);
 
   void collectControls(const QStandardItem* parent,
                        Column column,
@@ -384,35 +419,57 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
                     const QColor& color = Qt::transparent,
                     const QVariant& user_data = QVariant());
 
-  const QIcon makeSwatchIcon(const QColor& color);
+  QIcon makeSwatchIcon(const QColor& color);
 
   void toggleAllChildren(bool checked, QStandardItem* parent, Column column);
-  void toggleParent(const QStandardItem* parent, QStandardItem* parent_flag, int column);
+  void toggleParent(const QStandardItem* parent,
+                    QStandardItem* parent_flag,
+                    int column);
   void toggleParent(ModelRow& row);
 
-  void readSettingsForRow(QSettings* settings, const ModelRow& row);
-  void readSettingsForRow(QSettings* settings, const QStandardItem* name, QStandardItem* visible = nullptr, QStandardItem* selectable = nullptr);
-  void writeSettingsForRow(QSettings* settings, const ModelRow& row);
-  void writeSettingsForRow(QSettings* settings, const QStandardItem* name, const QStandardItem* visible = nullptr, const QStandardItem* selectable = nullptr);
+  void readSettingsForRow(QSettings* settings,
+                          const ModelRow& row,
+                          bool include_children = true);
+  void readSettingsForRow(QSettings* settings,
+                          const QStandardItem* name,
+                          QStandardItem* visible = nullptr,
+                          QStandardItem* selectable = nullptr,
+                          bool include_children = true);
+  void writeSettingsForRow(QSettings* settings,
+                           const ModelRow& row,
+                           bool include_children = true);
+  void writeSettingsForRow(QSettings* settings,
+                           const QStandardItem* name,
+                           const QStandardItem* visible = nullptr,
+                           const QStandardItem* selectable = nullptr,
+                           bool include_children = true);
 
-  void buildRestoreTclCommands(std::vector<std::string>& cmds, const QStandardItem* parent, const std::string& prefix = "");
+  void buildRestoreTclCommands(std::vector<std::string>& cmds,
+                               const QStandardItem* parent,
+                               const std::string& prefix = "");
 
   void saveRendererState(Renderer* renderer);
 
-  void setNameItemDoubleClickAction(ModelRow& row, const std::function<void(void)>& callback);
-  void setItemExclusivity(ModelRow& row, const std::set<std::string>& exclusivity);
+  void setNameItemDoubleClickAction(ModelRow& row,
+                                    const std::function<void(void)>& callback);
+  void setItemExclusivity(ModelRow& row,
+                          const std::set<std::string>& exclusivity);
 
   void createLayerMenu();
   void layerShowOnlySelectedNeighbors(int lower, int upper);
-  void collectNeighboringLayers(odb::dbTechLayer* layer, int lower, int upper, std::set<const odb::dbTechLayer*>& layers);
-  void setOnlyVisibleLayers(const std::set<const odb::dbTechLayer*> layers);
+  void collectNeighboringLayers(odb::dbTechLayer* layer,
+                                int lower,
+                                int upper,
+                                std::set<const odb::dbTechLayer*>& layers);
+  void setOnlyVisibleLayers(const std::set<const odb::dbTechLayer*>& layers);
 
   const ModelRow* getLayerRow(const odb::dbTechLayer* layer) const;
+  const ModelRow* getSiteRow(odb::dbSite* site) const;
   const ModelRow* getInstRow(odb::dbInst* inst) const;
   const ModelRow* getNetRow(odb::dbNet* net) const;
 
-  bool isRowVisible(const ModelRow* row) const;
-  bool isRowSelectable(const ModelRow* row) const;
+  bool isModelRowVisible(const ModelRow* row) const;
+  bool isModelRowSelectable(const ModelRow* row) const;
 
   void checkLiberty(bool assume_loaded = false);
 
@@ -422,61 +479,66 @@ class DisplayControls : public QDockWidget, public Options, public sta::dbNetwor
   odb::dbTechLayer* layers_menu_layer_;
 
   bool ignore_callback_;
+  bool ignore_selection_;
+
+  QColor default_site_color_;
 
   // Categories in the model
-  ModelRow labels_group_;
   ModelRow layers_group_;
   ModelRow tracks_group_;
   ModelRow nets_group_;
   ModelRow instance_group_;
   ModelRow blockage_group_;
   ModelRow misc_group_;
-
-  // groups
-  LabelModels labels_;
+  ModelRow site_group_;
 
   // instances
   InstanceModels instances_;
   StdCellModels stdcell_instances_;
   BufferInverterModels bufinv_instances_;
   ClockTreeModels clock_tree_instances_;
+  PadModels pad_instances_;
   PhysicalModels physical_instances_;
 
   InstanceShapeModels instance_shapes_;
 
   // Object controls
   NetModels nets_;
-  ModelRow rows_;
-  ModelRow pin_markers_;
+  ModelRow io_pins_;
   ModelRow rulers_;
   BlockageModels blockages_;
   TrackModels tracks_;
   MiscModels misc_;
 
   std::map<const odb::dbTechLayer*, ModelRow> layer_controls_;
+  std::map<const odb::dbSite*, ModelRow> site_controls_;
   std::map<Renderer*, std::vector<ModelRow>> custom_controls_;
   std::map<std::string, Renderer::Settings> custom_controls_settings_;
   std::map<QStandardItem*, Qt::CheckState> saved_state_;
-  QStandardItem* labels_parent;
 
-  odb::dbDatabase* db_;
+  std::set<odb::dbTech*> techs_;
   utl::Logger* logger_;
   sta::dbSta* sta_;
-  bool tech_inited_;
+  DbInstDescriptor* inst_descriptor_;
 
   std::map<const odb::dbTechLayer*, QColor> layer_color_;
   std::map<const odb::dbTechLayer*, Qt::BrushStyle> layer_pattern_;
+
+  std::map<const odb::dbSite*, QColor> site_color_;
 
   QColor placement_blockage_color_;
   Qt::BrushStyle placement_blockage_pattern_;
 
   QColor instance_name_color_;
   QFont instance_name_font_;
+  QColor iterm_label_color_;
+  QFont iterm_label_font_;
 
   QColor ruler_color_;
   QFont ruler_font_;
 
-  QColor row_color_;
+  QColor region_color_;
+  Qt::BrushStyle region_pattern_;
 
   QFont pin_markers_font_;
 

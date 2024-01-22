@@ -93,10 +93,11 @@ class definNet : public definBase
   void pathTaperRule(const char* layer, const char* rule);
   void pathPoint(int x, int y);
   void pathPoint(int x, int y, int ext);
-  void pathVirtualPoint(int x, int y);
   void pathVia(const char* via);
   void pathVia(const char* via, dbOrientType orient);
   void pathRect(int deltaX1, int deltaY1, int deltaX2, int deltaY2);
+  void pathColor(int color);
+  void pathViaColor(int bottom_color, int cut_color, int top_color);
   void pathEnd();
   void wireEnd();
   void source(dbSourceType source);
@@ -106,7 +107,6 @@ class definNet : public definBase
   void property(const char* name, const char* value);
   void property(const char* name, int value);
   void property(const char* name, double value);
-  void pattern(const char* name);
   void end();
 
   void pathBegin(const char* layer);

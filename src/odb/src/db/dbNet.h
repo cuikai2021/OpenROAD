@@ -40,6 +40,8 @@
 
 namespace odb {
 
+template <class T>
+class dbTable;
 class _dbITerm;
 class _dbBTerm;
 class _dbWire;
@@ -50,6 +52,8 @@ class _dbCCSeg;
 class _dbTechNonDefaultRule;
 class _dbDatabase;
 class _dbGroup;
+class _dbGuide;
+class _dbNetTrack;
 class dbIStream;
 class dbOStream;
 class dbDiff;
@@ -74,17 +78,10 @@ struct _dbNetFlags
   uint _set_io : 1;
   uint _io : 1;
   uint _dont_touch : 1;
-  uint _size_only : 1;
   uint _fixed_bump : 1;
   dbSourceType::Value _source : 4;
   uint _rc_disconnected : 1;
   uint _block_rule : 1;
-};
-
-struct _dbNetFlags2
-{
-  uint _pattern : 2;
-  uint _spare : 30; // unused
 };
 
 class _dbNet : public _dbObject
@@ -97,13 +94,11 @@ class _dbNet : public _dbObject
     TERM_EXTID,
     HEAD_CAPNODE,
     HEAD_RSEG,
-    REVERSE_RSEG,
-    INVALIDATETIMING,
+    REVERSE_RSEG
   };
 
   // PERSISTANT-MEMBERS
-  _dbNetFlags  _flags;
-  _dbNetFlags2 _flags2;
+  _dbNetFlags _flags;
   char* _name;
   union
   {
@@ -125,6 +120,8 @@ class _dbNet : public _dbObject
   dbId<_dbCapNode> _cap_nodes;
   dbId<_dbRSeg> _r_segs;
   dbId<_dbTechNonDefaultRule> _non_default_rule;
+  dbId<_dbGuide> guides_;
+  dbId<_dbNetTrack> tracks_;
   dbVector<dbId<_dbGroup>> _groups;
   int _weight;
   int _xtalk;
@@ -142,6 +139,7 @@ class _dbNet : public _dbObject
   bool operator<(const _dbNet& rhs) const;
   void differences(dbDiff& diff, const char* field, const _dbNet& rhs) const;
   void out(dbDiff& diff, char side, const char* field) const;
+  dbObjectTable* getObjectTable(dbObjectType type);
 };
 
 dbOStream& operator<<(dbOStream& stream, const _dbNet& net);

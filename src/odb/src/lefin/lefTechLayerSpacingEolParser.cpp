@@ -25,10 +25,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "boostParser.h"
 #include <iostream>
 #include <string>
 
+#include "boostParser.h"
 #include "db.h"
 #include "lefLayerPropParser.h"
 #include "lefin.h"
@@ -461,22 +461,29 @@ bool parse(Iterator first,
 
 namespace odb {
 
-void lefTechLayerSpacingEolParser::parse(std::string s,
+void lefTechLayerSpacingEolParser::parse(const std::string& s,
                                          dbTechLayer* layer,
                                          odb::lefin* l)
 {
   std::vector<std::string> rules;
   boost::split(rules, s, boost::is_any_of(";"));
-  for (auto rule : rules) {
+  for (auto& rule : rules) {
     boost::algorithm::trim(rule);
     if (rule.empty())
       continue;
+    if (rule.find("ENDOFLINE") == std::string::npos) {
+      l->warning(254,
+                 "unsupported LEF58_SPACING property for layer {} :\"{}\"",
+                 layer->getName(),
+                 rule);
+      continue;
+    }
     if (!lefTechLayerSpacingEol::parse(rule.begin(), rule.end(), layer, l))
-      l->warning(
-          255,
-          "parse mismatch in layer propery LEF58_SPACING for layer {} :\"{}\"",
-          layer->getName(),
-          rule);
+      l->warning(255,
+                 "parse mismatch in layer propery LEF58_SPACING ENDOFLINE for "
+                 "layer {} :\"{}\"",
+                 layer->getName(),
+                 rule);
   }
 }
 

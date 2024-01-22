@@ -38,10 +38,10 @@ namespace gpl {
 class FloatPoint
 {
  public:
-  float x;
-  float y;
-  FloatPoint() : x(0), y(0) {}
-  FloatPoint(float ix, float iy) : x(ix), y(iy) {}
+  float x = 0;
+  float y = 0;
+  FloatPoint() = default;
+  FloatPoint(float x, float y) : x(x), y(y) {}
 };
 
 }  // namespace gpl

@@ -1,148 +1,140 @@
-#include "gpl/graphics.h"
+///////////////////////////////////////////////////////////////////////////////
+// BSD 3-Clause License
+//
+// Copyright (c) 2020, The Regents of the University of California
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+//   list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+//   contributors may be used to endorse or promote products derived from
+//   this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+///////////////////////////////////////////////////////////////////////////////
+
+#include "graphics.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
-#include <iostream>
 #include <limits>
-#include <cstdlib>
-#include <cstring>
-#include <charconv>
+#include <utility>
 
-#include "fassert.hpp"
-#include "linden/db/db.hpp"
-#include "linden/rdp/congestion_estimation.hpp"
 #include "nesterovBase.h"
 #include "nesterovPlace.h"
-#include "ord/OpenRoad.hh"
-#include "gpl/placerBase.h"
+#include "placerBase.h"
 #include "utl/Logger.h"
 
 namespace gpl {
 
-namespace {
-
-odb::Point to_odb_pt(const linden::geom::Point& lpt) {
-  int x = static_cast<int>(lpt.x());
-  int y = static_cast<int>(lpt.y());
-  FASSERT(x == lpt.x())
-    (x)
-    (lpt.x());
-  FASSERT(y == lpt.y())
-    (y)
-    (lpt.y());
-  return odb::Point(x, y);
+Graphics::Graphics(utl::Logger* logger)
+    : HeatMapDataSource(logger, "gpl", "gpl"), logger_(logger), mode_(Mbff)
+{
+  gui::Gui::get()->registerRenderer(this);
 }
 
-odb::Rect to_odb_rect(const linden::geom::Rect& lrect) {
-  odb::Point ll = to_odb_pt(lrect.ll());
-  odb::Point ur = to_odb_pt(lrect.ur());
-  return odb::Rect(ll, ur);
-}
-
-} // namespace
-
-Graphics::Graphics(utl::Logger* logger, std::shared_ptr<PlacerBase> pb)
-    : pb_(pb),
-      nb_(),
-      np_(nullptr),
-      linden_db_(nullptr),
-      banyan_cmap_result_(nullptr),
-      selected_(nullptr),
-      draw_bins_(false),
+Graphics::Graphics(utl::Logger* logger,
+                   std::shared_ptr<PlacerBaseCommon> pbc,
+                   std::vector<std::shared_ptr<PlacerBase>>& pbVec)
+    : HeatMapDataSource(logger, "gpl", "gpl"),
+      pbc_(std::move(pbc)),
+      pbVec_(pbVec),
       logger_(logger),
-      rand_engine_((std::random_device())())
+      mode_(Initial)
 {
   gui::Gui::get()->registerRenderer(this);
 }
 
 Graphics::Graphics(utl::Logger* logger,
                    NesterovPlace* np,
-                   std::shared_ptr<PlacerBase> pb,
-                   std::shared_ptr<NesterovBase> nb,
-                   bool draw_bins)
-    : pb_(pb),
-      nb_(nb),
+                   std::shared_ptr<PlacerBaseCommon> pbc,
+                   std::shared_ptr<NesterovBaseCommon> nbc,
+                   std::vector<std::shared_ptr<PlacerBase>>& pbVec,
+                   std::vector<std::shared_ptr<NesterovBase>>& nbVec,
+                   bool draw_bins,
+                   odb::dbInst* inst)
+    : HeatMapDataSource(logger, "gpl", "gpl"),
+      pbc_(std::move(pbc)),
+      nbc_(std::move(nbc)),
+      pbVec_(pbVec),
+      nbVec_(nbVec),
       np_(np),
-      linden_db_(nullptr),
-      banyan_cmap_result_(nullptr),
-      selected_(nullptr),
       draw_bins_(draw_bins),
       logger_(logger),
-      rand_engine_((std::random_device())())
+      mode_(Nesterov)
 {
   gui::Gui::get()->registerRenderer(this);
+  initHeatmap();
+  if (inst) {
+    for (GCell* cell : nbc_->gCells()) {
+      Instance* cell_inst = cell->instance();
+      if (cell_inst && cell_inst->dbInst() == inst) {
+        selected_ = cell;
+        break;
+      }
+    }
+  }
 }
 
-Graphics::Graphics(
-    utl::Logger* logger,
-    std::shared_ptr<linden::db::Database> linden_db,
-    std::shared_ptr<linden::rdp::CongestionMap> banyan_cmap_result,
-    std::shared_ptr<PlacerBase> pb)
-    : pb_(pb),
-      nb_(),
-      np_(nullptr),
-      linden_db_(linden_db),
-      banyan_cmap_result_(banyan_cmap_result),
-      selected_(nullptr),
-      draw_bins_(false),
-      logger_(logger),
-      rand_engine_((std::random_device())())
+void Graphics::initHeatmap()
 {
-  gui::Gui::get()->registerRenderer(this);
-}
+  addMultipleChoiceSetting(
+      "Type",
+      "Type:",
+      []() {
+        return std::vector<std::string>{"Density", "Overflow"};
+      },
+      [this]() -> std::string {
+        switch (heatmap_type_) {
+          case Density:
+            return "Density";
+          case Overflow:
+            return "Overflow";
+        }
+        return "Density";
+      },
+      [this](const std::string& value) {
+        if (value == "Density") {
+          heatmap_type_ = Density;
+        } else if (value == "Overflow") {
+          heatmap_type_ = Overflow;
+        } else {
+          heatmap_type_ = Density;
+        }
+      });
 
-Graphics::Graphics(utl::Logger* logger,
-           std::shared_ptr<linden::db::Database> linden_db)
-    : pb_(),
-      nb_(),
-      np_(nullptr),
-      linden_db_(linden_db),
-      banyan_cmap_result_(nullptr),
-      selected_(nullptr),
-      draw_bins_(false),
-      logger_(logger),
-      rand_engine_((std::random_device())())
-{
-  gui::Gui::get()->registerRenderer(this);
-}
-
-void drawUnfilledRect(gui::Painter& painter,
-                      int64_t lx,
-                      int64_t ly,
-                      int64_t ux,
-                      int64_t uy)
-{
-  painter.drawLine(lx, ly, ux, ly);
-  painter.drawLine(ux, ly, ux, uy);
-  painter.drawLine(ux, uy, lx, uy);
-  painter.drawLine(lx, uy, lx, ly);
+  setBlock(pbc_->db()->getChip()->getBlock());
+  registerHeatMap();
 }
 
 void Graphics::drawBounds(gui::Painter& painter)
 {
   // draw core bounds
-  {
-    auto db = ord::OpenRoad::openRoad()->getDb();
-    odb::dbBlock* block = db->getChip()->getBlock();
-    odb::Rect rec;
-    block->getCoreArea(rec);
-    painter.setPen(gui::Painter::yellow, /* cosmetic */ true);
-    drawUnfilledRect(
-        painter, rec.xMin(), rec.yMin(), rec.xMax(), rec.yMax());
-  }
-  // draw Blockages bounds
-  auto db = ord::OpenRoad::openRoad()->getDb();
-  painter.setPen(gui::Painter::yellow, true);
-  for (auto blockage : db->getChip()->getBlock()->getBlockages()) {
-    auto bbox = blockage->getBBox();
-    if (blockage->isSoft()) {
-      painter.setPen(gui::Painter::red, true);
-    } else if (blockage->getMaxDensity() != 0) {  // partial blockage
-      painter.setPen(gui::Painter::green, true);
-    }
-    drawUnfilledRect(
-        painter, bbox->xMin(), bbox->yMin(), bbox->xMax(), bbox->yMax());
-  }
+  auto& die = pbc_->die();
+  painter.setPen(gui::Painter::yellow, /* cosmetic */ true);
+  painter.drawLine(die.coreLx(), die.coreLy(), die.coreUx(), die.coreLy());
+  painter.drawLine(die.coreUx(), die.coreLy(), die.coreUx(), die.coreUy());
+  painter.drawLine(die.coreUx(), die.coreUy(), die.coreLx(), die.coreUy());
+  painter.drawLine(die.coreLx(), die.coreUy(), die.coreLx(), die.coreLy());
 }
 
 void Graphics::drawInitial(gui::Painter& painter)
@@ -150,7 +142,7 @@ void Graphics::drawInitial(gui::Painter& painter)
   drawBounds(painter);
 
   painter.setPen(gui::Painter::white, /* cosmetic */ true);
-  for (auto& inst : pb_->placeInsts()) {
+  for (auto& inst : pbc_->placeInsts()) {
     int lx = inst->lx();
     int ly = inst->ly();
     int ux = inst->ux();
@@ -161,347 +153,30 @@ void Graphics::drawInitial(gui::Painter& painter)
     painter.setBrush(color);
     painter.drawRect({lx, ly, ux, uy});
   }
-  for (auto& inst : pb_->dummyInsts()) {
-    int lx = inst->lx();
-    int ly = inst->ly();
-    int ux = inst->ux();
-    int uy = inst->uy();
-
-    gui::Painter::Color color = gui::Painter::gray;
-    color.a = 180;
-    painter.setBrush(color);
-    painter.drawRect({lx, ly, ux, uy});
-  }
-}
-
-class CongestionColoring
-{
- public:
-  static const int COLOR_CNT = 8;
-  explicit CongestionColoring(const linden::rdp::CongestionMap& cmap)
-      : cmap_(cmap)
-  {
-    // sort overflows
-    std::vector<double> overflows;
-    for (int j = 0; j < cmap.hgrids(); ++j) {
-      for (int i = 0; i < cmap.wgrids(); ++i) {
-        for (auto dim :
-             {linden::geom::dimension::X, linden::geom::dimension::Y}) {
-          auto overflow = cmap.overflow(dim, i, j);
-          if (overflow > 0) {
-            overflows.push_back(overflow);
-          }
-        }
-      }
-    }
-    std::sort(overflows.begin(), overflows.end());
-    for (int i = 0; i < COLOR_CNT; ++i) {
-      const auto sz = overflows.size();
-      const auto delta = (sz + (COLOR_CNT - 1)) / COLOR_CNT;  // floor value
-      auto pos = delta * (i + 1);
-      pos = std::min(pos, sz - 1);
-      color_overflows_[i] = overflows[pos];
-    }
-  }
-
-  gui::Painter::Color overflowColor(double overflow) const noexcept
-  {
-    // selected from https://www.rapidtables.com/web/color/RGB_Color.html
-    // (colors from the right-2nd colunms)
-    int64_t const COLOR_TABLE[COLOR_CNT] = {
-        0xFFCCE5,
-        0xFF99CC,
-        0xFF66B2,
-        0xFF3399,
-        0xFF007F,
-        0xCC0066,
-        0x99004C,
-        0x660033,
-    };
-    const int64_t COLOR_UNSET = 0xFFFFFF;
-    const int64_t COLOR_MASKS[3] = {0xFF0000, 0x00FF00, 0x0000FF};
-    int64_t color_val = COLOR_UNSET;
-    for (int pos = 0; pos < COLOR_CNT; ++pos) {
-      color_val = COLOR_TABLE[pos];
-      if (overflow < color_overflows_[pos]) {
-        break;
-      }
-    }
-    FASSERT(color_val != COLOR_UNSET);
-    int r = (COLOR_MASKS[0] & color_val) >> 16;
-    int g = (COLOR_MASKS[1] & color_val) >> 8;
-    int b = (COLOR_MASKS[2] & color_val);
-    return gui::Painter::Color{r, g, b, 0xff};
-  }
-
- private:
-  const linden::rdp::CongestionMap& cmap_;
-  double color_overflows_[COLOR_CNT];
-};
-
-void Graphics::drawBanyanCMap(gui::Painter& painter)
-{
-  if (!banyan_cmap_result_ || banyan_cmap_result_->empty()) {
-    return;
-  }
-  auto& cmap = *banyan_cmap_result_;
-  CongestionColoring coloring(cmap);
-
-  painter.setPen(gui::Painter::dark_red);
-
-  for (auto dim : {linden::geom::dimension::X, linden::geom::dimension::Y}) {
-    auto label = dim == linden::geom::dimension::X
-                     ? DisplayControlLabel::Label::CMAP_H
-                     : DisplayControlLabel::Label::CMAP_V;
-
-    for (int j = 0; j < cmap.hgrids(); ++j) {
-      for (int i = 0; i < cmap.wgrids(); ++i) {
-        auto const& r = cmap.rect(i, j);
-        auto overflow = cmap.overflow(dim, i, j);
-        if (overflow > 0) {
-          auto color = coloring.overflowColor(overflow);
-          addRectToLabelSet(to_odb_rect(r), color, label);
-        }
-      }
-    }
-  }
-}
-
-void Graphics::highlightFocus(
-    const std::vector<std::vector<std::string>>& focus_names)
-{
-  for (int i = 0; i < focus_names.size(); i++) {
-    for (int j = 0; j < focus_names[i].size(); j++) {
-      gui::Gui::get()->addInstToHighlightSet(focus_names[i][j].c_str(), i);
-    }
-  }
-  return;
-}
-
-void Graphics::drawLinden(gui::Painter& painter)
-{
-  drawBounds(painter);
-  // Draw the placeable objects
-  painter.setPen(gui::Painter::white);
-  drawBanyanCMap(painter);
-  for (auto& cell : linden_db_->cells()) {
-    if (cell.movable() && cell.is_instance()) {
-      odb::dbInst* inst = static_cast<odb::dbInst*>(cell.odb_instance());
-      inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
-      const linden::geom::Rect& r = cell.rect();
-      // pad awareness on X coordinates
-      inst->setLocation(r.lx() + pb_->siteSizeX() * pb_->padLeft(), r.ly());
-    }
-  }
-#ifdef DEBUG_RDP_LABEL_SELECTION  // debug for label selection
-  int index = 0;
-#endif
-  for (auto& cell : linden_db_->cells()) {
-    gui::Painter::Color color;
-    if (cell.odb_instance()) {
-      color
-          = cell.locked() ? gui::Painter::dark_cyan : gui::Painter::dark_green;
-    } else if (cell.is_virtual()) {
-      if (cell.fixed()) {
-        // dummy instance which is to fill unusable sites
-        // which will be placed to fill Macro halos, Partial|Soft blockages and
-        // etc
-        if (cell.max_density() == 0.0) {
-          // dummy instances in Soft blockage
-          color = gui::Painter::dark_gray;
-        } else if (cell.max_density() < 1.0) {
-          // dummy instances in Partial Blockage
-          color = gui::Painter::light_gray;
-        } else {
-          // other cases, like Macro halos and etc
-          FASSERT(cell.max_density() == 1.0);
-          color = gui::Painter::gray;
-        }
-      } else {
-        // movable filler added in linden
-        color = gui::Painter::dark_magenta;
-      }
-    }
-#if 0  // TODO: support select on linden-cell
-    if (cell == selected_) {
-      color = gui::Painter::yellow;
-    }
-#endif
-
-    color.a = 180;
-    painter.setBrush(color);
-    auto const& r = cell.rect();
-#ifdef DEBUG_RDP_LABEL_SELECTION  // debug for label selection
-    std::vector<std::pair<gui::Painter::Color, DisplayControlLabel::Label>>
-        labels{{gui::Painter::red, DisplayControlLabel::Label::LINDEN},
-               {gui::Painter::blue, DisplayControlLabel::Label::CMAP_H},
-               {gui::Painter::magenta, DisplayControlLabel::Label::CMAP_V},
-               {gui::Painter::green, DisplayControlLabel::Label::EXPANDER},
-               {gui::Painter::cyan, DisplayControlLabel::Label::MACRO}};
-    index %= labels.size();
-    addRectToLabelSet(to_odb_rect(r),
-                      labels[index].first,
-                      labels[index].second);
-    index++;
-#else
-    addRectToLabelSet(to_odb_rect(r), color, DisplayControlLabel::Label::LINDEN);
-#endif
-  }
-}
-
-namespace {
-int getIntEnvValue(const char* envPath, int defaultValue)
-{
-  char* value = getenv(envPath);
-  if(value == nullptr){
-    return defaultValue;
-  }
-
-  utl::Logger* log_ = ord::OpenRoad::openRoad()->getLogger();
-  int envValue;
-  auto [ptr, ec] = std::from_chars(value, value + strlen(value), envValue);
-  if(ec == std::errc() && ptr == value + strlen(value)){
-    log_->report("Use env {}: {}", envPath, envValue);
-    return envValue;
-  } else {
-    log_->report("Invalid environment variable of {}", envPath);
-    abort();
-  }
-}
-
-void symmetry(odb::Point& p1, odb::Point& p2, const linden::geom::Rect& r)
-{
-  int disy = p1.getY() - r.ly();
-  int disx = p1.getX() - r.lx();
-  p1.setX(r.lx() + disy);
-  p1.setY(r.ly() + disx);
-
-  disy = p2.getY() - r.ly();
-  disx = p2.getX() - r.lx();
-  p2.setX(r.lx() + disy);
-  p2.setY(r.ly() + disx);
-}
-
-void flip(odb::Point& p1, odb::Point& p2, const linden::geom::Rect& r, linden::geom::dimension::Dimension dim)
-{
-  if(dim == linden::geom::dimension::X){
-    p1.setY(r.ly() + r.uy() - p1.getY());
-    p2.setY(r.ly() + r.uy() - p2.getY());
-  } else {
-    p1.setX(r.lx() + r.ux() - p1.getX());
-    p2.setX(r.lx() + r.ux() - p2.getX());
-  }
-}
-
-void drawMarcoOri(const linden::db::Cell& cell, gui::Painter& painter)
-{
-  painter.setPen(gui::Painter::white);
-  painter.setPenWidth(1000);
-  auto const& r = cell.rect();
-  auto ori = cell.orientation();
-  odb::Point p1(r.lx(), r.ly() + std::min(r.dx(), r.dy()) / 2);
-  odb::Point p2(r.lx() + std::min(r.dx(), r.dy()) / 4, r.ly());
-
-  switch(ori){
-    case linden::db::N: {
-      // intend to do nothing
-      break;
-    }
-    case linden::db::W: {
-      symmetry(p1, p2, r);
-      flip(p1, p2, r, linden::geom::dimension::Y);
-      break;
-    }
-    case linden::db::S: {
-      flip(p1, p2, r, linden::geom::dimension::X);
-      flip(p1, p2, r, linden::geom::dimension::Y);
-      break;
-    }
-    case linden::db::E: {
-      symmetry(p1, p2, r);
-      flip(p1, p2, r, linden::geom::dimension::X);
-      break;
-    }
-    case linden::db::FN: {
-      flip(p1, p2, r, linden::geom::dimension::Y);
-      break;
-    }
-    case linden::db::FE: {
-      symmetry(p1, p2, r);
-      break;
-    }
-    case linden::db::FS: {
-      flip(p1, p2, r, linden::geom::dimension::X);
-      break;
-    }
-    case linden::db::FW: {
-      symmetry(p1, p2, r);
-      flip(p1, p2, r, linden::geom::dimension::X);
-      flip(p1, p2, r, linden::geom::dimension::Y);
-      break;
-    }
-  }
-  painter.drawLine(p1, p2);
-}
-} // namespace
-
-void Graphics::drawLindenMP(gui::Painter& painter)
-{
-  drawBounds(painter);
-  // Draw the placeable objects
-  painter.setPen(gui::Painter::white);
-
-  static int percent = getIntEnvValue("FILLER_PERCENT",10);
-  static int transparency = getIntEnvValue("GRAPH_TRANSPARENCY", 180);
-  for (auto& cell : linden_db_->cells()) {
-    gui::Painter::Color color;
-    if (cell.odb_instance()) {
-      color
-          = cell.locked() ? gui::Painter::dark_cyan : gui::Painter::dark_green; 
-    } else if (cell.is_virtual() && !cell.fixed()) {  // filler
-      std::uniform_int_distribution<int> uniform_num(1, 100);
-      int random = uniform_num(rand_engine_);
-      if(percent < 0 || percent > 100){
-        logger_->report("Env FILLER_PERCENT out of range [0,100]");
-        abort();
-      }
-      if(random > percent) {
-        continue;
-      }
-      color = gui::Painter::dark_magenta;
-    }
-    
-    color.a = transparency;
-    painter.setBrush(color);
-    auto const& r = cell.rect();
-    painter.setPenWidth(1);
-    painter.drawRect(to_odb_rect(r));
-    if(cell.macro()){
-      drawMarcoOri(cell, painter);
-    }
-  }
 }
 
 void Graphics::drawNesterov(gui::Painter& painter)
 {
+  // TODO: Support graphics for multiple Nesterov instances
   drawBounds(painter);
   if (draw_bins_) {
     // Draw the bins
     painter.setPen(gui::Painter::white, /* cosmetic */ true);
-    for (auto& bin : nb_->bins()) {
-      int color = bin->density() * 50 + 20;
+
+    for (auto& bin : nbVec_[0]->bins()) {
+      int color = bin.density() * 50 + 20;
 
       color = (color > 255) ? 255 : (color < 20) ? 20 : color;
       color = 255 - color;
 
       painter.setBrush({color, color, color, 180});
-      painter.drawRect({bin->lx(), bin->ly(), bin->ux(), bin->uy()});
+      painter.drawRect({bin.lx(), bin.ly(), bin.ux(), bin.uy()});
     }
   }
 
   // Draw the placeable objects
   painter.setPen(gui::Painter::white);
-  for (auto* gCell : nb_->gCells()) {
+  for (auto* gCell : nbc_->gCells()) {
     const int gcx = gCell->dCx();
     const int gcy = gCell->dCy();
 
@@ -524,6 +199,11 @@ void Graphics::drawNesterov(gui::Painter& painter)
     color.a = 180;
     painter.setBrush(color);
     painter.drawRect({xl, yl, xh, yh});
+  }
+
+  painter.setBrush(gui::Painter::Color(gui::Painter::light_gray, 50));
+  for (auto& inst : pbVec_[0]->nonPlaceInsts()) {
+    painter.drawRect({inst->lx(), inst->ly(), inst->ux(), inst->uy()});
   }
 
   // Draw lines to neighbors
@@ -549,22 +229,22 @@ void Graphics::drawNesterov(gui::Painter& painter)
   if (draw_bins_) {
     float efMax = 0;
     int max_len = std::numeric_limits<int>::max();
-    for (auto& bin : nb_->bins()) {
-      efMax
-          = std::max(efMax, hypot(bin->electroForceX(), bin->electroForceY()));
-      max_len = std::min({max_len, bin->dx(), bin->dy()});
+    for (auto& bin : nbVec_[0]->bins()) {
+      efMax = std::max(efMax,
+                       std::hypot(bin.electroForceX(), bin.electroForceY()));
+      max_len = std::min({max_len, bin.dx(), bin.dy()});
     }
 
-    for (auto& bin : nb_->bins()) {
-      float fx = bin->electroForceX();
-      float fy = bin->electroForceY();
-      float f = hypot(fx, fy);
+    for (auto& bin : nbVec_[0]->bins()) {
+      float fx = bin.electroForceX();
+      float fy = bin.electroForceY();
+      float f = std::hypot(fx, fy);
       float ratio = f / efMax;
       float dx = fx / f * max_len * ratio;
       float dy = fy / f * max_len * ratio;
 
-      int cx = bin->cx();
-      int cy = bin->cy();
+      int cx = bin.cx();
+      int cy = bin.cy();
 
       painter.setPen(gui::Painter::red, true);
       painter.drawLine(cx, cy, cx + dx, cy + dy);
@@ -572,31 +252,36 @@ void Graphics::drawNesterov(gui::Painter& painter)
   }
 }
 
+void Graphics::drawMBFF(gui::Painter& painter)
+{
+  painter.setPen(gui::Painter::yellow, /* cosmetic */ true);
+  for (const auto& [start, end] : mbff_edges_) {
+    painter.drawLine(start, end);
+  }
+}
+
 void Graphics::drawObjects(gui::Painter& painter)
 {
-  if (nb_) {
-    drawNesterov(painter);
-  } else if (linden_db_) {
-    if(!pb_){
-      drawLindenMP(painter);
-    }else{
-      drawLinden(painter);
-    }
-  } else {
-    drawInitial(painter);
+  switch (mode_) {
+    case Mbff:
+      drawMBFF(painter);
+      break;
+    case Nesterov:
+      drawNesterov(painter);
+      break;
+    case Initial:
+      drawInitial(painter);
+      break;
   }
-  drawRectsInLabels(painter);
 }
 
 void Graphics::reportSelected()
-{
+{  // TODO: PD_FIX
   if (!selected_) {
     return;
   }
   auto instance = selected_->instance();
-  if (instance && instance->dbInst()) {
-    logger_->report("Inst: {}", instance->dbInst()->getName());
-  }
+  logger_->report("Inst: {}", instance->dbInst()->getName());
 
   if (np_) {
     auto wlCoeffX = np_->getWireLengthCoefX();
@@ -605,19 +290,21 @@ void Graphics::reportSelected()
     logger_->report("  Wire Length Gradient");
     for (auto& gPin : selected_->gPins()) {
       FloatPoint wlGrad
-          = nb_->getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
-      logger_->report("          ({:+.2e}, {:+.2e}) pin {}",
+          = nbc_->getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
+      const float weight = gPin->gNet()->totalWeight();
+      logger_->report("          ({:+.2e}, {:+.2e}) (weight = {}) pin {}",
                       wlGrad.x,
                       wlGrad.y,
+                      weight,
                       gPin->pin()->name());
     }
 
     FloatPoint wlGrad
-        = nb_->getWireLengthGradientWA(selected_, wlCoeffX, wlCoeffY);
+        = nbc_->getWireLengthGradientWA(selected_, wlCoeffX, wlCoeffY);
     logger_->report("  sum wl  ({: .2e}, {: .2e})", wlGrad.x, wlGrad.y);
 
-    auto densityGrad = nb_->getDensityGradient(selected_);
-    float densityPenalty = np_->getDensityPenalty();
+    auto densityGrad = nbVec_[0]->getDensityGradient(selected_);
+    float densityPenalty = nbVec_[0]->getDensityPenalty();
     logger_->report("  density ({: .2e}, {: .2e}) (penalty: {})",
                     densityPenalty * densityGrad.x,
                     densityPenalty * densityGrad.y,
@@ -637,16 +324,23 @@ void Graphics::cellPlot(bool pause)
   }
 }
 
+void Graphics::mbff_mapping(const LineSegs& segs)
+{
+  mbff_edges_ = segs;
+  gui::Gui::get()->redraw();
+  gui::Gui::get()->pause();
+}
+
 gui::SelectionSet Graphics::select(odb::dbTechLayer* layer,
                                    const odb::Rect& region)
 {
   selected_ = nullptr;
 
-  if (layer || !nb_) {
+  if (layer || !nbc_) {
     return gui::SelectionSet();
   }
 
-  for (GCell* cell : nb_->gCells()) {
+  for (GCell* cell : nbc_->gCells()) {
     const int gcx = cell->dCx();
     const int gcy = cell->dCy();
 
@@ -675,73 +369,64 @@ void Graphics::status(const std::string& message)
   gui::Gui::get()->status(message);
 }
 
+double Graphics::getGridXSize() const
+{
+  const BinGrid& grid = nbVec_[0]->getBinGrid();
+  return grid.binSizeX() / (double) getBlock()->getDbUnitsPerMicron();
+}
+
+double Graphics::getGridYSize() const
+{
+  const BinGrid& grid = nbVec_[0]->getBinGrid();
+  return grid.binSizeY() / (double) getBlock()->getDbUnitsPerMicron();
+}
+
+odb::Rect Graphics::getBounds() const
+{
+  return getBlock()->getCoreArea();
+}
+
+bool Graphics::populateMap()
+{
+  BinGrid& grid = nbVec_[0]->getBinGrid();
+  for (const Bin& bin : grid.bins()) {
+    odb::Rect box(bin.lx(), bin.ly(), bin.ux(), bin.uy());
+    if (heatmap_type_ == Density) {
+      const double value = bin.density() * 100.0;
+      addToMap(box, value);
+    } else {
+      // Overflow isn't stored per bin so we recompute it here
+      // (see BinGrid::updateBinsGCellDensityArea).
+
+      int64_t binArea = bin.binArea();
+      const float scaledBinArea
+          = static_cast<float>(binArea * bin.targetDensity());
+
+      double value = std::max(
+          0.0f,
+          static_cast<float>(bin.instPlacedAreaUnscaled())
+              + static_cast<float>(bin.nonPlaceAreaUnscaled()) - scaledBinArea);
+      addToMap(box, value);
+    }
+  }
+
+  return true;
+}
+
+void Graphics::combineMapData(bool base_has_value,
+                              double& base,
+                              const double new_data,
+                              const double data_area,
+                              const double intersection_area,
+                              const double rect_area)
+{
+  base += new_data * intersection_area / rect_area;
+}
+
 /* static */
 bool Graphics::guiActive()
 {
   return gui::Gui::enabled();
-}
-
-const char* Graphics::getDisplayControlGroupName()
-{
-  return "Labels";
-}
-
-std::vector<std::string> DisplayControlLabel::label_names
-    = {"Linden", "Cmap-H", "Cmap-V", "Expander", "Macro"};
-
-std::string DisplayControlLabel::label2name(const DisplayControlLabel::Label& l)
-{
-  FASSERT(l >= 0 && l < label_names.size());
-  return label_names[l];
-}
-
-DisplayControlLabel::Label DisplayControlLabel::name2label(
-    const std::string& name)
-{
-  auto pos = std::find(label_names.begin(), label_names.end(), name);
-  assert(pos != label_names.end());
-  return Label(pos-label_names.begin());
-}
-
-std::vector<DisplayControlLabel::Label> DisplayControlLabel::getOrderedLabels(
-    const std::vector<std::string>& orderedLabelNames)
-{
-  std::vector<DisplayControlLabel::Label> res;
-  for (const auto& name : orderedLabelNames) {
-    res.emplace_back(name2label(name));
-  }
-  return res;
-}
-
-bool Graphics::isLablelSelected(const DisplayControlLabel::Label& l)
-{
-  return checkDisplayControl( DisplayControlLabel::label2name(l));
-}
-
-void Graphics::addRectToLabelSet(const odb::Rect& rect,
-                                 const gui::Painter::Color& color,
-                                 const DisplayControlLabel::Label& label)
-{
-  labeledRects_.push_back({rect, color, label});
-}
-
-void Graphics::drawRectsInLabels(gui::Painter& painter)
-{
-  auto orderedLabels = DisplayControlLabel::getOrderedLabels(
-      gui::Gui::get()->getDisplayControlsOrderedLabelNames());
-  // display bottom layers first
-  for (int i = orderedLabels.size() - 1; i >= 0; i--) {
-    DisplayControlLabel::Label label = orderedLabels[i];
-    if (!isLablelSelected(label)) continue;
-    for (const auto& obj : labeledRects_) {
-      if (obj.label == label) {
-        // draw obj
-        painter.setBrush(obj.color);
-        painter.drawRect(obj.rect);
-      }
-    }
-  }
-  labeledRects_.clear();
 }
 
 }  // namespace gpl

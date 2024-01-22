@@ -1,5 +1,6 @@
 record_tests {
   simple01
+  simple01-obs
   simple01-td
   simple01-td-tune
   simple01-uniform
@@ -17,8 +18,12 @@ record_tests {
   ar01
   ar02
   incremental01
+  incremental02
   error01
   diverge01
-  macro04
   density01
+  convergence01
+  nograd01
+  clust01
+  clust02
 }

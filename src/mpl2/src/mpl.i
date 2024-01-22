@@ -32,41 +32,126 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 %{
+#include "ord/OpenRoad.hh"
 #include "mpl2/rtl_mp.h"
+#include "Mpl2Observer.h"
+#include "graphics.h"
+#include "odb/db.h"
 
 namespace ord {
 // Defined in OpenRoad.i
-mpl::MacroPlacer2*
+mpl2::MacroPlacer2*
 getMacroPlacer2();
+utl::Logger* getLogger();
+odb::dbDatabase* getDb();
 }
 
+using utl::MPL;
 using ord::getMacroPlacer2;
 %}
 
 %include "../../Exception.i"
+%include <std_string.i>
 
 %inline %{
 
 namespace mpl2 {
 
-bool rtl_macro_placer_cmd(const char* config_file,
-                          const char* report_directory,
-                          const float area_wt,
-                          const float wirelength_wt,
-                          const float outline_wt,
-                          const float boundary_wt,
-                          const float macro_blockage_wt,
-                          const float location_wt,
-                          const float notch_wt,
-                          const float macro_halo,
-                          const char* report_file,
-                          const char* macro_blockage_file,
-                          const char* prefer_location_file) {
+bool rtl_macro_placer_cmd(const int max_num_macro,
+                          const int min_num_macro,
+                          const int max_num_inst,
+                          const int min_num_inst,
+                          const float tolerance,
+                          const int max_num_level,
+                          const float coarsening_ratio,
+                          const int num_bundled_ios,
+                          const int large_net_threshold,
+                          const int signature_net_threshold,
+                          const float halo_width,
+                          const float halo_height,
+                          const float fence_lx,
+                          const float fence_ly,
+                          const float fence_ux,
+                          const float fence_uy,
+                          const float area_weight,
+                          const float outline_weight,
+                          const float wirelength_weight,
+                          const float guidance_weight,
+                          const float fence_weight,
+                          const float boundary_weight,
+                          const float notch_weight,
+                          const float macro_blockage_weight,
+                          const float pin_access_th,
+                          const float target_util,
+                          const float target_dead_space,
+                          const float min_ar,
+                          const int snap_layer,
+                          const bool bus_planning_on,
+                          const char* report_directory) {
+
   auto macro_placer = getMacroPlacer2();
-  return macro_placer->place(config_file, report_directory, 
-                            area_wt, wirelength_wt, outline_wt,
-                            boundary_wt, macro_blockage_wt, location_wt, notch_wt, macro_halo,
-                            report_file, macro_blockage_file, prefer_location_file);
+  const int num_threads = ord::OpenRoad::openRoad()->getThreadCount();
+  return macro_placer->place(num_threads,
+                             max_num_macro,
+                             min_num_macro,
+                             max_num_inst,
+                             min_num_inst,
+                             tolerance,
+                             max_num_level,
+                             coarsening_ratio,
+                             num_bundled_ios,
+                             large_net_threshold,
+                             signature_net_threshold,
+                             halo_width,
+                             halo_height,
+                             fence_lx,
+                             fence_ly,
+                             fence_ux,
+                             fence_uy,
+                             area_weight,
+                             outline_weight,
+                             wirelength_weight,
+                             guidance_weight,
+                             fence_weight,
+                             boundary_weight,
+                             notch_weight,
+                             macro_blockage_weight,
+                             pin_access_th,
+                             target_util,
+                             target_dead_space,
+                             min_ar,
+                             snap_layer,
+                             bus_planning_on,
+                             report_directory);
+}
+
+void set_debug_cmd(bool coarse, bool fine)
+{
+  auto macro_placer = getMacroPlacer2();
+  int dbu = ord::getDb()->getTech()->getDbUnitsPerMicron();
+  std::unique_ptr<Mpl2Observer> graphics
+    = std::make_unique<Graphics>(coarse, fine, dbu, ord::getLogger());
+  macro_placer->setDebug(graphics);
+}
+
+void
+place_macro(odb::dbInst* inst, float x_origin, float y_origin, std::string orientation_string)
+{
+  odb::dbOrientType orientation(orientation_string.c_str());
+
+  getMacroPlacer2()->placeMacro(inst, x_origin, y_origin, orientation);
+}
+
+void
+set_macro_placement_file(std::string file_name)
+{
+  getMacroPlacer2()->setMacroPlacementFile(file_name);
+}
+
+void
+write_macro_placement(std::string file_name)
+{
+  getMacroPlacer2()->writeMacroPlacement(file_name);
 }
 
 } // namespace

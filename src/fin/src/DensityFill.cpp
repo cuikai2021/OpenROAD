@@ -101,9 +101,8 @@ DensityFill::DensityFill(dbDatabase* db, utl::Logger* logger, bool debug)
   }
 }
 
-DensityFill::~DensityFill()  // must be in the .cpp due to forward decl
-{
-}
+// must be in the .cpp due to forward decl
+DensityFill::~DensityFill() = default;
 
 // Converts the user's JSON configuration file in per layer
 // DensityFillLayerConfig objects.
@@ -191,7 +190,7 @@ void DensityFill::readAndExpandLayers(dbTech* tech, pt::ptree& tree)
         logger_->error(
             FIN, 2, "Layer {} not found.", layer.get_child("name").data());
       }
-      layers_[tech_layer] = cfg;
+      layers_[tech_layer] = std::move(cfg);
     }
   }
 }
@@ -281,8 +280,7 @@ static Polygon90Set orNonFills(dbBlock* block, dbTechLayer* layer)
       for (auto sbox : swire->getWires()) {
         if (sbox->isVia()) {
           dbVia* via = sbox->getBlockVia();
-          Rect rect;
-          sbox->getBox(rect);
+          Rect rect = sbox->getBox();
           shape.setVia(via, rect);
           dbShape::getViaBoxes(shape, via_shapes);
           for (auto& via_shape : via_shapes) {
@@ -423,7 +421,12 @@ static void fillPolygon(const Polygon90& area,
       const int num_mask = std::max(num_masks, 1);
       int cnt = 0;
       for (auto& f : polygons) {
-        int mask = cnt++ % num_mask + 1;
+        int mask;
+        if (num_mask == 1) {
+          mask = 0;  // don't write a mask for single mask layers
+        } else {
+          mask = cnt++ % num_mask + 1;
+        }
         auto x_lo = xl(f);
         auto y_lo = yl(f);
         auto x_hi = xh(f);

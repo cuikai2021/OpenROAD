@@ -37,11 +37,9 @@
 #include <string>
 
 #include "odb/db.h"
-#include "odb/dbSet.h"
 #include "odb/dbMap.h"
 #include "odb/defout.h"
 #include "odb/odb.h"
-
 namespace utl {
 class Logger;
 }
@@ -53,7 +51,6 @@ class dbBTerm;
 class dbInst;
 class dbTechNonDefaultRule;
 class dbTechLayerRule;
-class dbScanChainComp;
 
 class defout_impl
 {
@@ -88,13 +85,13 @@ class defout_impl
 
   int defdist(uint value) { return (uint) (((double) value) * _dist_factor); }
 
-  void writeAnnotation();
   void writePropertyDefinitions(dbBlock* block);
   void writeRows(dbBlock* block);
   void writeTracks(dbBlock* block);
   void writeGCells(dbBlock* block);
   void writeVias(dbBlock* block);
   void writeVia(dbVia* via);
+  void writeComponentMaskShift(dbBlock* block);
   void writeInsts(dbBlock* block);
   void writeNonDefaultRules(dbBlock* block);
   void writeNonDefaultRule(dbTechNonDefaultRule* rule);
@@ -116,8 +113,6 @@ class defout_impl
   void writePropValue(dbProperty* prop);
   void writeProperties(dbObject* object);
   void writePinProperties(dbBlock* block);
-  void writeScanChains(dbBlock* block);
-  void writeScanChainsComps(const dbSet<dbScanChainComp>& comps, const char* type);
   bool hasProperties(dbObject* object, ObjType type);
 
  public:
@@ -126,8 +121,8 @@ class defout_impl
     _use_net_inst_ids = false;
     _use_master_ids = false;
     _use_alias = false;
-    _select_net_map = NULL;
-    _select_inst_map = NULL;
+    _select_net_map = nullptr;
+    _select_inst_map = nullptr;
     _version = defout::DEF_5_8;
     _logger = logger;
   }

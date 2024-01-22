@@ -40,32 +40,23 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/weak_ptr.hpp>
 
-#include "db/obj/frShape.h"
-#include "db/obj/frNet.h"
-#include "db/tech/frConstraint.h"
-#include "global.h"
-#include "db/gcObj/gcNet.h"
-#include "db/gcObj/gcPin.h"
-#include "db/gcObj/gcShape.h"
 #include "db/drObj/drMarker.h"
 #include "db/drObj/drNet.h"
 #include "db/drObj/drPin.h"
-#include "db/obj/frAccess.h"
-#include "db/obj/frBlockage.h"
-#include "db/obj/frBoundary.h"
-#include "db/obj/frGCellPattern.h"
-#include "db/obj/frGuide.h"
-#include "db/obj/frInst.h"
-#include "db/obj/frInstBlockage.h"
-#include "db/obj/frMarker.h"
-#include "db/obj/frNode.h"
-#include "db/obj/frPin.h"
-#include "db/obj/frRPin.h"
-#include "db/obj/frVia.h"
-#include "db/obj/frTrackPattern.h"
+#include "db/gcObj/gcNet.h"
+#include "db/gcObj/gcPin.h"
+#include "db/gcObj/gcShape.h"
 #include "db/infra/frBox.h"
-#include "odb/geom.h"
+#include "db/obj/frMarker.h"
+#include "db/obj/frShape.h"
+#include "db/obj/frVia.h"
+#include "distributed/drUpdate.h"
+#include "distributed/paUpdate.h"
+#include "frDesign.h"
+#include "global.h"
 #include "odb/dbTypes.h"
+#include "odb/geom.h"
+
 namespace gtl = boost::polygon;
 namespace bg = boost::geometry;
 
@@ -73,7 +64,7 @@ namespace boost::serialization {
 
 // Enable serialization of a std::tuple using recursive templates.
 // For some reason boost serialize seems to leave out this std class.
-template <uint N>
+template <unsigned int N>
 struct TupleSerializer
 {
   template <class Archive, typename... Types>
@@ -287,9 +278,7 @@ void serialize(Archive& ar, fr::segment_t& segment, const unsigned int version)
 
 // odb classes
 template <class Archive>
-void serialize(Archive& ar,
-               odb::Rect& r,
-               const unsigned int version)
+void serialize(Archive& ar, odb::Rect& r, const unsigned int version)
 {
   if (fr::is_loading(ar)) {
     fr::frCoord xlo = 0, ylo = 0, xhi = 0, yhi = 0;
@@ -312,15 +301,13 @@ void serialize(Archive& ar,
 }
 
 template <class Archive>
-void serialize(Archive& ar,
-               odb::Point& p,
-               const unsigned int version)
+void serialize(Archive& ar, odb::Point& p, const unsigned int version)
 {
   if (fr::is_loading(ar)) {
     fr::frCoord x = 0, y = 0;
     (ar) & x;
     (ar) & y;
-    p.set(x, y);
+    p = {x, y};
   } else {
     fr::frCoord x, y;
     x = p.x();
@@ -331,9 +318,7 @@ void serialize(Archive& ar,
 }
 
 template <class Archive>
-void serialize(Archive& ar,
-               odb::dbSigType& type,
-               const unsigned int version)
+void serialize(Archive& ar, odb::dbSigType& type, const unsigned int version)
 {
   odb::dbSigType::Value v = odb::dbSigType::SIGNAL;
   if (fr::is_loading(ar)) {
@@ -346,9 +331,7 @@ void serialize(Archive& ar,
 }
 
 template <class Archive>
-void serialize(Archive& ar,
-               odb::dbIoType& type,
-               const unsigned int version)
+void serialize(Archive& ar, odb::dbIoType& type, const unsigned int version)
 {
   odb::dbIoType::Value v = odb::dbIoType::INOUT;
   if (fr::is_loading(ar)) {
@@ -376,9 +359,7 @@ void serialize(Archive& ar,
 }
 
 template <class Archive>
-void serialize(Archive& ar,
-               odb::dbMasterType& type,
-               const unsigned int version)
+void serialize(Archive& ar, odb::dbMasterType& type, const unsigned int version)
 {
   odb::dbMasterType::Value v = odb::dbMasterType::NONE;
   if (fr::is_loading(ar)) {
@@ -406,9 +387,7 @@ void serialize(Archive& ar,
 }
 
 template <class Archive>
-void serialize(Archive& ar,
-               odb::dbOrientType& type,
-               const unsigned int version)
+void serialize(Archive& ar, odb::dbOrientType& type, const unsigned int version)
 {
   odb::dbOrientType::Value v = odb::dbOrientType::R0;
   if (fr::is_loading(ar)) {
@@ -440,66 +419,24 @@ void serialize(Archive& ar,
   }
 }
 
-
 }  // namespace boost::serialization
 
 namespace fr {
 
 template <class Archive>
-void register_types(Archive& ar)
+void registerTypes(Archive& ar)
 {
   // The serialization library needs to be told about these classes
   // as we often only encounter them through their base classes.
   // More details here
   // https://www.boost.org/doc/libs/1_76_0/libs/serialization/doc/serialization.html#derivedpointers
 
+  ar.template register_type<drUpdate>();
+  ar.template register_type<paUpdate>();
   ar.template register_type<frRect>();
   ar.template register_type<frPathSeg>();
   ar.template register_type<frPatchWire>();
   ar.template register_type<frPolygon>();
-  ar.template register_type<frInstTerm>();
-  ar.template register_type<frBTerm>();
-  ar.template register_type<frMTerm>();
-  ar.template register_type<frMaster>();
-  ar.template register_type<frNet>();
-
-  ar.template register_type<frLef58CutClassConstraint>();
-  ar.template register_type<frRecheckConstraint>();
-  ar.template register_type<frShortConstraint>();
-  ar.template register_type<frNonSufficientMetalConstraint>();
-  ar.template register_type<frOffGridConstraint>();
-  ar.template register_type<frMinEnclosedAreaConstraint>();
-  ar.template register_type<frLef58MinStepConstraint>();
-  ar.template register_type<frMinStepConstraint>();
-  ar.template register_type<frMinimumcutConstraint>();
-  ar.template register_type<frAreaConstraint>();
-  ar.template register_type<frMinWidthConstraint>();
-  ar.template register_type<
-      frLef58SpacingEndOfLineWithinEncloseCutConstraint>();
-  ar.template register_type<frLef58SpacingEndOfLineWithinEndToEndConstraint>();
-  ar.template register_type<
-      frLef58SpacingEndOfLineWithinParallelEdgeConstraint>();
-  ar.template register_type<
-      frLef58SpacingEndOfLineWithinMaxMinLengthConstraint>();
-  ar.template register_type<frLef58SpacingEndOfLineWithinConstraint>();
-  ar.template register_type<frLef58SpacingEndOfLineConstraint>();
-  ar.template register_type<frLef58CornerSpacingSpacingConstraint>();
-  ar.template register_type<frSpacingConstraint>();
-  ar.template register_type<frSpacingSamenetConstraint>();
-  ar.template register_type<frSpacingTableInfluenceConstraint>();
-  ar.template register_type<frSpacingEndOfLineConstraint>();
-  ar.template register_type<frSpacingTablePrlConstraint>();
-  ar.template register_type<frSpacingTableTwConstraint>();
-  ar.template register_type<frSpacingTableConstraint>();
-  ar.template register_type<frLef58SpacingTableConstraint>();
-  ar.template register_type<frCutSpacingConstraint>();
-  ar.template register_type<frLef58CutSpacingConstraint>();
-  ar.template register_type<frLef58CornerSpacingConstraint>();
-  ar.template register_type<frLef58CornerSpacingSpacingConstraint>();
-  ar.template register_type<frLef58CornerSpacingSpacing1DConstraint>();
-  ar.template register_type<frLef58CornerSpacingSpacing2DConstraint>();
-  ar.template register_type<frLef58RectOnlyConstraint>();
-  ar.template register_type<frLef58RightWayOnGridOnlyConstraint>();
 
   ar.template register_type<drPathSeg>();
   ar.template register_type<drVia>();
@@ -509,34 +446,309 @@ void register_types(Archive& ar)
   ar.template register_type<drNet>();
   ar.template register_type<drPin>();
 
-  ar.template register_type<gcNet>();
-  ar.template register_type<gcPin>();
-  ar.template register_type<gcSegment>();
-  ar.template register_type<gcPolygon>();
-  ar.template register_type<gcRect>();
-  ar.template register_type<frAccessPoint>();
-  ar.template register_type<frPinAccess>();
-  ar.template register_type<frBlockage>();
-  ar.template register_type<frBoundary>();
-  ar.template register_type<frGCellPattern>();
-  ar.template register_type<frGuide>();
-  ar.template register_type<frInst>();
-  ar.template register_type<frInstBlockage>();
   ar.template register_type<frMarker>();
-  ar.template register_type<frNode>();
-  ar.template register_type<frBPin>();
-  ar.template register_type<frMPin>();
-  ar.template register_type<frRPin>();
   ar.template register_type<frVia>();
-  ar.template register_type<frTrackPattern>();
   ar.template register_type<frBox3D>();
+
+  ar.template register_type<frPinAccess>();
+  ar.template register_type<frAccessPoint>();
+}
+
+inline bool inBounds(int id, int sz)
+{
+  return id >= 0 && id < sz;
+}
+template <class Archive>
+void serializeBlockObject(Archive& ar, frBlockObject*& obj)
+{
+  frDesign* design = ar.getDesign();
+  if (is_loading(ar)) {
+    obj = nullptr;
+    frBlockObjectEnum type = frcBlock;
+    (ar) & type;
+    switch (type) {
+      case frcNet: {
+        bool fake = false;
+        bool special = false;
+        int id = -1;
+        bool modified = false;
+        (ar) & fake;
+        (ar) & special;
+        (ar) & id;
+        (ar) & modified;
+        if (fake) {
+          if (id == 0)
+            obj = design->getTopBlock()->getFakeVSSNet();
+          else
+            obj = design->getTopBlock()->getFakeVDDNet();
+        } else {
+          if (special)
+            obj = design->getTopBlock()->getSNet(id);
+          else
+            obj = design->getTopBlock()->getNet(id);
+        }
+        if (obj != nullptr && modified)
+          ((frNet*) obj)->setModified(true);
+        break;
+      }
+      case frcBTerm: {
+        int id = -1;
+        (ar) & id;
+        if (!inBounds(id, design->getTopBlock()->getTerms().size()))
+          exit(1);  // should throw error
+        obj = design->getTopBlock()->getTerms().at(id).get();
+        break;
+      }
+      case frcBlockage: {
+        int id = -1;
+        (ar) & id;
+        if (!inBounds(id, design->getTopBlock()->getBlockages().size()))
+          exit(1);
+        obj = design->getTopBlock()->getBlockages().at(id).get();
+        break;
+      }
+      case frcInst: {
+        int inst_id = -1;
+        (ar) & inst_id;
+        if (!inBounds(inst_id, design->getTopBlock()->getInsts().size())) {
+          exit(1);
+        }
+        obj = design->getTopBlock()->getInsts().at(inst_id).get();
+        break;
+      }
+      case frcInstTerm: {
+        int inst_id = 0;
+        int id = 0;
+        (ar) & inst_id;
+        (ar) & id;
+        if (!inBounds(inst_id, design->getTopBlock()->getInsts().size()))
+          exit(1);
+        auto inst = design->getTopBlock()->getInsts().at(inst_id).get();
+        if (!inBounds(id, inst->getInstTerms().size()))
+          exit(1);
+        obj = inst->getInstTerms().at(id).get();
+        break;
+      }
+      case frcInstBlockage: {
+        int inst_id = 0;
+        int id = 0;
+        (ar) & inst_id;
+        (ar) & id;
+        if (!inBounds(inst_id, design->getTopBlock()->getInsts().size()))
+          exit(1);
+        auto inst = design->getTopBlock()->getInsts().at(inst_id).get();
+        if (!inBounds(id, inst->getInstBlockages().size()))
+          exit(1);
+        obj = inst->getInstBlockages().at(id).get();
+        break;
+      }
+      case frcMaster: {
+        int id = 0;
+        (ar) & id;
+        id--;
+        if (!inBounds(id, design->getMasters().size()))
+          exit(1);
+        obj = design->getMasters().at(id).get();
+        break;
+      }
+      case frcMTerm: {
+        frBlockObject* blockObj;
+        serializeBlockObject(ar, blockObj);
+        frMaster* master = (frMaster*) blockObj;
+        int id = 0;
+        (ar) & id;
+        if (!inBounds(id, master->getTerms().size())) {
+          std::cout << "frcMTerm" << std::endl;
+          exit(1);
+        }
+        obj = master->getTerms().at(id).get();
+        break;
+      }
+      case frcMPin: {
+        frBlockObject* blockObj;
+        serializeBlockObject(ar, blockObj);
+        frMTerm* term = (frMTerm*) blockObj;
+        int id = 0;
+        (ar) & id;
+        if (!inBounds(id, term->getPins().size())) {
+          std::cout << "frcMPin" << std::endl;
+          exit(1);
+        }
+        obj = term->getPins().at(id).get();
+        break;
+      }
+      case frcBPin: {
+        frBlockObject* blockObj;
+        serializeBlockObject(ar, blockObj);
+        frBTerm* term = (frBTerm*) blockObj;
+        int id = 0;
+        (ar) & id;
+        if (!inBounds(id, term->getPins().size())) {
+          std::cout << "frcBPin" << std::endl;
+          exit(1);
+        }
+        obj = term->getPins().at(id).get();
+        break;
+      }
+      case frcPinAccess: {
+        frBlockObject* blockObj;
+        serializeBlockObject(ar, blockObj);
+        frPin* pin = (frPin*) blockObj;
+        int id = 0;
+        (ar) & id;
+        if (!inBounds(id, pin->getNumPinAccess())) {
+          std::cout << "frcPinAccess" << std::endl;
+          exit(1);
+        }
+        obj = pin->getPinAccess(id);
+        break;
+      }
+      case frcAccessPoint: {
+        frBlockObject* blockObj;
+        serializeBlockObject(ar, blockObj);
+        frPinAccess* pa = (frPinAccess*) blockObj;
+        int id = 0;
+        (ar) & id;
+        if (!inBounds(id, pa->getAccessPoints().size())) {
+          std::cout << "frcAccessPoint " << id << std::endl;
+          exit(1);
+        }
+        obj = pa->getAccessPoints().at(id).get();
+        break;
+      }
+      case frcBlock:
+        break;
+      default:
+        exit(1);
+        break;
+    }
+  } else {
+    frBlockObjectEnum type;
+    if (obj != nullptr)
+      type = obj->typeId();
+    else
+      type = frcBlock;
+    (ar) & type;
+    switch (type) {
+      case frcNet: {
+        bool fake = ((frNet*) obj)->isFake();
+        bool special = ((frNet*) obj)->isSpecial();
+        int id = ((frNet*) obj)->getId();
+        bool modified = ((frNet*) obj)->isModified();
+        (ar) & fake;
+        (ar) & special;
+        if (fake) {
+          if (((frNet*) obj)->getType() == odb::dbSigType::GROUND)
+            id = 0;
+          else
+            id = 1;
+        }
+        (ar) & id;
+        (ar) & modified;
+        break;
+      }
+      case frcBTerm: {
+        int id = ((frBTerm*) obj)->getIndexInOwner();
+        (ar) & id;
+        break;
+      }
+      case frcBlockage: {
+        int id = ((frBlockage*) obj)->getIndexInOwner();
+        (ar) & id;
+        break;
+      }
+      case frcInst: {
+        int inst_id = ((frInst*) obj)->getId();
+        (ar) & inst_id;
+        break;
+      }
+      case frcInstTerm: {
+        int inst_id = ((frInstTerm*) obj)->getInst()->getId();
+        int id = ((frInstTerm*) obj)->getIndexInOwner();
+        (ar) & inst_id;
+        (ar) & id;
+        break;
+      }
+      case frcInstBlockage: {
+        int inst_id = ((frInstBlockage*) obj)->getInst()->getId();
+        int id = ((frInstBlockage*) obj)->getIndexInOwner();
+        (ar) & inst_id;
+        (ar) & id;
+        break;
+      }
+      case frcMaster: {
+        int id = ((frMaster*) obj)->getId();
+        (ar) & id;
+        break;
+      }
+      case frcMTerm: {
+        frBlockObject* master = ((frMTerm*) obj)->getMaster();
+        serializeBlockObject(ar, master);
+        int id = ((frMTerm*) obj)->getIndexInOwner();
+        (ar) & id;
+        break;
+      }
+      case frcMPin: {
+        frBlockObject* mterm = ((frMPin*) obj)->getTerm();
+        serializeBlockObject(ar, mterm);
+        int id = ((frMPin*) obj)->getId();
+        (ar) & id;
+        break;
+      }
+      case frcBPin: {
+        frBlockObject* bterm = ((frBPin*) obj)->getTerm();
+        serializeBlockObject(ar, bterm);
+        int id = ((frBPin*) obj)->getId();
+        (ar) & id;
+        break;
+      }
+      case frcPinAccess: {
+        frBlockObject* pin = ((frPinAccess*) obj)->getPin();
+        serializeBlockObject(ar, pin);
+        int id = ((frPinAccess*) obj)->getId();
+        (ar) & id;
+        break;
+      }
+      case frcAccessPoint: {
+        frBlockObject* pa = ((frAccessPoint*) obj)->getPinAccess();
+        serializeBlockObject(ar, pa);
+        int id = ((frAccessPoint*) obj)->getId();
+        (ar) & id;
+        break;
+      }
+      case frcBlock:
+        break;
+      default:
+        exit(1);
+        break;
+    }
+  }
 }
 
 template <class Archive>
-void serialize_globals(Archive& ar)
+void serializeViaDef(Archive& ar, frViaDef*& viadef)
 {
-  (ar) & GUIDE_FILE;
-  (ar) & OUTGUIDE_FILE;
+  frDesign* design = ar.getDesign();
+  if (is_loading(ar)) {
+    int via_id = -1;
+    (ar) & via_id;
+    if (via_id >= 0)
+      viadef = design->getTech()->getVias().at(via_id).get();
+    else
+      viadef = nullptr;
+  } else {
+    int via_id;
+    if (viadef != nullptr)
+      via_id = viadef->getId();
+    else
+      via_id = -1;
+    (ar) & via_id;
+  }
+}
+
+template <class Archive>
+void serializeGlobals(Archive& ar)
+{
   (ar) & DBPROCESSNODE;
   (ar) & OUT_MAZE_FILE;
   (ar) & DRC_RPT_FILE;
@@ -581,20 +793,15 @@ void serialize_globals(Archive& ar)
   (ar) & TASHAPEBLOATWIDTH;
   (ar) & VIACOST;
   (ar) & GRIDCOST;
-  (ar) & FIXEDSHAPECOST;
   (ar) & ROUTESHAPECOST;
   (ar) & MARKERCOST;
   (ar) & MARKERBLOATWIDTH;
   (ar) & BLOCKCOST;
   (ar) & GUIDECOST;
-  (ar) & MARKERDECAY;
   (ar) & SHAPEBLOATWIDTH;
   (ar) & MISALIGNMENTCOST;
   (ar) & HISTCOST;
   (ar) & CONGCOST;
 }
-
-using InputArchive = boost::archive::binary_iarchive;
-using OutputArchive = boost::archive::binary_oarchive;
 
 }  // namespace fr

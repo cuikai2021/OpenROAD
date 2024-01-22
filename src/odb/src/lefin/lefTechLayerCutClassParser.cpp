@@ -25,28 +25,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "boostParser.h"
 #include <iostream>
 #include <string>
 
+#include "boostParser.h"
 #include "db.h"
 #include "lefLayerPropParser.h"
 #include "lefin.h"
 
 namespace lefTechLayerCutClass {
 
-void addCutClassRule(boost::fusion::vector<std::string,
-                                           double,
-                                           boost::optional<double>,
-                                           boost::optional<int>>& params,
-                     odb::dbTechLayer* layer,
-                     odb::lefin* lefin)
+void addCutClassRule(
+    boost::fusion::vector<std::string,
+                          double,
+                          boost::optional<double>,
+                          boost::optional<int>,
+                          boost::optional<std::string>>& params,
+    odb::dbTechLayer* layer,
+    odb::lefin* lefin)
 {
   std::string name = at_c<0>(params);
   auto rule = odb::dbTechLayerCutClassRule::create(layer, name.c_str());
   rule->setWidth(lefin->dbdist(at_c<1>(params)));
   auto length = at_c<2>(params);
   auto cnt = at_c<3>(params);
+  auto orient = at_c<4>(params);
   if (length.is_initialized()) {
     rule->setLengthValid(true);
     rule->setLength(lefin->dbdist(length.value()));
@@ -55,33 +58,30 @@ void addCutClassRule(boost::fusion::vector<std::string,
     rule->setCutsValid(true);
     rule->setNumCuts(cnt.value());
   }
+  if (orient.is_initialized()) {
+    lefin->warning(
+        421, "Keyword ORIENT is not supported in CUTCLASS {}.", name);
+  }
 }
-template <typename Iterator>
-bool parse(Iterator first,
-           Iterator last,
-           odb::dbTechLayer* layer,
-           odb::lefin* lefin)
+
+}  // namespace lefTechLayerCutClass
+
+namespace odb {
+bool lefTechLayerCutClassParser::parse(std::string s,
+                                       dbTechLayer* layer,
+                                       odb::lefin* lefin)
 {
-  qi::rule<Iterator, std::string(), ascii::space_type> _string;
-  _string %= lexeme[+(char_ - ' ')];
+  auto first = s.begin();
+  auto last = s.end();
   qi::rule<std::string::iterator, space_type> cutClassRule
       = (+(lit("CUTCLASS") >> _string >> lit("WIDTH") >> double_
            >> -(lit("LENGTH") >> double_) >> -(lit("CUTS") >> int_)
-           >> lit(";"))[boost::bind(&addCutClassRule, _1, layer, lefin)]);
+           >> -(lit("ORIENT") >> _string) >> lit(";"))[boost::bind(
+          &lefTechLayerCutClass::addCutClassRule, _1, layer, lefin)]);
 
   bool valid
       = qi::phrase_parse(first, last, cutClassRule, space) && first == last;
   return valid;
-}
-}  // namespace lefTechLayerCutClass
-
-namespace odb {
-
-bool lefTechLayerCutClassParser::parse(std::string s,
-                                       dbTechLayer* layer,
-                                       odb::lefin* l)
-{
-  return lefTechLayerCutClass::parse(s.begin(), s.end(), layer, l);
 }
 
 }  // namespace odb

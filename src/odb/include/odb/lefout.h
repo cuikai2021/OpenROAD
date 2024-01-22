@@ -32,6 +32,9 @@
 
 #pragma once
 
+#include <boost/polygon/polygon.hpp>
+#include <ostream>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 
@@ -59,26 +62,32 @@ class dbProperty;
 
 class lefout
 {
-  FILE* _out;
   bool _use_master_ids;
   bool _use_alias;
   bool _write_marked_masters;
   double _dist_factor;
   double _area_factor;
   utl::Logger* logger_;
+  int bloat_factor_;
+  bool bloat_occupied_layers_;
 
-  template<typename GenericBox>
+  template <typename GenericBox>
   void writeBoxes(dbSet<GenericBox>& boxes, const char* indent);
 
-  void writeTech(dbTech* tech);
+  using ObstructionMap
+      = std::map<dbTechLayer*, boost::polygon::polygon_90_set_data<int>>;
+
+  void writeTechBody(dbTech* tech);
   void writeLayer(dbTechLayer* layer);
   void writeVia(dbTechVia* via);
+  void writeBlockVia(dbVia* via);
   void writeHeader(dbLib* lib);
   void writeHeader(dbBlock* db_block);
-  void writeLib(dbLib* lib);
+  void writeLibBody(dbLib* lib);
   void writeMaster(dbMaster* master);
   void writeMTerm(dbMTerm* mterm);
   void writeSite(dbSite* site);
+  void writeViaMap(dbTech* tech, bool use_via_cut_class);
   void writeNonDefaultRule(dbTech* tech, dbTechNonDefaultRule* rule);
   void writeLayerRule(dbTechLayerRule* rule);
   void writeSameNetRule(dbTechSameNetRule* rule);
@@ -86,56 +95,68 @@ class lefout
   void writeTechViaGenerateRule(dbTechViaGenerateRule* rule);
   void writePropertyDefinition(dbProperty* prop);
   void writePropertyDefinitions(dbLib* lib);
-  void writeVersion(const char* version);
+  void writeVersion(const std::string& version);
   void writeNameCaseSensitive(const dbOnOffType on_off_type);
   void writeBusBitChars(char left_bus_delimeter, char right_bus_delimeter);
   void writeUnits(int database_units);
   void writeDividerChar(char hier_delimeter);
   void writeObstructions(dbBlock* db_block);
-  void getTechLayerObstructions(
-      dbBlock* db_block,
-      std::set<dbTechLayer*>& obstruction_layers) const;
-  void writeBox(std::string indent, dbBox* box);
-  void findWireLayerObstructions(std::set<dbTechLayer*>& obstruction_layers,
+  void getObstructions(dbBlock* db_block, ObstructionMap& obstructions) const;
+  void writeBox(const std::string& indent, dbBox* box);
+  void writeRect(const std::string& indent,
+                 const boost::polygon::rectangle_data<int>& rect);
+  void findInstsObstructions(ObstructionMap& obstructions,
+                             dbBlock* db_block) const;
+  void findWireLayerObstructions(ObstructionMap& obstructions,
                                  dbNet* net) const;
-  void findSWireLayerObstructions(std::set<dbTechLayer*>& obstruction_layers,
+  void findSWireLayerObstructions(ObstructionMap& obstructions,
                                   dbNet* net) const;
+  void findLayerViaObstructions(ObstructionMap& obstructions,
+                                dbSBox* box) const;
   void writeBlock(dbBlock* db_block);
   void writePins(dbBlock* db_block);
   void writePowerPins(dbBlock* db_block);
   void writeBlockTerms(dbBlock* db_block);
-  void findLayerViaObstructions(std::set<dbTechLayer*>& obstruction_layers,
-                                dbSBox* box) const;
 
   inline void writeObjectPropertyDefinitions(
       dbObject* obj,
-      std::unordered_map<std::string, short>& propertiesMap);
+      std::unordered_map<std::string, int16_t>& propertiesMap);
+
+  int determineBloat(dbTechLayer* layer) const;
+  void insertObstruction(dbTechLayer* layer,
+                         const Rect& rect,
+                         ObstructionMap& obstructions) const;
+  void insertObstruction(dbBox* box, ObstructionMap& obstructions) const;
 
  public:
   double lefdist(int value) { return ((double) value * _dist_factor); }
 
   double lefarea(int value) { return ((double) value * _area_factor); }
 
-  lefout(utl::Logger* logger)
+  lefout(utl::Logger* logger, std::ostream& out) : _out(out)
   {
-    _out = nullptr;
     _write_marked_masters = _use_alias = _use_master_ids = false;
     _dist_factor = 0.001;
     _area_factor = 0.000001;
     logger_ = logger;
+    bloat_factor_ = 10;
+    bloat_occupied_layers_ = false;
   }
-
-  ~lefout() {}
 
   void setWriteMarkedMasters(bool value) { _write_marked_masters = value; }
   void setUseLayerAlias(bool value) { _use_alias = value; }
   void setUseMasterIds(bool value) { _use_master_ids = value; }
+  void setBloatFactor(int value) { bloat_factor_ = value; }
+  void setBloatOccupiedLayers(bool value) { bloat_occupied_layers_ = value; }
 
-  bool writeTech(dbTech* tech, const char* lef_file);
-  bool writeLib(dbLib* lib, const char* lef_file);
-  bool writeTechAndLib(dbLib* lib, const char* lef_file);
-  bool writeAbstractLef(dbBlock* db_block, const char* lef_file);
+  void writeTech(dbTech* tech);
+  void writeLib(dbLib* lib);
+  void writeTechAndLib(dbLib* lib);
+  void writeAbstractLef(dbBlock* db_block);
 
-  FILE* out() { return _out; }
+  std::ostream& out() { return _out; }
+
+ protected:
+  std::ostream& _out;
 };
 }  // namespace odb

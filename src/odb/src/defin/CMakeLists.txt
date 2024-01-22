@@ -2,6 +2,7 @@ add_library(defin
     definNet.cpp 
     definSNet.cpp 
     definComponent.cpp 
+    definComponentMaskShift.cpp
     definVia.cpp 
     definPin.cpp 
     definBlockage.cpp 
@@ -10,6 +11,7 @@ add_library(defin
     definGCell.cpp 
     definRow.cpp 
     definRegion.cpp 
+    definGroup.cpp 
     definNonDefaultRule.cpp 
     definReader.cpp 
     definBase.cpp 
@@ -18,7 +20,6 @@ add_library(defin
     definPolygon.cpp 
     definPropDefs.cpp 
     definPinProps.cpp 
-    definScanchain.cpp
 )
 
 target_include_directories(defin
@@ -29,10 +30,11 @@ target_include_directories(defin
 
 target_link_libraries(defin
     PUBLIC
+        db
         zutil
         def
         defzlib
-        utl
+        utl_lib
 )
 
 set_target_properties(defin

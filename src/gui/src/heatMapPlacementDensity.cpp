@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (c) 2019, The Regents of the University of California
-// All rights reserved.
+// Copyright (c) 2019-2023, The Regents of the University of California, Google
+// LLC All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -31,28 +31,39 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #include "heatMapPlacementDensity.h"
+
+#include <utility>
+
 #include "db_sta/dbNetwork.hh"
+#include "odb/db.h"
+#include "odb/dbTransform.h"
 
 namespace gui {
 
-PlacementDensityDataSource::PlacementDensityDataSource(utl::Logger* logger) :
-    HeatMapDataSource(logger, "Placement Density", "Placement", "PlacementDensity"),
-    include_taps_(true),
-    include_filler_(false),
-    include_io_(false)
+PlacementDensityDataSource::PlacementDensityDataSource(utl::Logger* logger)
+    : HeatMapDataSource(logger,
+                        "Placement Density",
+                        "Placement",
+                        "PlacementDensity"),
+      include_taps_(true),
+      include_filler_(false),
+      include_io_(false)
 {
-  addBooleanSetting("Taps",
-                    "Include taps and endcaps:",
-                    [this]() { return include_taps_; },
-                    [this](bool new_value) { include_taps_ = new_value; });
-  addBooleanSetting("Filler",
-                    "Include fillers:",
-                    [this]() { return include_filler_; },
-                    [this](bool new_value) { include_filler_ = new_value; });
-  addBooleanSetting("IO",
-                    "Include IO:",
-                    [this]() { return include_io_; },
-                    [this](bool new_value) { include_io_ = new_value; });
+  addBooleanSetting(
+      "Taps",
+      "Include taps and endcaps:",
+      [this]() { return include_taps_; },
+      [this](bool new_value) { include_taps_ = new_value; });
+  addBooleanSetting(
+      "Filler",
+      "Include fillers:",
+      [this]() { return include_filler_; },
+      [this](bool new_value) { include_filler_ = new_value; });
+  addBooleanSetting(
+      "IO",
+      "Include IO:",
+      [this]() { return include_io_; },
+      [this](bool new_value) { include_io_ = new_value; });
 }
 
 bool PlacementDensityDataSource::populateMap()
@@ -61,23 +72,47 @@ bool PlacementDensityDataSource::populateMap()
     return false;
   }
 
-  for (auto* inst : getBlock()->getInsts()) {
-    if (!inst->getPlacementStatus().isPlaced()) {
-      continue;
-    }
-    if (!include_filler_ && inst->getMaster()->isFiller()) {
-      continue;
-    }
-    if (!include_taps_ && (inst->getMaster()->getType() == odb::dbMasterType::CORE_WELLTAP || inst->getMaster()->isEndCap())) {
-      continue;
-    }
-    if (!include_io_ && (inst->getMaster()->isPad() || inst->getMaster()->isCover())) {
-      continue;
-    }
-    odb::Rect inst_box;
-    inst->getBBox()->getBox(inst_box);
+  // Iterate through blocks hierarchically to gather the flattened data
+  // for this view.
+  std::vector<std::pair<odb::dbBlock*, odb::dbTransform>> blocks
+      = {{getBlock(), odb::dbTransform()}};
 
-    addToMap(inst_box, 100.0);
+  while (!blocks.empty()) {
+    auto [current_block, current_transform] = blocks.back();
+    blocks.pop_back();
+
+    const bool has_child_blocks = !current_block->getChildren().empty();
+
+    for (auto* inst : current_block->getInsts()) {
+      if (!inst->getPlacementStatus().isPlaced()) {
+        continue;
+      }
+      if (!include_filler_ && inst->getMaster()->isFiller()) {
+        continue;
+      }
+      if (!include_taps_
+          && (inst->getMaster()->getType() == odb::dbMasterType::CORE_WELLTAP
+              || inst->getMaster()->isEndCap())) {
+        continue;
+      }
+      if (!include_io_
+          && (inst->getMaster()->isPad() || inst->getMaster()->isCover())) {
+        continue;
+      }
+
+      odb::dbMaster* master = inst->getMaster();
+      odb::dbBlock* child;
+      if (has_child_blocks
+          && (child = inst->getBlock()->findChild(master->getName().c_str()))) {
+        const odb::dbTransform child_transform = inst->getTransform();
+        blocks.emplace_back(child, child_transform);
+        continue;
+      }
+      odb::Rect inst_box = inst->getBBox()->getBox();
+      current_transform.apply(inst_box);
+
+      addToMap(inst_box, 100.0);
+    }
   }
 
   return true;
@@ -122,12 +157,15 @@ void PlacementDensityDataSource::inDbInstDestroy(odb::dbInst*)
   destroyMap();
 }
 
-void PlacementDensityDataSource::inDbInstPlacementStatusBefore(odb::dbInst*, const odb::dbPlacementStatus&)
+void PlacementDensityDataSource::inDbInstPlacementStatusBefore(
+    odb::dbInst*,
+    const odb::dbPlacementStatus&)
 {
   destroyMap();
 }
 
-void PlacementDensityDataSource::inDbInstSwapMasterBefore(odb::dbInst*, odb::dbMaster*)
+void PlacementDensityDataSource::inDbInstSwapMasterBefore(odb::dbInst*,
+                                                          odb::dbMaster*)
 {
   destroyMap();
 }

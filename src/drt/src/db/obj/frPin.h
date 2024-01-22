@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_PIN_H_
-#define _FR_PIN_H_
+#pragma once
 
 #include <iostream>
 
@@ -53,7 +52,7 @@ class frPin : public frBlockObject
   int getNumPinAccess() const { return aps_.size(); }
   bool hasPinAccess() const { return !aps_.empty(); }
   frPinAccess* getPinAccess(int idx) const { return aps_[idx].get(); }
-
+  void clearPinAccess() { aps_.clear(); }
   // setters
   // cannot have setterm, must be available when creating
   void addPinFig(std::unique_ptr<frPinFig> in)
@@ -64,7 +63,14 @@ class frPin : public frBlockObject
   void addPinAccess(std::unique_ptr<frPinAccess> in)
   {
     in->setId(aps_.size());
+    in->setPin(this);
     aps_.push_back(std::move(in));
+  }
+  void setPinAccess(int idx, std::unique_ptr<frPinAccess> in)
+  {
+    in->setId(idx);
+    in->setPin(this);
+    aps_[idx] = std::move(in);
   }
   // others
   virtual frBlockObjectEnum typeId() const = 0;
@@ -90,8 +96,7 @@ class frPin : public frBlockObject
       }
     }
   }
-  frPin(const frPin& in, const dbTransform& xform)
-      : frBlockObject()
+  frPin(const frPin& in, const dbTransform& xform) : frBlockObject()
   {
     for (auto& uPinFig : in.getFigs()) {
       auto pinFig = uPinFig.get();
@@ -115,18 +120,6 @@ class frPin : public frBlockObject
   std::vector<std::unique_ptr<frPinFig>> pinFigs_;  // optional, set later
   std::vector<std::unique_ptr<frPinAccess>>
       aps_;  // not copied in copy constructor
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<frBlockObject>(*this);
-    (ar) & pinFigs_;
-    (ar) & aps_;
-  }
-
-  friend class boost::serialization::access;
 };
 
 }  // namespace fr
-
-#endif

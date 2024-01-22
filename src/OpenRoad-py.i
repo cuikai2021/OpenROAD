@@ -33,9 +33,16 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+%include <std_string.i>
+%include <std_vector.i>
+%include <stdint.i>
+
 %{
 
 #include "odb/db.h"
+#include "ord/Tech.h"
+#include "ord/Design.h"
+#include "ord/Timing.h"
 
 using odb::dbDatabase;
 using odb::dbBlock;
@@ -43,10 +50,10 @@ using odb::dbTech;
 
 // Defined by OpenRoad.i inlines
 const char *
-eden_version();
+openroad_version();
 
 const char *
-eden_git_describe();
+openroad_git_describe();
 
 odb::dbDatabase *
 get_db();
@@ -62,11 +69,21 @@ get_db_block();
 
 %}
 
-const char *
-eden_version();
+%template(Corners) std::vector<sta::Corner*>;
+%template(MTerms) std::vector<odb::dbMTerm*>;
+
+%include "Exception-py.i"
+%include "ord/Tech.h"
+%include "ord/Design.h"
+%include "ord/Timing.h"
+
+%newobject Design::getFloorplan();
 
 const char *
-eden_git_describe();
+openroad_version();
+
+const char *
+openroad_git_describe();
 
 odb::dbDatabase *
 get_db();
@@ -79,3 +96,12 @@ db_has_tech();
 
 odb::dbBlock *
 get_db_block();
+
+%inline %{
+
+namespace ord {
+  void set_thread_count(int threads);
+  int thread_count();
+}
+
+%}

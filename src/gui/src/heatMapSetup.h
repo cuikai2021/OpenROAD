@@ -32,8 +32,6 @@
 
 #pragma once
 
-#include "gui/heatMap.h"
-
 #include <QCheckBox>
 #include <QDialog>
 #include <QDoubleSpinBox>
@@ -41,11 +39,13 @@
 #include <QPushButton>
 #include <QSpinBox>
 
+#include "gui/heatMap.h"
+
 namespace gui {
 
 class HeatMapSetup : public QDialog
 {
- Q_OBJECT
+  Q_OBJECT
  public:
   HeatMapSetup(HeatMapDataSource& source,
                const QString& title,
@@ -59,8 +59,8 @@ class HeatMapSetup : public QDialog
  private slots:
   void updateShowNumbers(int option);
   void updateShowLegend(int option);
-  void updateShowMinRange(int show);
-  void updateShowMaxRange(int show);
+  void updateShowMinRange(int option);
+  void updateShowMaxRange(int option);
   void updateScale(int option);
   void updateReverseScale(int option);
   void updateAlpha(int alpha);
@@ -95,8 +95,11 @@ class HeatMapSetup : public QDialog
   QPushButton* rebuild_;
   QPushButton* close_;
 
-  void addBooleanOption(QFormLayout* layout, const HeatMapDataSource::MapSettingBoolean& option);
-  void addMultiChoiceOption(QFormLayout* layout, const HeatMapDataSource::MapSettingMultiChoice& option);
+  void addBooleanOption(QFormLayout* layout,
+                        const HeatMapDataSource::MapSettingBoolean& option);
+  void addMultiChoiceOption(
+      QFormLayout* layout,
+      const HeatMapDataSource::MapSettingMultiChoice& option);
 };
 
 }  // namespace gui
