@@ -282,6 +282,7 @@ add_subdirectory(utl)
 add_subdirectory(dst)
 add_subdirectory(pdn)
 add_subdirectory(dft)
+add_subdirectory(sc)
 
 ################################################################
 
@@ -343,6 +344,7 @@ target_link_libraries(openroad
   utl
   pdn
   dft
+  sc
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}

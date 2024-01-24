@@ -86,6 +86,7 @@ add_library(db
     wOrder.cpp
     dbGroupPowerNetItr.cpp
     dbGroupGroundNetItr.cpp
+    dbScanChain.cpp
     # Generator Code Begin cpp
     dbAccessPoint.cpp
     dbGCellGrid.cpp
@@ -101,10 +102,10 @@ add_library(db
     dbNetTrack.cpp
     dbPowerDomain.cpp
     dbPowerSwitch.cpp
-    dbScanChain.cpp
-    dbScanInst.cpp
-    dbScanPartition.cpp
-    dbScanPin.cpp
+    # dbScanChain.cpp
+    # dbScanInst.cpp
+    # dbScanPartition.cpp
+    # dbScanPin.cpp
     dbTechLayer.cpp
     dbTechLayerAreaRule.cpp
     dbTechLayerArraySpacingRule.cpp

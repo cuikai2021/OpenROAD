@@ -62,6 +62,7 @@ namespace ord {
 using sta::dbSta;
 using sta::dbNetwork;
 using rsz::Resizer;
+using sc::ScanChain;
 
 using odb::dbDatabase;
 
@@ -223,6 +224,13 @@ getSteinerTreeBuilder()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getSteinerTreeBuilder();
+}
+
+sc::ScanChain *
+getScanChain()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getScanChain();
 }
 
 } // namespace ord

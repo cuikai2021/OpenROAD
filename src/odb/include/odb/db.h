@@ -141,10 +141,12 @@ class dbModule;
 class dbNetTrack;
 class dbPowerDomain;
 class dbPowerSwitch;
+#if 0
 class dbScanChain;
 class dbScanInst;
 class dbScanPartition;
 class dbScanPin;
+#endif
 class dbTechLayer;
 class dbTechLayerAreaRule;
 class dbTechLayerArraySpacingRule;
@@ -165,6 +167,8 @@ class dbTechLayerSpacingTablePrlRule;
 class dbTechLayerWidthTableRule;
 class dbTechLayerWrongDirSpacingRule;
 // Generator Code End ClassDeclarations
+
+class dbScanChain;
 
 // Extraction Objects
 class dbExtControl;
@@ -1332,6 +1336,16 @@ class dbBlock : public dbObject
   /// Get the capacitor-coupled segments.
   ///
   dbSet<dbCCSeg> getCCSegs();
+
+  ///
+  /// Get the scan chains
+  ///
+  dbSet<dbScanChain> getScanChains();
+
+  ///
+  /// Get the count of scan chains
+  ///
+  int getScanChainCount();
 
   ///
   /// Build search database for fast area searches for insts
@@ -7659,6 +7673,7 @@ class dbPowerSwitch : public dbObject
   // User Code End dbPowerSwitch
 };
 
+#if 0
 class dbScanChain : public dbObject
 {
  public:
@@ -7689,6 +7704,7 @@ class dbScanPin : public dbObject
   void setPin(dbITerm* iterm);
   // User Code End dbScanPin
 };
+#endif
 
 class dbTechLayer : public dbObject
 {
@@ -9772,5 +9788,51 @@ class dbTechLayerWrongDirSpacingRule : public dbObject
 };
 
 // Generator Code End ClassDefinition
+class dbScanChain;
+class dbScanChainList;
+
+class dbScanChainComp : public dbObject {
+public:
+  static dbScanChainComp* getScanChainComp(dbScanChain* scanchain, uint dbid);
+  static dbScanChainComp* getScanChainComp(dbScanChainList* scanchainlist, uint dbid);
+
+  dbInst*  getInst() const;
+  dbITerm* getScanIn() const;
+  dbITerm* getScanOut() const;
+  uint     getNumBits() const;
+};
+
+class dbScanChainList : public dbObject {
+public:
+  dbScanChainComp* createComp(dbInst* inst, dbITerm* in, dbITerm* out, int num_bits = 1);
+  static dbScanChainList* getScanChainList(dbScanChain* scanchain, uint dbid);
+
+  dbSet<dbScanChainComp> getComps() const;
+};
+
+class dbScanChain : public dbObject {
+public:
+  static dbScanChain* create(dbBlock* block, const char* name, const char* common_scan_in,
+    const char* common_scan_out, const char* partition_name = NULL, unsigned partition_max_bits = 0);
+  static dbScanChain* getScanChain(dbBlock* block, uint dbid);
+  static void destroy(dbScanChain* sc);
+
+  const char* getName() const;
+  dbITerm* getStart() const;
+  dbITerm* getStop() const;
+  dbBTerm* getBTermStart() const;
+  dbBTerm* getBTermStop() const;
+  const char* getPartitionName() const;
+  uint getPartitionMaxBits() const;
+  dbSet<dbScanChainList> getOrdered() const;
+  dbSet<dbScanChainComp> getFloating() const;
+
+  void setStart(dbITerm* t);
+  void setStop(dbITerm* t);
+  void setStart(dbBTerm* t);
+  void setStop(dbBTerm* t);
+  dbScanChainComp* createFloatingComp(dbInst* inst, dbITerm* in, dbITerm* out, int num_bits = 1);
+  dbScanChainList* createOrderedList();
+};
 
 }  // namespace odb

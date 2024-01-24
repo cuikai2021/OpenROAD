@@ -108,6 +108,7 @@
 #include "dbSWire.h"
 #include "dbSWireItr.h"
 #include "dbShape.h"
+#include "dbScanChain.h"
 #include "dbTable.h"
 #include "dbTable.hpp"
 #include "dbTech.h"
@@ -312,6 +313,10 @@ _dbBlock::_dbBlock(_dbDatabase* db)
   _cc_seg_tbl = new dbTable<_dbCCSeg>(
       db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbCCSegObj, 4096, 12);
 
+  _scan_chain_tbl = new dbTable<_dbScanChain>(
+		db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbScanChainObj);
+  ZALLOCATED(_scan_chain_tbl);
+
   _extControl = new dbExtControl();
 
   _net_hash.setTable(_net_tbl);
@@ -512,6 +517,9 @@ _dbBlock::_dbBlock(_dbDatabase* db, const _dbBlock& block)
 
   _cc_seg_tbl = new dbTable<_dbCCSeg>(db, this, *block._cc_seg_tbl);
 
+  _scan_chain_tbl = new dbTable<_dbScanChain>(db, this, *block._scan_chain_tbl);
+  ZALLOCATED(_scan_chain_tbl);
+
   _extControl = new dbExtControl();
 
   _net_hash.setTable(_net_tbl);
@@ -631,6 +639,7 @@ _dbBlock::~_dbBlock()
   delete _cap_node_tbl;
   delete _r_seg_tbl;
   delete _cc_seg_tbl;
+  delete _scan_chain_tbl;
   delete _extControl;
   delete _net_bterm_itr;
   delete _net_iterm_itr;
@@ -836,6 +845,9 @@ dbObjectTable* _dbBlock::getObjectTable(dbObjectType type)
     case dbCCSegObj:
       return _cc_seg_tbl;
 
+    case dbScanChainObj:
+    	return _scan_chain_tbl;
+
     case dbRowObj:
       return _row_tbl;
 
@@ -952,6 +964,7 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   stream << *block._cap_node_tbl;  // DKF - 2/21/05
   stream << *block._r_seg_tbl;     // DKF - 2/21/05
   stream << *block._cc_seg_tbl;
+  stream << *block._scan_chain_tbl;
   stream << *block._extControl;
 
   //---------------------------------------------------------- stream out
@@ -1072,6 +1085,7 @@ dbIStream& operator>>(dbIStream& stream, _dbBlock& block)
   stream >> *block._cap_node_tbl;  // DKF
   stream >> *block._r_seg_tbl;     // DKF
   stream >> *block._cc_seg_tbl;
+  stream >> *block._scan_chain_tbl;
   stream >> *block._extControl;
 
   //---------------------------------------------------------- stream in
@@ -1360,6 +1374,9 @@ bool _dbBlock::operator==(const _dbBlock& rhs) const
   if (*_cc_seg_tbl != *rhs._cc_seg_tbl)
     return false;
 
+  if (*_scan_chain_tbl != *rhs._scan_chain_tbl)
+	 return false;
+
   return true;
 }
 
@@ -1458,6 +1475,7 @@ void _dbBlock::differences(dbDiff& diff,
   DIFF_TABLE_NO_DEEP(_cap_node_tbl);
   DIFF_TABLE_NO_DEEP(_r_seg_tbl);
   DIFF_TABLE_NO_DEEP(_cc_seg_tbl);
+  DIFF_TABLE(_scan_chain_tbl);
   DIFF_END
 }
 
@@ -1549,6 +1567,7 @@ void _dbBlock::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_TABLE_NO_DEEP(_cap_node_tbl);
   DIFF_OUT_TABLE_NO_DEEP(_r_seg_tbl);
   DIFF_OUT_TABLE_NO_DEEP(_cc_seg_tbl);
+  DIFF_OUT_TABLE(_scan_chain_tbl);
   DIFF_END
 }
 
@@ -2225,6 +2244,12 @@ dbSet<dbCCSeg> dbBlock::getCCSegs()
   return dbSet<dbCCSeg>(block, block->_cc_seg_tbl);
 }
 
+dbSet<dbScanChain> dbBlock::getScanChains()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return dbSet<dbScanChain>(block, block->_scan_chain_tbl);
+}
+
 dbSet<dbRSeg> dbBlock::getRSegs()
 {
   _dbBlock* block = (_dbBlock*) this;
@@ -2379,6 +2404,12 @@ void dbBlock::getExtCount(int& numOfNet,
   numOfRSeg = block->_r_seg_tbl->size();
   numOfCapNode = block->_cap_node_tbl->size();
   numOfCCSeg = block->_cc_seg_tbl->size();
+}
+
+int dbBlock::getScanChainCount()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return block->_scan_chain_tbl->size();
 }
 /*
 void dbBlock::setMinExtMOdel(int n)
