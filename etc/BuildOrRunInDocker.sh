@@ -19,6 +19,7 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/banyan,dst=/build/bin/banyan \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/maxhs,dst=/build/bin/maxhs \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/lindendp,dst=/build/bin/lindendp \
+  --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-incremental-legalizer,dst=/build/bin/linden-incremental-legalizer \
   --entrypoint /bin/bash \
   registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20231023T0630Z_5d25c06 \
   -c "cd $workdir; $cmd"
