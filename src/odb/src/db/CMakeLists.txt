@@ -87,6 +87,8 @@ add_library(db
     dbGroupPowerNetItr.cpp
     dbGroupGroundNetItr.cpp
     dbScanChain.cpp
+    dbTechLayerSpacingNotchLengthRule.cpp
+    dbTechLayerSpacingTableJogToJogSpacingRule.cpp
     # Generator Code Begin cpp
     dbAccessPoint.cpp
     dbGCellGrid.cpp

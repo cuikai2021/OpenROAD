@@ -163,7 +163,9 @@ class dbTechLayerKeepOutZoneRule;
 class dbTechLayerMinCutRule;
 class dbTechLayerMinStepRule;
 class dbTechLayerSpacingEolRule;
+class dbTechLayerSpacingNotchLengthRule;
 class dbTechLayerSpacingTablePrlRule;
+class dbTechLayerSpacingTableJogToJogSpacingRule;
 class dbTechLayerWidthTableRule;
 class dbTechLayerWrongDirSpacingRule;
 // Generator Code End ClassDeclarations
@@ -7743,6 +7745,8 @@ class dbTechLayer : public dbObject
 
   dbSet<dbTechLayerSpacingEolRule> getTechLayerSpacingEolRules() const;
 
+  dbSet<dbTechLayerSpacingNotchLengthRule> getTechLayerSpacingNotchLengthRules() const;
+
   dbSet<dbTechLayerCutSpacingRule> getTechLayerCutSpacingRules() const;
 
   dbSet<dbTechLayerMinStepRule> getTechLayerMinStepRules() const;
@@ -7751,6 +7755,9 @@ class dbTechLayer : public dbObject
 
   dbSet<dbTechLayerSpacingTablePrlRule> getTechLayerSpacingTablePrlRules()
       const;
+
+  dbSet<dbTechLayerSpacingTableJogToJogSpacingRule>
+  getTechLayerSpacingTableJogToJogSpacingRules() const;
 
   dbSet<dbTechLayerCutSpacingTableOrthRule>
   getTechLayerCutSpacingTableOrthRules() const;
@@ -9363,6 +9370,46 @@ class dbTechLayerMinStepRule : public dbObject
   // User Code End dbTechLayerMinStepRule
 };
 
+class dbTechLayerSpacingNotchLengthRule : public dbObject
+{
+ public:
+  void setMinSpace(int min_space);
+  uint getMinSpace() const;
+
+  void setMinNotchLength(int min_notch_length);
+  uint getMinNotchLength() const;
+
+  void setExceptWithin(int high_exclude_space, int low_exclude_space);
+  bool hasExceptWithin() const;
+  uint getExceptWithinHighExcludeSpace() const;
+  uint getExceptWithinLowExcludeSpace() const;
+
+  void setWithin(int within, int sideof_notch_span_length);
+  bool hasWithin() const;
+  uint getWithinDistance() const;
+  uint getWithinSideofNotchSpanLength() const;
+
+  void setConcaveEnds(int sideof_notch_width);
+  bool hasConcaveEnds() const;
+  uint getConcaveEnds() const;
+
+  void setWidth(int width);
+  bool hasWidth() const;
+  uint getWidth() const;
+
+  void setNotchWidth(int notch_width);
+  bool hasNotchWidth() const;
+  uint getNotchWidth() const;
+
+  // User Code Begin dbTechLayerSpacingNotchLengthRule
+  static dbTechLayerSpacingNotchLengthRule* create(dbTechLayer* layer);
+  static dbTechLayerSpacingNotchLengthRule* getTechLayerSpacingNotchLengthRule(
+        dbTechLayer* inly,
+        uint dbid);
+  static void destroy(dbTechLayerSpacingNotchLengthRule* rule);
+  // User Code End dbTechLayerSpacingNotchLengthRule
+};
+
 class dbTechLayerSpacingEolRule : public dbObject
 {
  public:
@@ -9671,6 +9718,44 @@ class dbTechLayerSpacingEolRule : public dbObject
 
   static void destroy(dbTechLayerSpacingEolRule* rule);
   // User Code End dbTechLayerSpacingEolRule
+};
+
+class dbTechLayerSpacingTableJogToJogSpacingRule : public dbObject
+{
+ public:
+  void setJogToJogSpacing(int jogtojog_spacing);
+  uint getJogToJogSpacing() const;
+
+  void setJogWidth(int jog_width);
+  uint getJogWidth() const;
+
+  void setShortJogSpacing(int shortjog_spacing);
+  uint getShortJogSpacing() const;
+
+  void appendWidth(int width,
+		           int parLength,
+				   int parWithin,
+				   int longjogspacing,
+				   bool has_exceptwithin, int low, int high,
+				   bool has_shortjogspacing, int shortjogspacing);
+
+  uint tableSize() const;
+  uint getWidth(uint index) const;
+  uint getParLength(uint index) const;
+  uint getParWithin(uint index) const;
+  uint getLongJogSpacing(uint index) const;
+  bool hasExceptWithin(uint index) const;
+  uint getExceptWithinLowExcludeSpace(uint index) const;
+  uint getExceptWithinHighExcludeSpace(uint index) const;
+  bool hasShortJogSpacing(uint index) const;
+
+  // User Code Begin dbTechLayerSpacingTableJogToJogSpacingRule
+  static dbTechLayerSpacingTableJogToJogSpacingRule* create(dbTechLayer* layer);
+  static dbTechLayerSpacingTableJogToJogSpacingRule* getTechLayerSpacingTableJogToJogSpacingRule(
+        dbTechLayer* inly,
+        uint dbid);
+  static void destroy(dbTechLayerSpacingTableJogToJogSpacingRule* rule);
+  // User Code End dbTechLayerSpacingTableJogToJogSpacingRule
 };
 
 class dbTechLayerSpacingTablePrlRule : public dbObject

@@ -666,8 +666,26 @@ void lefin::layer(lefiLayer* layer)
             != std::string::npos) {
           lefTechLayerWrongDirSpacingParser::parse(
               layer->propValue(iii), l, this);
-        } else {
+        } else if (std::string(layer->propValue(iii)).find("ENDOFLINE")
+                   != std::string::npos) {
           lefTechLayerSpacingEolParser::parse(layer->propValue(iii), l, this);
+        } else if (std::string(layer->propValue(iii)).find("NOTCHLENGTH")
+                   != std::string::npos) {
+          lefTechLayerSpacingNotchLengthParser::parse(
+              layer->propValue(iii), l, this);
+        }
+#if 0
+    	else if (std::string(layer->propValue(iii)).find("NOTCHSPAN") != std::string::npos)
+    	  lefTechLayerSpacingNotchSpanParser::parse(layer->propValue(iii), l, this);
+    	else if (std::string(layer->propValue(iii)).find("SAMEMASK") != std::string::npos)
+    	  lefTechLayerSpacingSameMaskParser::parse(layer->propValue(iii), l, this);
+#endif
+        else {
+          warning(256,
+                  "unsupported {} property for layer {} :\"{}\"",
+                  layer->propName(iii),
+                  layer->name(),
+                  layer->propValue(iii));
         }
       } else if (!strcmp(layer->propName(iii), "LEF58_MINSTEP")
                  || !strcmp(layer->propName(iii), "LEF57_MINSTEP")) {
@@ -678,16 +696,18 @@ void lefin::layer(lefiLayer* layer)
             layer->propValue(iii), l, this);
       else if (!strcmp(layer->propName(iii), "LEF58_SPACINGTABLE")) {
         if (std::string(layer->propValue(iii)).find("PARALLELRUNLENGTH")
-            == std::string::npos)
-          warning(256,
-                  "unsupported {} property for layer {} :\"{}\"",
-                  layer->propName(iii),
-                  layer->name(),
-                  layer->propValue(iii));
-        else {
+            != std::string::npos) {
           lefTechLayerSpacingTablePrlParser parser;
-          valid = parser.parse(layer->propValue(iii), l, this);
-        }
+		  valid = parser.parse(layer->propValue(iii), l, this);
+        } else if (std::string(layer->propValue(iii)).find("JOGTOJOGSPACING")
+            != std::string::npos)
+          valid = lefTechLayerSpacingTableJogToJogSpacingParser::parse(layer->propValue(iii), l, this);
+        else
+          warning(256,
+		  "unsupported {} property for layer {} :\"{}\"",
+		  layer->propName(iii),
+		  layer->name(),
+		  layer->propValue(iii));
       } else if (!strcmp(layer->propName(iii), "LEF58_RIGHTWAYONGRIDONLY"))
         valid = lefTechLayerRightWayOnGridOnlyParser::parse(
             layer->propValue(iii), l, this);
