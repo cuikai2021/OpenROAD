@@ -379,9 +379,11 @@ void OpenRoad::writeDef(const char* filename, const string& version)
   if (chip) {
     odb::dbBlock* block = chip->getBlock();
     if (block) {
+      block->deleteDieAreaBlockages();
       odb::defout def_writer(logger_);
       def_writer.setVersion(stringToDefVersion(version));
       def_writer.writeBlock(block, filename);
+      block->createDieAreaBlockages();
     }
   }
 }

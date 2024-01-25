@@ -91,6 +91,8 @@ class Point
 
 std::ostream& operator<<(std::ostream& os, const Point& pIn);
 
+
+
 /*
 an Oct represents a 45-degree routing segment as 2 connected octagons
 
