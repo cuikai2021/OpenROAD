@@ -144,6 +144,14 @@ db_network_defined()
   db_network->readDefAfter(block);
 }
 
+void
+db_network_initclknets()
+{
+  ord::OpenRoad *openroad = ord::getOpenRoad();
+  sta::dbSta *sta = openroad->getSta();
+  sta->initClkNets();
+}
+
 // Copied from sta/verilog/Verilog.i because we don't want sta::read_verilog
 // that is in the same file.
 void

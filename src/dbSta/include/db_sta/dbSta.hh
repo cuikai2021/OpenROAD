@@ -113,6 +113,8 @@ class dbSta : public Sta, public ord::OpenRoadObserver
   // Highlight path in the gui.
   void highlight(PathRef* path);
 
+  void initClkNets();
+
   using Sta::netSlack;
   using Sta::replaceCell;
 

@@ -270,6 +270,15 @@ std::set<dbNet*> dbSta::findClkNets(const Clock* clk)
   return clk_nets;
 }
 
+void
+dbSta::initClkNets()
+{
+  std::set<odb::dbNet*> clock_nets = findClkNets();
+  for (odb::dbNet* net : clock_nets) {
+	net->setSigType(odb::dbSigType::CLOCK);
+  }
+}
+
 ////////////////////////////////////////////////////////////////
 
 // Network edit functions.
