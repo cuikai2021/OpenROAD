@@ -64,8 +64,7 @@ BOOST_AUTO_TEST_CASE(parser_init_and_parse_line_with_integers)
 
   utl::ScopedTemporaryFile scoped_temp_file(&logger);
   const std::string kContents = "1 2 3 4";
-  boost::span<const uint8_t> contents(
-      reinterpret_cast<const uint8_t*>(kContents.data()), kContents.size());
+  std::span contents(reinterpret_cast<const uint8_t*>(kContents.data()), kContents.size());
   utl::WriteAll(scoped_temp_file.file(), contents, &logger);
   fseek(scoped_temp_file.file(), SEEK_SET, 0);
 

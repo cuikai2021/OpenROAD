@@ -49,7 +49,7 @@ using ord::getLogger;
 void report(const char* msg)
 {
   Logger* logger = getLogger();
-  logger->report(msg);
+  logger->report("{}", msg);
 }
 
 void info(utl::ToolId tool, int id, const char* msg)

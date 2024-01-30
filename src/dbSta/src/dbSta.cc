@@ -388,7 +388,7 @@ size_t dbStaReport::printString(const char* buffer, size_t length)
   if (!buf.empty()) {
     // Trim trailing \r\n.
     buf.erase(buf.find_last_not_of("\r\n") + 1);
-    logger_->report("{}", buf.c_str());
+    logger_->report("{}", buf);
   }
 
   // if gui enabled, keep tcl_buffer_ until a newline appears
@@ -452,7 +452,7 @@ void dbStaReport::error(int id, const char* fmt, ...)
   std::unique_lock<std::mutex> lock(buffer_lock_);
   printToBuffer(fmt, args);
   // Don't give std::format a chance to interpret the message.
-  logger_->error(STA, id, buffer_);
+  logger_->error(STA, id, "{}", buffer_);
   va_end(args);
 }
 

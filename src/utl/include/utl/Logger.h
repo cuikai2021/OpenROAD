@@ -93,7 +93,8 @@ namespace utl {
 #define GENERATE_STRING(STRING) #STRING,
 
 // backward compatibility with fmt versions older than 8
-#if FMT_VERSION >= 80000
+// Eden notice : we use vformat rather than fmt::runtime
+#if FMT_VERSION >= 80000 && 0
 #define FMT_RUNTIME(format_string) fmt::runtime(format_string)
 #else
 #define FMT_RUNTIME(format_string) format_string
@@ -114,52 +115,56 @@ class Logger
   ~Logger();
   static ToolId findToolId(const char* tool_name);
 
-  template <typename... Args>
-  inline void report(const std::string& message, const Args&... args)
+  template <typename Fmt, typename... Args>
+  inline void report(Fmt message, const Args&... args)
   {
-    logger_->log(spdlog::level::level_enum::off, FMT_RUNTIME(message), args...);
+    std::string msg = fmt::vformat(FMT_RUNTIME(message), fmt::make_format_args(args...));
+    logger_->log(spdlog::level::level_enum::off, "{}", msg);
   }
 
   // Do NOT call this directly, use the debugPrint macro  instead (defined
   // below)
-  template <typename... Args>
+  template <typename Fmt, typename... Args>
   inline void debug(ToolId tool,
                     const std::string& group,
-                    const std::string& message,
+                    Fmt message,
                     const Args&... args)
   {
     // Message counters do NOT apply to debug messages.
-    logger_->log(spdlog::level::level_enum::debug,
-                 FMT_RUNTIME("[{} {}-{}] " + message),
-                 level_names[spdlog::level::level_enum::debug],
-                 tool_names_[tool],
-                 group,
-                 args...);
+    if (logger_->should_log(spdlog::level::level_enum::debug)) {
+      std::string msg = fmt::vformat(FMT_RUNTIME(message), fmt::make_format_args(args...));
+      logger_->log(spdlog::level::level_enum::debug,
+                   "[{} {}-{}] {}",
+                   level_names[spdlog::level::level_enum::debug],
+                   tool_names_[tool],
+                   group,
+                   msg);
+    }
     logger_->flush();
   }
 
-  template <typename... Args>
+  template <typename Fmt, typename... Args>
   inline void info(ToolId tool,
                    int id,
-                   const std::string& message,
+                   Fmt message,
                    const Args&... args)
   {
     log(tool, spdlog::level::level_enum::info, id, message, args...);
   }
 
-  template <typename... Args>
+  template <typename Fmt, typename... Args>
   inline void warn(ToolId tool,
                    int id,
-                   const std::string& message,
+                   Fmt message,
                    const Args&... args)
   {
     log(tool, spdlog::level::level_enum::warn, id, message, args...);
   }
 
-  template <typename... Args>
+  template <typename Fmt, typename... Args>
   __attribute__((noreturn)) inline void error(ToolId tool,
                                               int id,
-                                              const std::string& message,
+                                              Fmt message,
                                               const Args&... args)
   {
     log(tool, spdlog::level::err, id, message, args...);
@@ -170,10 +175,10 @@ class Logger
     throw except;
   }
 
-  template <typename... Args>
+  template <typename Fmt, typename... Args>
   __attribute__((noreturn)) void critical(ToolId tool,
                                           int id,
-                                          const std::string& message,
+                                          Fmt message,
                                           const Args&... args)
   {
     log(tool, spdlog::level::level_enum::critical, id, message, args...);
@@ -238,23 +243,26 @@ class Logger
   std::list<MetricsEntry> metrics_entries_;
   std::vector<MetricsPolicy> metrics_policies_;
 
-  template <typename... Args>
+  template <typename Fmt, typename... Args>
   inline void log(ToolId tool,
                   spdlog::level::level_enum level,
                   int id,
-                  const std::string& message,
+                  Fmt message,
                   const Args&... args)
   {
     assert(id >= 0 && id <= max_message_id);
     auto& counter = message_counters_[tool][id];
     auto count = counter++;
     if (count < max_message_print) {
-      logger_->log(level,
-                   FMT_RUNTIME("[{} {}-{:04d}] " + message),
-                   level_names[level],
-                   tool_names_[tool],
-                   id,
-                   args...);
+      if (logger_->should_log(level)) {
+        std::string msg = fmt::vformat(FMT_RUNTIME(message), fmt::make_format_args(args...));
+        logger_->log(level,
+                     "[{} {}-{:04d}] {}",
+                     level_names[level],
+                     tool_names_[tool],
+                     id,
+                     msg);
+      }
       return;
     }
 
@@ -276,7 +284,7 @@ class Logger
     if (metrics_stages_.empty())
       key = metric;
     else
-      key = fmt::format(FMT_RUNTIME(metrics_stages_.top()), metric);
+      key = fmt::vformat(FMT_RUNTIME(metrics_stages_.top()), fmt::make_format_args(metric));
     metrics_entries_.push_back({std::move(key), value});
   }
 

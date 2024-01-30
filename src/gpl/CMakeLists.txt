@@ -41,6 +41,7 @@ include("openroad")
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Eigen3 REQUIRED)
+find_package(Protobuf REQUIRED)
 find_package(ortools REQUIRED)
 find_package(LEMON NAMES LEMON lemon REQUIRED)
 find_package(OpenMP REQUIRED)

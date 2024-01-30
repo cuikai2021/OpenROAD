@@ -35,6 +35,10 @@ include("openroad")
 
 
 
+find_package(Protobuf REQUIRED)
+find_package(re2 REQUIRED)
+find_package(cbc REQUIRED)
+find_package(clp REQUIRED)
 find_package(ortools REQUIRED)
 
 add_library(mpl2_lib

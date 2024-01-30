@@ -35,7 +35,7 @@
 
 include("openroad")
 
-find_package(Boost 1.78 REQUIRED)
+find_package(Boost 1.74 REQUIRED)
 
 swig_lib(NAME      utl
          NAMESPACE utl
