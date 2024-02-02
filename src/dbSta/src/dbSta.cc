@@ -144,7 +144,9 @@ class dbStaCbk : public dbBlockCallBackObj
   Logger* logger_;
 };
 
-dbSta::~dbSta() = default;
+dbSta::~dbSta() {
+  delete db_cbk_;
+}
 
 void dbSta::initVars(Tcl_Interp* tcl_interp,
                      odb::dbDatabase* db,
@@ -173,7 +175,8 @@ void dbSta::setPowerDensityDataSource(
 std::unique_ptr<dbSta> dbSta::makeBlockSta(odb::dbBlock* block)
 {
   auto clone = std::make_unique<dbSta>();
-  clone->makeComponents();
+  // This line is removed because it has already been called in clone->initVars
+  // clone->makeComponents();
   clone->initVars(tclInterp(), db_, logger_);
   clone->getDbNetwork()->setBlock(block);
   clone->getDbNetwork()->setDefaultLibertyLibrary(

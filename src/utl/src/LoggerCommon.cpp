@@ -142,4 +142,11 @@ void unsuppress_message(utl::ToolId tool, int id)
   logger->unsuppressMessage(tool, id);
 }
 
+void 
+suppress_exact_message(const char* msg)
+{
+  Logger *logger = getLogger();
+  logger->registerSuppressedExactMessage(msg);
+}
+
 }  // namespace utl

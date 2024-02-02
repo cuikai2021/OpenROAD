@@ -47,6 +47,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include <unordered_set>
 
 #include "Metrics.h"
 #include "spdlog/fmt/fmt.h"
@@ -322,6 +323,9 @@ class Logger
       = {"TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "OFF"};
   static constexpr const char* pattern_ = "%v";
   static constexpr const char* tool_names_[] = {FOREACH_TOOL(GENERATE_STRING)};
+public:
+  static void registerSuppressedExactMessage(const std::string& message);
+  bool suppressExactMessage(const std::string& message);
 };
 
 // Use this macro for any debug messages.  It avoids evaluating message and

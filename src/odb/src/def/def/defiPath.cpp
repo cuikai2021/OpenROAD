@@ -609,12 +609,7 @@ void defiPath::bumpSize(int size)
     newKeys[i] = keys_[i];
     newData[i] = data_[i];
   }
-
-  if (keys_)
-    free((char*) (keys_));
-  if (data_)
-    free((char*) (data_));
-
+  Destroy();
   keys_ = newKeys;
   data_ = newData;
   numAllocated_ = size;
