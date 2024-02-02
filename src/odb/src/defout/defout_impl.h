@@ -41,6 +41,7 @@
 #include "odb/dbMap.h"
 #include "odb/defout.h"
 #include "odb/odb.h"
+
 namespace utl {
 class Logger;
 }
@@ -87,6 +88,7 @@ class defout_impl
 
   int defdist(uint value) { return (uint) (((double) value) * _dist_factor); }
 
+  void writeAnnotation();
   void writePropertyDefinitions(dbBlock* block);
   void writeRows(dbBlock* block);
   void writeTracks(dbBlock* block);

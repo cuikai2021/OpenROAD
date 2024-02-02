@@ -34,8 +34,10 @@
 
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/utsname.h>
 
 #include <cstdint>
+#include <chrono>
 #include <limits>
 #include <optional>
 #include <set>
@@ -44,7 +46,9 @@
 #include "odb/db.h"
 #include "odb/dbMap.h"
 #include "odb/dbWireCodec.h"
+#include "ord/Version.hh"
 #include "utl/Logger.h"
+
 namespace odb {
 
 static const int max_name_length = 256;
@@ -165,6 +169,7 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
   struct stat stats;
   fstat(fileno(_out), &stats);
   setvbuf(_out, nullptr, _IOFBF, stats.st_blksize);
+  writeAnnotation();
 
   if (_version == defout::DEF_5_3) {
     fprintf(_out, "VERSION 5.3 ;\n");
@@ -250,6 +255,9 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
   if (_select_inst_map)
     delete _select_inst_map;
   return true;
+}
+
+void defout_impl::writeAnnotation() {
 }
 
 void defout_impl::writeRows(dbBlock* block)
