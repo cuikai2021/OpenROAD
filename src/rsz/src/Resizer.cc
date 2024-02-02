@@ -2530,7 +2530,7 @@ Resizer::initDesignArea()
   for (dbInst *inst : block_->getInsts()) {
     dbMaster *master = inst->getMaster();
     // Don't count fillers otherwise you'll always get 100% utilization
-    if (!master->isFiller()) {
+    if (!master->isFiller() && !master->isPad()) {
       design_area_ += area(master);
     }
   }

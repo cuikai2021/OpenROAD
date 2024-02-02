@@ -12,4 +12,6 @@
 [INFO ODB-0132]     Created 139 special nets and 4915 connections.
 [INFO ODB-0133]     Created 219 nets and 267 connections.
 [INFO PDN-0001] Inserting grid: Core
+[WARNING PDN-0110] No via inserted between metal8 and metal10 at (186.0700, 504.5050) - (191.0700, 508.6700) on VSS
+[WARNING PDN-0110] No via inserted between metal9 and metal10 at (45.0000, 504.5050) - (47.0000, 508.6700) on VSS
 No differences found.
