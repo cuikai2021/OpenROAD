@@ -315,16 +315,16 @@ void dbSta::deleteNet(Net* net)
   network->deleteNet(net);
 }
 
-void dbSta::connectPin(Instance* inst, Port* port, Net* net)
+Pin* dbSta::connectPin(Instance* inst, Port* port, Net* net)
 {
   NetworkEdit* network = networkCmdEdit();
-  network->connect(inst, port, net);
+  return network->connect(inst, port, net);
 }
 
-void dbSta::connectPin(Instance* inst, LibertyPort* port, Net* net)
+Pin* dbSta::connectPin(Instance* inst, LibertyPort* port, Net* net)
 {
   NetworkEdit* network = networkCmdEdit();
-  network->connect(inst, port, net);
+  return network->connect(inst, port, net);
 }
 
 void dbSta::disconnectPin(Pin* pin)

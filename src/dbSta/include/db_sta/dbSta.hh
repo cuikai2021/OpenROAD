@@ -106,8 +106,8 @@ class dbSta : public Sta, public ord::OpenRoadObserver
 
   void deleteInstance(Instance* inst) override;
   void deleteNet(Net* net) override;
-  void connectPin(Instance* inst, Port* port, Net* net) override;
-  void connectPin(Instance* inst, LibertyPort* port, Net* net) override;
+  Pin* connectPin(Instance* inst, Port* port, Net* net) override;
+  Pin* connectPin(Instance* inst, LibertyPort* port, Net* net) override;
   void disconnectPin(Pin* pin) override;
 
   // Highlight path in the gui.

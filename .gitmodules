@@ -1,6 +1,6 @@
 [submodule "src/sta"]
 	path = src/sta
-	url = https://github.com/The-OpenROAD-Project/OpenSTA
+	url = git@github.com:ICBench/icbsta.git
 [submodule "src/Banyan/banyan-integrate"]
 	path = src/Banyan/banyan-integrate
 	url = git@github.com:ICBench/banyan-integrate.git
