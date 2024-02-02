@@ -795,6 +795,10 @@ void lefin::layer(lefiLayer* layer)
       break;
     }
   }
+
+  //parse LEF57 rule
+  layer->parse65nmRules();
+
   if (layer->hasWidth())
     l->setWidth(dbdist(layer->width()));
 
