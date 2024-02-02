@@ -486,10 +486,6 @@ int definReader::componentsCallback(defrCallbackType_e /* unused: type */,
     UNSUPPORTED("MASKSHIFT on component is unsupported");
   }
 
-  if (comp->hasHalo() > 0) {
-    UNSUPPORTED("HALO on component is unsupported");
-  }
-
   if (comp->hasRouteHalo() > 0) {
     UNSUPPORTED("ROUTEHALO on component is unsupported");
   }
@@ -503,6 +499,12 @@ int definReader::componentsCallback(defrCallbackType_e /* unused: type */,
   }
   if (comp->hasRegionName()) {
     componentR->region(comp->regionName());
+  }
+  if (comp->hasHalo() > 0) {
+    componentR->halo(comp->leftHalo(), comp->bottomHalo(), comp->rightHalo(), comp->topHalo());
+    if (comp->hasHaloSoft()) {
+      UNSUPPORTED("Soft HALO on component is unsupported");
+    }
   }
 
   componentR->placement(comp->placementStatus(),
@@ -771,10 +773,6 @@ int definReader::netCallback(defrCallbackType_e /* unused: type */,
     UNSUPPORTED("ORIGINAL on net is unsupported");
   }
 
-  if (net->hasPattern()) {
-    UNSUPPORTED("PATTERN on net is unsupported");
-  }
-
   if (net->hasCap()) {
     UNSUPPORTED("ESTCAP on net is unsupported");
   }
@@ -886,7 +884,11 @@ int definReader::netCallback(defrCallbackType_e /* unused: type */,
           }
 
           case DEFIPATH_VIRTUALPOINT:
-            UNSUPPORTED("VIRTUAL in net's routing is unsupported");
+        	int x;
+        	int y;
+        	path->getVirtualPoint(&x, &y);
+        	netR->pathVirtualPoint(x, y);
+            // UNSUPPORTED("VIRTUAL in net's routing is unsupported");
             break;
 
           case DEFIPATH_MASK:
@@ -911,6 +913,10 @@ int definReader::netCallback(defrCallbackType_e /* unused: type */,
   }
 
   handle_props(net, netR);
+
+  if (net->hasPattern()) {
+    netR->pattern(net->pattern());
+  }
 
   netR->end();
 
@@ -1607,10 +1613,6 @@ int definReader::specialNetCallback(defrCallbackType_e /* unused: type */,
     UNSUPPORTED("ESTCAP on special net is unsupported");
   }
 
-  if (net->hasPattern()) {
-    UNSUPPORTED("PATTERN on special net is unsupported");
-  }
-
   if (net->hasOriginal()) {
     UNSUPPORTED("ORIGINAL on special net is unsupported");
   }
@@ -1748,6 +1750,9 @@ int definReader::specialNetCallback(defrCallbackType_e /* unused: type */,
   }
 
   handle_props(net, snetR);
+
+  if (net->hasPattern())
+	snetR->pattern(net->pattern());
 
   snetR->end();
 

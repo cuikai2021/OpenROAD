@@ -1388,6 +1388,9 @@ void defout_impl::writeSNet(dbNet* net)
   const char* sig_type = defSigType(net->getSigType());
   fprintf(_out, " + USE %s", sig_type);
 
+  if (net->hasPattern())
+	fprintf(_out, " + PATTERN %s", net->getPatternStr());
+
   _non_default_rule = nullptr;
   dbSet<dbSWire> swires = net->getSWires();
   dbSet<dbSWire>::iterator itr;
@@ -1482,6 +1485,8 @@ void defout_impl::writeWire(dbWire* wire)
         break;
       }
 
+      case dbWireDecoder::POINT_VIRTUAL:
+        fprintf(_out, " VIRTUAL");
       case dbWireDecoder::POINT: {
         int x, y;
         decode.getPoint(x, y);

@@ -275,6 +275,7 @@ void dbWireGraph::decode(dbWire* wire)
         break;
       }
 
+      case dbWireDecoder::POINT_VIRTUAL: // ???
       case dbWireDecoder::POINT: {
         int x, y;
         decoder.getPoint(x, y);
