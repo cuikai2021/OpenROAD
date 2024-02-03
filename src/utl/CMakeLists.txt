@@ -91,8 +91,9 @@ target_sources(utl
   PRIVATE
     src/LoggerCommon.cpp
     src/MakeLogger.cpp
+    src/metrics.cpp
 )
-  
+
 target_include_directories(utl
   PUBLIC
     include
@@ -109,7 +110,12 @@ target_compile_definitions(utl
 target_link_libraries(utl
   PUBLIC
     utl_lib
+    fassert
+    prettyprint
+    spdlog::spdlog
 )
+
+add_subdirectory(test)
 
 ############################################################
 # Unit testing

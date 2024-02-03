@@ -9,7 +9,7 @@
 #include "ord/OpenRoad.hh"
 #include <lemon/christofides_tsp.h>
 #include "ChristofidesSpanningGraph.h"
-// #include "utl/metrics.hpp"
+#include "utl/metrics.hpp"
 
 namespace sc {
 
@@ -331,8 +331,6 @@ void ScanChain::reportScanChain(const char *filename) {
   if (filename == nullptr) {
     return;
   }
-#if 0
-TODO : need to solve #include "utl/metrics.hpp"
   metrics::Config mcfg = metrics::Config::sink_to_file(filename);
   metrics::Reporter reporter(mcfg);
 
@@ -354,6 +352,5 @@ TODO : need to solve #include "utl/metrics.hpp"
 
   reporter["total_length"] = total_length;
   reporter["correct_scan_chains"] = total_success_count;
-#endif
 }
 } // namespace sc
