@@ -5438,6 +5438,11 @@ class dbMaster : public dbObject
   void setType(dbMasterType type);
 
   ///
+  /// Check if Overlap Obstruction exists
+  ///
+  bool hasOverlapObstruction() const;
+
+  ///
   /// Get the Logical equivalent of this master
   /// Returns nullptr if no equivalent was set.
   ///

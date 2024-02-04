@@ -1449,7 +1449,23 @@ Resizer::area(dbMaster *master)
   if (!master->isCoreAutoPlaceable()) {
     return 0;
   }
-  return dbuToMeters(master->getWidth()) * dbuToMeters(master->getHeight());
+  if (!master->hasOverlapObstruction())
+	return dbuToMeters(master->getWidth()) * dbuToMeters(master->getHeight());
+
+  struct dbMasterAreaCache : public std::unordered_map<dbMaster*, double> {};
+  static dbMasterAreaCache dbMasterAreaCacheInstance;
+  auto areaIter = dbMasterAreaCacheInstance.find(master);
+  if (areaIter != dbMasterAreaCacheInstance.end()) return areaIter->second;
+  double res = 0.0;
+  for (auto const &obs : master->getObstructions()) {
+    auto layer = obs->getTechLayer();
+    if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
+      odb::Rect rect = obs->getBox();
+      res += dbuToMeters(rect.dx()) * dbuToMeters(rect.dy());
+    }
+  } 
+  dbMasterAreaCacheInstance.insert({master, res});
+  return res;
 }
 
 double
