@@ -87,3 +87,33 @@ proc sta_warn { id msg } {
 
 # namespace
 }
+
+sta::define_cmd_args "report_timing" {
+  [-output-file output_file]
+  [-suppress-details]
+  [-suppress-path]
+}
+
+proc report_timing { args } {
+  sta::parse_key_args "report_timing" args \
+    keys {-output-file} \
+    flags {-suppress-details -suppress-path}
+
+  set output_file {}
+  if {[info exists keys(-output-file)]} {
+    set output_file $keys(-output-file)
+  }
+
+  set suppress_details false
+  if {[info exists flags(-suppress-details)]} {
+    set suppress_details true
+  }
+
+  set suppress_path false
+  if {[info exists flags(-suppress-path)]} {
+    set suppress_path true
+  }
+
+  sta::report_timing_cmd $output_file $suppress_details $suppress_path
+}
+

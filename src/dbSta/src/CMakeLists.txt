@@ -89,6 +89,7 @@ target_sources(dbSta
     MakeDbSta.cc
     heatMap.cpp
     PathRenderer.cc
+    report_timing.cpp
 )
 
 target_include_directories(dbSta

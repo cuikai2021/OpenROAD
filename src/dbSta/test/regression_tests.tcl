@@ -15,6 +15,9 @@ record_tests {
   find_clks2
   report_json1
   power1
+  report_timing
+  report_timing.suppress_details
+  report_timing.suppress_path
 
   read_liberty1
 

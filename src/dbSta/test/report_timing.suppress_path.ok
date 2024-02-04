@@ -1,0 +1,296 @@
+[INFO ODB-0222] Reading LEF file: Nangate45/Nangate45.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0225]     Created 135 library cells
+[INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
+[INFO ODB-0127] Reading DEF file: reg6.def
+[INFO ODB-0128] Design: reg1
+[INFO ODB-0130]     Created 3 pins.
+[INFO ODB-0131]     Created 8 components and 39 component-terminals.
+[INFO ODB-0132]     Created 2 special nets and 16 connections.
+[INFO ODB-0133]     Created 10 nets and 20 connections.
+[INFO ODB-0134] Finished DEF file: reg6.def
+{
+  "corners": [
+    {
+      "details": [
+        {
+          "arrival": 0,
+          "cell": "r1",
+          "pin": "D",
+          "required": 9.96325,
+          "slack": 9.96325,
+          "slew": {
+            "fall": 0,
+            "rise": 0
+          }
+        },
+        {
+          "arrival": 5.02078,
+          "cell": "r1",
+          "pin": "CK",
+          "required": 9.85761,
+          "slack": 9.84143,
+          "slew": {
+            "fall": 0.00479177,
+            "rise": 0.00551389
+          }
+        },
+        {
+          "arrival": 0.0835779,
+          "cell": "r1",
+          "pin": "Q",
+          "required": 9.93565,
+          "slack": 9.85761,
+          "slew": {
+            "fall": 0.00562358,
+            "rise": 0.00721397
+          }
+        },
+        {
+          "arrival": 0.0573721,
+          "cell": "r1",
+          "pin": "QN",
+          "required": 1e+39,
+          "slack": 1e+39,
+          "slew": {
+            "fall": 0.00937417,
+            "rise": 0.00629593
+          }
+        },
+        {
+          "arrival": 0,
+          "cell": "r2",
+          "pin": "D",
+          "required": 9.96325,
+          "slack": 9.96325,
+          "slew": {
+            "fall": 0,
+            "rise": 0
+          }
+        },
+        {
+          "arrival": 5.02078,
+          "cell": "r2",
+          "pin": "CK",
+          "required": 9.83322,
+          "slack": 9.81704,
+          "slew": {
+            "fall": 0.00479177,
+            "rise": 0.00551389
+          }
+        },
+        {
+          "arrival": 0.0837066,
+          "cell": "r2",
+          "pin": "Q",
+          "required": 9.91043,
+          "slack": 9.83322,
+          "slew": {
+            "fall": 0.00562401,
+            "rise": 0.00731416
+          }
+        },
+        {
+          "arrival": 0.0573721,
+          "cell": "r2",
+          "pin": "QN",
+          "required": 1e+39,
+          "slack": 1e+39,
+          "slew": {
+            "fall": 0.00937417,
+            "rise": 0.00629593
+          }
+        },
+        {
+          "arrival": 0.131307,
+          "cell": "r3",
+          "pin": "D",
+          "required": 9.96104,
+          "slack": 9.83322,
+          "slew": {
+            "fall": 0.00545856,
+            "rise": 0.0073523
+          }
+        },
+        {
+          "arrival": 5.02078,
+          "cell": "r3",
+          "pin": "CK",
+          "required": 9.91851,
+          "slack": 9.90233,
+          "slew": {
+            "fall": 0.00479177,
+            "rise": 0.00551389
+          }
+        },
+        {
+          "arrival": 0.0814876,
+          "cell": "r3",
+          "pin": "Q",
+          "required": 10,
+          "slack": 9.91851,
+          "slew": {
+            "fall": 0.00472354,
+            "rise": 0.00558621
+          }
+        },
+        {
+          "arrival": 0.0573721,
+          "cell": "r3",
+          "pin": "QN",
+          "required": 1e+39,
+          "slack": 1e+39,
+          "slew": {
+            "fall": 0.00937417,
+            "rise": 0.00629593
+          }
+        },
+        {
+          "arrival": 0.0837066,
+          "cell": "u1",
+          "pin": "A",
+          "required": 9.91043,
+          "slack": 9.83322,
+          "slew": {
+            "fall": 0.00562401,
+            "rise": 0.00731416
+          }
+        },
+        {
+          "arrival": 0.102959,
+          "cell": "u1",
+          "pin": "Z",
+          "required": 9.93377,
+          "slack": 9.83322,
+          "slew": {
+            "fall": 0.00483716,
+            "rise": 0.00561677
+          }
+        },
+        {
+          "arrival": 0.0835779,
+          "cell": "u2",
+          "pin": "A1",
+          "required": 9.93565,
+          "slack": 9.85761,
+          "slew": {
+            "fall": 0.00562358,
+            "rise": 0.00721397
+          }
+        },
+        {
+          "arrival": 0.102959,
+          "cell": "u2",
+          "pin": "A2",
+          "required": 9.93377,
+          "slack": 9.83322,
+          "slew": {
+            "fall": 0.00483716,
+            "rise": 0.00561677
+          }
+        },
+        {
+          "arrival": 0.131307,
+          "cell": "u2",
+          "pin": "ZN",
+          "required": 9.96104,
+          "slack": 9.83322,
+          "slew": {
+            "fall": 0.00545856,
+            "rise": 0.0073523
+          }
+        },
+        {
+          "arrival": 5,
+          "cell": "c1",
+          "pin": "A",
+          "required": 9.84143,
+          "slack": 9.84143,
+          "slew": {
+            "fall": 0,
+            "rise": 0
+          }
+        },
+        {
+          "arrival": 5.02078,
+          "cell": "c1",
+          "pin": "Z",
+          "required": 9.85761,
+          "slack": 9.84143,
+          "slew": {
+            "fall": 0.00479177,
+            "rise": 0.00551389
+          }
+        },
+        {
+          "arrival": 5,
+          "cell": "c2",
+          "pin": "A",
+          "required": 9.81704,
+          "slack": 9.81704,
+          "slew": {
+            "fall": 0,
+            "rise": 0
+          }
+        },
+        {
+          "arrival": 5.02078,
+          "cell": "c2",
+          "pin": "Z",
+          "required": 9.83322,
+          "slack": 9.81704,
+          "slew": {
+            "fall": 0.00479177,
+            "rise": 0.00551389
+          }
+        },
+        {
+          "arrival": 5,
+          "cell": "c3",
+          "pin": "A",
+          "required": 9.90233,
+          "slack": 9.90233,
+          "slew": {
+            "fall": 0,
+            "rise": 0
+          }
+        },
+        {
+          "arrival": 5.02078,
+          "cell": "c3",
+          "pin": "Z",
+          "required": 9.91851,
+          "slack": 9.90233,
+          "slew": {
+            "fall": 0.00479177,
+            "rise": 0.00551389
+          }
+        },
+        {
+          "arrival": 0,
+          "port": "in1",
+          "required": 9.96325,
+          "slack": 9.96325,
+          "slew": {
+            "fall": 0,
+            "rise": 0
+          }
+        },
+        {
+          "arrival": 5,
+          "port": "clk",
+          "required": 9.81704,
+          "slack": 9.81704,
+          "slew": {
+            "fall": 0,
+            "rise": 0
+          }
+        }
+      ],
+      "name": "default",
+      "tns": 0,
+      "worst_slack": 9.83322
+    }
+  ]
+}
