@@ -32,8 +32,17 @@ index f43337e..5cdec48 100644
          const char *netName = net->netName();
          if (!netName) continue;
          assert(netName);
+@@ -276,7 +276,7 @@ Module::processAssign(VerilogAssign* s) {
+   std::string lnname = l->name();
+   std::string rnname = r->name();
+   assert(lnname.size());
+-  assert(rnname.size());
++//   assert(rnname.size());
+   std::string lnetname = lnname;
+   std::string rnetname = rnname;
+   VerilogDcl* ldcl = module->declaration(lnetname.c_str());
 
-Left issue : Crash here, so add validity check here to skip this problem, and it work well that not damage regression. Should check later if it is OK.
+Left issue : Crash here, so add or delete validity check here to skip this problem, and it work well that not damage regression. Should check later if it is OK.
 
 
 
