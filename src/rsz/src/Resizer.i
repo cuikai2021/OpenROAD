@@ -40,6 +40,7 @@
 #include "sta/Liberty.hh"
 #include "sta/Network.hh"
 #include "rsz/Resizer.hh"
+#include "rsz/ResizerAddTieCell.hh"
 #include "sta/Delay.hh"
 #include "sta/Liberty.hh"
 #include "db_sta/dbNetwork.hh"
@@ -716,6 +717,27 @@ set_worst_slack_nets_percent(float percent)
   Resizer *resizer = getResizer();
   resizer->setWorstSlackNetsPercent(percent);
 }
+
+void
+add_tie_cell_cmd(const char* tie_lo_cname,
+                 const char* tie_lo_pname,
+                 const char* tie_hi_cname,
+                 const char* tie_hi_pname)
+{
+  ResizerAddTieCell *resizer = (ResizerAddTieCell *)getResizer();
+  resizer->addTieCell(tie_lo_cname, tie_lo_pname, tie_hi_cname, tie_hi_pname);
+}
+
+void
+remove_tie_cell_cmd(const char* tie_lo_cname,
+                    const char* tie_lo_pname,
+                    const char* tie_hi_cname,
+                    const char* tie_hi_pname)
+{
+  ResizerAddTieCell *resizer = (ResizerAddTieCell *)getResizer();
+  resizer->removeTieCell(tie_lo_cname, tie_lo_pname, tie_hi_cname, tie_hi_pname);
+}
+
 
 } // namespace
 

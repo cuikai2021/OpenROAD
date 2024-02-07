@@ -1,4 +1,10 @@
 record_tests {
+  add_tie_cell_const_out_pin
+  add_tie_cell_error_arg
+  add_tie_cell_error_nonexist_obj
+  add_tie_cell_work_well
+  add_tie_cell_same_name_special_net
+  
   buffer_ports1
   buffer_ports3
   buffer_ports4
