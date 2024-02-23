@@ -1,0 +1,6 @@
+FROM registry.cn-shanghai.aliyuncs.com/icb/eden_base:latest
+
+COPY --chmod=775 ./docker/benchmark/scripts /benchmark/scripts
+COPY ./src/linden/gpl/bin/design-inspector /benchmark/bin/
+
+RUN ln -s /benchmark/scripts/extract_metrics.py /usr/local/bin/trial

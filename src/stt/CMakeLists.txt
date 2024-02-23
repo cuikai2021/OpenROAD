@@ -35,8 +35,6 @@
 
 include("openroad")
 
-find_package(LEMON NAMES LEMON lemon REQUIRED)
-
 set(FLUTE_HOME ${PROJECT_SOURCE_DIR}/src/stt/src/flt)
 set(PDR_HOME ${PROJECT_SOURCE_DIR}/src/stt/src/pdr)
 
@@ -78,8 +76,6 @@ target_sources(stt
 target_include_directories(stt_lib
   PUBLIC
     include
-  PRIVATE
-    ${LEMON_INCLUDE_DIRS}
 )
 
 target_include_directories(stt
@@ -93,6 +89,7 @@ target_link_libraries(stt_lib
     utl_lib
     OpenSTA
     odb
+    lemon
 )
 
 target_link_libraries(stt

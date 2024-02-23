@@ -217,8 +217,10 @@ static void handler(int sig)
 
   std::cerr << "Signal " << sig << " received\n";
 
-  std::cerr << "Stack trace:\n";
-  std::cerr << boost::stacktrace::stacktrace();
+  std::cerr << "Both fetching stack traces and manipulating IO in signal handlers are undefined behaviours. "
+    << "So, do never rely on them.\n"
+    << "Stack trace:\n"
+    << boost::stacktrace::stacktrace();
 
   signal(sig, SIG_DFL);
   raise(sig);
@@ -236,19 +238,21 @@ int main(int argc, char* argv[])
     }
   }
 
+#if 1 // NOTE: You can disable the following signal handlers when using gdb, as it blocks gdb.
   // Generate a stacktrace on crash
   signal(SIGABRT, handler);
   signal(SIGBUS, handler);
   signal(SIGFPE, handler);
   signal(SIGILL, handler);
   signal(SIGSEGV, handler);
+#endif
 
   if (argc == 2 && stringEq(argv[1], "-help")) {
     showUsage(argv[0], init_filename);
     return 0;
   }
   if (argc == 2 && stringEq(argv[1], "-version")) {
-    printf("%s %s\n", OPENROAD_VERSION, OPENROAD_GIT_DESCRIBE);
+    printf("%s %s\n", EDEN_VERSION, EDEN_GIT_DESCRIBE);
     return 0;
   }
 
@@ -491,8 +495,8 @@ static void showUsage(const char* prog, const char* init_filename)
 static void showSplash()
 {
   utl::Logger* logger = ord::OpenRoad::openRoad()->getLogger();
-  string sha = OPENROAD_GIT_DESCRIBE;
-  logger->report("OpenROAD {} {}", OPENROAD_VERSION, sha.c_str());
+  string sha = EDEN_GIT_DESCRIBE;
+  logger->report("OpenROAD {} {}", EDEN_VERSION, sha.c_str());
   logger->report(
       "This program is licensed under the BSD-3 license. See the LICENSE file "
       "for details.");

@@ -301,15 +301,15 @@ using odb::dbTech;
 %inline %{
 
 const char *
-openroad_version()
+eden_version()
 {
-  return OPENROAD_VERSION;
+  return EDEN_VERSION;
 }
 
 const char *
-openroad_git_describe()
+eden_git_describe()
 {
-  return OPENROAD_GIT_DESCRIBE;
+  return EDEN_GIT_DESCRIBE;
 }
 
 void

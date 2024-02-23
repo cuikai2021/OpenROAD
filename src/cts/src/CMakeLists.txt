@@ -36,7 +36,7 @@
 include("openroad")
 
 # https://github.com/The-OpenROAD-Project/OpenROAD/issues/1186
-find_package(LEMON NAMES LEMON lemon REQUIRED)
+# find_package(LEMON NAMES LEMON lemon REQUIRED)
 
 add_library(cts_lib
     Clock.cpp
@@ -66,7 +66,6 @@ target_include_directories(cts_lib
     ../include
   PRIVATE
     .
-  ${LEMON_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
  )
 
@@ -87,6 +86,7 @@ target_link_libraries(cts_lib
     OpenSTA
     stt_lib
     utl_lib
+    lemon
 )
 
 target_link_libraries(cts

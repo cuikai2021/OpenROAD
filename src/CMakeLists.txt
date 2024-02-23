@@ -141,6 +141,9 @@ endif()
 # Do not use REQUIRED because it also requires TK.
 find_package(TCL)
 
+# This calls cmake/FindOctave.cmake
+find_package(Octave)
+
 # check for tclReadline
 set(TCL_READLINE_POSSIBLE_NAMES tclreadline-2.1.0
     tclreadline-2.3.2 tclreadline-2.3.6 tclreadline-2.3.7 tclreadline-2.3.8
@@ -185,25 +188,44 @@ if (NOT ALLOW_WARNINGS)
 endif()
 
 add_compile_options(
+  -g
   -Wall
   -Wmissing-field-initializers
   -Wredundant-decls
   -Wformat-security
   -Wno-sign-compare
   -Wp,-D_GLIBCXX_ASSERTIONS
+  # ========
+  # for fetching better stacktraces
+  -fno-omit-frame-pointer
+  -fno-pie
+  -DBOOST_STACKTRACE_USE_BACKTRACE
+  # ========
   $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
   # Needed for floating point stability in FFT (fft_test will check this).
   # See also https://kristerw.github.io/2021/11/09/fp-contract/
   -ffp-contract=off
   # Apple clang 14.0.0 deprecates sprintf, which generates 900 warnings.
   $<$<CXX_COMPILER_ID:AppleClang>:-Wno-deprecated-declarations>
-  $<$<BOOL:${ASAN}>:-fsanitize=address>
-  $<$<BOOL:${ASAN}>:-fno-omit-frame-pointer>
-  $<$<BOOL:${ASAN}>:-g>
 )
 
-if (ASAN)
+# ========
+# for fetching better stacktraces
+add_link_options(-rdynamic -no-pie)
+# ========
+
+if (ENABLE_GCOV)
+  add_compile_options(--coverage)
+  add_link_options(--coverage)
+endif()
+
+if (ENABLE_LIBASAN)
+  add_compile_options(-fsanitize=address)
   add_link_options(-fsanitize=address)
+endif()
+
+if(USE_LINDEN_DEBUG_LIBS)
+  add_link_options(--coverage -fsanitize=address)
 endif()
 
 ################################################################
@@ -248,6 +270,9 @@ endif()
 find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
+find_package(lemon REQUIRED)
+message(STATUS "lemon (${LEMON_LIB_NAME}): ${LEMON_INCLUDE_DIR}, ${LEMON_LIBRARY}")
+
 ################################################################
 
 # Build flow tools
@@ -286,35 +311,48 @@ add_subdirectory(sc)
 
 ################################################################
 
-add_executable(openroad
+add_executable(eden
   ${OPENROAD_SOURCE}
 )
 
-target_compile_options(openroad
+target_compile_options(eden
   PRIVATE
     -Wextra -pedantic -Wcast-qual
 )
 
 # Needed for boost stacktrace
 if(APPLE)
-  target_compile_definitions(openroad PUBLIC "-D_GNU_SOURCE")
+  target_compile_definitions(eden PUBLIC "-D_GNU_SOURCE")
 endif()
 
 
-set_target_properties(openroad PROPERTIES
+set_target_properties(eden PROPERTIES
   # Disable compiler specific extensions like gnu++11.
   CXX_EXTENSIONS OFF
   # Export symbols for stack trace printing
   ENABLE_EXPORTS ON
 )
-target_compile_features(openroad PUBLIC cxx_std_17)
+target_compile_features(eden PUBLIC cxx_std_17)
 
-target_include_directories(openroad
+target_include_directories(eden
   PUBLIC
     ../include
 )
 
-target_link_libraries(openroad
+find_library(GPERF NAME tcmalloc_and_profiler
+  PATHS
+  /usr/lib
+  /usr/lib64
+  /usr/local/lib
+  /usr/local/lib64)
+
+if(GPERF)
+  set(PERF_LIBRARIES tcmalloc_and_profiler)
+else()
+  set(PERF_LIBRARIES )
+endif()
+
+target_link_libraries(eden
   ifp
   pad
   openroad_swig
@@ -345,51 +383,54 @@ target_link_libraries(openroad
   pdn
   dft
   sc
+  ${Boost_STACKTRACE_BACKTRACE_LIBRARY}
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
+  ${PERF_LIBRARIES}
+  backtrace
 )
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   # mpl2 aborts with link error on darwin and par causes abseil link error at startup on apple silicon so do not link it.
-  target_link_libraries(openroad mpl2 par)
-  target_compile_definitions(openroad PRIVATE ENABLE_MPL2)
-  target_compile_definitions(openroad PRIVATE ENABLE_PAR)
+  target_link_libraries(eden mpl2 par)
+  target_compile_definitions(eden PRIVATE ENABLE_MPL2)
+  target_compile_definitions(eden PRIVATE ENABLE_PAR)
 else()
   message(STATUS "Removing MPL2 and PAR to avoid run time fatal error.")
 endif()
 
 # tclReadline
 if (TCL_READLINE_LIBRARY AND TCL_READLINE_H)
-  target_compile_definitions(openroad PRIVATE ENABLE_READLINE)
-  target_link_libraries(openroad ${TCL_READLINE_LIBRARY})
-  target_include_directories(openroad PRIVATE ${TCL_READLINE_H})
+  target_compile_definitions(eden PRIVATE ENABLE_READLINE)
+  target_link_libraries(eden ${TCL_READLINE_LIBRARY})
+  target_include_directories(eden PRIVATE ${TCL_READLINE_H})
   message(STATUS "TCL readline enabled")
 else()
   message(STATUS "TCL readline disabled")
 endif()
 
 if (BUILD_TCLX AND TCLX_LIBRARY AND TCLX_H)
-  target_compile_definitions(openroad PRIVATE ENABLE_TCLX)
-  target_link_libraries(openroad ${TCLX_LIBRARY})
-  target_include_directories(openroad PRIVATE ${TCLX_H})
+  target_compile_definitions(eden PRIVATE ENABLE_TCLX)
+  target_link_libraries(eden ${TCLX_LIBRARY})
+  target_include_directories(eden PRIVATE ${TCLX_H})
   message(STATUS "Tcl Extended enabled")
 else()
   message(STATUS "Tcl Extended disabled")
 endif()
 
 if (ZLIB_FOUND)
-  target_link_libraries(openroad ${ZLIB_LIBRARIES})
+  target_link_libraries(eden ${ZLIB_LIBRARIES})
 endif()
 
 # Optional CUDD library for OpenSTA
 if (CUDD_LIB)
-  target_link_libraries(openroad ${CUDD_LIB})
+  target_link_libraries(eden ${CUDD_LIB})
 endif()
 
 if (Python3_FOUND AND BUILD_PYTHON)
   message(STATUS "Python3 enabled")
-  target_compile_definitions(openroad PRIVATE ENABLE_PYTHON3)
+  target_compile_definitions(eden PRIVATE ENABLE_PYTHON3)
 
   swig_lib(NAME      openroad_swig_py
            NAMESPACE ord
@@ -404,7 +445,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
       odb
       OpenSTA
   )
-  target_link_libraries(openroad
+  target_link_libraries(eden
     openroad_swig_py
     odb_py
     ifp_py
@@ -430,7 +471,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
 
   if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # par_py causes abseil link error at startup on apple silicon so do not link it.
-    target_link_libraries(openroad par_py)
+    target_link_libraries(eden par_py)
   else()
     message(STATUS "Removing PAR_PY to avoid run time fatal error.")
   endif()
@@ -439,7 +480,7 @@ else()
 endif()
 
 messages(
-  TARGET openroad
+  TARGET eden
   SOURCE_DIR .
   OUTPUT_DIR ..
   LOCAL
@@ -448,7 +489,7 @@ messages(
 # pad isn't a proper module with its own CMakeLists.txt so it
 # is handled here (just like the tcl encoding).
 messages(
-  TARGET openroad
+  TARGET eden
   OUTPUT_DIR pad
 )
 
@@ -458,7 +499,7 @@ messages(
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   find_library(LIBRT rt)
-  target_link_libraries(openroad ${LIBRT})
+  target_link_libraries(eden ${LIBRT})
 endif()
 
 ################################################################
@@ -466,7 +507,8 @@ endif()
 # cmake .. -DCMAKE_INSTALL_PREFIX=<prefix_path>
 
 # executable
-install(TARGETS openroad DESTINATION bin)
+install(TARGETS eden DESTINATION bin)
+execute_process( COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_CURRENT_BINARY_DIR}/eden" "${CMAKE_CURRENT_BINARY_DIR}/openroad")
 
 ################################################################
 
