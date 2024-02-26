@@ -3,9 +3,7 @@
 [INFO ODB-0224]     Created 27 technology vias
 [INFO ODB-0225]     Created 135 library cells
 [INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
-[INFO ODB-0127] Reading DEF file: add_tie_cell_error_nonexist_obj.def
 [INFO ODB-0128] Design: top
-[INFO ODB-0134] Finished DEF file: add_tie_cell_error_nonexist_obj.def
 [INFO RSZ-0207] Inserted 0 tie low cells.
 [ERROR RSZ-0204] cannot find cell NOT_EXIST_CELL_TIE1
 RSZ-0204

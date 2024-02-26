@@ -249,3 +249,6 @@ suppress_message PAR 38
 
 # suppress ord message with number of threads
 suppress_message ORD 30
+
+suppress_message STA 1001
+suppress_message STA 1002
