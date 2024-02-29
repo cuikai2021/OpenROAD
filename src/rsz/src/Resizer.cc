@@ -166,6 +166,17 @@ void Resizer::init(Logger* logger,
   copyState(sta);
 }
 
+void Resizer::init(Logger* logger,
+                   dbDatabase* db,
+                   dbSta* sta,
+                   SteinerTreeBuilder* stt_builder,
+                   GlobalRouter* global_router,
+                   dpl::Opendp* opendp)
+{
+  std::unique_ptr<AbstractSteinerRenderer> ptr;
+  init(logger, db, sta, stt_builder, global_router, opendp, std::move(ptr));
+}
+
 ////////////////////////////////////////////////////////////////
 
 double
@@ -240,12 +251,12 @@ Resizer::initBlock()
 }
 
 void
-Resizer::init()
+Resizer::init(bool initArea)
 {
   initBlock();
   sta_->ensureLevelized();
   graph_ = sta_->graph();
-  initDesignArea();
+  if (initArea) initDesignArea();
 }
 
 void

@@ -89,6 +89,7 @@
 #include "utl/Logger.h"
 #include "utl/MakeLogger.h"
 #include "sc/MakeScanChain.h"
+#include "lrl/MakeLaurel.hh"
 
 namespace sta {
 extern const char* openroad_swig_tcl_inits[];
@@ -157,6 +158,7 @@ OpenRoad::~OpenRoad()
   deleteSteinerTreeBuilder(stt_builder_);
   dft::deleteDft(dft_);
   deleteScanChain(scan_chain_);
+  deleteLaurel(laurel_);
   delete logger_;
 }
 
@@ -216,6 +218,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   stt_builder_ = makeSteinerTreeBuilder();
   dft_ = dft::makeDft();
   scan_chain_ = makeScanChain();
+  laurel_ = makeLaurel();
 
   // Init components.
   Openroad_swig_Init(tcl_interp);
@@ -257,6 +260,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initSteinerTreeBuilder(this);
   dft::initDft(this);
   initScanChain(this);
+  initLaurel(this);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");

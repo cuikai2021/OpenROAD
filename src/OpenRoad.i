@@ -63,6 +63,7 @@ using sta::dbSta;
 using sta::dbNetwork;
 using rsz::Resizer;
 using sc::ScanChain;
+using lrl::Laurel;
 
 using odb::dbDatabase;
 
@@ -231,6 +232,13 @@ getScanChain()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getScanChain();
+}
+
+lrl::Laurel *
+getLaurel()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getLaurel();
 }
 
 } // namespace ord

@@ -182,6 +182,8 @@ std::unique_ptr<dbSta> dbSta::makeBlockSta(odb::dbBlock* block)
   clone->getDbNetwork()->setDefaultLibertyLibrary(
       network_->defaultLibertyLibrary());
   clone->copyUnits(units());
+  clone->setArcDelayCalc(this->arcDelayCalc());
+  clone->setCorners(this);
   return clone;
 }
 

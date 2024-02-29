@@ -308,6 +308,7 @@ add_subdirectory(dst)
 add_subdirectory(pdn)
 add_subdirectory(dft)
 add_subdirectory(sc)
+add_subdirectory(Laurel)
 
 ################################################################
 
@@ -383,6 +384,7 @@ target_link_libraries(eden
   pdn
   dft
   sc
+  Laurel
   ${Boost_STACKTRACE_BACKTRACE_LIBRARY}
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
