@@ -241,6 +241,13 @@ getLaurel()
   return openroad->getLaurel();
 }
 
+banyan::Banyan *
+getBanyan()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getBanyan();
+}
+
 } // namespace ord
 
 namespace sta {

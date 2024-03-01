@@ -10,7 +10,7 @@
 
 #include "DBAdapter.hpp"
 #include "banyan_instance_movement.pb.h"
-#include "cgr/congestionRepair.hpp"
+// #include "cgr/congestionRepair.hpp"
 #include "odb/db.h"
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
@@ -221,8 +221,8 @@ int Banyan::cmap(const std::string& cmapPb, bool cgr_mode)
   std::vector<std::string> args;
   args.push_back("route");
 
-  const auto max_layer
-      = ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
+  const auto max_layer = std::string("");
+    //   = ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
   if (!max_layer.empty()) {
     args.push_back("--max_layer");
     args.push_back(max_layer);

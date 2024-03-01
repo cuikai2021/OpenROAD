@@ -40,7 +40,7 @@ using byvia = std::tuple<int, int, std::string>;
 
 constexpr const std::string_view BANYAN_TMP_FOLDER = "/tmp/banyan/";
 
-class Banyan : public ord::OpenRoad::Observer
+class Banyan : public ord::OpenRoadObserver
 {
  public:
   Banyan();

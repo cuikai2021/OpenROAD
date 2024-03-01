@@ -61,8 +61,6 @@ target_link_libraries(Banyan
     fassert
     prettyprint
     banyan_pb
-    cgr
-    linden
   PRIVATE
     Eigen3::Eigen
 )

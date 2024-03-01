@@ -32,7 +32,6 @@
 #include "odb/geom.h"
 #include "ord/OpenRoad.hh"
 #include "rsz/Resizer.hh"
-#include "rsz/SteinerTree.hh"
 #include "sta/Delay.hh"
 #include "sta/Liberty.hh"
 #include "sta/Network.hh"
@@ -70,7 +69,7 @@ Rect* box2pb(T* ob)
 
 PinDirection OpenDBAdapter::odbIOType2Banyan(odb::dbIoType type)
 {
-  switch (type) {
+  switch (type.getValue()) {
     case odb::dbIoType::INOUT:
       return PinDirection::INOUT;
     case odb::dbIoType::INPUT:
@@ -121,7 +120,7 @@ ComponentOrient OpenDBAdapter::odbOrient2Banyan(odb::dbOrientType type)
 
 NetUse OpenDBAdapter::odbNetType2NetUse(odb::dbSigType sigType)
 {
-  switch (sigType) {
+  switch (sigType.getValue()) {
     case odb::dbSigType::CLOCK:
       return NetUse::USE_CLOCK;
     case odb::dbSigType::SIGNAL:
@@ -482,8 +481,7 @@ void OpenDBAdapter::getDesignFromODB()
 
   design_->set_name(block->getName());
 
-  odb::Rect odbDieArea;
-  block->getDieArea(odbDieArea);
+  odb::Rect odbDieArea = block->getDieArea();
   auto dieArea = design_->mutable_diearea();
   auto dieAreaLL = dieArea->mutable_lowleft();
   dieAreaLL->set_x(odbDieArea.xMin());
@@ -492,8 +490,7 @@ void OpenDBAdapter::getDesignFromODB()
   dieAreaUR->set_x(odbDieArea.xMax());
   dieAreaUR->set_y(odbDieArea.yMax());
 
-  odb::Rect odbCoreArea;
-  block->getCoreArea(odbCoreArea);
+  odb::Rect odbCoreArea = block->getCoreArea();
   auto coreArea = design_->mutable_corearea();
   auto coreAreaLL = coreArea->mutable_lowleft();
   coreAreaLL->set_x(odbCoreArea.xMin());
@@ -786,9 +783,11 @@ void OpenDBAdapter::getInstancesFromODB()
     component->set_orient(odbOrient2Banyan(instance->getOrient()));
     auto point = component->mutable_origin();
 
-    int x;
-    int y;
-    instance->getOrigin(x, y);
+    int x = 0;
+    int y = 0;
+    auto p = instance->getOrigin();
+    x = p.x();
+    y = p.y();
     point->set_x(x);
     point->set_y(y);
   }
@@ -821,8 +820,7 @@ void OpenDBAdapter::getRowsFromODB()
   for (auto row : db_->getChip()->getBlock()->getRows()) {
     if (row->getDirection() != odb::dbRowDir::HORIZONTAL)
       logger_->error(utl::BY, 9, "Banyan dont support non-horizontal row");
-    odb::Rect b;
-    row->getBBox(b);
+    odb::Rect b = row->getBBox();
     design_->mutable_rows()->AddAllocated(box2pb(&b));
   }
 }
@@ -871,9 +869,9 @@ void OpenDBAdapter::getWireBudgetingFromLrl()
         auto stapin = pin2StaPin(network, pin);
         pin->mutable_minslack()->set_value(gba.slack(gba.network().vertex(stapin)));
       }
-      double wire_cap = resizer_->wireCap(odbNet);
+      double wire_cap = laurel_->wireCap(odbNet);
       net->set_capbudget(wire_cap);
-      int64 wire_len = (int64) (wire_cap / unitCap * METER_TO_MICRON * dbu);
+      odb::int64 wire_len = (odb::int64) (wire_cap / unitCap * METER_TO_MICRON * dbu);
       net->set_wirelenbudget(wire_len);
       logger_->warn(utl::BY,
                     1,

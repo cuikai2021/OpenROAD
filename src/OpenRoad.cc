@@ -90,6 +90,7 @@
 #include "utl/MakeLogger.h"
 #include "sc/MakeScanChain.h"
 #include "lrl/MakeLaurel.hh"
+#include "banyan/MakeBanyan.h"
 
 namespace sta {
 extern const char* openroad_swig_tcl_inits[];
@@ -145,6 +146,7 @@ OpenRoad::~OpenRoad()
 #endif
   deleteOpenRCX(extractor_);
   deleteTritonRoute(detailed_router_);
+  deleteBanyan(banyan_);
   deleteReplace(replace_);
   deleteFinale(finale_);
   deleteAntennaChecker(antenna_checker_);
@@ -206,6 +208,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
 #endif
   extractor_ = makeOpenRCX();
   detailed_router_ = makeTritonRoute();
+  banyan_ = makeBanyan();
   replace_ = makeReplace();
   pdnsim_ = makePDNSim();
   antenna_checker_ = makeAntennaChecker();
@@ -250,6 +253,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initICeWall(this);
   initRestructure(this);
   initTritonRoute(this);
+  initBanyan(this);
   initPDNSim(this);
   initAntennaChecker(this);
 #ifdef ENABLE_PAR
@@ -306,7 +310,7 @@ void OpenRoad::readLef(const char* filename,
   // both are null on parser failure
   if (lib != nullptr || tech != nullptr) {
     for (OpenRoadObserver* observer : observers_) {
-      observer->postReadLef(tech, lib);
+      observer->postReadLef(filename, tech, lib);
     }
   }
 }
