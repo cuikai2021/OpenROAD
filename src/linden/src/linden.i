@@ -181,4 +181,36 @@ int linden_incr_legalize(StrDeque& args) {
 
 }
 
+namespace linden {
+
+void write_tdp_data(const char* filename)
+{
+    ensureLinked();
+    IncrTdpDataWriter writer(getOpenRoad());
+    writer.serialize(filename);
+}
+
+void read_tdp_data(const char* filename)
+{
+    IncrTdpDataWriter writer(getOpenRoad());
+    writer.deserialize(filename);
+}
+
+} // namespace linden
+
+namespace rsz {
+// for historical reasons, keep these two APIs under rsz namespace.
+
+void write_tdp_data(const char* filename)
+{
+    linden::write_tdp_data(filename);
+}
+
+void read_tdp_data(const char* filename)
+{
+    linden::read_tdp_data(filename);
+}
+
+} // namespace rsz
+
 %}

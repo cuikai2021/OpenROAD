@@ -1,0 +1,2 @@
+sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib filter=lfs diff=lfs merge=lfs -text
+sky130hd/sky130hd.tlef filter=lfs diff=lfs merge=lfs -text

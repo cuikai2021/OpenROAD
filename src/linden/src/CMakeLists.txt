@@ -4,7 +4,7 @@ file(GLOB tcls *.tcl itdp/*.tcl)
 swig_lib(NAME      linden
          NAMESPACE linden
          I_FILE    linden.i
-         SCRIPTS   ${tcls}
+         SCRIPTS   dp.tcl
 )
 
 file(GLOB cpps *.cpp util/*.cpp itdp/*.cpp gp/*.cpp mp/*.cpp)
@@ -21,7 +21,6 @@ PUBLIC
 
 target_link_libraries(linden
 PUBLIC
-    rsz_pb
     gpl
     cgr
     Banyan
