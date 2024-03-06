@@ -68,13 +68,13 @@ namespace sta {
   class Pin;
   class Network;
   class Vertex;
+  class LibertyBuilder;
 }  // namespace sta
 
 namespace rmp {
 
-
   //
-  //Helper Objects and structures for ICB timing driven remapping
+  //Helper Objects and structures for timing driven remapping
   //
 
   //Timing record for constraining abc.
@@ -93,16 +93,54 @@ namespace rmp {
     std::vector<sta::Instance*> volume_;
     std::map<const sta::Pin*,sta::LibertyPort*> internal_pins_;
     int id_;
+    
+
+
     void Print(sta::Network* nwk);
     bool Check(sta::Network* nwk);
+
+
+    sta::LibertyCell*  GenerateLibertyCell(sta::Network*,
+					   sta::LibertyLibrary* cut_library);
+
+    
+    void BuildFuncExpr(sta::Network* nwk,
+		       sta::LibertyCell* cut_cell,
+		       sta::LibertyBuilder& liberty_builder,
+		       std::vector<sta::FuncExpr*>& root_fns
+		       );
+    
+    bool LeafPin(const sta::Pin* cur_pin);
+    
+    sta::FuncExpr* ExpandFunctionExprR(sta::Network* nwk,
+				       const sta::Pin* op_pin,
+				       sta::FuncExpr* op_pin_fe,
+				       std::map<const sta::Pin*,
+				       sta::LibertyPort*>& leaf_pin_to_port,
+				       std::map<const sta::Pin*, sta::FuncExpr*>& visited,
+				       sta::LibertyCell* cut_cell,
+				       sta::LibertyBuilder& lib_builder
+				       );
+    sta::FuncExpr*  BuildFuncExprR(sta::Network* nwk,
+				   sta::Instance* cur_inst,
+				   const sta::Pin* op_pin,
+				   sta::FuncExpr* op_pin_fe,
+				   std::map<const sta::Pin*,sta::LibertyPort*>& leaf_pin2port,
+				   std::map<const sta::Pin*, sta::FuncExpr*>& visited_pins,
+				   sta::LibertyCell* cut_cell,
+				   sta::LibertyBuilder &lib_builder);
   };
 
+  
+
+  
   class CutGen {
     public:
     using expansionSet=std::vector<std::pair<std::vector<const sta::Pin*>, std::vector<const sta::Pin*> > >;
     CutGen(sta::Network* nwk, sta::LibertyLibrary* liberty_lib):
       network_(nwk),liberty_lib_(liberty_lib){}
-    void GenerateInstanceCutSet(sta::Instance*,std::vector<Cut*>&);
+    
+    void GenerateInstanceWaveFrontCutSet(sta::Instance*,std::vector<Cut*>&);
     bool EnumerateExpansions(std::vector<const sta::Pin*>& candidate_wavefront,
 			     expansionSet& expansion_set);
     Cut* BuildCutFromExpansionElement(sta::Instance* cur_inst,
@@ -118,7 +156,8 @@ namespace rmp {
     sta::LibertyLibrary* liberty_lib_;
   };
   
-    
+
+  
   //Library reader.
   class LibRead{
   public:
@@ -131,9 +170,10 @@ namespace rmp {
     abc::Amap_Lib_t_ *lib_;
     friend class PhysRemap;
   };
+
   
 
-  //Build an abc network at source code level from a cut
+  //Build an abc network at source code level from a cut on the sta
   class Cut2Ntk {
   public:
     Cut2Ntk(utl::Logger* logger,
@@ -162,17 +202,18 @@ namespace rmp {
   };
 
 
+  //Build an sta network from a cut and its abc network
   class Ntk2Cut {
   public:
     Ntk2Cut(abc::Abc_Ntk_t_*, Cut*, sta::Network*);
     void BuildNwkElements();
-
   private:
     abc::Abc_Ntk_t_* mapped_netlist_;
     Cut* cut_;
     sta::Network* target_nwk_;
   };
 
+  
   //Remap a cut
   class PhysRemap{
   public:
@@ -214,6 +255,7 @@ namespace rmp {
     char* lib_name_;
     std::string cut_name_;
     abc::Amap_Lib_t_* liberty_library_;
+
     bool global_optimize_;
     bool verbose_;
     bool script_;
@@ -248,8 +290,16 @@ class Restructure
             sta::dbSta* open_sta,
             odb::dbDatabase* db,
             rsz::Resizer* resizer);
+  
   void reset();
-  void cutresynthrun(char* liberty_file_name,char* script, bool verbose, bool single_op);
+  
+  void cutresynthrun(char* liberty_file_name,
+		     char* script,
+		     sta::Pin* head_pin,
+		     bool single_op,
+		     bool unconstrained,
+		     bool oracle_remap,
+		     bool verbose);
 
 
   void run(char* liberty_file_name,
@@ -257,28 +307,50 @@ class Restructure
            unsigned max_depth,
            char* workdir_name,
            char* abc_logfile,
-	   bool icb,
-	   bool single_op,
+	   
+	   bool cut_restructure, //if true use cut restructuring, else old flow
+	   char* head_pin_ptr_str, //the start pin to generate the cut
+	   bool unconstrained,  //unconstrained -> walk back to invariant points for resynth
+	   bool single_op_cut,  //generate single or multiple output cuts
+	   bool oracle,         //undocumented
 	   char* script);
 
   void setMode(const char* mode_name);
   void setTieLoPort(sta::LibertyPort* loport);
   void setTieHiPort(sta::LibertyPort* hiport);
   
-  //ICB restructure
+  
   static     bool isRegInput(sta::Network* nwk, sta::Vertex* vertex);
   static     bool isRegOutput(sta::Network* nwk, sta::Vertex* vertex);
   static     bool isPrimary(sta::Network* nwk, sta::Vertex* vertex);
+
   void ResetCutTemporaries(){ leaves_.clear(); roots_.clear(); cut_volume_.clear();ordered_leaves_.clear();ordered_roots_.clear(); pin_visited_.clear();}
   void AmendCutForEscapeLeaves(sta::Network* nwk);
-  void generateSingleOpCut(CutGen&, sta::Instance*, std::vector<Cut*>& local_cut_set);
-  void annotateCutTiming(Cut*, std::vector<std::pair<const sta::Pin*, TimingRecord*> >& timing_requirements);
- private:
+
+  //cut generation methods:
+  //Wave front (restricts search for cuts to region)
+  //Single output cuts. Walk back through wavefront. Given start point
+  void generateWaveFrontSingleOpCutSet(sta::Network* nwk, sta::Instance*, //start from instance
+				       std::vector<Cut*>& local_cut_set);
+  void generateWaveFrontSingleOpCutSet(sta::Network* nwk, sta::Pin*,     //start from pin
+				       std::vector<Cut*>& local_cut_set);
+
+  //Unconstained cuts, can walk right back to invariant points. Given start pin
+  //(start pin selected by caller eg after sensitivity analysis).
+  void generateUnconstrainedCut(sta::Pin* head_pin,bool single_op, std::vector<Cut*> &cut_set);
   
   //
-  //ICB Restructure
-  //
-
+  //Generate cuts using timing information. Start from outputs of logic (eg dinputs).
+  //Kind of like blob generation
+  //algorithm 1: generate a single output cut (useful for oracle mapping). single_op=true
+  //algorithm 2: generate a multiple input/multiple output cut (for big restructuring). 
+  void generateUnconstrainedCuts(std::vector<Cut*>& cut_set,bool single_op);
+  
+  void annotateCutTiming(Cut*, std::vector<std::pair<const sta::Pin*, TimingRecord*> >& timing_requirements);
+  
+ private:
+  
+  
   //temporaries for cut building
   std::set<sta::Vertex*> end_points_; //full set of end points  
   std::map<sta::Pin*,int> leaves_;
@@ -305,10 +377,7 @@ class Restructure
   //cut based optimization. Directly uses abc with timing constraints.
   //
 
-  //algorithm 1: generate a single output cut (useful for oracle mapping)
-  
-  //algorithm 2: generate a multiple input/multiple output cut (for big restructuring).
-  void generateCuts(std::vector<Cut*>& cut_set,bool single_op);
+
   Cut* extractCut(int cut_id);
   void updateVertexList(sta::Vertex* root,
 			std::multimap<float,sta::Vertex*>& float2vertex,
@@ -320,9 +389,6 @@ class Restructure
   void remapCut(Cut*){};
   bool acceptImprovement(){return false;};
 
-  
-
-  
   Logger* logger_;
   std::string logfile_;
   std::string locell_;
@@ -346,4 +412,4 @@ class Restructure
   bool is_area_mode_;
 };
 
-}  // namespace rmp
+  }  // namespace rmp

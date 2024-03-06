@@ -1,0 +1,25 @@
+[annotation]
+description = "pdk related files of rmp/test/cases/restr_unit/rm"
+title = "restr_unit/rm"
+
+[[inputs]]
+  name = "rm_mapped.v"
+  uri = "https://aqua.icbench.com/benchmark/data/65e7ef4330b8f0a9078a043a"
+
+[[inputs]]
+  name = "rm.sdc"
+  uri = "https://aqua.icbench.com/benchmark/data/65e7ef4430b8f0a9078a043c"
+  
+[[inputs]]
+name = "lefs"
+uri = "https://aqua.icbench.com/benchmark/data/64701e3555370c222a629337"
+action = "include"
+
+[[inputs]]
+name = "libs"
+uri = "https://aqua.icbench.com/benchmark/data/64701e3655370c222a62933f"
+action = "include"
+
+[[inputs]]
+  name = "setRC.tcl"
+  uri = "https://aqua.icbench.com/benchmark/data/64dc86e30bd7aee9663d18ae"

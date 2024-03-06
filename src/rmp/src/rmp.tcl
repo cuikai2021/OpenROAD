@@ -52,8 +52,8 @@ sta::define_cmd_args "restructure" { \
                                       [-depth_threshold depth]\
                                       [-target area|timing]\
 				      [-liberty_file liberty_file]\
-				      [-icb]\
-				      [-s_cut]\
+				      [-cutremap]\
+				      [-so_cut]\
 				      [-script script_string]\
                                       [-tielo_port tielow_port]\
                                       [-tiehi_port tiehigh_port]\
@@ -62,7 +62,7 @@ sta::define_cmd_args "restructure" { \
 
 proc restructure { args } {
   sta::parse_key_args "restructure" args \
-    keys {-slack_threshold -depth_threshold -target -liberty_file -abc_logfile -icb -s_cut -script\
+    keys {-slack_threshold -head_pin -depth_threshold -target -liberty_file -abc_logfile -cutremap -so_cut -script\
           -tielo_port -tiehi_port -work_dir} flags {}
 
   set slack_threshold_value 0
@@ -71,9 +71,15 @@ proc restructure { args } {
   set workdir_name "."
   set abc_logfile ""
   set so_cut 0
-  set icb_restr 0
+  set head_pin 0    
+  set cut_remap 0
   set script_string ""
-    
+  #undocumented/unused    
+  set unconstrained 0
+  set oracle 0    
+  if { [info exists keys(-head_pin)] } {
+      set head_pin $keys(-head_pin)
+  }     
   if { [info exists keys(-s_cut)] } {
     set so_cut 1
   } 
@@ -82,9 +88,9 @@ proc restructure { args } {
       puts "Using script $script_string"
   } 
 
-  if { [info exists keys(-icb)] } {
-      set icb_restr 1
-      puts "Setting icb_restr"
+  if { [info exists keys(-cutremap)] } {
+      set cut_remap 1
+      puts "Setting cut_remap"
   } 
     
   if { [info exists keys(-slack_threshold)] } {
@@ -145,6 +151,5 @@ proc restructure { args } {
     set workdir_name $keys(-work_dir)
   }
 
-
-  rmp::restructure_cmd $liberty_file_name $target $slack_threshold_value $depth_threshold_value $workdir_name $abc_logfile $icb_restr $so_cut $script_string
+  rmp::restructure_cmd $liberty_file_name $target $slack_threshold_value $depth_threshold_value $workdir_name $abc_logfile $cut_remap $head_pin $unconstrained  $so_cut $oracle $script_string
 }
