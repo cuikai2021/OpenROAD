@@ -24,7 +24,8 @@ initLindenGlobalPlace(OpenRoad* openroad) {
   Tcl_Interp* tcl_interp = openroad->tclInterp();
   Linden_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::linden_tcl_inits);
-  openroad->getLindenGlobalPlace()->init(openroad->getDb(), openroad->getLogger());
+//   FIXME:
+//   openroad->getLindenGlobalPlace()->init(openroad->getDb(), openroad->getLogger());
 }
 
 void

@@ -1,13 +1,21 @@
 include("openroad")
 
-file(GLOB tcls *.tcl itdp/*.tcl)
+file(GLOB tcls *.tcl itdp/*.tcl timing_data/*.tcl)
 swig_lib(NAME      linden
          NAMESPACE linden
          I_FILE    linden.i
-         SCRIPTS   dp.tcl
+         SCRIPTS   ${tcls}
 )
 
-file(GLOB cpps *.cpp util/*.cpp itdp/*.cpp gp/*.cpp mp/*.cpp)
+file(GLOB cpps
+    *.cpp
+    util/*.cpp
+    itdp/*.cpp
+    gp/*.cpp
+    mp/*.cpp
+    cgr/*.cpp
+    timing_data/*.cpp
+)
 target_sources(linden
 PRIVATE
     ${cpps}
@@ -15,6 +23,7 @@ PRIVATE
 
 target_include_directories(linden
 PUBLIC
+    ./
     ../include
     ${OPENROAD_HOME}/include
 )
@@ -22,7 +31,6 @@ PUBLIC
 target_link_libraries(linden
 PUBLIC
     gpl
-    cgr
     Banyan
     sc
     rsz
@@ -36,3 +44,4 @@ PUBLIC
     linden_pb
     linden_proto
 )
+

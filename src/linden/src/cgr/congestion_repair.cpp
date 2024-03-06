@@ -1,4 +1,4 @@
-#include "cgr/congestionRepair.hpp"
+#include "congestion_repair.hpp"
 
 #include "fassert.hpp"
 #include "envflag/envflag.hpp"
@@ -7,7 +7,6 @@
 #include "utl/Logger.h"
 
 using namespace std;
-using utl::CGR;
 
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
 
@@ -52,12 +51,14 @@ std::string save_def()
 
 double CongestionRepair::run()
 {
-  auto def_file = save_def();
-  auto ord = ::ord::OpenRoad::openRoad();
-  auto gp = ord->getLindenGlobalPlace();
-  auto congestion = gp->cgr_run();
-  results_.emplace_back(DEF2Congestion{def_file, congestion});
-  return congestion;
+    return 0;
+// FIXME:
+//   auto def_file = save_def();
+//   auto ord = ::ord::OpenRoad::openRoad();
+//   auto gp = ord->getLindenGlobalPlace();
+//   auto congestion = gp->cgr_run();
+//   results_.emplace_back(DEF2Congestion{def_file, congestion});
+//   return congestion;
 }
 
 void CongestionRepair::done() const
@@ -70,7 +71,8 @@ void CongestionRepair::done() const
     }
   }
   auto const& fname = results_[best].def_file;
-  ::ord::OpenRoad::openRoad()->readDef(fname.c_str(), false, false,true);
+//   FIXME:
+//   ::ord::OpenRoad::openRoad()->readDef(fname.c_str(), false, false,true);
 }
 
 }  // namespace cgr

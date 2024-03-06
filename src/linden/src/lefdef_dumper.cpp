@@ -1,13 +1,11 @@
 #include "linden/lefdef_dumper.hpp"
-
-#include <chrono>
-#include <sstream>
-
-#include "envflag/envflag.hpp"
-
 #include "odb/db.h"
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
+#include "envflag/envflag.hpp"
+#include <chrono>
+#include <sstream>
+#include <fstream>
 
 using namespace std;
 
@@ -30,9 +28,12 @@ string writeTech(::ord::OpenRoad& openroad, const string& basename)
 {
   string filename = basename;
   filename.append(".tech.lef");
-  ::odb::lefout out(openroad.getLogger());
-  out.writeTech(openroad.getDb()->getTech(), filename.c_str());
-  return filename;
+  {
+    ofstream oss(filename);
+    ::odb::lefout out(openroad.getLogger(), oss);
+    out.writeTech(openroad.getDb()->getTech());
+    return filename;
+  }
 }
 
 deque<string> writeLib(::ord::OpenRoad& openroad, const string& basename)
@@ -44,8 +45,9 @@ deque<string> writeLib(::ord::OpenRoad& openroad, const string& basename)
     filename.push_back('.');
     filename.append(lib->getName());
     filename.append(".lib.lef");
-    ::odb::lefout out(openroad.getLogger());
-    out.writeLib(const_cast<::odb::dbLib*>(lib), filename.c_str());
+    ofstream oss(filename);
+    ::odb::lefout out(openroad.getLogger(), oss);
+    out.writeLib(const_cast<::odb::dbLib*>(lib));
     res.push_back(std::move(filename));
   }
   return res;

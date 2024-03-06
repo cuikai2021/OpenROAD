@@ -310,6 +310,7 @@ add_subdirectory(dft)
 add_subdirectory(sc)
 add_subdirectory(Laurel)
 add_subdirectory(Banyan)
+add_subdirectory(linden)
 
 ################################################################
 
@@ -387,6 +388,7 @@ target_link_libraries(eden
   sc
   Laurel
   Banyan
+  linden
   ${Boost_STACKTRACE_BACKTRACE_LIBRARY}
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}

@@ -3,8 +3,9 @@
 
 #include "db_sta/dbNetwork.hh"
 #include "db_sta/dbSta.hh"
-#include "gpl/placerBase.h"
+#include "../../../gpl/src/placerBase.h"
 #include "rsz/Resizer.hh"
+#include "ord/OpenRoad.hh"
 #include "sta/Fuzzy.hh"
 #include "sta/Units.hh"
 #include "utl/metrics.hpp"
@@ -38,43 +39,51 @@ bool LindenGlobalPlace::updateNetWeights()
   }
 
   // min/max slack for worst 10% nets
-  sta::Slack slack_min = rs->resizeNetSlack(worst_slack_nets[0]);
-  sta::Slack slack_max
+  auto slack_min = rs->resizeNetSlack(worst_slack_nets[0]);
+  auto slack_max
       = rs->resizeNetSlack(worst_slack_nets[worst_slack_nets.size() - 1]);
 
-  log_->info(GPL, 1100, "worst slack {:.3g}", slack_min);
+  if (!slack_min || !slack_max) {
+    log_->warn(GPL, 1102, "No slacks found. Timing-driven mode disabled.");
+    return false;
+  }
 
-  if (sta::fuzzyInf(slack_min)) {
+  auto slack_min_ = *slack_min;
+  auto slack_max_ = *slack_max;
+  log_->info(GPL, 1100, "worst slack {:.3g}", slack_min_);
+
+  if (sta::fuzzyInf(slack_min_)) {
     log_->warn(GPL, 1102, "No slacks found. Timing-driven mode disabled.");
     return false;
   }
 
   size_t weighted_net_count = 0;
-  for (auto& net : pb_->nets()) {
-    auto dbNet = net->dbNet();
-    // default weight
-    double net_weight = 1.0;
-    if (net->pins().size() > 1) {
-      float net_slack = rs->resizeNetSlack(dbNet);
-      if (net_slack < slack_max) {
-        // weight(min_slack) = net_weight_max_
-        // weight(max_slack) = 1
-        net_weight = 1
-                     + (net_weight_max_ - 1) * (slack_max - net_slack)
-                           / (slack_max - slack_min);
-        weighted_net_count++;
-      }
-      debugPrint(log_,
-                 GPL,
-                 "linden-tdp",
-                 3,
-                 "timing: net:{} slack:{} weight:{}",
-                 dbNet->getName(),
-                 net_slack,
-                 net_weight);
-    }
-    linden_db_->set_net_timing_weight(dbNet, net_weight);
-  }
+// FIXME:
+//   for (auto& net : pb_->nets()) {
+//     auto dbNet = net->dbNet();
+//     // default weight
+//     double net_weight = 1.0;
+//     if (net->pins().size() > 1) {
+//       float net_slack = rs->resizeNetSlack(dbNet);
+//       if (net_slack < slack_max_) {
+//         // weight(min_slack) = net_weight_max_
+//         // weight(max_slack) = 1
+//         net_weight = 1
+//                      + (net_weight_max_ - 1) * (slack_max_ - net_slack)
+//                            / (slack_max_ - slack_min_);
+//         weighted_net_count++;
+//       }
+//       debugPrint(log_,
+//                  GPL,
+//                  "linden-tdp",
+//                  3,
+//                  "timing: net:{} slack:{} weight:{}",
+//                  dbNet->getName(),
+//                  net_slack,
+//                  net_weight);
+//     }
+//     linden_db_->set_net_timing_weight(dbNet, net_weight);
+//   }
   log_->info(GPL, 1103, "Weighted {} nets.", weighted_net_count);
   return true;
 }

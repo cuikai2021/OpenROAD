@@ -5,6 +5,7 @@
 #include "linden/lindenmp.hpp"
 #include "linden/linden_lpbased_postdrv_itdp.hpp"
 #include "linden/db_sanitizer.hpp"
+#include "./timing_data/ffi.hpp"
 #include <memory>
 #include <deque>
 #include <string>
@@ -12,15 +13,15 @@
 namespace ord {
 OpenRoad* getOpenRoad();
 
-gpl::LindenGlobalPlace* getLindenGlobalPlace();
+// gpl::LindenGlobalPlace* getLindenGlobalPlace();
 
-std::shared_ptr<lindenmp::LindenMacroPlace> getLindenMacroPlace();
+// std::shared_ptr<lindenmp::LindenMacroPlace> getLindenMacroPlace();
 }
 
-using ord::getOpenRoad;
+// using ord::getOpenRoad;
 
-using ord::getLindenGlobalPlace;
-using gpl::LindenGlobalPlace;
+// using ord::getLindenGlobalPlace;
+// using gpl::LindenGlobalPlace;
 
 %}
 
@@ -28,120 +29,139 @@ using gpl::LindenGlobalPlace;
 
 void lindengp_run_cmd()
 {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->run();
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->run();
 }
 
 void set_linden_density_cmd(float density)
 {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setTargetDensity(density);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setTargetDensity(density);
 }
 
 void set_linden_overflow_cmd(float overflow)
 {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setTargetOverflow(overflow);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setTargetOverflow(overflow);
 }
 
 void set_linden_use_uniform_density_cmd(bool use_uniform_density)
 {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setUniformDensity(use_uniform_density);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setUniformDensity(use_uniform_density);
 }
 
 void set_linden_pad_left_cmd(int pad)
 {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setPadLeft(pad);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setPadLeft(pad);
 }
 
 void set_linden_pad_right_cmd(int pad)
 {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setPadRight(pad);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setPadRight(pad);
 }
 
 void set_linden_debug_cmd(int pause_iterations,
               int update_iterations,
               bool initial)
 {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setDebug(pause_iterations, update_iterations, initial);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setDebug(pause_iterations, update_iterations, initial);
 }
 
 void set_linden_timing_driven_mode(bool flag)
 {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setTimingDriven(flag);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setTimingDriven(flag);
 }
 
-void set_linden_routability_driven_mode(bool flag)
-{
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setRoutabilityDriven(flag);
+void set_linden_routability_driven_mode(bool flag) {
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setRoutabilityDriven(flag);
 }
 
 void set_linden_initial_place_policy_cmd(const char* policy) {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setInitialPlacePolicy(policy);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setInitialPlacePolicy(policy);
 }
 
 void set_linden_focus_insts_cmd(const char* focus_insts_file_name) {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setFocusInsts(focus_insts_file_name);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setFocusInsts(focus_insts_file_name);
 }
 
 void set_linden_focus_nets_cmd(const char* focus_nets_file_name) {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->setFocusNets(focus_nets_file_name);
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->setFocusNets(focus_nets_file_name);
 }
 
 void enable_linden_continuation() {
-  LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-  lindengp->enableContinuation();
+// FIXME:
+//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
+//   lindengp->enableContinuation();
 }
 
 %} // inline lindengp
 
-%inline %{ // linden
+%inline %{ // linden others
 void linden_remove_fillers_cmd() {
-  linden::LindenDBSanitizer *sanitizer = new linden::LindenDBSanitizer();
-  sanitizer->removeFillers();
+// FIXME:
+//   linden::LindenDBSanitizer *sanitizer = new linden::LindenDBSanitizer();
+//   sanitizer->removeFillers();
 }
-%} // inline linden
+%} // linden others
 
 %inline %{ // lindenmp
 
 int lindenmp_run_cmd()
 {
-  auto lmp = ord::getLindenMacroPlace();
-  return lmp->run();
+// FIXME:
+//   auto lmp = ord::getLindenMacroPlace();
+//   return lmp->run();
+    return 0;
 }
 
 void set_lindenmp_density_cmd(double density)
 {
-  auto lmp = ord::getLindenMacroPlace();
-  lmp->mut_density() = density;
+// FIXME:
+//   auto lmp = ord::getLindenMacroPlace();
+//   lmp->mut_density() = density;
 }
 
 void set_lindenmp_overflow_cmd(double overflow)
 {
-  auto lmp = ord::getLindenMacroPlace();
-  lmp->mut_overflow() = overflow;
+// FIXME:
+//   auto lmp = ord::getLindenMacroPlace();
+//   lmp->mut_overflow() = overflow;
 }
 
 void set_lindenmp_use_uniform_density_cmd(double use_uniform_density)
 {
-  auto lmp = ord::getLindenMacroPlace();
-  lmp->mut_use_uniform_density() = use_uniform_density;
+// FIXME:
+//   auto lmp = ord::getLindenMacroPlace();
+//   lmp->mut_use_uniform_density() = use_uniform_density;
 }
 
 void set_lindenmp_debug(int pause_iterations, int update_iterations)
 {
-  auto lmp = ord::getLindenMacroPlace();
-  lmp->mut_debug_pause_iters_() = pause_iterations;
-  lmp->mut_debug_update_iters_() = update_iterations;
+// FIXME:
+//   auto lmp = ord::getLindenMacroPlace();
+//   lmp->mut_debug_pause_iters_() = pause_iterations;
+//   lmp->mut_debug_update_iters_() = update_iterations;
 }
 
 %} // inline lindenmp
@@ -150,8 +170,9 @@ void set_lindenmp_debug(int pause_iterations, int update_iterations)
 
 void linden_lpbased_postdrv_itdp(const char* pb_path)
 {
-  itdp::LPBasedPostDrvItdp ldnx;
-  ldnx.run(pb_path);
+// FIXME:
+//   itdp::LPBasedPostDrvItdp ldnx;
+//   ldnx.run(pb_path);
 }
 
 %} // inline linden_lpbased_postdrv_itdp
@@ -178,39 +199,18 @@ int linden_incr_legalize(StrDeque& args) {
     ord::OpenRoad* ord = ord::OpenRoad::openRoad();
     linden::IncrLegalizer leg(*ord);
     return leg.go(args.elems_);
-
 }
 
-namespace linden {
+%} // lindendp
 
-void write_tdp_data(const char* filename)
-{
-    ensureLinked();
-    IncrTdpDataWriter writer(getOpenRoad());
-    writer.serialize(filename);
-}
+%inline %{
 
-void read_tdp_data(const char* filename)
-{
-    IncrTdpDataWriter writer(getOpenRoad());
-    writer.deserialize(filename);
-}
-
-} // namespace linden
-
-namespace rsz {
-// for historical reasons, keep these two APIs under rsz namespace.
-
-void write_tdp_data(const char* filename)
-{
+void write_tdp_data_cmd(const char* filename) {
     linden::write_tdp_data(filename);
 }
 
-void read_tdp_data(const char* filename)
-{
+void read_tdp_data_cmd(const char* filename) {
     linden::read_tdp_data(filename);
 }
 
-} // namespace rsz
-
-%}
+%} // timing data

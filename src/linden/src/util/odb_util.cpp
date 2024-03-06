@@ -12,8 +12,7 @@ namespace odb_util {
 linden::geom::Rect core_region(dbDatabase& odb) noexcept
 {
     dbBlock* block = odb.getChip()->getBlock();
-    Rect coreRect;
-    block->getCoreArea(coreRect);
+    Rect coreRect = block->getCoreArea();
     return linden::geom::Rect{
         coreRect.xMin(),
         coreRect.yMin(),
@@ -99,10 +98,8 @@ std::vector<linden::geom::Rect> rects(dbInst& inst) noexcept {
     for (auto obs : master->getObstructions()) {
       auto layer = obs->getTechLayer();
       if (layer->getType() == dbTechLayerType::OVERLAP) {
-        Rect rect;
-        obs->getBox(rect);
-        dbTransform transform;
-        inst.getTransform(transform);
+        Rect rect = obs->getBox();
+        dbTransform transform = inst.getTransform();
         transform.apply(rect);
         obs_overlap_layer.push_back(linden::geom::Rect(
             rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));

@@ -4,8 +4,8 @@
 #include "linden/geom/bbox.hpp"
 #include "linden/lindenmp.hpp"
 #include "linden/odb_util.hpp"
-#include "gpl/graphics.h"
-#include "gpl/placerBase.h"
+#include "../../gpl/src/graphics.h"
+#include "../../gpl/src/placerBase.h"
 #include "sta/StaMain.hh"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
@@ -191,9 +191,10 @@ int LindenMacroPlace::run()
     auto placer = linden::mpl::Placer::create(ldb, std::move(cfg));
 
     std::unique_ptr<gpl::Graphics> graphics;
-    if (gpl::Graphics::guiActive()) {
-        graphics = make_unique<gpl::Graphics>(log_, ldb);
-    }
+    // FIXME:
+    // if (gpl::Graphics::guiActive()) {
+    //     graphics = make_unique<gpl::Graphics>(log_, ldb);
+    // }
 
     const int MAX_ITER = 5000;
     size_t iter = 0;

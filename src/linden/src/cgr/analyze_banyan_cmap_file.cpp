@@ -1,4 +1,4 @@
-#include "cgr/analyze_banyan_cmap_file.hpp"
+#include "analyze_banyan_cmap_file.hpp"
 
 #include <spdlog/spdlog.h>
 

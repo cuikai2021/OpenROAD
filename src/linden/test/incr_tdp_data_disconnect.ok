@@ -1008,10 +1008,10 @@
 [INFO ODB-0226] Finished LEF file:  sky130hd/sky130hd_std_cell.lef
 worst slack -0.03
 Design area 100 u^2 100% utilization.
-[LRL-TDP] write incr tdp data pb file to: results/incr_tdp_data.pb
+[LRL-TDP] write incr tdp data pb file to: results/incr_tdp_data_disconnect.pb
 
 -------test the dumped result-------
-[LRL-TDP] read pb_file from:results/incr_tdp_data.pb
+[LRL-TDP] read pb_file from:results/incr_tdp_data_disconnect.pb
 <wire_cap>: 1e-11
 <wire_res>: 100000
 port_name: clk

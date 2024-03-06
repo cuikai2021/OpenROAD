@@ -52,7 +52,7 @@ swig_lib(NAME      gpl
 )
 
 target_sources(gpl
-  PRIVATE
+PRIVATE
     src/MakeReplace.cpp
     src/replace.cpp
     src/initialPlace.cpp
@@ -77,9 +77,10 @@ target_include_directories(gpl
 )
 
 target_link_libraries(gpl
-  PRIVATE
-    utl
+PUBLIC
     Eigen3::Eigen
+PRIVATE
+    utl
     gui
     odb
     OpenSTA
@@ -95,8 +96,8 @@ target_link_libraries(gpl
 option(GPU "Enable GPU" OFF)
 if (GPU)
   message(STATUS "GPU is enabled")
-  # find_package(CUDA) should be replaced by "FindCUDAToolkit" for CMAKE verison >= 3.17. 
-  # See https://cmake.org/cmake/help/latest/module/FindCUDAToolkit.html. 
+  # find_package(CUDA) should be replaced by "FindCUDAToolkit" for CMAKE verison >= 3.17.
+  # See https://cmake.org/cmake/help/latest/module/FindCUDAToolkit.html.
   # find_package(CUDA) or FindCUDA is deprecated since vision 3.10.
   find_package(CUDA QUIET COMPONENTS Core Widgets)
   if (CUDA_FOUND)
@@ -133,7 +134,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
   target_include_directories(gpl_py
     PUBLIC
       include
-      
+
   )
 
   target_link_libraries(gpl_py

@@ -91,6 +91,7 @@
 #include "sc/MakeScanChain.h"
 #include "lrl/MakeLaurel.hh"
 #include "banyan/MakeBanyan.h"
+#include "linden/lindendp.hpp"
 
 namespace sta {
 extern const char* openroad_swig_tcl_inits[];
@@ -265,6 +266,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   dft::initDft(this);
   initScanChain(this);
   initLaurel(this);
+  linden::initLindenDp(this);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");

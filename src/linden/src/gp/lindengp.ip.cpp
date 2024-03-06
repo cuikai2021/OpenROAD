@@ -4,9 +4,10 @@
 
 #include "envflag/envflag.hpp"
 #include "fassert.hpp"
-#include "gpl/initialPlace.h"
-#include "gpl/initialPlaceBicgstab.h"
-#include "gpl/initialPlaceDef.h"
+#include "../../../gpl/src/initialPlace.h"
+// FIXME:
+// #include "../../../gpl/src/initialPlaceBicgstab.h"
+// #include "../../../gpl/src/initialPlaceDef.h"
 #include "ord/OpenRoad.hh"
 
 IMPORT_STR_FLAG(LINDEN_INITIAL_PLACEMENT_RESULT_IN_DEF_FILE)
@@ -33,14 +34,15 @@ void LindenGlobalPlace::doInitialPlace()
   ipVars.debug = gui_debug_initial_;
 
   spdlog::info("[linden/gpl] initialPlacePolicy: {}", initialPlacePolicy_);
-  if (initialPlacePolicy_ == "def") {
-    ip_ = std::move(
-        std::unique_ptr<InitialPlace>(new InitialPlaceDef(ipVars, pb_, log_)));
-  } else {  // default
-    ip_ = std::move(std::unique_ptr<InitialPlace>(
-        new InitialPlaceBicgstab(ipVars, pb_, log_)));
-  }
-  ip_->run();
+//   FIXME:
+//   if (initialPlacePolicy_ == "def") {
+//     ip_ = std::move(
+//         std::unique_ptr<InitialPlace>(new InitialPlaceDef(ipVars, pb_, log_)));
+//   } else {  // default
+//     ip_ = std::move(std::unique_ptr<InitialPlace>(
+//         new InitialPlaceBicgstab(ipVars, pb_, log_)));
+//   }
+//   ip_->run();
   if (auto opt = LINDEN_INITIAL_PLACEMENT_RESULT_IN_DEF_FILE(); opt) {
     const string def_out(*opt);
     spdlog::info("[linden/gpl] Writing initial placement result to {}",

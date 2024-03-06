@@ -9,14 +9,14 @@
 
 #include "banyan/Banyan.h"
 #include "banyan_cmap.pb.h"
-#include "cgr/analyze_banyan_cmap_file.hpp"
+#include "../cgr/analyze_banyan_cmap_file.hpp"
 #include "envflag/envflag.hpp"
 #include "fassert.hpp"
 #include "linden/geom/dimension.hpp"
 #include "linden/geom/point.hpp"
 #include "linden/rdp/congestion_estimation.hpp"
 #include "odb/db.h"
-#include "gpl/placerBase.h"
+#include "../../../gpl/src/placerBase.h"
 #include "sc/ScanChain.h"
 #include "utl/Logger.h"
 

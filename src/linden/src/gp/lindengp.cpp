@@ -1,14 +1,14 @@
 #include "linden/lindengp.hpp"
 
-#include "cgr/congestionRepair.hpp"
+#include "../cgr/congestion_repair.hpp"
 #include "envflag/envflag.hpp"
 #include "fassert.hpp"
-#include "gpl/graphics.h"
+#include "../../gpl/src/graphics.h"
 #include "linden/gpl/placer_config.hpp"
 #include "linden/lefdef_dumper.hpp"
 #include "linden/relevance_verify.hpp"
 #include "ord/OpenRoad.hh"
-#include "gpl/placerBase.h"
+#include "../../gpl/src/placerBase.h"
 #include "rsz/Resizer.hh"
 #include "utl/Logger.h"
 #include "utl/metrics.hpp"
@@ -61,7 +61,8 @@ void LindenGlobalPlace::initPlacerBase()
     pbVars.padLeft = padLeft_;
     pbVars.padRight = padRight_;
     pbVars.skipIoMode = false;
-    pb_ = std::make_shared<PlacerBase>(db_, pbVars, log_);
+    // FIXME:
+    // pb_ = std::make_shared<PlacerBase>(db_, pbVars, log_);
   }
 }
 
@@ -83,8 +84,9 @@ void LindenGlobalPlace::init()
     cfg.target_overflow = overflow_;
     cfg.use_uniform_density = use_uniform_density_;
     cfg.cgr_mode = cgr_mode_;
-    cfg.cgr_params_file
-        = ord::OpenRoad::openRoad()->getCongestionRepair()->getCGRParamsFile();
+    // FIXME:
+    // cfg.cgr_params_file
+    //     = ord::OpenRoad::openRoad()->getCongestionRepair()->getCGRParamsFile();
     cfg.routability_driven = routability_driven_;
     lindengp_ = linden::gpl::Placer::create(linden_db_, cfg);
   }
@@ -120,10 +122,11 @@ void LindenGlobalPlace::run()
     banyan_cmap_result_ = std::make_shared<linden::rdp::CongestionMap>();
   }
   std::unique_ptr<Graphics> graphics;
-  if (Graphics::guiActive()) {
-    graphics
-        = make_unique<Graphics>(log_, linden_db_, banyan_cmap_result_, pb_);
-  }
+//   FIXME:
+//   if (Graphics::guiActive()) {
+//     graphics
+//         = make_unique<Graphics>(log_, linden_db_, banyan_cmap_result_, pb_);
+//   }
   const int MAX_ITER = 5000;
   if (!timing_overflows_.empty()) {
     rsz::Resizer* rs_ = ::ord::OpenRoad::openRoad()->getResizer();
@@ -209,10 +212,11 @@ double LindenGlobalPlace::cgr_run()
   if (congestion != 0) {
     init();
     std::unique_ptr<Graphics> graphics;
-    if (Graphics::guiActive()) {
-      graphics
-          = make_unique<Graphics>(log_, linden_db_, banyan_cmap_result_, pb_);
-    }
+    // FIXME:
+    // if (Graphics::guiActive()) {
+    //   graphics
+    //       = make_unique<Graphics>(log_, linden_db_, banyan_cmap_result_, pb_);
+    // }
     if (lindengp_->load_cmap(*banyan_cmap_result_)) {
       const int MAX_ITER = 50;
       for (size_t iter = 0; iter < MAX_ITER; iter++) {
