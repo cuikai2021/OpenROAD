@@ -294,9 +294,8 @@ void read_back(const string& outdef)
         }
     }
     ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
-    sta::dbSta& sta = *ord.getSta();
-    sta::Network& sta_network = *sta.network();
-    lrl::NetworkModifier cm(&ord);
+    lrl::NetworkModifier& cm = lrl::Laurel::getPlacementNetworkModifier();
+    lrl::STANetwork sta_nw = cm.network;
     odb::dbBlock& top = *(ord.getDb()->getChip()->getBlock());
     int dbu = top.getDefUnits();
     int64_t pm_per_dbu = 1'000'000 / dbu;
@@ -310,7 +309,7 @@ void read_back(const string& outdef)
         odb::Point target_pt(target_pos.x() / pm_per_dbu, target_pos.y() / pm_per_dbu); // pm to dbu
         odb::dbOrientType target_orient(pb_to_dbOrientType(place.orient()));
 
-        sta::Instance* sta_inst = sta_network.findInstance(cell_name.c_str());
+        sta::Instance* sta_inst = sta_nw.findInstance(cell_name.c_str());
         FASSERT(sta_inst != nullptr)
             .what("Linden DP so far does not add/remove cells. So, everything must be there in ODB & STA.");
 
