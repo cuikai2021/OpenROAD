@@ -43,8 +43,12 @@ void ScanChain::reorder() {
     logger_->info(SC, 3, "  Has {} points in the graph for scan chain {}.", points.size(), scan_chain->getName());
 
     std::vector<Graph::NodeId> orders = reorderScanChain(scan_chain, points);
-    assert(orders.size() == points.size() && orders[0] == 0);
+    if (orders.size() != points.size()) {
+      logger_->warn(SC, 10, "Scan chain {} has duplicate points, need to do legalization before reorder.", scan_chain->getName());
+      continue;
+    }
 
+    assert(orders[0] == 0);
     //assert the pin of START is output pin
     assert(!scan_chain->getStart() || scan_chain->getStart()->isOutputSignal(false));
     assert(!scan_chain->getBTermStart() || scan_chain->getBTermStart()->getIoType() == odb::dbIoType::INPUT); // ?
@@ -92,15 +96,12 @@ void ScanChain::initPoints(const odb::dbScanChain *scan_chain, std::vector<Point
     points.push_back(Point((start_x + stop_x) / 2, (start_y + stop_y) / 2));
   }
 
-  int chain_stop_x, chain_stop_y;
   if (scan_chain->getStop()) {
+    int chain_stop_x, chain_stop_y;
     auto stop_inst = scan_chain->getStop()->getInst();
     stop_inst->getLocation(chain_stop_x, chain_stop_y);
-  } else {
-    auto stop_bterm = scan_chain->getBTermStop();
-    stop_bterm->getFirstPinLocation(chain_stop_x, chain_stop_y);
+    points.push_back(Point(chain_stop_x, chain_stop_y));
   }
-  points.push_back(Point(chain_stop_x, chain_stop_y));
 }
 
 void ScanChain::fullGraphReorderScanChain(std::vector<Graph::NodeId>& orders,
@@ -191,7 +192,6 @@ void ScanChain::connectScanNet(const odb::dbScanChain *scan_chain,
   }
 
   odb::dbITerm* next_sc_in = nullptr;
-  odb::dbBTerm* next_sc_stop = nullptr;
   odb::dbNet* connect_net;
   for (int i = 0; i < orders.size(); ++i) {
     if (i == 0) {
@@ -200,9 +200,8 @@ void ScanChain::connectScanNet(const odb::dbScanChain *scan_chain,
       connect_net = getOrigComp(orders[i], true, orig_floatings, orig_ordered)->getScanOut()->getNet();
     }
 
-    if (i == orders.size() - 1) {
+    if (i == orders.size() - 1 && scan_chain->getStop()) {
       next_sc_in = scan_chain->getStop();
-      if (!next_sc_in) next_sc_stop = scan_chain->getBTermStop();
     } else {
       next_sc_in = getOrigComp(orders[i+1], false, orig_floatings, orig_ordered)->getScanIn();
     }
@@ -210,9 +209,6 @@ void ScanChain::connectScanNet(const odb::dbScanChain *scan_chain,
     if (next_sc_in) {
       next_sc_in->disconnect();
       next_sc_in->connect(connect_net);
-    } else {
-      next_sc_stop->disconnect();
-      next_sc_stop->connect(connect_net);
     }
   }
 }
