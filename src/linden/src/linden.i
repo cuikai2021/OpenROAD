@@ -1,11 +1,10 @@
 %{
-#include "linden/lindendp.hpp"
-#include "ord/OpenRoad.hh"
 #include "linden/lindengp.hpp"
 #include "linden/lindenmp.hpp"
 #include "linden/linden_lpbased_postdrv_itdp.hpp"
 #include "linden/db_sanitizer.hpp"
 #include "./timing_data/ffi.hpp"
+#include "./dp/ffi.hpp"
 #include <memory>
 #include <deque>
 #include <string>
@@ -190,15 +189,11 @@ public:
 };
 
 int lindendp_gogogo(StrDeque& args) {
-    ord::OpenRoad* ord = ord::OpenRoad::openRoad();
-    linden::DetailedPlacer dp(*ord);
-    return dp.go(args.elems_);
+    return linden::basic_dp_gogogo(std::move(args.elems_));
 }
 
 int linden_incr_legalize(StrDeque& args) {
-    ord::OpenRoad* ord = ord::OpenRoad::openRoad();
-    linden::IncrLegalizer leg(*ord);
-    return leg.go(args.elems_);
+    return linden::incr_dp_gogogo(std::move(args.elems_));
 }
 
 %} // lindendp

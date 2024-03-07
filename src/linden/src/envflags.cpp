@@ -38,9 +38,6 @@ DEFINE_STR_FLAG(LINDEN_GP_METRICS_FILE,
 DEFINE_STR_FLAG(LINDEN_MP_METRICS_FILE,
     "Where to dump metrics after Linden macro placement. Default is stderr."
 );
-DEFINE_STR_FLAG(LINDEN_DP_METRICS_FILE,
-    "Where to dump metrics after Linden detailed placement. Default is stderr."
-);
 DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL,
     "Enable the calculation of change in cell relative position",
     false

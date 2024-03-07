@@ -1,6 +1,13 @@
 include("openroad")
 
-file(GLOB tcls *.tcl itdp/*.tcl timing_data/*.tcl)
+file(GLOB tcls
+    *.tcl
+    itdp/*.tcl
+    timing_data/*.tcl
+    dp/*.tcl
+    gp/*.tcl
+    remove_fillers/*.tcl
+)
 swig_lib(NAME      linden
          NAMESPACE linden
          I_FILE    linden.i
@@ -15,6 +22,8 @@ file(GLOB cpps
     mp/*.cpp
     cgr/*.cpp
     timing_data/*.cpp
+    dp/*.cpp
+    remove_fillers/*.cpp
 )
 target_sources(linden
 PRIVATE
