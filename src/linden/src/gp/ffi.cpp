@@ -18,6 +18,8 @@
 #include "fassert.hpp"
 #include "envflag/envflag.hpp"
 #include <spdlog/spdlog.h>
+#include <limits>
+#include <tuple>
 
 IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP);
@@ -27,6 +29,133 @@ using namespace std;
 namespace linden::gp {
 
 namespace {
+
+tuple<size_t, size_t, size_t, size_t> bbox_to_site_range(
+    const linden::geom::Rect& core,
+    const odb::Rect& bbox,
+    int64_t site_width,
+    int64_t site_height)
+{
+    size_t llr = (bbox.yMin() - core.ly() + 1) / site_height;
+    size_t llc = (bbox.xMin() - core.lx() + 1) / site_width;
+    size_t urr = (bbox.yMax() - core.ly() - 1) / site_height;
+    size_t urc = (bbox.xMax() - core.lx() - 1) / site_width;
+    return make_tuple(llr, llc, urr, urc);
+}
+
+void build_blockages(
+    linden::db::Database& ldb,
+    odb::dbDatabase& odb,
+    const linden::geom::Rect& core)
+{
+    // turn blockages and fragmented rows into fixed fillers.
+    odb::dbSite* smallest_site = nullptr;
+    int64_t smallest_site_area = numeric_limits<int64_t>::max();
+    for(auto row: odb.getChip()->getBlock()->getRows()) {
+        auto site = row->getSite();
+        int64_t w = site->getWidth();
+        int64_t h = site->getHeight();
+        int64_t a = w * h;
+        if (a < smallest_site_area) {
+            smallest_site_area = a;
+            smallest_site = site;
+        }
+    }
+    FASSERT(smallest_site != nullptr)
+        .what("There must be rows.");
+    int64_t site_width = smallest_site->getWidth();
+    FASSERT(site_width > 1)
+        (site_width)
+        .what("Width of site is too small.");
+    int64_t site_height = smallest_site->getHeight();
+    FASSERT(site_height)
+        (site_height)
+        .what("Height of site is too small.");
+    size_t n_rows = core.dy() / site_height;
+    size_t n_cols = core.dx() / site_width;
+
+    deque<deque<float>> arena_emptiness;
+    // initialize and shadow all sites
+    for(size_t i = 0; i < n_rows; ++i) {
+        arena_emptiness.emplace_back(n_cols, 0);
+    }
+    // uncover sites where rows cover
+    for(auto row: odb.getChip()->getBlock()->getRows()) {
+        auto row_bbox = row->getBBox();
+        size_t start_row, start_col, end_row, end_col;
+        tie(start_row, start_col, end_row, end_col) = bbox_to_site_range(core, row_bbox, site_width, site_height);
+        end_row = min(end_row, n_rows - 1);
+        end_col = min(end_col, n_cols - 1);
+        for(size_t i = start_row; i <= end_row; ++i) {
+            for(size_t j = start_col; j <= end_col; ++j) {
+                arena_emptiness[i][j] = 100;
+            }
+        }
+    }
+    // uncover sites by fixed cells (which may be not on rows)
+    // it is strange to uncover these sites and then shadow them again
+    // (in another function). But, so be it.
+    for(odb::dbInst* inst: odb.getChip()->getBlock()->getInsts()) {
+        if(!inst->isFixed()) {
+            continue;
+        }
+        // FIXME: to support obs layer
+        auto bbox = inst->getBBox()->getBox();
+        size_t start_row, start_col, end_row, end_col;
+        tie(start_row, start_col, end_row, end_col) = bbox_to_site_range(core, bbox, site_width, site_height);
+        end_row = min(end_row, n_rows - 1);
+        end_col = min(end_col, n_cols - 1);
+        for(size_t i = start_row; i <= end_row; ++i) {
+            for(size_t j = start_col; j <= end_col; ++j) {
+                arena_emptiness[i][j] = 100;
+            }
+        }
+    }
+    // shadow sites by blockages
+    for(odb::dbBlockage* blockage : odb.getChip()->getBlock()->getBlockages()) {
+        auto bbox = blockage->getBBox()->getBox();
+        float blk_emptiness = blockage->getMaxDensity();
+        if(blockage->isSoft()) {
+            // global placement should not touch soft blockages.
+            blk_emptiness = 0;
+        }
+        size_t start_row, start_col, end_row, end_col;
+        tie(start_row, start_col, end_row, end_col) = bbox_to_site_range(core, bbox, site_width, site_height);
+        end_row = min(end_row, n_rows - 1);
+        end_col = min(end_col, n_cols - 1);
+        for(size_t i = start_row; i <= end_row; ++i) {
+            for(size_t j = start_col; j <= end_col; ++j) {
+                arena_emptiness[i][j] = min(arena_emptiness[i][j], blk_emptiness);
+            }
+        }
+    }
+    // turn sites to fixed fillers
+    auto add_filler_if_neccessary = [&](size_t r, size_t start_c, size_t end_c, float density) {
+        if(density >= 100) {
+            return;
+        }
+        int64_t lly = core.ly() + r * site_height;
+        int64_t ury = lly + site_height;
+        int64_t llx = core.lx() + start_c * site_width;
+        int64_t urx = core.lx() + end_c * site_width;
+        linden::geom::Rect bbox(llx, lly, urx, ury);
+        linden::db::Cell dummy(bbox, true, (100.0 - density) / 100.0);
+        ldb.add_cell(std::move(dummy));
+    };
+    for(size_t r = 0; r < n_rows; ++r) {
+        auto const& row = arena_emptiness[r];
+        float last_density = row[0];
+        size_t last_col = 0;
+        for(size_t c = 1; c < n_cols; ++c) {
+            if(row[c] != last_density) {
+                add_filler_if_neccessary(r, last_col, c, last_density);
+                last_density = row[c];
+                last_col = c;
+            }
+        }
+        add_filler_if_neccessary(r, last_col, n_cols, last_density);
+    }
+}
 
 void build_cells(
     linden::db::Database& ldb,
@@ -44,6 +173,7 @@ void build_cells(
         auto is_macro = inst->getMaster()->getType().isBlock();
         bool is_fixed = linden::is_fixed(*inst);
         if (is_fixed) {
+            // FIXME: to support obs layer
             auto effective = located_shape.intersect(core);
             if (effective && effective->area() > 0) {
                 located_shape = *effective;
@@ -169,9 +299,9 @@ shared_ptr<linden::db::Database> build_db(const Config& cfg) {
 
     shared_ptr<linden::db::Database> ldb = make_shared<linden::db::Database>(lcfg);
     build_cells(*ldb, db, core);
+    build_blockages(*ldb, db, core);
     init_nets(*ldb, db, ignored_nets);
     build_pins(*ldb, db);
-
 
     return ldb;
 }
