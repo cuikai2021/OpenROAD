@@ -1,4 +1,4 @@
-#include "linden/lindengp.hpp"
+#include "lindengp.hpp"
 
 #include <algorithm>
 #include <cmath>

@@ -1,18 +1,18 @@
-#include "linden/ignored_nets.hpp"
-
-#include <deque>
-
-#include "envflag/envflag.hpp"
-#include "linden/scanchain.hpp"
+#include "ignored_nets.hpp"
+#include "scanchain.hpp"
 #include "odb/db.h"
-
-using namespace std;
-using namespace odb;
+#include "envflag/envflag.hpp"
+#include <deque>
 
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_IGNORED_NETS_MAX_FANOUT);
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_SCAN_ENABLE_WEIGHT);
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_CLOCK_WEIGHT);
 IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT);
+
+using namespace std;
+using namespace odb;
+
+namespace linden::gp {
 
 namespace {
 
@@ -65,8 +65,6 @@ unordered_set<odb::dbNet*> nets_to_resets(
 }
 
 }  // namespace
-
-namespace gpl {
 
 IsScanChainsIgnoredPin::IsScanChainsIgnoredPin(
     const odb::dbSet<odb::dbScanChain>& scan_chains)

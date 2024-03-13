@@ -7,6 +7,7 @@ file(GLOB tcls
     dp/*.tcl
     gp/*.tcl
     remove_fillers/*.tcl
+    cgr/*.tcl
 )
 swig_lib(NAME      linden
          NAMESPACE linden
@@ -23,6 +24,7 @@ file(GLOB cpps
     cgr/*.cpp
     timing_data/*.cpp
     dp/*.cpp
+    initial_place/*.cpp
     remove_fillers/*.cpp
 )
 target_sources(linden

@@ -1,4 +1,4 @@
-#include "linden/relevance_verify.hpp"
+#include "relevance_verify.hpp"
 #include "fassert.hpp"
 #include <algorithm>
 #include <cinttypes>

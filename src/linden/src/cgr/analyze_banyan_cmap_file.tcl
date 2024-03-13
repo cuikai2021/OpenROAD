@@ -12,11 +12,11 @@ proc analyze_banyan_cmap_file { args } {
 
   set cmap_pb_file ""
   set report_json_file ""
-  if { [info exists keys(-cmap_pb_file)] } { 
+  if { [info exists keys(-cmap_pb_file)] } {
     set cmap_pb_file $keys(-cmap_pb_file)
   }
   if { [info exists keys(-report_json_file)] } {
     set report_json_file $keys(-report_json_file)
   }
-  cgr::analyze_banyan_cmap_file_cmd $cmap_pb_file $report_json_file
+  linden::analyze_banyan_cmap_file_cmd $cmap_pb_file $report_json_file
 }

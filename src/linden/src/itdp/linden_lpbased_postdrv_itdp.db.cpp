@@ -1,16 +1,15 @@
-#include "linden/linden_lpbased_postdrv_itdp.hpp"
+#include "linden_lpbased_postdrv_itdp.hpp"
 #include "linden/db/db.hpp"
 #include "linden/geom/rect.hpp"
 #include "linden/geom/point.hpp"
 #include "linden/geom/bbox.hpp"
-#include "linden/odb_util.hpp"
+#include "../util/odb_util.hpp"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "fassert.hpp"
 
 using namespace std;
 using namespace odb;
-using namespace linden::odb_util;
 
 namespace {
 
@@ -22,7 +21,7 @@ bool is_macro(odb::dbInst* inst, int64_t site_height) {
         dbBox* bbox = inst->getBBox();
         if (bbox->getDY() > 6 * site_height) {
             return true;
-        } 
+        }
     }
     return false;
 }
@@ -46,12 +45,12 @@ void build_cells(
     auto insts = block->getInsts();
     auto site_size = get_site_size(block);
     for(odb::dbInst* inst: insts) {
-        if (!is_supported(*inst)) {
+        if (!linden::is_supported(*inst)) {
             continue;
         }
 
-        auto located_shape = inst_located_shape(*inst);
-        auto fixed = is_fixed(*inst);
+        auto located_shape = linden::inst_located_shape(*inst);
+        auto fixed = linden::is_fixed(*inst);
         if (fixed) {
             auto effective = located_shape.intersect(core);
             if (effective && effective->area() > 0) {
@@ -76,7 +75,7 @@ void init_nets(
 {
     odb::dbBlock* block = odb.getChip()->getBlock();
     for(auto net: block->getNets()) {
-        if (!is_supported(*net)) {
+        if (!linden::is_supported(*net)) {
             continue;
         }
         auto name = net->getName();
@@ -91,7 +90,7 @@ void build_pins(
 {
     odb::dbBlock* block = odb.getChip()->getBlock();
     for(auto net: block->getNets()) {
-        if (!is_supported(*net)) {
+        if (!linden::is_supported(*net)) {
             continue;
         }
         auto l_net = ldb.odb2net(net);
@@ -155,7 +154,7 @@ namespace itdp {
 shared_ptr<linden::db::Database> LPBasedPostDrvItdp::create_linden_db() noexcept {
     shared_ptr<linden::db::Database> ldb;
     {
-        auto core = core_region(*db_);
+        auto core = linden::core_region(*db_);
         linden::db::Database::Config cfg = {
             core_region : core,
             cells : 0, // number of cells. not really used in linden

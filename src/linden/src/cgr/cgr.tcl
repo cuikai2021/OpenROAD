@@ -11,13 +11,13 @@ proc congestion_repair { args } {
     flags {}
 
   for {set iter 1} {$iter <= 10} {set iter [expr $iter+1]} {
-    set res [cgr::run]
+    set res [linden::run]
     if {$res == 0} {
       break
     }
     linden_detailed_placement
   }
-  cgr::done
+  linden::done
 }
 
 proc set_congestion_repair_mode { args } {
@@ -29,13 +29,13 @@ proc set_congestion_repair_mode { args } {
     flags { \
     }
 
-  if { [info exists keys(-params_file)] } { 
+  if { [info exists keys(-params_file)] } {
     set params_file $keys(-params_file)
-    cgr::set_cgr_params_file_cmd $params_file
+    linden::set_cgr_params_file_cmd $params_file
   }
 
-  if { [info exists keys(-routing_max_layer)] } { 
+  if { [info exists keys(-routing_max_layer)] } {
     set routing_max_layer $keys(-routing_max_layer)
-    cgr::set_routing_max_layer_cmd $routing_max_layer
+    linden::set_routing_max_layer_cmd $routing_max_layer
   }
 }

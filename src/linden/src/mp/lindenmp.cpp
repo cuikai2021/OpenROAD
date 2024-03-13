@@ -1,11 +1,11 @@
+#include "lindenmp.hpp"
+#include "../util/odb_util.hpp"
+#include "../../gpl/src/graphics.h"
+#include "../../gpl/src/placerBase.h"
 #include "linden/macro_place/placer.hpp"
 #include "linden/geom/rect.hpp"
 #include "linden/geom/point.hpp"
 #include "linden/geom/bbox.hpp"
-#include "linden/lindenmp.hpp"
-#include "linden/odb_util.hpp"
-#include "../../gpl/src/graphics.h"
-#include "../../gpl/src/placerBase.h"
 #include "sta/StaMain.hh"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
@@ -19,7 +19,6 @@
 
 using ord::OpenRoad;
 using namespace std;
-using namespace linden::odb_util;
 
 IMPORT_STR_FLAG(LINDEN_MP_METRICS_FILE);
 
@@ -43,13 +42,13 @@ void build_cells(
     odb::dbBlock* block = odb.getChip()->getBlock();
     auto insts = block->getInsts();
     for(odb::dbInst* inst: insts) {
-        if (!is_supported(*inst)) {
+        if (!linden::is_supported(*inst)) {
             continue;
         }
 
-        auto located_shape = inst_located_shape(*inst);
+        auto located_shape = linden::inst_located_shape(*inst);
         auto is_macro = inst->getMaster()->getType().isBlock();
-        bool is_fixed = linden::odb_util::is_fixed(*inst);
+        bool is_fixed = linden::is_fixed(*inst);
         if (is_fixed) {
             auto effective = located_shape.intersect(core);
             if (effective && effective->area() > 0) {
@@ -74,7 +73,7 @@ void init_nets(
 {
     odb::dbBlock* block = odb.getChip()->getBlock();
     for(auto net: block->getNets()) {
-        if (!is_supported(*net)) {
+        if (!linden::is_supported(*net)) {
             continue;
         }
         auto name = net->getName();
@@ -89,7 +88,7 @@ void build_pins(
 {
     odb::dbBlock* block = odb.getChip()->getBlock();
     for(auto net: block->getNets()) {
-        if (!is_supported(*net)) {
+        if (!linden::is_supported(*net)) {
             continue;
         }
         auto l_net = ldb.odb2net(net);
@@ -173,7 +172,7 @@ int LindenMacroPlace::run()
 
     shared_ptr<linden::db::Database> ldb;
     {
-        auto core = core_region(*db_);
+        auto core = linden::core_region(*db_);
         linden::db::Database::Config cfg = {
             core_region : core,
             cells : 0, // number of cells. not really used in linden

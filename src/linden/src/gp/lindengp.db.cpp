@@ -1,12 +1,12 @@
-#include "linden/lindengp.hpp"
+#include "lindengp.hpp"
 
 #include <unordered_set>
 
-#include "linden/scanchain.hpp"
+#include "../util/scanchain.hpp"
 #include "odb/db.h"
 #include "../../gpl/src/placerBase.h"
 #include "utl/Logger.h"
-#include "linden/ignored_nets.hpp"
+#include "../util/ignored_nets.hpp"
 
 #include "fassert.hpp"
 
@@ -24,7 +24,7 @@ std::shared_ptr<linden::db::Database> LindenGlobalPlace::create_linden_db()
   linden::geom::Rect core_region(
       die.coreLx(), die.coreLy(), die.coreUx(), die.coreUy());
 
-  IgnoredNets ignored_nets;
+//   IgnoredNets ignored_nets;
 
 // FIXME:
 //   linden::db::Database::Config cfg = {

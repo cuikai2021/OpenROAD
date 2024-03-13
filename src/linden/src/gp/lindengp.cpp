@@ -1,4 +1,4 @@
-#include "linden/lindengp.hpp"
+#include "lindengp.hpp"
 
 #include "../cgr/congestion_repair.hpp"
 #include "envflag/envflag.hpp"
@@ -6,7 +6,7 @@
 #include "../../gpl/src/graphics.h"
 #include "linden/gpl/placer_config.hpp"
 #include "../util/lefdef_dumper.hpp"
-#include "linden/relevance_verify.hpp"
+#include "../util/relevance_verify.hpp"
 #include "ord/OpenRoad.hh"
 #include "../../gpl/src/placerBase.h"
 #include "rsz/Resizer.hh"

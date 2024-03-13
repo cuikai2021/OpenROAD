@@ -10,7 +10,8 @@ class dbNet;
 }
 
 namespace linden {
-namespace odb_util {
+
+linden::geom::Rect die_region(odb::dbDatabase& odb) noexcept;
 
 // get core region from odb
 linden::geom::Rect core_region(odb::dbDatabase& odb) noexcept;
@@ -31,5 +32,4 @@ linden::geom::Rect inst_located_shape(odb::dbInst& inst) noexcept;
 // get the rects of inst, especially for macro with OBS.OVERLAP
 std::vector<linden::geom::Rect> rects(odb::dbInst& inst) noexcept;
 
-} // namespace odb_util
 } // namespace linden
