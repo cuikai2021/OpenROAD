@@ -7,28 +7,25 @@ using namespace odb;
 
 namespace linden {
 
+linden::geom::Rect orect_to_lrect(const odb::Rect& orect) noexcept {
+    return linden::geom::Rect(
+        orect.xMin(),
+        orect.yMin(),
+        orect.xMax(),
+        orect.yMax()
+    );
+}
+
 linden::geom::Rect die_region(dbDatabase& odb) noexcept
 {
     dbBlock* block = odb.getChip()->getBlock();
-    Rect die = block->getDieArea();
-    return linden::geom::Rect{
-        die.xMin(),
-        die.yMin(),
-        die.xMax(),
-        die.yMax()
-    };
+    return orect_to_lrect(block->getDieArea());
 }
 
 linden::geom::Rect core_region(dbDatabase& odb) noexcept
 {
     dbBlock* block = odb.getChip()->getBlock();
-    Rect coreRect = block->getCoreArea();
-    return linden::geom::Rect{
-        coreRect.xMin(),
-        coreRect.yMin(),
-        coreRect.xMax(),
-        coreRect.yMax()
-    };
+    return orect_to_lrect(block->getCoreArea());
 }
 
 bool is_supported(dbInst& inst) noexcept {
