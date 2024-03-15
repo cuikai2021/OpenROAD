@@ -40,7 +40,7 @@ void set_linden_pad_right_cmd(int pad)
 
 void set_linden_timing_driven_mode()
 {
-    // linden::gp::Config::get_default()->timing_driven = true;
+    linden::gp::Config::get_default()->timing_driven = true;
 }
 
 void set_linden_initial_place_policy_cmd(const char* policy)

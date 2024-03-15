@@ -32,7 +32,6 @@ proc linden_global_placement { args } {
             -continue \
         }
 
-    # density settings
     if {[info exists flags(-uniform_density)]} {
         linden::set_to_uniform_density
     } elseif { [info exists keys(-density)] } {
@@ -47,29 +46,28 @@ proc linden_global_placement { args } {
         linden::set_linden_overflow_cmd $overflow
     }
 
-    if { [info exists keys(-pad_left)] } {
-        set pad_left $keys(-pad_left)
-        sta::check_positive_integer "-pad_left" $pad_left
-        linden::set_linden_pad_left_cmd $pad_left
-    }
-    if { [info exists keys(-pad_right)] } {
-        set pad_right $keys(-pad_right)
-        sta::check_positive_integer "-pad_right" $pad_right
-        linden::set_linden_pad_right_cmd $pad_right
-    }
-
-    set timing_driven [info exists flags(-timing_driven)]
-    if { $timing_driven } {
+    if { [info exists flags(-timing_driven)] } {
         if { [get_libs -quiet "*"] == {} } {
             utl::error GPL 1121 "No liberty libraries found."
         }
-        linden::set_linden_timing_driven_mode $timing_driven
+        linden::set_linden_timing_driven_mode
     }
 
     if { [info exists keys(-initial_place_policy)] } {
         set initial_place_policy $keys(-initial_place_policy)
         linden::set_linden_initial_place_policy_cmd $initial_place_policy
     }
+
+    # if { [info exists keys(-pad_left)] } {
+    #     set pad_left $keys(-pad_left)
+    #     sta::check_positive_integer "-pad_left" $pad_left
+    #     linden::set_linden_pad_left_cmd $pad_left
+    # }
+    # if { [info exists keys(-pad_right)] } {
+    #     set pad_right $keys(-pad_right)
+    #     sta::check_positive_integer "-pad_right" $pad_right
+    #     linden::set_linden_pad_right_cmd $pad_right
+    # }
 
 #   set routability_driven [info exists flags(-routability_driven)]
 #   linden::set_linden_routability_driven_mode $routability_driven

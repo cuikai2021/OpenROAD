@@ -87,6 +87,7 @@ struct Config {
     };
     InitialPlacePolicy initial_place_policy;
 
+    bool timing_driven;
 
     Config();
 

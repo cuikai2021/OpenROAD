@@ -20,6 +20,7 @@
 #include <spdlog/spdlog.h>
 #include <limits>
 #include <tuple>
+#include <cmath>
 
 IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP);
@@ -304,11 +305,11 @@ shared_ptr<linden::db::Database> build_db(const Config& cfg) {
 
     IgnoredNets ignored_nets;
     auto se_nets = ignored_nets.scan_enable_nets();
-    spdlog::debug("# of nets connecting scan enables: {}", se_nets.size());
+    spdlog::debug("[linden/gpl] # of nets connecting scan enables: {}", se_nets.size());
     auto clock_nets = ignored_nets.clock_nets();
-    spdlog::debug("# of nets connecting clocks: {}", clock_nets.size());
+    spdlog::debug("[linden/gpl] # of nets connecting clocks: {}", clock_nets.size());
     auto reset_nets = ignored_nets.reset_nets();
-    spdlog::debug("# of nets connecting resets: {}", reset_nets.size());
+    spdlog::debug("[linden/gpl] # of nets connecting resets: {}", reset_nets.size());
 
     shared_ptr<linden::db::Database> ldb = make_shared<linden::db::Database>(lcfg);
     build_cells(*ldb, db, core);
@@ -350,6 +351,69 @@ void update_to_odb(const linden::db::Database& ldb) noexcept {
     resizer.estimateParasitics(rsz::ParasiticsSrc::placement);
 }
 
+bool update_net_weights(
+    const Config& cfg,
+    linden::db::Database& ldb)
+{
+    update_to_odb(ldb);
+    rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
+    rs->findResizeSlacks();
+
+    // get Top 10% worst resize nets
+    sta::NetSeq& worst_slack_nets = rs->resizeWorstSlackNets();
+    if (worst_slack_nets.empty()) {
+        spdlog::warn("[linden/gpl] No net slacks found. Timing-driven mode disabled.");
+        return false;
+    }
+
+    // min/max slack for worst 10% nets
+    sta::Slack slack_min = 0;
+    {
+        auto s = rs->resizeNetSlack(worst_slack_nets.front());
+        FASSERT(s)
+            .what("Worst slack net has no slack.");
+        slack_min = *s;
+    }
+    sta::Slack slack_max = 0;
+    {
+        auto s = rs->resizeNetSlack(worst_slack_nets.back());
+        FASSERT(s)
+            .what("Worst slack net has no slack.");
+        slack_max = *s;
+    }
+
+    spdlog::info("[linden/gpl] worst 10%% slacks {:.3g}, {:.3g}", slack_min, slack_max);
+
+    if (isinf(slack_min)) {
+        spdlog::warn("[linden/gpl] No net slacks found. Timing-driven mode disabled.");
+        return false;
+    }
+
+    size_t reweight_net_cnt = 0;
+    const double NET_WEIGHT_SCALE = 0.9;
+    for(auto& l_net: ldb.mut_nets()) {
+        odb::dbNet* o_net = reinterpret_cast<odb::dbNet*>(l_net.odb_net());
+        double weight = 1.0;
+        if (l_net.pins().size() > 1) {
+            if (auto s = rs->resizeNetSlack(o_net); s) {
+                if (s < slack_max) {
+                    weight = 1 + NET_WEIGHT_SCALE * (slack_max - *s) / (slack_max - slack_min);
+                    ++reweight_net_cnt;
+                    spdlog::debug(
+                        "[linden/gpl] timing: net:{} slack:{} weight:{}",
+                        l_net.name(),
+                        *s,
+                        weight);
+                }
+            }
+        }
+        l_net.mut_weight() = weight;
+    }
+
+    spdlog::info("[linden/gpl] Reweighted {} nets.", reweight_net_cnt);
+    return true;
+}
+
 } // namespace
 
 void gp_gogogo(const Config& cfg) {
@@ -378,6 +442,14 @@ void gp_gogogo(const Config& cfg) {
         gpl = linden::gpl::Placer::create(ldb, ncfg);
     }
 
+    deque<float> timing_overflows;
+    if (cfg.timing_driven) {
+        spdlog::info("[linden/gpl] enable timing-driven");
+        timing_overflows = {79, 64, 49, 29, 21, 15};
+        rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
+        rs->resizeSlackPreamble();
+    }
+
     const size_t MAX_ITER = 5000;
     size_t iter = 0;
     for (; iter < MAX_ITER; ++iter) {
@@ -388,6 +460,16 @@ void gp_gogogo(const Config& cfg) {
         auto overflow = *ret;
         if (overflow <= cfg.overflow) {
             break;
+        }
+
+        if (!timing_overflows.empty()
+            && overflow * 100 < timing_overflows.front()) {
+            if (!update_net_weights(cfg, *ldb)) {
+                spdlog::info("[linden/gpl] Disable timing-driven because of some faults.");
+                timing_overflows.clear();
+            } else {
+                timing_overflows.pop_front();
+            }
         }
     }
     gpl->done();

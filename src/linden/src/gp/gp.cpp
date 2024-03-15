@@ -8,10 +8,12 @@ namespace gp {
 
 const float DEFAULT_DENSITY = 1.0;
 const float DEFAULT_OVERFLOW = 0.1;
+const bool DEFAUTL_TIMING_DRIVEN = false;
 
 Config::Config()
 :   density(DEFAULT_DENSITY),
-    overflow(DEFAULT_OVERFLOW)
+    overflow(DEFAULT_OVERFLOW),
+    timing_driven(DEFAUTL_TIMING_DRIVEN)
 {}
 
 shared_ptr<Config> Config::get_default() noexcept {
