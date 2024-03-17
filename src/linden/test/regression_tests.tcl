@@ -1,4 +1,7 @@
 record_tests {
+  simple01-obs
+  simple01-td
+
   basic-dp
   incr-dp.critical-cells
   incr-dp.baseline
