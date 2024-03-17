@@ -2,10 +2,10 @@
 #include "linden/gp.hpp"
 #include "./mp/lindenmp.hpp"
 #include "./itdp/linden_lpbased_postdrv_itdp.hpp"
-#include "./remove_fillers/db_sanitizer.hpp"
 #include "./timing_data/ffi.hpp"
 #include "./dp/ffi.hpp"
 #include "./gp/ffi.hpp"
+#include "./remove_fillers/ffi.hpp"
 #include <memory>
 #include <deque>
 #include <string>
@@ -93,9 +93,7 @@ void enable_linden_continuation() {
 
 %inline %{ // linden others
 void linden_remove_fillers_cmd() {
-// FIXME:
-//   linden::LindenDBSanitizer *sanitizer = new linden::LindenDBSanitizer();
-//   sanitizer->removeFillers();
+    linden::remove_filler::gogogo();
 }
 %} // linden others
 

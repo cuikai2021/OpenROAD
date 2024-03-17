@@ -1,5 +1,5 @@
 #pragma once
-#include <set>
+#include <unordered_set>
 #include <cstddef>
 
 namespace odb {
@@ -7,31 +7,26 @@ class dbInst;
 class dbDatabase;
 } // namespace odb
 
-namespace utl {
-class Logger;
-}
-
-namespace linden {
+namespace linden::remove_filler {
 
 class LindenDBSanitizer {
 public:
-  LindenDBSanitizer();
-  ~LindenDBSanitizer();
+    LindenDBSanitizer();
+    ~LindenDBSanitizer() =default;
 
-  size_t removeFillers();
-
-private:
-  void initLogicalInstSet();
-  bool isFillerInstByName(odb::dbInst* inst) const;
-  bool isFillerInstByMasterType(odb::dbInst* inst) const;
-  bool isUnconnected(odb::dbInst* inst) const;
-  bool hasNoLogicPins(odb::dbInst* inst) const;
-  bool isFiller(odb::dbInst *inst) const;
+    size_t removeFillers();
 
 private:
-  odb::dbDatabase* db_;
-  utl::Logger* logger_;
-  std::set<odb::dbInst*> logical_insts_;
+    void initLogicalInstSet();
+    bool isFillerInstByName(odb::dbInst* inst) const;
+    bool isFillerInstByMasterType(odb::dbInst* inst) const;
+    bool isUnconnected(odb::dbInst* inst) const;
+    bool hasNoLogicPins(odb::dbInst* inst) const;
+    bool isFiller(odb::dbInst *inst) const;
+
+private:
+    odb::dbDatabase* db_;
+    std::unordered_set<odb::dbInst*> logical_insts_;
 };
 
-} // namespace linden ends
+} // namespace linden::remove_filler

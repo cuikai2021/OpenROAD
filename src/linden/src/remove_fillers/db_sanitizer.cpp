@@ -1,53 +1,49 @@
 #include "db_sanitizer.hpp"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
-#include "utl/Logger.h"
-#include <tcl.h>
+#include <spdlog/spdlog.h>
 
-namespace linden {
+namespace linden::remove_filler {
 
 LindenDBSanitizer::LindenDBSanitizer() {
-  db_ = ::ord::OpenRoad::openRoad()->getDb();
-  logger_ = ::ord::OpenRoad::openRoad()->getLogger();
-  initLogicalInstSet();
+    db_ = ::ord::OpenRoad::openRoad()->getDb();
+    initLogicalInstSet();
 }
 
-LindenDBSanitizer::~LindenDBSanitizer() {}
-
 void LindenDBSanitizer::initLogicalInstSet() {
-  auto chip = db_->getChip();
-  auto block = chip->getBlock();
-  auto nets = block->getNets();
-  for (auto net : nets) {
-    if (net->isSpecial()) continue;
-    auto iterms = net->getITerms();
-    for (auto iterm : iterms) {
-      logical_insts_.insert(iterm->getInst());
+    auto chip = db_->getChip();
+    auto block = chip->getBlock();
+    auto nets = block->getNets();
+    for (auto net : nets) {
+        if (net->isSpecial()) {
+            continue;
+        }
+        for (auto iterm : net->getITerms()) {
+            logical_insts_.insert(iterm->getInst());
+        }
     }
-  }
-  return ;
+    return ;
 }
 
 bool LindenDBSanitizer::isFillerInstByName(odb::dbInst* inst) const {
-  std::string name = inst->getMaster()->getName();
-  std::transform(name.begin(), name.end(),name.begin(), ::toupper);
-  const std::string KEY = "FIL";
-  bool contains = (name.find(KEY) != std::string::npos);
-  return contains;
+    std::string name = inst->getMaster()->getName();
+    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+    const std::string KEY = "FIL";
+    return name.find(KEY) != std::string::npos;
 }
 
 bool LindenDBSanitizer::isFillerInstByMasterType(odb::dbInst* inst) const {
-  return inst->getMaster()->isFiller();
+    return inst->getMaster()->isFiller();
 }
 
 bool LindenDBSanitizer::isUnconnected(odb::dbInst* inst) const {
-  return logical_insts_.find(inst) == logical_insts_.end();
+    return logical_insts_.find(inst) == logical_insts_.end();
 }
 
 bool LindenDBSanitizer::hasNoLogicPins(odb::dbInst* inst) const {
-  //TODO
-  //A filler can only have Power and Ground pins
-  return true;
+    //TODO
+    //A filler can only have Power and Ground pins
+    return true;
 }
 
 /*
@@ -59,27 +55,28 @@ considered SPACER (also called FILLER) unless it has no logic/signal
 pins. A filler can only have Power and Ground pins.
 */
 bool LindenDBSanitizer::isFiller(odb::dbInst *inst) const {
-  if (inst->isFixed()) {
-    // case: ENDCAP, WELLTAP, Pad fillers
-    // These cells' master name contains "FIL", but they are fixed after the Floorplan.
-    return false;
-  }
-  return (isFillerInstByName(inst) || isFillerInstByMasterType(inst)) &&
-          isUnconnected(inst);
+    if (inst->isFixed()) {
+        // case: ENDCAP, WELLTAP, Pad fillers
+        // These cells' master name contains "FIL", but they are fixed after the Floorplan.
+        return false;
+    }
+    return (isFillerInstByName(inst) || isFillerInstByMasterType(inst)) &&
+            isUnconnected(inst);
 }
 
 size_t LindenDBSanitizer::removeFillers() {
-  auto chip = db_->getChip();
-  auto block = chip->getBlock();
-  auto insts = block->getInsts();
-  size_t remove_filler_cnt = 0;
-  for (auto inst : insts) {
-    if (isFiller(inst)) {
-      ++remove_filler_cnt;
-      odb::dbInst::destroy(inst);
+    auto chip = db_->getChip();
+    auto block = chip->getBlock();
+    auto insts = block->getInsts();
+    size_t remove_filler_cnt = 0;
+    for (auto inst : insts) {
+        if (isFiller(inst)) {
+            ++remove_filler_cnt;
+            odb::dbInst::destroy(inst);
+        }
     }
-  }
-  return remove_filler_cnt;
+    spdlog::info("{} fillers are removed.", remove_filler_cnt);
+    return remove_filler_cnt;
 }
 
-} // namespace linden ends
+} // namespace linden::remove_filler
