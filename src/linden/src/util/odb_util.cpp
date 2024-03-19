@@ -16,6 +16,15 @@ linden::geom::Rect orect_to_lrect(const odb::Rect& orect) noexcept {
     );
 }
 
+odb::Rect lrect_to_orect(const linden::geom::Rect& lrect) noexcept {
+    return odb::Rect(
+        lrect.lx(),
+        lrect.ly(),
+        lrect.ux(),
+        lrect.uy()
+    );
+}
+
 linden::geom::Rect die_region(dbDatabase& odb) noexcept
 {
     dbBlock* block = odb.getChip()->getBlock();

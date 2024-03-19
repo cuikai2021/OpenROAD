@@ -13,6 +13,7 @@ class Rect;
 namespace linden {
 
 linden::geom::Rect orect_to_lrect(const odb::Rect&) noexcept;
+odb::Rect lrect_to_orect(const linden::geom::Rect&) noexcept;
 
 linden::geom::Rect die_region(odb::dbDatabase& odb) noexcept;
 

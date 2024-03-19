@@ -1,4 +1,5 @@
 #include "ffi.hpp"
+#include "graphics.hpp"
 #include "initial_place/initial_place.hpp"
 #include "../util/ignored_nets.hpp"
 #include "../util/odb_util.hpp"
@@ -423,6 +424,11 @@ void gp_gogogo(const Config& cfg) {
 
     shared_ptr<linden::db::Database> ldb = build_db(cfg);
 
+    unique_ptr<Graphics> graphics;
+    if (Graphics::enabled()) {
+        graphics.reset(new Graphics(ldb));
+    }
+
     initial_place(cfg, *ldb);
 
     unique_ptr<linden::gpl::Placer> gpl;
@@ -457,6 +463,9 @@ void gp_gogogo(const Config& cfg) {
         if (!ret) {
             break;
         }
+        if (graphics) {
+            graphics->one_more_step(iter);
+        }
         auto overflow = *ret;
         if (overflow <= cfg.overflow) {
             break;
@@ -474,6 +483,11 @@ void gp_gogogo(const Config& cfg) {
     }
     gpl->done();
     gpl.reset();
+    update_to_odb(*ldb);
+    if (graphics) {
+        graphics->finalize();
+        graphics.reset();
+    }
 
     metrics::Config mcfg = metrics::Config::sink_to_stderr();
     if (auto opt = LINDEN_GP_METRICS_FILE(); opt) {
@@ -481,8 +495,6 @@ void gp_gogogo(const Config& cfg) {
     }
     metrics::Reporter metrics_reporter(mcfg);
     metrics_reporter["gp"]["iter"] = iter + 1;
-
-    update_to_odb(*ldb);
 }
 
 } // namespace linden::gp
