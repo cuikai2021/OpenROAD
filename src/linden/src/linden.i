@@ -1,7 +1,7 @@
 %{
 #include "linden/gp.hpp"
 #include "./mp/lindenmp.hpp"
-#include "./itdp/linden_lpbased_postdrv_itdp.hpp"
+#include "./itdp/ffi.hpp"
 #include "./timing_data/ffi.hpp"
 #include "./dp/ffi.hpp"
 #include "./gp/ffi.hpp"
@@ -142,9 +142,7 @@ void set_lindenmp_debug(int pause_iterations, int update_iterations)
 
 void linden_lpbased_postdrv_itdp(const char* pb_path)
 {
-// FIXME:
-//   itdp::LPBasedPostDrvItdp ldnx;
-//   ldnx.run(pb_path);
+    linden::itdp::itdp_gogogo(pb_path);
 }
 
 %} // inline linden_lpbased_postdrv_itdp

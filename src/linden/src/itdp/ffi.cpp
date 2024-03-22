@@ -1,26 +1,25 @@
-#include "linden_lpbased_postdrv_itdp.hpp"
+#include "ffi.hpp"
 #include "linden_incr_tdp.hpp"
 #include "load_timing_data.hpp"
+#include "../util/odb_util.hpp"
 #include "linden/db/db.hpp"
-#include "sta/StaMain.hh"
-#include "odb/db.h"
-#include "ord/OpenRoad.hh"
 #include "incr_tdp_data.pb.h"
 #include "fassert.hpp"
 #include <spdlog/spdlog.h>
-#include <iostream>
-#include <fstream>
+#include <deque>
 #include <unordered_map>
+#include <fstream>
 
 using namespace std;
-using namespace odb;
+
+namespace linden::itdp {
 
 namespace {
 
 struct LocalIncrTdpData {
-    deque<linden::tdp::TimingArc> arcs;
-    deque<linden::tdp::Port> ports;
-    deque<linden::tdp::SeqPin> seq_pins;
+    deque<TimingArc> arcs;
+    deque<Port> ports;
+    deque<SeqPin> seq_pins;
     double wire_cap;
     double wire_res;
 
@@ -72,7 +71,7 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
         return nullptr;
     };
 
-    auto validate_arc_pins = [&](const linden::tdp::TimingArc& res_arc,
+    auto validate_arc_pins = [&](const TimingArc& res_arc,
         const linden::db::Cell& cell,
         const lrl_tdp::Arc& pb_arc
     ) {
@@ -98,7 +97,7 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
         return true;
     };
 
-    auto validate_seq_pin = [&](const linden::tdp::SeqPin& res_seq_pin,
+    auto validate_seq_pin = [&](const SeqPin& res_seq_pin,
         const linden::db::Cell& cell,
         const lrl_tdp::SeqPin& pb_seq_pin
     ) {
@@ -117,7 +116,7 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
     LocalIncrTdpData res;
     for(int i = 0, sz = incr_tdp_data.arcs_size(); i < sz; ++i) {
         auto const& pb_arc = incr_tdp_data.arcs(i);
-        linden::tdp::TimingArc res_arc;
+        TimingArc res_arc;
         auto pos = name2cell.find(pb_arc.instance());
         FASSERT(pos != name2cell.end())(pb_arc.instance());
         auto found_cell = pos->second;
@@ -163,7 +162,7 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
 
     for (int i = 0, sz = incr_tdp_data.ports_size(); i < sz; ++i) {
         auto const& pb_port = incr_tdp_data.ports(i);
-        linden::tdp::Port res_port;
+        Port res_port;
         res_port.bterm = nullptr;
         if (is_clk_port(pb_port)) {
             continue;
@@ -185,7 +184,7 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
 
     for (int i = 0, sz = incr_tdp_data.seq_pins_size(); i < sz; ++i) {
         auto const& pb_seq_pin = incr_tdp_data.seq_pins(i);
-        linden::tdp::SeqPin res_seq_pin;
+        SeqPin res_seq_pin;
         res_seq_pin.pin = nullptr;
         auto pos = name2cell.find(pb_seq_pin.instance());
         FASSERT(pos != name2cell.end())(pb_seq_pin.instance());
@@ -215,40 +214,25 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
 
 } // namespace
 
-namespace itdp {
-
-LPBasedPostDrvItdp::LPBasedPostDrvItdp()
-:    db_(nullptr)
-{
-    db_ = ord::OpenRoad::openRoad()->getDb();
-}
-
-void LPBasedPostDrvItdp::run(const char* pb_path) {
-    shared_ptr<linden::db::Database> ldb = create_linden_db();
+void itdp_gogogo(const char* pb_path) noexcept {
+    shared_ptr<linden::db::Database> ldb = build_linden_db();
     LocalIncrTdpData local_incr_tdp_data = read_pb(*ldb, pb_path);
 
     spdlog::info("TDP: Finished reading data from pb file: {}", pb_path);
 
-    linden::tdp::TdpConfig config(local_incr_tdp_data.wire_cap,
-                                  local_incr_tdp_data.wire_res,
-                                  ldb->core_region());
+    TdpConfig config(
+        local_incr_tdp_data.wire_cap,
+        local_incr_tdp_data.wire_res,
+        ldb->core_region());
 
-    linden::tdp::timing_driven_cell_move(ldb,
-                                        local_incr_tdp_data.arcs,
-                                        local_incr_tdp_data.ports,
-                                        local_incr_tdp_data.seq_pins,
-                                        config);
+    timing_driven_cell_move(
+        ldb,
+        local_incr_tdp_data.arcs,
+        local_incr_tdp_data.ports,
+        local_incr_tdp_data.seq_pins,
+        config);
 
-    // update db
-    for (auto& cell : ldb->cells()) {
-        if (cell.movable() && cell.is_instance()) {
-            odb::dbInst* inst = static_cast<odb::dbInst*>(cell.odb_instance());
-            inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
-            const linden::geom::Rect& r = cell.rect();
-            // pad awareness on X coordinates
-            inst->setLocation(r.lx(), r.ly());
-        }
-    }
+    refresh_locations_from_ldb(*ldb);
 }
 
-} // namespace itdp
+} // namespace linden::itdp

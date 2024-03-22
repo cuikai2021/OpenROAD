@@ -1,21 +1,15 @@
 #pragma once
 
-#include <vector>
 #include "linden/geom/rect.hpp"
-
-namespace odb {
-class dbDatabase;
-class dbInst;
-class dbNet;
-class Rect;
-}
+#include "linden/db/db.hpp"
+#include "odb/db.h"
+#include "odb/geom.h"
+#include <vector>
 
 namespace linden {
 
 linden::geom::Rect orect_to_lrect(const odb::Rect&) noexcept;
 odb::Rect lrect_to_orect(const linden::geom::Rect&) noexcept;
-
-linden::geom::Rect die_region(odb::dbDatabase& odb) noexcept;
 
 // get core region from odb
 linden::geom::Rect core_region(odb::dbDatabase& odb) noexcept;
@@ -36,4 +30,7 @@ linden::geom::Rect inst_located_shape(odb::dbInst& inst) noexcept;
 // get the rects of inst, especially for macro with OBS.OVERLAP
 std::vector<linden::geom::Rect> rects(odb::dbInst& inst) noexcept;
 
+std::shared_ptr<linden::db::Database> build_linden_db() noexcept;
+
+void refresh_locations_from_ldb(const linden::db::Database&) noexcept;
 } // namespace linden

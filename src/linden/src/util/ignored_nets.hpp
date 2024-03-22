@@ -10,7 +10,7 @@ class dbITerm;
 class dbScanChain;
 }
 
-namespace linden::gp {
+namespace linden {
 
 class Pin;
 class Net;
@@ -52,4 +52,4 @@ class IgnoredNets
 
 bool is_high_fanout_net(odb::dbNet*) noexcept;
 
-}  // namespace linden::gp
+}  // namespace linden

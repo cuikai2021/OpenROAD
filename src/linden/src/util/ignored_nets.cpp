@@ -12,7 +12,7 @@ IMPORT_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT);
 using namespace std;
 using namespace odb;
 
-namespace linden::gp {
+namespace linden {
 
 namespace {
 
@@ -141,4 +141,4 @@ bool is_high_fanout_net(odb::dbNet* net) noexcept
   return pin_cnt >= LINDEN_IGNORED_NETS_MAX_FANOUT();
 }
 
-}  // namespace gpl
+}  // namespace linden
