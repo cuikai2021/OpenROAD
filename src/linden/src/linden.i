@@ -11,6 +11,20 @@
 #include <string>
 %}
 
+%inline %{
+
+class StrDeque {
+public:
+    explicit StrDeque() {}
+    void push_back(const char* elem) {
+        elems_.emplace_back(elem);
+    }
+
+    std::deque<std::string> elems_;
+};
+
+%}
+
 %inline %{ // lindengp
 
 void set_density(float density)
@@ -23,7 +37,7 @@ void set_to_uniform_density()
     linden::gp::Config::get_default()->set_to_uniform();
 }
 
-void set_linden_overflow_cmd(float overflow)
+void set_overflow(float overflow)
 {
     linden::gp::Config::get_default()->overflow = overflow;
 }
@@ -38,22 +52,21 @@ void set_linden_pad_right_cmd(int pad)
     // linden::gp::Config::get_default()->right_pad = pad;
 }
 
-void set_linden_timing_driven_mode()
+void enable_timing_driven_mode()
 {
     linden::gp::Config::get_default()->timing_driven = true;
 }
 
-void set_linden_initial_place_policy_cmd(const char* policy)
+void set_initial_place_policy(const char* policy)
 {
     using linden::gp::Config;
     Config::get_default()->initial_place_policy =
         Config::InitialPlacePolicy::from_str(policy);
 }
 
-void lindengp_run_cmd()
+void lindengp_run_cmd(StrDeque& args)
 {
-    auto cfg = linden::gp::Config::get_default();
-    gp_gogogo(*cfg);
+    linden::gp::gogogo(std::move(args.elems_));
 }
 
 void set_linden_debug_cmd(int pause_iterations,
@@ -148,16 +161,6 @@ void linden_lpbased_postdrv_itdp(const char* pb_path)
 %} // inline linden_lpbased_postdrv_itdp
 
 %inline %{
-
-class StrDeque {
-public:
-    explicit StrDeque() {}
-    void push_back(const char* elem) {
-        elems_.emplace_back(elem);
-    }
-
-    std::deque<std::string> elems_;
-};
 
 int lindendp_gogogo(StrDeque& args) {
     return linden::basic_dp_gogogo(std::move(args.elems_));

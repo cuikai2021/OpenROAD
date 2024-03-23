@@ -17,46 +17,11 @@ sta::define_cmd_args "linden_global_placement" {\
 }
 
 proc linden_global_placement { args } {
-    sta::parse_key_args "linden_global_placement" args \
-        keys {\
-            -initial_place_policy \
-            -density \
-            -overflow \
-            -focus_insts \
-            -focus_nets \
-            -pad_left -pad_right} \
-        flags { \
-            -uniform_density \
-            -timing_driven \
-            -routability_driven \
-            -continue \
-        }
-
-    if {[info exists flags(-uniform_density)]} {
-        linden::set_to_uniform_density
-    } elseif { [info exists keys(-density)] } {
-        set target_density $keys(-density)
-        sta::check_positive_float "-density" $target_density
-        linden::set_density $target_density
+    linden::StrDeque a
+    foreach x $args {
+        a push_back $x
     }
-
-    if { [info exists keys(-overflow)] } {
-        set overflow $keys(-overflow)
-        sta::check_positive_float "-overflow" $overflow
-        linden::set_linden_overflow_cmd $overflow
-    }
-
-    if { [info exists flags(-timing_driven)] } {
-        if { [get_libs -quiet "*"] == {} } {
-            utl::error GPL 1121 "No liberty libraries found."
-        }
-        linden::set_linden_timing_driven_mode
-    }
-
-    if { [info exists keys(-initial_place_policy)] } {
-        set initial_place_policy $keys(-initial_place_policy)
-        linden::set_linden_initial_place_policy_cmd $initial_place_policy
-    }
+    linden::lindengp_run_cmd a
 
     # if { [info exists keys(-pad_left)] } {
     #     set pad_left $keys(-pad_left)
@@ -85,35 +50,5 @@ proc linden_global_placement { args } {
 #   if { [info exists flags(-continue)] } {
 #     linden::enable_linden_continuation
 #   }
-
-    if { [ord::db_has_rows] } {
-        sta::check_argc_eq0 "linden_global_placement" $args
-        linden::lindengp_run_cmd
-    } else {
-        utl::error GPL 1130 "No rows defined in design. Use initialize_floorplan to add rows."
-    }
 }
 
-namespace eval gpl {
-
-proc linden_global_placement_debug { args } {
-  sta::parse_key_args "linden_global_placement_debug" args \
-      keys {-pause -update} \
-      flags {-initial}
-
-  set pause 10
-  if { [info exists keys(-pause)] } {
-    set pause $keys(-pause)
-    sta::check_positive_integer "-pause" $pause
-  }
-
-  set update 10
-  if { [info exists keys(-update)] } {
-    set update $keys(-update)
-    sta::check_positive_integer "-update" $update
-  }
-  set initial [info exists flags(-initial)]
-  linden::set_linden_debug_cmd $pause $update $initial
-}
-
-}

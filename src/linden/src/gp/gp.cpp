@@ -1,10 +1,34 @@
 #include "linden/gp.hpp"
+#include "graphics.hpp"
+#include "initial_place/initial_place.hpp"
+#include "../util/ignored_nets.hpp"
+#include "../util/odb_util.hpp"
+#include "linden/gp.hpp"
+#include "linden/db/db.hpp"
+#include "linden/geom/bbox.hpp"
+#include "linden/gpl/placer.hpp"
+#include "linden/gpl/placer_config.hpp"
+#include "rsz/Resizer.hh"
+#include "lrl/CircuitModifier/CircuitModifier.hh"
+#include "lrl/Laurel.hh"
+#include "sta/StaMain.hh"
+#include "sta/Units.hh"
+#include "odb/db.h"
+#include "ord/OpenRoad.hh"
+#include "utl/metrics.hpp"
 #include "fassert.hpp"
+#include "envflag/envflag.hpp"
+#include <spdlog/spdlog.h>
+#include <limits>
+#include <tuple>
+#include <cmath>
+
+IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP);
 
 using namespace std;
 
-namespace linden {
-namespace gp {
+namespace linden::gp {
 
 const float DEFAULT_DENSITY = 1.0;
 const float DEFAULT_OVERFLOW = 0.1;
@@ -58,5 +82,151 @@ Config::InitialPlacePolicy Config::InitialPlacePolicy::from_str(const string_vie
     }
 }
 
-} // namespace gp
-} // namespace linden
+namespace {
+
+bool update_net_weights(
+    const Config& cfg,
+    linden::db::Database& ldb)
+{
+    refresh_locations_from_ldb(ldb);
+    rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
+    rs->findResizeSlacks();
+
+    // get Top 10% worst resize nets
+    sta::NetSeq& worst_slack_nets = rs->resizeWorstSlackNets();
+    if (worst_slack_nets.empty()) {
+        spdlog::warn("[linden/gpl] No net slacks found. Timing-driven mode disabled.");
+        return false;
+    }
+
+    // min/max slack for worst 10% nets
+    sta::Slack slack_min = 0;
+    {
+        auto s = rs->resizeNetSlack(worst_slack_nets.front());
+        FASSERT(s)
+            .what("Worst slack net has no slack.");
+        slack_min = *s;
+    }
+    sta::Slack slack_max = 0;
+    {
+        auto s = rs->resizeNetSlack(worst_slack_nets.back());
+        FASSERT(s)
+            .what("Worst slack net has no slack.");
+        slack_max = *s;
+    }
+
+    spdlog::info("[linden/gpl] worst 10%% slacks {:.3g}, {:.3g}", slack_min, slack_max);
+
+    if (isinf(slack_min)) {
+        spdlog::warn("[linden/gpl] No net slacks found. Timing-driven mode disabled.");
+        return false;
+    }
+
+    size_t reweight_net_cnt = 0;
+    const double NET_WEIGHT_SCALE = 0.9;
+    for(auto& l_net: ldb.mut_nets()) {
+        odb::dbNet* o_net = reinterpret_cast<odb::dbNet*>(l_net.odb_net());
+        double weight = 1.0;
+        if (l_net.pins().size() > 1) {
+            if (auto s = rs->resizeNetSlack(o_net); s) {
+                if (s < slack_max) {
+                    weight = 1 + NET_WEIGHT_SCALE * (slack_max - *s) / (slack_max - slack_min);
+                    ++reweight_net_cnt;
+                    spdlog::debug(
+                        "[linden/gpl] timing: net:{} slack:{} weight:{}",
+                        l_net.name(),
+                        *s,
+                        weight);
+                }
+            }
+        }
+        l_net.mut_weight() = weight;
+    }
+
+    spdlog::info("[linden/gpl] Reweighted {} nets.", reweight_net_cnt);
+    return true;
+}
+
+} // namespace
+
+void linden_global_place(const Config& cfg) noexcept {
+    if (LINDEN_SPDLOG_DISABLE_TIMESTAMP()) {
+        spdlog::set_pattern("%v"); // no timestamp
+    }
+
+    shared_ptr<linden::db::Database> ldb = build_linden_db();
+
+    unique_ptr<Graphics> graphics;
+    if (Graphics::enabled()) {
+        graphics.reset(new Graphics(ldb));
+    }
+
+    initial_place(cfg, *ldb);
+
+    unique_ptr<linden::gpl::Placer> gpl;
+    {
+        linden::gpl::PlacerConfig::PlacerType ty = linden::gpl::PlacerConfig::NPLACE;
+        linden::gpl::PlacerConfig ncfg(ty);
+        if (cfg.density) {
+            ncfg.target_density = *cfg.density;
+            ncfg.use_uniform_density = false;
+        } else {
+            ncfg.target_density = 1.0;
+            ncfg.use_uniform_density = true;
+        }
+        ncfg.target_overflow = cfg.overflow;
+        ncfg.cgr_mode = false;
+        ncfg.routability_driven = false;
+        gpl = linden::gpl::Placer::create(ldb, ncfg);
+    }
+
+    deque<float> timing_overflows;
+    if (cfg.timing_driven) {
+        spdlog::info("[linden/gpl] enable timing-driven");
+        timing_overflows = {79, 64, 49, 29, 21, 15};
+        rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
+        rs->resizeSlackPreamble();
+    }
+
+    const size_t MAX_ITER = 5000;
+    size_t iter = 0;
+    for (; iter < MAX_ITER; ++iter) {
+        auto ret = gpl->one_step_move(iter);
+        if (!ret) {
+            break;
+        }
+        if (graphics) {
+            graphics->one_more_step(iter);
+        }
+        auto overflow = *ret;
+        if (overflow <= cfg.overflow) {
+            break;
+        }
+
+        if (!timing_overflows.empty()
+            && overflow * 100 < timing_overflows.front()) {
+            if (!update_net_weights(cfg, *ldb)) {
+                spdlog::info("[linden/gpl] Disable timing-driven because of some faults.");
+                timing_overflows.clear();
+            } else {
+                timing_overflows.pop_front();
+            }
+        }
+    }
+    gpl->done();
+    gpl.reset();
+    refresh_locations_from_ldb(*ldb);
+    if (graphics) {
+        graphics->finalize();
+        graphics.reset();
+    }
+
+    metrics::Config mcfg = metrics::Config::sink_to_stderr();
+    if (auto opt = LINDEN_GP_METRICS_FILE(); opt) {
+        mcfg = metrics::Config::sink_to_file(*opt);
+    }
+    metrics::Reporter metrics_reporter(mcfg);
+    metrics_reporter["gp"]["iter"] = iter + 1;
+}
+
+} // namespace linden::gp

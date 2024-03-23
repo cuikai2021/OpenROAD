@@ -1,8 +1,9 @@
 #pragma once
-#include "linden/gp.hpp"
+#include <deque>
+#include <string>
 
 namespace linden::gp {
 
-void gp_gogogo(const Config&);
+void gogogo(std::deque<std::string>);
 
 } // namespace linden::gp

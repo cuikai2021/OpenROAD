@@ -4,8 +4,7 @@
 #include <optional>
 #include <string_view>
 
-namespace linden {
-namespace gp {
+namespace linden::gp {
 
 template<class T>
 class OptionalSetter {
@@ -94,5 +93,6 @@ struct Config {
     static std::shared_ptr<Config> get_default() noexcept;
 };
 
-} // namespace gp
-} // namespace linden
+void linden_global_place(const Config&) noexcept;
+
+} // namespace linden::gp
