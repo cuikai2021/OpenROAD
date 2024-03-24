@@ -83,12 +83,15 @@ struct Config {
         static InitialPlacePolicy from_str(const std::string_view&) noexcept;
 
         std::string_view to_str_view() const noexcept;
+        void prettyPrint(std::string&) const noexcept;
     };
     InitialPlacePolicy initial_place_policy;
 
     bool timing_driven;
 
     Config();
+
+    void prettyPrint(std::string&) const noexcept;
 
     static std::shared_ptr<Config> get_default() noexcept;
 };

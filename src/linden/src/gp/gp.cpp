@@ -45,6 +45,29 @@ shared_ptr<Config> Config::get_default() noexcept {
     return cfg;
 }
 
+void Config::prettyPrint(std::string& out) const noexcept {
+    out.append(string_view("linden::gp::Config {"));
+
+    if (density) {
+        out.append(string_view("\n  density: "));
+        pp::prettyPrint(out, *density);
+    } else {
+        out.append(string_view("\n  uniform-density"));
+    }
+
+    out.append(string_view("\n  overflow: "));
+    pp::prettyPrint(out, overflow);
+
+    out.append(string_view("\n  initial-place-policy: "));
+    pp::prettyPrint(out, initial_place_policy);
+
+    if (timing_driven) {
+        out.append(string_view("\n  timing-driven"));
+    }
+
+    out.append(string_view("\n}"));
+}
+
 OptionalSetter<float> Config::mut_density() noexcept {
     float d = density.value_or(DEFAULT_DENSITY);
     return OptionalSetter<float>(density, d);
@@ -66,6 +89,10 @@ string_view Config::InitialPlacePolicy::to_str_view() const noexcept {
     }
     FASSERT(false);
     return string_view();
+}
+
+void Config::InitialPlacePolicy::prettyPrint(std::string& out) const noexcept {
+    out.append(to_str_view());
 }
 
 Config::InitialPlacePolicy Config::InitialPlacePolicy::from_str(const string_view& v) noexcept
@@ -153,6 +180,7 @@ void linden_global_place(const Config& cfg) noexcept {
     if (LINDEN_SPDLOG_DISABLE_TIMESTAMP()) {
         spdlog::set_pattern("%v"); // no timestamp
     }
+    spdlog::info("{}", pp::prettyPrint(cfg));
 
     shared_ptr<linden::db::Database> ldb = build_linden_db();
 

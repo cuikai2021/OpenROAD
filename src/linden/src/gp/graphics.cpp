@@ -41,10 +41,11 @@ public:
 
 private:
     void draw_boundaries(gui::Painter&) const;
-    void draw_cells(gui::Painter&) const;
+    void draw_insts(gui::Painter&) const;
+    void draw_macros(gui::Painter&, deque<linden::db::ConstCellRef>) const;
     void draw_fillers(gui::Painter&, deque<linden::db::ConstCellRef>) const;
     void draw_fixed(gui::Painter&, deque<linden::db::ConstCellRef>) const;
-    void draw_insts(gui::Painter&, deque<linden::db::ConstCellRef>) const;
+    void draw_stdcells(gui::Painter&, deque<linden::db::ConstCellRef>) const;
 
 private:
     shared_ptr<linden::db::Database> db_;
@@ -56,7 +57,7 @@ GraphicsInner::GraphicsInner(shared_ptr<linden::db::Database> db)
 
 void GraphicsInner::drawObjects(gui::Painter& painter) {
     draw_boundaries(painter);
-    draw_cells(painter);
+    draw_insts(painter);
 }
 
 void GraphicsInner::draw_boundaries(gui::Painter& painter) const
@@ -68,22 +69,28 @@ void GraphicsInner::draw_boundaries(gui::Painter& painter) const
     painter.restoreState();
 }
 
-void GraphicsInner::draw_cells(gui::Painter& painter) const
+void GraphicsInner::draw_insts(gui::Painter& painter) const
 {
     deque<linden::db::ConstCellRef> fixed;
-    deque<linden::db::ConstCellRef> cells;
+    deque<linden::db::ConstCellRef> stdcells;
+    deque<linden::db::ConstCellRef> macros;
     deque<linden::db::ConstCellRef> fillers;
     for(auto const& cell: db_->cells()) {
         if (cell.fixed()) {
             fixed.emplace_back(cell);
         } else if (cell.is_instance()) {
-            cells.emplace_back(cell);
+            if (cell.macro()) {
+                macros.emplace_back(cell);
+            } else {
+                stdcells.emplace_back(cell);
+            }
         } else {
             fillers.emplace_back(cell);
         }
     }
     draw_fixed(painter, std::move(fixed));
-    draw_insts(painter, std::move(cells));
+    draw_stdcells(painter, std::move(stdcells));
+    draw_macros(painter, std::move(macros));
     draw_fillers(painter, std::move(fillers));
 }
 
@@ -104,7 +111,7 @@ void GraphicsInner::draw_fixed(
     painter.restoreState();
 }
 
-void GraphicsInner::draw_insts(
+void GraphicsInner::draw_stdcells(
     gui::Painter& painter,
     deque<linden::db::ConstCellRef> insts) const
 {
@@ -113,6 +120,21 @@ void GraphicsInner::draw_insts(
     color.a = 180;
     painter.setBrush(color);
     for(auto const& x: insts) {
+        auto const& cell = x.get();
+        painter.drawRect(lrect_to_orect(cell.rect()));
+    }
+    painter.restoreState();
+}
+
+void GraphicsInner::draw_macros(
+    gui::Painter& painter,
+    deque<linden::db::ConstCellRef> macros) const
+{
+    painter.saveState();
+    gui::Painter::Color color = gui::Painter::dark_green;
+    color.a = 90;
+    painter.setPen(color);
+    for(auto const& x: macros) {
         auto const& cell = x.get();
         painter.drawRect(lrect_to_orect(cell.rect()));
     }

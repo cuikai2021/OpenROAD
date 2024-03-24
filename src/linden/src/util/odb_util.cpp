@@ -403,6 +403,25 @@ void build_blockages(
     }
 }
 
+odb::dbOrientType from_linden_orient(linden::db::Orientation lori) noexcept {
+    switch(lori) {
+    case linden::db::N: return odb::dbOrientType::R0;
+    case linden::db::W: return odb::dbOrientType::R90;
+    case linden::db::S: return odb::dbOrientType::R180;
+    case linden::db::E: return odb::dbOrientType::R270;
+    case linden::db::FN: return odb::dbOrientType::MY;
+    case linden::db::FW: return odb::dbOrientType::MYR90;
+    case linden::db::FS: return odb::dbOrientType::MX;
+    case linden::db::FE: return odb::dbOrientType::MXR90;
+    default: {
+        FASSERT(false)
+            ((size_t) lori)
+            .what("unknown linden orientation!");
+        return odb::dbOrientType::R0;
+    }
+    }
+}
+
 } // namespace
 
 shared_ptr<linden::db::Database> build_linden_db() noexcept {
@@ -439,7 +458,6 @@ void refresh_locations_from_ldb(const linden::db::Database& ldb) noexcept {
     ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
     lrl::NetworkModifier& cm = lrl::Laurel::getPlacementNetworkModifier();
     lrl::STANetwork sta_nw = cm.network;
-    odb::dbOrientType north = odb::dbOrientType::R0;
     for (auto const& lcell: ldb.cells()) {
         if (!lcell.is_instance()) {
             continue;
@@ -453,6 +471,7 @@ void refresh_locations_from_ldb(const linden::db::Database& ldb) noexcept {
 
         odb::dbInst* ocell = reinterpret_cast<odb::dbInst*>(lcell.odb_instance());
         ocell->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+        odb::dbOrientType orient = from_linden_orient(lcell.orientation());
 
         const linden::geom::Rect& r = lcell.rect();
         odb::Point target_pt(r.lx(), r.ly());
@@ -460,7 +479,7 @@ void refresh_locations_from_ldb(const linden::db::Database& ldb) noexcept {
         FASSERT(sta_inst != nullptr)
             .what("Adding or removing cells are so far unsupported.");
         // FIXME: pad awareness on X coordinates
-        cm.moveInst(sta_inst, target_pt, north.getValue());
+        cm.moveInst(sta_inst, target_pt, orient.getValue());
     }
     rsz::Resizer& resizer = *ord.getResizer();
     resizer.estimateParasitics(rsz::ParasiticsSrc::placement);

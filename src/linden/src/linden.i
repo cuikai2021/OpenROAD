@@ -1,6 +1,6 @@
 %{
 #include "linden/gp.hpp"
-#include "./mp/lindenmp.hpp"
+#include "./mp/ffi.hpp"
 #include "./itdp/ffi.hpp"
 #include "./timing_data/ffi.hpp"
 #include "./dp/ffi.hpp"
@@ -112,41 +112,9 @@ void linden_remove_fillers_cmd() {
 
 %inline %{ // lindenmp
 
-int lindenmp_run_cmd()
+void lindenmp_run_cmd(StrDeque& args)
 {
-// FIXME:
-//   auto lmp = ord::getLindenMacroPlace();
-//   return lmp->run();
-    return 0;
-}
-
-void set_lindenmp_density_cmd(double density)
-{
-// FIXME:
-//   auto lmp = ord::getLindenMacroPlace();
-//   lmp->mut_density() = density;
-}
-
-void set_lindenmp_overflow_cmd(double overflow)
-{
-// FIXME:
-//   auto lmp = ord::getLindenMacroPlace();
-//   lmp->mut_overflow() = overflow;
-}
-
-void set_lindenmp_use_uniform_density_cmd(double use_uniform_density)
-{
-// FIXME:
-//   auto lmp = ord::getLindenMacroPlace();
-//   lmp->mut_use_uniform_density() = use_uniform_density;
-}
-
-void set_lindenmp_debug(int pause_iterations, int update_iterations)
-{
-// FIXME:
-//   auto lmp = ord::getLindenMacroPlace();
-//   lmp->mut_debug_pause_iters_() = pause_iterations;
-//   lmp->mut_debug_update_iters_() = update_iterations;
+    linden::mp::mp_gogogo(std::move(args.elems_));
 }
 
 %} // inline lindenmp

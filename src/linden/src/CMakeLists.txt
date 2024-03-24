@@ -2,12 +2,13 @@ include("openroad")
 
 file(GLOB tcls
     *.tcl
-    itdp/*.tcl
-    timing_data/*.tcl
+    cgr/*.tcl
     dp/*.tcl
     gp/*.tcl
+    itdp/*.tcl
+    mp/*.tcl
     remove_fillers/*.tcl
-    cgr/*.tcl
+    timing_data/*.tcl
 )
 swig_lib(NAME      linden
          NAMESPACE linden
