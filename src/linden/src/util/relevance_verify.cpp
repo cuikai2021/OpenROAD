@@ -6,7 +6,7 @@
 
 using namespace std;
 
-namespace relevance {
+namespace linden {
 
 namespace {
 
@@ -89,4 +89,4 @@ double RelevanceDetector::compute(
      return res;
 }
 
-} // namespace relevance
+} // namespace linden

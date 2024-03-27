@@ -3,6 +3,7 @@
 #include "initial_place/initial_place.hpp"
 #include "../util/ignored_nets.hpp"
 #include "../util/odb_util.hpp"
+#include "../util/relevance_verify.hpp"
 #include "linden/gp.hpp"
 #include "linden/db/db.hpp"
 #include "linden/geom/bbox.hpp"
@@ -22,9 +23,11 @@
 #include <limits>
 #include <tuple>
 #include <cmath>
+#include <optional>
 
 IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL);
 
 using namespace std;
 
@@ -227,6 +230,10 @@ void linden_global_place(const Config& cfg) noexcept {
         rs->resizeSlackPreamble();
     }
 
+    optional<RelevanceDetector> relev;
+    if (LINDEN_GP_CELL_RELATIVE_POS_CAL()) {
+        relev = std::move(RelevanceDetector(*ldb));
+    }
     const size_t MAX_ITER = 5000;
     size_t iter = 0;
     for (; iter < MAX_ITER; ++iter) {
@@ -234,14 +241,20 @@ void linden_global_place(const Config& cfg) noexcept {
         if (!ret) {
             break;
         }
-        if (graphics) {
-            graphics->one_more_step(iter);
-        }
         auto overflow = *ret;
         if (overflow <= cfg.overflow) {
             break;
         }
 
+        if (relev && iter % 10 == 0) {
+            auto const& [x_change, y_change] = relev->update(*ldb);
+            spdlog::info(
+                "[nPlace] relative position change = ({:.2f}%, {:.2f}%)",
+                x_change * 100, y_change * 100);
+        }
+        if (graphics) {
+            graphics->one_more_step(iter);
+        }
         if (!timing_overflows.empty()
             && overflow * 100 < timing_overflows.front()) {
             if (!update_net_weights(cfg, *ldb)) {

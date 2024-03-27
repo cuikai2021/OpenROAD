@@ -2,7 +2,6 @@
 
 #include "fassert.hpp"
 #include "envflag/envflag.hpp"
-#include "../gp/lindengp.hpp"
 #include "ord/OpenRoad.hh"
 #include "utl/Logger.h"
 

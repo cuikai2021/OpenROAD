@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 
-namespace relevance {
+namespace linden {
 
 // For Binary Index Tree data structure, refer to:
 // https://www.geeksforgeeks.org/binary-indexed-tree-or-fenwick-tree-2
@@ -71,5 +71,5 @@ private:
      std::vector<size_t> buffer_;
 };
 
-}  // namespace relevance
+}  // namespace linden
 
