@@ -5,6 +5,7 @@
 #include "./timing_data/ffi.hpp"
 #include "./dp/ffi.hpp"
 #include "./gp/ffi.hpp"
+#include "./initial_place/ffi.hpp"
 #include "./remove_fillers/ffi.hpp"
 #include <memory>
 #include <deque>
@@ -69,13 +70,10 @@ void lindengp_run_cmd(StrDeque& args)
     linden::gp::gogogo(std::move(args.elems_));
 }
 
-void set_linden_debug_cmd(int pause_iterations,
-              int update_iterations,
-              bool initial)
+void linden_initial_place()
 {
-// FIXME:
-//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-//   lindengp->setDebug(pause_iterations, update_iterations, initial);
+    auto cfg = linden::gp::Config::get_default();
+    linden::ip::gogogo(*cfg);
 }
 
 void set_linden_routability_driven_mode(bool flag) {

@@ -33,4 +33,7 @@ std::vector<linden::geom::Rect> rects(odb::dbInst& inst) noexcept;
 std::shared_ptr<linden::db::Database> build_linden_db() noexcept;
 
 void refresh_locations_from_ldb(const linden::db::Database&) noexcept;
+
+int64_t hpwl(const linden::db::Database&) noexcept;
+
 } // namespace linden

@@ -59,9 +59,8 @@ struct Config {
     struct InitialPlacePolicy {
         enum V {
             DEF,
-            // FIXME: to enable this
-            // EIGEN_VEC,
             DIRICHLET,
+            EIGEN_VEC,
         };
 
         V value;

@@ -77,6 +77,7 @@ namespace {
 
 const char CSTR_DEF[] = "def";
 const char CSTR_DIRICHLET[] = "dirichlet";
+const char CSTR_EIGEN_VEC[] = "ev";
 
 } // namespace
 
@@ -86,6 +87,8 @@ string_view Config::InitialPlacePolicy::to_str_view() const noexcept {
         return string_view(CSTR_DEF, sizeof(CSTR_DEF) / sizeof(CSTR_DEF[0]) - 1);
     case DIRICHLET:
         return string_view(CSTR_DIRICHLET, sizeof(CSTR_DIRICHLET) / sizeof(CSTR_DIRICHLET[0]) - 1);
+    case EIGEN_VEC:
+        return string_view(CSTR_EIGEN_VEC, sizeof(CSTR_EIGEN_VEC) / sizeof(CSTR_EIGEN_VEC[0]) - 1);
     }
     FASSERT(false);
     return string_view();
@@ -97,10 +100,18 @@ void Config::InitialPlacePolicy::prettyPrint(std::string& out) const noexcept {
 
 Config::InitialPlacePolicy Config::InitialPlacePolicy::from_str(const string_view& v) noexcept
 {
-    if (v == string_view(CSTR_DEF, sizeof(CSTR_DEF) / sizeof(CSTR_DEF[0]) - 1)) {
+    const string_view SV_DEF(
+        CSTR_DEF, sizeof(CSTR_DEF) / sizeof(CSTR_DEF[0]) - 1);
+    const string_view SV_DIRICHLET(
+        CSTR_DIRICHLET, sizeof(CSTR_DIRICHLET) / sizeof(CSTR_DIRICHLET[0]) - 1);
+    const string_view SV_EV(
+        CSTR_EIGEN_VEC, sizeof(CSTR_EIGEN_VEC) / sizeof(CSTR_EIGEN_VEC[0]) - 1);
+    if (v == SV_DEF) {
         return Config::InitialPlacePolicy(DEF);
-    } else if (v == string_view(CSTR_DIRICHLET, sizeof(CSTR_DIRICHLET) / sizeof(CSTR_DIRICHLET[0]) - 1)) {
+    } else if (v == SV_DIRICHLET) {
         return Config::InitialPlacePolicy(DIRICHLET);
+    } else if (v == SV_EV) {
+        return Config::InitialPlacePolicy(EIGEN_VEC);
     } else {
         FASSERT(false)
             (v)

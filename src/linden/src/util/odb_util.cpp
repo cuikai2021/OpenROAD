@@ -485,4 +485,26 @@ void refresh_locations_from_ldb(const linden::db::Database& ldb) noexcept {
     resizer.estimateParasitics(rsz::ParasiticsSrc::placement);
 }
 
+int64_t hpwl(const linden::db::Database& db) noexcept
+{
+    int64_t res = 0;
+    for(auto const& net: db.nets()) {
+        if (net.pins().size() <= 1) {
+            continue;
+        }
+        deque<linden::geom::Point> pts;
+        for(auto const& p: net.pins()) {
+            auto const& pin = p.get();
+            if (auto c = pin.cell(); c) {
+                auto const& cell = c->get();
+                pts.push_back(cell.rect().center());
+            }
+        }
+        auto net_box = linden::geom::bbox(pts.begin(), pts.end());
+        FASSERT(net_box);
+        res += net_box->dx() + net_box->dy();
+    }
+    return res;
+}
+
 } // namespace linden

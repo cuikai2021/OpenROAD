@@ -1,5 +1,6 @@
 #include "initial_place.hpp"
 #include "dirichlet.hpp"
+#include "ev/ev.hpp"
 #include "ord/OpenRoad.hh"
 #include "envflag/envflag.hpp"
 #include "fassert.hpp"
@@ -21,6 +22,10 @@ void initial_place(const linden::gp::Config& cfg, linden::db::Database& ldb) {
     }
     case gp::Config::InitialPlacePolicy::DIRICHLET: {
         ip::dirichlet::run(cfg, ldb);
+        break;
+    }
+    case gp::Config::InitialPlacePolicy::EIGEN_VEC: {
+        ip::ev::run(cfg, ldb);
         break;
     }
     }

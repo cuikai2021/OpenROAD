@@ -1,4 +1,5 @@
 include("openroad")
+find_package(Eigen3 REQUIRED)
 
 file(GLOB tcls
     *.tcl
@@ -21,11 +22,12 @@ file(GLOB cpps
     util/*.cpp
     itdp/*.cpp
     gp/*.cpp
+    initial_place/*.cpp
+    initial_place/ev/*.cpp
     mp/*.cpp
     cgr/*.cpp
     timing_data/*.cpp
     dp/*.cpp
-    initial_place/*.cpp
     remove_fillers/*.cpp
 )
 target_sources(linden
@@ -38,6 +40,8 @@ PUBLIC
     ./
     ../include
     ${OPENROAD_HOME}/include
+PRIVATE
+    ${OCTAVE_INCLUDE_DIR}
 )
 
 target_link_libraries(linden
@@ -49,6 +53,8 @@ PUBLIC
     odb
     utl
     linden_ext
+    Eigen3::Eigen
+    ${OCTAVE_LIBRARY}
     envflag
     fassert
     prettyprint

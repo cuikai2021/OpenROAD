@@ -61,3 +61,7 @@ DEFINE_I64_FLAG_WITH_DEFAULT(LINDEN_GUI_PAUSE,
     "How many iterations for GP to pause",
     100
 )
+
+DEFINE_STR_FLAG(LINDEN_IP_DEBUG_DIR,
+    "The dir to store files for debugging initial placement"
+)
