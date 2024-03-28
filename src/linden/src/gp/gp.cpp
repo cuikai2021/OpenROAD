@@ -40,7 +40,8 @@ const bool DEFAUTL_TIMING_DRIVEN = false;
 Config::Config()
 :   density(DEFAULT_DENSITY),
     overflow(DEFAULT_OVERFLOW),
-    timing_driven(DEFAUTL_TIMING_DRIVEN)
+    timing_driven(DEFAUTL_TIMING_DRIVEN),
+    continue_mode(false)
 {}
 
 shared_ptr<Config> Config::get_default() noexcept {
@@ -66,6 +67,15 @@ void Config::prettyPrint(std::string& out) const noexcept {
 
     if (timing_driven) {
         out.append(string_view("\n  timing-driven"));
+    }
+
+    if (continuation) {
+        out.append(string_view("\n  continuation: "));
+        out.append(continuation->string());
+    }
+
+    if (continue_mode) {
+        out.append(string_view("\n  enable continue-mode"));
     }
 
     out.append(string_view("\n}"));
@@ -203,7 +213,24 @@ void linden_global_place(const Config& cfg) noexcept {
         graphics.reset(new Graphics(ldb));
     }
 
-    initial_place(cfg, *ldb);
+    if (!cfg.continue_mode) {
+        // make sure linden start with a clean state.
+        if (cfg.continuation) {
+            if (filesystem::exists(*cfg.continuation)) {
+                filesystem::remove(*cfg.continuation);
+            }
+        }
+        initial_place(cfg, *ldb);
+    } else {
+        if (!cfg.continuation) {
+            spdlog::error("[linden/gpl] continue-mode requires a continuation file.");
+            return;
+        }
+        if (!filesystem::exists(*cfg.continuation)) {
+            spdlog::error("[linden/gpl] continue-mode requires a continuation file.");
+            return;
+        }
+    }
 
     unique_ptr<linden::gpl::Placer> gpl;
     {
@@ -217,7 +244,10 @@ void linden_global_place(const Config& cfg) noexcept {
             ncfg.use_uniform_density = true;
         }
         ncfg.target_overflow = cfg.overflow;
-        ncfg.cgr_mode = false;
+        ncfg.cgr_mode = cfg.continue_mode;
+        if (cfg.continuation) {
+            ncfg.cgr_params_file = *cfg.continuation;
+        }
         ncfg.routability_driven = false;
         gpl = linden::gpl::Placer::create(ldb, ncfg);
     }

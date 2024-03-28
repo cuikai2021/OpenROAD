@@ -19,6 +19,7 @@ optional<Config> parse_from(deque<string> args) noexcept {
     const string_view UNIFORM_DENSITY("-uniform_density");
     const string_view OVERFLOW("-overflow");
     const string_view TIMING_DRIVEN("-timing_driven");
+    const string_view CONTINUE("-continue");
 
     Config res(*Config::get_default());
     Args args_(std::move(args));
@@ -88,6 +89,8 @@ optional<Config> parse_from(deque<string> args) noexcept {
             res.overflow = x;
         } else if (s == TIMING_DRIVEN) {
             res.timing_driven = true;
+        } else if (s == CONTINUE) {
+            res.continue_mode = true;
         } else {
             spdlog::info("ignore arg: {}", s);
         }

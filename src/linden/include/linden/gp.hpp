@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <filesystem>
 
 namespace linden::gp {
 
@@ -87,6 +88,29 @@ struct Config {
     InitialPlacePolicy initial_place_policy;
 
     bool timing_driven;
+
+    // When `continuation` is set, linden GP will store its
+    // inner state to this file.
+    // So, if `linden_global_placement` is called with `-continue`,
+    // it will restore the previous state and move forward.
+    //
+    // `continue_mode` requires this feature.
+    // Please refer to `continue_mode` for details.
+    //
+    // `congestion_repair` requires this feature.
+    // If `congestion_repair` is invoked without explicitly setting
+    // this option, a default continuation file will be used.
+    std::optional<std::filesystem::path> continuation;
+
+
+    // Typically, one will do the following steps:
+    // 1. Globally set `continuation` (eg., by TCL cmd `linden::set_continuation`)
+    //    and target density (eg., by TCL cmd `linden::set_to_uniform_density` or `linden::set_density`).
+    // 2. run linden GP with a higher target overflow and without continue-mode.
+    //    (e.g., by TCL cmd `linden_global_placement -overflow 0.9`).
+    // 3. run linden GP with a lower target overflow and with continue-mode.
+    //    (e.g., by TCL cmd `linden_global_placement -overflow 0.8 -continue`).
+    bool continue_mode;
 
     Config();
 
