@@ -216,23 +216,20 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   return exec(logger_, args);
 }
 
-int Banyan::cmap(const std::string& cmapPb, bool cgr_mode)
+int Banyan::cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_layer)
 {
   std::vector<std::string> args;
-  args.push_back("route");
+  args.push_back("report_routability");
 
-  const auto max_layer
-      = ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
   if (!max_layer.empty()) {
     args.push_back("--max_layer");
-    args.push_back(max_layer);
+    args.emplace_back(max_layer);
   }
 
   args.push_back("--log_level");
   args.push_back("info");
-  args.push_back("--report_cmap");
-  args.push_back(cmapPb);
-  args.push_back("--baby_banyan");
+  args.push_back("--gmap_out_protobuf");
+  args.emplace_back(cmapPb);
   if (!cgr_mode) {
     args.push_back("--disable_mcf_upt");
     args.push_back("--baby_pa");
