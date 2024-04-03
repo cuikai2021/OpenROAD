@@ -17,6 +17,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/src/cmake")
 
 include("openroad")
 
+find_package(re2 REQUIRED)
+find_package(cbc REQUIRED)
+find_package(clp REQUIRED)
+
 if(USE_SYSTEM_OPENSTA)
   if(NOT OPENSTA_HOME)
     message(FATAL_ERROR "Please set external OPENSTA_HOME path.")
