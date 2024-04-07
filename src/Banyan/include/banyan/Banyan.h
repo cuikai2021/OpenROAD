@@ -53,7 +53,7 @@ class Banyan : public ord::OpenRoadObserver
             rsz::Resizer* resizer);
 
   int main(std::vector<std::string> args, bool updateDB);
-  int cmap(const std::string& cmapPb, bool cgr_mode);
+  int cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_layer);
   void clearWires(bool excludeClock, bool excludeSignal);
   void regression_RC(const char* spef,
                      const char* setRC_tcl,
