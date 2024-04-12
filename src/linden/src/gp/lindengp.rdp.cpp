@@ -6,7 +6,7 @@
 #include <iostream>
 #include <numeric>
 #include <string>
-
+#include "cgr/congestionRepair.hpp"
 #include "banyan/Banyan.h"
 #include "banyan_cmap.pb.h"
 #include "cgr/analyze_banyan_cmap_file.hpp"
@@ -29,6 +29,7 @@ using utl::GPL;
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN);
 IMPORT_STR_FLAG(LINDEN_CGR_CMAP_DEBUGGING_FILE);
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION);
 
 namespace gpl {
 
@@ -95,11 +96,15 @@ bool LindenGlobalPlace::congestion_estimate()
   FASSERT(routability_driven_);
   auto genCmapFileName = [] {
     const std::string basename = [] {
-      auto tm = std::chrono::system_clock::now().time_since_epoch();
-      auto tm_ms
-          = std::chrono::duration_cast<std::chrono::milliseconds>(tm).count();
       std::ostringstream oss;
-      oss << LINDEN_TMP_FILE_ROOT_DIR() << "/banyan_" << tm_ms;
+      if (LINDEN_IN_REGRESSION()) {
+          oss << LINDEN_TMP_FILE_ROOT_DIR() << "/banyan_";
+      } else {
+        auto tm = std::chrono::system_clock::now().time_since_epoch();
+        auto tm_ms
+            = std::chrono::duration_cast<std::chrono::milliseconds>(tm).count();
+        oss << LINDEN_TMP_FILE_ROOT_DIR() << "/banyan_" << tm_ms;
+      }
       return oss.str();
     }();
     return basename + ".cmap";
@@ -111,7 +116,8 @@ bool LindenGlobalPlace::congestion_estimate()
   } else {
     cmap_pb_file = genCmapFileName();
     auto banyan = ::ord::OpenRoad::openRoad()->getBanyan();
-    banyan->cmap(cmap_pb_file, cgr_mode_, ""/*TODO*/);
+    auto max_layer = ::ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
+    banyan->cmap(cmap_pb_file, cgr_mode_, max_layer);
   }
   if (LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN()) {
     const std::string debug_def_file = cmap_pb_file + ".def";

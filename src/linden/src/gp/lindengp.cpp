@@ -18,7 +18,7 @@ using utl::GPL;
 
 IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL);
-IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION);
 
 namespace gpl {
 
@@ -111,7 +111,7 @@ void LindenGlobalPlace::change_to_cgr_mode()
 
 void LindenGlobalPlace::run()
 {
-  if (LINDEN_SPDLOG_DISABLE_TIMESTAMP()) {
+  if (LINDEN_IN_REGRESSION()) {
     spdlog::set_pattern("%v"); // no timestamp
   }
   init();

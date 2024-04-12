@@ -16,6 +16,9 @@
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
 #include "utl/Logger.h"
+#include "envflag/envflag.hpp"
+
+IMPORT_BOOL_FLAG_WITH_DEFAULT(BANYAN_SUPPRESS_EXE_LOG);
 
 namespace sta {
 // Tcl files encoded into strings.
@@ -98,7 +101,16 @@ std::string genTempFilePath(utl::Logger* logger, std::string fileExt)
 int exec(utl::Logger* logger, const std::vector<std::string>& args)
 {
   std::string exe = getExe();
-  int ec = boost::process::system(exe, boost::process::args(args));
+  int ec = 0;
+  if (!BANYAN_SUPPRESS_EXE_LOG()) {
+    ec = boost::process::system(exe, boost::process::args(args));
+  } else {
+    ec = boost::process::system(exe, boost::process::args(args),
+        boost::process::std_out > boost::process::null,
+        boost::process::std_err > boost::process::null);
+  }
+
+
   switch (ec) {
     case 0:
       logger->info(utl::BY, 1, "Banyan done");
