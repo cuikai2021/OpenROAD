@@ -9,6 +9,9 @@
 #include "linden/geom/bbox.hpp"
 #include "linden/gpl/placer.hpp"
 #include "linden/gpl/placer_config.hpp"
+#include "linden/rdp/congestion_estimation.hpp"
+#include "banyan/Banyan.h"
+#include "sc/ScanChain.h"
 #include "rsz/Resizer.hh"
 #include "lrl/CircuitModifier/CircuitModifier.hh"
 #include "lrl/Laurel.hh"
@@ -17,31 +20,37 @@
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "utl/metrics.hpp"
+#include "banyan_cmap.pb.h"
 #include "fassert.hpp"
 #include "envflag/envflag.hpp"
 #include <spdlog/spdlog.h>
+#include <fmt/format.h>
 #include <limits>
 #include <tuple>
 #include <cmath>
 #include <optional>
+#include <chrono>
 
 IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
-IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL);
+IMPORT_I64_FLAG_WITH_DEFAULT(LINDEN_GP_CMAP_PERIOD);
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
+IMPORT_STR_FLAG(LINDEN_CGR_CMAP_DEBUGGING_FILE);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN);
 
 using namespace std;
 
 namespace linden::gp {
 
 const float DEFAULT_DENSITY = 1.0;
-const float DEFAULT_OVERFLOW = 0.1;
-const bool DEFAUTL_TIMING_DRIVEN = false;
 
 Config::Config()
-:   density(DEFAULT_DENSITY),
-    overflow(DEFAULT_OVERFLOW),
-    timing_driven(DEFAUTL_TIMING_DRIVEN),
-    continue_mode(false)
+:   overflow(0.1),
+    timing_driven(false),
+    continue_mode(false),
+    routability_driven(false),
+    overflow_to_estimate_cmap(0.2)
 {}
 
 shared_ptr<Config> Config::get_default() noexcept {
@@ -78,12 +87,21 @@ void Config::prettyPrint(std::string& out) const noexcept {
         out.append(string_view("\n  enable continue-mode"));
     }
 
+    if (highest_layer_to_route) {
+        out.append(string_view("\n  max-layer: "));
+        out.append(*highest_layer_to_route);
+    }
+
     out.append(string_view("\n}"));
 }
 
 OptionalSetter<float> Config::mut_density() noexcept {
     float d = density.value_or(DEFAULT_DENSITY);
     return OptionalSetter<float>(density, d);
+}
+
+OptionalSetter<string> Config::mut_highest_layer_to_route() noexcept {
+    return OptionalSetter<string>(highest_layer_to_route, string());
 }
 
 namespace {
@@ -182,7 +200,13 @@ bool update_net_weights(
             if (auto s = rs->resizeNetSlack(o_net); s) {
                 if (s < slack_max) {
                     weight = 1 + NET_WEIGHT_SCALE * (slack_max - *s) / (slack_max - slack_min);
-                    ++reweight_net_cnt;
+                    ++reweight_net_cnt;// void analyze_banyan_cmap_file_cmd(
+//     const char* cmap_file,
+//     const char* report_file)
+// {
+//     linden::cgr::analyze_banyan_cmap_file(cmap_file, report_file);
+// }
+
                     spdlog::debug(
                         "[linden/gpl] timing: net:{} slack:{} weight:{}",
                         l_net.name(),
@@ -198,10 +222,91 @@ bool update_net_weights(
     return true;
 }
 
+void scanchain_reorder() {
+    auto sc = ::ord::OpenRoad::openRoad()->getScanChain();
+    sc->reorder();
+}
+
+filesystem::path estimate_cmap(const gp::Config& cfg) {
+    if (auto v = LINDEN_CGR_CMAP_DEBUGGING_FILE(); v) {
+        filesystem::path cmap_file(*v);
+        return cmap_file;
+    } else {
+        FASSERT(cfg.highest_layer_to_route);
+        filesystem::path dir(LINDEN_TMP_FILE_ROOT_DIR());
+        filesystem::path cmap_file;
+        if (LINDEN_IN_REGRESSION()) {
+            cmap_file = dir / "banyan_.cmap";
+        } else {
+            auto tm = chrono::system_clock::now().time_since_epoch();
+            auto tm_ms = chrono::duration_cast<std::chrono::milliseconds>(tm).count();
+            cmap_file = dir / fmt::format("banyan_{}.cmap", tm_ms);
+        }
+
+        spdlog::info("[linden/gpl] Dump a banyan cmap file: {}", cmap_file);
+        auto& banyan = *::ord::OpenRoad::openRoad()->getBanyan();
+        banyan.cmap(cmap_file.string(), false, *cfg.highest_layer_to_route);
+
+        return cmap_file;
+    }
+}
+
+void debug_def_if_necessary(const filesystem::path& cmap_file) {
+    if (LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN()) {
+        filesystem::path debug_def_file = cmap_file;
+        debug_def_file.replace_extension(".def");
+        spdlog::info("Dump a DEF for debugging: {}", debug_def_file);
+
+        ::ord::OpenRoad::openRoad()->writeDef(debug_def_file.c_str(), "5.8");
+    }
+}
+
+bool refresh_cmap_to_placer(
+    linden::gpl::Placer& placer,
+    const linden::db::Database& ldb,
+    const filesystem::path& cmap_file)
+{
+    linden::rdp::CongestionMap cmap;
+    banyan::Cmap banyan_cmap;
+    ifstream fin(cmap_file, ios::binary);
+    if (!fin) {
+        spdlog::error("Fail to open file: {}", cmap_file);
+        throw runtime_error("fail to open file");
+    }
+    if (!banyan_cmap.ParseFromIstream(&fin)) {
+        spdlog::error("Fail to parse banyan cmap file: {}", cmap_file);
+        throw runtime_error("fail to parse banyan cmap file");
+    }
+    cmap.setChipCoreRegion(ldb.core_region());
+    cmap.initGrids(banyan_cmap.wgrids(), banyan_cmap.hgrids());
+    for (int64_t j = 0, n = banyan_cmap.hgrids(); j < n; ++j) {
+        for (int64_t i = 0, m = banyan_cmap.wgrids(); i < m; ++i) {
+            using linden::geom::dimension::X;
+            using linden::geom::dimension::Y;
+
+            const auto idx = j * m + i;
+            for (auto dim : {X, Y}) {
+                const auto& tile = dim == X ? banyan_cmap.htiles(idx) : banyan_cmap.vtiles(idx);
+                cmap.updateSupply(dim, i, j, tile.supply());
+                cmap.updateDemand(dim, i, j, tile.demand());
+            }
+        }
+    }
+    // FIXME: update it after expander's PR is merged
+    //        and use_expander should always be FALSE in cgr mode
+    const bool use_expander = false;
+    if (!cmap.updateOverflows(use_expander)) {
+        spdlog::info("no overflow in median level");
+        return false;
+    }
+
+    return placer.load_cmap(cmap);
+}
+
 } // namespace
 
 void linden_global_place(const Config& cfg) noexcept {
-    if (LINDEN_SPDLOG_DISABLE_TIMESTAMP()) {
+    if (LINDEN_IN_REGRESSION()) {
         spdlog::set_pattern("%v"); // no timestamp
     }
     spdlog::info("{}", pp::prettyPrint(cfg));
@@ -233,6 +338,22 @@ void linden_global_place(const Config& cfg) noexcept {
     }
 
     unique_ptr<linden::gpl::Placer> gpl;
+    bool routability_driven = false;
+    if (cfg.routability_driven) {
+        if (cfg.highest_layer_to_route) {
+            routability_driven = true;
+            spdlog::info(
+                "[linden/gpl] "
+                "enable routability-driven with the highest layer: {}",
+                *cfg.highest_layer_to_route);
+        } else {
+            spdlog::warn(
+                "[linden/gpl] "
+                "Routability-driven is forcely disabled because "
+                "the highest layer is not specifed for (baby) banyan "
+                "to estimate routability.");
+        }
+    }
     {
         linden::gpl::PlacerConfig::PlacerType ty = linden::gpl::PlacerConfig::NPLACE;
         linden::gpl::PlacerConfig ncfg(ty);
@@ -248,7 +369,8 @@ void linden_global_place(const Config& cfg) noexcept {
         if (cfg.continuation) {
             ncfg.cgr_params_file = *cfg.continuation;
         }
-        ncfg.routability_driven = false;
+        ncfg.routability_driven = routability_driven;
+        ncfg.use_expander_inflation = false;
         gpl = linden::gpl::Placer::create(ldb, ncfg);
     }
 
@@ -266,13 +388,38 @@ void linden_global_place(const Config& cfg) noexcept {
     }
     const size_t MAX_ITER = 5000;
     size_t iter = 0;
+
+    int rdp_count_down = 0;
+    int64_t rdp_count_down_init = LINDEN_GP_CMAP_PERIOD();
+    auto should_finalize = [&,
+        routability_driven,
+        rdp_count_down,
+        rdp_count_down_init
+    ](double overflow) mutable -> bool {
+        if (!routability_driven) {
+            return overflow <= cfg.overflow;
+        }
+        if (overflow > cfg.overflow_to_estimate_cmap) {
+            return false;
+        }
+        if (rdp_count_down > 0) {
+            --rdp_count_down;
+            return false;
+        }
+        rdp_count_down = rdp_count_down_init;
+        refresh_locations_from_ldb(*ldb);
+        scanchain_reorder();
+        auto cmap_file = estimate_cmap(cfg);
+        debug_def_if_necessary(cmap_file);
+        return !refresh_cmap_to_placer(*gpl, *ldb, cmap_file);
+    };
     for (; iter < MAX_ITER; ++iter) {
         auto ret = gpl->one_step_move(iter);
         if (!ret) {
             break;
         }
         auto overflow = *ret;
-        if (overflow <= cfg.overflow) {
+        if (should_finalize(overflow)) {
             break;
         }
 

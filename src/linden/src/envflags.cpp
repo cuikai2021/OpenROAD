@@ -49,7 +49,7 @@ DEFINE_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR,
 )
 
 // flags for debugging purpose
-DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP,
+DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION,
     "Disable timestamp in spdlog, when run in regression mode",
     false
 )
@@ -64,4 +64,9 @@ DEFINE_I64_FLAG_WITH_DEFAULT(LINDEN_GUI_PAUSE,
 
 DEFINE_STR_FLAG(LINDEN_IP_DEBUG_DIR,
     "The dir to store files for debugging initial placement"
-)
+);
+DEFINE_I64_FLAG_WITH_DEFAULT(LINDEN_GP_CMAP_PERIOD,
+    "The routability-driven GP will estimate congestion maps periodically. "
+    "This flag controls the period (in iterations).",
+    10
+);

@@ -11,7 +11,7 @@
 using namespace std;
 
 IMPORT_STR_FLAG(LINDEN_MP_METRICS_FILE);
-IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION);
 
 namespace linden::mp {
 
@@ -38,7 +38,7 @@ void firm_macros(const linden::db::Database& ldb) noexcept {
 } // namespace
 
 int linden_macro_place(const gp::Config& cfg) noexcept {
-    if (LINDEN_SPDLOG_DISABLE_TIMESTAMP()) {
+    if (LINDEN_IN_REGRESSION()) {
         spdlog::set_pattern("%v"); // no timestamp
     }
     spdlog::info("{}", pp::prettyPrint(cfg));

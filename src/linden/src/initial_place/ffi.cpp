@@ -4,14 +4,14 @@
 #include "envflag/envflag.hpp"
 #include <spdlog/spdlog.h>
 
-IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_SPDLOG_DISABLE_TIMESTAMP);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION);
 
 using namespace std;
 
 namespace linden::ip {
 
 void gogogo(const gp::Config& cfg) noexcept {
-    if (LINDEN_SPDLOG_DISABLE_TIMESTAMP()) {
+    if (LINDEN_IN_REGRESSION()) {
         spdlog::set_pattern("%v"); // no timestamp
     }
     spdlog::info("{}", pp::prettyPrint(cfg));

@@ -19,16 +19,16 @@ swig_lib(NAME      linden
 
 file(GLOB cpps
     *.cpp
-    util/*.cpp
-    itdp/*.cpp
+    cgr/*.cpp
+    dp/*.cpp
     gp/*.cpp
     initial_place/*.cpp
     initial_place/ev/*.cpp
+    itdp/*.cpp
     mp/*.cpp
-    cgr/*.cpp
-    timing_data/*.cpp
-    dp/*.cpp
     remove_fillers/*.cpp
+    timing_data/*.cpp
+    util/*.cpp
 )
 target_sources(linden
 PRIVATE

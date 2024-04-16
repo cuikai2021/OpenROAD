@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <filesystem>
 
@@ -42,7 +43,8 @@ private:
 };
 
 struct Config {
-    // if unset, it is regarded as uniform.
+    // If unset, it is regarded as uniform.
+    // It is uniform, by default.
     std::optional<float> density;
 
     bool is_uniform() const noexcept {
@@ -111,6 +113,15 @@ struct Config {
     // 3. run linden GP with a lower target overflow and with continue-mode.
     //    (e.g., by TCL cmd `linden_global_placement -overflow 0.8 -continue`).
     bool continue_mode;
+
+    bool routability_driven;
+
+    // The overflow threshold to start estimating congestion map.
+    float overflow_to_estimate_cmap;
+
+    // Name of the highest layer for (baby) banyan to estimate routability.
+    std::optional<std::string> highest_layer_to_route;
+    OptionalSetter<std::string> mut_highest_layer_to_route() noexcept;
 
     Config();
 

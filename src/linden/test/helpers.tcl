@@ -3,7 +3,7 @@
 set test_dir [file dirname [file normalize [info script]]]
 set result_dir [file join $test_dir "results"]
 
-set ::env(LINDEN_SPDLOG_DISABLE_TIMESTAMP) true
+set ::env(LINDEN_IN_REGRESSION) true
 
 proc make_result_file { filename } {
   variable result_dir

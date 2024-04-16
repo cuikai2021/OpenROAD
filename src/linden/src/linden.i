@@ -1,12 +1,12 @@
 %{
 #include "linden/gp.hpp"
-#include "./mp/ffi.hpp"
-#include "./itdp/ffi.hpp"
-#include "./timing_data/ffi.hpp"
 #include "./dp/ffi.hpp"
 #include "./gp/ffi.hpp"
 #include "./initial_place/ffi.hpp"
+#include "./itdp/ffi.hpp"
+#include "./mp/ffi.hpp"
 #include "./remove_fillers/ffi.hpp"
+#include "./timing_data/ffi.hpp"
 #include <memory>
 #include <deque>
 #include <string>
@@ -43,16 +43,6 @@ void set_overflow(float overflow)
     linden::gp::Config::get_default()->overflow = overflow;
 }
 
-void set_linden_pad_left_cmd(int pad)
-{
-    // linden::gp::Config::get_default()->left_pad = pad;
-}
-
-void set_linden_pad_right_cmd(int pad)
-{
-    // linden::gp::Config::get_default()->right_pad = pad;
-}
-
 void enable_timing_driven_mode()
 {
     linden::gp::Config::get_default()->timing_driven = true;
@@ -65,6 +55,18 @@ void set_initial_place_policy(const char* policy)
         Config::InitialPlacePolicy::from_str(policy);
 }
 
+void enable_routability_driven_mode() {
+    linden::gp::Config::get_default()->routability_driven = true;
+}
+
+void set_overflow_to_estimate_cmap(float overflow) {
+    linden::gp::Config::get_default()->overflow_to_estimate_cmap = overflow;
+}
+
+void set_highest_layer_to_route(const char* highest_layer) {
+    linden::gp::Config::get_default()->mut_highest_layer_to_route() = highest_layer;
+}
+
 void lindengp_run_cmd(StrDeque& args)
 {
     linden::gp::gogogo(std::move(args.elems_));
@@ -74,24 +76,6 @@ void linden_initial_place()
 {
     auto cfg = linden::gp::Config::get_default();
     linden::ip::gogogo(*cfg);
-}
-
-void set_linden_routability_driven_mode(bool flag) {
-// FIXME:
-//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-//   lindengp->setRoutabilityDriven(flag);
-}
-
-void set_linden_focus_insts_cmd(const char* focus_insts_file_name) {
-// FIXME:
-//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-//   lindengp->setFocusInsts(focus_insts_file_name);
-}
-
-void set_linden_focus_nets_cmd(const char* focus_nets_file_name) {
-// FIXME:
-//   LindenGlobalPlace* lindengp = getLindenGlobalPlace();
-//   lindengp->setFocusNets(focus_nets_file_name);
 }
 
 void set_continuation(const char* file) {
