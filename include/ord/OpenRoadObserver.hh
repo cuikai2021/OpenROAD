@@ -31,7 +31,7 @@ class OpenRoadObserver
       unregister_observer_();
     }
   }
-  virtual void postReadLef(const char *filename, odb::dbTech* tech, odb::dbLib* library) {
+  virtual void postReadLef(const char *filename, odb::dbTech* tech, odb::dbLib* library, bool make_tech) {
     postReadLef(tech, library);
   }
   // Either pointer could be null

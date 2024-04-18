@@ -63,10 +63,11 @@ class Banyan : public ord::OpenRoadObserver
   void loaddb(std::string dbfile);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
-                           odb::dbTech* tech,
-                           odb::dbLib*) override
+                           odb::dbTech*,
+                           odb::dbLib*,
+                           bool make_tech) override
   {
-    if (tech) {
+    if (make_tech) {
       tech_lef_file_name_ = filename;
     } else {
       other_lef_file_names_.emplace_back(filename);
