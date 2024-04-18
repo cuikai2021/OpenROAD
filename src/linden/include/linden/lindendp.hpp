@@ -36,4 +36,16 @@ private:
     ::ord::OpenRoad& openroad_;
 };
 
+class RoutabilityDrivenLegalizer
+{
+public:
+    explicit RoutabilityDrivenLegalizer(::ord::OpenRoad& ord);
+    ~RoutabilityDrivenLegalizer() = default;
+
+    int go(std::deque<std::string>&);
+
+private:
+    ::ord::OpenRoad& openroad_;
+};
+
 } // namespace linden

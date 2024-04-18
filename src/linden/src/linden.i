@@ -178,7 +178,12 @@ int linden_incr_legalize(StrDeque& args) {
     ord::OpenRoad* ord = ord::OpenRoad::openRoad();
     linden::IncrLegalizer leg(*ord);
     return leg.go(args.elems_);
+}
 
+int linden_routability_driven_detailed_placement(StrDeque& args) {
+    ord::OpenRoad* ord = ord::OpenRoad::openRoad();
+    linden::RoutabilityDrivenLegalizer leg(*ord);
+    return leg.go(args.elems_);
 }
 
 %}

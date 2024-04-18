@@ -28,3 +28,16 @@ proc linden_incremental_legalize { args } {
     linden::linden_incr_legalize a
 }
 
+
+sta::define_cmd_args "linden_routability_driven_detailed_placement" {
+    [--routing_max_layer max-layer]
+    [--suppress-output]
+}
+
+proc linden_routability_driven_detailed_placement { args } {
+    linden::StrDeque a
+    foreach x $args {
+        a push_back $x
+    }
+    linden::linden_routability_driven_detailed_placement a
+}

@@ -12,6 +12,7 @@
 #include "sta/Units.hh"
 #include "utl/metrics.hpp"
 #include "envflag/envflag.hpp"
+#include "banyan/Banyan.h"
 #include <spdlog/spdlog.h>
 #include <boost/process.hpp>
 #include <exception>
@@ -59,6 +60,9 @@ IncrLegalizer::IncrLegalizer(::ord::OpenRoad& ord)
 :   openroad_(ord)
 {}
 
+RoutabilityDrivenLegalizer::RoutabilityDrivenLegalizer(::ord::OpenRoad& ord)
+  : openroad_(ord)
+{}
 
 namespace {
 
@@ -70,6 +74,11 @@ std::filesystem::path get_basic_dp_exe() {
 std::filesystem::path get_incr_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
     return dir / "linden-incremental-legalizer";
+}
+
+std::filesystem::path get_routablility_driven_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "linden-routability-driven-detailed-placer";
 }
 
 string output_def_name(const string& basename, bool suppress_output) {
@@ -162,6 +171,22 @@ int exec_incr_dp(
     return exec(exe, args, not_stop_when_illegal, suppress_output);
 }
 
+int exec_routability_driven_dp(
+    const string& input_cfg,
+    const string& outdef,
+    bool suppress_output
+    )
+{
+    deque<string> args;
+    args.push_back("--input-config");
+    args.push_back(input_cfg);
+    args.push_back("--to");
+    args.push_back(outdef);
+    auto exe = std::move(get_routablility_driven_dp_exe());
+    bool not_stop_when_illegal = true;
+    return exec(exe, args, not_stop_when_illegal,suppress_output);
+}
+
 struct InputArgs
 {
     deque<string> lefs;
@@ -169,6 +194,7 @@ struct InputArgs
     optional<deque<string>> selected_fillers;
     optional<string> timing_data;
     optional<deque<string>> critical_cells;
+    optional<string> routability_data;
 };
 
 string write_input_config(
@@ -203,6 +229,9 @@ string write_input_config(
     }
     if (auto const& td = args.timing_data; td) {
         root.emplace("timing-data", *td);
+    }
+    if (auto const& rd = args.routability_data; rd) {
+        root.emplace("routability-data", *rd);
     }
     if (auto const& cc = args.critical_cells; cc) {
         toml::array critical_cells;
@@ -451,5 +480,58 @@ int IncrLegalizer::go(deque<string>& args)
     return ret;
 }
 
+    int RoutabilityDrivenLegalizer::go(
+        deque<string>& args
+    ) {
+        InputArgs input_cfg;
+        bool not_stop_when_illegal = false;
+        bool suppress_output = false;
+        string max_layer;
+        for (; !args.empty(); args.pop_front()) {
+            const auto& s = args.front();
+            if (strcmp(s.c_str(), "--routing-max-layer") == 0) {
+                args.pop_front();
+                if (args.empty()) {
+                    spdlog::error(
+                        "Required routing-max-layer, "
+                        "e.g,. \"M3\".");
+                }
+                max_layer = args.front();
+            } else if (strcmp(s.c_str(), "--suppress-output") == 0) {
+                suppress_output = true;
+            }
+        }
+        dp::LefDefDumper dumper;
+        dumper.run(openroad_);
+        if (!suppress_output) {
+            dumper.print_dumped_files(std::cout);
+        }
+        string basename = dumper.basename();
+        input_cfg.def = dumper.def();
+        string tech = dumper.tech_lef();
+        input_cfg.lefs = dumper.lib_lefs();
+        input_cfg.lefs.push_front(tech);
+
+        filesystem::path dir(LINDEN_TMP_FILE_ROOT_DIR());
+        filesystem::path cmap_file;
+        auto tm = chrono::system_clock::now().time_since_epoch();
+        auto tm_ms = chrono::duration_cast<std::chrono::milliseconds>(tm).count();
+        cmap_file = dir / fmt::format("banyan_{}.cmap", tm_ms);
+
+        banyan::Banyan& banyan = *::ord::OpenRoad::openRoad() -> getBanyan();
+        banyan.clearWires(false, false);
+        banyan.cmap(cmap_file.string(), false, max_layer);
+        input_cfg.routability_data = cmap_file.string();
+
+        string input_cfg_fn = std::move(
+            write_input_config(input_cfg, basename, suppress_output));
+        
+        string outdef = std::move(output_def_name(basename,suppress_output));
+        int ret = exec_routability_driven_dp(input_cfg_fn, outdef, suppress_output);
+
+        read_back(outdef);
+
+        return ret;
+    }
 } // namespace linden
 

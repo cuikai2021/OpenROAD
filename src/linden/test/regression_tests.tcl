@@ -3,4 +3,5 @@ record_tests {
   incr-dp.critical-cells
   incr-dp.baseline
   simple01-rd
+  routability-driven-dp
 }
