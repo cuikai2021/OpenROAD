@@ -623,7 +623,20 @@ linden::gp::Config {
 [linden/gpl] TileSize=(2212, 2200), TileArea=4866400
 [linden/gpl] TileCnt=(28, 28)
 [linden/gpl] NumTiles=784
-no overflow in median level
+[linden/gpl/rdp] Routability numCall: 1 inflationIterCnt: 1 bloatIterCnt: 0
+linden/gpl NumTiles: 784
+[linden/gpl] TotalRouteOverflow: (1.1043956043956047, 0.3529411764705881)
+[linden/gpl] OverflowTileCnt: (6, 3)
+[linden/gpl] 0.5%RC: (0.30494505494505497, 0.11764705882352937)
+[linden/gpl] 1.0%RC: (0.15777080062794352, 0.05042016806722687)
+[linden/gpl] 2.0%RC: (0.07362637362637364, 0.02352941176470587)
+[linden/gpl] 5.0%RC: (0.02831783601014371, 0.009049773755656104)
+[linden/gpl] 0.5rcK: 1
+[linden/gpl] 1.0rcK: 1
+[linden/gpl] 2.0rcK: 0
+[linden/gpl] 5.0rcK: 0
+[linden/gpl] FinalRC: 0.23135792778649925
+[linden/gpl/rdp] Reached target RC: curRc=0.23135792778649925, targetRC=0.25
 {
   "gp": {
     "iter": 185
