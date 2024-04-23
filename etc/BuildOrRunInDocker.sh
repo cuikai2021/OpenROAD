@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # e.g.
 # build_cmd="./etc/Build.sh -cmake=-DCMAKE_BUILD_TYPE=Debug -threads=$(($(nproc) / 2))";
 # regression_cmd="./test/regression gpl"
@@ -11,11 +9,13 @@ workdir=`pwd`
 uid=`id -u`
 gid=`id -g`
 docker run -it --rm --privileged --network=host \
-  --env="DISPLAY" --mount type=bind,src=$HOME/.Xauthority,dst=/home/dockeruser/.Xauthority --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix \
-  --user $uid:$gid --mount type=bind,src=/run/user/$uid/,dst=/run/user/$uid/ --env SSH_AUTH_SOCK=/run/user/$uid/keyring/ssh \
-  --mount type=bind,src=$HOME/.ssh,dst=/home/dockeruser/.ssh \
+  --env="DISPLAY" \
+  --user $uid:$gid \
+  --mount type=bind,src=$HOME/.Xauthority,dst=/home/dockeruser/.Xauthority --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix \
+  --mount type=bind,src=/run/user/$uid/,dst=/run/user/$uid/ --env SSH_AUTH_SOCK=/run/user/$uid/keyring/ssh \
   --mount type=bind,src=$HOME/.ssh,dst=/root/.ssh \
   --mount type=bind,src=$workdir,dst=$workdir \
+  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/,dst=/build/lib --env LD_LIBRARY_PATH=/build/lib \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/banyan,dst=/build/bin/banyan \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/maxhs,dst=/build/bin/maxhs \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/lindendp,dst=/build/bin/lindendp \
