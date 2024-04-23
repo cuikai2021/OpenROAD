@@ -1,5 +1,6 @@
 %{
 #include "linden/gp.hpp"
+#include "./cgr/ffi.hpp"
 #include "./dp/ffi.hpp"
 #include "./gp/ffi.hpp"
 #include "./initial_place/ffi.hpp"
@@ -157,8 +158,8 @@ void set_routing_max_layer_cmd(const char* max_layer) {
 // cgr->setRoutingMaxLayer(max_layer);
 }
 
-void analyze_banyan_cmap_file_cmd(const char* cmap_file, const char* report_file) {
-// cgr::analyze_banyan_cmap_file(cmap_file, report_file);
+int analyze_banyan_cmap_file_cmd(const char* cmap_file, const char* report_file) {
+    return linden::cgr::analyze_file_gogogo(cmap_file, report_file);
 }
 
 %} // cgr
