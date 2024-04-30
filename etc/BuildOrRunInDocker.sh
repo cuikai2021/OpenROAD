@@ -9,8 +9,8 @@ workdir=`pwd`
 uid=`id -u`
 gid=`id -g`
 docker run -it --rm --privileged --network=host \
-  --env="DISPLAY" \
   --user $uid:$gid \
+  --env="DISPLAY" \
   --mount type=bind,src=$HOME/.Xauthority,dst=/home/dockeruser/.Xauthority --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix \
   --mount type=bind,src=/run/user/$uid/,dst=/run/user/$uid/ --env SSH_AUTH_SOCK=/run/user/$uid/keyring/ssh \
   --mount type=bind,src=$HOME/.ssh,dst=/root/.ssh \
@@ -22,5 +22,5 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-incremental-legalizer,dst=/build/bin/linden-incremental-legalizer \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-routability-driven-detailed-placer,dst=/build/bin/linden-routability-driven-detailed-placer \
   --entrypoint /bin/bash \
-  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20240126T0901Z_99c6489 \
+  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20240429T0939Z_bae7ef9 \
   -c "cd $workdir; $cmd"
