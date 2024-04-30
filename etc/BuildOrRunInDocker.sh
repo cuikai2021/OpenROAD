@@ -22,5 +22,5 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-incremental-legalizer,dst=/build/bin/linden-incremental-legalizer \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-routability-driven-detailed-placer,dst=/build/bin/linden-routability-driven-detailed-placer \
   --entrypoint /bin/bash \
-  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20240126T0901Z_99c6489 \
+  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20240429T0939Z_bae7ef9 \
   -c "cd $workdir; $cmd"
