@@ -2992,6 +2992,16 @@ class dbInst : public dbObject
   void clearUserFlag3();
 
   ///
+  /// Set/Reset the size-only flag
+  ///
+  void setSizeOnly(bool v);
+
+  ///
+  /// Returns true if the size-only flag is set.
+  ///
+  bool isSizeOnly();
+
+  ///
   /// Set/Reset the don't-touch flag
   ///
   /// Setting this implies:
@@ -3008,6 +3018,31 @@ class dbInst : public dbObject
   /// Returns true if the don't-touch flag is set.
   ///
   bool isDoNotTouch();
+
+  ///
+  /// Set/Reset the don't-size flag
+  ///
+  void setDoNotSize(bool v);
+
+  ///
+  /// Returns true if the don't-size flag is set.
+  ///
+  bool isDoNotSize();
+  
+  ///
+  /// dont touch,dont size and sizeonly
+  ///
+  bool canBeRemoved();
+  
+  ///
+  /// Set the scan chain flag
+  ///
+  bool isScanChain();
+
+  ///
+  /// Returns true if the scan chain flag is set
+  ///
+  void setIsScanChain(bool v);
 
   ///
   /// Get the block of this instance.

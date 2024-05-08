@@ -72,6 +72,14 @@ struct _dbInstFlags
   uint _level : 9;
 };
 
+struct _dbInstFlags1
+{
+  uint _dont_size : 1;
+  uint _size_only : 1;
+  uint _is_scan_chain : 1;
+  uint _for_rent : 29;
+};
+
 class _dbInst : public _dbObject
 {
  public:
@@ -82,6 +90,7 @@ class _dbInst : public _dbObject
   };
 
   _dbInstFlags _flags;
+  _dbInstFlags1 _flags1;
   char* _name;
   int _x;
   int _y;

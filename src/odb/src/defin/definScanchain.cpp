@@ -17,8 +17,8 @@ findInst(dbBlock* blk, utl::Logger* _logger, const char* name) {
   }
   if (!inst)
     _logger->warn(utl::ODB, 3001, "error: cannot find instance: %s", name);
-// TODO : sync up ord, sizeOnly is removed by ord. Can't decide whether to keep it.
-//   inst->setSizeOnly(true);
+  inst->setSizeOnly(true);
+  inst->setIsScanChain(true);
   return inst;
 }
 
