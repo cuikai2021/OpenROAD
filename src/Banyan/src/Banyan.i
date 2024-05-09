@@ -31,9 +31,9 @@ using std::vector;
 
 namespace banyan {
 
-void banyan(std::vector<std::string> args)
+void banyan(std::vector<std::string> args, bool updateDB)
 {
-    ord::OpenRoad::openRoad()->getBanyan()->main(args, true);
+    ord::OpenRoad::openRoad()->getBanyan()->main(args, updateDB);
 }
 
 void banyanClearWires(bool excludeClock, bool excludeSignal)

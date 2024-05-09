@@ -1,0 +1,132 @@
+module rm (op,
+    c,
+    x);
+ output op;
+ input [7:0] c;
+ input [2:0] x;
+
+ wire _08_;
+ wire _09_;
+ wire _10_;
+ wire _11_;
+ wire _12_;
+ wire _13_;
+ wire _14_;
+ wire _15_;
+ wire _16_;
+ wire _17_;
+ wire _18_;
+ wire CKINVM2HM_1_8;
+ wire CKINVM2HM_2_9;
+ wire CKINVM2HM_3_10;
+ wire CKINVM2HM_4_11;
+ wire AOI22M2HM_5_12;
+ wire AOI22M2HM_6_13;
+ wire OAI22B10M2HM_7_14;
+ wire CKND2M2HM_8_15;
+ wire OR2M2HM_9_16;
+ wire OAI211M2HM_10_17;
+ wire CKINVM2HM_11_18;
+ wire ND4B1M2HM_12_19;
+ wire AOI21M2HM_13_20;
+ wire OAI211M2HM_14_21;
+ wire CKINVM2HM_15_22;
+ wire AOI22M2HM_16_23;
+ wire AOI22M2HM_17_24;
+ wire OAI22B10M2HM_18_25;
+
+ CKND2M2HM _39_ (.A(x[2]),
+    .B(c[1]),
+    .Z(_08_));
+ AO21M2HM _40_ (.B(c[2]),
+    .A1(x[2]),
+    .A2(c[3]),
+    .Z(_09_));
+ ND3M2HM _41_ (.A(x[2]),
+    .B(c[2]),
+    .C(c[3]),
+    .Z(_10_));
+ ND3M2HM _42_ (.A(x[1]),
+    .B(_09_),
+    .C(_10_),
+    .Z(_11_));
+ XOR3M2HM _43_ (.A(c[0]),
+    .B(_08_),
+    .C(_11_),
+    .Z(_12_));
+ CKND2M2HM _44_ (.A(c[4]),
+    .B(x[0]),
+    .Z(_13_));
+ ND3M2HM _45_ (.A(x[0]),
+    .B(x[2]),
+    .C(c[5]),
+    .Z(_14_));
+ CKINVM2HM CKINVM2HM_1 (.A(_13_),
+    .Z(CKINVM2HM_1_8));
+ CKINVM2HM CKINVM2HM_2 (.A(_14_),
+    .Z(CKINVM2HM_2_9));
+ CKINVM2HM CKINVM2HM_3 (.A(x[0]),
+    .Z(CKINVM2HM_3_10));
+ CKINVM2HM CKINVM2HM_4 (.A(x[2]),
+    .Z(CKINVM2HM_4_11));
+ AOI22M2HM AOI22M2HM_5 (.A1(_13_),
+    .A2(_14_),
+    .B1(CKINVM2HM_1_8),
+    .B2(CKINVM2HM_2_9),
+    .Z(AOI22M2HM_5_12));
+ AOI22M2HM AOI22M2HM_6 (.A1(CKINVM2HM_1_8),
+    .A2(_14_),
+    .B1(_13_),
+    .B2(CKINVM2HM_2_9),
+    .Z(AOI22M2HM_6_13));
+ OAI22B10M2HM OAI22B10M2HM_7 (.A1(AOI22M2HM_5_12),
+    .B1(_12_),
+    .B2(AOI22M2HM_6_13),
+    .NA2(_12_),
+    .Z(OAI22B10M2HM_7_14));
+ CKND2M2HM CKND2M2HM_8 (.A(x[0]),
+    .B(x[1]),
+    .Z(CKND2M2HM_8_15));
+ OR2M2HM OR2M2HM_9 (.A(CKINVM2HM_3_10),
+    .B(x[1]),
+    .Z(OR2M2HM_9_16));
+ OAI211M2HM OAI211M2HM_10 (.A1(c[6]),
+    .A2(CKND2M2HM_8_15),
+    .B(x[0]),
+    .C(OR2M2HM_9_16),
+    .Z(OAI211M2HM_10_17));
+ CKINVM2HM CKINVM2HM_11 (.A(OAI211M2HM_10_17),
+    .Z(CKINVM2HM_11_18));
+ ND4B1M2HM ND4B1M2HM_12 (.B(x[0]),
+    .C(x[1]),
+    .D(x[2]),
+    .NA(c[7]),
+    .Z(ND4B1M2HM_12_19));
+ AOI21M2HM AOI21M2HM_13 (.A1(x[0]),
+    .A2(CKINVM2HM_4_11),
+    .B(CKINVM2HM_3_10),
+    .Z(AOI21M2HM_13_20));
+ OAI211M2HM OAI211M2HM_14 (.A1(CKINVM2HM_4_11),
+    .A2(OR2M2HM_9_16),
+    .B(AOI21M2HM_13_20),
+    .C(ND4B1M2HM_12_19),
+    .Z(OAI211M2HM_14_21));
+ CKINVM2HM CKINVM2HM_15 (.A(OAI211M2HM_14_21),
+    .Z(CKINVM2HM_15_22));
+ AOI22M2HM AOI22M2HM_16 (.A1(OAI211M2HM_10_17),
+    .A2(OAI211M2HM_14_21),
+    .B1(CKINVM2HM_11_18),
+    .B2(CKINVM2HM_15_22),
+    .Z(AOI22M2HM_16_23));
+ AOI22M2HM AOI22M2HM_17 (.A1(CKINVM2HM_11_18),
+    .A2(OAI211M2HM_14_21),
+    .B1(OAI211M2HM_10_17),
+    .B2(CKINVM2HM_15_22),
+    .Z(AOI22M2HM_17_24));
+ OAI22B10M2HM OAI22B10M2HM_18 (.A1(AOI22M2HM_16_23),
+    .B1(OAI22B10M2HM_7_14),
+    .B2(AOI22M2HM_17_24),
+    .NA2(OAI22B10M2HM_7_14),
+    .Z(_18_));
+ assign op = _18_;
+endmodule
