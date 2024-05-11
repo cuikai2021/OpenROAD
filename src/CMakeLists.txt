@@ -51,6 +51,9 @@ list(APPEND CMAKE_PREFIX_PATH
 
 include("openroad")
 
+find_package(re2 REQUIRED)
+find_package(cbc REQUIRED)
+find_package(clp REQUIRED)
 
 if(USE_SYSTEM_OPENSTA)
   if(NOT OPENSTA_HOME)

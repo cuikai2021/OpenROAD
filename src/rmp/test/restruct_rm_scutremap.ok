@@ -1,0 +1,113 @@
+[INFO ODB-0222] Reading LEF file: ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll_6m2t.lef
+[WARNING ODB-0220] WARNING (LEFPARS-2007): NAMESCASESENSITIVE statement is obsolete in version 5.6 and later.
+The LEF parser will ignore this statement.
+To avoid this warning in the future, remove this statement from the LEF file with version 5.6 or later. See file ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll_6m2t.lef at line 9.
+
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI1 :" ARRAYSPACING CUTSPACING 0.24 ARRAYCUTS 6 SPACING 0.24 ; "
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI2 :" ARRAYSPACING CUTSPACING 0.24 ARRAYCUTS 6 SPACING 0.24 ; "
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI3 :" ARRAYSPACING CUTSPACING 0.24 ARRAYCUTS 6 SPACING 0.24 ; "
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI4 :" ARRAYSPACING CUTSPACING 0.45 ARRAYCUTS 6 SPACING 0.45 ; "
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI5 :" ARRAYSPACING CUTSPACING 0.45 ARRAYCUTS 6 SPACING 0.45 ; "
+[INFO ODB-0223]     Created 17 technology layers
+[INFO ODB-0224]     Created 46 technology vias
+[INFO ODB-0226] Finished LEF file:  ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll_6m2t.lef
+[INFO ODB-0222] Reading LEF file: ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll.lef
+[INFO ODB-0394] Duplicate site CORE_6T in ua11lscef15bdrll already seen in ua11lscef15bdrll_6m2t
+[WARNING ODB-0220] WARNING (LEFPARS-2002): NAMESCASESENSITIVE is a required statement on LEF file with version 5.5 and earlier.
+Without NAMESCASESENSITIVE defined, the LEF file is technically incorrect.
+Refer the LEF/DEF 5.5 or earlier Language Referece manual on how to define this statement. See file ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll.lef at line 99017.
+
+[INFO ODB-0225]     Created 820 library cells
+[INFO ODB-0226] Finished LEF file:  ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll.lef
+Startpoint: x[2] (input port)
+Endpoint: op (output port)
+Path Group: path delay
+Path Type: max
+
+Fanout     Cap    Slew   Delay    Time   Description
+-----------------------------------------------------------------------------
+                          0.10    0.10 v input external delay
+     5    0.01    0.00    0.00    0.10 v x[2] (in)
+                                         x[2] (net)
+                  0.00    0.00    0.10 v _40_/A1 (AO21M2HM)
+     1    0.00    0.08    0.20    0.30 v _40_/Z (AO21M2HM)
+                                         _09_ (net)
+                  0.08    0.00    0.30 v _42_/B (ND3M2HM)
+     1    0.00    0.17    0.13    0.43 ^ _42_/Z (ND3M2HM)
+                                         _11_ (net)
+                  0.17    0.00    0.43 ^ _43_/C (XOR3M2HM)
+     1    0.00    0.10    0.43    0.86 v _43_/Z (XOR3M2HM)
+                                         _12_ (net)
+                  0.10    0.00    0.86 v _46_/A (XOR3M2HM)
+     1    0.00    0.10    0.58    1.43 ^ _46_/Z (XOR3M2HM)
+                                         _15_ (net)
+                  0.10    0.00    1.43 ^ _49_/A (XOR3M2HM)
+     1    0.00    0.08    0.60    2.03 v _49_/Z (XOR3M2HM)
+                                         _18_ (net)
+                  0.08    0.00    2.03 v op (out)
+                                  2.03   data arrival time
+
+                          0.25    0.25   max_delay
+                          0.00    0.25   output external delay
+                                  0.25   data required time
+-----------------------------------------------------------------------------
+                                  0.25   data required time
+                                 -2.03   data arrival time
+-----------------------------------------------------------------------------
+                                 -1.78   slack (VIOLATED)
+
+
+Setting cut_remap
+[WARNING STA-0328] port 'Z' not found.
+[WARNING STA-0328] port 'Z' not found.
+Cut based Restructuring.
+Cmd warning: redefining '%graft'
+Warning: Detected 6 multi-output gates (for example, "ADFM2HM").
+Successfully read in library
+
+Generated 7 cuts.
+Processing cut 4 of volume 4 with 1 roots and 8 leaves.
+PhysRemapping cut 4.
+Success: Cut passes axiom checks
+Startpoint: x[0] (input port)
+Endpoint: op (output port)
+Path Group: path delay
+Path Type: max
+
+Fanout     Cap    Slew   Delay    Time   Description
+-----------------------------------------------------------------------------
+                          0.20    0.20 ^ input external delay
+     7    0.01    0.00    0.00    0.20 ^ x[0] (in)
+                                         x[0] (net)
+                  0.00    0.00    0.20 ^ CKINVM2HM_3/A (CKINVM2HM)
+     2    0.00    0.07    0.05    0.25 v CKINVM2HM_3/Z (CKINVM2HM)
+                                         CKINVM2HM_3_10 (net)
+                  0.07    0.00    0.25 v OR2M2HM_9/A (OR2M2HM)
+     2    0.00    0.10    0.27    0.52 v OR2M2HM_9/Z (OR2M2HM)
+                                         OR2M2HM_9_16 (net)
+                  0.10    0.00    0.52 v OAI211M2HM_14/A2 (OAI211M2HM)
+     3    0.01    0.38    0.27    0.79 ^ OAI211M2HM_14/Z (OAI211M2HM)
+                                         OAI211M2HM_14_21 (net)
+                  0.38    0.00    0.79 ^ CKINVM2HM_15/A (CKINVM2HM)
+     2    0.00    0.15    0.16    0.95 v CKINVM2HM_15/Z (CKINVM2HM)
+                                         CKINVM2HM_15_22 (net)
+                  0.15    0.00    0.95 v AOI22M2HM_17/B2 (AOI22M2HM)
+     1    0.00    0.26    0.27    1.23 ^ AOI22M2HM_17/Z (AOI22M2HM)
+                                         AOI22M2HM_17_24 (net)
+                  0.26    0.00    1.23 ^ OAI22B10M2HM_18/B2 (OAI22B10M2HM)
+     1    0.00    0.09    0.15    1.38 v OAI22B10M2HM_18/Z (OAI22B10M2HM)
+                                         _18_ (net)
+                  0.09    0.00    1.38 v op (out)
+                                  1.38   data arrival time
+
+                          0.25    0.25   max_delay
+                          0.00    0.25   output external delay
+                                  0.25   data required time
+-----------------------------------------------------------------------------
+                                  0.25   data required time
+                                 -1.38   data arrival time
+-----------------------------------------------------------------------------
+                                 -1.13   slack (VIOLATED)
+
+
+No differences found.

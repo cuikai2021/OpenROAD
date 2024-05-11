@@ -64,6 +64,11 @@ function perf_file_id {
   return $id
 }
 
+function run_valgrind {
+  case=$1
+  stepin valgrind --leak-check=full --show-reachable=yes $EDEN $case
+}
+
 function run_heap_perf {
   case=$1
   perf_file_id heap $case
