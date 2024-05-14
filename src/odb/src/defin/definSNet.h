@@ -97,6 +97,7 @@ class definSNet : public definBase
   virtual void property(const char* name, const char* value);
   virtual void property(const char* name, int value);
   virtual void property(const char* name, double value);
+  virtual void pattern(const char* name);
   virtual void end();
 
   void connect_all(dbNet*, const char* term);

@@ -95,6 +95,8 @@ class _dbAccessPoint;
 class _dbGlobalConnect;
 class _dbGuide;
 class _dbNetTrack;
+class _dbScanChain;
+
 class dbJournal;
 
 class dbNetBTermItr;
@@ -155,6 +157,11 @@ class _dbBlock : public _dbObject
   char* _name;
   Rect _die_area;
   dbId<_dbTech> _tech;
+  dbVector<Point> _die_area_polygon;
+  dbVector<Rect> _die_area_blk_bboxes;
+  dbVector<uint> _diearea_pl_blockages;
+  dbVector<uint> _diearea_rt_blockages;
+
   dbId<_dbChip> _chip;
   dbId<_dbBox> _bbox;
   dbId<_dbBlock> _parent;
@@ -225,6 +232,7 @@ class _dbBlock : public _dbObject
   dbTable<_dbCapNode>* _cap_node_tbl;
   dbTable<_dbRSeg>* _r_seg_tbl;
   dbTable<_dbCCSeg>* _cc_seg_tbl;
+  dbTable<_dbScanChain>* _scan_chain_tbl;
   dbExtControl* _extControl;
 
   // NON-PERSISTANT-NON-STREAMED-MEMBERS

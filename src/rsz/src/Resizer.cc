@@ -166,6 +166,17 @@ void Resizer::init(Logger* logger,
   copyState(sta);
 }
 
+void Resizer::init(Logger* logger,
+                   dbDatabase* db,
+                   dbSta* sta,
+                   SteinerTreeBuilder* stt_builder,
+                   GlobalRouter* global_router,
+                   dpl::Opendp* opendp)
+{
+  std::unique_ptr<AbstractSteinerRenderer> ptr;
+  init(logger, db, sta, stt_builder, global_router, opendp, std::move(ptr));
+}
+
 ////////////////////////////////////////////////////////////////
 
 double
@@ -240,12 +251,12 @@ Resizer::initBlock()
 }
 
 void
-Resizer::init()
+Resizer::init(bool initArea)
 {
   initBlock();
   sta_->ensureLevelized();
   graph_ = sta_->graph();
-  initDesignArea();
+  if (initArea) initDesignArea();
 }
 
 void
@@ -1449,7 +1460,23 @@ Resizer::area(dbMaster *master)
   if (!master->isCoreAutoPlaceable()) {
     return 0;
   }
-  return dbuToMeters(master->getWidth()) * dbuToMeters(master->getHeight());
+  if (!master->hasOverlapObstruction())
+	return dbuToMeters(master->getWidth()) * dbuToMeters(master->getHeight());
+
+  struct dbMasterAreaCache : public std::unordered_map<dbMaster*, double> {};
+  static dbMasterAreaCache dbMasterAreaCacheInstance;
+  auto areaIter = dbMasterAreaCacheInstance.find(master);
+  if (areaIter != dbMasterAreaCacheInstance.end()) return areaIter->second;
+  double res = 0.0;
+  for (auto const &obs : master->getObstructions()) {
+    auto layer = obs->getTechLayer();
+    if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
+      odb::Rect rect = obs->getBox();
+      res += dbuToMeters(rect.dx()) * dbuToMeters(rect.dy());
+    }
+  } 
+  dbMasterAreaCacheInstance.insert({master, res});
+  return res;
 }
 
 double
@@ -2201,7 +2228,7 @@ Resizer::findSwapPinCandidate(LibertyPort *input_port, LibertyPort *drvr_port,
                 ArcDelay gate_delay;
                 Slew drvr_slew;
                 LibertyPort *port = arc->from();
-                arc_delay_calc_->gateDelay(arc, in_slew, load_cap,
+                sta_->arcDelayCalc()->gateDelay(arc, in_slew, load_cap,
                                            nullptr, 0.0, pvt, dcalc_ap,
                                            gate_delay,
                                            drvr_slew);
@@ -2257,7 +2284,7 @@ Resizer::gateDelays(LibertyPort *drvr_port,
         float in_slew = tgt_slews_[in_rf->index()];
         ArcDelay gate_delay;
         Slew drvr_slew;
-        arc_delay_calc_->gateDelay(arc, in_slew, load_cap,
+        sta_->arcDelayCalc()->gateDelay(arc, in_slew, load_cap,
                                    nullptr, 0.0, pvt, dcalc_ap,
                                    gate_delay,
                                    drvr_slew);
@@ -2530,7 +2557,7 @@ Resizer::initDesignArea()
   for (dbInst *inst : block_->getInsts()) {
     dbMaster *master = inst->getMaster();
     // Don't count fillers otherwise you'll always get 100% utilization
-    if (!master->isFiller()) {
+    if (!master->isFiller() && !master->isPad()) {
       design_area_ += area(master);
     }
   }

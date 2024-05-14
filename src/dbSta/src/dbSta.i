@@ -6,6 +6,7 @@
 #include "db_sta/MakeDbSta.hh"
 #include "ord/OpenRoad.hh"
 #include "sta/VerilogWriter.hh"
+#include "db_sta/report_timing.hpp"
 
 namespace ord {
 // Defined in OpenRoad.i
@@ -144,20 +145,37 @@ db_network_defined()
   db_network->readDefAfter(block);
 }
 
+void
+db_network_initclknets()
+{
+  ord::OpenRoad *openroad = ord::getOpenRoad();
+  sta::dbSta *sta = openroad->getSta();
+  sta->initClkNets();
+}
+
 // Copied from sta/verilog/Verilog.i because we don't want sta::read_verilog
 // that is in the same file.
 void
 write_verilog_cmd(const char *filename,
 		  bool sort,
 		  bool include_pwr_gnd,
+		  bool exclude_not_in_lib,
 		  CellSeq *remove_cells)
 {
   // This does NOT want the SDC (cmd) network because it wants
   // to see the sta internal names.
   Sta *sta = Sta::sta();
   Network *network = sta->network();
-  sta::writeVerilog(filename, sort, include_pwr_gnd, remove_cells, network);
+  sta::writeVerilog(filename, sort, include_pwr_gnd, exclude_not_in_lib, remove_cells, network);
   delete remove_cells;
+}
+
+void report_timing_cmd(
+  std::string output_file,
+  bool suppress_details,
+  bool suppress_path)
+{
+  dbsta::report_timing(output_file, suppress_details, suppress_path);
 }
 
 %} // inline

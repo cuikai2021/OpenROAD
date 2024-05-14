@@ -38,9 +38,6 @@ swig_lib(NAME         dpo
          SCRIPTS      src/Optdp.tcl
 )
 
-# https://github.com/The-OpenROAD-Project/OpenROAD/issues/1186
-find_package(LEMON NAMES LEMON lemon REQUIRED)
-
 target_sources(dpo
   PRIVATE
     src/Optdp.cpp
@@ -66,7 +63,6 @@ target_sources(dpo
 target_include_directories(dpo
   PUBLIC
     include
-    ${LEMON_INCLUDE_DIRS}
 )
 
 target_link_libraries(dpo
@@ -75,6 +71,7 @@ target_link_libraries(dpo
     OpenSTA
     utl
     dpl_lib
+    lemon
 )
 
 messages(

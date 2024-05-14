@@ -77,8 +77,39 @@ proc run_equivalence_test {test lib remove_cells} {
   
 }
 #===========================================================================================
+proc rm_annotation {file} {
+  if {[string match *.def $file] || [string match *.defgen $file]} {
+    # get lines in def
+    set f [open $file r]
+    set lines [split [read $f] "\n"]
+    close $f
+
+    # return if no annotation
+    if {![string match #* [lindex $lines 0]]} {
+      return
+    }
+
+    # rewrite to def without annotation
+    set f [open $file w]
+    set annotation 1
+    foreach line $lines {
+        if {![string match #* $line]} {
+            if {$annotation == 1} {
+                set annotation 0
+            }
+            puts $f $line
+        } elseif {$annotation == 0} {
+          puts $f $line
+        }
+    }
+    close $f
+  }
+}
 
 proc diff_files { file1 file2 {ignore ""}} {
+  rm_annotation $file1
+  rm_annotation $file2
+
   set stream1 [open $file1 r]
   set stream2 [open $file2 r]
 
@@ -218,3 +249,6 @@ suppress_message PAR 38
 
 # suppress ord message with number of threads
 suppress_message ORD 30
+
+suppress_message STA 1001
+suppress_message STA 1002

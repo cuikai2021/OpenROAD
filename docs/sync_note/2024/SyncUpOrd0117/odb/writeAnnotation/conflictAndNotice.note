@@ -1,0 +1,3 @@
+test/helpers.tcl
+
+Left issue : after write any Annotation, proc rm_annotation {file} will print extra blank ending line, which can't pass nowadays proc diff_files { file1 file2 {ignore ""}}.

@@ -37,9 +37,11 @@
 #include <string>
 
 #include "odb/db.h"
+#include "odb/dbSet.h"
 #include "odb/dbMap.h"
 #include "odb/defout.h"
 #include "odb/odb.h"
+
 namespace utl {
 class Logger;
 }
@@ -51,6 +53,7 @@ class dbBTerm;
 class dbInst;
 class dbTechNonDefaultRule;
 class dbTechLayerRule;
+class dbScanChainComp;
 
 class defout_impl
 {
@@ -85,6 +88,7 @@ class defout_impl
 
   int defdist(uint value) { return (uint) (((double) value) * _dist_factor); }
 
+  void writeAnnotation();
   void writePropertyDefinitions(dbBlock* block);
   void writeRows(dbBlock* block);
   void writeTracks(dbBlock* block);
@@ -113,6 +117,8 @@ class defout_impl
   void writePropValue(dbProperty* prop);
   void writeProperties(dbObject* object);
   void writePinProperties(dbBlock* block);
+  void writeScanChains(dbBlock* block);
+  void writeScanChainsComps(const dbSet<dbScanChainComp>& comps, const char* type);
   bool hasProperties(dbObject* object, ObjType type);
 
  public:

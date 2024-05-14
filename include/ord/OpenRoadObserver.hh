@@ -31,11 +31,13 @@ class OpenRoadObserver
       unregister_observer_();
     }
   }
-
+  virtual void postReadLef(const char *filename, odb::dbTech* tech, odb::dbLib* library, bool make_tech) {
+    postReadLef(tech, library);
+  }
   // Either pointer could be null
-  virtual void postReadLef(odb::dbTech* tech, odb::dbLib* library) = 0;
-  virtual void postReadDef(odb::dbBlock* block) = 0;
-  virtual void postReadDb(odb::dbDatabase* db) = 0;
+  virtual void postReadLef(odb::dbTech* tech, odb::dbLib* library) {}
+  virtual void postReadDef(odb::dbBlock* block) {}
+  virtual void postReadDb(odb::dbDatabase* db) {}
 
   void set_unregister_observer(std::function<void()> unregister_observer)
   {

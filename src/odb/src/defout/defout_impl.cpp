@@ -34,8 +34,10 @@
 
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/utsname.h>
 
 #include <cstdint>
+#include <chrono>
 #include <limits>
 #include <optional>
 #include <set>
@@ -44,7 +46,9 @@
 #include "odb/db.h"
 #include "odb/dbMap.h"
 #include "odb/dbWireCodec.h"
+#include "ord/Version.hh"
 #include "utl/Logger.h"
+
 namespace odb {
 
 static const int max_name_length = 256;
@@ -165,6 +169,7 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
   struct stat stats;
   fstat(fileno(_out), &stats);
   setvbuf(_out, nullptr, _IOFBF, stats.st_blksize);
+  writeAnnotation();
 
   if (_version == defout::DEF_5_3) {
     fprintf(_out, "VERSION 5.3 ;\n");
@@ -206,15 +211,24 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
 
   writePropertyDefinitions(block);
 
-  Rect r = block->getDieArea();
+  auto polyPoints = block->getPolygonDieArea();
+  if (polyPoints.size() > 0) {
+    fprintf(_out, "DIEAREA");
+    for (auto point : polyPoints) {
+      fprintf(_out, " ( %d %d )", defdist(point.getX()), defdist(point.getY()));
+    }
+    fprintf(_out, " ;\n");
+  } else {
+    Rect r = block->getDieArea();
 
-  int x1 = defdist(r.xMin());
-  int y1 = defdist(r.yMin());
-  int x2 = defdist(r.xMax());
-  int y2 = defdist(r.yMax());
+    int x1 = defdist(r.xMin());
+    int y1 = defdist(r.yMin());
+    int x2 = defdist(r.xMax());
+    int y2 = defdist(r.yMax());
 
-  if ((x1 != 0) || (y1 != 0) || (x2 != 0) || (y2 != 0))
-    fprintf(_out, "DIEAREA ( %d %d ) ( %d %d ) ;\n", x1, y1, x2, y2);
+    if ((x1 != 0) || (y1 != 0) || (x2 != 0) || (y2 != 0))
+      fprintf(_out, "DIEAREA ( %d %d ) ( %d %d ) ;\n", x1, y1, x2, y2);
+  }
 
   writeRows(block);
   writeTracks(block);
@@ -232,6 +246,7 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
   writeFills(block);
   writeNets(block);
   writeGroups(block);
+  writeScanChains(block);
 
   fprintf(_out, "END DESIGN\n");
   fclose(_out);
@@ -240,6 +255,9 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
   if (_select_inst_map)
     delete _select_inst_map;
   return true;
+}
+
+void defout_impl::writeAnnotation() {
 }
 
 void defout_impl::writeRows(dbBlock* block)
@@ -1378,6 +1396,9 @@ void defout_impl::writeSNet(dbNet* net)
   const char* sig_type = defSigType(net->getSigType());
   fprintf(_out, " + USE %s", sig_type);
 
+  if (net->hasPattern())
+	fprintf(_out, " + PATTERN %s", net->getPatternStr());
+
   _non_default_rule = nullptr;
   dbSet<dbSWire> swires = net->getSWires();
   dbSet<dbSWire>::iterator itr;
@@ -1472,6 +1493,8 @@ void defout_impl::writeWire(dbWire* wire)
         break;
       }
 
+      case dbWireDecoder::POINT_VIRTUAL:
+        fprintf(_out, " VIRTUAL");
       case dbWireDecoder::POINT: {
         int x, y;
         decode.getPoint(x, y);
@@ -2157,6 +2180,66 @@ void defout_impl::writePinProperties(dbBlock* block)
   }
 
   fprintf(_out, "END PINPROPERTIES\n");
+}
+
+void defout_impl::writeScanChainsComps(const dbSet<dbScanChainComp>& comps, const char* type) {
+  bool has = false;
+  for (dbScanChainComp* c : comps) {
+   if (!has) {
+     fprintf(_out, "+ %s ", type);
+     has = true;
+   } else
+	  fprintf(_out, "\n");
+   fprintf(_out, "%s ( IN %s ) ( OUT %s )",
+	  c->getInst()->getName().c_str(),
+     c->getScanIn()->getMTerm()->getName().c_str(),
+     c->getScanOut()->getMTerm()->getName().c_str());
+    if (c->getNumBits() != 1) {
+    	fprintf(_out, " ( BITS %u )", c->getNumBits());
+    }
+  }
+  if(has)
+   fprintf(_out, "\n");
+}
+
+void defout_impl::writeScanChains(dbBlock* block) {
+  uint scsz = block->getScanChainCount();
+  if (scsz == 0) return;
+  fprintf(_out, "SCANCHAINS %u ;\n\n", scsz);
+  for (dbScanChain* sc : block->getScanChains()) {
+     fprintf(_out, "- %s\n", sc->getName());
+     //start
+     dbITerm* start = sc->getStart();
+     if (start)
+       fprintf(_out, "+ START %s %s\n", start->getInst()->getName().c_str(), start->getMTerm()->getName().c_str());
+     else {
+       dbBTerm* bterm = sc->getBTermStart();
+       assert(bterm);
+       fprintf(_out, "+ START PIN %s\n", bterm->getName().c_str());
+     }
+     //floating
+     writeScanChainsComps(sc->getFloating(), "FLOATING");
+     //ordered
+     for (dbScanChainList* l : sc->getOrdered())
+    	 writeScanChainsComps(l->getComps(), "ORDERED");
+     // partition
+     if (sc->getPartitionName()) {
+    	 if (sc->getPartitionMaxBits())
+    		fprintf(_out, "+ PARTITION %s %u\n", sc->getPartitionName(), sc->getPartitionMaxBits());
+    	 else
+         fprintf(_out, "+ PARTITION %s\n", sc->getPartitionName());
+     }
+     //stop
+     dbITerm* stop  = sc->getStop();
+     if (stop) 
+       fprintf(_out, "+ STOP %s %s ;\n\n", stop->getInst()->getName().c_str(), stop->getMTerm()->getName().c_str());
+     else {
+       dbBTerm* bterm = sc->getBTermStop();
+       assert(bterm);
+       fprintf(_out, "+ STOP PIN %s ;\n", bterm->getName().c_str());
+     }
+  }
+  fprintf(_out, "END SCANCHAINS\n");
 }
 
 }  // namespace odb

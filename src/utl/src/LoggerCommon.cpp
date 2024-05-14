@@ -49,7 +49,7 @@ using ord::getLogger;
 void report(const char* msg)
 {
   Logger* logger = getLogger();
-  logger->report(msg);
+  logger->report("{}", msg);
 }
 
 void info(utl::ToolId tool, int id, const char* msg)
@@ -140,6 +140,13 @@ void unsuppress_message(utl::ToolId tool, int id)
 {
   Logger* logger = getLogger();
   logger->unsuppressMessage(tool, id);
+}
+
+void 
+suppress_exact_message(const char* msg)
+{
+  Logger *logger = getLogger();
+  logger->registerSuppressedExactMessage(msg);
 }
 
 }  // namespace utl

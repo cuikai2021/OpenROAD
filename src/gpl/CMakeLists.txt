@@ -41,8 +41,8 @@ include("openroad")
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Eigen3 REQUIRED)
+find_package(Protobuf REQUIRED)
 find_package(ortools REQUIRED)
-find_package(LEMON NAMES LEMON lemon REQUIRED)
 find_package(OpenMP REQUIRED)
 
 swig_lib(NAME      gpl
@@ -52,7 +52,7 @@ swig_lib(NAME      gpl
 )
 
 target_sources(gpl
-  PRIVATE
+PRIVATE
     src/MakeReplace.cpp
     src/replace.cpp
     src/initialPlace.cpp
@@ -74,13 +74,13 @@ messages(TARGET gpl)
 target_include_directories(gpl
   PUBLIC
     include
-    ${LEMON_INCLUDE_DIRS}
 )
 
 target_link_libraries(gpl
-  PRIVATE
-    utl
+PUBLIC
     Eigen3::Eigen
+PRIVATE
+    utl
     gui
     odb
     OpenSTA
@@ -89,14 +89,15 @@ target_link_libraries(gpl
     ortools::ortools
     Threads::Threads
     OpenMP::OpenMP_CXX
+    lemon
 )
 
 # Allow users to use GPU or not
 option(GPU "Enable GPU" OFF)
 if (GPU)
   message(STATUS "GPU is enabled")
-  # find_package(CUDA) should be replaced by "FindCUDAToolkit" for CMAKE verison >= 3.17. 
-  # See https://cmake.org/cmake/help/latest/module/FindCUDAToolkit.html. 
+  # find_package(CUDA) should be replaced by "FindCUDAToolkit" for CMAKE verison >= 3.17.
+  # See https://cmake.org/cmake/help/latest/module/FindCUDAToolkit.html.
   # find_package(CUDA) or FindCUDA is deprecated since vision 3.10.
   find_package(CUDA QUIET COMPONENTS Core Widgets)
   if (CUDA_FOUND)
@@ -133,7 +134,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
   target_include_directories(gpl_py
     PUBLIC
       include
-      
+
   )
 
   target_link_libraries(gpl_py

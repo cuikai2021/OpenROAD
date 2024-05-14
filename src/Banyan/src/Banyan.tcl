@@ -1,7 +1,12 @@
 proc banyan { args } {
   set now [clock format [clock seconds] -format %y%m%d-%T-%Z]
   utl::info BY 6 "run banyan with args: `$args' at $now"
-  banyan::banyan $args
+  banyan::banyan $args true
+}
+
+sta::define_cmd_args "banyan_pa_eval" {[#<extra args forwarded to `eval banyan pa_eval`>]}
+proc banyan_pa_eval { args } {
+    banyan::banyan [linsert $args 0 "pa_eval"] false
 }
 
 sta::define_cmd_args "banyan_clear_wires" {

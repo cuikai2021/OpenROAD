@@ -556,6 +556,18 @@ dbLib* dbMaster::getLib()
   return (dbLib*) getImpl()->getOwner();
 }
 
+
+bool dbMaster::hasOverlapObstruction() const
+{
+  _dbMaster* master = (_dbMaster*) this;
+  if (master->overlapCached) return master->hasOverlap;
+  master->overlapCached = true;
+  for (auto const & obs : ((dbMaster*)this)->getObstructions())
+	if (obs->getTechLayer()->getType() == odb::dbTechLayerType::OVERLAP)
+	  return master->hasOverlap = true;
+  return master->hasOverlap;
+}
+
 dbSet<dbBox> dbMaster::getObstructions()
 {
   _dbMaster* master = (_dbMaster*) this;

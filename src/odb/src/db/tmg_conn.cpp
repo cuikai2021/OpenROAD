@@ -34,6 +34,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cassert>
 
 #include "db.h"
 #include "dbShape.h"
@@ -464,6 +465,7 @@ void tmg_conn::splitBySj(const int j,
     // create new tmg_rc
     addRc(
         k, _rcV[k]._shape, _ptV.size() - 1, endTo, nxmin, nymin, nxmax, nymax);
+    assert(_rcV.size() > 0);
     _search->addShape(rt, {nxmin, nymin, nxmax, nymax}, 0, _rcV.size() - 1);
   }
 }
@@ -661,7 +663,7 @@ void tmg_conn::findConnections()
     pt._sring = nullptr;
   }
   _first_for_clear = nullptr;
-  for (size_t j = 0; j < _rcV.size() - 1; j++) {
+  for (size_t j = 0; j < (int) _rcV.size() - 1; j++) {
     if (_rcV[j]._ito == _rcV[j + 1]._ifr) {
       _ptV[_rcV[j]._ito]._fre = 0;
     }

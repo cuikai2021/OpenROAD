@@ -51,6 +51,7 @@
 #include <unordered_map>
 #include <utility>  // pair
 #include <vector>
+#include <numeric>
 
 #include "odb/db.h"
 

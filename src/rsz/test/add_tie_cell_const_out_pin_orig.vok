@@ -1,0 +1,48 @@
+module top (a,
+    b,
+    c,
+    d0,
+    z0,
+    y0,
+    x0,
+    e0,
+    f0,
+    d1,
+    z1,
+    y1,
+    x1,
+    e1,
+    f1);
+ input a;
+ input b;
+ output c;
+ output d0;
+ output z0;
+ output y0;
+ output x0;
+ output e0;
+ output f0;
+ output d1;
+ output z1;
+ output y1;
+ output x1;
+ output e1;
+ output f1;
+
+ wire z0_renamed;
+ wire zero_;
+ wire z1_renamed;
+ wire one_;
+
+ AND2_X1 _0_ (.A1(b),
+    .A2(a),
+    .ZN(c));
+ assign z0 = z0_renamed;
+ assign x0 = y0;
+ assign e0 = zero_;
+ assign f0 = zero_;
+ assign z1 = z1_renamed;
+ assign x1 = y1;
+ assign e1 = one_;
+ assign f1 = one_;
+endmodule

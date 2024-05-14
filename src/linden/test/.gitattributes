@@ -1,0 +1,10 @@
+sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib filter=lfs diff=lfs merge=lfs -text
+sky130hd/sky130hd.tlef filter=lfs diff=lfs merge=lfs -text
+Nangate45_typ.lib filter=lfs diff=lfs merge=lfs -text
+nangate45.lef filter=lfs diff=lfs merge=lfs -text
+simple01-obs.def filter=lfs diff=lfs merge=lfs -text
+simple01-obs.defok filter=lfs diff=lfs merge=lfs -text
+simple01-td.def filter=lfs diff=lfs merge=lfs -text
+simple01-td.defok filter=lfs diff=lfs merge=lfs -text
+simple01-rd.def filter=lfs diff=lfs merge=lfs -text
+simple01-rd.defok filter=lfs diff=lfs merge=lfs -text

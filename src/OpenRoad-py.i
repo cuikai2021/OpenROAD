@@ -50,10 +50,10 @@ using odb::dbTech;
 
 // Defined by OpenRoad.i inlines
 const char *
-openroad_version();
+eden_version();
 
 const char *
-openroad_git_describe();
+eden_git_describe();
 
 odb::dbDatabase *
 get_db();
@@ -80,10 +80,10 @@ get_db_block();
 %newobject Design::getFloorplan();
 
 const char *
-openroad_version();
+eden_version();
 
 const char *
-openroad_git_describe();
+eden_git_describe();
 
 odb::dbDatabase *
 get_db();

@@ -1235,17 +1235,18 @@ state_machine_update : {
     default_ext = dw;
   }
 
-  shape.setSegment(prev[0],
-                   prev[1],
-                   prev_ext,
-                   has_prev_ext,
-                   cur[0],
-                   cur[1],
-                   cur_ext,
-                   has_cur_ext,
-                   dw,
-                   default_ext,
-                   layer);
+  if (!(opcode & WOP_VIRTUAL))  // ???
+    shape.setSegment(prev[0],
+                     prev[1],
+                     prev_ext,
+                     has_prev_ext,
+                     cur[0],
+                     cur[1],
+                     cur_ext,
+                     has_cur_ext,
+                     dw,
+                     default_ext,
+                     layer);
 }
 
 //
@@ -1399,17 +1400,18 @@ state_machine_update : {
     default_ext = dw;
   }
 
-  shape.setSegment(prev[0],
-                   prev[1],
-                   prev_ext,
-                   has_prev_ext,
-                   cur[0],
-                   cur[1],
-                   cur_ext,
-                   has_cur_ext,
-                   dw,
-                   default_ext,
-                   layer);
+  if (!(opcode & WOP_VIRTUAL))  // ???
+    shape.setSegment(prev[0],
+                     prev[1],
+                     prev_ext,
+                     has_prev_ext,
+                     cur[0],
+                     cur[1],
+                     cur_ext,
+                     has_cur_ext,
+                     dw,
+                     default_ext,
+                     layer);
 }
 
 inline unsigned char getPrevOpcode(_dbWire* wire, int& idx)

@@ -108,6 +108,7 @@
 #include "dbSWire.h"
 #include "dbSWireItr.h"
 #include "dbShape.h"
+#include "dbScanChain.h"
 #include "dbTable.h"
 #include "dbTable.hpp"
 #include "dbTech.h"
@@ -312,6 +313,10 @@ _dbBlock::_dbBlock(_dbDatabase* db)
   _cc_seg_tbl = new dbTable<_dbCCSeg>(
       db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbCCSegObj, 4096, 12);
 
+  _scan_chain_tbl = new dbTable<_dbScanChain>(
+		db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbScanChainObj);
+  ZALLOCATED(_scan_chain_tbl);
+
   _extControl = new dbExtControl();
 
   _net_hash.setTable(_net_tbl);
@@ -391,6 +396,10 @@ _dbBlock::_dbBlock(_dbDatabase* db, const _dbBlock& block)
       _name(nullptr),
       _die_area(block._die_area),
       _tech(block._tech),
+      _die_area_polygon(block._die_area_polygon),
+      _die_area_blk_bboxes(block._die_area_blk_bboxes),
+      _diearea_pl_blockages(block._diearea_pl_blockages),
+      _diearea_rt_blockages(block._diearea_rt_blockages),
       _chip(block._chip),
       _bbox(block._bbox),
       _parent(block._parent),
@@ -512,6 +521,9 @@ _dbBlock::_dbBlock(_dbDatabase* db, const _dbBlock& block)
 
   _cc_seg_tbl = new dbTable<_dbCCSeg>(db, this, *block._cc_seg_tbl);
 
+  _scan_chain_tbl = new dbTable<_dbScanChain>(db, this, *block._scan_chain_tbl);
+  ZALLOCATED(_scan_chain_tbl);
+
   _extControl = new dbExtControl();
 
   _net_hash.setTable(_net_tbl);
@@ -631,6 +643,7 @@ _dbBlock::~_dbBlock()
   delete _cap_node_tbl;
   delete _r_seg_tbl;
   delete _cc_seg_tbl;
+  delete _scan_chain_tbl;
   delete _extControl;
   delete _net_bterm_itr;
   delete _net_iterm_itr;
@@ -836,6 +849,9 @@ dbObjectTable* _dbBlock::getObjectTable(dbObjectType type)
     case dbCCSegObj:
       return _cc_seg_tbl;
 
+    case dbScanChainObj:
+    	return _scan_chain_tbl;
+
     case dbRowObj:
       return _row_tbl;
 
@@ -885,6 +901,10 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   stream << block._name;
   stream << block._die_area;
   stream << block._tech;
+  stream << block._die_area_polygon;
+  stream << block._die_area_blk_bboxes;
+  stream << block._diearea_pl_blockages;
+  stream << block._diearea_rt_blockages;
   stream << block._chip;
   stream << block._bbox;
   stream << block._parent;
@@ -952,6 +972,7 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   stream << *block._cap_node_tbl;  // DKF - 2/21/05
   stream << *block._r_seg_tbl;     // DKF - 2/21/05
   stream << *block._cc_seg_tbl;
+  stream << *block._scan_chain_tbl;
   stream << *block._extControl;
 
   //---------------------------------------------------------- stream out
@@ -989,6 +1010,10 @@ dbIStream& operator>>(dbIStream& stream, _dbBlock& block)
   if (db->isSchema(db_schema_block_tech)) {
     stream >> block._tech;
   }
+  stream >> block._die_area_polygon;
+  stream >> block._die_area_blk_bboxes;
+  stream >> block._diearea_pl_blockages;
+  stream >> block._diearea_rt_blockages;
   stream >> block._chip;
   stream >> block._bbox;
   stream >> block._parent;
@@ -1072,6 +1097,7 @@ dbIStream& operator>>(dbIStream& stream, _dbBlock& block)
   stream >> *block._cap_node_tbl;  // DKF
   stream >> *block._r_seg_tbl;     // DKF
   stream >> *block._cc_seg_tbl;
+  stream >> *block._scan_chain_tbl;
   stream >> *block._extControl;
 
   //---------------------------------------------------------- stream in
@@ -1156,6 +1182,18 @@ bool _dbBlock::operator==(const _dbBlock& rhs) const
     return false;
 
   if (_tech != rhs._tech)
+    return false;
+
+  if (_die_area_polygon != rhs._die_area_polygon)
+    return false;
+
+  if (_die_area_blk_bboxes != rhs._die_area_blk_bboxes)
+    return false;
+
+  if (_diearea_pl_blockages != rhs._diearea_pl_blockages)
+    return false;
+
+  if (_diearea_rt_blockages != rhs._diearea_rt_blockages)
     return false;
 
   if (_chip != rhs._chip)
@@ -1360,6 +1398,9 @@ bool _dbBlock::operator==(const _dbBlock& rhs) const
   if (*_cc_seg_tbl != *rhs._cc_seg_tbl)
     return false;
 
+  if (*_scan_chain_tbl != *rhs._scan_chain_tbl)
+	 return false;
+
   return true;
 }
 
@@ -1458,6 +1499,7 @@ void _dbBlock::differences(dbDiff& diff,
   DIFF_TABLE_NO_DEEP(_cap_node_tbl);
   DIFF_TABLE_NO_DEEP(_r_seg_tbl);
   DIFF_TABLE_NO_DEEP(_cc_seg_tbl);
+  DIFF_TABLE(_scan_chain_tbl);
   DIFF_END
 }
 
@@ -1549,6 +1591,7 @@ void _dbBlock::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_TABLE_NO_DEEP(_cap_node_tbl);
   DIFF_OUT_TABLE_NO_DEEP(_r_seg_tbl);
   DIFF_OUT_TABLE_NO_DEEP(_cc_seg_tbl);
+  DIFF_OUT_TABLE(_scan_chain_tbl);
   DIFF_END
 }
 
@@ -1920,6 +1963,81 @@ dbSet<dbBlockage> dbBlock::getBlockages()
   return dbSet<dbBlockage>(block, block->_blockage_tbl);
 }
 
+void dbBlock::setPolygonDieArea(std::vector<odb::Point>&& points, std::vector<odb::Rect>&& blks)
+{
+  _dbBlock* block = (_dbBlock*) this;
+  block->_die_area_polygon = points;
+  block->_die_area_blk_bboxes = blks;
+}
+
+const std::vector<odb::Point>& dbBlock::getPolygonDieArea()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return block->_die_area_polygon;
+}
+
+const std::vector<uint>& dbBlock::getDieAreaRoutingBlockageIds()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return block->_diearea_rt_blockages;
+}
+
+void dbBlock::deleteDieAreaBlockages()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  for (auto bid : block->_diearea_pl_blockages) {
+    _dbBlockage* bkg = block->_blockage_tbl->getPtr(bid);
+    block->_blockage_tbl->destroy(bkg);
+  }
+  block->_diearea_pl_blockages.clear();
+  for (auto bid : block->_diearea_rt_blockages) {
+    _dbObstruction* bkg = block->_obstruction_tbl->getPtr(bid);
+    dbObstruction::destroy((dbObstruction*) bkg);
+  }
+  block->_diearea_rt_blockages.clear();
+}
+
+void dbBlock::createDieAreaBlockages()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  dbTech* tech = getDb()->getTech();
+
+  for (auto blockage : block->_die_area_blk_bboxes) {
+    _dbBlockage* bkg = block->_blockage_tbl->create();
+
+    _dbBox* box = block->_box_tbl->create();
+    box->_shape._rect.init(
+        blockage.xMin(), blockage.yMin(), blockage.xMax(), blockage.yMax());
+    box->_flags._owner_type = dbBoxOwner::BLOCKAGE;
+    box->_owner = bkg->getOID();
+    bkg->_bbox = box->getOID();
+
+    // Update bounding box of block
+    _dbBox* bbox = (_dbBox*) block->_box_tbl->getPtr(block->_bbox);
+    bbox->_shape._rect.merge(box->_shape._rect);
+
+    block->_diearea_pl_blockages.emplace_back(bkg->getOID());
+  }
+
+  for (auto blockage : block->_die_area_blk_bboxes) {
+    for (auto layer : tech->getLayers()) {
+      if (layer->getType().getValue() != odb::dbTechLayerType::ROUTING
+          && layer->getType().getValue() != odb::dbTechLayerType::CUT) {
+        continue;
+      }
+      dbObstruction* obs = dbObstruction::create((dbBlock*) block,
+                                                 layer,
+                                                 blockage.xMin(),
+                                                 blockage.yMin(),
+                                                 blockage.xMax(),
+                                                 blockage.yMax());
+
+      block->_diearea_rt_blockages.emplace_back(
+          ((_dbObstruction*) obs)->getOID());
+    }
+  }
+}
+
 dbSet<dbNet> dbBlock::getNets()
 {
   _dbBlock* block = (_dbBlock*) this;
@@ -2225,6 +2343,12 @@ dbSet<dbCCSeg> dbBlock::getCCSegs()
   return dbSet<dbCCSeg>(block, block->_cc_seg_tbl);
 }
 
+dbSet<dbScanChain> dbBlock::getScanChains()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return dbSet<dbScanChain>(block, block->_scan_chain_tbl);
+}
+
 dbSet<dbRSeg> dbBlock::getRSegs()
 {
   _dbBlock* block = (_dbBlock*) this;
@@ -2379,6 +2503,12 @@ void dbBlock::getExtCount(int& numOfNet,
   numOfRSeg = block->_r_seg_tbl->size();
   numOfCapNode = block->_cap_node_tbl->size();
   numOfCCSeg = block->_cc_seg_tbl->size();
+}
+
+int dbBlock::getScanChainCount()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return block->_scan_chain_tbl->size();
 }
 /*
 void dbBlock::setMinExtMOdel(int n)

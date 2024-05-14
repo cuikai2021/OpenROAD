@@ -52,6 +52,7 @@ add_library(rsz_lib
     SteinerTree.cc
     EstimateWireParasitics.cc
     Resizer.cc
+    ResizerAddTieCell.cc
 )
 
 target_sources(rsz
@@ -78,6 +79,7 @@ target_link_libraries(rsz_lib
     dbSta_lib
     grt_lib
     utl_lib
+    fassert
 )
 
 target_link_libraries(rsz

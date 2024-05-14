@@ -27,12 +27,10 @@ swig_lib(NAME Banyan
   SCRIPTS src/Banyan.tcl
 )
 
+file(GLOB cpps src/*.cpp)
 target_sources(Banyan
-  PRIVATE
-  src/Banyan.cpp
-  src/MakeBanyan.cpp
-  src/DBAdapter.cpp
-  src/RegressionRC.cpp
+PRIVATE
+  ${cpps}
 )
 
 target_include_directories(Banyan
@@ -58,11 +56,10 @@ target_link_libraries(Banyan
     Boost::boost
     ${Boost_PROGRAM_OPTIONS_LIBRARIES}
     ZLIB::ZLIB
+    envflag
     fassert
     prettyprint
     banyan_pb
-    cgr
-    linden
   PRIVATE
     Eigen3::Eigen
 )

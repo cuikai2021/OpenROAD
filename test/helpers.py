@@ -78,3 +78,6 @@ utl.suppress_message(utl.PAR, 38)
 
 # suppress ord message with number of threads
 utl.suppress_message(utl.ORD, 30)
+
+utl.suppress_message(utl.STA, 1001)
+utl.suppress_message(utl.STA, 1002)

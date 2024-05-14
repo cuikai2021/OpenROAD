@@ -72,8 +72,11 @@ option(USE_SYSTEM_ABC "Use system shared ABC library" OFF)
 # Allow disabling tests
 option(ENABLE_TESTS "Enable OpenROAD tests" ON)
 
-# Allow enabling address sanitizer
-option(ASAN "Enable Address Sanitizer" OFF)
+option(USE_LINDEN_DEBUG_LIBS "Ready to link debug-level linden libs" OFF)
+
+option(ENABLE_GCOV "Enable support of gcov" OFF)
+option(ENABLE_LIBASAN "Enable address sanitizer" OFF)
+
 
 project(OpenROAD VERSION 1
   LANGUAGES CXX
@@ -82,25 +85,25 @@ project(OpenROAD VERSION 1
 set(OPENROAD_HOME ${PROJECT_SOURCE_DIR})
 
 # Default c++ standard used unless otherwise specified in target_compile_features.
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "the C++ standard to use for this project")
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "the C++ standard to use for this project")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Disable compiler specific extensions like gnu++11.
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-# Get version string in OPENROAD_VERSION
-if(NOT OPENROAD_VERSION)
+# Get version string in EDEN_VERSION
+if(NOT EDEN_VERSION)
   include(GetGitRevisionDescription)
-  git_describe(OPENROAD_VERSION)
-  string(FIND ${OPENROAD_VERSION} "NOTFOUND" GIT_DESCRIBE_NOTFOUND)
+  git_describe(EDEN_VERSION)
+  string(FIND ${EDEN_VERSION} "NOTFOUND" GIT_DESCRIBE_NOTFOUND)
   if(${GIT_DESCRIBE_NOTFOUND} GREATER -1)
-    message(WARNING "OpenROAD git describe failed, using sha1 instead")
-    get_git_head_revision(GIT_REFSPEC OPENROAD_VERSION)
+    message(WARNING "Eden git describe failed, using sha1 instead")
+    get_git_head_revision(GIT_REFSPEC EDEN_VERSION)
   endif()
 endif()
 
-message(STATUS "OpenROAD version: ${OPENROAD_VERSION}")
+message(STATUS "Eden version: ${EDEN_VERSION}")
 
 # Default to bulding optimnized/release executable.
 if(NOT CMAKE_BUILD_TYPE)
@@ -130,6 +133,8 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "C++ Standard Required: ${CMAKE_CXX_STANDARD_REQUIRED}")
 message(STATUS "C++ Extensions: ${CMAKE_CXX_EXTENSIONS}")
+
+include(CompileProtobuf)
 
 # configure a header file to pass some of the CMake settings
 configure_file(

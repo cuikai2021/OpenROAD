@@ -122,6 +122,11 @@ _dbInst::_dbInst(_dbDatabase*)
   _flags._level = 0;
   _flags._input_cone = 0;
   _flags._inside_cone = 0;
+  _flags1._dont_size = 0;
+  _flags1._size_only = 0;
+  _flags1._is_scan_chain = 0;
+  _flags1._for_rent = 0;
+  
   _name = 0;
   _x = 0;
   _y = 0;
@@ -131,6 +136,7 @@ _dbInst::_dbInst(_dbDatabase*)
 
 _dbInst::_dbInst(_dbDatabase*, const _dbInst& i)
     : _flags(i._flags),
+      _flags1(i._flags1),
       _name(nullptr),
       _x(i._x),
       _y(i._y),
@@ -166,7 +172,9 @@ _dbInst::~_dbInst()
 dbOStream& operator<<(dbOStream& stream, const _dbInst& inst)
 {
   uint* bit_field = (uint*) &inst._flags;
+  uint* bit_field1 = (uint*) &inst._flags1;
   stream << *bit_field;
+  stream << *bit_field1;
   stream << inst._name;
   stream << inst._x;
   stream << inst._y;
@@ -192,7 +200,9 @@ dbOStream& operator<<(dbOStream& stream, const _dbInst& inst)
 dbIStream& operator>>(dbIStream& stream, _dbInst& inst)
 {
   uint* bit_field = (uint*) &inst._flags;
+  uint* bit_field1 = (uint*) &inst._flags1;
   stream >> *bit_field;
+  stream >> *bit_field1;
   stream >> inst._name;
   stream >> inst._x;
   stream >> inst._y;
@@ -245,6 +255,15 @@ bool _dbInst::operator==(const _dbInst& rhs) const
     return false;
 
   if (_flags._source != rhs._flags._source)
+    return false;
+
+  if (_flags1._dont_size != rhs._flags1._dont_size)
+    return false;
+  if (_flags1._size_only != rhs._flags1._size_only)
+    return false;
+  if (_flags1._is_scan_chain != rhs._flags1._is_scan_chain)
+    return false;
+  if (_flags1._for_rent != rhs._flags1._for_rent)
     return false;
 
   if (_name && rhs._name) {
@@ -327,6 +346,10 @@ void _dbInst::differences(dbDiff& diff,
   DIFF_FIELD(_flags._physical_only);
   DIFF_FIELD(_flags._dont_touch);
   DIFF_FIELD(_flags._source);
+  DIFF_FIELD(_flags1._dont_size);
+  DIFF_FIELD(_flags1._size_only);
+  DIFF_FIELD(_flags1._is_scan_chain);
+  DIFF_FIELD(_flags1._for_rent);
   DIFF_FIELD(_x);
   DIFF_FIELD(_y);
   DIFF_FIELD(_weight);
@@ -381,6 +404,10 @@ void _dbInst::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_FIELD(_flags._physical_only);
   DIFF_OUT_FIELD(_flags._dont_touch);
   DIFF_OUT_FIELD(_flags._source);
+  DIFF_OUT_FIELD(_flags1._dont_size);
+  DIFF_OUT_FIELD(_flags1._size_only);
+  DIFF_OUT_FIELD(_flags1._is_scan_chain);
+  DIFF_OUT_FIELD(_flags1._for_rent);
   DIFF_OUT_FIELD(_x);
   DIFF_OUT_FIELD(_y);
   DIFF_OUT_FIELD(_weight);
@@ -845,6 +872,49 @@ bool dbInst::isDoNotTouch()
 {
   _dbInst* inst = (_dbInst*) this;
   return inst->_flags._dont_touch == 1;
+}
+
+void dbInst::setDoNotSize(bool v)
+{
+  _dbInst* inst = (_dbInst*) this;
+  inst->_flags1._dont_size = v;
+}
+
+bool dbInst::isDoNotSize()
+{
+  _dbInst* inst = (_dbInst*) this;
+  return inst->_flags1._dont_size == 1;
+}
+
+void dbInst::setSizeOnly(bool v)
+{
+  _dbInst* inst = (_dbInst*) this;
+  inst->_flags1._size_only = v;
+}
+
+bool dbInst::isSizeOnly()
+{
+  _dbInst* inst = (_dbInst*) this;
+  return inst->_flags1._size_only == 1;
+}
+
+void dbInst::setIsScanChain(bool v)
+{
+  _dbInst* inst = (_dbInst*) this;
+  inst->_flags1._is_scan_chain = v;
+}
+
+bool dbInst::isScanChain()
+{
+  _dbInst* inst = (_dbInst*) this;
+  return inst->_flags1._is_scan_chain == 1;
+}
+
+bool dbInst::canBeRemoved()
+{
+  _dbInst* inst = (_dbInst*) this;
+  return !(inst->_flags._dont_touch || inst->_flags1._dont_size
+           || inst->_flags1._size_only);
 }
 
 dbBlock* dbInst::getBlock()

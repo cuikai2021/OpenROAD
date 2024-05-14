@@ -64,7 +64,7 @@ void deleteOpenRCX(rcx::Ext* extractor)
 void initOpenRCX(OpenRoad* openroad)
 {
   openroad->getOpenRCX()->init(
-      openroad->getDb(), openroad->getLogger(), OPENROAD_VERSION, [openroad] {
+      openroad->getDb(), openroad->getLogger(), EDEN_VERSION, [openroad] {
         rcx::Rcx_Init(openroad->tclInterp());
         sta::evalTclInit(openroad->tclInterp(), sta::rcx_tcl_inits);
       });

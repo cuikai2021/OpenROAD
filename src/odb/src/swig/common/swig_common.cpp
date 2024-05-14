@@ -117,6 +117,19 @@ odb::dbChip* read_def(odb::dbTech* tech, std::string path)
   return defParser.createChip(libs, path.c_str(), tech);
 }
 
+odb::dbChip* read_def_incremental(odb::dbDatabase* db, std::string path)
+{
+  utl::Logger* logger = new utl::Logger(NULL);
+  std::vector<odb::dbLib*> libs;
+  for (auto* lib : db->getLibs()) {
+    if (lib->getTech() == db->getTech()) {
+      libs.push_back(lib);
+    }
+  }
+  odb::defin defParser(db, logger, odb::defin::INCREMENTAL);
+  return defParser.createChip(libs, path.c_str(), db->getTech());
+}
+
 int write_def(odb::dbBlock* block,
               const char* path,
               odb::defout::Version version)

@@ -605,6 +605,7 @@ void io::Parser::setNets(odb::dbBlock* block)
     bool hasEndPoint = false;
     bool orthogonal_conn = false;
     bool beginInVia = false;
+    bool isVirtual = false;
     frCoord beginX = -1;
     frCoord beginY = -1;
     frCoord beginExt = -1;
@@ -647,6 +648,7 @@ void io::Parser::setNets(odb::dbBlock* block)
         hasEndPoint = false;
         beginInVia = false;
         orthogonal_conn = false;
+        isVirtual = false;
         beginExt = -1;
         endX = -1;
         endY = -1;
@@ -669,6 +671,8 @@ void io::Parser::setNets(odb::dbBlock* block)
               if (tech_->name2layer.find(layerName) == tech_->name2layer.end())
                 logger_->error(DRT, 107, "Unsupported layer {}.", layerName);
               break;
+            case odb::dbWireDecoder::POINT_VIRTUAL:
+              isVirtual = true;
             case odb::dbWireDecoder::POINT:
               if (!hasBeginPoint) {
                 decoder.getPoint(beginX, beginY);
@@ -796,7 +800,8 @@ void io::Parser::setNets(odb::dbBlock* block)
               tmpEndStyle,
               tmpEndEnum == frcExtendEndStyle ? defaultEndExt : endExt);
           tmpP->setStyle(tmpSegStyle);
-          netIn->addShape(std::move(tmpP));
+          if (!isVirtual)
+            netIn->addShape(std::move(tmpP));
         }
         if (viaName != "") {
           if (tech_->name2via.find(viaName) == tech_->name2via.end()) {

@@ -35,6 +35,7 @@
 #include "definBase.h"
 #include "defrReader.hpp"
 #include "odb.h"
+#include "util.h"
 
 namespace utl {
 class Logger;
@@ -58,6 +59,7 @@ class definGroup;
 class definNonDefaultRule;
 class definPropDefs;
 class definPinProps;
+class definScanchains;
 
 class definReader : public definBase
 {
@@ -79,6 +81,7 @@ class definReader : public definBase
   definNonDefaultRule* _non_default_ruleR;
   definPropDefs* _prop_defsR;
   definPinProps* _pin_propsR;
+  definScanchains* _scanchainR;
   std::vector<definBase*> _interfaces;
   bool _update;
   bool _continue_on_errors;
@@ -91,6 +94,7 @@ class definReader : public definBase
   void init();
   void setLibs(std::vector<dbLib*>& lib_names);
 
+  virtual bool suppressMessage(const char* msg);
   virtual void error(const char* msg);
   virtual void line(int line_num);
 
@@ -194,9 +198,17 @@ class definReader : public definBase
                          defiRow* row,
                          defiUserData data);
 
-  static int scanchainsCallback(defrCallbackType_e type,
-                                int count,
-                                defiUserData data);
+  static int scanchainsStartCallback(defrCallbackType_e type,
+                                     int count,
+                                     defiUserData data);
+
+  static int scanchainCallback(defrCallbackType_e type,
+		                         defiScanchain* scanchain,
+								       defiUserData data);
+
+  static int scanchainsEndCallback(defrCallbackType_e type,
+                                   void* v,
+                                   defiUserData data);
 
   static int slotsCallback(defrCallbackType_e type,
                            int count,

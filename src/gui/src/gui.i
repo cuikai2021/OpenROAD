@@ -435,7 +435,7 @@ const std::string input_dialog(const char* title, const char* question)
 // language to avoid conflicts in C++.
 void gui_pause(int timeout = 0)
 {
-  if (!check_gui("pause")) {
+  if (!check_gui("pause_gui")) {
     return;
   }
   auto gui = gui::Gui::get();

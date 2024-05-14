@@ -31,6 +31,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <fmt/core.h>
 #include <optional>
 #include <type_traits>
 #include <vector>
@@ -69,7 +70,7 @@ class ScanStitch
   {
     for (int port_number = 1;; ++port_number) {
       std::string port_name
-          = fmt::format(FMT_RUNTIME(name_pattern), port_number);
+          = fmt::vformat(FMT_RUNTIME(name_pattern), fmt::make_format_args(port_number));
       odb::dbBTerm* port = block->findBTerm(port_name.c_str());
       if (!port) {
         odb::dbNet* net = odb::dbNet::create(block, port_name.c_str());

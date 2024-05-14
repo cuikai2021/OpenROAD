@@ -10,12 +10,15 @@
 
 #include "DBAdapter.hpp"
 #include "banyan_instance_movement.pb.h"
-#include "cgr/congestionRepair.hpp"
+// #include "cgr/congestionRepair.hpp"
 #include "odb/db.h"
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
 #include "utl/Logger.h"
+#include "envflag/envflag.hpp"
+
+IMPORT_BOOL_FLAG_WITH_DEFAULT(BANYAN_SUPPRESS_EXE_LOG);
 
 namespace sta {
 // Tcl files encoded into strings.
@@ -98,7 +101,15 @@ std::string genTempFilePath(utl::Logger* logger, std::string fileExt)
 int exec(utl::Logger* logger, const std::vector<std::string>& args)
 {
   std::string exe = getExe();
-  int ec = boost::process::system(exe, boost::process::args(args));
+  int ec = 0;
+  if (!BANYAN_SUPPRESS_EXE_LOG()) {
+    ec = boost::process::system(exe, boost::process::args(args));
+  } else {
+    ec = boost::process::system(exe, boost::process::args(args),
+        boost::process::std_out > boost::process::null,
+        boost::process::std_err > boost::process::null);
+  }
+
   switch (ec) {
     case 0:
       logger->info(utl::BY, 1, "Banyan done");
@@ -216,23 +227,20 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   return exec(logger_, args);
 }
 
-int Banyan::cmap(const std::string& cmapPb, bool cgr_mode)
+int Banyan::cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_layer)
 {
   std::vector<std::string> args;
-  args.push_back("route");
+  args.push_back("report_routability");
 
-  const auto max_layer
-      = ord::OpenRoad::openRoad()->getCongestionRepair()->getRoutingMaxLayer();
   if (!max_layer.empty()) {
     args.push_back("--max_layer");
-    args.push_back(max_layer);
+    args.emplace_back(max_layer);
   }
 
   args.push_back("--log_level");
   args.push_back("info");
-  args.push_back("--report_cmap");
-  args.push_back(cmapPb);
-  args.push_back("--baby_banyan");
+  args.push_back("--gmap_out_protobuf");
+  args.emplace_back(cmapPb);
   if (!cgr_mode) {
     args.push_back("--disable_mcf_upt");
     args.push_back("--baby_pa");

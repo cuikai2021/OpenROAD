@@ -144,7 +144,9 @@ class dbStaCbk : public dbBlockCallBackObj
   Logger* logger_;
 };
 
-dbSta::~dbSta() = default;
+dbSta::~dbSta() {
+  delete db_cbk_;
+}
 
 void dbSta::initVars(Tcl_Interp* tcl_interp,
                      odb::dbDatabase* db,
@@ -173,12 +175,15 @@ void dbSta::setPowerDensityDataSource(
 std::unique_ptr<dbSta> dbSta::makeBlockSta(odb::dbBlock* block)
 {
   auto clone = std::make_unique<dbSta>();
-  clone->makeComponents();
+  // This line is removed because it has already been called in clone->initVars
+  // clone->makeComponents();
   clone->initVars(tclInterp(), db_, logger_);
   clone->getDbNetwork()->setBlock(block);
   clone->getDbNetwork()->setDefaultLibertyLibrary(
       network_->defaultLibertyLibrary());
   clone->copyUnits(units());
+  clone->setArcDelayCalc(this->arcDelayCalc());
+  clone->setCorners(this);
   return clone;
 }
 
@@ -270,6 +275,15 @@ std::set<dbNet*> dbSta::findClkNets(const Clock* clk)
   return clk_nets;
 }
 
+void
+dbSta::initClkNets()
+{
+  std::set<odb::dbNet*> clock_nets = findClkNets();
+  for (odb::dbNet* net : clock_nets) {
+	net->setSigType(odb::dbSigType::CLOCK);
+  }
+}
+
 ////////////////////////////////////////////////////////////////
 
 // Network edit functions.
@@ -303,16 +317,16 @@ void dbSta::deleteNet(Net* net)
   network->deleteNet(net);
 }
 
-void dbSta::connectPin(Instance* inst, Port* port, Net* net)
+Pin* dbSta::connectPin(Instance* inst, Port* port, Net* net)
 {
   NetworkEdit* network = networkCmdEdit();
-  network->connect(inst, port, net);
+  return network->connect(inst, port, net);
 }
 
-void dbSta::connectPin(Instance* inst, LibertyPort* port, Net* net)
+Pin* dbSta::connectPin(Instance* inst, LibertyPort* port, Net* net)
 {
   NetworkEdit* network = networkCmdEdit();
-  network->connect(inst, port, net);
+  return network->connect(inst, port, net);
 }
 
 void dbSta::disconnectPin(Pin* pin)
@@ -379,7 +393,7 @@ size_t dbStaReport::printString(const char* buffer, size_t length)
   if (!buf.empty()) {
     // Trim trailing \r\n.
     buf.erase(buf.find_last_not_of("\r\n") + 1);
-    logger_->report("{}", buf.c_str());
+    logger_->report("{}", buf);
   }
 
   // if gui enabled, keep tcl_buffer_ until a newline appears
@@ -443,7 +457,7 @@ void dbStaReport::error(int id, const char* fmt, ...)
   std::unique_lock<std::mutex> lock(buffer_lock_);
   printToBuffer(fmt, args);
   // Don't give std::format a chance to interpret the message.
-  logger_->error(STA, id, buffer_);
+  logger_->error(STA, id, "{}", buffer_);
   va_end(args);
 }
 

@@ -210,4 +210,44 @@ void Logger::unsuppressMessage(ToolId tool, int id)
   message_counters_[tool][id] = 0;
 }
 
-}  // namespace utl
+typedef std::unordered_set<std::string> SuppressedExactMessageMap;
+static SuppressedExactMessageMap* suppressed_exact_messages = nullptr;
+
+static void deleteLoggerStatics() 
+{
+  if (suppressed_exact_messages) {
+    delete suppressed_exact_messages;
+    suppressed_exact_messages = nullptr;
+  }
+}
+
+static inline std::string trim(const std::string& s) 
+{
+  if (s.empty())  
+    return s;
+  std::string ss = s;
+  ss.erase(0,ss.find_first_not_of(" \t\n"));
+  ss.erase(ss.find_last_not_of(" \t\n") + 1);  
+  return ss; 
+}
+
+void Logger::registerSuppressedExactMessage(const std::string& message) 
+{
+  std::string msg = trim(message);
+  if (suppressed_exact_messages == nullptr) {
+    atexit(deleteLoggerStatics);
+    suppressed_exact_messages = new SuppressedExactMessageMap;
+  }
+  suppressed_exact_messages->insert(msg);
+}
+
+bool Logger::suppressExactMessage(const std::string& message) 
+{
+  if (suppressed_exact_messages) {
+    std::string msg = trim(message);
+    return suppressed_exact_messages->count(msg) != 0;
+  }
+  return false;
+}
+
+}  // namespace

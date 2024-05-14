@@ -3,6 +3,8 @@
 set test_dir [file dirname [file normalize [info script]]]
 set result_dir [file join $test_dir "results"]
 
+set ::env(LINDEN_IN_REGRESSION) true
+
 proc make_result_file { filename } {
   variable result_dir
   if { ![file exists $result_dir] } {
@@ -14,7 +16,7 @@ proc make_result_file { filename } {
 # puts [exec cat $file] without forking.
 proc report_file { file } {
   set stream [open $file r]
-  
+
   while { [gets $stream line] >= 0 } {
     puts $line
   }
@@ -56,7 +58,7 @@ proc diff_files { file1 file2 } {
 
   set stream1 [open $file1 r]
   set stream2 [open $file2 r]
-  
+
   set line 1
   set diff_line 0;
   while { [gets $stream1 line1] >= 0 && [gets $stream2 line2] >= 0 } {

@@ -159,6 +159,13 @@ public:
             GlobalRouter* global_router,
             dpl::Opendp* opendp,
             std::unique_ptr<AbstractSteinerRenderer> steiner_renderer);
+  void init(Logger* logger,
+            dbDatabase* db,
+            dbSta* sta,
+            SteinerTreeBuilder* stt_builder,
+            GlobalRouter* global_router,
+            dpl::Opendp* opendp);
+
   void setLayerRC(dbTechLayer *layer,
                   const Corner *corner,
                   double res,
@@ -351,7 +358,7 @@ public:
   int metersToDbu(double dist) const;
 
 protected:
-  void init();
+  void init(bool initArea=true);
   void initBlock();
   void initDesignArea();
   void ensureLevelDrvrVertices();

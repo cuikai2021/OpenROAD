@@ -36,6 +36,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/adapted/boost_polygon.hpp>
+#include <boost/polygon/polygon.hpp>
 #include <string>
 
 #include "db.h"
@@ -56,13 +59,16 @@
 #include "definSNet.h"
 #include "definTracks.h"
 #include "definVia.h"
+#include "definScanchain.h"
 #include "defzlib.hpp"
 #include "utl/Logger.h"
 
-#define UNSUPPORTED(msg)              \
-  reader->error((msg));               \
-  if (!reader->_continue_on_errors) { \
-    return PARSE_ERROR;               \
+#define UNSUPPORTED(msg)                \
+  if (!reader->suppressMessage(msg)) {  \
+    reader->error((msg));               \
+    if (!reader->_continue_on_errors) { \
+      return PARSE_ERROR;               \
+    }                                   \
   }
 
 #define CHECKBLOCK                                                        \
@@ -102,6 +108,7 @@ definReader::definReader(dbDatabase* db, utl::Logger* logger, defin::MODE mode)
   _non_default_ruleR = new definNonDefaultRule;
   _prop_defsR = new definPropDefs;
   _pin_propsR = new definPinProps;
+  _scanchainR = new definScanchains;
 
   _interfaces.push_back(_blockageR);
   _interfaces.push_back(_componentR);
@@ -119,6 +126,7 @@ definReader::definReader(dbDatabase* db, utl::Logger* logger, defin::MODE mode)
   _interfaces.push_back(_non_default_ruleR);
   _interfaces.push_back(_prop_defsR);
   _interfaces.push_back(_pin_propsR);
+  _interfaces.push_back(_scanchainR);
   init();
 }
 
@@ -140,6 +148,7 @@ definReader::~definReader()
   delete _non_default_ruleR;
   delete _prop_defsR;
   delete _pin_propsR;
+  delete _scanchainR;
 
   if (_block_name)
     free((void*) _block_name);
@@ -479,10 +488,6 @@ int definReader::componentsCallback(defrCallbackType_e /* unused: type */,
     UNSUPPORTED("MASKSHIFT on component is unsupported");
   }
 
-  if (comp->hasHalo() > 0) {
-    UNSUPPORTED("HALO on component is unsupported");
-  }
-
   if (comp->hasRouteHalo() > 0) {
     UNSUPPORTED("ROUTEHALO on component is unsupported");
   }
@@ -496,6 +501,12 @@ int definReader::componentsCallback(defrCallbackType_e /* unused: type */,
   }
   if (comp->hasRegionName()) {
     componentR->region(comp->regionName());
+  }
+  if (comp->hasHalo() > 0) {
+    componentR->halo(comp->leftHalo(), comp->bottomHalo(), comp->rightHalo(), comp->topHalo());
+    if (comp->hasHaloSoft()) {
+      UNSUPPORTED("Soft HALO on component is unsupported");
+    }
   }
 
   componentR->placement(comp->placementStatus(),
@@ -552,32 +563,64 @@ int definReader::dieAreaCallback(defrCallbackType_e /* unused: type */,
           124,
           "warning: Polygon DIEAREA statement not supported.  The bounding "
           "box will be used instead");
-      int xmin = INT_MAX;
-      int ymin = INT_MAX;
-      int xmax = INT_MIN;
-      int ymax = INT_MIN;
-      std::vector<Point>::iterator itr;
 
-      for (itr = P.begin(); itr != P.end(); ++itr) {
-        Point& p = *itr;
+      boost::geometry::model::polygon<boost::polygon::point_data<int>>
+          dieAreaPoly;
+      for (auto p : P) {
         int x = p.getX();
         int y = p.getY();
 
-        if (x < xmin)
-          xmin = x;
-
-        if (y < ymin)
-          ymin = y;
-
-        if (x > xmax)
-          xmax = x;
-
-        if (y > ymax)
-          ymax = y;
+        boost::geometry::append(dieAreaPoly.outer(),
+                                boost::polygon::point_data<int>(x, y));
       }
 
-      Rect r(xmin, ymin, xmax, ymax);
+      std::string reason;
+      if (!boost::geometry::is_valid(dieAreaPoly, reason)) {
+        reader->_logger->info(
+            utl::ODB, 901, "Correcting polygon data: {}", reason);
+        boost::geometry::correct(dieAreaPoly);
+      }
+
+      boost::geometry::model::box<boost::polygon::point_data<int>> dieAreaBBox;
+      boost::geometry::envelope(dieAreaPoly, dieAreaBBox);
+      boost::geometry::box_view<
+          boost::geometry::model::box<boost::polygon::point_data<int>>>
+          dieAreaBBoxView(dieAreaBBox);
+
+      boost::polygon::polygon_with_holes_traits<
+          boost::polygon::polygon_90_with_holes_data<int>>::hole_type holes[1];
+      boost::polygon::set_points(
+          holes[0], dieAreaPoly.outer().begin(), dieAreaPoly.outer().end());
+
+      boost::polygon::polygon_90_with_holes_data<int> blockagesBBoxPoly;
+      boost::polygon::set_points(
+          blockagesBBoxPoly, dieAreaBBoxView.begin(), dieAreaBBoxView.end());
+      boost::polygon::set_holes(blockagesBBoxPoly, holes, holes + 1);
+
+      std::vector<boost::polygon::rectangle_data<int>> blockagesOut;
+      boost::polygon::get_rectangles(
+          blockagesOut, blockagesBBoxPoly, boost::polygon::HORIZONTAL);
+      std::vector<Rect> blks;
+      for (auto rect : blockagesOut) {
+        blks.push_back(Rect(boost::polygon::xl(rect),
+                            boost::polygon::yl(rect),
+                            boost::polygon::xh(rect),
+                            boost::polygon::yh(rect)));
+      }
+
+      int min_x
+          = boost::geometry::get<boost::geometry::min_corner, 0>(dieAreaBBox);
+      int min_y
+          = boost::geometry::get<boost::geometry::min_corner, 1>(dieAreaBBox);
+      int max_x
+          = boost::geometry::get<boost::geometry::max_corner, 0>(dieAreaBBox);
+      int max_y
+          = boost::geometry::get<boost::geometry::max_corner, 1>(dieAreaBBox);
+
+      Rect r(min_x, min_y, max_x, max_y);
       reader->_block->setDieArea(r);
+      reader->_block->setPolygonDieArea(std::move(P), std::move(blks));
+      reader->_block->createDieAreaBlockages();
     }
   }
   return PARSE_OK;
@@ -732,10 +775,6 @@ int definReader::netCallback(defrCallbackType_e /* unused: type */,
     UNSUPPORTED("ORIGINAL on net is unsupported");
   }
 
-  if (net->hasPattern()) {
-    UNSUPPORTED("PATTERN on net is unsupported");
-  }
-
   if (net->hasCap()) {
     UNSUPPORTED("ESTCAP on net is unsupported");
   }
@@ -847,7 +886,11 @@ int definReader::netCallback(defrCallbackType_e /* unused: type */,
           }
 
           case DEFIPATH_VIRTUALPOINT:
-            UNSUPPORTED("VIRTUAL in net's routing is unsupported");
+        	int x;
+        	int y;
+        	path->getVirtualPoint(&x, &y);
+        	netR->pathVirtualPoint(x, y);
+            // UNSUPPORTED("VIRTUAL in net's routing is unsupported");
             break;
 
           case DEFIPATH_MASK:
@@ -872,6 +915,10 @@ int definReader::netCallback(defrCallbackType_e /* unused: type */,
   }
 
   handle_props(net, netR);
+
+  if (net->hasPattern()) {
+    netR->pattern(net->pattern());
+  }
 
   netR->end();
 
@@ -1285,12 +1332,95 @@ int definReader::rowCallback(defrCallbackType_e /* unused: type */,
   return PARSE_OK;
 }
 
-int definReader::scanchainsCallback(defrCallbackType_e /* unused: type */,
-                                    int /* unused: count */,
+int definReader::scanchainsStartCallback(defrCallbackType_e /* unused: type */,
+                                    int number,
                                     defiUserData data)
 {
   definReader* reader = (definReader*) data;
-  UNSUPPORTED("SCANCHAINS are unsupported");
+  CHECKBLOCK
+  definScanchains* scanchainR = reader->_scanchainR;
+  scanchainR->scanchainsBegin(number);
+  return PARSE_OK;
+}
+
+int definReader::scanchainCallback(defrCallbackType_e type,
+                                   defiScanchain* scanchain,
+		                             defiUserData data)
+{
+  definReader* reader = (definReader*) data;
+  CHECKBLOCK
+  definScanchains* scanchainsR = reader->_scanchainR;
+  scanchainsR->setBlock(reader->_block);
+  definScanchain* scanchainR = scanchainsR->begin(scanchain->name());
+  scanchainR->setBlock(reader->_block);
+  // start
+  if (scanchain->hasStart()) {
+	 char *inst, *pin;
+	 scanchain->start(&inst, &pin);
+    scanchainR->setStart(inst, pin);
+  }
+  // stop
+  if (scanchain->hasStop()) {
+	 char *inst, *pin;
+	 scanchain->stop(&inst, &pin);
+	 scanchainR->setStop(inst, pin);
+  }
+  // ordered
+  if (scanchain->hasOrdered()) {
+	 size_t c = scanchain->numOrderedLists();
+	 for (size_t i = 0; i < c; ++i) {
+		int size;
+		char** inst;
+		char** inPin;
+		char** outPin;
+      int*   bits;
+	   scanchain->ordered(i, &size, &inst, &inPin, &outPin, &bits);
+	   auto ordered = scanchainR->createOrdered(size);
+	   for (int j = 0; j < size; ++j)
+		  ordered->add(inst[j], inPin[j], outPin[j], bits[j]);
+	 }
+  }
+  // floating
+  if (scanchain->hasFloating()) {
+    int size;																																					char** inst;
+    char** inPin;
+    char** outPin;
+    int*   bits;
+    scanchain->floating(&size, &inst, &inPin, &outPin, &bits);
+    auto floating = scanchainR->createFloating(size);
+    for (int j = 0; j < size; ++j)
+    	floating->add(inst[j], inPin[j], outPin[j], bits[j]);
+  }
+  // common_scan
+  if (scanchain->hasCommonInPin()) {
+    scanchainR->setCommonInPin(scanchain->commonInPin());
+  }
+  if (scanchain->hasCommonOutPin()) {
+	 scanchainR->setCommonOutPin(scanchain->commonOutPin());
+  }
+  // partition
+  if (scanchain->hasPartition()) {
+	 scanchainR->setPartitionName(scanchain->partitionName());
+	 if (scanchain->hasPartitionMaxBits()) {
+		scanchainR->setPartitionMaxBits(scanchain->partitionMaxBits());
+	 }
+  }
+
+  // handle_props(scanchain, scanchainR);
+
+  scanchainsR->end();
+
+  return PARSE_OK;
+}
+
+int definReader::scanchainsEndCallback(defrCallbackType_e type,
+                                       void* v,
+                                       defiUserData data)
+{
+  definReader* reader = (definReader*) data;
+  CHECKBLOCK
+  definScanchains* scanchainR = reader->_scanchainR;
+  scanchainR->scanchainsEnd();
   return PARSE_OK;
 }
 
@@ -1485,10 +1615,6 @@ int definReader::specialNetCallback(defrCallbackType_e /* unused: type */,
     UNSUPPORTED("ESTCAP on special net is unsupported");
   }
 
-  if (net->hasPattern()) {
-    UNSUPPORTED("PATTERN on special net is unsupported");
-  }
-
   if (net->hasOriginal()) {
     UNSUPPORTED("ORIGINAL on special net is unsupported");
   }
@@ -1627,6 +1753,9 @@ int definReader::specialNetCallback(defrCallbackType_e /* unused: type */,
 
   handle_props(net, snetR);
 
+  if (net->hasPattern())
+	snetR->pattern(net->pattern());
+
   snetR->end();
 
   return PARSE_OK;
@@ -1635,6 +1764,11 @@ int definReader::specialNetCallback(defrCallbackType_e /* unused: type */,
 void definReader::line(int line_num)
 {
   _logger->info(utl::ODB, 125, "lines processed: {}", line_num);
+}
+
+bool definReader::suppressMessage(const char* msg)
+{
+  return _logger->suppressExactMessage(msg);
 }
 
 void definReader::error(const char* msg)
@@ -1813,6 +1947,10 @@ bool definReader::createBlock(const char* file)
   defrSetPinEndCbk(pinsEndCallback);
   defrSetPinPropCbk(pinPropCallback);
 
+  defrSetScanchainsStartCbk(scanchainsStartCallback);
+  defrSetScanchainCbk(scanchainCallback);
+  defrSetScanchainsEndCbk(scanchainsEndCallback);
+
   if (_mode == defin::DEFAULT || _mode == defin::FLOORPLAN) {
     defrSetDieAreaCbk(dieAreaCallback);
     defrSetTrackCbk(trackCallback);
@@ -1842,7 +1980,6 @@ bool definReader::createBlock(const char* file)
 
     defrSetRegionCbk(regionCallback);
 
-    defrSetScanchainsStartCbk(scanchainsCallback);
     defrSetSlotStartCbk(slotsCallback);
 
     defrSetStartPinsCbk(pinsStartCallback);

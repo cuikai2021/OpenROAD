@@ -141,10 +141,12 @@ class dbModule;
 class dbNetTrack;
 class dbPowerDomain;
 class dbPowerSwitch;
+#if 0
 class dbScanChain;
 class dbScanInst;
 class dbScanPartition;
 class dbScanPin;
+#endif
 class dbTechLayer;
 class dbTechLayerAreaRule;
 class dbTechLayerArraySpacingRule;
@@ -161,10 +163,14 @@ class dbTechLayerKeepOutZoneRule;
 class dbTechLayerMinCutRule;
 class dbTechLayerMinStepRule;
 class dbTechLayerSpacingEolRule;
+class dbTechLayerSpacingNotchLengthRule;
 class dbTechLayerSpacingTablePrlRule;
+class dbTechLayerSpacingTableJogToJogSpacingRule;
 class dbTechLayerWidthTableRule;
 class dbTechLayerWrongDirSpacingRule;
 // Generator Code End ClassDeclarations
+
+class dbScanChain;
 
 // Extraction Objects
 class dbExtControl;
@@ -1302,6 +1308,12 @@ class dbBlock : public dbObject
   ///
   Rect getDieArea();
 
+  void setPolygonDieArea(std::vector<Point>&& polygon, std::vector<Rect>&& blks);
+  const std::vector<Point>& getPolygonDieArea();
+  const std::vector<uint>& getDieAreaRoutingBlockageIds();
+  void createDieAreaBlockages();
+  void deleteDieAreaBlockages();
+
   ///
   /// Get the core area. This computes the bbox of the rows
   /// and is O(#rows) in runtime.
@@ -1332,6 +1344,16 @@ class dbBlock : public dbObject
   /// Get the capacitor-coupled segments.
   ///
   dbSet<dbCCSeg> getCCSegs();
+
+  ///
+  /// Get the scan chains
+  ///
+  dbSet<dbScanChain> getScanChains();
+
+  ///
+  /// Get the count of scan chains
+  ///
+  int getScanChainCount();
 
   ///
   /// Build search database for fast area searches for insts
@@ -2114,6 +2136,14 @@ class dbNet : public dbObject
   ///
   void setSpef(bool value);
   bool isSpef();
+
+  ///
+  /// Pattern related
+  ///
+  void setPattern(const dbNetPattern & value);
+  bool hasPattern() const;
+  dbNetPattern getPattern() const;
+  const char* getPatternStr() const;
 
   ///
   /// Set/Reset the don't-touch flag
@@ -2962,6 +2992,16 @@ class dbInst : public dbObject
   void clearUserFlag3();
 
   ///
+  /// Set/Reset the size-only flag
+  ///
+  void setSizeOnly(bool v);
+
+  ///
+  /// Returns true if the size-only flag is set.
+  ///
+  bool isSizeOnly();
+
+  ///
   /// Set/Reset the don't-touch flag
   ///
   /// Setting this implies:
@@ -2978,6 +3018,31 @@ class dbInst : public dbObject
   /// Returns true if the don't-touch flag is set.
   ///
   bool isDoNotTouch();
+
+  ///
+  /// Set/Reset the don't-size flag
+  ///
+  void setDoNotSize(bool v);
+
+  ///
+  /// Returns true if the don't-size flag is set.
+  ///
+  bool isDoNotSize();
+  
+  ///
+  /// dont touch,dont size and sizeonly
+  ///
+  bool canBeRemoved();
+  
+  ///
+  /// Set the scan chain flag
+  ///
+  bool isScanChain();
+
+  ///
+  /// Returns true if the scan chain flag is set
+  ///
+  void setIsScanChain(bool v);
 
   ///
   /// Get the block of this instance.
@@ -5378,7 +5443,13 @@ class dbMaster : public dbObject
   ///
   /// Is the type PAD or any of its subtypes
   ///
-  bool isPad() const { return getType().isPad(); }
+  bool isPad() const {
+	  if (getType().isPad()) return true;
+	  dbSite* site = ((dbMaster*)this)->getSite();
+	  if (site) return site->getClass() == dbSiteClass::PAD;
+	  if (isBlock()) return ((dbMaster*)this)->getName().find("PAD") == 0;
+	  return false;
+  }
 
   ///
   /// Is the type ENDCAP or any of its subtypes
@@ -5400,6 +5471,11 @@ class dbMaster : public dbObject
   /// Set the type of this master cell
   ///
   void setType(dbMasterType type);
+
+  ///
+  /// Check if Overlap Obstruction exists
+  ///
+  bool hasOverlapObstruction() const;
 
   ///
   /// Get the Logical equivalent of this master
@@ -7659,6 +7735,7 @@ class dbPowerSwitch : public dbObject
   // User Code End dbPowerSwitch
 };
 
+#if 0
 class dbScanChain : public dbObject
 {
  public:
@@ -7689,6 +7766,7 @@ class dbScanPin : public dbObject
   void setPin(dbITerm* iterm);
   // User Code End dbScanPin
 };
+#endif
 
 class dbTechLayer : public dbObject
 {
@@ -7727,6 +7805,8 @@ class dbTechLayer : public dbObject
 
   dbSet<dbTechLayerSpacingEolRule> getTechLayerSpacingEolRules() const;
 
+  dbSet<dbTechLayerSpacingNotchLengthRule> getTechLayerSpacingNotchLengthRules() const;
+
   dbSet<dbTechLayerCutSpacingRule> getTechLayerCutSpacingRules() const;
 
   dbSet<dbTechLayerMinStepRule> getTechLayerMinStepRules() const;
@@ -7735,6 +7815,9 @@ class dbTechLayer : public dbObject
 
   dbSet<dbTechLayerSpacingTablePrlRule> getTechLayerSpacingTablePrlRules()
       const;
+
+  dbSet<dbTechLayerSpacingTableJogToJogSpacingRule>
+  getTechLayerSpacingTableJogToJogSpacingRules() const;
 
   dbSet<dbTechLayerCutSpacingTableOrthRule>
   getTechLayerCutSpacingTableOrthRules() const;
@@ -9347,6 +9430,46 @@ class dbTechLayerMinStepRule : public dbObject
   // User Code End dbTechLayerMinStepRule
 };
 
+class dbTechLayerSpacingNotchLengthRule : public dbObject
+{
+ public:
+  void setMinSpace(int min_space);
+  uint getMinSpace() const;
+
+  void setMinNotchLength(int min_notch_length);
+  uint getMinNotchLength() const;
+
+  void setExceptWithin(int high_exclude_space, int low_exclude_space);
+  bool hasExceptWithin() const;
+  uint getExceptWithinHighExcludeSpace() const;
+  uint getExceptWithinLowExcludeSpace() const;
+
+  void setWithin(int within, int sideof_notch_span_length);
+  bool hasWithin() const;
+  uint getWithinDistance() const;
+  uint getWithinSideofNotchSpanLength() const;
+
+  void setConcaveEnds(int sideof_notch_width);
+  bool hasConcaveEnds() const;
+  uint getConcaveEnds() const;
+
+  void setWidth(int width);
+  bool hasWidth() const;
+  uint getWidth() const;
+
+  void setNotchWidth(int notch_width);
+  bool hasNotchWidth() const;
+  uint getNotchWidth() const;
+
+  // User Code Begin dbTechLayerSpacingNotchLengthRule
+  static dbTechLayerSpacingNotchLengthRule* create(dbTechLayer* layer);
+  static dbTechLayerSpacingNotchLengthRule* getTechLayerSpacingNotchLengthRule(
+        dbTechLayer* inly,
+        uint dbid);
+  static void destroy(dbTechLayerSpacingNotchLengthRule* rule);
+  // User Code End dbTechLayerSpacingNotchLengthRule
+};
+
 class dbTechLayerSpacingEolRule : public dbObject
 {
  public:
@@ -9657,6 +9780,44 @@ class dbTechLayerSpacingEolRule : public dbObject
   // User Code End dbTechLayerSpacingEolRule
 };
 
+class dbTechLayerSpacingTableJogToJogSpacingRule : public dbObject
+{
+ public:
+  void setJogToJogSpacing(int jogtojog_spacing);
+  uint getJogToJogSpacing() const;
+
+  void setJogWidth(int jog_width);
+  uint getJogWidth() const;
+
+  void setShortJogSpacing(int shortjog_spacing);
+  uint getShortJogSpacing() const;
+
+  void appendWidth(int width,
+		           int parLength,
+				   int parWithin,
+				   int longjogspacing,
+				   bool has_exceptwithin, int low, int high,
+				   bool has_shortjogspacing, int shortjogspacing);
+
+  uint tableSize() const;
+  uint getWidth(uint index) const;
+  uint getParLength(uint index) const;
+  uint getParWithin(uint index) const;
+  uint getLongJogSpacing(uint index) const;
+  bool hasExceptWithin(uint index) const;
+  uint getExceptWithinLowExcludeSpace(uint index) const;
+  uint getExceptWithinHighExcludeSpace(uint index) const;
+  bool hasShortJogSpacing(uint index) const;
+
+  // User Code Begin dbTechLayerSpacingTableJogToJogSpacingRule
+  static dbTechLayerSpacingTableJogToJogSpacingRule* create(dbTechLayer* layer);
+  static dbTechLayerSpacingTableJogToJogSpacingRule* getTechLayerSpacingTableJogToJogSpacingRule(
+        dbTechLayer* inly,
+        uint dbid);
+  static void destroy(dbTechLayerSpacingTableJogToJogSpacingRule* rule);
+  // User Code End dbTechLayerSpacingTableJogToJogSpacingRule
+};
+
 class dbTechLayerSpacingTablePrlRule : public dbObject
 {
  public:
@@ -9772,5 +9933,51 @@ class dbTechLayerWrongDirSpacingRule : public dbObject
 };
 
 // Generator Code End ClassDefinition
+class dbScanChain;
+class dbScanChainList;
+
+class dbScanChainComp : public dbObject {
+public:
+  static dbScanChainComp* getScanChainComp(dbScanChain* scanchain, uint dbid);
+  static dbScanChainComp* getScanChainComp(dbScanChainList* scanchainlist, uint dbid);
+
+  dbInst*  getInst() const;
+  dbITerm* getScanIn() const;
+  dbITerm* getScanOut() const;
+  uint     getNumBits() const;
+};
+
+class dbScanChainList : public dbObject {
+public:
+  dbScanChainComp* createComp(dbInst* inst, dbITerm* in, dbITerm* out, int num_bits = 1);
+  static dbScanChainList* getScanChainList(dbScanChain* scanchain, uint dbid);
+
+  dbSet<dbScanChainComp> getComps() const;
+};
+
+class dbScanChain : public dbObject {
+public:
+  static dbScanChain* create(dbBlock* block, const char* name, const char* common_scan_in,
+    const char* common_scan_out, const char* partition_name = NULL, unsigned partition_max_bits = 0);
+  static dbScanChain* getScanChain(dbBlock* block, uint dbid);
+  static void destroy(dbScanChain* sc);
+
+  const char* getName() const;
+  dbITerm* getStart() const;
+  dbITerm* getStop() const;
+  dbBTerm* getBTermStart() const;
+  dbBTerm* getBTermStop() const;
+  const char* getPartitionName() const;
+  uint getPartitionMaxBits() const;
+  dbSet<dbScanChainList> getOrdered() const;
+  dbSet<dbScanChainComp> getFloating() const;
+
+  void setStart(dbITerm* t);
+  void setStop(dbITerm* t);
+  void setStart(dbBTerm* t);
+  void setStop(dbBTerm* t);
+  dbScanChainComp* createFloatingComp(dbInst* inst, dbITerm* in, dbITerm* out, int num_bits = 1);
+  dbScanChainList* createOrderedList();
+};
 
 }  // namespace odb

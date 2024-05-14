@@ -125,12 +125,12 @@ class dbSet
   ///
   /// Return a begin() iterator.
   ///
-  iterator begin() { return iterator(_itr, _itr->begin(_parent)); }
+  iterator begin() const { return iterator(_itr, _itr->begin(_parent)); }
 
   ///
   /// Return an end() iterator.
   ///
-  iterator end() { return iterator(_itr, _itr->end(_parent)); }
+  iterator end() const { return iterator(_itr, _itr->end(_parent)); }
 
   ///
   /// If this set is sequential, this function will return the database

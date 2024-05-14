@@ -113,7 +113,8 @@ bool dbWirePathItr::getNextPath(dbWirePath& path)
 
     _opcode = _decoder.next();
 
-    if (_opcode == dbWireDecoder::POINT) {
+    if (_opcode == dbWireDecoder::POINT ||
+    	_opcode == dbWireDecoder::POINT_VIRTUAL) {
       _decoder.getPoint(_prev_x, _prev_y);
       _prev_ext = 0;
       _has_prev_ext = false;
@@ -221,6 +222,16 @@ nextOpCode:
       _opcode = _decoder.next();
       goto nextOpCode;
     }
+    case dbWireDecoder::POINT_VIRTUAL: { // ???
+	  int cur_x;
+	  int cur_y;
+	  _decoder.getPoint(cur_x, cur_y);
+	  _prev_x = cur_x;
+	  _prev_y = cur_y;
+	  _prev_ext = 0;
+	  _has_prev_ext = false;
+	  break;
+	}
     case dbWireDecoder::POINT: {
       int cur_x;
       int cur_y;

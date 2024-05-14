@@ -1,16 +1,11 @@
 #pragma once
 
 #include "load_timing_data.hpp"
+#include "linden/db/db.hpp"
 #include <memory>
-#include <vector>
+#include <deque>
 
-namespace linden {
-
-namespace db {
-class Database;
-}
-
-namespace tdp {
+namespace linden::itdp {
 
 void timing_driven_cell_move(
     std::shared_ptr<linden::db::Database> linden_db,
@@ -19,5 +14,4 @@ void timing_driven_cell_move(
     const std::deque<SeqPin>& seq_pins,
     const TdpConfig config);
 
-}  // namespace tdp
-}  // namespace linden
+}  // namespace linden::itdp

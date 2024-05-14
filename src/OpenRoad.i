@@ -62,6 +62,8 @@ namespace ord {
 using sta::dbSta;
 using sta::dbNetwork;
 using rsz::Resizer;
+using sc::ScanChain;
+using lrl::Laurel;
 
 using odb::dbDatabase;
 
@@ -225,6 +227,27 @@ getSteinerTreeBuilder()
   return openroad->getSteinerTreeBuilder();
 }
 
+sc::ScanChain *
+getScanChain()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getScanChain();
+}
+
+lrl::Laurel *
+getLaurel()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getLaurel();
+}
+
+banyan::Banyan *
+getBanyan()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getBanyan();
+}
+
 } // namespace ord
 
 namespace sta {
@@ -293,15 +316,15 @@ using odb::dbTech;
 %inline %{
 
 const char *
-openroad_version()
+eden_version()
 {
-  return OPENROAD_VERSION;
+  return EDEN_VERSION;
 }
 
 const char *
-openroad_git_describe()
+eden_git_describe()
 {
-  return OPENROAD_GIT_DESCRIBE;
+  return EDEN_GIT_DESCRIBE;
 }
 
 void
@@ -427,6 +450,13 @@ set_debug_level(const char* tool_name,
     logger->error(utl::ORD, 15, "Unknown tool name {}", tool_name);
   }
   logger->setDebugLevel(id, group, level);
+}
+
+void
+suppress_exact_message(const char* msg)
+{
+  auto logger = getLogger();
+  logger->registerSuppressedExactMessage(msg);
 }
 
 ////////////////////////////////////////////////////////////////

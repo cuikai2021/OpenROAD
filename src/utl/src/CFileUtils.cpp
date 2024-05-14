@@ -44,7 +44,7 @@ std::string GetContents(FILE* file, Logger* logger)
   return result;
 }
 
-void WriteAll(FILE* file, boost::span<const uint8_t> data, Logger* logger)
+void WriteAll(FILE* file, std::span<const uint8_t> data, Logger* logger)
 {
   size_t total_written = 0;
   while (total_written < data.size()) {

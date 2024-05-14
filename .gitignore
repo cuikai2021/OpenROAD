@@ -46,3 +46,4 @@ __pycache__
 
 /.devcontainer/
 .metals/
+/.work/

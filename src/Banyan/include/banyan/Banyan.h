@@ -40,7 +40,7 @@ using byvia = std::tuple<int, int, std::string>;
 
 constexpr const std::string_view BANYAN_TMP_FOLDER = "/tmp/banyan/";
 
-class Banyan : public ord::OpenRoad::Observer
+class Banyan : public ord::OpenRoadObserver
 {
  public:
   Banyan();
@@ -53,7 +53,7 @@ class Banyan : public ord::OpenRoad::Observer
             rsz::Resizer* resizer);
 
   int main(std::vector<std::string> args, bool updateDB);
-  int cmap(const std::string& cmapPb, bool cgr_mode);
+  int cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_layer);
   void clearWires(bool excludeClock, bool excludeSignal);
   void regression_RC(const char* spef,
                      const char* setRC_tcl,
@@ -63,10 +63,11 @@ class Banyan : public ord::OpenRoad::Observer
   void loaddb(std::string dbfile);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
-                           odb::dbTech* tech,
-                           odb::dbLib*) override
+                           odb::dbTech*,
+                           odb::dbLib*,
+                           bool make_tech) override
   {
-    if (tech) {
+    if (make_tech) {
       tech_lef_file_name_ = filename;
     } else {
       other_lef_file_names_.emplace_back(filename);

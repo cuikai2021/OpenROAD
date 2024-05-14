@@ -58,3 +58,13 @@ add_compile_options(
   add_subdirectory(abc)
 
 endif()
+
+add_subdirectory(envflag/src)
+add_subdirectory(fassert/src)
+add_subdirectory(testa/cpp)
+
+add_library(tomlpp INTERFACE)
+target_include_directories(tomlpp
+  INTERFACE
+      tomlpp/include
+)
