@@ -10,12 +10,15 @@
 *.rej
 *.orig
 *.vscode
+*.sw[opqr]
 TAGS
 *~
 \#*#
 .~lock.*#
 .DS_Store
+.cache
 Makefile
+__pycache__
 
 include/ord/Version.hh
 
@@ -24,9 +27,13 @@ test/results
 flow
 
 docs/main
+messages.txt
+Messages.md
+MessagesFinal.md
 
 .idea/
 cmake-build-debug/
+debug/
 
 coverage-output
 
@@ -38,4 +45,5 @@ messages.txt
 __pycache__
 
 /.devcontainer/
+.metals/
 /.work/
