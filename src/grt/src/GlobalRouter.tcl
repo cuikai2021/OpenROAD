@@ -42,7 +42,7 @@ proc set_global_routing_layer_adjustment { args } {
     if {$layer == "*"} {
       sta::check_positive_float "adjustment" $adj
       grt::set_capacity_adjustment $adj
-    } elseif [regexp -all {([a-zA-Z0-9]+)-([a-zA-Z0-9]+)} $layer] {
+    } elseif [regexp -all {([^-]+)-([^ ]+)} $layer] {
       lassign [grt::parse_layer_range "set_global_routing_layer_adjustment" $layer] first_layer last_layer
       for {set l $first_layer} {$l <= $last_layer} {incr l} {
         grt::check_routing_layer $l
@@ -58,7 +58,7 @@ proc set_global_routing_layer_adjustment { args } {
       grt::add_layer_adjustment $layer_idx $adj
     }
   } else {
-    utl::error GRT 44 "Command set_global_routing_layer_adjustment takes two arguments: layer adj."
+    utl::error GRT 44 "set_global_routing_layer_adjustment requires layer and adj arguments."
   }
 }
 
@@ -144,6 +144,18 @@ proc set_macro_extension { args } {
   }
 }
 
+sta::define_cmd_args "set_pin_offset" { offset }
+
+proc set_pin_offset { args } {
+  if {[llength $args] == 1} {
+    lassign $args offset
+    sta::check_positive_integer "pin_offset" $offset
+    grt::set_pin_offset $offset
+  } else {
+    utl::error GRT 220 "Command set_pin_offset needs one argument: offset."
+  }
+}
+
 sta::define_cmd_args "set_global_routing_random" { [-seed seed] \
                                                    [-capacities_perturbation_percentage percent] \
                                                    [-perturbation_amount value]
@@ -151,7 +163,7 @@ sta::define_cmd_args "set_global_routing_random" { [-seed seed] \
 
 proc set_global_routing_random { args } {
   sta::parse_key_args "set_global_routing_random" args \
-  keys { -seed -capacities_perturbation_percentage -perturbation_amount }
+    keys { -seed -capacities_perturbation_percentage -perturbation_amount }
 
   sta::check_argc_eq0 "set_global_routing_random" $args
 
@@ -159,36 +171,43 @@ proc set_global_routing_random { args } {
     set seed $keys(-seed)
     sta::check_integer "set_global_routing_random" $seed
     grt::set_seed $seed
+  } else {
+    utl::error GRT 242 "-seed argument is required."
   }
 
+  set percentage 0.0
   if { [info exists keys(-capacities_perturbation_percentage)] } {
     set percentage $keys(-capacities_perturbation_percentage)
     sta::check_percent "set_global_routing_random" $percentage
-    grt::set_capacities_perturbation_percentage $percentage
   }
+  grt::set_capacities_perturbation_percentage $percentage
 
+  set perturbation 1
   if { [info exists keys(-perturbation_amount)] } {
     set perturbation $keys(-perturbation_amount)
     sta::check_positive_integer "set_global_routing_random" $perturbation
-    grt::set_perturbation_amount $perturbation
   }
+  grt::set_perturbation_amount $perturbation
 }
 
 sta::define_cmd_args "global_route" {[-guide_file out_file] \
                                   [-congestion_iterations iterations] \
+                                  [-congestion_report_file file_name] \
+                                  [-congestion_report_iter_step steps] \
                                   [-grid_origin origin] \
+                                  [-critical_nets_percentage percent] \
                                   [-allow_congestion] \
-                                  [-overflow_iterations iterations] \
-                                  [-allow_overflow] \
-                                  [-verbose]
+                                  [-verbose] \
+                                  [-start_incremental] \
+                                  [-end_incremental]
 }
 
 proc global_route { args } {
   sta::parse_key_args "global_route" args \
-    keys {-guide_file -congestion_iterations \
-          -overflow_iterations -grid_origin
+    keys {-guide_file -congestion_iterations -congestion_report_file \
+          -overflow_iterations -grid_origin -critical_nets_percentage -congestion_report_iter_step
          } \
-    flags {-allow_congestion -allow_overflow -verbose}
+    flags {-allow_congestion -allow_overflow -verbose -start_incremental -end_incremental}
 
   sta::check_argc_eq0 "global_route" $args
 
@@ -222,11 +241,29 @@ proc global_route { args } {
     grt::set_overflow_iterations 50
   }
 
+  if { [info exists keys(-congestion_report_file) ] } {
+    set file_name $keys(-congestion_report_file)
+    grt::set_congestion_report_file $file_name
+  }
+
+  if { [info exists keys(-congestion_report_iter_step) ] } {
+    set steps $keys(-congestion_report_iter_step)
+    grt::set_congestion_report_iter_step $steps
+  } else {
+    grt::set_congestion_report_iter_step 0
+  }
+
   if { [info exists keys(-overflow_iterations)] } {
     utl::war GRT 147 "Argument -overflow_iterations is deprecated. Use -congestion_iterations."
     set iterations $keys(-overflow_iterations)
     sta::check_positive_integer "-overflow_iterations" $iterations
     grt::set_overflow_iterations $iterations
+  }
+
+  if { [info exists keys(-critical_nets_percentage)] } {
+    set percentage $keys(-critical_nets_percentage)
+    sta::check_percent "-critical_nets_percentage" $percentage
+    grt::set_critical_nets_percentage $percentage
   }
 
   if { [info exists flags(-allow_overflow)] } {
@@ -236,42 +273,90 @@ proc global_route { args } {
   set allow_congestion [expr [info exists flags(-allow_congestion)] || [info exists flags(-allow_overflow)]]
   grt::set_allow_congestion $allow_congestion
 
-  grt::clear
-  grt::run
+  set start_incremental [info exists flags(-start_incremental)]
+  set end_incremental [info exists flags(-end_incremental)]
+
+  grt::global_route $start_incremental $end_incremental
 
   if { [info exists keys(-guide_file)] } {
     set out_file $keys(-guide_file)
-    grt::write_guides $out_file
+    write_guides $out_file
   }
 }
 
-sta::define_cmd_args "repair_antennas" { lib_port \
-                                         [-iterations iterations]}
+sta::define_cmd_args "repair_antennas" { [diode_cell] \
+                                         [-iterations iterations] \
+                                         [-ratio_margin ratio_margin]}
 
 proc repair_antennas { args } {
   sta::parse_key_args "repair_antennas" args \
-                 keys {-iterations}
+                 keys {-iterations -ratio_margin}
   if { [grt::have_routes] } {
-    sta::check_argc_eq1 "repair_antennas" $args
-    set lib_port [lindex $args 0]
-    if { ![sta::is_object $lib_port] } {
-      set lib_port [sta::get_lib_pins [lindex $args 0]]
+    if { [llength $args] == 0 } {
+      # repairAntennas locates diode
+      set diode_mterm "NULL"
+    } elseif { [llength $args] == 1 } {
+      set db [ord::get_db]
+      set diode_cell [lindex $args 0]
+
+      set diode_master [$db findMaster $diode_cell]
+      if { $diode_master == "NULL" } {
+        utl::error GRT 69 "Diode cell $diode_cell not found."
+      }
+      
+      set diode_mterms [$diode_master getMTerms]
+      set non_pg_count 0
+      foreach mterm $diode_mterms {
+        if { [$mterm getSigType] != "POWER" && [$mterm getSigType] != "GROUND" } {
+          set diode_mterm $mterm
+          incr non_pg_count
+        }
+      }
+
+      if { $non_pg_count > 1 } {
+        utl::error GRT 73 "Diode cell has more than one non power/ground port."
+      }
+    } else {
+      utl::error GRT 245 "Too arguments to repair_antennas."
     }
 
+    set iterations 1
     if { [info exists keys(-iterations)] } {
       set iterations $keys(-iterations)
-      sta::check_positive_integer "-repair_antennas_iterations" $iterations
-    } else {
-      set iterations 1
+      sta::check_positive_integer "-iterations" $iterations
     }
 
-    if { $lib_port != "" } {
-      grt::repair_antennas $lib_port $iterations
-    } else {
-      utl::error GRT 69 "Diode not found."
+    set ratio_margin 0
+    if { [info exists keys(-ratio_margin)] } {
+      set ratio_margin $keys(-ratio_margin)
+      if { !($ratio_margin >= 0 && $ratio_margin < 100) } {
+        utl::warn GRT 215 "-ratio_margin must be between 0 and 100 percent."
+      }
     }
+
+    grt::repair_antennas $diode_mterm $iterations $ratio_margin
   } else {
     utl::error GRT 45 "Run global_route before repair_antennas."
+  }
+}
+
+sta::define_cmd_args "set_nets_to_route" { net_names }
+
+proc set_nets_to_route { args } {
+  sta::parse_key_args "set_nets_to_route" args \
+                 keys {} \
+                 flags {}
+  sta::check_argc_eq1 "set_nets_to_route" $args
+  set net_names [lindex $args 0]
+  set block [ord::get_db_block]
+  if { $block == "NULL" } {
+    utl::error GRT 252 "Missing dbBlock."
+  }
+
+  foreach net [get_nets $net_names] {
+    if { $net != "NULL" } {
+      grt::add_net_to_route [sta::sta_to_db_net $net]
+    }
   }
 }
 
@@ -282,13 +367,6 @@ proc read_guides { args } {
   grt::read_guides $file_name
 }
 
-sta::define_cmd_args "write_guides" { file_name }
-
-proc write_guides { args } {
-  set file_name $args
-  grt::write_guides $file_name
-}
-
 sta::define_cmd_args "draw_route_guides" { net_names \
                                            [-show_pin_locations] }
 
@@ -296,21 +374,19 @@ proc draw_route_guides { args } {
   sta::parse_key_args "draw_route_guides" args \
                  keys {} \
                  flags {-show_pin_locations}
-  sta::check_argc_eq1 "repair_antennas" $args
+  sta::check_argc_eq1 "draw_route_guides" $args
   set net_names [lindex $args 0]
   set block [ord::get_db_block]
   if { $block == "NULL" } {
     utl::error GRT 223 "Missing dbBlock."
   }
 
-  if {[llength $net_names] > 0} {
-    foreach net [get_nets $net_names] {
-      if { $net != "NULL" } {
-        grt::highlight_net_route [sta::sta_to_db_net $net] [info exists flags(-show_pin_locations)]
-      }
+  grt::clear_route_guides
+  set show_pins [info exists flags(-show_pin_locations)]
+  foreach net [get_nets $net_names] {
+    if { $net != "NULL" } {
+      grt::highlight_net_route [sta::sta_to_db_net $net] $show_pins
     }
-  } else {
-    grt::erase_routes
   }
 }
 
@@ -319,13 +395,14 @@ sta::define_cmd_args "global_route_debug" {
   [-rst]      # Show the Rectilinear Steiner Tree generated by FastRoute
   [-tree2D]   # Show the Rectilinear Steiner Tree generated by FastRoute after overflow iterations
   [-tree3D]   # Show The Rectilinear Steiner Tree 3D after layer assignment
+  [-saveSttInput file_name] # Save the stt input for a net on file_name
   [-net name] 
 }
 
 proc global_route_debug { args } {
 
   sta::parse_key_args "global_route_debug" args \
-      keys {-net} \
+      keys {-saveSttInput -net} \
       flags {-st -rst -tree2D -tree3D}
 
   sta::check_argc_eq0 "global_route_debug" $args
@@ -339,6 +416,10 @@ proc global_route_debug { args } {
 
   if { [info exists keys(-net)] && $net != "NULL" } {
     grt::set_global_route_debug_cmd $net $st $rst $tree2D $tree3D
+    if { [info exists keys(-saveSttInput)] } {
+      set file_name $keys(-saveSttInput)
+      grt::set_global_route_debug_stt_input_filename $file_name
+    }
   } else {
     utl::error GRT 231 "Net name not found."
   }
@@ -386,7 +467,7 @@ proc report_wire_length { args } {
       }
     }
   } else {
-    utl::errpr GRT 237 "-net is required."
+    utl::error GRT 238 "-net is required."
   }
 }
 
@@ -428,7 +509,7 @@ proc parse_layer_name { layer_name } {
 }
 
 proc parse_layer_range { cmd layer_range } {
-  if [regexp -all {([a-zA-Z0-9]+)-([a-zA-Z0-9]+)} $layer_range - min_layer_name max_layer_name] {
+  if [regexp -all {([^-]+)-([^ ]+)} $layer_range - min_layer_name max_layer_name] {
     set min_layer [parse_layer_name $min_layer_name]
     set max_layer [parse_layer_name $max_layer_name]
 
@@ -473,11 +554,12 @@ proc define_layer_range { layers } {
   grt::set_min_layer $min_layer
   grt::set_max_layer $max_layer
 
+  set tech [ord::get_db_tech]
   for {set layer 1} {$layer <= $max_layer} {set layer [expr $layer+1]} {
-    if { !([ord::db_layer_has_hor_tracks $layer] && \
-         [ord::db_layer_has_ver_tracks $layer]) } {
-      set tech [ord::get_db_tech]
-      set layer_name [[$tech findRoutingLayer $layer] getName]
+    set db_layer [$tech findRoutingLayer $layer]
+    if { !([ord::db_layer_has_hor_tracks $db_layer] && \
+         [ord::db_layer_has_ver_tracks $db_layer]) } {
+      set layer_name [$db_layer getName]
       utl::error GRT 57 "Missing track structure for layer $layer_name."
     }
   }

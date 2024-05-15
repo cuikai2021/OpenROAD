@@ -31,7 +31,6 @@
 #include "db/drObj/drNet.h"
 #include "db/obj/frShape.h"
 
-using namespace std;
 using namespace fr;
 
 drPathSeg::drPathSeg(const frPathSeg& in)
@@ -42,14 +41,14 @@ drPathSeg::drPathSeg(const frPathSeg& in)
       patchSeg_(false),
       isTapered_(false)
 {
-  in.getPoints(begin_, end_);
-  in.getStyle(style_);
+  std::tie(begin_, end_) = in.getPoints();
+  style_ = in.getStyle();
   setTapered(in.isTapered());
 }
 
 drPatchWire::drPatchWire(const frPatchWire& in)
     : layer_(in.getLayerNum()), owner_(nullptr)
 {
-  in.getOffsetBox(offsetBox_);
-  in.getOrigin(origin_);
+  offsetBox_ = in.getOffsetBox();
+  origin_ = in.getOrigin();
 }

@@ -36,6 +36,7 @@
 %{
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
+#include "utl/Logger.h"
 #include "tap/tapcell.h"
 
   namespace ord {
@@ -49,7 +50,24 @@
   using std::string;
   using std::vector;
 
+  static odb::dbMaster* findMaster(const char* name)
+  {
+    if (name[0] == '\0') {
+      return nullptr;
+    }
+    auto db = ord::OpenRoad::openRoad()->getDb();
+    auto master = db->findMaster(name);
+    if (!master) {
+      auto logger = ord::OpenRoad::openRoad()->getLogger();
+      logger->error(utl::TAP, 35, "Master {} not found.", name);
+    }
+    return master;
+  }
+  
 %}
+
+%import <std_vector.i>
+%import "dbtypes.i"
 
 %include "../../Exception.i"
 
@@ -64,11 +82,11 @@
     getTapcell()->setEndcapPrefix(endcap_prefix);
   }
 
-  void run(odb::dbMaster* endcap_right_master,
-           odb::dbMaster* endcap_left_master,
+  void run(odb::dbMaster* endcap_master,
+           const int halo_x,
+           const int halo_y,
            const char* cnrcap_nwin_master,
            const char* cnrcap_nwout_master,
-           bool add_boundary_cell,
            const char* tap_nwintie_master,
            const char* tap_nwin2_master,
            const char* tap_nwin3_master,
@@ -78,23 +96,36 @@
            const char* incnrcap_nwin_master,
            const char* incnrcap_nwout_master,
            odb::dbMaster* tapcell_master,
-           int dist)
+           const int dist,
+           const bool disallow_one_site_gaps)
   {
-    getTapcell()->run(endcap_right_master,
-                      endcap_left_master,
-                      cnrcap_nwin_master,
-                      cnrcap_nwout_master,
-                      add_boundary_cell,
-                      tap_nwintie_master,
-                      tap_nwin2_master,
-                      tap_nwin3_master,
-                      tap_nwouttie_master,
-                      tap_nwout2_master,
-                      tap_nwout3_master,
-                      incnrcap_nwin_master,
-                      incnrcap_nwout_master,
-                      tapcell_master,
-                      dist);
+    Options options;
+    options.endcap_master = endcap_master;
+    options.tapcell_master = tapcell_master;
+    options.dist = dist;
+    options.halo_x = halo_x;
+    options.halo_y = halo_y;
+    options.cnrcap_nwin_master = findMaster(cnrcap_nwin_master);
+    options.cnrcap_nwout_master = findMaster(cnrcap_nwout_master);
+    options.tap_nwintie_master = findMaster(tap_nwintie_master);
+    options.tap_nwin2_master = findMaster(tap_nwin2_master);
+    options.tap_nwin3_master = findMaster(tap_nwin3_master);
+    options.tap_nwouttie_master = findMaster(tap_nwouttie_master);
+    options.tap_nwout2_master = findMaster(tap_nwout2_master);
+    options.tap_nwout3_master = findMaster(tap_nwout3_master);
+    options.incnrcap_nwin_master = findMaster(incnrcap_nwin_master);
+    options.incnrcap_nwout_master = findMaster(incnrcap_nwout_master);
+    options.disallow_one_site_gaps = disallow_one_site_gaps;
+    getTapcell()->run(options);
+  }
+
+  void cut_rows(odb::dbMaster* endcap_master, int halo_x, int halo_y)
+  {
+    Options options;
+    options.endcap_master = endcap_master;
+    options.halo_x = halo_x;
+    options.halo_y = halo_y;
+    getTapcell()->cutRows(options);
   }
 
   void clear()
@@ -104,59 +135,60 @@
 
   void reset() { getTapcell()->reset(); }
 
-  int make_site_loc(int x, double site_x, bool at_left_from_macro, int offset)
-  {
-    return getTapcell()->makeSiteLoc(x, site_x, at_left_from_macro, offset);
-  }
-
-  void build_row(odb::dbBlock* block,
-                 const char* name,
-                 odb::dbSite* site,
-                 int start_x,
-                 int end_x,
-                 int y,
-                 odb::dbRow* row,
-                 int min_row_width)
-  {
-    odb::dbOrientType orient = row->getOrient();
-    odb::dbRowDir direction = row->getDirection();
-    getTapcell()->buildRow(block,
-                           name,
-                           site,
-                           start_x,
-                           end_x,
-                           y,
-                           orient,
-                           direction,
-                           min_row_width);
-  }
-
-  void cut_rows(odb::dbMaster* endcap_right_master,
-                odb::dbMaster* endcap_left_master,
-                std::vector<odb::Rect>& blockages)
-  {
-    getTapcell()->cutRows(endcap_right_master, endcap_left_master, blockages);
-  }
-
   int remove_cells(const char* prefix)
   {
     return getTapcell()->removeCells(prefix);
   }
 
-  std::vector<odb::Rect> find_blockages() {
-    return getTapcell()->findBlockages();
-  }
+  void place_endcaps(
+    odb::dbMaster* left_top_corner,
+    odb::dbMaster* right_top_corner,
+    odb::dbMaster* left_bottom_corner,
+    odb::dbMaster* right_bottom_corner,
+    odb::dbMaster* left_top_edge,
+    odb::dbMaster* right_top_edge,
+    odb::dbMaster* left_bottom_edge,
+    odb::dbMaster* right_bottom_edge,
 
-  bool overlaps(const odb::Rect& blockage,
-                odb::dbRow* row)
+    const std::vector<odb::dbMaster*>& top_edge,
+    const std::vector<odb::dbMaster*>& bottom_edge,
+
+    odb::dbMaster* left_edge,
+    odb::dbMaster* right_edge,
+    const char* prefix)
   {
-    return getTapcell()->overlaps(blockage, row);
+    EndcapCellOptions options;
+
+    options.left_top_corner = left_top_corner;
+    options.right_top_corner = right_top_corner;
+    options.left_bottom_corner = left_bottom_corner;
+    options.right_bottom_corner = right_bottom_corner;
+    options.left_top_edge = left_top_edge;
+    options.right_top_edge = right_top_edge;
+    options.left_bottom_edge = left_bottom_edge;
+    options.right_bottom_edge = right_bottom_edge;
+
+    options.top_edge = top_edge;
+    options.bottom_edge = bottom_edge;
+
+    options.left_edge = left_edge;
+    options.right_edge = right_edge;
+    options.prefix = prefix;
+
+    getTapcell()->placeEndcaps(options);
   }
 
-
-
+  void insert_tapcells(
+    odb::dbMaster* master,
+    int distance)
+  {
+    Options options;
+    options.dist = distance;
+    options.tapcell_master = master;
+  
+    getTapcell()->placeTapcells(options);
+  }
 
   }  // namespace tap
 
-  %}
-
+%}

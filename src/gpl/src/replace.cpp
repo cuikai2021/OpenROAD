@@ -35,111 +35,66 @@
 
 #include <iostream>
 
-#include "gpl/graphics.h"
-#include "gpl/initialPlace.h"
-#include "gpl/initialPlaceBicgstab.h"
-#include "gpl/initialPlaceDef.h"
-#include "initialPlaceDirichlet.h"
-#include "initialPlaceEV.h"
+#include "db.h"
+#include "db_sta/dbNetwork.hh"
+#include "db_sta/dbSta.hh"
+#include "initialPlace.h"
+#include "mbff.h"
 #include "nesterovBase.h"
 #include "nesterovPlace.h"
 #include "odb/db.h"
-#include "gpl/placerBase.h"
-#include "plot.h"
+#include "ord/OpenRoad.hh"
+#include "placerBase.h"
 #include "routeBase.h"
 #include "rsz/Resizer.hh"
+#include "sta/StaMain.hh"
 #include "timingBase.h"
 #include "utl/Logger.h"
 
 namespace gpl {
 
-using namespace std;
 using utl::GPL;
 
-Replace::Replace()
-    : db_(nullptr),
-      rs_(nullptr),
-      fr_(nullptr),
-      log_(nullptr),
-      pb_(nullptr),
-      nb_(nullptr),
-      rb_(nullptr),
-      tb_(nullptr),
-      ip_(nullptr),
-      np_(nullptr),
-      initialPlacePolicy_(),
-      initialPlaceMaxIter_(20),
-      initialPlaceMinDiffLength_(1500),
-      initialPlaceMaxSolverIter_(100),
-      initialPlaceNetWeightScale_(800),
-      cellDensityForceCalPolicy_(),
-      nesterovPlaceMaxIter_(5000),
-      binGridCntX_(0),
-      binGridCntY_(0),
-      overflow_(0.1),
-      density_(1.0),
-      initDensityPenalityFactor_(0.00008),
-      initWireLengthCoef_(0.25),
-      minPhiCoef_(0.95),
-      maxPhiCoef_(1.05),
-      referenceHpwl_(446000000),
-      routabilityCheckOverflow_(0.20),
-      routabilityMaxDensity_(0.99),
-      routabilityTargetRcMetric_(1.25),
-      routabilityInflationRatioCoef_(2.5),
-      routabilityMaxInflationRatio_(2.5),
-      routabilityRcK1_(1.0),
-      routabilityRcK2_(1.0),
-      routabilityRcK3_(0.0),
-      routabilityRcK4_(0.0),
-      routabilityMaxBloatIter_(1),
-      routabilityMaxInflationIter_(4),
-      timingDrivenMode_(true),
-      routabilityDrivenMode_(true),
-      uniformTargetDensityMode_(false),
-      skipIoMode_(false),
-      padLeft_(0),
-      padRight_(0),
-      disableFillerInsertion_(false),
-      disableCellDensityScaling_(false),
-      gui_debug_(false),
-      gui_debug_pause_iterations_(10),
-      gui_debug_update_iterations_(10),
-      gui_debug_draw_bins_(false),
-      gui_debug_initial_(false){};
+Replace::Replace() = default;
 
-Replace::~Replace()
-{
-  reset();
-}
+Replace::~Replace() = default;
 
-void Replace::init()
+void Replace::init(odb::dbDatabase* odb,
+                   sta::dbSta* sta,
+                   rsz::Resizer* resizer,
+                   grt::GlobalRouter* router,
+                   utl::Logger* logger)
 {
+  db_ = odb;
+  sta_ = sta;
+  rs_ = resizer;
+  fr_ = router;
+  log_ = logger;
 }
 
 void Replace::reset()
 {
-  // two pointers should not be freed.
-  db_ = nullptr;
-  fr_ = nullptr;
-  rs_ = nullptr;
-  log_ = nullptr;
-
   ip_.reset();
   np_.reset();
 
-  pb_.reset();
-  nb_.reset();
+  pbc_.reset();
+  nbc_.reset();
+
+  pbVec_.clear();
+  pbVec_.shrink_to_fit();
+  nbVec_.clear();
+  nbVec_.shrink_to_fit();
+
   tb_.reset();
   rb_.reset();
 
-  initialPlacePolicy_ = "";
   initialPlaceMaxIter_ = 20;
   initialPlaceMinDiffLength_ = 1500;
   initialPlaceMaxSolverIter_ = 100;
+  initialPlaceMaxFanout_ = 200;
   initialPlaceNetWeightScale_ = 800;
+  forceCPU_ = false;
 
-  cellDensityForceCalPolicy_ = "";
   nesterovPlaceMaxIter_ = 5000;
   binGridCntX_ = binGridCntY_ = 0;
   overflow_ = 0.1;
@@ -169,9 +124,7 @@ void Replace::reset()
 
   timingNetWeightOverflows_.clear();
   timingNetWeightOverflows_.shrink_to_fit();
-
-  disableFillerInsertion_ = false;
-  disableCellDensityScaling_ = false;
+  timingNetWeightMax_ = 1.9;
 
   gui_debug_ = false;
   gui_debug_pause_iterations_ = 10;
@@ -180,26 +133,30 @@ void Replace::reset()
   gui_debug_initial_ = false;
 }
 
-void Replace::setDb(odb::dbDatabase* db)
-{
-  db_ = db;
-}
-void Replace::setGlobalRouter(grt::GlobalRouter* fr)
-{
-  fr_ = fr;
-}
-void Replace::setResizer(rsz::Resizer* rs)
-{
-  rs_ = rs;
-}
-void Replace::setLogger(utl::Logger* logger)
-{
-  log_ = logger;
-}
-
 void Replace::doIncrementalPlace()
 {
-  initPlacerBase();
+  if (pbc_ == nullptr) {
+    PlacerBaseVars pbVars;
+    pbVars.padLeft = padLeft_;
+    pbVars.padRight = padRight_;
+    pbVars.skipIoMode = skipIoMode_;
+
+    pbc_ = std::make_shared<PlacerBaseCommon>(db_, pbVars, log_);
+
+    pbVec_.push_back(std::make_shared<PlacerBase>(db_, pbc_, log_));
+
+    for (auto pd : db_->getChip()->getBlock()->getPowerDomains()) {
+      if (pd->getGroup()) {
+        pbVec_.push_back(
+            std::make_shared<PlacerBase>(db_, pbc_, log_, pd->getGroup()));
+      }
+    }
+
+    total_placeable_insts_ = 0;
+    for (const auto& pb : pbVec_) {
+      total_placeable_insts_ += pb->placeInsts().size();
+    }
+  }
 
   // Lock down already placed objects
   int locked_cnt = 0;
@@ -208,7 +165,7 @@ void Replace::doIncrementalPlace()
   for (auto inst : block->getInsts()) {
     auto status = inst->getPlacementStatus();
     if (status == odb::dbPlacementStatus::PLACED) {
-      pb_->dbToPb(inst)->lock();
+      pbc_->dbToPb(inst)->lock();
       ++locked_cnt;
     } else if (!status.isPlaced()) {
       ++unplaced_cnt;
@@ -218,7 +175,10 @@ void Replace::doIncrementalPlace()
   if (unplaced_cnt == 0) {
     // Everything was already placed so we do the old incremental mode
     // which just skips initial placement and runs nesterov.
-    pb_->unlockAll();
+    for (auto& pb : pbVec_) {
+      pb->unlockAll();
+    }
+    // pbc_->unlockAll();
     doNesterovPlace();
     return;
   }
@@ -241,7 +201,9 @@ void Replace::doIncrementalPlace()
 
   // Finish the overflow resolution from the rough placement
   log_->info(GPL, 133, "Unlocked instances");
-  pb_->unlockAll();
+  for (auto& pb : pbVec_) {
+    pb->unlockAll();
+  }
 
   setTargetOverflow(previous_overflow);
   if (previous_overflow < rough_oveflow) {
@@ -251,78 +213,97 @@ void Replace::doIncrementalPlace()
 
 void Replace::doInitialPlace()
 {
-  if (pb_ == nullptr) {
+  if (pbc_ == nullptr) {
     PlacerBaseVars pbVars;
     pbVars.padLeft = padLeft_;
     pbVars.padRight = padRight_;
     pbVars.skipIoMode = skipIoMode_;
 
-    pb_ = std::make_shared<PlacerBase>(db_, pbVars, log_);
+    pbc_ = std::make_shared<PlacerBaseCommon>(db_, pbVars, log_);
+
+    pbVec_.push_back(std::make_shared<PlacerBase>(db_, pbc_, log_));
+
+    for (auto pd : db_->getChip()->getBlock()->getPowerDomains()) {
+      if (pd->getGroup()) {
+        pbVec_.push_back(
+            std::make_shared<PlacerBase>(db_, pbc_, log_, pd->getGroup()));
+      }
+    }
+
+    total_placeable_insts_ = 0;
+    for (const auto& pb : pbVec_) {
+      total_placeable_insts_ += pb->placeInsts().size();
+    }
   }
 
   InitialPlaceVars ipVars;
   ipVars.maxIter = initialPlaceMaxIter_;
   ipVars.minDiffLength = initialPlaceMinDiffLength_;
   ipVars.maxSolverIter = initialPlaceMaxSolverIter_;
+  ipVars.maxFanout = initialPlaceMaxFanout_;
   ipVars.netWeightScale = initialPlaceNetWeightScale_;
   ipVars.debug = gui_debug_initial_;
+  ipVars.forceCPU = forceCPU_;
 
-  if (initialPlacePolicy_ == "def") {
-    ip_ = std::move(
-        std::unique_ptr<InitialPlace>(new InitialPlaceDef(ipVars, pb_, log_)));
-  } else if (initialPlacePolicy_ == "ev") {
-    ip_ = std::move(
-        std::unique_ptr<InitialPlace>(new InitialPlaceEV(ipVars, pb_, log_)));
-  } else if (initialPlacePolicy_ == "dirichlet") {
-    ip_ = std::move(std::unique_ptr<InitialPlace>(
-        new InitialPlaceDirichlet(ipVars, pb_, log_)));
-  } else {  // default
-    ip_ = std::move(std::unique_ptr<InitialPlace>(
-        new InitialPlaceBicgstab(ipVars, pb_, log_)));
-  }
-  ip_->run();
+  std::unique_ptr<InitialPlace> ip(
+      new InitialPlace(ipVars, pbc_, pbVec_, log_));
+  ip_ = std::move(ip);
+  ip_->doBicgstabPlace();
 }
 
-void Replace::initPlacerBase()
+void Replace::runMBFF(int max_sz, float alpha, float beta, int threads)
 {
-  if (!pb_) {
+  MBFF pntset(db_, sta_, log_, threads, 4, 10, gui_debug_);
+  pntset.Run(max_sz, alpha, beta);
+}
+
+bool Replace::initNesterovPlace()
+{
+  if (!pbc_) {
     PlacerBaseVars pbVars;
     pbVars.padLeft = padLeft_;
     pbVars.padRight = padRight_;
     pbVars.skipIoMode = skipIoMode_;
 
-    pb_ = std::make_shared<PlacerBase>(db_, pbVars, log_);
+    pbc_ = std::make_shared<PlacerBaseCommon>(db_, pbVars, log_);
+
+    pbVec_.push_back(std::make_shared<PlacerBase>(db_, pbc_, log_));
+
+    for (auto pd : db_->getChip()->getBlock()->getPowerDomains()) {
+      if (pd->getGroup()) {
+        pbVec_.push_back(
+            std::make_shared<PlacerBase>(db_, pbc_, log_, pd->getGroup()));
+      }
+    }
+
+    total_placeable_insts_ = 0;
+    for (const auto& pb : pbVec_) {
+      total_placeable_insts_ += pb->placeInsts().size();
+    }
   }
-}
 
-void Replace::initNesterovPlace()
-{
-  initPlacerBase();
+  if (total_placeable_insts_ == 0) {
+    log_->warn(GPL, 136, "No placeable instances - skipping placement.");
+    return false;
+  }
 
-  if (!nb_) {
+  if (!nbc_) {
     NesterovBaseVars nbVars;
     nbVars.targetDensity = density_;
 
-    if (binGridCntX_ != 0) {
-      nbVars.isSetBinCntX = 1;
+    if (binGridCntX_ != 0 && binGridCntY_ != 0) {
+      nbVars.isSetBinCnt = true;
       nbVars.binCntX = binGridCntX_;
-    }
-
-    if (binGridCntY_ != 0) {
-      nbVars.isSetBinCntY = 1;
       nbVars.binCntY = binGridCntY_;
     }
 
-    nbVars.disableFillerInsertion = disableFillerInsertion_;
-    nbVars.disableCellDensityScaling = disableCellDensityScaling_;
-
     nbVars.useUniformTargetDensity = uniformTargetDensityMode_;
 
-    if (cellDensityForceCalPolicy_ != "") {
-      nbVars.cellDensityForceCalPolicy = cellDensityForceCalPolicy_;
-    }
+    nbc_ = std::make_shared<NesterovBaseCommon>(nbVars, pbc_, log_);
 
-    nb_ = std::make_shared<NesterovBase>(nbVars, pb_, log_);
+    for (const auto& pb : pbVec_) {
+      nbVec_.push_back(std::make_shared<NesterovBase>(nbVars, pb, nbc_, log_));
+    }
   }
 
   if (!rb_) {
@@ -338,12 +319,13 @@ void Replace::initNesterovPlace()
     rbVars.rcK3 = routabilityRcK3_;
     rbVars.rcK4 = routabilityRcK4_;
 
-    rb_ = std::make_shared<RouteBase>(rbVars, db_, fr_, nb_, log_);
+    rb_ = std::make_shared<RouteBase>(rbVars, db_, fr_, nbc_, nbVec_, log_);
   }
 
   if (!tb_) {
-    tb_ = std::make_shared<TimingBase>(nb_, rs_, log_);
+    tb_ = std::make_shared<TimingBase>(nbc_, rs_, log_);
     tb_->setTimingNetWeightOverflows(timingNetWeightOverflows_);
+    tb_->setTimingNetWeightMax(timingNetWeightMax_);
   }
 
   if (!np_) {
@@ -363,24 +345,29 @@ void Replace::initNesterovPlace()
     npVars.debug_pause_iterations = gui_debug_pause_iterations_;
     npVars.debug_update_iterations = gui_debug_update_iterations_;
     npVars.debug_draw_bins = gui_debug_draw_bins_;
+    npVars.debug_inst = gui_debug_inst_;
+
+    for (const auto& nb : nbVec_) {
+      nb->setNpVars(&npVars);
+    }
 
     std::unique_ptr<NesterovPlace> np(
-        new NesterovPlace(npVars, pb_, nb_, rb_, tb_, log_));
+        new NesterovPlace(npVars, pbc_, nbc_, pbVec_, nbVec_, rb_, tb_, log_));
+
     np_ = std::move(np);
   }
-}  // namespace gpl
+  return true;
+}
 
 int Replace::doNesterovPlace(int start_iter)
 {
-  initNesterovPlace();
-  if (timingDrivenMode_)
+  if (!initNesterovPlace()) {
+    return 0;
+  }
+  if (timingDrivenMode_) {
     rs_->resizeSlackPreamble();
+  }
   return np_->doNesterovPlace(start_iter);
-}
-
-void Replace::setInitialPlacePolicy(const char* policy)
-{
-  initialPlacePolicy_ = policy != nullptr ? std::string(policy) : "";
 }
 
 void Replace::setInitialPlaceMaxIter(int iter)
@@ -398,14 +385,14 @@ void Replace::setInitialPlaceMaxSolverIter(int iter)
   initialPlaceMaxSolverIter_ = iter;
 }
 
+void Replace::setInitialPlaceMaxFanout(int fanout)
+{
+  initialPlaceMaxFanout_ = fanout;
+}
+
 void Replace::setInitialPlaceNetWeightScale(float scale)
 {
   initialPlaceNetWeightScale_ = scale;
-}
-
-void Replace::setCellDensityForceCalPolicy(const char* policy)
-{
-  cellDensityForceCalPolicy_ = policy != nullptr ? std::string(policy) : "";
 }
 
 void Replace::setNesterovPlaceMaxIter(int iter)
@@ -416,13 +403,9 @@ void Replace::setNesterovPlaceMaxIter(int iter)
   }
 }
 
-void Replace::setBinGridCntX(int binGridCntX)
+void Replace::setBinGridCnt(int binGridCntX, int binGridCntY)
 {
   binGridCntX_ = binGridCntX;
-}
-
-void Replace::setBinGridCntY(int binGridCntY)
-{
   binGridCntY_ = binGridCntY;
 }
 
@@ -446,8 +429,11 @@ void Replace::setUniformTargetDensityMode(bool mode)
 
 float Replace::getUniformTargetDensity()
 {
-  initNesterovPlace();
-  return nb_->uniformTargetDensity();
+  // TODO: update to be compatible with multiple target densities
+  if (initNesterovPlace()) {
+    return nbVec_[0]->uniformTargetDensity();
+  }
+  return 1;
 }
 
 void Replace::setInitDensityPenalityFactor(float penaltyFactor)
@@ -478,28 +464,25 @@ void Replace::setReferenceHpwl(float refHpwl)
 void Replace::setDebug(int pause_iterations,
                        int update_iterations,
                        bool draw_bins,
-                       bool initial)
+                       bool initial,
+                       odb::dbInst* inst)
 {
   gui_debug_ = true;
   gui_debug_pause_iterations_ = pause_iterations;
   gui_debug_update_iterations_ = update_iterations;
   gui_debug_draw_bins_ = draw_bins;
   gui_debug_initial_ = initial;
-}
-
-void Replace::setDisableFillerInsertion(bool flag)
-{
-  disableFillerInsertion_ = flag;
-}
-
-void Replace::setDisableCellDensityScaling(bool flag)
-{
-  disableCellDensityScaling_ = flag;
+  gui_debug_inst_ = inst;
 }
 
 void Replace::setSkipIoMode(bool mode)
 {
   skipIoMode_ = mode;
+}
+
+void Replace::setForceCPU(bool force_cpu)
+{
+  forceCPU_ = force_cpu;
 }
 
 void Replace::setTimingDrivenMode(bool mode)
@@ -573,11 +556,9 @@ void Replace::addTimingNetWeightOverflow(int overflow)
   timingNetWeightOverflows_.push_back(overflow);
 }
 
-void Replace::setPlottingPath(const char* path)
+void Replace::setTimingNetWeightMax(float max)
 {
-#ifdef ENABLE_CIMG_LIB
-  gpl::PlotEnv::setPlotPath(path);
-#endif
+  timingNetWeightMax_ = max;
 }
 
 }  // namespace gpl

@@ -1,0 +1,298 @@
+[WARNING STA-1002] ./Nangate45_typ.lib line 40, library unsupported feature date.
+[WARNING STA-1002] ./Nangate45_typ.lib line 41, library unsupported feature revision.
+[WARNING STA-1002] ./Nangate45_typ.lib line 42, library unsupported feature comment.
+[WARNING STA-1002] ./Nangate45_typ.lib line 45, library unsupported feature technology.
+[WARNING STA-1002] ./Nangate45_typ.lib line 47, library unsupported feature in_place_swap_mode.
+[WARNING STA-1002] ./Nangate45_typ.lib line 48, library unsupported feature library_features.
+[WARNING STA-1002] ./Nangate45_typ.lib line 68, library unsupported feature process_corner.
+[WARNING STA-1002] ./Nangate45_typ.lib line 86, library unsupported feature default_leakage_power_density.
+[WARNING STA-1002] ./Nangate45_typ.lib line 87, library unsupported feature default_cell_leakage_power.
+[WARNING STA-1002] ./Nangate45_typ.lib line 308, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 535, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 762, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 989, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 1320, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 1651, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 1982, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 2433, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 2884, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 3335, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 3338, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 3395, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 3894, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 4393, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 4892, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 6015, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 7138, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 8261, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 9048, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 9835, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 10622, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 12557, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 14492, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 16427, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 21206, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 25985, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 30764, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 30895, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 31026, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 31157, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 31288, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 31419, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 31550, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 31681, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 31812, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 31943, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 32243, library unsupported feature clock_gate_test_pin.
+[WARNING STA-1002] ./Nangate45_typ.lib line 32697, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 32997, library unsupported feature clock_gate_test_pin.
+[WARNING STA-1002] ./Nangate45_typ.lib line 33451, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 33751, library unsupported feature clock_gate_test_pin.
+[WARNING STA-1002] ./Nangate45_typ.lib line 34205, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 34505, library unsupported feature clock_gate_test_pin.
+[WARNING STA-1002] ./Nangate45_typ.lib line 34959, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 35311, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 35663, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 36015, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 36367, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 38755, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 41143, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 42178, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 43213, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 44248, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 45283, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 45713, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 46143, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 46495, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 46847, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 47199, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 47551, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49133, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49136, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49159, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49162, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49185, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49188, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49211, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49214, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49237, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49240, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49263, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49266, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49289, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49853, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 49984, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50115, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50246, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50377, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50508, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50639, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50642, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50673, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50676, library unsupported feature dont_touch.
+[WARNING STA-1002] ./Nangate45_typ.lib line 50707, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 51296, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 51885, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 52112, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 52339, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 52566, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 52897, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 53228, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 53559, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 54010, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 54461, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 54912, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 55139, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 55366, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 55593, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 55924, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 56255, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 56586, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 57037, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 57488, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 57939, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 58438, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 58937, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 59436, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 60559, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 61682, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 62805, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 66600, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 67387, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 68174, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 68961, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 70896, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 72831, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 74766, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 79545, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 84324, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 89103, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 89330, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 89557, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 89784, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 90115, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 90446, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 90777, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 91228, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 91679, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 92130, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 92478, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 93305, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 93840, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 101445, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 101793, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 102620, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 103155, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 110760, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 110977, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 111678, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 112093, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 114726, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 114943, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 115644, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 116059, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 118692, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 118909, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 119324, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 119739, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 122658, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 122875, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 123290, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 123705, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 126624, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 126776, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 127071, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 127362, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 128089, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 128241, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 128536, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 128827, library unsupported feature nextstate_type.
+[WARNING STA-1002] ./Nangate45_typ.lib line 129554, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 129806, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 130058, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 130310, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 130562, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 130814, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 131066, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 131697, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 132096, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 132495, library unsupported feature drive_strength.
+[WARNING STA-1002] ./Nangate45_typ.lib line 132894, library unsupported feature drive_strength.
+[INFO ODB-0222] Reading LEF file: ./nangate45.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0225]     Created 134 library cells
+[INFO ODB-0226] Finished LEF file:  ./nangate45.lef
+[INFO ODB-0127] Reading DEF file: ./simple01-td.def
+[INFO ODB-0128] Design: gcd
+[INFO ODB-0130]     Created 54 pins.
+[INFO ODB-0131]     Created 286 components and 1624 component-terminals.
+[INFO ODB-0133]     Created 356 nets and 1052 connections.
+[INFO ODB-0134] Finished DEF file: ./simple01-td.def
+linden::gp::Config {
+  uniform-density
+  overflow: 0.1000
+  initial-place-policy: dirichlet
+  timing-driven
+}
+[linden/gpl] initialPlacePolicy: dirichlet
+[INFO GPL-0002] DBU: 2000
+[INFO GPL-0003] SiteSize: 380 2800
+[INFO GPL-0004] CoreAreaLxLy: 0 0
+[INFO GPL-0005] CoreAreaUxUy: 61940 61600
+[INFO GPL-0006] NumInstances: 286
+[INFO GPL-0007] NumPlaceInstances: 286
+[INFO GPL-0008] NumFixedInstances: 0
+[INFO GPL-0009] NumDummyInstances: 0
+[INFO GPL-0010] NumNets: 356
+[INFO GPL-0011] NumPins: 1106
+[INFO GPL-0012] DieAreaLxLy: 0 0
+[INFO GPL-0013] DieAreaUxUy: 61940 61600
+[INFO GPL-0014] CoreAreaLxLy: 0 0
+[INFO GPL-0015] CoreAreaUxUy: 61940 61600
+[INFO GPL-0016] CoreArea: 3815504000
+[INFO GPL-0017] NonPlaceInstsArea: 0
+[INFO GPL-0018] PlaceInstsArea: 2213120000
+[INFO GPL-0019] Util(%): 58.00
+[INFO GPL-0020] StdInstsArea: 2213120000
+[INFO GPL-0021] MacroInstsArea: 0
+[InitialPlace]  Iter: 1 CG residual: 0.00000011 HPWL: 5614340
+[InitialPlace]  Iter: 2 CG residual: 0.00000011 HPWL: 4984546
+[InitialPlace]  Iter: 3 CG residual: 0.00000010 HPWL: 4974780
+[InitialPlace]  Iter: 4 CG residual: 0.00000010 HPWL: 4982232
+[InitialPlace]  Iter: 5 CG residual: 0.00000009 HPWL: 4985753
+[linden/gpl] use_uniform_target_density.
+    uniform target_density: 0.5800334634690463
+    movable_std_insts_area: 2213120000
+    movable_macro_insts_area:0
+    white_space_area:3815504000
+    core_area:3815504000
+    nonplace_insts_area:0
+
+[linden/gpl] Number of Cells: 286
+[linden/gpl] Number of Nets: 356
+[linden/gpl] Number of Pins: 1106
+[linden/gpl] enable timing-driven
+[nPlace] Iter: 1 overflow: 0.86461 HPWL: 3527328
+[linden/gpl] worst 10%% slacks 1.39e-09, 1.4e-09
+[linden/gpl] Reweighted 35 nets.
+[nPlace] Iter: 10 overflow: 0.76788 HPWL: 4036162
+[nPlace] Iter: 20 overflow: 0.766568 HPWL: 4025092
+[nPlace] Iter: 30 overflow: 0.76734 HPWL: 4022540
+[nPlace] Iter: 40 overflow: 0.767041 HPWL: 4023036
+[nPlace] Iter: 50 overflow: 0.766491 HPWL: 4023118
+[nPlace] Iter: 60 overflow: 0.76637 HPWL: 4023172
+[nPlace] Iter: 70 overflow: 0.766508 HPWL: 4023864
+[nPlace] Iter: 80 overflow: 0.76655 HPWL: 4024435
+[nPlace] Iter: 90 overflow: 0.765853 HPWL: 4025562
+[nPlace] Iter: 100 overflow: 0.765154 HPWL: 4027351
+[nPlace] Iter: 110 overflow: 0.764459 HPWL: 4030268
+[nPlace] Iter: 120 overflow: 0.763212 HPWL: 4035102
+[nPlace] Iter: 130 overflow: 0.761113 HPWL: 4042769
+[nPlace] Iter: 140 overflow: 0.757265 HPWL: 4054740
+[nPlace] Iter: 150 overflow: 0.749834 HPWL: 4072692
+[nPlace] Iter: 160 overflow: 0.740957 HPWL: 4098755
+[nPlace] Iter: 170 overflow: 0.728049 HPWL: 4136443
+[nPlace] Iter: 180 overflow: 0.716987 HPWL: 4178475
+[nPlace] Iter: 190 overflow: 0.700774 HPWL: 4234135
+[nPlace] Iter: 200 overflow: 0.681203 HPWL: 4289164
+[nPlace] Iter: 210 overflow: 0.652038 HPWL: 4372241
+[linden/gpl] worst 10%% slacks 1.39e-09, 1.42e-09
+[linden/gpl] Reweighted 35 nets.
+[nPlace] Iter: 220 overflow: 0.621481 HPWL: 4492532
+[nPlace] Iter: 230 overflow: 0.597708 HPWL: 4577057
+[nPlace] Iter: 240 overflow: 0.571554 HPWL: 4642797
+[nPlace] Iter: 250 overflow: 0.540773 HPWL: 4734134
+[nPlace] Iter: 260 overflow: 0.502372 HPWL: 4802596
+[linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
+[linden/gpl] Reweighted 35 nets.
+[nPlace] Iter: 270 overflow: 0.476734 HPWL: 4796037
+[nPlace] Iter: 280 overflow: 0.454197 HPWL: 4863416
+[nPlace] Iter: 290 overflow: 0.413164 HPWL: 4813540
+[nPlace] Iter: 300 overflow: 0.378005 HPWL: 4899025
+[nPlace] Iter: 310 overflow: 0.347895 HPWL: 4849689
+[nPlace] Iter: 320 overflow: 0.325372 HPWL: 4883549
+[nPlace] Iter: 330 overflow: 0.293721 HPWL: 4929872
+[linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
+[linden/gpl] Reweighted 35 nets.
+[nPlace] Iter: 340 overflow: 0.275848 HPWL: 4938201
+[nPlace] Iter: 350 overflow: 0.259233 HPWL: 4961473
+[nPlace] Iter: 360 overflow: 0.245268 HPWL: 5035786
+[nPlace] Iter: 370 overflow: 0.226067 HPWL: 5071984
+[linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
+[linden/gpl] Reweighted 35 nets.
+[nPlace] Iter: 380 overflow: 0.191995 HPWL: 5084871
+[nPlace] Iter: 390 overflow: 0.169333 HPWL: 5078765
+[nPlace] Iter: 400 overflow: 0.150461 HPWL: 5123415
+[linden/gpl] worst 10%% slacks 1.39e-09, 1.4e-09
+[linden/gpl] Reweighted 35 nets.
+[nPlace] Iter: 410 overflow: 0.133389 HPWL: 5164630
+[nPlace] Iter: 420 overflow: 0.126173 HPWL: 5194762
+[nPlace] Iter: 430 overflow: 0.115282 HPWL: 5251705
+[nPlace] Iter: 440 overflow: 0.103627 HPWL: 5312867
+{
+  "gp": {
+    "iter": 447
+  }
+}worst slack 1.37
+No differences found.

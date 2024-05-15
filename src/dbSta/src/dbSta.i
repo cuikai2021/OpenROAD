@@ -3,6 +3,7 @@
 #include "odb/db.h"
 #include "db_sta/dbSta.hh"
 #include "db_sta/dbNetwork.hh"
+#include "db_sta/MakeDbSta.hh"
 #include "ord/OpenRoad.hh"
 #include "sta/VerilogWriter.hh"
 #include "db_sta/report_timing.hpp"
@@ -17,17 +18,14 @@ using sta::Instance;
 %}
 
 %import "odb.i"
-%include "../../src/Exception.i"
+%include "../../Exception.i"
 // OpenSTA swig files
 %include "tcl/StaTcl.i"
 %include "tcl/NetworkEdit.i"
 %include "sdf/Sdf.i"
 %include "dcalc/DelayCalc.i"
 %include "parasitics/Parasitics.i"
-
-namespace std {
-  %template(dbNetVector) vector<dbNet*>;
-}
+%include "power/Power.i"
 
 %inline %{
 
@@ -35,7 +33,7 @@ sta::Sta *
 make_block_sta(odb::dbBlock *block)
 {
   ord::OpenRoad *openroad = ord::getOpenRoad();
-  return sta::makeBlockSta(openroad, block);
+  return openroad->getSta()->makeBlockSta(block).release();
 }
 
 // For testing
@@ -60,8 +58,19 @@ find_all_clk_nets()
 {
   ord::OpenRoad *openroad = ord::getOpenRoad();
   sta::dbSta *sta = openroad->getSta();
-  auto clks = sta->findClkNets();
-  return std::vector<odb::dbNet*>(clks.begin(), clks.end());
+  std::set<dbNet*> clk_nets = sta->findClkNets();
+  std::vector<dbNet*> clk_nets1(clk_nets.begin(), clk_nets.end());
+  return clk_nets1;
+}
+
+std::vector<odb::dbNet*>
+find_clk_nets(const Clock *clk)
+{
+  ord::OpenRoad *openroad = ord::getOpenRoad();
+  sta::dbSta *sta = openroad->getSta();
+  std::set<dbNet*> clk_nets = sta->findClkNets(clk);
+  std::vector<dbNet*> clk_nets1(clk_nets.begin(), clk_nets.end());
+  return clk_nets1;
 }
 
 odb::dbInst *
@@ -69,7 +78,21 @@ sta_to_db_inst(Instance *inst)
 {
   ord::OpenRoad *openroad = ord::getOpenRoad();
   sta::dbNetwork *db_network = openroad->getDbNetwork();
-  return db_network->staToDb(inst);
+  dbInst *db_inst;
+  dbModInst* mod_inst;
+  db_network->staToDb(inst, db_inst, mod_inst);
+  if (db_inst) {
+    return db_inst;
+  }
+  return nullptr;
+}
+
+odb::dbMTerm *
+sta_to_db_mterm(LibertyPort *port)
+{
+  ord::OpenRoad *openroad = ord::getOpenRoad();
+  sta::dbNetwork *db_network = openroad->getDbNetwork();
+  return db_network->staToDb(port);
 }
 
 odb::dbBTerm *
@@ -130,30 +153,20 @@ db_network_initclknets()
   sta->initClkNets();
 }
 
-//ICBench methods
-void
-set_sdc_opt_cmd(std::string name)
-{
-  ord::OpenRoad *openroad = ord::getOpenRoad();
-  sta::dbSta *sta = openroad->getSta();
-  sta->setSdcOpt(name);
-}
-
+// Copied from sta/verilog/Verilog.i because we don't want sta::read_verilog
+// that is in the same file.
 void
 write_verilog_cmd(const char *filename,
 		  bool sort,
 		  bool include_pwr_gnd,
-		  bool pt_compatible,
+		  bool exclude_not_in_lib,
 		  CellSeq *remove_cells)
 {
   // This does NOT want the SDC (cmd) network because it wants
   // to see the sta internal names.
   Sta *sta = Sta::sta();
   Network *network = sta->network();
-  sta::writeVerilog(
-    filename, sort, include_pwr_gnd,
-    pt_compatible, remove_cells, network
-  );
+  sta::writeVerilog(filename, sort, include_pwr_gnd, exclude_not_in_lib, remove_cells, network);
   delete remove_cells;
 }
 

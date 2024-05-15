@@ -7,8 +7,7 @@
 #include <vector>
 #include <iostream>
 
-namespace linden {
-namespace tdp {
+namespace linden::itdp {
 
 struct TimingArc {
     const db::Pin* input_pin;
@@ -22,7 +21,7 @@ struct TimingArc {
     double arc_delay;
     double cmax;               // the max capacitance that the output_pin can drive
     double cpins;              // the total capacitance of pins that the output_pin drives
-    
+
     // NOTE: the order is swapped here because:
     //    in the lib file, the index_1 is ClockTransistion, and index_2 is OutputCapacitance
     //    in the paper, A1|B1 is the arg for Cap and A2|B2 is the arg for inslope(transition)
@@ -72,5 +71,4 @@ struct TdpConfig {
               const linden::geom::Rect& core_region);
 };
 
-}  // namespace tdp
-}  // namespace linden
+}  // namespace linden::itdp

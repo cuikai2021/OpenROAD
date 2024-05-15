@@ -58,8 +58,8 @@ dbWirePathItr::dbWirePathItr()
   _prev_ext = 0;
   _has_prev_ext = false;
   _dw = 0;
-  _rule = NULL;
-  _wire = NULL;
+  _rule = nullptr;
+  _wire = nullptr;
 }
 
 dbWirePathItr::~dbWirePathItr()
@@ -75,7 +75,7 @@ void dbWirePathItr::begin(dbWire* wire)
   _prev_ext = 0;
   _has_prev_ext = false;
   _dw = 0;
-  _rule = NULL;
+  _rule = nullptr;
   _wire = wire;
 }
 
@@ -86,8 +86,8 @@ bool dbWirePathItr::getNextPath(dbWirePath& path)
   if ((_opcode == dbWireDecoder::PATH) || (_opcode == dbWireDecoder::JUNCTION)
       || (_opcode == dbWireDecoder::SHORT)
       || (_opcode == dbWireDecoder::VWIRE)) {
-    dbTechLayerRule* lyr_rule = NULL;
-    _rule = NULL;
+    dbTechLayerRule* lyr_rule = nullptr;
+    _rule = nullptr;
 
     if (_opcode == dbWireDecoder::JUNCTION) {
       path.junction_id = _decoder.getJunctionValue();
@@ -105,8 +105,8 @@ bool dbWirePathItr::getNextPath(dbWirePath& path)
       path.short_junction = 0;
     }
 
-    path.iterm = NULL;
-    path.bterm = NULL;
+    path.iterm = nullptr;
+    path.bterm = nullptr;
     path.layer = _decoder.getLayer();
 
   get_point:
@@ -206,8 +206,8 @@ inline void dbWirePathItr::getTerms(dbWirePathShape& s)
 
 bool dbWirePathItr::getNextShape(dbWirePathShape& s)
 {
-  s.iterm = NULL;
-  s.bterm = NULL;
+  s.iterm = nullptr;
+  s.bterm = nullptr;
 nextOpCode:
   switch (_opcode) {
     case dbWireDecoder::PATH:
@@ -249,6 +249,7 @@ nextOpCode:
                          0,
                          false,
                          _dw,
+                         _dw,
                          s.layer);
       getTerms(s);
 
@@ -289,6 +290,7 @@ nextOpCode:
                          cur_ext,
                          true,
                          _dw,
+                         _dw,
                          s.layer);
       getTerms(s);
 
@@ -302,8 +304,7 @@ nextOpCode:
     case dbWireDecoder::VIA: {
       dbVia* via = _decoder.getVia();
       dbBox* box = via->getBBox();
-      Rect b;
-      box->getBox(b);
+      Rect b = box->getBox();
       int xmin = b.xMin() + _prev_x;
       int ymin = b.yMin() + _prev_y;
       int xmax = b.xMax() + _prev_x;
@@ -330,8 +331,7 @@ nextOpCode:
     case dbWireDecoder::TECH_VIA: {
       dbTechVia* via = _decoder.getTechVia();
       dbBox* box = via->getBBox();
-      Rect b;
-      box->getBox(b);
+      Rect b = box->getBox();
       int xmin = b.xMin() + _prev_x;
       int ymin = b.yMin() + _prev_y;
       int xmax = b.xMax() + _prev_x;

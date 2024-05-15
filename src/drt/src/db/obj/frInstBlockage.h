@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_INSTBLOCKAGE_H_
-#define _FR_INSTBLOCKAGE_H_
+#pragma once
 
 #include <memory>
 
@@ -51,23 +50,14 @@ class frInstBlockage : public frBlockObject
   // setters
   // others
   frBlockObjectEnum typeId() const override { return frcInstBlockage; }
+  void setIndexeInOwner(int in) { index_in_owner_ = in; }
+  int getIndexInOwner() const { return index_in_owner_; }
 
  private:
+  // Place this first so it is adjacent to "int id_" inherited from
+  // frBlockObject, saving 8 bytes.
+  int index_in_owner_{0};
   frInst* inst_;
   frBlockage* blockage_;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<frBlockObject>(*this);
-    (ar) & inst_;
-    (ar) & blockage_;
-  }
-
-  frInstBlockage() = default;  // for serialization
-
-  friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

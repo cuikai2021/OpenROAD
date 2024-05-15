@@ -45,34 +45,91 @@ swig_lib(NAME      grt
          SCRIPTS   src/GlobalRouter.tcl
 )
 
-target_sources(grt
-  PRIVATE
-    src/AntennaRepair.cpp
-    src/GlobalRouter.cpp
+add_library(grt_lib
     src/Grid.cpp
-    src/MakeGlobalRouter.cpp
     src/Net.cpp
     src/Pin.cpp
     src/MakeWireParasitics.cpp
+    src/RepairAntennas.cpp
+    src/GlobalRouter.cpp
+)
+
+target_sources(grt
+  PRIVATE
+    src/MakeGlobalRouter.cpp
     src/heatMap.cpp
+    src/GrouteRenderer.cpp
+    src/fastroute/src/FastRouteRenderer.cpp
+)
+
+target_include_directories(grt_lib
+  PUBLIC
+    include
+  PRIVATE
+    src
 )
 
 target_include_directories(grt
   PUBLIC
     include
+  PRIVATE
+    src
 )
 
-target_link_libraries(grt
-    utl
+target_link_libraries(grt_lib
+    utl_lib
     FastRoute4.1
-    ant
-    dpl
-    dbSta
-    gui
-    stt
+    ant_lib
+    dpl_lib
+    dbSta_lib
+    stt_lib
+    rsz_lib
     OpenSTA
     Boost::boost
 )
+
+target_link_libraries(grt
+    grt_lib
+    utl
+    FastRoute4.1
+    ant_lib
+    dpl_lib
+    dbSta
+    gui
+    stt
+    rsz
+    OpenSTA
+    Boost::boost
+)
+
+if (Python3_FOUND AND BUILD_PYTHON)
+  swig_lib(NAME          grt_py
+           NAMESPACE     grt
+           LANGUAGE      python
+           I_FILE        src/GlobalRouter-py.i
+           SWIG_INCLUDES ${PROJECT_SOURCE_DIR}/include/grt
+           SCRIPTS       ${CMAKE_CURRENT_BINARY_DIR}/grt_py.py
+  )
+
+  target_include_directories(grt_py
+    PUBLIC
+      include
+  )
+
+  target_link_libraries(grt_py
+    PUBLIC
+      utl
+      FastRoute4.1
+      ant_lib
+      dpl_lib
+      dbSta
+      gui
+      stt
+      OpenSTA
+      Boost::boost
+  )
+
+endif()
 
 messages(
   TARGET grt

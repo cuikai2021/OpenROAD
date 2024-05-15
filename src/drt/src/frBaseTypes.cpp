@@ -25,9 +25,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream>
-
 #include "frBaseTypes.h"
+
+#include <iostream>
 
 namespace fr {
 
@@ -263,6 +263,8 @@ std::ostream& operator<<(std::ostream& os, frConstraintTypeEnum type)
     case frConstraintTypeEnum::
         frcLef58SpacingEndOfLineWithinMaxMinLengthConstraint:
       return os << "frcLef58SpacingEndOfLineWithinMaxMinLengthConstraint";
+    case frConstraintTypeEnum::frcLef58SpacingWrongDirConstraint:
+      return os << "frcLef58SpacingWrongDirConstraint";
     case frConstraintTypeEnum::frcLef58CutClassConstraint:
       return os << "frcLef58CutClassConstraint";
     case frConstraintTypeEnum::frcNonSufficientMetalConstraint:
@@ -281,6 +283,14 @@ std::ostream& operator<<(std::ostream& os, frConstraintTypeEnum type)
       return os << "frcLef58EolExtensionConstraint";
     case frConstraintTypeEnum::frcLef58EolKeepOutConstraint:
       return os << "frcLef58EolKeepOutConstraint";
+    case frConstraintTypeEnum::frcLef58MinimumCutConstraint:
+      return os << "frcLef58MinimumCutConstraint";
+    case frConstraintTypeEnum::frcMetalWidthViaConstraint:
+      return os << "frcMetalWidthViaConstraint";
+    case frConstraintTypeEnum::frcLef58AreaConstraint:
+      return os << "frcLef58AreaConstraint";
+    case frConstraintTypeEnum::frcLef58KeepOutZoneConstraint:
+      return os << "frcLef58KeepOutZoneConstraint";
   }
   return os << "Bad frConstraintTypeEnum";
 }

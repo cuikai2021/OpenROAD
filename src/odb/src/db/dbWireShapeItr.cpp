@@ -50,9 +50,9 @@ namespace odb {
 //////////////////////////////////////////////////////////////////////////////////
 dbWireShapeItr::dbWireShapeItr()
 {
-  _wire = NULL;
-  _block = NULL;
-  _tech = NULL;
+  _wire = nullptr;
+  _block = nullptr;
+  _tech = nullptr;
 }
 
 dbWireShapeItr::~dbWireShapeItr()
@@ -76,14 +76,14 @@ void dbWireShapeItr::begin(dbWire* wire)
 {
   _wire = (_dbWire*) wire;
   _block = wire->getBlock();
-  _tech = _block->getDb()->getTech();
+  _tech = _block->getTech();
   _idx = 0;
   _prev_x = 0;
   _prev_y = 0;
   _prev_ext = 0;
   _has_prev_ext = false;
-  _layer = NULL;
-  _via = NULL;
+  _layer = nullptr;
+  _via = nullptr;
   _dw = 0;
   _point_cnt = 0;
   _has_width = false;
@@ -168,9 +168,13 @@ nextOpCode:
         _has_prev_ext = has_cur_ext;
         goto nextOpCode;
       }
+      auto dw = _dw;
+      if (_layer->getDirection() == dbTechLayerDir::VERTICAL) {
+        dw = _layer->getWrongWayWidth() / 2;
+      }
 
-      if (!(opcode & WOP_VIRTUAL)) // ???
-    	shape.setSegment(_prev_x,
+      if (!(opcode & WOP_VIRTUAL))  // ???
+        shape.setSegment(_prev_x,
                          _prev_y,
                          _prev_ext,
                          _has_prev_ext,
@@ -178,6 +182,7 @@ nextOpCode:
                          cur_y,
                          cur_ext,
                          has_cur_ext,
+                         dw,
                          _dw,
                          _layer);
       _prev_x = cur_x;
@@ -202,8 +207,12 @@ nextOpCode:
         cur_ext = 0;
         has_cur_ext = false;
       }
+      auto dw = _dw;
 
-      if (!(opcode & WOP_VIRTUAL)) // ???
+      if (_layer->getDirection() == dbTechLayerDir::HORIZONTAL) {
+        dw = _layer->getWrongWayWidth() / 2;
+      }
+      if (!(opcode & WOP_VIRTUAL))  // ???
         shape.setSegment(_prev_x,
                          _prev_y,
                          _prev_ext,
@@ -212,6 +221,7 @@ nextOpCode:
                          cur_y,
                          cur_ext,
                          has_cur_ext,
+                         dw,
                          _dw,
                          _layer);
       _prev_x = cur_x;
@@ -248,6 +258,7 @@ nextOpCode:
                          0,
                          false,
                          _dw,
+                         _dw,
                          _layer);
         _has_prev_ext = false;
         return true;
@@ -273,11 +284,10 @@ nextOpCode:
 
       dbBox* box = via->getBBox();
 
-      if (box == NULL)
+      if (box == nullptr)
         goto nextOpCode;
 
-      Rect b;
-      box->getBox(b);
+      Rect b = box->getBox();
       int xmin = b.xMin() + _prev_x;
       int ymin = b.yMin() + _prev_y;
       int xmax = b.xMax() + _prev_x;
@@ -303,11 +313,10 @@ nextOpCode:
 
       dbBox* box = via->getBBox();
 
-      if (box == NULL)
+      if (box == nullptr)
         goto nextOpCode;
 
-      Rect b;
-      box->getBox(b);
+      Rect b = box->getBox();
       int xmin = b.xMin() + _prev_x;
       int ymin = b.yMin() + _prev_y;
       int xmax = b.xMax() + _prev_x;
@@ -337,6 +346,8 @@ nextOpCode:
     case WOP_BTERM:
     case WOP_OPERAND:
     case WOP_PROPERTY:
+    case WOP_COLOR:
+    case WOP_VIACOLOR:
     case WOP_NOP:
       goto nextOpCode;
 

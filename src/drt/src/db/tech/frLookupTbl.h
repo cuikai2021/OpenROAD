@@ -26,10 +26,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_LOOKUP_TBL_H_
-#define _FR_LOOKUP_TBL_H_
+#pragma once
 
-// #include <map>
 #include <iostream>
 
 #include "frBaseTypes.h"
@@ -126,7 +124,8 @@ class fr1DLookupTbl
         retIdx = pos - rows.begin();
       } else {
         auto pos = upper_bound(rows.begin(), rows.end(), rowVal);
-        retIdx = std::min((frUInt4)(pos - rows.begin()), (frUInt4) rows.size());
+        retIdx
+            = std::min((frUInt4) (pos - rows.begin()), (frUInt4) rows.size());
       }
     }
     // lower extrapolation
@@ -156,21 +155,6 @@ class fr1DLookupTbl
   frExtrapolateType extrapolateTypeRowLower;
   frExtrapolateType extrapolateTypeRowUpper;
   bool lowerBound;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & rows;
-    (ar) & vals;
-    (ar) & rowName;
-    (ar) & interpolateTypeRow;
-    (ar) & interpolateTypeCol;
-    (ar) & extrapolateTypeRowLower;
-    (ar) & extrapolateTypeRowUpper;
-    (ar) & lowerBound;
-  }
-
-  friend class boost::serialization::access;
 };
 
 // fr2DLookupTbl
@@ -291,26 +275,6 @@ class fr2DLookupTbl
   frExtrapolateType extrapolateTypeRowUpper;
   frExtrapolateType extrapolateTypeColLower;
   frExtrapolateType extrapolateTypeColUpper;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & rows;
-    (ar) & cols;
-    (ar) & vals;
-    (ar) & rowName;
-    (ar) & colName;
-    (ar) & interpolateTypeRow;
-    (ar) & interpolateTypeCol;
-    (ar) & extrapolateTypeRowLower;
-    (ar) & extrapolateTypeRowUpper;
-    (ar) & extrapolateTypeColLower;
-    (ar) & extrapolateTypeColUpper;
-  }
-
-  friend class boost::serialization::access;
 };
 
 }  // namespace fr
-
-#endif

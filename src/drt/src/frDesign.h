@@ -26,14 +26,15 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_DESIGN_H_
-#define _FR_DESIGN_H_
+#pragma once
 
 #include <memory>
+#include <string>
 
 #include "db/obj/frBlock.h"
 #include "db/obj/frMaster.h"
 #include "db/tech/frTechObject.h"
+#include "distributed/drUpdate.h"
 #include "frBaseTypes.h"
 #include "frRegionQuery.h"
 #include "global.h"
@@ -49,15 +50,12 @@ class frDesign
   frDesign(Logger* logger)
       : topBlock_(nullptr),
         tech_(std::make_unique<frTechObject>()),
-        rq_(std::make_unique<frRegionQuery>(this, logger))
+        rq_(std::make_unique<frRegionQuery>(this, logger)),
+        updates_sz_(0),
+        version_(0)
   {
   }
-  frDesign()
-      : topBlock_(nullptr),
-        tech_(nullptr),
-        rq_(nullptr)
-  {
-  }
+  frDesign() : topBlock_(nullptr), tech_(nullptr), rq_(nullptr) {}
   // getters
   frBlock* getTopBlock() const { return topBlock_.get(); }
   frTechObject* getTech() const { return tech_.get(); }
@@ -67,6 +65,10 @@ class frDesign
   {
     return masters_;
   }
+  const std::vector<std::string>& getUserSelectedVias() const
+  {
+    return user_selected_vias_;
+  }
   // setters
   void setTopBlock(std::unique_ptr<frBlock> in) { topBlock_ = std::move(in); }
   void setTech(std::unique_ptr<frTechObject> in) { tech_ = std::move(in); }
@@ -75,13 +77,51 @@ class frDesign
     name2master_[in->getName()] = in.get();
     masters_.push_back(std::move(in));
   }
+  void addUserSelectedVia(const std::string& viaName)
+  {
+    user_selected_vias_.push_back(viaName);
+  }
   // others
   friend class io::Parser;
-  bool isHorizontalLayer(frLayerNum l)
+  bool isHorizontalLayer(frLayerNum l) const
   {
     return getTech()->isHorizontalLayer(l);
   }
-  bool isVerticalLayer(frLayerNum l) { return getTech()->isVerticalLayer(l); }
+  bool isVerticalLayer(frLayerNum l) const
+  {
+    return getTech()->isVerticalLayer(l);
+  }
+  std::vector<frTrackPattern*> getPrefDirTracks(frCoord layerNum) const
+  {
+    return getTopBlock()->getTrackPatterns(layerNum, isVerticalLayer(layerNum));
+  }
+  std::vector<frTrackPattern*> getNonPrefDirTracks(frCoord layerNum) const
+  {
+    return getTopBlock()->getTrackPatterns(layerNum,
+                                           !isVerticalLayer(layerNum));
+  }
+
+  void addUpdate(const drUpdate& update)
+  {
+    if (updates_.size() == 0)
+      updates_.resize(MAX_THREADS * 2);
+    auto num_batches = updates_.size();
+    updates_[updates_sz_++ % num_batches].push_back(update);
+  }
+  const std::vector<std::vector<drUpdate>>& getUpdates() const
+  {
+    return updates_;
+  }
+  bool hasUpdates() const { return updates_sz_ != 0; }
+  void clearUpdates()
+  {
+    updates_.clear();
+    updates_sz_ = 0;
+  }
+  void incrementVersion() { ++version_; }
+  int getVersion() const { return version_; }
+
+  ~frDesign() {}
 
  private:
   std::unique_ptr<frBlock> topBlock_;
@@ -89,14 +129,9 @@ class frDesign
   std::vector<std::unique_ptr<frMaster>> masters_;
   std::unique_ptr<frTechObject> tech_;
   std::unique_ptr<frRegionQuery> rq_;
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & tech_;
-    (ar) & rq_;
-  }
-  friend class boost::serialization::access;
+  std::vector<std::vector<drUpdate>> updates_;
+  int updates_sz_;
+  std::vector<std::string> user_selected_vias_;
+  int version_;
 };
 }  // namespace fr
-
-#endif

@@ -5,9 +5,9 @@ was originally developed by Athena Design Systems. Nefelus, Inc. acquired
 the rights to the code and open-sourced it with BSD-3 license in 2019 to support the DARPA
 OpenROAD project.
 
-The structure of OpenDB is based on the Cadence Design Systems text file
-formats LEF (library) and DEF (design) formats version 5.6.  OpenDB supports
-a binary file format to save and load the design much faster than using
+The structure of OpenDB is based on the text file formats LEF
+(library) and DEF (design) formats version 5.6.  OpenDB supports a
+binary file format to save and load the design much faster than using
 LEF and DEF.
 
 OpenDB is written in C++ 98 with standard library style iterators.
@@ -35,7 +35,7 @@ and functions that we are still documenting (for both TCL and Python).
 ### TCL
 
 After building successfully, run OpenDB Tcl shell using
-`./build/src/swig/tcl/opendbtcl`. An example usage:
+`../../build/src/odb/src/swig/tcl/odbtcl`. An example usage:
 
 ```
 set db [dbDatabase_create]

@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "dbTypes.h"
@@ -354,6 +356,27 @@ class dbWireEncoder
   void addRect(int deltaX1, int deltaY1, int deltaX2, int deltaY2);
 
   ///
+  /// Sets the mask color of shapes following this call.
+  ///
+  void setColor(uint8_t mask_color);
+
+  ///
+  /// Clears the mask color. Shapes following this call will have no mask color.
+  ///
+  void clearColor();
+
+  ///
+  /// Sets the via mask color of shapes following this call.
+  ///
+  void setViaColor(uint8_t bottom_color, uint8_t cut_color, uint8_t top_color);
+
+  ///
+  /// Clears the via mask color. Shapes following this call will have no mask
+  /// color.
+  ///
+  void clearViaColor();
+
+  ///
   /// Connect an iterm to the previous point.
   ///
   void addITerm(dbITerm* iterm);
@@ -511,6 +534,13 @@ class dbWireDecoder
     END_DECODE  /// No more path elements to decode.
   };
 
+  struct ViaColor
+  {
+    uint8_t bottom_color;
+    uint8_t cut_color;
+    uint8_t top_color;
+  };
+
  private:
   _dbWire* _wire;
   dbBlock* _block;
@@ -532,6 +562,8 @@ class dbWireDecoder
   int _deltaY1;
   int _deltaX2;
   int _deltaY2;
+  std::optional<uint8_t> _color;
+  std::optional<ViaColor> _viacolor;
 
   unsigned char nextOp(int& value);
   unsigned char nextOp(uint& value);
@@ -634,6 +666,16 @@ class dbWireDecoder
   /// junction-id of the previous point from which this branch emerges.
   ///
   int getJunctionValue() const;
+
+  ///
+  /// Get the current mask color.
+  ///
+  std::optional<uint8_t> getColor() const;
+
+  ///
+  /// Get the current via mask color.
+  ///
+  std::optional<ViaColor> getViaColor() const;
 };
 
 ///

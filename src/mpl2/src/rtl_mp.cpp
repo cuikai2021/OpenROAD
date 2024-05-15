@@ -33,444 +33,181 @@
 
 #include "mpl2/rtl_mp.h"
 
-#include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <random>
-#include <sstream>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
-#include "block_placement.h"
+#include "Mpl2Observer.h"
+#include "hier_rtlmp.h"
+#include "object.h"
 #include "odb/db.h"
-#include "ord/OpenRoad.hh"
-#include "pin_alignment.h"
-#include "shape_engine.h"
-#include "util.h"
-#include "utl/Logger.h"
 
-using utl::PAR;
-
-namespace mpl {
-using block_placement::Block;
+namespace mpl2 {
 using odb::dbDatabase;
-using shape_engine::Cluster;
-using shape_engine::Macro;
-using std::cout;
-using std::endl;
-using std::ofstream;
 using std::string;
-using std::to_string;
-using std::unordered_map;
-using std::vector;
 using utl::Logger;
 using utl::MPL;
 
-template <class T>
-static void get_param(const unordered_map<string, string>& params,
-                      const char* name,
-                      T& param,
-                      Logger* logger)
+MacroPlacer2::MacroPlacer2() = default;
+MacroPlacer2::~MacroPlacer2() = default;
+
+void MacroPlacer2::init(sta::dbNetwork* network,
+                        odb::dbDatabase* db,
+                        sta::dbSta* sta,
+                        utl::Logger* logger,
+                        par::PartitionMgr* tritonpart)
 {
-  auto iter = params.find(name);
-  if (iter != params.end()) {
-    std::istringstream s(iter->second);
-    s >> param;
-  }
-  logger->info(MPL, 9, "RTL-MP param: {}: {}.", name, param);
+  hier_rtlmp_
+      = std::make_unique<HierRTLMP>(network, db, sta, logger, tritonpart);
+  logger_ = logger;
+  db_ = db;
 }
 
-bool rtl_macro_placer(const char* config_file,
-                      Logger* logger,
-                      dbDatabase* db,
-                      const char* report_directory,
-                      const float area_wt,
-                      const float wirelength_wt,
-                      const float outline_wt,
-                      const float boundary_wt,
-                      const float macro_blockage_wt,
-                      const float location_wt,
-                      const float notch_wt,
-                      const float macro_halo,
-                      const char* report_file,
-                      const char* macro_blockage_file,
-                      const char* prefer_location_file)
+bool MacroPlacer2::place(const int num_threads,
+                         const int max_num_macro,
+                         const int min_num_macro,
+                         const int max_num_inst,
+                         const int min_num_inst,
+                         const float tolerance,
+                         const int max_num_level,
+                         const float coarsening_ratio,
+                         const int num_bundled_ios,
+                         const int large_net_threshold,
+                         const int signature_net_threshold,
+                         const float halo_width,
+                         const float halo_height,
+                         const float fence_lx,
+                         const float fence_ly,
+                         const float fence_ux,
+                         const float fence_uy,
+                         const float area_weight,
+                         const float outline_weight,
+                         const float wirelength_weight,
+                         const float guidance_weight,
+                         const float fence_weight,
+                         const float boundary_weight,
+                         const float notch_weight,
+                         const float macro_blockage_weight,
+                         const float pin_access_th,
+                         const float target_util,
+                         const float target_dead_space,
+                         const float min_ar,
+                         const int snap_layer,
+                         const bool bus_planning_on,
+                         const char* report_directory)
 {
-  logger->report("Start RTL-MP");
-
-  string block_file = string(report_directory) + '/' + report_file + ".block";
-  string net_file = string(report_directory) + '/' + report_file + ".net";
-
-  //
-  //  Default for Parameters
-  //
-  // These parameters are related to shape engine
-  float min_aspect_ratio = 0.39;
-  float dead_space = 0.05;
-
-  string region_file = string(macro_blockage_file);
-  string location_file = string(prefer_location_file);
-
-  // These parameters are related to multi-start in shape engine
-  int num_thread = ord::OpenRoad::openRoad()
-                       ->getThreadCount();  // set to max threads in OpenROAD
-  int num_run = 10;
-
-  unsigned seed = 0;
-
-  // These parameters are related to "Go with the winner"
-  float heat_rate = 0.5;
-  int num_level = 1;
-  int num_worker = 10;
-
-  // These parameters are related to cost function
-  float alpha = area_wt;       // weight for area
-  float beta = wirelength_wt;  // weight for wirelength auto tuned value
-  float gamma = outline_wt;    // weight for outline penalty - auto tuned value
-  float boundary_weight = boundary_wt;  // weight for pushing macros to boundary
-  float macro_blockage_weight = macro_blockage_wt;  // weight for macro blockage
-  float location_weight = location_wt;  // weight for preferred location
-  float notch_weight = notch_wt;        // weight for notch
-  float halo_width = macro_halo;  // halo width around macros
-
-  float learning_rate
-      = 0.00;  // learning rate for dynamic weight in cost function
-  float shrink_factor
-      = 0.999;  // shrink factor for soft blocks in simulated annealing
-  float shrink_freq
-      = 0.1;  // shrink frequency for soft blocks in simulated annealing
-
-  // These parameters are related to action probabilities in each step
-  float resize_prob = 0.1;
-  float pos_swap_prob = 0.3;
-  float neg_swap_prob = 0.3;
-  float double_swap_prob = 0.3;
-
-  // These parameters are related to fastSA
-  float init_prob = 0.95;
-  float rej_ratio = 0.95;
-  int k = 5000000;
-  float c = 1000.0;
-  int max_num_step = 4000;
-  int perturb_per_step = 300;
-
-  int snap_layer = 4;
-
-  //
-  // config_file is not required in the default flow.
-  // It is still supported for developer tuning of the parameters
-  //
-  if (strcmp(config_file, "") != 0) {
-    unordered_map<string, string> params = ParseConfigFile(config_file);
-
-    get_param(params, "min_aspect_ratio", min_aspect_ratio, logger);
-    get_param(params, "dead_space", dead_space, logger);
-    get_param(params, "learning_rate", learning_rate, logger);
-    get_param(params, "shrink_factor", shrink_factor, logger);
-    get_param(params, "shrink_freq", shrink_freq, logger);
-    get_param(params, "halo_width", halo_width, logger);
-    get_param(params, "region_file", region_file, logger);
-    get_param(params, "location_file", location_file, logger);
-    get_param(params, "num_thread", num_thread, logger);
-    get_param(params, "num_run", num_run, logger);
-    get_param(params, "heat_rate", heat_rate, logger);
-    get_param(params, "num_level", num_level, logger);
-    get_param(params, "num_worker", num_worker, logger);
-    get_param(params, "alpha", alpha, logger);
-    get_param(params, "beta", beta, logger);
-    get_param(params, "gamma", gamma, logger);
-    get_param(params, "boundary_weight", boundary_weight, logger);
-    get_param(params, "macro_blockage_weight", macro_blockage_weight, logger);
-    get_param(params, "location_weight", location_weight, logger);
-    get_param(params, "notch_weight", notch_weight, logger);
-    get_param(params, "resize_prob", resize_prob, logger);
-    get_param(params, "pos_swap_prob", pos_swap_prob, logger);
-    get_param(params, "neg_swap_prob", neg_swap_prob, logger);
-    get_param(params, "double_swap_prob", double_swap_prob, logger);
-    get_param(params, "init_prob", init_prob, logger);
-    get_param(params, "rej_ratio", rej_ratio, logger);
-    get_param(params, "k", k, logger);
-    get_param(params, "c", c, logger);
-    get_param(params, "snap_layer", snap_layer, logger);
-    get_param(params, "max_num_step", max_num_step, logger);
-    get_param(params, "perturb_per_step", perturb_per_step, logger);
-    get_param(params, "seed", seed, logger);
-  }
-
-  float outline_width = 0.0;
-  float outline_height = 0.0;
-  float outline_lx = 0.0;
-  float outline_ly = 0.0;
-
-  if (num_thread <= 0)
-    logger->error(MPL,
-                  10,
-                  "num_thread shoule be large than 0. (num_thread : {}).",
-                  num_thread);
-
-  if (num_run <= 0)
-    logger->error(
-        MPL, 11, "num_run shoule be large than 0. (num_run : {}).", num_run);
-
-  if (num_level <= 0)
-    logger->error(MPL,
-                  12,
-                  "num_level shoule be large than 0. (num_level : {}).",
-                  num_level);
-
-  if (perturb_per_step <= 0)
-    logger->error(
-        MPL,
-        13,
-        "perturb_per_step shoule be large than 0. (perturb_per_step : {}).",
-        perturb_per_step);
-
-  vector<Cluster*> clusters = shape_engine::ShapeEngine(outline_width,
-                                                        outline_height,
-                                                        outline_lx,
-                                                        outline_ly,
-                                                        min_aspect_ratio,
-                                                        dead_space,
-                                                        halo_width,
-                                                        logger,
-                                                        report_directory,
-                                                        block_file,
-                                                        num_thread,
-                                                        num_run,
-                                                        seed);
-
-  vector<Block> blocks = block_placement::Floorplan(clusters,
-                                                    logger,
-                                                    outline_width,
-                                                    outline_height,
-                                                    net_file,
-                                                    region_file.c_str(),
-                                                    location_file.c_str(),
-                                                    num_level,
-                                                    num_worker,
-                                                    heat_rate,
-                                                    alpha,
-                                                    beta,
-                                                    gamma,
-                                                    boundary_weight,
-                                                    macro_blockage_weight,
-                                                    location_weight,
-                                                    notch_weight,
-                                                    resize_prob,
-                                                    pos_swap_prob,
-                                                    neg_swap_prob,
-                                                    double_swap_prob,
-                                                    init_prob,
-                                                    rej_ratio,
-                                                    max_num_step,
-                                                    k,
-                                                    c,
-                                                    perturb_per_step,
-                                                    learning_rate,
-                                                    shrink_factor,
-                                                    shrink_freq,
-                                                    seed);
-
-  unordered_map<string, int> block_map;
-
-  for (int i = 0; i < clusters.size(); i++)
-    block_map[blocks[i].GetName()] = i;
-
-  for (int i = 0; i < clusters.size(); i++) {
-    float x = blocks[block_map[clusters[i]->GetName()]].GetX();
-    float y = blocks[block_map[clusters[i]->GetName()]].GetY();
-    float width = blocks[block_map[clusters[i]->GetName()]].GetWidth();
-    float height = blocks[block_map[clusters[i]->GetName()]].GetHeight();
-    clusters[i]->SetPos(x, y);
-    clusters[i]->SetFootprint(width, height);
-  }
-
-  bool success_flag = pin_alignment::PinAlignment(clusters,
-                                                  logger,
-                                                  report_directory,
-                                                  halo_width,
-                                                  num_thread,
-                                                  num_run,
-                                                  seed);
-
-  if (success_flag == false) {
-    logger->report("RTL-MP failed");
-    return false;
-  }
-
-  // Get Block Placement Grid
-  // The Block Placement Grid is based on the pitch of the bottom horizontal and
-  // vertical routing layers. The Block Placement Grid is one pitch wide and one
-  // pitch tall. TR requires the macro pins to be on grid.
-  odb::dbTech* tech = db->getTech();
-  const int dbu = tech->getDbUnitsPerMicron();
-  float pitch_x
-      = static_cast<float>(tech->findRoutingLayer(snap_layer)->getPitchX())
-        / dbu;
-  float pitch_y
-      = static_cast<float>(tech->findRoutingLayer(snap_layer)->getPitchY())
-        / dbu;
-
-  string openroad_filename
-      = string("./") + string(report_directory) + "/macro_placement.cfg";
-  ofstream file;
-  file.open(openroad_filename);
-  for (int i = 0; i < clusters.size(); i++) {
-    if (clusters[i]->GetNumMacro() > 0) {
-      float cluster_lx = clusters[i]->GetX();
-      float cluster_ly = clusters[i]->GetY();
-      vector<Macro> macros = clusters[i]->GetMacros();
-      for (int j = 0; j < macros.size(); j++) {
-        string line = macros[j].GetName();
-        float lx = outline_lx + cluster_lx + macros[j].GetX() + halo_width;
-        float ly = outline_ly + cluster_ly + macros[j].GetY() + halo_width;
-        float width = macros[j].GetWidth() - 2 * halo_width;
-        float height = macros[j].GetHeight() - 2 * halo_width;
-        string orientation = macros[j].GetOrientation();
-        float ux = lx + width;
-        float uy = ly + height;
-        lx = round(lx / pitch_x) * pitch_x;
-        ux = round(ux / pitch_x) * pitch_x;
-        ly = round(ly / pitch_y) * pitch_y;
-        uy = round(uy / pitch_y) * pitch_y;
-
-        if (orientation == string("MX"))
-          line += string("  MX  ") + to_string(lx) + string("   ")
-                  + to_string(uy);
-        else if (orientation == string("MY"))
-          line += string("  MY  ") + to_string(ux) + string("   ")
-                  + to_string(ly);
-        else if (orientation == string("R180"))
-          line += string("  R180  ") + to_string(ux) + string("   ")
-                  + to_string(uy);
-        else
-          line += string("  R0 ") + to_string(lx) + string("   ")
-                  + to_string(ly);
-
-        file << line << endl;
-      }
-    }
-  }
-
-  file.close();
-
-  string invs_filename
-      = string("./") + string(report_directory) + "/macro_placement.txt";
-  file.open(invs_filename);
-  for (int i = 0; i < clusters.size(); i++) {
-    if (clusters[i]->GetNumMacro() > 0) {
-      float cluster_lx = clusters[i]->GetX();
-      float cluster_ly = clusters[i]->GetY();
-      vector<Macro> macros = clusters[i]->GetMacros();
-      for (int j = 0; j < macros.size(); j++) {
-        string line = macros[j].GetName() + string("   ");
-        float lx = outline_lx + cluster_lx + macros[j].GetX() + halo_width;
-        float ly = outline_ly + cluster_ly + macros[j].GetY() + halo_width;
-        float width = macros[j].GetWidth() - 2 * halo_width;
-        float height = macros[j].GetHeight() - 2 * halo_width;
-        float ux = lx + width;
-        float uy = ly + height;
-        lx = round(lx / pitch_x) * pitch_x;
-        ux = round(ux / pitch_x) * pitch_x;
-        ly = round(ly / pitch_y) * pitch_y;
-        uy = round(uy / pitch_y) * pitch_y;
-
-        line += to_string(lx) + string("   ") + to_string(ly) + string("  ");
-        line += to_string(ux) + string("  ") + to_string(uy);
-        line += string("   ") + macros[j].GetOrientation();
-        file << line << endl;
-      }
-    }
-  }
-
-  file.close();
-
-  // just for quick verification
-  string floorplan_filename
-      = string("./") + string(report_directory) + "/final_floorplan.txt";
-  file.open(floorplan_filename);
-  file << "outline_width:  " << outline_width << endl;
-  file << "outline_height:  " << outline_height << endl;
-  for (int i = 0; i < clusters.size(); i++) {
-    float cluster_lx = clusters[i]->GetX();
-    float cluster_ly = clusters[i]->GetY();
-    float cluster_ux = cluster_lx + clusters[i]->GetWidth();
-    float cluster_uy = cluster_ly + clusters[i]->GetHeight();
-    string cluster_name = clusters[i]->GetName();
-    file << cluster_name << "   ";
-    file << cluster_lx << "    ";
-    file << cluster_ly << "    ";
-    file << cluster_ux << "    ";
-    file << cluster_uy << "    ";
-    file << endl;
-  }
-  file << endl;
-
-  for (int i = 0; i < clusters.size(); i++) {
-    if (clusters[i]->GetNumMacro() > 0) {
-      float cluster_lx = clusters[i]->GetX();
-      float cluster_ly = clusters[i]->GetY();
-      vector<Macro> macros = clusters[i]->GetMacros();
-      for (int j = 0; j < macros.size(); j++) {
-        string name = macros[j].GetName();
-        float lx = cluster_lx + macros[j].GetX() + halo_width;
-        float ly = cluster_ly + macros[j].GetY() + halo_width;
-        float width = macros[j].GetWidth() - 2 * halo_width;
-        float height = macros[j].GetHeight() - 2 * halo_width;
-        file << name << "    ";
-        file << lx << "   ";
-        file << ly << "   ";
-        file << lx + width << "   ";
-        file << ly + height << "   ";
-        file << endl;
-      }
-    }
-  }
-
-  file.close();
-
-  logger->report("Finish RTL-MP");
+  hier_rtlmp_->setClusterSize(
+      max_num_macro, min_num_macro, max_num_inst, min_num_inst);
+  hier_rtlmp_->setClusterSizeTolerance(tolerance);
+  hier_rtlmp_->setMaxNumLevel(max_num_level);
+  hier_rtlmp_->setClusterSizeRatioPerLevel(coarsening_ratio);
+  hier_rtlmp_->setNumBundledIOsPerBoundary(num_bundled_ios);
+  hier_rtlmp_->setLargeNetThreshold(large_net_threshold);
+  hier_rtlmp_->setSignatureNetThreshold(signature_net_threshold);
+  hier_rtlmp_->setHaloWidth(halo_width);
+  hier_rtlmp_->setHaloHeight(halo_height);
+  hier_rtlmp_->setGlobalFence(fence_lx, fence_ly, fence_ux, fence_uy);
+  hier_rtlmp_->setAreaWeight(area_weight);
+  hier_rtlmp_->setOutlineWeight(outline_weight);
+  hier_rtlmp_->setWirelengthWeight(wirelength_weight);
+  hier_rtlmp_->setGuidanceWeight(guidance_weight);
+  hier_rtlmp_->setFenceWeight(fence_weight);
+  hier_rtlmp_->setBoundaryWeight(boundary_weight);
+  hier_rtlmp_->setNotchWeight(notch_weight);
+  hier_rtlmp_->setMacroBlockageWeight(macro_blockage_weight);
+  hier_rtlmp_->setPinAccessThreshold(pin_access_th);
+  hier_rtlmp_->setTargetUtil(target_util);
+  hier_rtlmp_->setTargetDeadSpace(target_dead_space);
+  hier_rtlmp_->setMinAR(min_ar);
+  hier_rtlmp_->setSnapLayer(snap_layer);
+  hier_rtlmp_->setBusPlanningOn(bus_planning_on);
+  hier_rtlmp_->setReportDirectory(report_directory);
+  hier_rtlmp_->setNumThreads(num_threads);
+  hier_rtlmp_->run();
 
   return true;
 }
 
-void MacroPlacer2::init(dbDatabase* db, Logger* logger)
+void MacroPlacer2::placeMacro(odb::dbInst* inst,
+                              const float& x_origin,
+                              const float& y_origin,
+                              const odb::dbOrientType& orientation)
 {
-  db_ = db;
-  logger_ = logger;
+  float dbu_per_micron = db_->getTech()->getDbUnitsPerMicron();
+
+  const int x1 = micronToDbu(x_origin, dbu_per_micron);
+  const int y1 = micronToDbu(y_origin, dbu_per_micron);
+  const int x2 = x1 + inst->getBBox()->getDX();
+  const int y2 = y1 + inst->getBBox()->getDY();
+
+  odb::Rect macro_new_bbox(x1, y1, x2, y2);
+  odb::Rect core_area = inst->getBlock()->getCoreArea();
+
+  if (!core_area.contains(macro_new_bbox)) {
+    logger_->error(MPL,
+                   34,
+                   "Specified location results in illegal placement. Cannot "
+                   "place macro outside of the core.");
+  }
+
+  // As HardMacro is created from inst, the latter must be placed before
+  // we actually snap the macro to align the pins with the grids. Also,
+  // orientation must be set before location so we don't end up flipping
+  // and misplacing the macro.
+  inst->setOrient(orientation);
+  inst->setLocation(x1, y1);
+
+  if (!orientation.isRightAngleRotation()) {
+    int manufacturing_grid = db_->getTech()->getManufacturingGrid();
+
+    HardMacro macro(inst, dbu_per_micron, manufacturing_grid, 0, 0);
+
+    mpl2::Rect macro_new_bbox_micron(
+        x_origin,
+        y_origin,
+        dbuToMicron(macro_new_bbox.xMax(), dbu_per_micron),
+        dbuToMicron(macro_new_bbox.yMax(), dbu_per_micron));
+
+    float pitch_x = 0.0;
+    float pitch_y = 0.0;
+
+    odb::Point snap_origin = macro.computeSnapOrigin(
+        macro_new_bbox_micron, orientation, pitch_x, pitch_y, inst->getBlock());
+
+    // Orientation is already set, so now we set the origin to snap macro.
+    inst->setOrigin(snap_origin.x(), snap_origin.y());
+  } else {
+    logger_->warn(
+        MPL,
+        36,
+        "Orientation {} specified for macro {} is a right angle rotation.",
+        orientation.getString(),
+        inst->getName());
+  }
+
+  inst->setPlacementStatus(odb::dbPlacementStatus::LOCKED);
+
+  logger_->info(MPL,
+                35,
+                "Macro {} placed. Bounding box ({:.3f}um, {:.3f}um), "
+                "({:.3f}um, {:.3f}um). Orientation {}",
+                inst->getName(),
+                dbuToMicron(inst->getBBox()->xMin(), dbu_per_micron),
+                dbuToMicron(inst->getBBox()->yMin(), dbu_per_micron),
+                dbuToMicron(inst->getBBox()->xMax(), dbu_per_micron),
+                dbuToMicron(inst->getBBox()->yMax(), dbu_per_micron),
+                orientation.getString());
 }
 
-bool MacroPlacer2::place(const char* config_file,
-                         const char* report_directory,
-                         const float area_wt,
-                         const float wirelength_wt,
-                         const float outline_wt,
-                         const float boundary_wt,
-                         const float macro_blockage_wt,
-                         const float location_wt,
-                         const float notch_wt,
-                         const float macro_halo,
-                         const char* report_file,
-                         const char* macro_blockage_file,
-                         const char* prefer_location_file)
+void MacroPlacer2::setMacroPlacementFile(const std::string& file_name)
 {
-  return rtl_macro_placer(config_file,
-                          logger_,
-                          db_,
-                          report_directory,
-                          area_wt,
-                          wirelength_wt,
-                          outline_wt,
-                          boundary_wt,
-                          macro_blockage_wt,
-                          location_wt,
-                          notch_wt,
-                          macro_halo,
-                          report_file,
-                          macro_blockage_file,
-                          prefer_location_file);
+  hier_rtlmp_->setMacroPlacementFile(file_name);
 }
 
-}  // namespace mpl
+void MacroPlacer2::writeMacroPlacement(const std::string& file_name)
+{
+  hier_rtlmp_->writeMacroPlacement(file_name);
+}
+
+void MacroPlacer2::setDebug(std::unique_ptr<Mpl2Observer>& graphics)
+{
+  hier_rtlmp_->setDebug(graphics);
+}
+
+}  // namespace mpl2

@@ -1,11 +1,14 @@
 # slack map api
+source "helpers.tcl"
 read_liberty Nangate45/Nangate45_typ.lib
 read_lef Nangate45/Nangate45.lef
 read_def gcd_nangate45_placed.def
 read_sdc gcd_nangate45.sdc
 
 set_dont_use {AOI211_X1 OAI211_X1}
+source Nangate45/Nangate45.rc
 set_wire_rc -layer metal3
+estimate_parasitics -placement
 
 remove_buffers
 rsz::resize_slack_preamble

@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_MARKER_H_
-#define _FR_MARKER_H_
+#pragma once
 
 #include <set>
 #include <tuple>
@@ -48,7 +47,8 @@ class frMarker : public frFig
         srcs_(),
         iter_(),
         vioHasDir_(false),
-        vioIsH_(false)
+        vioIsH_(false),
+        index_in_owner_(0)
   {
   }
   frMarker(const frMarker& in)
@@ -58,7 +58,8 @@ class frMarker : public frFig
         srcs_(in.srcs_),
         iter_(),
         vioHasDir_(in.vioHasDir_),
-        vioIsH_(in.vioIsH_)
+        vioIsH_(in.vioIsH_),
+        index_in_owner_(0)
   {
   }
   // setters
@@ -91,23 +92,20 @@ class frMarker : public frFig
    * intersects in .cpp
    */
 
-  void getBBox(Rect& bboxIn) const override { bboxIn = bbox_; }
-  const Rect& getBBox() const { return bbox_; }
+  Rect getBBox() const override { return bbox_; }
   frLayerNum getLayerNum() const { return layerNum_; }
 
   const std::set<frBlockObject*>& getSrcs() const { return srcs_; }
 
   void setSrcs(const std::set<frBlockObject*>& srcs) { srcs_ = srcs; }
 
-  std::vector<
-      std::pair<frBlockObject*, std::tuple<frLayerNum, Rect, bool>>>&
+  std::vector<std::pair<frBlockObject*, std::tuple<frLayerNum, Rect, bool>>>&
   getAggressors()
   {
     return aggressors_;
   }
 
-  std::vector<
-      std::pair<frBlockObject*, std::tuple<frLayerNum, Rect, bool>>>&
+  std::vector<std::pair<frBlockObject*, std::tuple<frLayerNum, Rect, bool>>>&
   getVictims()
   {
     return victims_;
@@ -128,6 +126,8 @@ class frMarker : public frFig
 
   void setIter(frListIter<std::unique_ptr<frMarker>>& in) { iter_ = in; }
   frListIter<std::unique_ptr<frMarker>> getIter() const { return iter_; }
+  void setIndexInOwner(const int& idx) { index_in_owner_ = idx; }
+  int getIndexInOwner() const { return index_in_owner_; }
 
  private:
   frConstraint* constraint_;
@@ -141,24 +141,11 @@ class frMarker : public frFig
   frListIter<std::unique_ptr<frMarker>> iter_;
   bool vioHasDir_;
   bool vioIsH_;
+  int index_in_owner_;
 
   template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<frFig>(*this);
-    (ar) & constraint_;
-    (ar) & bbox_;
-    (ar) & layerNum_;
-    (ar) & srcs_;
-    (ar) & victims_;
-    (ar) & aggressors_;
-    // iter is handled by the owner
-    (ar) & vioHasDir_;
-    (ar) & vioIsH_;
-  }
+  void serialize(Archive& ar, const unsigned int version);
 
   friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

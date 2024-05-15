@@ -26,4 +26,3 @@ find_library(OCTAVE_LIB
 set(OCTAVE_LIBRARY ${OCTAVE_LIB} ${OCTINTERP_LIB})
 message(STATUS "Octave library: ${OCTAVE_LIBRARY}")
 
-

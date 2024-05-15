@@ -33,9 +33,7 @@ using namespace fr;
 void frLayer::printAllConstraints(utl::Logger* logger)
 {
   for (auto& constraint : constraints) {
-    if (auto c = constraint.lock()) {
-      c->report(logger);
-    }
+    constraint->report(logger);
   }
   if (lef58CutSpacingTableSameNetMetalConstraint)
     lef58CutSpacingTableSameNetMetalConstraint->report(logger);
@@ -126,4 +124,39 @@ void frLayer::printAllConstraints(utl::Logger* logger)
       constraint->report(logger);
     }
   }
+}
+
+frCoord frLayer::getMinSpacingValue(frCoord width1,
+                                    frCoord width2,
+                                    frCoord prl,
+                                    bool use_min_spacing)
+{
+  auto con = getMinSpacing();
+  if (!con) {
+    return 0;
+  }
+
+  if (con->typeId() == frConstraintTypeEnum::frcSpacingConstraint) {
+    return static_cast<frSpacingConstraint*>(con)->getMinSpacing();
+  }
+
+  if (con->typeId() == frConstraintTypeEnum::frcSpacingTablePrlConstraint) {
+    if (use_min_spacing) {
+      return static_cast<frSpacingTablePrlConstraint*>(con)->findMin();
+    } else {
+      return static_cast<frSpacingTablePrlConstraint*>(con)->find(
+          std::max(width1, width2), prl);
+    }
+  }
+
+  if (con->typeId() == frConstraintTypeEnum::frcSpacingTableTwConstraint) {
+    if (use_min_spacing) {
+      return static_cast<frSpacingTableTwConstraint*>(con)->findMin();
+    } else {
+      return static_cast<frSpacingTableTwConstraint*>(con)->find(
+          width1, width2, prl);
+    }
+  }
+
+  return 0;
 }

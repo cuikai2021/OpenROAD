@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GR_NET_H_
-#define _GR_NET_H_
+#pragma once
 
 #include <memory>
 
@@ -146,7 +145,7 @@ class grNet : public grBlockObject
   bool isModified() const { return modified; }
   int getNumOverConGCells() const { return numOverConGCells; }
   int getNumPinsIn() const { return numPinsIn; }
-  void getPinBox(Rect& in) { in = pinBox; }
+  Rect getPinBox() { return pinBox; }
   bool isRipup() const { return ripup; }
   int getNumReroutes() const { return numReroutes; }
   bool isInQueue() const { return inQueue; }
@@ -283,5 +282,3 @@ class grNet : public grBlockObject
   bool trivial;
 };
 }  // namespace fr
-
-#endif

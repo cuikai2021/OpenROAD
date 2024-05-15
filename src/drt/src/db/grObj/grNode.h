@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GR_NODE_H_
-#define _GR_NODE_H_
+#pragma once
 
 #include <iostream>
 #include <memory>
@@ -124,7 +123,6 @@ class grNode : public grBlockObject
   // getters
   bool hasNet() { return (net != nullptr); }
   grNet* getNet() { return net; }
-  void getLoc(Point& in) { in = loc; }
   Point getLoc() { return loc; }
   frLayerNum getLayerNum() { return layerNum; }
   grBlockObject* getConnFig() { return connFig; }
@@ -156,5 +154,3 @@ class grNode : public grBlockObject
   friend class frNode;
 };
 }  // namespace fr
-
-#endif

@@ -39,6 +39,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "utl/Logger.h"
 
 namespace ord {
@@ -48,7 +49,7 @@ class OpenRoad;
 namespace odb {
 class dbDatabase;
 class dbNet;
-}
+}  // namespace odb
 
 namespace gui {
 class Gui;
@@ -58,20 +59,20 @@ namespace stt {
 
 using utl::Logger;
 
-typedef int DTYPE;
-
-struct Branch {
-  DTYPE x, y;  // starting point of the branch
-  int n;       // index of neighbor
+struct Branch
+{
+  int x, y;  // starting point of the branch
+  int n;     // index of neighbor
 };
 
-struct Tree {
-  int deg;         // degree
-  DTYPE length;    // total wirelength
+struct Tree
+{
+  int deg;                     // degree
+  int length;                  // total wirelength
   std::vector<Branch> branch;  // array of tree branches
 
   void printTree(utl::Logger* logger) const;
-  int branchCount() const { return deg * 2 - 2; }
+  int branchCount() const { return branch.size(); }
 };
 
 class SteinerTreeBuilder
@@ -82,16 +83,16 @@ class SteinerTreeBuilder
 
   void init(odb::dbDatabase* db, Logger* logger);
 
-  Tree makeSteinerTree(std::vector<int>& x,
-                       std::vector<int>& y,
+  Tree makeSteinerTree(const std::vector<int>& x,
+                       const std::vector<int>& y,
                        int drvr_index,
                        float alpha);
-  Tree makeSteinerTree(std::vector<int>& x,
-                       std::vector<int>& y,
+  Tree makeSteinerTree(const std::vector<int>& x,
+                       const std::vector<int>& y,
                        int drvr_index);
   Tree makeSteinerTree(odb::dbNet* net,
-                       std::vector<int>& x,
-                       std::vector<int>& y,
+                       const std::vector<int>& x,
+                       const std::vector<int>& y,
                        int drvr_index);
   // API only for FastRoute, that requires the use of flutes in its
   // internal flute implementation
@@ -121,17 +122,10 @@ class SteinerTreeBuilder
 };
 
 // Used by regressions.
-void
-reportSteinerTree(const Tree &tree,
-                  int drvr_x,
-                  int drvr_y,
-                  Logger *logger);
-void
-reportSteinerTree(const stt::Tree &tree,
-                  Logger *logger);
-
-void
-highlightSteinerTree(const Tree &tree,
-                     gui::Gui *gui);
+void reportSteinerTree(const Tree& tree,
+                       int drvr_x,
+                       int drvr_y,
+                       Logger* logger);
+void reportSteinerTree(const stt::Tree& tree, Logger* logger);
 
 }  // namespace stt

@@ -31,21 +31,23 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #include "heatMap.h"
-#include "db_sta/dbSta.hh"
+
 #include "db_sta/dbNetwork.hh"
+#include "db_sta/dbSta.hh"
 #include "sta/Corner.hh"
 
 namespace sta {
 
-PowerDensityDataSource::PowerDensityDataSource(sta::dbSta* sta, utl::Logger* logger) :
-    gui::RealValueHeatMapDataSource(logger, "W", "Power Density", "Power", "PowerDensity"),
-    sta_(sta),
-    include_internal_(true),
-    include_leakage_(true),
-    include_switching_(true),
-    corner_(nullptr)
+PowerDensityDataSource::PowerDensityDataSource(sta::dbSta* sta,
+                                               utl::Logger* logger)
+    : gui::RealValueHeatMapDataSource(logger,
+                                      "W",
+                                      "Power Density",
+                                      "Power",
+                                      "PowerDensity"),
+      sta_(sta)
 {
-  setIssueRedraw(false); // disable during initial setup
+  setIssueRedraw(false);  // disable during initial setup
   setLogScale(true);
   setIssueRedraw(true);
 
@@ -55,20 +57,12 @@ PowerDensityDataSource::PowerDensityDataSource(sta::dbSta* sta, utl::Logger* log
       [this]() {
         std::vector<std::string> corners;
         for (auto* corner : *sta_->corners()) {
-          corners.push_back(corner->name());
+          corners.emplace_back(corner->name());
         }
         return corners;
       },
-      [this]() -> std::string {
-        ensureCorner();
-        if (corner_ == nullptr) {
-          return "";
-        }
-        return corner_->name();
-      },
-      [this](const std::string& value) {
-        corner_ = sta_->findCorner(value.c_str());
-      });
+      [this]() -> std::string { return corner_; },
+      [this](const std::string& value) { corner_ = value; });
   addBooleanSetting(
       "Internal",
       "Internal power:",
@@ -84,6 +78,8 @@ PowerDensityDataSource::PowerDensityDataSource(sta::dbSta* sta, utl::Logger* log
       "Switching power:",
       [this]() { return include_switching_; },
       [this](bool value) { include_switching_ = value; });
+
+  registerHeatMap();
 }
 
 bool PowerDensityDataSource::populateMap()
@@ -96,18 +92,16 @@ bool PowerDensityDataSource::populateMap()
     return false;
   }
 
-  ensureCorner();
-
   auto* network = sta_->getDbNetwork();
 
-  const bool include_all = include_internal_ && include_leakage_ && include_switching_;
+  const bool include_all
+      = include_internal_ && include_leakage_ && include_switching_;
   for (auto* inst : getBlock()->getInsts()) {
     if (!inst->getPlacementStatus().isPlaced()) {
       continue;
     }
 
-    sta::PowerResult power;
-    sta_->power(network->dbToSta(inst), corner_, power);
+    sta::PowerResult power = sta_->power(network->dbToSta(inst), getCorner());
 
     float pwr = 0.0;
     if (include_all) {
@@ -124,8 +118,7 @@ bool PowerDensityDataSource::populateMap()
       }
     }
 
-    odb::Rect inst_box;
-    inst->getBBox()->getBox(inst_box);
+    odb::Rect inst_box = inst->getBBox()->getBox();
 
     addToMap(inst_box, pwr);
   }
@@ -143,19 +136,19 @@ void PowerDensityDataSource::combineMapData(bool base_has_value,
   base += (new_data / data_area) * intersection_area;
 }
 
-void PowerDensityDataSource::ensureCorner()
+sta::Corner* PowerDensityDataSource::getCorner() const
 {
-  if (corner_ != nullptr) {
-    return;
+  auto* corner = sta_->findCorner(corner_.c_str());
+  if (corner != nullptr) {
+    return corner;
   }
 
   auto corners = sta_->corners()->corners();
-  corner_ = corners[0];
-}
+  if (!corners.empty()) {
+    return corners[0];
+  }
 
-void PowerDensityDataSource::setCorner(const std::string& name)
-{
-  corner_ = sta_->findCorner(name.c_str());
+  return nullptr;
 }
 
 }  // namespace sta

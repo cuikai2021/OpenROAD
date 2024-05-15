@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _DR_ACCESS_PATTERN_H
-#define _DR_ACCESS_PATTERN_H
+#pragma once
 
 #include "db/drObj/drBlockObject.h"
 #include "db/infra/frPoint.h"
@@ -55,13 +54,12 @@ class drAccessPattern : public drBlockObject
   {
   }
   // getters
-  void getPoint(Point& bpIn) const { bpIn = beginPoint_; }
-  const Point& getPoint() const { return beginPoint_; }
+  Point getPoint() const { return beginPoint_; }
   frLayerNum getBeginLayerNum() const { return beginLayerNum_; }
   frCoord getBeginArea() const { return beginArea_; }
   drPin* getPin() const { return pin_; }
   bool hasMazeIdx() const { return (!mazeIdx_.empty()); }
-  void getMazeIdx(FlexMazeIdx& in) const { in.set(mazeIdx_); }
+  FlexMazeIdx getMazeIdx() const { return mazeIdx_; }
   bool hasValidAccess(const frDirEnum& dir)
   {
     switch (dir) {
@@ -198,26 +196,8 @@ class drAccessPattern : public drBlockObject
   frUInt4 pinCost_;  // is preferred ap
 
   template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<drBlockObject>(*this);
-    (ar) & beginPoint_;
-    (ar) & beginLayerNum_;
-    (ar) & beginArea_;
-    (ar) & mazeIdx_;
-    (ar) & pin_;
-    (ar) & validAccess_;
-    (ar) & vU_;
-    (ar) & vD_;
-    (ar) & vUIdx_;
-    (ar) & vDIdx_;
-    (ar) & onTrackX_;
-    (ar) & onTrackY_;
-    (ar) & pinCost_;
-  }
+  void serialize(Archive& ar, const unsigned int version);
 
   friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

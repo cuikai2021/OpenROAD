@@ -30,12 +30,22 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef __IRSOLVER_IRSOLVER_
-#define __IRSOLVER_IRSOLVER_
+#pragma once
+
+#include <optional>
 
 #include "gmat.h"
 #include "odb/db.h"
 #include "utl/Logger.h"
+
+namespace sta {
+class dbSta;
+class Corner;
+}  // namespace sta
+
+namespace rsz {
+class Resizer;
+}
 
 namespace psm {
 
@@ -44,123 +54,201 @@ namespace psm {
  * Builds the equations GV=J and uses SuperLU
  * to solve the matrix equations
  */
-class IRSolver {
+struct ViaCut
+{
+  Point loc = Point(0, 0);
+  NodeEnclosure bot_encl{0, 0, 0, 0};
+  NodeEnclosure top_encl{0, 0, 0, 0};
+};
+
+class IRSolver
+{
  public:
+  struct SourceData
+  {
+    int x;
+    int y;
+    int size;
+    double voltage;
+    int layer;
+    bool user_specified;
+  };
+
   //! Constructor for IRSolver class
   /*
    * This constructor creates an instance of the class using
    * the given inputs.
    */
-  IRSolver(odb::dbDatabase* t_db, sta::dbSta* t_sta, utl::Logger* t_logger,
-           std::string vsrc_loc, std::string power_net, std::string out_file,
-           std::string em_out_file, std::string spice_out_file, int em_analyze,
-           int bump_pitch_x, int bump_pitch_y,
-           std::map<std::string, float> net_voltage_map) {
-    m_db = t_db;
-    m_sta = t_sta;
-    m_logger = t_logger;
-    m_vsrc_file = vsrc_loc;
-    m_power_net = power_net;
-    m_out_file = out_file;
-    m_em_out_file = em_out_file;
-    m_em_flag = em_analyze;
-    m_spice_out_file = spice_out_file;
-    m_bump_pitch_x = bump_pitch_x;
-    m_bump_pitch_y = bump_pitch_y;
-    m_net_voltage_map = net_voltage_map;
-  }
+  IRSolver(odb::dbDatabase* db,
+           sta::dbSta* sta,
+           rsz::Resizer* resizer,
+           utl::Logger* logger,
+           odb::dbNet* net,
+           const std::optional<float>& voltage,
+           const std::string& vsrc_loc,
+           bool em_analyze,
+           int bump_pitch_x,
+           int bump_pitch_y,
+           float node_density_um,
+           int node_density_factor_user,
+           sta::Corner* corner);
   //! IRSolver destructor
-  ~IRSolver() { delete m_Gmat; }
-  //! Worst case voltage at the lowest layer nodes
-  double wc_voltage;
-  //! Worst case current at the lowest layer nodes
-  double max_cur;
-  //! Average current at the lowest layer nodes
-  double avg_cur;
-  //! number of resistances
-  int num_res;
-  //! Average voltage at lowest layer nodes
-  double avg_voltage;
-  //! Vector of worstcase voltages in the lowest layers
-  std::vector<double> wc_volt_layer;
+  ~IRSolver();
   //! Returns the created G matrix for the design
-  GMat* GetGMat();
+  GMat* getGMat();
   //! Returns current map represented as a 1D vector
-  std::vector<double> GetJ();
+  const std::vector<double>& getJ() const;
   //! Function to solve for IR drop
-  void SolveIR();
+  void solveIR();
   //! Function to get the power value from OpenSTA
-  std::vector<std::pair<std::string, double>> GetPower();
-  std::pair<double, double> GetSupplyVoltage();
+  std::vector<std::pair<odb::dbInst*, float>> getPower();
 
-  bool CheckConnectivity();
-  bool CheckValidR(double R);
+  bool getConnectionTest() const;
+  int getMinimumResolution() const;
 
-  int GetConnectionTest();
+  void writeSpiceFile(const std::string& file) const;
+  void writeVoltageFile(const std::string& file) const;
+  void writeEMFile(const std::string& file) const;
+  void writeErrorFile(const std::string& file) const;
 
-  bool GetResult();
-  int GetMinimumResolution();
+  bool build(const std::string& error_file = "",
+             bool connectivity_only = false);
 
-  int PrintSpice();
+  const std::vector<SourceData>& getSources() const { return sources_; }
 
-  bool Build();
-
-  bool BuildConnection();
-  float supply_voltage_src;
+  double getWorstCaseVoltage() const { return wc_voltage_; }
+  double getMaxCurrent() const { return max_cur_; }
+  double getAvgCurrent() const { return avg_cur_; }
+  int getNumResistors() const { return num_res_; }
+  double getAvgVoltage() const { return avg_voltage_; }
+  float getSupplyVoltageSrc() const
+  {
+    if (supply_voltage_src_.has_value()) {
+      return supply_voltage_src_.value();
+    } else {
+      return 0.0;
+    }
+  }
 
  private:
-  //! Pointer to the Db
-  odb::dbDatabase* m_db;
-  //! Pointer to STA
-  sta::dbSta* m_sta;
-  //! Pointer to Logger
-  utl::Logger* m_logger;
-  //! Voltage source file
-  std::string m_vsrc_file;
-  std::string m_power_net;
-  //! Resistance configuration file
-  std::string m_out_file;
-  std::string m_em_out_file;
-  int m_em_flag;
-  std::string m_spice_out_file;
-  //! G matrix for voltage
-  GMat* m_Gmat;
-  //! Node density in the lower most layer to append the current sources
-  int m_node_density{5400};  // TODO get from somewhere
-  //! Routing Level of the top layer
-  int m_top_layer{0};
-  int m_bump_pitch_x{0};
-  int m_bump_pitch_y{0};
-  int m_bump_pitch_default{140};
-  int m_bump_size{10};
-
-  int m_bottom_layer{10};
-
-  bool m_result{false};
-  bool m_connection{false};
-  //! Direction of the top layer
-  odb::dbTechLayerDir::Value m_top_layer_dir;
-
-  odb::dbTechLayerDir::Value m_bottom_layer_dir;
-  odb::dbSigType m_power_net_type;
-  std::map<std::string, float> m_net_voltage_map;
-  //! Current vector 1D
-  std::vector<double> m_J;
-  //! C4 bump locations and values
-  std::vector<std::tuple<int, int, int, double>> m_C4Bumps;
-  //! Per unit R and via R for each routing layer
-  std::vector<std::tuple<int, double, double>> m_layer_res;
-  //! Locations of the C4 bumps in the G matrix
-  std::map<NodeIdx, double> m_C4Nodes;
-  //! Function to add C4 bumps to the G matrix
-  bool AddC4Bump();
+  //! Function to add sources to the G matrix
+  bool addSources();
   //! Function that parses the Vsrc file
-  void ReadC4Data();
-  //  void                                           ReadResData();
+  void readSourceData(bool require_voltage);
+  void createSourcesFromVsrc(const std::string& file);
+  bool createSourcesFromBTerms();
+  bool createSourcesFromPads();
+  void createDefaultSources();
   //! Function to create a J vector from the current map
-  bool CreateJ();
+  bool createJ(size_t gmat_nodes);
   //! Function to create a G matrix using the nodes
-  bool CreateGmat(bool connection_only = false);
+  bool createGmat(bool connection_only = false);
+  //! Function to find and store the upper and lower PDN layers and return a
+  //! list
+  // of wires for all PDN tasks
+  void findPdnWires();
+  //! Function to create the nodes of vias in the G matrix
+  void createGmatViaNodes();
+  //! Function to create the nodes of wires in the G matrix
+  void createGmatWireNodes();
+
+  NodeEnclosure getViaEnclosure(int layer, odb::dbSet<odb::dbBox> via_boxes);
+
+  std::map<Point, ViaCut> getViaCuts(Point loc,
+                                     odb::dbSet<odb::dbBox> via_boxes,
+                                     int lb,
+                                     int lt,
+                                     bool has_params,
+                                     const odb::dbViaParams& params);
+
+  //! Function to create the nodes for the sources
+  int createSourceNodes(bool connection_only, int unit_micron);
+  //! Function to create the connections of the G matrix
+  void createGmatConnections(bool connection_only);
+  bool checkConnectivity(const std::string& error_file = "",
+                         bool connection_only = false);
+  bool checkValidR(double R) const;
+
+  double getResistance(odb::dbTechLayer* layer) const;
+
+  std::pair<bool, std::set<Node*>> getInstNodes(odb::dbInst* inst) const;
+
+  struct InstCompare
+  {
+    bool operator()(odb::dbInst* lhs, odb::dbInst* rhs) const
+    {
+      return lhs->getId() < rhs->getId();
+    }
+  };
+  using ITermMap
+      = std::map<odb::dbInst*, std::vector<odb::dbITerm*>, InstCompare>;
+  void findUnconnectedInstances();
+  void findUnconnectedInstancesByStdCells(
+      ITermMap& iterms,
+      std::set<odb::dbInst*>& connected_insts);
+  void findUnconnectedInstancesByITerms(
+      ITermMap& iterms,
+      std::set<odb::dbInst*>& connected_insts);
+  void findUnconnectedInstancesByAbutment(
+      ITermMap& iterms,
+      std::set<odb::dbInst*>& connected_insts);
+
+  bool isStdCell(odb::dbInst* inst) const;
+  bool isConnected(odb::dbITerm* iterm) const;
+
+  std::optional<float> supply_voltage_src_;
+  //! Worst case voltage at the lowest layer nodes
+  double wc_voltage_{0};
+  //! Worst case current at the lowest layer nodes
+  double max_cur_{0};
+  //! Average current at the lowest layer nodes
+  double avg_cur_{0};
+  //! number of resistances
+  int num_res_{0};
+  //! Average voltage at lowest layer nodes
+  double avg_voltage_{0};
+  //! Pointer to the Db
+  odb::dbDatabase* db_;
+  //! Pointer to STA
+  sta::dbSta* sta_;
+  //! Pointer to Resizer for parastics
+  rsz::Resizer* resizer_;
+  //! Pointer to Logger
+  utl::Logger* logger_;
+
+  odb::dbNet* net_;
+
+  //! Voltage source file
+  std::string vsrc_file_;
+  bool em_flag_;
+  //! G matrix for voltage
+  std::unique_ptr<GMat> Gmat_;
+  //! Node density in the lower most layer to append the current sources
+  int node_density_{0};              // Initialize to zero
+  int node_density_factor_{5};       // Default value
+  int node_density_factor_user_{0};  // User defined value
+  float node_density_um_{-1};  // Initialize to negative unless set by user
+  //! Routing Level of the top layer
+  int top_layer_{0};
+  int bump_pitch_x_{0};
+  int bump_pitch_y_{0};
+  int bump_pitch_default_{140};
+  int bump_size_{10};
+
+  int bottom_layer_{10};
+
+  bool connection_{false};
+
+  sta::Corner* corner_;
+  //! Current vector 1D
+  std::vector<double> J_;
+  //! source locations and values
+  std::vector<SourceData> sources_;
+  //! Locations of the source in the G matrix
+  std::map<NodeIdx, double> source_nodes_;
+
+  std::vector<odb::dbSBox*> power_wires_;
+  std::vector<odb::dbInst*> unconnected_insts_;
+  std::map<odb::dbITerm*, odb::dbITerm*> iterms_connected_by_abutment_;
 };
 }  // namespace psm
-#endif

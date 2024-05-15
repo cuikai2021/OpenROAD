@@ -25,11 +25,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "boostParser.h"
 #include <functional>
 #include <iostream>
 #include <string>
 
+#include "boostParser.h"
 #include "db.h"
 #include "lefLayerPropParser.h"
 #include "lefin.h"
@@ -119,7 +119,7 @@ void addAdjacentCutsSubRule(
   auto className = at_c<6>(params);
   auto sideParallelNoPrl = at_c<7>(params);
   auto sameMask = at_c<8>(params);
-  uint cuts_int = (uint) cuts[0] - (uint) '0';
+  odb::uint cuts_int = (odb::uint) cuts[0] - (odb::uint) '0';
   parser->curRule->setAdjacentCuts(cuts_int);
   if (aligned.is_initialized()) {
     parser->curRule->setExactAligned(true);
@@ -338,8 +338,6 @@ bool parse(
     odb::lefin* lefin,
     std::vector<std::pair<odb::dbObject*, std::string>>& incomplete_props)
 {
-  qi::rule<Iterator, std::string(), ascii::space_type> _string;
-  _string %= lexeme[(alpha >> *(char_ - ' ' - '\n' - '\t'))];
   qi::rule<std::string::iterator, space_type> LAYER_CUTCLASS
       = (lit("CUTCLASS")
          >> _string[boost::bind(&setCutClass, _1, parser, layer)]

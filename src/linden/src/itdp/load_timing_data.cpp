@@ -2,12 +2,12 @@
 
 #include <spdlog/spdlog.h>
 
-namespace linden {
-namespace tdp {
+namespace linden::itdp {
 
-TdpConfig::TdpConfig(double _wire_cap,
-            double _wire_res,
-            const linden::geom::Rect& core_region)
+TdpConfig::TdpConfig(
+    double _wire_cap,
+    double _wire_res,
+    const linden::geom::Rect& core_region)
 {
     wire_cap = _wire_cap;
     wire_res = _wire_res;
@@ -22,5 +22,4 @@ TdpConfig::TdpConfig(double _wire_cap,
     wire_delay = false;
 }
 
-}  // namespace tdp
-}  // namespace linden
+}  // namespace linden::itdp

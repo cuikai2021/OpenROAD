@@ -1,0 +1,85 @@
+src/odb/src/defin/definScanchain.cpp
+
+# TODO
+
+static dbInst*
+findInst(dbBlock* blk, utl::Logger* _logger, const char* name) {
+  dbInst* inst = nullptr;
+  std::string n = name;
+  size_t pos = 0;
+  while (!(inst = blk->findInst(n.c_str()))) {
+	 pos = n.find('/', pos);
+	 if (pos == -1) break;
+	 n[pos] = '.';
+  }
+  if (!inst)
+    _logger->warn(utl::ODB, 3001, "error: cannot find instance: %s", name);
+// TODO : sync up ord, sizeOnly is removed by ord. Can't decide whether to keep it.
+//   inst->setSizeOnly(true);
+  return inst;
+}
+
+
+
+src/odb/src/swig/common/swig_common.cpp
+
+# since createChip interface change, getTech from db & compare lib->getTech() and db->getTch()
+
+odb::dbChip* read_def_incremental(odb::dbDatabase* db, std::string path)
+{
+  utl::Logger* logger = new utl::Logger(NULL);
+  std::vector<odb::dbLib*> libs;
+  for (auto* lib : db->getLibs()) {
+    if (lib->getTech() == db->getTech()) {
+      libs.push_back(lib);
+    }
+  }
+  odb::defin defParser(db, logger, odb::defin::INCREMENTAL);
+  return defParser.createChip(libs, path.c_str(), db->getTech());
+}
+
+
+
+# Block all ord dbScanchain feature since it's unused and will conflict with our implementation.
+# we do things like 
+
+#if 0
+class dbScanChain;
+class dbScanInst;
+class dbScanPartition;
+class dbScanPin;
+#endif
+
+
+
+# src/sc/src/ScanChain.cpp
+
+# TODO
+
+void ScanChain::reportScanChain(const char *filename) {
+  if (filename == nullptr) {
+    return;
+  }
+// TODO : need to solve #include "utl/metrics.hpp"
+//   metrics::Config mcfg = metrics::Config::sink_to_file(filename);
+//   metrics::Reporter reporter(mcfg);
+
+//   block_ = db_->getChip()->getBlock();
+//   auto scan_chains = block_->getScanChains();
+//   int total_success_count = 0;
+//   double total_length = 0;
+//   reporter["scan_chains"] = scan_chains.size();
+
+//   auto& length_reporter = reporter["length"];
+//   for (auto const& scan_chain: scan_chains) {
+//     double length = 0;
+//     if (traceScanChain(scan_chain, length)) {
+//       total_success_count++;
+//       total_length = total_length + length;
+//       length_reporter[scan_chain->getName()] = length;
+//     }
+//   }
+
+//   reporter["total_length"] = total_length;
+//   reporter["correct_scan_chains"] = total_success_count;
+}

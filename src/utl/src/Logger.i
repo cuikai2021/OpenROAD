@@ -36,7 +36,8 @@
 %{
 
 #include "utl/Logger.h"
-
+#include "LoggerCommon.h"
+    
 namespace ord {
 // Defined in OpenRoad.i
 utl::Logger *
@@ -57,76 +58,7 @@ using ord::getLogger;
 
 // Catch exceptions in inline functions.
 %include "../../Exception.i"
+%import <std_string.i>
 
-%inline %{
+%include "LoggerCommon.h"
 
-namespace utl {
-
-void
-report(const char *msg)
-{
-  Logger *logger = getLogger();
-  logger->report("{}", msg);
-}
-
-void
-info(utl::ToolId tool,
-     int id,
-     const char *msg)
-{
-  Logger *logger = getLogger();
-  logger->info(tool, id, "{}", msg);
-}
-
-void
-warn(utl::ToolId tool,
-     int id,
-     const char *msg)
-{
-  Logger *logger = getLogger();
-  logger->warn(tool, id, msg);
-}
-
-void
-error(utl::ToolId tool,
-      int id,
-      const char *msg)
-{
-  Logger *logger = getLogger();
-  logger->error(tool, id, "{}", msg);
-}
-
-void
-critical(utl::ToolId tool,
-         int id,
-         const char *msg)
-{
-  Logger *logger = getLogger();
-  logger->critical(tool, id, "{}", msg);
-}
-
-void
-open_metrics(const char *metrics_filename)
-{
-  Logger *logger = getLogger();
-  logger->addMetricsSink(metrics_filename);
-}
-
-void
-metric(const char *metric,
-       const char *value)
-{
-  Logger *logger = getLogger();
-  logger->metric(metric, value);
-}
-
-void 
-suppress_exact_message(const char* msg)
-{
-  Logger *logger = getLogger();
-  logger->registerSuppressedExactMessage(msg);
-}
-
-} // namespace
-
-%} // inline

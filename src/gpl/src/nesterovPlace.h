@@ -37,73 +37,35 @@
 #include <string>
 #include <vector>
 
+#include "nesterovBase.h"
 #include "point.h"
 
 namespace utl {
 class Logger;
 }
 
+namespace odb {
+class dbInst;
+}
+
 namespace gpl {
 
 class PlacerBase;
+class PlacerBaseCommon;
 class Instance;
-class NesterovBase;
 class RouteBase;
 class TimingBase;
 class Graphics;
 
-class NesterovPlaceVars
-{
- public:
-  int maxNesterovIter;
-  int maxBackTrack;
-  float initDensityPenalty;           // INIT_LAMBDA
-  float initWireLengthCoef;           // base_wcof
-  float targetOverflow;               // overflow
-  float minPhiCoef;                   // pcof_min
-  float maxPhiCoef;                   // pcof_max
-  float minPreconditioner;            // MIN_PRE
-  float initialPrevCoordiUpdateCoef;  // z_ref_alpha
-  float referenceHpwl;                // refDeltaHpwl
-  float routabilityCheckOverflow;
-
-  int routabilityMaxBloatIter;
-  int routabilityMaxInflationIter;
-
-  static const int maxRecursionWlCoef = 10;
-  static const int maxRecursionInitSLPCoef = 10;
-
-  bool timingDrivenMode;
-  bool routabilityDrivenMode;
-  bool debug;
-  int debug_pause_iterations;
-  int debug_update_iterations;
-  bool debug_draw_bins;
-
-  NesterovPlaceVars();
-  void reset();
-};
-
 class NesterovPlace
 {
  public:
-  // SLP is Step Length Prediction.
-  struct SLP
-  {
-    void resize(size_t sz);
-    void swap(SLP& ano);
-    void clear();
-    void shrink_to_fit();
-    std::vector<FloatPoint> coordi_;
-    std::vector<FloatPoint> wireLengthGrads_;
-    std::vector<FloatPoint> densityGrads_;
-    std::vector<FloatPoint> sumGrads_;
-  };
-
   NesterovPlace();
-  NesterovPlace(NesterovPlaceVars npVars,
-                std::shared_ptr<PlacerBase> pb,
-                std::shared_ptr<NesterovBase> nb,
+  NesterovPlace(const NesterovPlaceVars& npVars,
+                const std::shared_ptr<PlacerBaseCommon>& pbc,
+                const std::shared_ptr<NesterovBaseCommon>& nbc,
+                std::vector<std::shared_ptr<PlacerBase>>& pbVec,
+                std::vector<std::shared_ptr<NesterovBase>>& nbVec,
                 std::shared_ptr<RouteBase> rb,
                 std::shared_ptr<TimingBase> tb,
                 utl::Logger* log);
@@ -112,88 +74,59 @@ class NesterovPlace
   // return iteration count
   int doNesterovPlace(int start_iter = 0);
 
-  void updateGradients(SLP& slp);
-
   void updateWireLengthCoef(float overflow);
 
-  void updateInitialPrevSLPCoordi();
-
-  float getStepLength(const SLP& prevSLP, const SLP& curSLP) const;
-
-  void updateNextIter();
-  float getPhiCoef(float scaledDiffHpwl) const;
+  void updateNextIter(int iter);
 
   void updateDb();
 
   float getWireLengthCoefX() const { return wireLengthCoefX_; }
   float getWireLengthCoefY() const { return wireLengthCoefY_; }
-  float getDensityPenalty() const { return densityPenalty_; }
 
   void setTargetOverflow(float overflow) { npVars_.targetOverflow = overflow; }
   void setMaxIters(int limit) { npVars_.maxNesterovIter = limit; }
 
+  void updatePrevGradient(const std::shared_ptr<NesterovBase>& nb);
+  void updateCurGradient(const std::shared_ptr<NesterovBase>& nb);
+  void updateNextGradient(const std::shared_ptr<NesterovBase>& nb);
+
  private:
-#ifdef ENABLE_CIMG_LIB
-  void plot(const std::string& title, int iteration);
-#endif
-  std::shared_ptr<PlacerBase> pb_;
-  std::shared_ptr<NesterovBase> nb_;
-  utl::Logger* log_;
+  std::shared_ptr<PlacerBaseCommon> pbc_;
+  std::shared_ptr<NesterovBaseCommon> nbc_;
+  std::vector<std::shared_ptr<PlacerBase>> pbVec_;
+  std::vector<std::shared_ptr<NesterovBase>> nbVec_;
+  utl::Logger* log_ = nullptr;
   std::shared_ptr<RouteBase> rb_;
   std::shared_ptr<TimingBase> tb_;
   NesterovPlaceVars npVars_;
   std::unique_ptr<Graphics> graphics_;
 
-  //
-  // y_st, y_dst, y_wdst, w_pdst
-  SLP curSLP_;
-
-  // y0_st, y0_dst, y0_wdst, y0_pdst
-  SLP nextSLP_;
-
-  // z_st, z_dst, z_wdst, z_pdst
-  SLP prevSLP_;
-
-  // x_st and x0_st
-  std::vector<FloatPoint> curCoordi_;
-  std::vector<FloatPoint> nextCoordi_;
-
-  // save initial coordinates -- needed for RD
-  std::vector<FloatPoint> initCoordi_;
+  float total_sum_overflow_ = 0;
+  float total_sum_overflow_unscaled_ = 0;
+  float average_overflow_ = 0;
+  float average_overflow_unscaled_ = 0;
 
   // densityPenalty stor
   std::vector<float> densityPenaltyStor_;
 
-  float wireLengthGradSum_;
-  float densityGradSum_;
-
-  // alpha
-  float stepLength_;
-
-  // opt_phi_cof
-  float densityPenalty_;
-
   // base_wcof
-  float baseWireLengthCoef_;
+  float baseWireLengthCoef_ = 0;
 
   // wlen_cof
-  float wireLengthCoefX_;
-  float wireLengthCoefY_;
-
-  // phi is described in ePlace paper.
-  float sumOverflow_;
+  float wireLengthCoefX_ = 0;
+  float wireLengthCoefY_ = 0;
 
   // half-parameter-wire-length
-  int64_t prevHpwl_;
+  int64_t prevHpwl_ = 0;
 
-  float isDiverged_;
-  float isRoutabilityNeed_;
+  bool isDiverged_ = false;
+  bool isRoutabilityNeed_ = true;
 
   std::string divergeMsg_;
-  int divergeCode_;
+  int divergeCode_ = 0;
 
-  int recursionCntWlCoef_;
-  int recursionCntInitSLPCoef_;
+  int recursionCntWlCoef_ = 0;
+  int recursionCntInitSLPCoef_ = 0;
 
   void cutFillerCoordinates();
 

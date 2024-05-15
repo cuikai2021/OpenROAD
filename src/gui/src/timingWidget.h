@@ -36,22 +36,42 @@
 #include <QDockWidget>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QMenu>
 #include <QModelIndex>
-#include <QTableView>
-#include <QSpinBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QSpinBox>
 #include <QSplitter>
-#include <vector>
+#include <QTableView>
+#include <memory>
 
+#include "gui/gui.h"
 #include "odb/db.h"
-#include "staGui.h"
+
+namespace sta {
+class dbSta;
+}
 
 namespace gui {
+
+class TimingPath;
+class TimingPathRenderer;
+class TimingConeRenderer;
+class TimingControlsDialog;
+class TimingPathDetailModel;
+class TimingPathsModel;
+class GuiDBChangeListener;
+
 class TimingWidget : public QDockWidget
 {
   Q_OBJECT
  public:
+  enum CommandType
+  {
+    CLOSEST_MATCH,
+    FROM_START_TO_END
+  };
+
   TimingWidget(QWidget* parent = nullptr);
   ~TimingWidget();
 
@@ -70,11 +90,13 @@ class TimingWidget : public QDockWidget
  signals:
   void highlightTimingPath(TimingPath* timing_path);
   void inspect(const Selected& selection);
+  void setCommand(const QString& command);
 
  public slots:
   void showPathDetails(const QModelIndex& index);
   void clearPathDetails();
-  void highlightPathStage(TimingPathDetailModel* model, const QModelIndex& index);
+  void highlightPathStage(TimingPathDetailModel* model,
+                          const QModelIndex& index);
 
   void toggleRenderer(bool enable);
 
@@ -95,6 +117,10 @@ class TimingWidget : public QDockWidget
 
   void showSettings();
 
+  void writePathReportCommand(const QModelIndex& selected_index,
+                              const CommandType& type);
+  void showCommandsMenu(const QPoint& pos);
+
  protected:
   void keyPressEvent(QKeyEvent* key_event) override;
   void showEvent(QShowEvent* event) override;
@@ -102,6 +128,11 @@ class TimingWidget : public QDockWidget
 
  private:
   void copy();
+  void addCommandsMenuActions();
+
+  QMenu* commands_menu_;
+
+  QModelIndex timing_paths_table_index_;
 
   QTableView* setup_timing_table_view_;
   QTableView* hold_timing_table_view_;

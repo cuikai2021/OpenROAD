@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _DR_SHAPE_H_
-#define _DR_SHAPE_H_
+#pragma once
 
 #include "db/drObj/drFig.h"
 #include "db/infra/frSegStyle.h"
@@ -112,22 +111,32 @@ class drPathSeg : public drShape
   }
   drPathSeg(const frPathSeg& in);
   // getters
-  void getPoints(Point& beginIn, Point& endIn) const
-  {
-    beginIn = begin_;
-    endIn = end_;
-  }
+  std::pair<Point, Point> getPoints() const { return {begin_, end_}; }
 
+  frCoord length() const
+  {
+    // assuming it is always orthogonal
+    return end_.x() - begin_.x() + end_.y() - begin_.y();
+  }
   const Point& getBeginPoint() const { return begin_; }
 
   const Point& getEndPoint() const { return end_; }
 
-  void getStyle(frSegStyle& styleIn) const
+  bool isVertical() const { return begin_.x() == end_.x(); }
+
+  frCoord low() const
   {
-    styleIn.setBeginStyle(style_.getBeginStyle(), style_.getBeginExt());
-    styleIn.setEndStyle(style_.getEndStyle(), style_.getEndExt());
-    styleIn.setWidth(style_.getWidth());
+    if (isVertical())
+      return begin_.y();
+    return begin_.x();
   }
+  frCoord high() const
+  {
+    if (isVertical())
+      return end_.y();
+    return end_.x();
+  }
+  frSegStyle getStyle() const { return style_; }
   // setters
   void setPoints(const Point& beginIn, const Point& endIn)
   {
@@ -208,7 +217,7 @@ class drPathSeg : public drShape
    * overlaps, in .cpp
    */
   // needs to be updated
-  void getBBox(Rect& boxIn) const override
+  Rect getBBox() const override
   {
     bool isHorizontal = true;
     if (begin_.x() == end_.x()) {
@@ -218,23 +227,22 @@ class drPathSeg : public drShape
     auto beginExt = style_.getBeginExt();
     auto endExt = style_.getEndExt();
     if (isHorizontal) {
-      boxIn.init(begin_.x() - beginExt,
-                 begin_.y() - width / 2,
-                 end_.x() + endExt,
-                 end_.y() + width / 2);
+      return Rect(begin_.x() - beginExt,
+                  begin_.y() - width / 2,
+                  end_.x() + endExt,
+                  end_.y() + width / 2);
     } else {
-      boxIn.init(begin_.x() - width / 2,
-                 begin_.y() - beginExt,
-                 end_.x() + width / 2,
-                 end_.y() + endExt);
+      return Rect(begin_.x() - width / 2,
+                  begin_.y() - beginExt,
+                  end_.x() + width / 2,
+                  end_.y() + endExt);
     }
   }
 
   bool hasMazeIdx() const { return (!beginMazeIdx_.empty()); }
-  void getMazeIdx(FlexMazeIdx& bi, FlexMazeIdx& ei) const
+  std::pair<FlexMazeIdx, FlexMazeIdx> getMazeIdx() const
   {
-    bi.set(beginMazeIdx_);
-    ei.set(endMazeIdx_);
+    return {beginMazeIdx_, endMazeIdx_};
   }
   void setMazeIdx(FlexMazeIdx& bi, FlexMazeIdx& ei)
   {
@@ -342,19 +350,18 @@ class drPatchWire : public drShape
    * getBBox
    * setBBox
    */
-  void getBBox(Rect& boxIn) const override
+  Rect getBBox() const override
   {
     dbTransform xform(origin_);
-    boxIn = offsetBox_;
-    xform.apply(boxIn);
+    Rect box = offsetBox_;
+    xform.apply(box);
+    return box;
   }
 
-  void getOffsetBox(Rect& boxIn) const { boxIn = offsetBox_; }
-  const Rect& getOffsetBox() const { return offsetBox_; }
+  Rect getOffsetBox() const { return offsetBox_; }
   void setOffsetBox(const Rect& boxIn) { offsetBox_ = boxIn; }
 
-  void getOrigin(Point& in) const { in = origin_; }
-  const Point& getOrigin() const { return origin_; }
+  Point getOrigin() const { return origin_; }
   void setOrigin(const Point& in) { origin_ = in; }
 
  protected:
@@ -376,5 +383,3 @@ class drPatchWire : public drShape
   friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

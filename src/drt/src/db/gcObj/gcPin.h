@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GC_PIN_H
-#define _GC_PIN_H
+#pragma once
 
 #include "db/gcObj/gcShape.h"
 
@@ -100,20 +99,5 @@ class gcPin : public gcBlockObject
   std::vector<std::vector<std::unique_ptr<gcSegment>>> polygon_edges_;
   std::vector<std::vector<std::unique_ptr<gcCorner>>> polygon_corners_;
   std::vector<std::unique_ptr<gcRect>> max_rectangles_;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<gcBlockObject>(*this);
-    (ar) & polygon_;
-    (ar) & net_;
-    (ar) & polygon_edges_;
-    (ar) & polygon_corners_;
-    (ar) & max_rectangles_;
-  }
-
-  friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

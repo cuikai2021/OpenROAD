@@ -35,131 +35,94 @@
 
 #include "ord/OpenRoad.hh"
 
+#include <fstream>
 #include <iostream>
 #include <thread>
 #ifdef ENABLE_PYTHON3
-  #define PY_SSIZE_T_CLEAN
-  #include "Python.h"
+#define PY_SSIZE_T_CLEAN
+#include "Python.h"
 #endif
 
-#include "utl/MakeLogger.h"
-#include "utl/Logger.h"
-
-#include "odb/db.h"
-#include "odb/lefin.h"
-#include "odb/defin.h"
-#include "odb/defout.h"
-#include "odb/cdl.h"
-
-#include "sta/VerilogWriter.hh"
-#include "sta/StaMain.hh"
-
-#include "db_sta/dbSta.hh"
+#include "ant/MakeAntennaChecker.hh"
+#include "cts/MakeTritoncts.h"
 #include "db_sta/MakeDbSta.hh"
-
-#include "db_sta/dbReadVerilog.hh"
 #include "db_sta/dbNetwork.hh"
-
-#include "ord/InitOpenRoad.hh"
-
-#include "ifp//MakeInitFloorplan.hh"
-#include "ppl/MakeIoplacer.h"
-#include "rsz/MakeResizer.hh"
-#include "lrl/MakeLaurel.hh"
-#include "gui/MakeGui.h"
+#include "db_sta/dbReadVerilog.hh"
+#include "db_sta/dbSta.hh"
 #include "dpl/MakeOpendp.h"
 #include "dpo/MakeOptdp.h"
-#include "fin/MakeFinale.h"
-#include "mpl/MakeMacroPlacer.h"
-#include "mpl2/MakeMacroPlacer.h"
-#include "gpl/MakeReplace.h"
-#include "linden/MakeLindenGlobalPlace.h"
-#include "cgr/MakeCongestionRepair.hpp"
-#include "grt/MakeGlobalRouter.h"
-#include "cts/MakeTritoncts.h"
-#include "rmp/MakeRestructure.h"
-#include "tap/MakeTapcell.h"
-#include "rcx/MakeOpenRCX.h"
-#include "triton_route/MakeTritonRoute.h"
-#include "banyan/MakeBanyan.h"
-#include "psm/MakePDNSim.hh"
-#include "ant/MakeAntennaChecker.hh"
-#include "par/MakePartitionMgr.h"
-#include "pdn/MakePdnGen.hh"
 #include "dst/MakeDistributed.h"
+#include "fin/MakeFinale.h"
+#include "gpl/MakeReplace.h"
+#include "grt/MakeGlobalRouter.h"
+#include "gui/MakeGui.h"
+#include "ifp//MakeInitFloorplan.hh"
+#include "mpl/MakeMacroPlacer.h"
+#ifdef ENABLE_MPL2
+// mpl2 aborts with link error on darwin
+#include "mpl2/MakeMacroPlacer.h"
+#endif
+#include "dft/MakeDft.hh"
+#include "odb/cdl.h"
+#include "odb/db.h"
+#include "odb/defin.h"
+#include "odb/defout.h"
+#include "odb/lefin.h"
+#include "odb/lefout.h"
+#include "ord/InitOpenRoad.hh"
+#include "pad/MakeICeWall.h"
+#ifdef ENABLE_PAR
+// par causes abseil link error at startup on apple silicon
+#include "par/MakePartitionMgr.h"
+#endif
+#include "pdn/MakePdnGen.hh"
+#include "ppl/MakeIoplacer.h"
+#include "psm/MakePDNSim.hh"
+#include "rcx/MakeOpenRCX.h"
+#include "rmp/MakeRestructure.h"
+#include "rsz/MakeResizer.hh"
+#include "sta/StaMain.hh"
+#include "sta/VerilogWriter.hh"
 #include "stt/MakeSteinerTreeBuilder.h"
-#include "linden/lindendp.hpp"
-#include "linden/lindenmp.hpp"
+#include "tap/MakeTapcell.h"
+#include "triton_route/MakeTritonRoute.h"
+#include "utl/Logger.h"
+#include "utl/MakeLogger.h"
 #include "sc/MakeScanChain.h"
+#include "lrl/MakeLaurel.hh"
+#include "banyan/MakeBanyan.h"
+#include "linden/make_linden.hpp"
 
 namespace sta {
-extern const char *openroad_swig_tcl_inits[];
-}
+extern const char* openroad_swig_tcl_inits[];
+extern const char* upf_tcl_inits[];
+}  // namespace sta
 
 // Swig uses C linkage for init functions.
 extern "C" {
-extern int Openroad_swig_Init(Tcl_Interp *interp);
-extern int Odbtcl_Init(Tcl_Interp *interp);
+extern int Openroad_swig_Init(Tcl_Interp* interp);
+extern int Odbtcl_Init(Tcl_Interp* interp);
+extern int Upf_Init(Tcl_Interp* interp);
 }
 
 // Main.cc set by main()
 extern const char* log_filename;
 extern const char* metrics_filename;
 
-using namespace std;
-
 namespace ord {
 
-using std::min;
-using std::max;
-
-using odb::dbLib;
-using odb::dbTech;
+using odb::dbBlock;
 using odb::dbChip;
 using odb::dbDatabase;
-using odb::dbBlock;
+using odb::dbLib;
+using odb::dbTech;
 using odb::Rect;
-using odb::Point;
 
 using sta::evalTclInit;
-using sta::dbSta;
-using sta::Resizer;
-using sta::Laurel;
 
 using utl::ORD;
 
 OpenRoad::OpenRoad()
-  : tcl_interp_(nullptr),
-    logger_(nullptr),
-    db_(nullptr),
-    verilog_network_(nullptr),
-    sta_(nullptr),
-    resizer_(nullptr),
-    laurel_ (nullptr),
-    ioPlacer_(nullptr),
-    opendp_(nullptr),
-    optdp_(nullptr),
-    finale_(nullptr),
-    macro_placer_(nullptr),
-    macro_placer2_(nullptr),
-    global_router_(nullptr),
-    restructure_(nullptr),
-    tritonCts_(nullptr),
-    tapcell_(nullptr),
-    extractor_(nullptr),
-    detailed_router_(nullptr),
-    banyan_(nullptr),
-    antenna_checker_(nullptr),
-    replace_(nullptr),
-    lindengp_(nullptr),
-    congestionRepair_(nullptr),
-    pdnsim_(nullptr),
-    partitionMgr_(nullptr),
-    pdngen_(nullptr),
-    distributer_(nullptr),
-    stt_builder_(nullptr),
-    scan_chain_(nullptr),
-    threads_(1)
 {
   db_ = dbDatabase::create();
 }
@@ -167,10 +130,11 @@ OpenRoad::OpenRoad()
 OpenRoad::~OpenRoad()
 {
   deleteDbVerilogNetwork(verilog_network_);
-  deleteDbSta(sta_);
+  // Temporarily removed until a crash can be resolved
+  // deleteDbSta(sta_);
+  // sta::deleteAllMemory();
   deleteIoplacer(ioPlacer_);
   deleteResizer(resizer_);
-  deleteLaurel(laurel_);
   deleteOpendp(opendp_);
   deleteOptdp(optdp_);
   deleteGlobalRouter(global_router_);
@@ -178,56 +142,50 @@ OpenRoad::~OpenRoad()
   deleteTritonCts(tritonCts_);
   deleteTapcell(tapcell_);
   deleteMacroPlacer(macro_placer_);
+#ifdef ENABLE_MPL2
   deleteMacroPlacer2(macro_placer2_);
+#endif
   deleteOpenRCX(extractor_);
   deleteTritonRoute(detailed_router_);
   deleteBanyan(banyan_);
   deleteReplace(replace_);
-  deleteLindenGlobalPlace(lindengp_);
-  deleteCongestionRepair(congestionRepair_);
   deleteFinale(finale_);
   deleteAntennaChecker(antenna_checker_);
   odb::dbDatabase::destroy(db_);
+#ifdef ENABLE_PAR
   deletePartitionMgr(partitionMgr_);
+#endif
   deletePdnGen(pdngen_);
+  deleteICeWall(icewall_);
   deleteDistributed(distributer_);
   deleteSteinerTreeBuilder(stt_builder_);
+  dft::deleteDft(dft_);
   deleteScanChain(scan_chain_);
+  deleteLaurel(laurel_);
   delete logger_;
 }
 
-void
-deleteAllMemory()
-{
-  delete OpenRoad::openRoad();
-  sta::Sta::setSta(nullptr);
-  sta::deleteAllMemory();
-}
-
-sta::dbNetwork *
-OpenRoad::getDbNetwork()
+sta::dbNetwork* OpenRoad::getDbNetwork()
 {
   return sta_->getDbNetwork();
 }
 
 /* static */
-OpenRoad *OpenRoad::openRoad()
+OpenRoad* OpenRoad::openRoad()
 {
   // This will be destroyed at application exit
-  static OpenRoad* o = new OpenRoad();
-  return o;
+  static OpenRoad o;
+  return &o;
 }
 
 ////////////////////////////////////////////////////////////////
 
-void
-initOpenRoad(Tcl_Interp *interp)
+void initOpenRoad(Tcl_Interp* interp)
 {
   OpenRoad::openRoad()->init(interp);
 }
 
-void
-OpenRoad::init(Tcl_Interp *tcl_interp)
+void OpenRoad::init(Tcl_Interp* tcl_interp)
 {
   tcl_interp_ = tcl_interp;
 
@@ -238,7 +196,6 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   verilog_network_ = makeDbVerilogNetwork();
   ioPlacer_ = makeIoplacer();
   resizer_ = makeResizer();
-  laurel_ = makeLaurel();
   opendp_ = makeOpendp();
   optdp_ = makeOptdp();
   finale_ = makeFinale();
@@ -247,20 +204,25 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   tritonCts_ = makeTritonCts();
   tapcell_ = makeTapcell();
   macro_placer_ = makeMacroPlacer();
+#ifdef ENABLE_MPL2
   macro_placer2_ = makeMacroPlacer2();
+#endif
   extractor_ = makeOpenRCX();
   detailed_router_ = makeTritonRoute();
   banyan_ = makeBanyan();
   replace_ = makeReplace();
-  lindengp_ = makeLindenGlobalPlace();
-  congestionRepair_ = makeCongestionRepair();
   pdnsim_ = makePDNSim();
   antenna_checker_ = makeAntennaChecker();
+#ifdef ENABLE_PAR
   partitionMgr_ = makePartitionMgr();
+#endif
   pdngen_ = makePdnGen();
+  icewall_ = makeICeWall();
   distributer_ = makeDistributed();
   stt_builder_ = makeSteinerTreeBuilder();
+  dft_ = dft::makeDft();
   scan_chain_ = makeScanChain();
+  laurel_ = makeLaurel();
 
   // Init components.
   Openroad_swig_Init(tcl_interp);
@@ -268,16 +230,16 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   evalTclInit(tcl_interp, sta::openroad_swig_tcl_inits);
 
   initLogger(logger_, tcl_interp);
-  initGui(this); // first so we can register our sink with the logger
+  initGui(this);  // first so we can register our sink with the logger
   Odbtcl_Init(tcl_interp);
+  Upf_Init(tcl_interp);
+  evalTclInit(tcl_interp, sta::upf_tcl_inits);
   initInitFloorplan(this);
   initDbSta(this);
   initResizer(this);
-  initLaurel(this);
   initDbVerilogNetwork(this);
   initIoplacer(this);
   initReplace(this);
-  initLindenGlobalPlace(this);
   initOpendp(this);
   initOptdp(this);
   initFinale(this);
@@ -285,20 +247,26 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
   initTritonCts(this);
   initTapcell(this);
   initMacroPlacer(this);
+#ifdef ENABLE_MPL2
   initMacroPlacer2(this);
+#endif
   initOpenRCX(this);
+  initICeWall(this);
   initRestructure(this);
   initTritonRoute(this);
   initBanyan(this);
   initPDNSim(this);
   initAntennaChecker(this);
+#ifdef ENABLE_PAR
   initPartitionMgr(this);
+#endif
   initPdnGen(this);
   initDistributed(this);
   initSteinerTreeBuilder(this);
-  linden::initLindenDp(this);
+  dft::initDft(this);
   initScanChain(this);
-  initCongestionRepair(this);
+  initLaurel(this);
+  linden::init(this);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");
@@ -315,84 +283,111 @@ OpenRoad::init(Tcl_Interp *tcl_interp)
 
 ////////////////////////////////////////////////////////////////
 
-void
-OpenRoad::readLef(const char *filename,
-                  const char *lib_name,
-                  bool make_tech,
-                  bool make_library)
+void OpenRoad::readLef(const char* filename,
+                       const char* lib_name,
+                       const char* tech_name,
+                       bool make_tech,
+                       bool make_library)
 {
   odb::lefin lef_reader(db_, logger_, false);
-  dbLib *lib = nullptr;
-  dbTech *tech = nullptr;
+  dbLib* lib = nullptr;
+  dbTech* tech = nullptr;
   if (make_tech && make_library) {
-    lib = lef_reader.createTechAndLib(lib_name, filename);
-    tech = db_->getTech();
+    lib = lef_reader.createTechAndLib(tech_name, lib_name, filename);
+    tech = db_->findTech(tech_name);
   } else if (make_tech) {
-    tech = lef_reader.createTech(filename);
+    tech = lef_reader.createTech(tech_name, filename);
   } else if (make_library) {
-    lib = lef_reader.createLib(lib_name, filename);
+    if (tech_name[0] != '\0') {
+      tech = db_->findTech(tech_name);
+    } else {
+      tech = db_->getTech();
+    }
+    if (!tech) {
+      logger_->error(ORD, 51, "Technology {} not found", tech_name);
+    }
+    lib = lef_reader.createLib(tech, lib_name, filename);
   }
 
   // both are null on parser failure
   if (lib != nullptr || tech != nullptr) {
-    for (Observer* observer : observers_) {
-      observer->postReadLef(filename, tech, lib);
+    for (OpenRoadObserver* observer : observers_) {
+      observer->postReadLef(filename, tech, lib, make_tech);
     }
   }
 }
 
-void
-OpenRoad::readDef(const char *filename,
-                  bool continue_on_errors,
-                  bool floorplan_init,
-                  bool incremental)
+void OpenRoad::readDef(const char* filename,
+                       dbTech* tech,
+                       bool continue_on_errors,
+                       bool floorplan_init,
+                       bool incremental,
+                       bool child)
 {
+  if (!floorplan_init && !incremental && !child && db_->getChip()
+      && db_->getChip()->getBlock()) {
+    logger_->info(ORD, 48, "Loading an additional DEF.");
+  }
+
   odb::defin::MODE mode = odb::defin::DEFAULT;
-  if(floorplan_init)
+  if (floorplan_init) {
     mode = odb::defin::FLOORPLAN;
-  else if(incremental)
+  } else if (incremental) {
     mode = odb::defin::INCREMENTAL;
+  }
   odb::defin def_reader(db_, logger_, mode);
-  std::vector<odb::dbLib *> search_libs;
-  for (odb::dbLib *lib : db_->getLibs())
+  std::vector<odb::dbLib*> search_libs;
+  for (odb::dbLib* lib : db_->getLibs()) {
     search_libs.push_back(lib);
+  }
   if (continue_on_errors) {
     def_reader.continueOnErrors();
   }
-  dbChip* chip = def_reader.createChip(search_libs, filename);
-  if (chip) {
-    dbBlock* block = chip->getBlock();
-    for (Observer* observer : observers_) {
+  dbBlock* block = nullptr;
+  if (child) {
+    auto parent = db_->getChip()->getBlock();
+    block = def_reader.createBlock(parent, search_libs, filename, tech);
+  } else {
+    dbChip* chip = def_reader.createChip(search_libs, filename, tech);
+    if (chip) {
+      block = chip->getBlock();
+    }
+  }
+  if (block) {
+    for (OpenRoadObserver* observer : observers_) {
       observer->postReadDef(block);
     }
   }
 }
 
-static odb::defout::Version
-stringToDefVersion(string version)
+static odb::defout::Version stringToDefVersion(const string& version)
 {
-  if (version == "5.8")
+  if (version == "5.8") {
     return odb::defout::Version::DEF_5_8;
-  else if (version == "5.7")
+  }
+  if (version == "5.7") {
     return odb::defout::Version::DEF_5_7;
-  else if (version == "5.6")
+  }
+  if (version == "5.6") {
     return odb::defout::Version::DEF_5_6;
-  else if (version == "5.5")
+  }
+  if (version == "5.5") {
     return odb::defout::Version::DEF_5_5;
-  else if (version == "5.4")
+  }
+  if (version == "5.4") {
     return odb::defout::Version::DEF_5_4;
-  else if (version == "5.3")
+  }
+  if (version == "5.3") {
     return odb::defout::Version::DEF_5_3;
-  else
-    return odb::defout::Version::DEF_5_8;
+  }
+  return odb::defout::Version::DEF_5_8;
 }
 
-void
-OpenRoad::writeDef(const char *filename, string version)
+void OpenRoad::writeDef(const char* filename, const string& version)
 {
-  odb::dbChip *chip = db_->getChip();
+  odb::dbChip* chip = db_->getChip();
   if (chip) {
-    odb::dbBlock *block = chip->getBlock();
+    odb::dbBlock* block = chip->getBlock();
     if (block) {
       block->deleteDieAreaBlockages();
       odb::defout def_writer(logger_);
@@ -403,163 +398,239 @@ OpenRoad::writeDef(const char *filename, string version)
   }
 }
 
-void
-OpenRoad::writeCdl(const char *outFilename,
-                   const char *mastersFilename,
-                   bool includeFillers)
+void OpenRoad::writeAbstractLef(const char* filename,
+                                const int bloat_factor,
+                                const bool bloat_occupied_layers)
 {
-  odb::dbChip *chip = db_->getChip();
+  odb::dbBlock* block = nullptr;
+  odb::dbChip* chip = db_->getChip();
   if (chip) {
-    odb::dbBlock *block = chip->getBlock();
-    if (block) {
-      odb::cdl::writeCdl(getLogger(),
-                         block,
-                         outFilename,
-                         mastersFilename,
-                         includeFillers);
-    }
+    block = chip->getBlock();
   }
-
+  if (!block) {
+    logger_->error(ORD, 53, "No block is loaded.");
+  }
+  std::ofstream os;
+  os.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  os.open(filename);
+  odb::lefout writer(logger_, os);
+  writer.setBloatFactor(bloat_factor);
+  writer.setBloatOccupiedLayers(bloat_occupied_layers);
+  writer.writeAbstractLef(block);
 }
 
-void
-OpenRoad::readDb(const char *filename)
+void OpenRoad::writeLef(const char* filename)
 {
-  FILE *stream = fopen(filename, "r");
-  if (stream == nullptr) {
-    return;
+  auto libs = db_->getLibs();
+  int num_libs = libs.size();
+  if (num_libs > 0) {
+    if (num_libs > 1) {
+      logger_->info(
+          ORD, 34, "More than one lib exists, multiple files will be written.");
+    }
+
+    int cnt = 0;
+    for (auto lib : libs) {
+      std::string name(filename);
+      if (cnt > 0) {
+        auto pos = name.rfind('.');
+        if (pos != string::npos) {
+          name.insert(pos, "_" + std::to_string(cnt));
+        } else {
+          name += "_" + std::to_string(cnt);
+        }
+        std::ofstream os;
+        os.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+        os.open(name);
+        odb::lefout lef_writer(logger_, os);
+        lef_writer.writeLib(lib);
+      } else {
+        std::ofstream os;
+        os.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+        os.open(name);
+        odb::lefout lef_writer(logger_, os);
+        lef_writer.writeTechAndLib(lib);
+      }
+      ++cnt;
+    }
+  } else if (db_->getTech()) {
+    std::ofstream os;
+    os.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+    os.open(filename);
+    odb::lefout lef_writer(logger_, os);
+    lef_writer.writeTech(db_->getTech());
+  }
+}
+
+void OpenRoad::writeCdl(const char* outFilename,
+                        const std::vector<const char*>& mastersFilenames,
+                        bool includeFillers)
+{
+  odb::dbChip* chip = db_->getChip();
+  if (chip) {
+    odb::dbBlock* block = chip->getBlock();
+    if (block) {
+      odb::cdl::writeCdl(
+          getLogger(), block, outFilename, mastersFilenames, includeFillers);
+    }
+  }
+}
+
+void OpenRoad::readDb(const char* filename)
+{
+  if (db_->getChip() && db_->getChip()->getBlock()) {
+    logger_->error(
+        ORD, 47, "You can't load a new db file as the db is already populated");
   }
 
-  db_->read(stream);
-  fclose(stream);
+  std::ifstream stream;
+  stream.exceptions(std::ifstream::failbit | std::ifstream::badbit
+                    | std::ios::eofbit);
+  stream.open(filename, std::ios::binary);
 
-  for (Observer* observer : observers_) {
+  try {
+    db_->read(stream);
+  } catch (const std::ios_base::failure& f) {
+    logger_->error(ORD, 54, "odb file {} is invalid: {}", filename, f.what());
+  }
+
+  for (OpenRoadObserver* observer : observers_) {
     observer->postReadDb(db_);
   }
 }
 
-void
-OpenRoad::writeDb(const char *filename)
+void OpenRoad::writeDb(const char* filename)
 {
-  FILE *stream = fopen(filename, "w");
-  if (stream) {
-    db_->write(stream);
-    fclose(stream);
-  }
+  std::ofstream stream;
+  stream.exceptions(std::ifstream::failbit | std::ifstream::badbit
+                    | std::ios::eofbit);
+  stream.open(filename, std::ios::binary);
+
+  db_->write(stream);
 }
 
-void
-OpenRoad::readVerilog(const char *filename)
+void OpenRoad::diffDbs(const char* filename1,
+                       const char* filename2,
+                       const char* diffs)
+{
+  std::ifstream stream1;
+  stream1.exceptions(std::ifstream::failbit | std::ifstream::badbit
+                     | std::ios::eofbit);
+  stream1.open(filename1, std::ios::binary);
+
+  std::ifstream stream2;
+  stream2.exceptions(std::ifstream::failbit | std::ifstream::badbit
+                     | std::ios::eofbit);
+  stream2.open(filename2, std::ios::binary);
+
+  FILE* out = fopen(diffs, "w");
+  if (out == nullptr) {
+    logger_->error(ORD, 105, "Can't open {}", diffs);
+  }
+
+  auto db1 = odb::dbDatabase::create();
+  auto db2 = odb::dbDatabase::create();
+
+  db1->read(stream1);
+  db2->read(stream2);
+
+  odb::dbDatabase::diff(db1, db2, out, 2);
+
+  fclose(out);
+}
+
+void OpenRoad::readVerilog(const char* filename)
 {
   verilog_network_->deleteTopInstance();
   dbReadVerilog(filename, verilog_network_);
 }
 
-void
-OpenRoad::linkDesign(const char *design_name)
+void OpenRoad::linkDesign(const char* design_name)
 
 {
   dbLinkDesign(design_name, verilog_network_, db_, logger_);
-  for (Observer* observer : observers_) {
+  for (OpenRoadObserver* observer : observers_) {
     observer->postReadDb(db_);
   }
 }
 
-bool
-OpenRoad::unitsInitialized()
+void OpenRoad::designCreated()
+{
+  for (OpenRoadObserver* observer : observers_) {
+    observer->postReadDb(db_);
+  }
+}
+
+bool OpenRoad::unitsInitialized()
 {
   // Units are set by the first liberty library read.
   return getDbNetwork()->defaultLibertyLibrary() != nullptr;
 }
 
-odb::Rect
-OpenRoad::getCore()
+odb::Rect OpenRoad::getCore()
 {
-  odb::Rect core;
-  db_->getChip()->getBlock()->getCoreArea(core);
-  return core;
+  return db_->getChip()->getBlock()->getCoreArea();
 }
 
-void OpenRoad::addObserver(Observer *observer)
+void OpenRoad::addObserver(OpenRoadObserver* observer)
 {
-  assert(observer->owner_ == nullptr);
-  observer->owner_ = this;
+  observer->set_unregister_observer(
+      [this, observer] { removeObserver(observer); });
   observers_.insert(observer);
 }
 
-void OpenRoad::removeObserver(Observer *observer)
+void OpenRoad::removeObserver(OpenRoadObserver* observer)
 {
-  observer->owner_ = nullptr;
+  observer->set_unregister_observer(nullptr);
   observers_.erase(observer);
 }
 
-OpenRoad::Observer::~Observer()
+void OpenRoad::setThreadCount(int threads, bool printInfo)
 {
-  if (owner_) {
-    owner_->removeObserver(this);
-  }
-}
-
-#ifdef ENABLE_PYTHON3
-void OpenRoad::pythonCommand(const char* py_command)
-{
-  PyRun_SimpleString(py_command);
-}
-#endif
-
-void
-OpenRoad::setThreadCount(int threads, bool printInfo) {
   int max_threads = std::thread::hardware_concurrency();
   if (max_threads == 0) {
     logger_->warn(ORD,
                   31,
                   "Unable to determine maximum number of threads.\n"
-                  "One thread will be used."
-                  );
+                  "One thread will be used.");
     max_threads = 1;
   }
-  if (threads <= 0) { // max requested
+  if (threads <= 0) {  // max requested
     threads = max_threads;
   } else if (threads > max_threads) {
     threads = max_threads;
   }
   threads_ = threads;
 
-  if (printInfo)
+  if (printInfo) {
     logger_->info(ORD, 30, "Using {} thread(s).", threads_);
+  }
 
   // place limits on tools with threads
   sta_->setThreadCount(threads_);
 }
 
-void
-OpenRoad::setThreadCount(const char* threads, bool printInfo) {
-  int max_threads = threads_; // default, make no changes
+void OpenRoad::setThreadCount(const char* threads, bool printInfo)
+{
+  int max_threads = threads_;  // default, make no changes
 
   if (strcmp(threads, "max") == 0) {
-    max_threads = -1; // -1 is max cores
-  }
-  else {
+    max_threads = -1;  // -1 is max cores
+  } else {
     try {
       max_threads = std::stoi(threads);
     } catch (const std::invalid_argument&) {
-      logger_->warn(ORD, 32, "Invalid thread number specification: {}.", threads);
+      logger_->warn(
+          ORD, 32, "Invalid thread number specification: {}.", threads);
     }
   }
 
   setThreadCount(max_threads, printInfo);
 }
 
-int
-OpenRoad::getThreadCount() {
+int OpenRoad::getThreadCount()
+{
   return threads_;
 }
 
-shared_ptr<lindenmp::LindenMacroPlace> OpenRoad::getLindenMacroPlace()
-{
-  static shared_ptr<lindenmp::LindenMacroPlace> singleton(
-    new lindenmp::LindenMacroPlace(this));
-  return singleton;
-}
-
-} // namespace
+}  // namespace ord

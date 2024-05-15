@@ -88,8 +88,8 @@ namespace rmp {
 
   //Cut: Region of network to optimize
   struct Cut {
-    std::vector<sta::Pin*> roots_;
-    std::vector<sta::Pin*> leaves_;
+    std::vector<const sta::Pin*> roots_;
+    std::vector<const sta::Pin*> leaves_;
     std::vector<sta::Instance*> volume_;
     std::map<const sta::Pin*,sta::LibertyPort*> internal_pins_;
     int id_;

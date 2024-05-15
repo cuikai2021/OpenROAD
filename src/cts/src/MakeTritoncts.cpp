@@ -40,7 +40,6 @@
 #include "db.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
-#include "RouteTreeBuilder.hh"
 
 namespace sta {
 // Tcl files encoded into strings.
@@ -64,7 +63,12 @@ void initTritonCts(OpenRoad* openroad)
   // Define swig TCL commands.
   Cts_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::cts_tcl_inits);
-  openroad->getTritonCts()->init(openroad);
+  openroad->getTritonCts()->init(openroad->getLogger(),
+                                 openroad->getDb(),
+                                 openroad->getDbNetwork(),
+                                 openroad->getSta(),
+                                 openroad->getSteinerTreeBuilder(),
+                                 openroad->getResizer());
 }
 
 void deleteTritonCts(cts::TritonCTS* tritoncts)

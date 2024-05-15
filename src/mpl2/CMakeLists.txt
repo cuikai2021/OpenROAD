@@ -33,6 +33,39 @@
 
 include("openroad")
 
+
+
+find_package(Protobuf REQUIRED)
+find_package(re2 REQUIRED)
+find_package(cbc REQUIRED)
+find_package(clp REQUIRED)
+find_package(ortools REQUIRED)
+
+add_library(mpl2_lib
+  src/rtl_mp.cpp
+  src/hier_rtlmp.cpp
+  src/object.cpp
+  src/SimulatedAnnealingCore.cpp
+  src/SACoreHardMacro.cpp
+  src/SACoreSoftMacro.cpp
+  src/bus_synthesis.cpp
+)
+
+target_include_directories(mpl2_lib
+  PUBLIC
+    include
+)
+
+target_link_libraries(mpl2_lib
+    utl_lib
+    dbSta_lib
+    OpenSTA
+    odb
+    ortools::ortools
+    dl
+    par_lib
+)
+
 swig_lib(NAME      mpl2
          NAMESPACE mpl2
          I_FILE    src/mpl.i
@@ -42,11 +75,7 @@ swig_lib(NAME      mpl2
 target_sources(mpl2
   PRIVATE
     src/MakeMacroPlacer.cpp
-    src/rtl_mp.cpp
-    src/pin_alignment.cpp
-    src/block_placement.cpp
-    src/shape_engine.cpp
-    src/util.cpp
+    src/graphics.cpp
 )
 
 messages(
@@ -56,12 +85,15 @@ messages(
 target_include_directories(mpl2
   PUBLIC
     include
+  PRIVATE
+    src
 )
 
 target_link_libraries(mpl2
-    utl
-    dbSta
-    OpenSTA
-    odb
+    mpl2_lib
     gui
 )
+
+if(ENABLE_TESTS)
+  add_subdirectory(test/cpp)
+endif()

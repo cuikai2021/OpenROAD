@@ -50,10 +50,10 @@ class Fixture
   void makeDesign();
 
   frMaster* makeMacro(const char* name,
-                     frCoord originX = 0,
-                     frCoord originY = 0,
-                     frCoord sizeX = 0,
-                     frCoord sizeY = 0);
+                      frCoord originX = 0,
+                      frCoord originY = 0,
+                      frCoord sizeX = 0,
+                      frCoord sizeY = 0);
 
   frBlockage* makeMacroObs(frMaster* master,
                            frCoord xl,
@@ -73,11 +73,18 @@ class Fixture
 
   frInst* makeInst(const char* name, frMaster* master, frCoord x, frCoord y);
 
-  void makeCornerConstraint(frLayerNum layer_num,
-                            frCoord eolWidth = -1,
-                            frCornerTypeEnum type = frCornerTypeEnum::CONVEX);
+  frLef58CornerSpacingConstraint* makeCornerConstraint(
+      frLayerNum layer_num,
+      frCoord eolWidth = -1,
+      frCornerTypeEnum type = frCornerTypeEnum::CONVEX);
 
   void makeSpacingConstraint(frLayerNum layer_num);
+
+  void makeMetalWidthViaMap(frLayerNum layer_num,
+                            odb::dbMetalWidthViaMap* rule);
+
+  void makeKeepOutZoneRule(frLayerNum layer_num,
+                           odb::dbTechLayerKeepOutZoneRule* dbRule);
 
   void makeMinStepConstraint(frLayerNum layer_num);
 
@@ -102,29 +109,29 @@ class Fixture
                                      frCoord backward = 0,
                                      frCoord width = 200);
 
-  std::shared_ptr<frLef58SpacingEndOfLineConstraint>
-  makeLef58SpacingEolConstraint(frLayerNum layer_num,
-                                frCoord space = 200,
-                                frCoord width = 200,
-                                frCoord within = 50);
+  frLef58SpacingEndOfLineConstraint* makeLef58SpacingEolConstraint(
+      frLayerNum layer_num,
+      frCoord space = 200,
+      frCoord width = 200,
+      frCoord within = 50,
+      frCoord end_prl_spacing = 0,
+      frCoord end_prl = 0);
 
   std::shared_ptr<frLef58SpacingEndOfLineWithinParallelEdgeConstraint>
-  makeLef58SpacingEolParEdgeConstraint(
-      std::shared_ptr<frLef58SpacingEndOfLineConstraint> con,
-      frCoord par_space,
-      frCoord par_within,
-      bool two_edges = false);
+  makeLef58SpacingEolParEdgeConstraint(frLef58SpacingEndOfLineConstraint* con,
+                                       frCoord par_space,
+                                       frCoord par_within,
+                                       bool two_edges = false);
 
   std::shared_ptr<frLef58SpacingEndOfLineWithinMaxMinLengthConstraint>
-  makeLef58SpacingEolMinMaxLenConstraint(
-      std::shared_ptr<frLef58SpacingEndOfLineConstraint> con,
-      frCoord min_max_length,
-      bool max = true,
-      bool two_sides = true);
+  makeLef58SpacingEolMinMaxLenConstraint(frLef58SpacingEndOfLineConstraint* con,
+                                         frCoord min_max_length,
+                                         bool max = true,
+                                         bool two_sides = true);
 
   std::shared_ptr<frLef58SpacingEndOfLineWithinEncloseCutConstraint>
   makeLef58SpacingEolCutEncloseConstraint(
-      std::shared_ptr<frLef58SpacingEndOfLineConstraint> con,
+      frLef58SpacingEndOfLineConstraint* con,
       frCoord encloseDist = 100,
       frCoord cutToMetalSpacing = 300,
       bool above = false,
@@ -138,6 +145,13 @@ class Fixture
 
   void makeLef58CutSpcTbl(frLayerNum layer_num,
                           odb::dbTechLayerCutSpacingTableDefRule* dbRule);
+
+  void makeMinimumCut(frLayerNum layerNum,
+                      frCoord width,
+                      frCoord length,
+                      frCoord distance,
+                      frMinimumcutConnectionEnum connection
+                      = frMinimumcutConnectionEnum::UNKNOWN);
 
   frNet* makeNet(const char* name);
 
@@ -189,11 +203,23 @@ class Fixture
       std::vector<frCoord> prlTbl,
       std::vector<std::vector<frCoord>> spacingTbl);
   void initRegionQuery();
-
+  frLef58CutSpacingConstraint* makeLef58CutSpacingConstraint_parallelOverlap(
+      frLayerNum layer_num,
+      frCoord spacing);
+  frLef58CutSpacingConstraint* makeLef58CutSpacingConstraint_adjacentCut(
+      frLayerNum layer_num,
+      frCoord spacing,
+      int adjacent_cuts,
+      int two_cuts,
+      frCoord within);
+  void makeLef58WrongDirSpcConstraint(
+      frLayerNum layer_num,
+      odb::dbTechLayerWrongDirSpacingRule* dbRule);
   // Public data members are accessible from inside the test function
   std::unique_ptr<fr::Logger> logger;
   std::unique_ptr<frDesign> design;
   frUInt4 numBlockages, numTerms, numMasters, numInsts;
+  odb::dbTech* db_tech;
 };
 
 // BOOST_TEST wants an operator<< for any type it compares.  We

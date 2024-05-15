@@ -26,6 +26,7 @@ array set all_test_dirs {
   pdn "src/pdn/test"
   pad "src/pad/test"
   mpl "src/mpl/test"
+  mpl2 "src/mpl2/test"
   par "src/par/test"
   gpl "src/gpl/test"
   rsz "src/rsz/test"
@@ -37,7 +38,12 @@ array set all_test_dirs {
   rcx "src/rcx/test"
   psm "src/psm/test"
   drt "src/drt/test"
-  rmp "src/rmp/test"   
+  rmp "src/rmp/test"
+  upf "src/upf/test"
+  utl "src/utl/test"
+  fin "src/fin/test"
+  dft "src/dft/test"
+  gui "src/gui/test"
   lrl "src/Laurel/test"
 }
 

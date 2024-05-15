@@ -1,6 +1,11 @@
 record_tests {
   error1
   get_core_die_areas
+  timing_api
+  timing_api_2
+  timing_api_3
+  upf_test
+  upf_aes
 }
 
 define_test_group "non_flow" {
@@ -27,3 +32,6 @@ record_flow_tests {
   jpeg_sky130hs
   jpeg_sky130hd
 }
+
+# sidelined because drt blows chow
+

@@ -33,7 +33,7 @@ int write_tech_lef(odb::dbTech* tech, const char* path);
 
 int write_macro_lef(odb::dbLib* lib, const char* path);
 
-odb::dbChip* read_def(odb::dbDatabase* db, std::string path);
+odb::dbChip* read_def(odb::dbTech* tech, std::string path);
 
 odb::dbChip* read_def_incremental(odb::dbDatabase* db, std::string path);
 
@@ -54,3 +54,6 @@ void createSBoxes(odb::dbSWire* swire,
                   odb::dbVia* via,
                   std::vector<odb::Point> points,
                   odb::dbWireShapeType type);
+
+void dumpAPs(odb::dbBlock* block,
+             const std::string file_name);

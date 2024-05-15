@@ -38,11 +38,11 @@ namespace odb {
 
 dbITermShapeItr::dbITermShapeItr(bool expand_vias)
 {
-  _mterm = NULL;
+  _mterm = nullptr;
   _state = 0;
-  _iterm = NULL;
-  _mpin = NULL;
-  _via = NULL;
+  _iterm = nullptr;
+  _mpin = nullptr;
+  _via = nullptr;
   _via_x = 0;
   _via_y = 0;
   _expand_vias = expand_vias;
@@ -53,16 +53,13 @@ void dbITermShapeItr::begin(dbITerm* iterm)
   _iterm = iterm;
   dbInst* inst = iterm->getInst();
   _mterm = iterm->getMTerm();
-  int x, y;
-  inst->getOrigin(x, y);
-  _transform = dbTransform(inst->getOrient(), Point(x, y));
+  _transform = inst->getTransform();
   _state = 0;
 }
 
 void dbITermShapeItr::getShape(dbBox* box, dbShape& shape)
 {
-  Rect r;
-  box->getBox(r);
+  Rect r = box->getBox();
   _transform.apply(r);
 
   dbTechVia* via = box->getTechVia();
@@ -150,8 +147,7 @@ next_state:
 
 void dbITermShapeItr::getViaBox(dbBox* box, dbShape& shape)
 {
-  Rect b;
-  box->getBox(b);
+  Rect b = box->getBox();
   int xmin = b.xMin() + _via_x;
   int ymin = b.yMin() + _via_y;
   int xmax = b.xMax() + _via_x;

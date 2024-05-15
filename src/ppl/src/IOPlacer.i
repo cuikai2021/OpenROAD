@@ -35,8 +35,9 @@
 
 %{
 #include "ppl/IOPlacer.h"
-#include "Parameters.h"
+#include "IOPlacerRenderer.h"
 #include "ord/OpenRoad.hh"
+
 
 namespace ord {
 // Defined in OpenRoad.i
@@ -46,16 +47,16 @@ ppl::IOPlacer* getIOPlacer();
 using ord::getIOPlacer;
 using ppl::Edge;
 using ppl::Direction;
+using ppl::PinSet;
 using ppl::PinList;
-using ppl::PinGroup;
 using std::vector;
 using std::set;
 
 template <class TYPE>
 vector<TYPE> *
 tclListStdSeq(Tcl_Obj *const source,
-	      swig_type_info *swig_type,
-	      Tcl_Interp *interp)
+              swig_type_info *swig_type,
+              Tcl_Interp *interp)
 {
   int argc;
   Tcl_Obj **argv;
@@ -107,15 +108,18 @@ tclSetStdSeq(Tcl_Obj *const source,
 //
 ////////////////////////////////////////////////////////////////
 
-%typemap(in) PinGroup* {
+%typemap(in) PinList* {
   $1 = tclListStdSeq<odb::dbBTerm*>($input, SWIGTYPE_p_odb__dbBTerm, interp);
 }
 
-%typemap(in) PinList* {
+%typemap(in) PinSet* {
   $1 = tclSetStdSeq<odb::dbBTerm*>($input, SWIGTYPE_p_odb__dbBTerm, interp);
 }
 
 %include "../../Exception.i"
+
+%ignore ppl::IOPlacer::getRenderer;
+%ignore ppl::IOPlacer::setRenderer;
 
 %inline %{
 
@@ -131,6 +135,12 @@ void
 set_slots_factor(float factor)
 {
   getIOPlacer()->getParameters()->setSlotsFactor(factor);
+}
+
+void
+set_slots_per_section(int slots_per_section)
+{
+  getIOPlacer()->getParameters()->setSlotsPerSection(slots_per_section);
 }
 
 Edge
@@ -152,7 +162,7 @@ exclude_interval(Edge edge, int begin, int end)
 }
 
 void
-add_names_constraint(PinList *pin_list, Edge edge, int begin, int end)
+add_names_constraint(PinSet *pin_list, Edge edge, int begin, int end)
 {
   getIOPlacer()->addNamesConstraint(pin_list, edge, begin, end);
 }
@@ -164,65 +174,65 @@ void add_direction_constraint(Direction direction, Edge edge,
 }
 
 void
-add_top_layer_constraint(PinList *pin_list,
+add_top_layer_constraint(PinSet *pin_list,
                          int x1, int y1,
                          int x2, int y2)
 {
-  getIOPlacer()->addTopLayerConstraint(pin_list, x1, y1, x2, y2);
+  getIOPlacer()->addTopLayerConstraint(pin_list, odb::Rect(x1, y1, x2, y2));
 }
 
 void
-set_hor_length(float length)
+add_mirrored_pins(odb::dbBTerm* bterm1, odb::dbBTerm* bterm2)
+{
+  getIOPlacer()->addMirroredPins(bterm1, bterm2);
+}
+
+void
+set_hor_length(int length)
 {
   getIOPlacer()->getParameters()->setHorizontalLength(length);
 }
 
 void
-set_ver_length_extend(float length)
+set_ver_length_extend(int length)
 {
   getIOPlacer()->getParameters()->setVerticalLengthExtend(length);
 }
 
 void
-set_hor_length_extend(float length)
+set_hor_length_extend(int length)
 {
   getIOPlacer()->getParameters()->setHorizontalLengthExtend(length);
 }
 
 void
-set_ver_length(float length)
+set_ver_length(int length)
 {
   getIOPlacer()->getParameters()->setVerticalLength(length);
 }
 
 void
-add_hor_layer(int layer)
+add_hor_layer(odb::dbTechLayer* layer)
 {
   getIOPlacer()->addHorLayer(layer);
 }
 
 void
-add_ver_layer(int layer)
+add_ver_layer(odb::dbTechLayer* layer)
 {
   getIOPlacer()->addVerLayer(layer);
 }
 
 void
-add_pin_group(PinGroup *pin_group)
+add_pin_group(PinList *pin_list, bool order)
 {
-  getIOPlacer()->addPinGroup(pin_group);
+  getIOPlacer()->addPinGroup(pin_list, order);
 }
 
 void
 run_io_placement(bool randomMode)
 {
   getIOPlacer()->run(randomMode);
-}
-
-void
-run_single_io_read(odb::dbBTerm* _pin_name, odb::dbTechLayer* _layer, double _llx, double _lly, double _width, double _depth, Edge _orientation)
-{
-  getIOPlacer()->readIOfromFileIntoDB(_pin_name, _layer, _llx, _lly, _width, _depth, _orientation);
 }
 
 void
@@ -234,7 +244,7 @@ set_report_hpwl(bool report)
 int
 compute_io_nets_hpwl()
 {
-  return getIOPlacer()->returnIONetsHPWL();
+  return getIOPlacer()->computeIONetsHPWL();
 }
 
 void
@@ -273,22 +283,28 @@ set_min_distance_in_tracks(bool in_tracks)
   getIOPlacer()->getParameters()->setMinDistanceInTracks(in_tracks);
 }
 
-void
-create_pin_shape_pattern(int layer, int x_step, int y_step,
-                         int llx, int lly, int urx, int ury,
-                         int width, int height, int keepout)
+void set_pin_placement_file(const char* file_name)
 {
-  getIOPlacer()->addTopLayerPinPattern(layer, x_step, y_step, llx, lly, urx, ury, width, height, keepout);
+  getIOPlacer()->getParameters()->setPinPlacementFile(file_name);
 }
 
-int
+void
+create_pin_shape_pattern(odb::dbTechLayer* layer, int x_step, int y_step,
+                         const odb::Rect& region,
+                         int pin_width, int pin_height, int keepout)
+{
+  getIOPlacer()->addTopLayerPinPattern(layer, x_step, y_step, region,
+                                       pin_width, pin_height, keepout);
+}
+
+odb::dbTechLayer*
 get_top_layer()
 {
   return getIOPlacer()->getTopLayer();
 }
 
 void
-place_pin(odb::dbBTerm* bterm, int layer,
+place_pin(odb::dbBTerm* bterm, odb::dbTechLayer* layer,
           int x, int y, int width, int height,
           bool force_to_die_bound)
 {
@@ -305,6 +321,45 @@ void
 clear_constraints()
 {
   getIOPlacer()->clearConstraints();
+}
+
+void
+set_simulated_annealing(float temperature,
+                        int max_iterations,
+                        int perturb_per_iter,
+                        float alpha)
+{
+  getIOPlacer()->setAnnealingConfig(temperature, max_iterations, perturb_per_iter, alpha);
+}
+
+void
+simulated_annealing_debug(int iters_between_paintings,
+                          bool no_pause_mode)
+{
+  if (!gui::Gui::enabled()) {
+    return;
+  }
+
+  IOPlacer* ioplacer = getIOPlacer();
+  if(ioplacer->getRenderer() == nullptr) {
+    ioplacer->setRenderer(std::make_unique<IOPlacerRenderer>());
+  }
+
+  getIOPlacer()->setAnnealingDebugOn();
+  getIOPlacer()->setAnnealingDebugNoPauseMode(no_pause_mode);
+  getIOPlacer()->setAnnealingDebugPaintInterval(iters_between_paintings);
+}
+
+void
+run_annealing(bool random)
+{
+  getIOPlacer()->runAnnealing(random);
+}
+
+void
+write_pin_placement(const char* file_name)
+{
+  getIOPlacer()->writePinPlacement(file_name);
 }
 
 } // namespace

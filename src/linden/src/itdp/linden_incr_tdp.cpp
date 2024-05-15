@@ -17,8 +17,7 @@ using namespace linden::geom;
 using namespace linden::db;
 using namespace linden::tool::lpsolver;
 
-namespace linden {
-namespace tdp {
+namespace linden::itdp {
 
 namespace itdpconfig {
 // https://engineering.purdue.edu/~chengkok/ee695K/lec3a.pdf
@@ -2269,5 +2268,4 @@ void timing_driven_cell_move(
     spdlog::info(dot_2lines);
 }
 
-}  // namespace tdp
-}  // namespace linden
+}  // namespace linden::itdp

@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GR_REF_H_
-#define _GR_REF_H_
+#pragma once
 
 #include "db/grObj/grFig.h"
 #include "odb/dbTypes.h"
@@ -40,8 +39,8 @@ class grRef : public grPinFig
   grRef() : grPinFig() {}
   // getters
   virtual dbOrientType getOrient() const = 0;
-  virtual void getOrigin(Point& tmpOrigin) const = 0;
-  virtual void getTransform(dbTransform& xform) const = 0;
+  virtual Point getOrigin() const = 0;
+  virtual dbTransform getTransform() const = 0;
   // setters
   virtual void setOrient(const dbOrientType& tmpOrient) = 0;
   virtual void setOrigin(const Point& tmpPoint) = 0;
@@ -49,5 +48,3 @@ class grRef : public grPinFig
   frBlockObjectEnum typeId() const override { return grcRef; }
 };
 }  // namespace fr
-
-#endif

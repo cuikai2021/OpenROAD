@@ -32,19 +32,17 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "dpl/Opendp.h"
-
 #include <algorithm>
 #include <cfloat>
 #include <limits>
+#include <string>
+#include <unordered_set>
 
+#include "dpl/Opendp.h"
 #include "utl/Logger.h"
 
 namespace dpl {
 
-using std::max;
-using std::min;
-using std::numeric_limits;
 using std::string;
 using std::vector;
 
@@ -52,142 +50,125 @@ using utl::DPL;
 
 using odb::dbBox;
 using odb::dbMaster;
-using odb::dbMPin;
-using odb::dbMTerm;
-using odb::dbNet;
 using odb::dbOrientType;
 using odb::dbRegion;
-using odb::dbSBox;
-using odb::dbSigType;
-using odb::dbSWire;
 using odb::Rect;
 
-static bool
-swapWidthHeight(dbOrientType orient);
+static bool swapWidthHeight(const dbOrientType& orient);
 
-void
-Opendp::importDb()
+void Opendp::importDb()
 {
   block_ = db_->getChip()->getBlock();
-  block_->getCoreArea(core_);
+  core_ = block_->getCoreArea();
+  have_fillers_ = false;
+  have_one_site_cells_ = false;
 
   importClear();
   examineRows();
+  checkOneSiteDbMaster();
   makeMacros();
   makeCells();
   makeGroups();
-  findRowPower();
-
-  Power row_power = (initial_power_ == undefined) ? macro_top_power_ : initial_power_;
-  row0_top_power_is_vdd_ = (row_power == VDD);
 }
 
-void
-Opendp::importClear()
+void Opendp::importClear()
 {
   db_master_map_.clear();
   cells_.clear();
   groups_.clear();
-  db_master_map_.clear();
   db_inst_map_.clear();
   deleteGrid();
   have_multi_row_cells_ = false;
 }
 
-void
-Opendp::makeMacros()
+void Opendp::checkOneSiteDbMaster()
 {
-  macro_top_power_ = undefined;
-  vector<dbMaster *> masters;
-  block_->getMasters(masters);
-  for (auto master : masters) {
-    struct Macro &macro = db_master_map_[master];
-    defineTopPower(&macro, master);
-  }
-}
-
-void
-Opendp::defineTopPower(Macro *macro, dbMaster *master)
-{
-  dbMTerm *power = nullptr;
-  dbMTerm *gnd = nullptr;
-  for (dbMTerm *mterm : master->getMTerms()) {
-    dbSigType sig_type = mterm->getSigType();
-    if (sig_type == dbSigType::POWER) {
-      power = mterm;
+  vector<dbMaster*> masters;
+  auto db_libs = db_->getLibs();
+  for (auto db_lib : db_libs) {
+    if (have_one_site_cells_) {
+      break;
     }
-    else if (sig_type == dbSigType::GROUND) {
-      gnd = mterm;
-    }
-  }
-
-  if (power && gnd) {
-    int master_height = master->getHeight();
-    bool is_multi_row = master_height != row_height_
-                        && master_height % row_height_ == 0;
-
-    macro->is_multi_row_ = is_multi_row;
-
-    int power_y_max = find_ymax(power);
-    int gnd_y_max = find_ymax(gnd);
-    Power top_power = (power_y_max > gnd_y_max) ? VDD : VSS;
-    macro->top_power_ = top_power;
-    if (!is_multi_row) {
-      macro_top_power_ = top_power;
-    }
-  }
-}
-
-int
-Opendp::find_ymax(dbMTerm *mterm) const
-{
-  int ymax = 0;
-  for (dbMPin *mpin : mterm->getMPins()) {
-    for (dbBox *box : mpin->getGeometry()) {
-      ymax = max(ymax, box->yMax());
-    }
-  }
-  return ymax;
-}
-
-void
-Opendp::examineRows()
-{
-  auto rows = block_->getRows();
-  if (!rows.empty()) {
-    int bottom_row_y = numeric_limits<int>::max();
-    dbRow *bottom_row = nullptr;
-    for (dbRow *db_row : rows) {
-      dbSite *site = db_row->getSite();
-      row_height_ = site->getHeight();
-      site_width_ = site->getWidth();
-
-      int row_x, row_y;
-      db_row->getOrigin(row_x, row_y);
-      if (row_y < bottom_row_y) {
-        bottom_row_y = row_y;
-        bottom_row = db_row;
+    auto masters = db_lib->getMasters();
+    for (auto db_master : masters) {
+      if (isOneSiteCell(db_master)) {
+        have_one_site_cells_ = true;
+        break;
       }
     }
-    row_site_count_ = divFloor(core_.dx(), site_width_);
-    row_count_ = divFloor(core_.dy(), row_height_);
-
-    row0_orient_is_r0_ = (bottom_row->getOrient() == dbOrientType::R0);
   }
-  else
-    logger_->error(DPL, 12, "no rows found.");
 }
 
-void
-Opendp::makeCells()
+void Opendp::makeMacros()
+{
+  vector<dbMaster*> masters;
+  block_->getMasters(masters);
+  for (auto db_master : masters) {
+    struct Master& master = db_master_map_[db_master];
+    makeMaster(&master, db_master);
+  }
+}
+
+void Opendp::makeMaster(Master* master, dbMaster* db_master)
+{
+  const int master_height = db_master->getHeight();
+  master->is_multi_row
+      = (master_height != row_height_ && master_height % row_height_ == 0);
+}
+
+void Opendp::examineRows()
+{
+  std::vector<dbRow*> rows;
+  auto block_rows = block_->getRows();
+  rows.reserve(block_rows.size());
+
+  has_hybrid_rows_ = false;
+  bool has_non_hybrid_rows = false;
+
+  for (auto* row : block_rows) {
+    dbSite* site = row->getSite();
+    if (site->getClass() == odb::dbSiteClass::PAD) {
+      continue;
+    }
+    if (site->isHybrid()) {
+      has_hybrid_rows_ = true;
+    } else {
+      has_non_hybrid_rows = true;
+    }
+    rows.push_back(row);
+  }
+  if (rows.empty()) {
+    logger_->error(DPL, 12, "no rows found.");
+  }
+  if (has_hybrid_rows_ && has_non_hybrid_rows) {
+    logger_->error(
+        DPL, 49, "Mixing hybrid and non-hybrid rows is unsupported.");
+  }
+
+  int min_row_height_ = std::numeric_limits<int>::max();
+  int min_site_width_ = std::numeric_limits<int>::max();
+  for (dbRow* db_row : rows) {
+    dbSite* site = db_row->getSite();
+    min_site_width_
+        = std::min(min_site_width_, static_cast<int>(site->getWidth()));
+    min_row_height_
+        = std::min(min_row_height_, static_cast<int>(site->getHeight()));
+  }
+  row_height_ = min_row_height_;
+  site_width_ = min_site_width_;
+  row_site_count_ = divFloor(core_.dx(), site_width_);
+  row_count_ = divFloor(core_.dy(), row_height_);
+}
+
+void Opendp::makeCells()
 {
   auto db_insts = block_->getInsts();
   cells_.reserve(db_insts.size());
   for (auto db_inst : db_insts) {
-    dbMaster *master = db_inst->getMaster();
-    if (master->isCoreAutoPlaceable()) {
-      cells_.push_back(Cell());
-      Cell &cell = cells_.back();
+    dbMaster* db_master = db_inst->getMaster();
+    if (db_master->isCoreAutoPlaceable()) {
+      cells_.emplace_back();
+      Cell& cell = cells_.back();
       cell.db_inst_ = db_inst;
       db_inst_map_[db_inst] = &cell;
 
@@ -197,19 +178,25 @@ Opendp::makeCells()
       cell.x_ = bbox.xMin();
       cell.y_ = bbox.yMin();
       cell.orient_ = db_inst->getOrient();
+      // Cell is already placed if it is FIXED.
       cell.is_placed_ = isFixed(&cell);
 
-      Macro &macro = db_master_map_[master];
-      if (macro.is_multi_row_)
+      Master& master = db_master_map_[db_master];
+      // We only want to set this if we have multi-row cells to
+      // place and not whenever we see a placed block.
+      if (master.is_multi_row && db_master->isCore()) {
         have_multi_row_cells_ = true;
+      }
+    }
+    if (isFiller(db_inst)) {
+      have_fillers_ = true;
     }
   }
 }
 
-Rect
-Opendp::getBbox(dbInst *inst)
+Rect Opendp::getBbox(dbInst* inst)
 {
-  dbMaster *master = inst->getMaster();
+  dbMaster* master = inst->getMaster();
 
   int loc_x, loc_y;
   inst->getLocation(loc_x, loc_y);
@@ -219,14 +206,14 @@ Opendp::getBbox(dbInst *inst)
 
   int width = master->getWidth();
   int height = master->getHeight();
-  if (swapWidthHeight(inst->getOrient()))
+  if (swapWidthHeight(inst->getOrient())) {
     std::swap(width, height);
-  
+  }
+
   return Rect(loc_x, loc_y, loc_x + width, loc_y + height);
 }
 
-static bool
-swapWidthHeight(dbOrientType orient)
+static bool swapWidthHeight(const dbOrientType& orient)
 {
   switch (orient) {
     case dbOrientType::R90:
@@ -244,76 +231,72 @@ swapWidthHeight(dbOrientType orient)
   return false;
 }
 
-// OpenDB represents groups as regions with the parent pointing to
-// the region.
-// DEF GROUP => dbRegion with instances, no boundary, parent->region
-// DEF REGION => dbRegion no instances, boundary, parent = null
-void
-Opendp::makeGroups()
+void Opendp::makeGroups()
 {
+  regions_rtree.clear();
   // preallocate groups so it does not grow when push_back is called
   // because region cells point to them.
-  auto db_regions = block_->getRegions();
-  groups_.reserve(block_->getRegions().size());
-  for (auto db_region : db_regions) {
-    dbRegion *parent = db_region->getParent();
+  auto db_groups = block_->getGroups();
+  int reserve_size = 0;
+  for (auto db_group : db_groups) {
+    dbRegion* parent = db_group->getRegion();
+    std::unordered_set<int> unique_heights;
     if (parent) {
-      groups_.emplace_back(Group());
-      struct Group &group = groups_.back();
-      string group_name = db_region->getName();
-      group.name = group_name;
-      group.boundary.mergeInit();
-      auto boundaries = db_region->getParent()->getBoundaries();
-      for (dbBox *boundary : boundaries) {
-        Rect box;
-        boundary->getBox(box);
-        box = box.intersect(core_);
-        // offset region to core origin
-        box.moveDelta(-core_.xMin(), -core_.yMin());
-
-        group.regions.push_back(box);
-        group.boundary.merge(box);
+      for (auto db_inst : db_group->getInsts()) {
+        unique_heights.insert(db_inst_map_[db_inst]->height_);
       }
-
-      for (auto db_inst : db_region->getRegionInsts()) {
-        Cell *cell = db_inst_map_[db_inst];
-        group.cells_.push_back(cell);
-        cell->group_ = &group;
-      }
+      reserve_size += unique_heights.size();
     }
   }
-}
+  reserve_size = std::max(reserve_size, (int) db_groups.size());
+  groups_.reserve(reserve_size);
 
-void
-Opendp::findRowPower()
-{
-  initial_power_ = Power::undefined;
-  int min_vdd_y = numeric_limits<int>::max();
-  bool found_vdd = false;
-  for (dbNet *net : block_->getNets()) {
-    if (net->isSpecial()
-        && net->getSigType() == dbSigType::POWER) {
-      for (dbSWire *swire : net->getSWires()) {
-        for (dbSBox *sbox : swire->getWires()) {
-          min_vdd_y = min(min_vdd_y, sbox->yMin());
-          found_vdd = true;
+  for (auto db_group : db_groups) {
+    dbRegion* parent = db_group->getRegion();
+    if (parent) {
+      std::set<int> unique_heights;
+      map<int, Group*> cell_height_to_group_map;
+      for (auto db_inst : db_group->getInsts()) {
+        unique_heights.insert(db_inst_map_[db_inst]->height_);
+      }
+      int index = 0;
+      for (auto height : unique_heights) {
+        groups_.emplace_back(Group());
+        struct Group& group = groups_.back();
+        string group_name
+            = string(db_group->getName()) + "_" + std::to_string(index++);
+        group.name = group_name;
+        group.boundary.mergeInit();
+        cell_height_to_group_map[height] = &group;
+        auto boundaries = parent->getBoundaries();
+
+        for (dbBox* boundary : boundaries) {
+          Rect box = boundary->getBox();
+          box = box.intersect(core_);
+          // offset region to core origin
+          box.moveDelta(-core_.xMin(), -core_.yMin());
+          if (height == *(unique_heights.begin())) {
+            bgBox bbox(
+                bgPoint(box.xMin(), box.yMin()),
+                bgPoint(box.xMax() - 1,
+                        box.yMax()
+                            - 1));  /// the -1 is to prevent imaginary overlaps
+                                    /// where a region ends and another starts
+            regions_rtree.insert(bbox);
+          }
+          group.regions.push_back(box);
+          group.boundary.merge(box);
         }
       }
+
+      for (auto db_inst : db_group->getInsts()) {
+        Cell* cell = db_inst_map_[db_inst];
+        Group* group = cell_height_to_group_map[cell->height_];
+        group->cells_.push_back(cell);
+        cell->group_ = group;
+      }
     }
   }
-  if (found_vdd) {
-    initial_power_ = divRound(min_vdd_y, row_height_) % 2 == 0 ? VDD : VSS;
-  }
 }
 
-void
-Opendp::reportImportWarnings()
-{
-  if (macro_top_power_ == Power::undefined) {
-    logger_->warn(DPL, 10, "Cannot find MACRO with VDD/VSS pins.");
-  }
-  if (initial_power_ == Power::undefined)
-    logger_->warn(DPL, 11, "Could not find power special net.");
-}
-
-}  // namespace
+}  // namespace dpl

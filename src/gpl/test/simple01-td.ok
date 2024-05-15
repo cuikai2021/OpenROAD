@@ -1,194 +1,12 @@
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 40, library unsupported feature date.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 41, library unsupported feature revision.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 42, library unsupported feature comment.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 45, library unsupported feature technology.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 47, library unsupported feature in_place_swap_mode.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 48, library unsupported feature library_features.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 68, library unsupported feature process_corner.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 86, library unsupported feature default_leakage_power_density.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 87, library unsupported feature default_cell_leakage_power.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 308, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 535, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 762, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 989, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 1320, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 1651, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 1982, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 2433, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 2884, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 3335, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 3338, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 3395, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 3894, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 4393, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 4892, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 6015, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 7138, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 8261, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 9048, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 9835, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 10622, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 12557, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 14492, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 16427, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 21206, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 25985, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 30764, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 30895, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 31026, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 31157, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 31288, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 31419, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 31550, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 31681, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 31812, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 31943, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 32243, library unsupported feature clock_gate_test_pin.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 32697, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 32997, library unsupported feature clock_gate_test_pin.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 33451, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 33751, library unsupported feature clock_gate_test_pin.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 34205, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 34505, library unsupported feature clock_gate_test_pin.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 34959, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 35311, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 35663, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 36015, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 36367, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 38755, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 41143, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 42178, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 43213, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 44248, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 45283, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 45713, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 46143, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 46495, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 46847, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 47199, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 47551, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49133, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49136, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49159, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49162, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49185, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49188, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49211, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49214, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49237, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49240, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49263, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49266, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49289, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49853, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 49984, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50115, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50246, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50377, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50508, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50639, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50642, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50673, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50676, library unsupported feature dont_touch.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 50707, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 51296, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 51885, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 52112, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 52339, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 52566, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 52897, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 53228, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 53559, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 54010, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 54461, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 54912, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 55139, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 55366, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 55593, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 55924, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 56255, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 56586, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 57037, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 57488, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 57939, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 58438, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 58937, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 59436, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 60559, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 61682, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 62805, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 66600, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 67387, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 68174, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 68961, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 70896, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 72831, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 74766, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 79545, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 84324, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 89103, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 89330, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 89557, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 89784, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 90115, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 90446, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 90777, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 91228, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 91679, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 92130, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 92478, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 93305, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 93840, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 101445, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 101793, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 102620, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 103155, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 110760, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 110977, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 111678, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 112093, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 114726, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 114943, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 115644, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 116059, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 118692, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 118909, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 119324, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 119739, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 122658, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 122875, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 123290, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 123705, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 126624, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 126776, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 127071, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 127362, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 128089, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 128241, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 128536, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 128827, library unsupported feature nextstate_type.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 129554, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 129806, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 130058, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 130310, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 130562, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 130814, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 131066, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 131697, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 132096, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 132495, library unsupported feature drive_strength.
-[WARNING STA-1002] ./library/nangate45/NangateOpenCellLibrary_typical.lib line 132894, library unsupported feature drive_strength.
 [INFO ODB-0222] Reading LEF file: ./nangate45.lef
 [INFO ODB-0223]     Created 22 technology layers
 [INFO ODB-0224]     Created 27 technology vias
 [INFO ODB-0225]     Created 134 library cells
 [INFO ODB-0226] Finished LEF file:  ./nangate45.lef
-[INFO ODB-0127] Reading DEF file: ./simple01-td.def
 [INFO ODB-0128] Design: gcd
 [INFO ODB-0130]     Created 54 pins.
 [INFO ODB-0131]     Created 286 components and 1624 component-terminals.
 [INFO ODB-0133]     Created 356 nets and 1052 connections.
-[INFO ODB-0134] Finished DEF file: ./simple01-td.def
 [INFO GPL-0002] DBU: 2000
 [INFO GPL-0003] SiteSize: 380 2800
 [INFO GPL-0004] CoreAreaLxLy: 0 0
@@ -209,11 +27,11 @@
 [INFO GPL-0019] Util(%): 58.00
 [INFO GPL-0020] StdInstsArea: 2213120000
 [INFO GPL-0021] MacroInstsArea: 0
-[InitialPlace]  Iter: 1 CG Error: 0.00000012 HPWL: 5614340
-[InitialPlace]  Iter: 2 CG Error: 0.00000010 HPWL: 4985799
-[InitialPlace]  Iter: 3 CG Error: 0.00000011 HPWL: 4976225
-[InitialPlace]  Iter: 4 CG Error: 0.00000009 HPWL: 4983332
-[InitialPlace]  Iter: 5 CG Error: 0.00000008 HPWL: 4986877
+[InitialPlace]  Iter: 1 CG residual: 0.00000011 HPWL: 5614340
+[InitialPlace]  Iter: 2 CG residual: 0.00000011 HPWL: 4984546
+[InitialPlace]  Iter: 3 CG residual: 0.00000010 HPWL: 4974780
+[InitialPlace]  Iter: 4 CG residual: 0.00000010 HPWL: 4982232
+[InitialPlace]  Iter: 5 CG residual: 0.00000009 HPWL: 4985753
 [INFO GPL-0031] FillerInit: NumGCells: 349
 [INFO GPL-0032] FillerInit: NumGNets: 356
 [INFO GPL-0033] FillerInit: NumGPins: 1106
@@ -225,57 +43,54 @@
 [INFO GPL-0028] BinCnt: 16 16
 [INFO GPL-0029] BinSize: 3872 3850
 [INFO GPL-0030] NumBins: 256
-[NesterovSolve] Iter: 1 overflow: 0.825494 HPWL: 3547437
+[NesterovSolve] Iter: 1 overflow: 0.832414 HPWL: 3651238
 [INFO GPL-0100] worst slack 1.39e-09
-[INFO GPL-0103] Weighted 36 nets.
-[NesterovSolve] Iter: 10 overflow: 0.74939 HPWL: 4618227
-[NesterovSolve] Iter: 20 overflow: 0.751482 HPWL: 4724524
-[NesterovSolve] Iter: 30 overflow: 0.758497 HPWL: 4623332
-[NesterovSolve] Iter: 40 overflow: 0.767928 HPWL: 4552232
-[NesterovSolve] Iter: 50 overflow: 0.769532 HPWL: 4493162
-[NesterovSolve] Iter: 60 overflow: 0.765709 HPWL: 4471671
-[NesterovSolve] Iter: 70 overflow: 0.76742 HPWL: 4466673
-[NesterovSolve] Iter: 80 overflow: 0.771209 HPWL: 4475580
-[NesterovSolve] Iter: 90 overflow: 0.772393 HPWL: 4487454
-[NesterovSolve] Iter: 100 overflow: 0.771606 HPWL: 4499497
-[NesterovSolve] Iter: 110 overflow: 0.771042 HPWL: 4504151
-[NesterovSolve] Iter: 120 overflow: 0.770837 HPWL: 4502959
-[NesterovSolve] Iter: 130 overflow: 0.770752 HPWL: 4500861
-[NesterovSolve] Iter: 140 overflow: 0.770083 HPWL: 4503127
-[NesterovSolve] Iter: 150 overflow: 0.768811 HPWL: 4512682
-[NesterovSolve] Iter: 160 overflow: 0.766456 HPWL: 4532524
-[NesterovSolve] Iter: 170 overflow: 0.75981 HPWL: 4565749
-[NesterovSolve] Iter: 180 overflow: 0.752108 HPWL: 4612957
-[NesterovSolve] Iter: 190 overflow: 0.742658 HPWL: 4684034
-[NesterovSolve] Iter: 200 overflow: 0.730877 HPWL: 4781010
-[NesterovSolve] Iter: 210 overflow: 0.71011 HPWL: 4901210
-[NesterovSolve] Iter: 220 overflow: 0.687234 HPWL: 5044599
-[NesterovSolve] Iter: 230 overflow: 0.659249 HPWL: 5206837
+[INFO GPL-0103] Weighted 35 nets.
+[NesterovSolve] Iter: 10 overflow: 0.727093 HPWL: 4009564
+[NesterovSolve] Iter: 20 overflow: 0.731457 HPWL: 3997096
+[NesterovSolve] Iter: 30 overflow: 0.73201 HPWL: 3995059
+[NesterovSolve] Iter: 40 overflow: 0.731696 HPWL: 3995524
+[NesterovSolve] Iter: 50 overflow: 0.73179 HPWL: 3995893
+[NesterovSolve] Iter: 60 overflow: 0.731861 HPWL: 3995842
+[NesterovSolve] Iter: 70 overflow: 0.731691 HPWL: 3996201
+[NesterovSolve] Iter: 80 overflow: 0.731543 HPWL: 3996462
+[NesterovSolve] Iter: 90 overflow: 0.731348 HPWL: 3997242
+[NesterovSolve] Iter: 100 overflow: 0.731043 HPWL: 3998507
+[NesterovSolve] Iter: 110 overflow: 0.730514 HPWL: 4000443
+[NesterovSolve] Iter: 120 overflow: 0.729616 HPWL: 4003683
+[NesterovSolve] Iter: 130 overflow: 0.72809 HPWL: 4008526
+[NesterovSolve] Iter: 140 overflow: 0.725585 HPWL: 4015452
+[NesterovSolve] Iter: 150 overflow: 0.721536 HPWL: 4025200
+[NesterovSolve] Iter: 160 overflow: 0.714384 HPWL: 4039988
+[NesterovSolve] Iter: 170 overflow: 0.702981 HPWL: 4061077
+[NesterovSolve] Iter: 180 overflow: 0.688897 HPWL: 4091071
+[NesterovSolve] Iter: 190 overflow: 0.670098 HPWL: 4129437
+[NesterovSolve] Iter: 200 overflow: 0.648415 HPWL: 4183267
 [INFO GPL-0100] worst slack 1.39e-09
-[INFO GPL-0103] Weighted 36 nets.
-[NesterovSolve] Iter: 240 overflow: 0.614295 HPWL: 5298627
-[NesterovSolve] Iter: 250 overflow: 0.566485 HPWL: 5200253
-[NesterovSolve] Iter: 260 overflow: 0.51469 HPWL: 5302509
+[INFO GPL-0103] Weighted 35 nets.
+[NesterovSolve] Iter: 210 overflow: 0.603821 HPWL: 4268807
+[NesterovSolve] Iter: 220 overflow: 0.574688 HPWL: 4319727
+[NesterovSolve] Iter: 230 overflow: 0.534698 HPWL: 4381776
+[NesterovSolve] Iter: 240 overflow: 0.486437 HPWL: 4420311
 [INFO GPL-0100] worst slack 1.39e-09
-[INFO GPL-0103] Weighted 36 nets.
-[NesterovSolve] Iter: 270 overflow: 0.471827 HPWL: 5454774
-[NesterovSolve] Iter: 280 overflow: 0.420814 HPWL: 5614753
-[NesterovSolve] Iter: 290 overflow: 0.377049 HPWL: 5723507
-[NesterovSolve] Iter: 300 overflow: 0.331675 HPWL: 5801218
-[NesterovSolve] Iter: 310 overflow: 0.287973 HPWL: 5818893
-[INFO GPL-0100] worst slack 1.38e-09
-[INFO GPL-0103] Weighted 36 nets.
-[NesterovSolve] Iter: 320 overflow: 0.265775 HPWL: 5907109
-[NesterovSolve] Iter: 330 overflow: 0.237933 HPWL: 5887536
-[NesterovSolve] Iter: 340 overflow: 0.211463 HPWL: 5876731
-[INFO GPL-0100] worst slack 1.38e-09
-[INFO GPL-0103] Weighted 36 nets.
-[NesterovSolve] Iter: 350 overflow: 0.189478 HPWL: 5876261
-[NesterovSolve] Iter: 360 overflow: 0.160817 HPWL: 5859531
-[INFO GPL-0100] worst slack 1.38e-09
-[INFO GPL-0103] Weighted 36 nets.
-[NesterovSolve] Iter: 370 overflow: 0.130219 HPWL: 5866073
-[NesterovSolve] Iter: 380 overflow: 0.116881 HPWL: 5880146
-[NesterovSolve] Finished with Overflow: 0.099560
+[INFO GPL-0103] Weighted 35 nets.
+[NesterovSolve] Iter: 250 overflow: 0.431203 HPWL: 4430181
+[NesterovSolve] Iter: 260 overflow: 0.380649 HPWL: 4441438
+[NesterovSolve] Iter: 270 overflow: 0.326517 HPWL: 4458961
+[NesterovSolve] Iter: 280 overflow: 0.29023 HPWL: 4480139
+[INFO GPL-0100] worst slack 1.39e-09
+[INFO GPL-0103] Weighted 35 nets.
+[NesterovSolve] Iter: 290 overflow: 0.269562 HPWL: 4517454
+[NesterovSolve] Iter: 300 overflow: 0.234962 HPWL: 4553082
+[NesterovSolve] Iter: 310 overflow: 0.20363 HPWL: 4579771
+[INFO GPL-0100] worst slack 1.39e-09
+[INFO GPL-0103] Weighted 35 nets.
+[NesterovSolve] Iter: 320 overflow: 0.175933 HPWL: 4602322
+[NesterovSolve] Iter: 330 overflow: 0.15087 HPWL: 4633123
+[INFO GPL-0100] worst slack 1.39e-09
+[INFO GPL-0103] Weighted 35 nets.
+[NesterovSolve] Iter: 340 overflow: 0.121252 HPWL: 4653213
+[NesterovSolve] Iter: 350 overflow: 0.0999756 HPWL: 4672693
+[NesterovSolve] Finished with Overflow: 0.099976
 worst slack 1.37
 No differences found.

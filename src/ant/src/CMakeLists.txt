@@ -37,21 +37,31 @@ swig_lib(NAME      ant
          SCRIPTS   AntennaChecker.tcl
 )
 
-target_sources(ant
-  PRIVATE
-    MakeAntennaChecker.cc
+add_library(ant_lib
     AntennaChecker.cc
 )
 
-target_include_directories(ant
+target_sources(ant
+  PRIVATE
+    MakeAntennaChecker.cc
+)
+
+target_include_directories(ant_lib
   PUBLIC
     ../include
 )
 
-target_link_libraries(ant
+target_link_libraries(ant_lib
   PUBLIC
     odb
     OpenSTA
+    utl_lib
+)
+
+target_link_libraries(ant
+  PUBLIC
+    ant_lib
+    grt_lib
     utl
 )
 
@@ -59,3 +69,29 @@ messages(
   TARGET ant
   OUTPUT_DIR ..
 )
+
+if (Python3_FOUND AND BUILD_PYTHON)
+  swig_lib(NAME          ant_py
+           NAMESPACE     ant
+           LANGUAGE      python
+           I_FILE        AntennaChecker-py.i
+           SWIG_INCLUDES ${PROJECT_SOURCE_DIR}/../include
+                         ${ODB_HOME}/src/swig/common
+                         ${ODB_HOME}/src/swig/python
+           SCRIPTS       ${CMAKE_CURRENT_BINARY_DIR}/ant_py.py
+  )
+
+  target_include_directories(ant_py
+    PUBLIC
+      ../include
+  )
+
+  target_link_libraries(ant_py
+    PUBLIC
+      odb
+      OpenSTA
+      grt
+      utl
+  )
+
+endif()

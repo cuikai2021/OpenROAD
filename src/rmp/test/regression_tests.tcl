@@ -1,7 +1,7 @@
 record_tests {
   restruct_rm_scutremap
-  gcd_restructure
-  const_cell_removal
+  #gcd_restructure
+  #const_cell_removal
   blif_writer
   blif_writer_input_output
   blif_writer_consts

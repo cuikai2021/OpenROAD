@@ -189,8 +189,7 @@ Rect dbBPin::getBBox()
   Rect bbox;
   bbox.mergeInit();
   for (dbBox* box : getBoxes()) {
-    Rect rect;
-    box->getBox(rect);
+    Rect rect = box->getBox();
     bbox.merge(rect);
   }
   return bbox;
@@ -253,8 +252,7 @@ std::vector<dbAccessPoint*> dbBPin::getAccessPoints() const
   _dbBPin* bpin = (_dbBPin*) this;
   _dbBlock* block = (_dbBlock*) getBTerm()->getBlock();
   std::vector<dbAccessPoint*> aps;
-  for(auto ap : bpin->aps_)
-  {
+  for (const auto& ap : bpin->aps_) {
     aps.push_back((dbAccessPoint*) block->ap_tbl_->getPtr(ap));
   }
   return aps;
@@ -282,12 +280,12 @@ void dbBPin::destroy(dbBPin* bpin_)
     callback->inDbBPinDestroy(bpin_);
   // unlink bpin from bterm
   uint id = bpin->getOID();
-  _dbBPin* prev = NULL;
+  _dbBPin* prev = nullptr;
   uint cur = bterm->_bpins;
   while (cur) {
     _dbBPin* c = block->_bpin_tbl->getPtr(cur);
     if (cur == id) {
-      if (prev == NULL)
+      if (prev == nullptr)
         bterm->_bpins = bpin->_next_bpin;
       else
         prev->_next_bpin = bpin->_next_bpin;

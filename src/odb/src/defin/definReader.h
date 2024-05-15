@@ -44,6 +44,7 @@ class Logger;
 namespace odb {
 
 class definBlockage;
+class definComponentMaskShift;
 class definComponent;
 class definFill;
 class definGCell;
@@ -54,6 +55,7 @@ class definSNet;
 class definTracks;
 class definVia;
 class definRegion;
+class definGroup;
 class definNonDefaultRule;
 class definPropDefs;
 class definPinProps;
@@ -64,6 +66,7 @@ class definReader : public definBase
   dbDatabase* _db;
   dbBlock* parent_;  // For Hierarchal implementation if exits
   definBlockage* _blockageR;
+  definComponentMaskShift* _componentMaskShift;
   definComponent* _componentR;
   definFill* _fillR;
   definGCell* _gcellR;
@@ -74,6 +77,7 @@ class definReader : public definBase
   definTracks* _tracksR;
   definVia* _viaR;
   definRegion* _regionR;
+  definGroup* _groupR;
   definNonDefaultRule* _non_default_ruleR;
   definPropDefs* _prop_defsR;
   definPinProps* _pin_propsR;
@@ -267,10 +271,13 @@ class definReader : public definBase
   void namesAreDBIDs();
   void setAssemblyMode();
 
-  dbChip* createChip(std::vector<dbLib*>& search_libs, const char* def_file);
+  dbChip* createChip(std::vector<dbLib*>& search_libs,
+                     const char* def_file,
+                     dbTech* tech);
   dbBlock* createBlock(dbBlock* parent,
                        std::vector<dbLib*>& search_libs,
-                       const char* def_file);
+                       const char* def_file,
+                       dbTech* tech);
   bool replaceWires(dbBlock* block, const char* def_file);
 };
 

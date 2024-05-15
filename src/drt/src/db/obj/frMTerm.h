@@ -25,27 +25,22 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_MTERM_H_
-#define _FR_MTERM_H_
+#pragma once
 
 #include <memory>
 
-#include "db/obj/frTerm.h"
 #include "db/obj/frMPin.h"
+#include "db/obj/frTerm.h"
 
 namespace fr {
 class frMaster;
 
 class frMTerm : public frTerm
 {
-  public:
+ public:
   // constructors
-  frMTerm(const frString& name)
-      : frTerm(name), master_(nullptr), pins_()
-  {
-  }
-  frMTerm(const frMTerm& in)
-      : frTerm(in), master_(in.master_)
+  frMTerm(const frString& name) : frTerm(name), master_(nullptr), pins_() {}
+  frMTerm(const frMTerm& in) : frTerm(in), master_(in.master_)
   {
     for (auto& uPin : in.getPins()) {
       auto pin = uPin.get();
@@ -81,6 +76,7 @@ class frMTerm : public frTerm
           bbox_.merge(static_cast<frRect*>(pinFig)->getBBox());
       }
     }
+    in->setId(pins_.size());
     pins_.push_back(std::move(in));
   }
   // others
@@ -121,22 +117,6 @@ class frMTerm : public frTerm
  protected:
   frMaster* master_;
   std::vector<std::unique_ptr<frMPin>> pins_;  // set later
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version);
-
-  frMTerm() = default;  // for serialization
-
-  friend class boost::serialization::access;
 };
 
-template <class Archive>
-void frMTerm::serialize(Archive& ar, const unsigned int version)
-{
-  (ar) & boost::serialization::base_object<frBlockObject>(*this);
-  (ar) & master_;
-  (ar) & pins_;
-}
 }  // namespace fr
-
-#endif

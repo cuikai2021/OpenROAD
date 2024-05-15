@@ -1,0 +1,441 @@
+HEAD detached at icb/dev
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	modified:   .gitignore
+	modified:   Dockerfile
+	modified:   README.md
+	modified:   app/Main.cc
+	modified:   app/StaApp.i
+	modified:   app/StaMain.cc
+	modified:   cmake/FindTCL.cmake
+	modified:   dcalc/ArcDelayCalc.cc
+	modified:   dcalc/Arnoldi.hh
+	modified:   dcalc/ArnoldiDelayCalc.cc
+	modified:   dcalc/ArnoldiDelayCalc.hh
+	modified:   dcalc/ArnoldiReduce.cc
+	modified:   dcalc/ArnoldiReduce.hh
+	modified:   dcalc/DcalcAnalysisPt.cc
+	modified:   dcalc/DelayCalc.cc
+	modified:   dcalc/DelayCalc.i
+	modified:   dcalc/DelayCalc.tcl
+	new file:   dcalc/DelayCalcBase.cc
+	new file:   dcalc/DelayCalcBase.hh
+	modified:   dcalc/DmpCeff.cc
+	modified:   dcalc/DmpCeff.hh
+	modified:   dcalc/DmpDelayCalc.cc
+	modified:   dcalc/DmpDelayCalc.hh
+	modified:   dcalc/GraphDelayCalc.cc
+	deleted:    dcalc/GraphDelayCalc1.cc
+	deleted:    dcalc/GraphDelayCalc1.hh
+	modified:   dcalc/LumpedCapDelayCalc.cc
+	modified:   dcalc/LumpedCapDelayCalc.hh
+	modified:   dcalc/NetCaps.cc
+	modified:   dcalc/NetCaps.hh
+	new file:   dcalc/ParallelDelayCalc.cc
+	new file:   dcalc/ParallelDelayCalc.hh
+	deleted:    dcalc/RCDelayCalc.cc
+	deleted:    dcalc/SimpleRCDelayCalc.cc
+	deleted:    dcalc/SimpleRCDelayCalc.hh
+	new file:   dcalc/SlewDegradeDelayCalc.cc
+	renamed:    include/sta/DisallowCopyAssign.hh -> dcalc/SlewDegradeDelayCalc.hh
+	modified:   dcalc/UnitDelayCalc.cc
+	modified:   dcalc/UnitDelayCalc.hh
+	modified:   doc/ApiChanges.txt
+	modified:   doc/ChangeLog.txt
+	modified:   doc/OpenSTA.odt
+	modified:   doc/OpenSTA.pdf
+	modified:   doc/StaApi.txt
+	modified:   etc/TclEncode.tcl
+	deleted:    examples/example2.tcl
+	new file:   examples/gcd_rtl.v
+	new file:   examples/gcd_sky130hd.sdc
+	new file:   examples/gcd_sky130hd.spef
+	new file:   examples/gcd_sky130hd.v
+	new file:   examples/gcd_sky130hd.vcd
+	new file:   examples/gcd_tb.v
+	renamed:    examples/example3.tcl -> examples/min_max_delays.tcl
+	renamed:    examples/example5.tcl -> examples/multi_corner.tcl
+	renamed:    examples/example1_fast.lib -> examples/nangate45_fast.lib
+	renamed:    examples/example1_slow.lib -> examples/nangate45_slow.lib
+	renamed:    examples/example1_typ.lib -> examples/nangate45_typ.lib
+	new file:   examples/power.tcl
+	new file:   examples/power_vcd.tcl
+	renamed:    examples/example1.tcl -> examples/sdf_delays.tcl
+	new file:   examples/sky130_hd.v
+	new file:   examples/sky130_hd_primitives.v
+	new file:   examples/sky130hd_tt.lib
+	renamed:    examples/example4.tcl -> examples/spef_parasitics.tcl
+	modified:   graph/Delay.cc
+	modified:   graph/DelayFloat.cc
+	modified:   graph/DelayNormal1.cc
+	modified:   graph/DelayNormal2.cc
+	modified:   graph/Graph.cc
+	modified:   graph/GraphCmp.cc
+	modified:   include/sta/ArcDelayCalc.hh
+	modified:   include/sta/ArrayTable.hh
+	modified:   include/sta/Bfs.hh
+	modified:   include/sta/ClkNetwork.hh
+	modified:   include/sta/Clock.hh
+	modified:   include/sta/ClockGatingCheck.hh
+	modified:   include/sta/ClockGroups.hh
+	modified:   include/sta/ClockInsertion.hh
+	modified:   include/sta/ClockLatency.hh
+	modified:   include/sta/ConcreteLibrary.hh
+	modified:   include/sta/ConcreteNetwork.hh
+	modified:   include/sta/Corner.hh
+	modified:   include/sta/CycleAccting.hh
+	modified:   include/sta/DataCheck.hh
+	modified:   include/sta/DcalcAnalysisPt.hh
+	modified:   include/sta/Debug.hh
+	modified:   include/sta/Delay.hh
+	modified:   include/sta/DelayCalc.hh
+	modified:   include/sta/DelayFloat.hh
+	modified:   include/sta/DelayNormal1.hh
+	modified:   include/sta/DelayNormal2.hh
+	modified:   include/sta/DeratingFactors.hh
+	modified:   include/sta/DisabledPorts.hh
+	modified:   include/sta/EnumNameMap.hh
+	modified:   include/sta/EquivCells.hh
+	modified:   include/sta/Error.hh
+	modified:   include/sta/ExceptionPath.hh
+	modified:   include/sta/FuncExpr.hh
+	modified:   include/sta/Fuzzy.hh
+	modified:   include/sta/Graph.hh
+	modified:   include/sta/GraphClass.hh
+	modified:   include/sta/GraphCmp.hh
+	modified:   include/sta/GraphDelayCalc.hh
+	modified:   include/sta/Hash.hh
+	modified:   include/sta/HpinDrvrLoad.hh
+	modified:   include/sta/InputDrive.hh
+	modified:   include/sta/InternalPower.hh
+	modified:   include/sta/Iterator.hh
+	modified:   include/sta/LeakagePower.hh
+	modified:   include/sta/Liberty.hh
+	modified:   include/sta/LibertyClass.hh
+	renamed:    search/WriteSpice.hh -> include/sta/LibertyWriter.hh
+	modified:   include/sta/LinearModel.hh
+	modified:   include/sta/Machine.hh
+	modified:   include/sta/MakeConcreteNetwork.hh
+	modified:   include/sta/MakeConcreteParasitics.hh
+	modified:   include/sta/Map.hh
+	modified:   include/sta/MinMax.hh
+	modified:   include/sta/MinMaxValues.hh
+	modified:   include/sta/Mutex.hh
+	modified:   include/sta/Network.hh
+	modified:   include/sta/NetworkClass.hh
+	modified:   include/sta/NetworkCmp.hh
+	modified:   include/sta/NullParasitics.hh
+	modified:   include/sta/ObjectId.hh
+	modified:   include/sta/ObjectTable.hh
+	modified:   include/sta/Parasitics.hh
+	modified:   include/sta/ParasiticsClass.hh
+	modified:   include/sta/ParseBus.hh
+	modified:   include/sta/Path.hh
+	modified:   include/sta/PathAnalysisPt.hh
+	modified:   include/sta/PathEnd.hh
+	modified:   include/sta/PathExpanded.hh
+	modified:   include/sta/PathGroup.hh
+	modified:   include/sta/PathRef.hh
+	modified:   include/sta/PathVertex.hh
+	modified:   include/sta/PathVertexRep.hh
+	modified:   include/sta/PatternMatch.hh
+	modified:   include/sta/PinPair.hh
+	modified:   include/sta/PortDelay.hh
+	modified:   include/sta/PortDirection.hh
+	modified:   include/sta/PortExtCap.hh
+	modified:   include/sta/PowerClass.hh
+	modified:   include/sta/Property.hh
+	modified:   include/sta/Report.hh
+	modified:   include/sta/ReportStd.hh
+	modified:   include/sta/ReportTcl.hh
+	modified:   include/sta/RiseFallMinMax.hh
+	modified:   include/sta/RiseFallValues.hh
+	modified:   include/sta/SdcClass.hh
+	modified:   include/sta/SdcCmdComment.hh
+	modified:   include/sta/SdcNetwork.hh
+	modified:   include/sta/Search.hh
+	modified:   include/sta/SearchClass.hh
+	modified:   include/sta/SearchPred.hh
+	modified:   include/sta/Sequential.hh
+	modified:   include/sta/Set.hh
+	modified:   include/sta/StaMain.hh
+	modified:   include/sta/StaState.hh
+	modified:   include/sta/Stats.hh
+	modified:   include/sta/StringSeq.hh
+	modified:   include/sta/StringSet.hh
+	modified:   include/sta/StringUtil.hh
+	modified:   include/sta/TableModel.hh
+	modified:   include/sta/TimingArc.hh
+	modified:   include/sta/TimingModel.hh
+	modified:   include/sta/TimingRole.hh
+	modified:   include/sta/TokenParser.hh
+	modified:   include/sta/Transition.hh
+	modified:   include/sta/Units.hh
+	modified:   include/sta/UnorderedMap.hh
+	modified:   include/sta/UnorderedSet.hh
+	modified:   include/sta/Vector.hh
+	modified:   include/sta/VerilogNamespace.hh
+	modified:   include/sta/VerilogReader.hh
+	modified:   include/sta/VertexId.hh
+	modified:   include/sta/VertexVisitor.hh
+	modified:   include/sta/VisitPathEnds.hh
+	modified:   include/sta/Wireload.hh
+	modified:   include/sta/WritePathSpice.hh
+	modified:   include/sta/WriteSdc.hh
+	modified:   include/sta/Zlib.hh
+	modified:   liberty/EquivCells.cc
+	modified:   liberty/FuncExpr.cc
+	modified:   liberty/InternalPower.cc
+	modified:   liberty/LeakagePower.cc
+	modified:   liberty/Liberty.cc
+	modified:   liberty/LibertyBuilder.cc
+	modified:   liberty/LibertyBuilder.hh
+	modified:   liberty/LibertyExpr.cc
+	modified:   liberty/LibertyExpr.hh
+	modified:   liberty/LibertyExprLex.ll
+	modified:   liberty/LibertyExprParse.yy
+	modified:   liberty/LibertyExprPvt.hh
+	modified:   liberty/LibertyExt.cc
+	modified:   liberty/LibertyLex.ll
+	modified:   liberty/LibertyParse.yy
+	modified:   liberty/LibertyParser.cc
+	modified:   liberty/LibertyParser.hh
+	modified:   liberty/LibertyReader.hh
+	modified:   liberty/LibertyReaderPvt.hh
+	new file:   liberty/LibertyWriter.cc
+	modified:   liberty/LinearModel.cc
+	modified:   liberty/Sequential.cc
+	modified:   liberty/TimingArc.cc
+	new file:   liberty/TimingModel.cc
+	modified:   liberty/TimingRole.cc
+	modified:   liberty/Units.cc
+	modified:   liberty/Wireload.cc
+	modified:   messages.txt
+	modified:   network/ConcreteLibrary.cc
+	modified:   network/ConcreteNetwork.cc
+	modified:   network/HpinDrvrLoad.cc
+	modified:   network/NetworkCmp.cc
+	modified:   network/ParseBus.cc
+	modified:   network/PortDirection.cc
+	modified:   network/SdcNetwork.cc
+	modified:   network/VerilogNamespace.cc
+	modified:   parasitics/ConcreteParasitics.hh
+	modified:   parasitics/EstimateParasitics.cc
+	modified:   parasitics/EstimateParasitics.hh
+	modified:   parasitics/NullParasitics.cc
+	modified:   parasitics/Parasitics.cc
+	modified:   parasitics/ReduceParasitics.cc
+	modified:   parasitics/ReduceParasitics.hh
+	new file:   parasitics/ReportParasiticAnnotation.cc
+	new file:   parasitics/ReportParasiticAnnotation.hh
+	modified:   parasitics/SpefLex.ll
+	modified:   parasitics/SpefNamespace.cc
+	modified:   parasitics/SpefNamespace.hh
+	modified:   parasitics/SpefParse.yy
+	modified:   parasitics/SpefReader.hh
+	modified:   parasitics/SpefReaderPvt.hh
+	renamed:    search/Power.cc -> power/Power.cc
+	renamed:    search/Power.hh -> power/Power.hh
+	new file:   power/Power.i
+	renamed:    tcl/Power.tcl -> power/Power.tcl
+	new file:   power/ReadVcdActivities.cc
+	new file:   power/ReadVcdActivities.hh
+	new file:   power/Vcd.cc
+	new file:   power/Vcd.hh
+	new file:   power/VcdReader.cc
+	renamed:    dcalc/RCDelayCalc.hh -> power/VcdReader.hh
+	modified:   sdc/Clock.cc
+	modified:   sdc/ClockGatingCheck.cc
+	modified:   sdc/ClockGroups.cc
+	modified:   sdc/ClockInsertion.cc
+	modified:   sdc/ClockLatency.cc
+	modified:   sdc/CycleAccting.cc
+	modified:   sdc/DataCheck.cc
+	modified:   sdc/DeratingFactors.cc
+	modified:   sdc/DisabledPorts.cc
+	modified:   sdc/ExceptionPath.cc
+	modified:   sdc/InputDrive.cc
+	modified:   sdc/PinPair.cc
+	modified:   sdc/PortDelay.cc
+	modified:   sdc/PortExtCap.cc
+	modified:   sdc/SdcCmdComment.cc
+	modified:   sdc/SdcGraph.cc
+	modified:   sdc/WriteSdc.cc
+	modified:   sdc/WriteSdcPvt.hh
+	modified:   sdf/ReportAnnotation.cc
+	modified:   sdf/ReportAnnotation.hh
+	modified:   sdf/Sdf.i
+	modified:   sdf/Sdf.tcl
+	modified:   sdf/SdfLex.ll
+	modified:   sdf/SdfParse.yy
+	modified:   sdf/SdfReader.hh
+	modified:   sdf/SdfReaderPvt.hh
+	modified:   sdf/SdfWriter.cc
+	modified:   sdf/SdfWriter.hh
+	modified:   search/Bfs.cc
+	modified:   search/CheckCapacitanceLimits.cc
+	modified:   search/CheckFanoutLimits.cc
+	modified:   search/CheckMaxSkews.cc
+	modified:   search/CheckMaxSkews.hh
+	modified:   search/CheckMinPeriods.cc
+	modified:   search/CheckMinPeriods.hh
+	modified:   search/CheckMinPulseWidths.cc
+	modified:   search/CheckMinPulseWidths.hh
+	modified:   search/CheckSlewLimits.cc
+	modified:   search/CheckSlewLimits.hh
+	modified:   search/CheckTiming.cc
+	modified:   search/CheckTiming.hh
+	modified:   search/ClkInfo.cc
+	modified:   search/ClkInfo.hh
+	modified:   search/ClkNetwork.cc
+	modified:   search/ClkSkew.hh
+	modified:   search/Crpr.cc
+	modified:   search/Crpr.hh
+	modified:   search/FindRegister.cc
+	modified:   search/FindRegister.hh
+	modified:   search/GatedClk.cc
+	modified:   search/GatedClk.hh
+	modified:   search/Genclks.cc
+	modified:   search/Genclks.hh
+	modified:   search/Latches.cc
+	modified:   search/Latches.hh
+	modified:   search/Levelize.cc
+	modified:   search/Levelize.hh
+	new file:   search/MakeTimingModel.cc
+	new file:   search/MakeTimingModel.hh
+	new file:   search/MakeTimingModelPvt.hh
+	modified:   search/Path.cc
+	modified:   search/PathAnalysisPt.cc
+	modified:   search/PathEnd.cc
+	modified:   search/PathEnum.cc
+	modified:   search/PathEnum.hh
+	modified:   search/PathEnumed.cc
+	modified:   search/PathEnumed.hh
+	modified:   search/PathExpanded.cc
+	modified:   search/PathGroup.cc
+	modified:   search/PathRef.cc
+	modified:   search/PathVertex.cc
+	modified:   search/PathVertexRep.cc
+	modified:   search/Property.cc
+	modified:   search/ReportPath.cc
+	modified:   search/ReportPath.hh
+	modified:   search/Search.cc
+	modified:   search/SearchPred.cc
+	modified:   search/Sim.cc
+	modified:   search/Sim.hh
+	modified:   search/StaState.cc
+	modified:   search/Tag.cc
+	modified:   search/Tag.hh
+	modified:   search/TagGroup.cc
+	modified:   search/TagGroup.hh
+	modified:   search/VertexVisitor.cc
+	modified:   search/VisitPathEnds.cc
+	modified:   search/VisitPathGroupVertices.cc
+	modified:   search/VisitPathGroupVertices.hh
+	modified:   search/WorstSlack.cc
+	modified:   search/WorstSlack.hh
+	modified:   search/WritePathSpice.cc
+	deleted:    search/WriteSpice.cc
+	renamed:    tcl/Cmds.tcl -> tcl/CmdArgs.tcl
+	new file:   tcl/CmdUtil.tcl
+	modified:   tcl/Exception.i
+	modified:   tcl/Graph.tcl
+	new file:   tcl/Init.tcl
+	modified:   tcl/Liberty.tcl
+	modified:   tcl/Link.tcl
+	modified:   tcl/Network.tcl
+	modified:   tcl/NetworkEdit.i
+	modified:   tcl/NetworkEdit.tcl
+	new file:   tcl/Property.tcl
+	modified:   tcl/Search.tcl
+	modified:   tcl/Splash.tcl
+	modified:   tcl/Sta.tcl
+	modified:   tcl/Util.tcl
+	modified:   tcl/Variables.tcl
+	new file:   tcl/WritePathSpice.tcl
+	renamed:    test/example2.ok -> test/delay_calc.ok
+	renamed:    test/example3.ok -> test/min_max_delays.ok
+	renamed:    test/example5.ok -> test/multi_corner.ok
+	new file:   test/power.ok
+	new file:   test/power_vcd.ok
+	modified:   test/regression
+	modified:   test/regression.tcl
+	modified:   test/regression_vars.tcl
+	modified:   test/save_ok
+	renamed:    test/example1.ok -> test/sdf_delays.ok
+	renamed:    test/example4.ok -> test/spef_parasitics.ok
+	modified:   util/Debug.cc
+	deleted:    util/DisableWarning.hh
+	modified:   util/Error.cc
+	modified:   util/Fuzzy.cc
+	modified:   util/Hash.cc
+	modified:   util/Machine.cc
+	modified:   util/MachineApple.cc
+	modified:   util/MachineLinux.cc
+	modified:   util/MachineUnknown.cc
+	modified:   util/MachineWin32.cc
+	modified:   util/MinMax.cc
+	modified:   util/PatternMatch.cc
+	modified:   util/Report.cc
+	modified:   util/ReportStd.cc
+	modified:   util/ReportTcl.cc
+	renamed:    sdc/RiseFallMinMax.cc -> util/RiseFallMinMax.cc
+	renamed:    sdc/RiseFallValues.cc -> util/RiseFallValues.cc
+	modified:   util/StaConfig.hh.cmake
+	modified:   util/Stats.cc
+	modified:   util/StringSeq.cc
+	modified:   util/StringSet.cc
+	modified:   util/TokenParser.cc
+	renamed:    liberty/Transition.cc -> util/Transition.cc
+	modified:   verilog/Verilog.tcl
+	modified:   verilog/VerilogLex.ll
+	modified:   verilog/VerilogParse.yy
+	modified:   verilog/VerilogReader.cc
+	modified:   verilog/VerilogReaderPvt.hh
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   CMakeLists.txt
+	both modified:   examples/delay_calc.tcl
+	both modified:   include/sta/CheckCapacitanceLimits.hh
+	both modified:   include/sta/CheckFanoutLimits.hh
+	both modified:   include/sta/Sdc.hh
+	both modified:   include/sta/Sta.hh
+	both modified:   include/sta/VerilogWriter.hh
+	both modified:   liberty/LibertyReader.cc
+	both modified:   liberty/TableModel.cc
+	both modified:   network/Network.cc
+	both modified:   parasitics/ConcreteParasitics.cc
+	both modified:   parasitics/ConcreteParasiticsPvt.hh
+	both modified:   parasitics/Parasitics.i
+	both modified:   parasitics/Parasitics.tcl
+	both modified:   parasitics/SpefReader.cc
+	both modified:   sdc/Sdc.cc
+	both modified:   sdf/SdfReader.cc
+	both modified:   search/ClkSkew.cc
+	both modified:   search/Corner.cc
+	both modified:   search/Sta.cc
+	both modified:   tcl/Sdc.tcl
+	both modified:   tcl/StaTcl.i
+	both modified:   util/StringUtil.cc
+	both modified:   verilog/Verilog.i
+	both modified:   verilog/VerilogWriter.cc
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   liberty/LibertyReaderPvt.hh
+	modified:   restr/ClusterCutGen.cc
+	modified:   restr/ClusterCutGen.hh
+	modified:   test/regression_vars.tcl
+	modified:   verilog/NameMapping.cc
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	examples/after_remapped.v
+	examples/before_remapped.v
+	examples/example2.tcl
+

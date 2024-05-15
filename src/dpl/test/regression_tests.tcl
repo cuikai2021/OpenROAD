@@ -1,4 +1,5 @@
 record_tests {
+  aes
   cell_on_block1
   cell_on_block2
   check1
@@ -20,20 +21,24 @@ record_tests {
   fillers5
   fillers6
   fillers7
+  fillers8
   fragmented_row01
   fragmented_row02
   fragmented_row03
   fragmented_row04
+  gcd
+  hybrid_cells
+  hybrid_cells2
+  ibex
+  max_disp1
   mirror1
   mirror2
   mirror3
-  multi_height01
-  multi_height02
-  multi_height03
-  multi_height04
-  multi_height05
+  multi_height_one_site_gap_disallow
+  multi_height_rows
   obstruction1
   obstruction2
+  one_site_gap_disallow
   pad01
   pad02
   pad03
@@ -42,6 +47,10 @@ record_tests {
   pad06
   pad07
   pad08
+  regions1
+  regions2
+  regions3
+  report_failures
   simple01
   simple02
   simple03
@@ -51,8 +60,4 @@ record_tests {
   simple08
   simple09
   simple10
-  max_disp1
-  aes
-  gcd
-  ibex
 }

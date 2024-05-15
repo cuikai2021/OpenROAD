@@ -33,9 +33,6 @@
 #pragma once
 
 #include <tcl.h>
-#include <memory>
-#include <set>
-#include <string>
 
 #include <QCompleter>
 #include <QMenu>
@@ -44,104 +41,93 @@
 #include <QSettings>
 #include <QStringList>
 #include <QStringListModel>
+#include <memory>
+#include <set>
+#include <string>
 
+#include "cmdInputWidget.h"
 #include "tclCmdHighlighter.h"
-#include "tclSwig.h" // generated header
+#include "tclSwig.h"  // generated header
 
 namespace gui {
 
-class TclCmdInputWidget: public QPlainTextEdit {
-    Q_OBJECT
+class TclCmdInputWidget : public CmdInputWidget
+{
+  Q_OBJECT
 
-  public:
-    TclCmdInputWidget(QWidget* parent = nullptr);
-    ~TclCmdInputWidget();
+ public:
+  TclCmdInputWidget(QWidget* parent = nullptr);
+  ~TclCmdInputWidget();
 
-    void init(Tcl_Interp* interp);
+  void setTclInterp(Tcl_Interp* interp,
+                    bool do_init_openroad,
+                    const std::function<void(void)>& post_or_init);
 
-    void setFont(const QFont& font);
+  void readSettings(QSettings* settings);
+  void writeSettings(QSettings* settings);
 
-    QString text();
-    void setText(const QString& text);
+ public slots:
+  virtual void executeCommand(const QString& cmd,
+                              bool echo = true,
+                              bool silent = false) override;
 
-    void setMaximumHeight(int height);
+ private slots:
+  void updateHighlighting();
+  void updateCompletion();
 
-    void readSettings(QSettings* settings);
-    void writeSettings(QSettings* settings);
+  void insertCompletion(const QString& text);
 
-  public slots:
-    void commandExecuted(int return_code);
+ protected:
+  void contextMenuEvent(QContextMenuEvent* event) override;
+  void keyPressEvent(QKeyEvent* e) override;
+  void keyReleaseEvent(QKeyEvent* e) override;
 
-  signals:
-    // complete TCL command available
-    void completeCommand(const QString& command);
+  virtual bool isCommandComplete(const std::string& cmd) const override;
 
-    // back in history
-    void historyGoBack();
+ private:
+  void init();
+  void processTclResult(bool is_ok);
 
-    // forward in history
-    void historyGoForward();
+  static int tclExitHandler(ClientData instance_data,
+                            Tcl_Interp* interp,
+                            int argc,
+                            const char** argv);
 
-  private slots:
-    void updateSize();
+  void initOpenRoadCommands();
+  void parseOpenRoadArguments(const char* or_args, std::set<std::string>& args);
+  void collectNamespaces(std::set<std::string>& namespaces);
+  void collectSWIGArguments();
 
-    void updateHighlighting();
-    void updateCompletion();
+  const QString wordUnderCursor();
+  const swig_class* swigBeforeCursor();
 
-    void insertCompletion(const QString& text);
+  void setCompleterCommands();
+  void setCompleterSWIG(const swig_class* type);
+  void setCompleterArguments(const std::set<int>& cmds);
+  void setCompleterVariables();
 
-  protected:
-    void dragEnterEvent(QDragEnterEvent* event) override;
-    void dropEvent(QDropEvent* event) override;
-    void contextMenuEvent(QContextMenuEvent* event) override;
+  Tcl_Interp* interp_;
 
-  private:
-    void keyPressEvent(QKeyEvent* e) override;
-    void keyReleaseEvent(QKeyEvent* e) override;
+  std::unique_ptr<QMenu> context_menu_;
+  std::unique_ptr<QAction> enable_highlighting_;
+  std::unique_ptr<QAction> enable_completion_;
 
-    bool isCommandComplete(const std::string& cmd);
+  std::unique_ptr<TclCmdHighlighter> highlighter_;
 
-    void determineLineHeight();
+  std::unique_ptr<QCompleter> completer_;
+  std::unique_ptr<QStringListModel> completer_options_;
+  std::unique_ptr<QStringList> completer_commands_;
+  std::unique_ptr<QRegularExpression> completer_start_of_command_;
+  std::unique_ptr<QRegularExpression> completer_end_of_command_;
 
-    void initOpenRoadCommands();
-    void parseOpenRoadArguments(const char* or_args, std::set<std::string>& args);
-    void collectNamespaces(std::set<std::string>& namespaces);
-    void collectSWIGArguments();
+  // hold openroad commands and associated arguments
+  std::vector<CommandArguments> commands_;
+  std::map<const swig_class*, std::unique_ptr<QStringList>> swig_arguments_;
 
-    const QString wordUnderCursor();
-    const swig_class* swigBeforeCursor();
-
-    void setCompleterCommands();
-    void setCompleterSWIG(const swig_class* type);
-    void setCompleterArguments(const std::set<int>& cmds);
-    void setCompleterVariables();
-
-    int line_height_;
-    int document_margins_;
-
-    int max_height_;
-
-    Tcl_Interp* interp_;
-
-    std::unique_ptr<QMenu> context_menu_;
-    std::unique_ptr<QAction> enable_highlighting_;
-    std::unique_ptr<QAction> enable_completion_;
-
-    std::unique_ptr<TclCmdHighlighter> highlighter_;
-
-    std::unique_ptr<QCompleter> completer_;
-    std::unique_ptr<QStringListModel> completer_options_;
-    std::unique_ptr<QStringList> completer_commands_;
-    std::unique_ptr<QRegularExpression> completer_start_of_command_;
-    std::unique_ptr<QRegularExpression> completer_end_of_command_;
-
-    // hold openroad commands and associated arguments
-    std::vector<CommandArguments> commands_;
-    std::map<const swig_class*, std::unique_ptr<QStringList>> swig_arguments_;
-
-    static constexpr const char* enable_highlighting_keyword_ = "highlighting";
-    static constexpr const char* enable_completion_keyword_ = "completion";
-    static const int completer_mimimum_length_ = 2;
+  static constexpr const char* enable_highlighting_keyword_ = "highlighting";
+  static constexpr const char* enable_completion_keyword_ = "completion";
+  static const int completer_mimimum_length_ = 2;
+  static constexpr const char* command_rename_prefix_ = "::tcl::openroad::";
 };
 
 }  // namespace gui

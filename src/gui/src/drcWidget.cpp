@@ -36,12 +36,11 @@
 #include "drcWidget.h"
 
 #include <QApplication>
-#include <QDebug>
 #include <QFileDialog>
 #include <QHeaderView>
 #include <QVBoxLayout>
-#include <boost/property_tree/json_parser.hpp>
 #include <array>
+#include <boost/property_tree/json_parser.hpp>
 #include <fstream>
 #include <iomanip>
 #include <map>
@@ -70,7 +69,8 @@ DRCViolation::DRCViolation(const std::string& name,
       layer_(layer),
       comment_(comment),
       file_line_(file_line),
-      viewed_(false)
+      viewed_(false),
+      visible_(true)
 {
   computeBBox();
 }
@@ -108,23 +108,33 @@ void DRCViolation::computeBBox()
 
 void DRCViolation::paint(Painter& painter)
 {
-  for (const auto& shape : shapes_) {
-    if (auto s = std::get_if<DRCLine>(&shape)) {
-      const odb::Point& p1 = (*s).first;
-      const odb::Point& p2 = (*s).second;
-      painter.drawLine(p1.x(), p1.y(), p2.x(), p2.y());
-    } else if (auto s = std::get_if<DRCRect>(&shape)) {
-      painter.drawRect(*s);
-    } else if (auto s = std::get_if<DRCPoly>(&shape)) {
-      painter.drawPolygon(*s);
+  const int min_box = 20.0 / painter.getPixelsPerDBU();
+
+  const odb::Rect& box = getBBox();
+  if (box.maxDXDY() < min_box) {
+    // box is too small to be useful, so draw X instead
+    odb::Point center(box.xMin() + box.dx() / 2, box.yMin() + box.dy() / 2);
+    painter.drawX(center.x(), center.y(), min_box);
+  } else {
+    for (const auto& shape : shapes_) {
+      if (auto s = std::get_if<DRCLine>(&shape)) {
+        const odb::Point& p1 = (*s).first;
+        const odb::Point& p2 = (*s).second;
+        painter.drawLine(p1.x(), p1.y(), p2.x(), p2.y());
+      } else if (auto s = std::get_if<DRCRect>(&shape)) {
+        painter.drawRect(*s);
+      } else if (auto s = std::get_if<DRCPoly>(&shape)) {
+        painter.drawPolygon(*s);
+      }
     }
   }
 }
 
 ///////
 
-DRCDescriptor::DRCDescriptor(const std::vector<std::unique_ptr<DRCViolation>>& violations) :
-    violations_(violations)
+DRCDescriptor::DRCDescriptor(
+    const std::vector<std::unique_ptr<DRCViolation>>& violations)
+    : violations_(violations)
 {
 }
 
@@ -146,9 +156,7 @@ bool DRCDescriptor::getBBox(std::any object, odb::Rect& bbox) const
   return true;
 }
 
-void DRCDescriptor::highlight(std::any object,
-                              Painter& painter,
-                              void* additional_data) const
+void DRCDescriptor::highlight(std::any object, Painter& painter) const
 {
   auto vio = std::any_cast<DRCViolation*>(object);
   vio->paint(painter);
@@ -169,7 +177,7 @@ Descriptor::Properties DRCDescriptor::getProperties(std::any object) const
   auto srcs = vio->getSources();
   if (!srcs.empty()) {
     SelectionSet sources;
-    for (auto src : srcs) {
+    for (auto& src : srcs) {
       auto select = gui->makeSelected(src);
       if (select) {
         sources.insert(select);
@@ -191,11 +199,10 @@ Descriptor::Properties DRCDescriptor::getProperties(std::any object) const
   return props;
 }
 
-Selected DRCDescriptor::makeSelected(std::any object,
-                                     void* additional_data) const
+Selected DRCDescriptor::makeSelected(std::any object) const
 {
   if (auto vio = std::any_cast<DRCViolation*>(&object)) {
-    return Selected(*vio, this, additional_data);
+    return Selected(*vio, this);
   }
   return Selected();
 }
@@ -210,7 +217,7 @@ bool DRCDescriptor::lessThan(std::any l, std::any r) const
 bool DRCDescriptor::getAllObjects(SelectionSet& objects) const
 {
   for (auto& violation : violations_) {
-    objects.insert(makeSelected(violation.get(), nullptr));
+    objects.insert(makeSelected(violation.get()));
   }
   return true;
 }
@@ -237,7 +244,7 @@ QVariant DRCItemModel::data(const QModelIndex& index, int role) const
 DRCWidget::DRCWidget(QWidget* parent)
     : QDockWidget("DRC Viewer", parent),
       logger_(nullptr),
-      view_(new QTreeView(this)),
+      view_(new ObjectTree(this)),
       model_(new DRCItemModel(this)),
       block_(nullptr),
       load_(new QPushButton("Load...", this)),
@@ -260,17 +267,37 @@ DRCWidget::DRCWidget(QWidget* parent)
   container->setLayout(layout);
   setWidget(container);
 
-  connect(view_,
-          SIGNAL(clicked(const QModelIndex&)),
-          this,
-          SLOT(clicked(const QModelIndex&)));
+  connect(view_, &ObjectTree::clicked, this, &DRCWidget::clicked);
   connect(view_->selectionModel(),
-          SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
+          &QItemSelectionModel::selectionChanged,
           this,
-          SLOT(selectionChanged(const QItemSelection&, const QItemSelection&)));
-  connect(load_, SIGNAL(released()), this, SLOT(selectReport()));
+          &DRCWidget::selectionChanged);
+  connect(load_, &QPushButton::released, this, &DRCWidget::selectReport);
+
+  view_->setMouseTracking(true);
+  connect(view_, &ObjectTree::entered, this, &DRCWidget::focusIndex);
+
+  connect(view_, &ObjectTree::viewportEntered, this, &DRCWidget::defocus);
+  connect(view_, &ObjectTree::mouseExited, this, &DRCWidget::defocus);
 
   Gui::get()->registerDescriptor<DRCViolation*>(new DRCDescriptor(violations_));
+}
+
+void DRCWidget::focusIndex(const QModelIndex& focus_index)
+{
+  defocus();
+
+  QStandardItem* item = model_->itemFromIndex(focus_index);
+  QVariant data = item->data();
+  if (data.isValid()) {
+    DRCViolation* violation = data.value<DRCViolation*>();
+    emit focus(Gui::get()->makeSelected(violation));
+  }
+}
+
+void DRCWidget::defocus()
+{
+  emit focus(Selected());
 }
 
 void DRCWidget::setLogger(utl::Logger* logger)
@@ -285,13 +312,15 @@ void DRCWidget::selectReport()
       this,
       tr("DRC Report"),
       QString(),
-      tr("DRC Report (*.rpt *.drc *.json);;TritonRoute Report (*.rpt *.drc);;JSON (*.json);;All (*)"));
+      tr("DRC Report (*.rpt *.drc *.json);;TritonRoute Report (*.rpt "
+         "*.drc);;JSON (*.json);;All (*)"));
   if (!filename.isEmpty()) {
     loadReport(filename);
   }
 }
 
-void DRCWidget::selectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
+void DRCWidget::selectionChanged(const QItemSelection& selected,
+                                 const QItemSelection& deselected)
 {
   auto indexes = selected.indexes();
   if (indexes.isEmpty()) {
@@ -301,17 +330,72 @@ void DRCWidget::selectionChanged(const QItemSelection& selected, const QItemSele
   emit clicked(indexes.first());
 }
 
+void DRCWidget::toggleParent(QStandardItem* child)
+{
+  QStandardItem* parent = child->parent();
+  std::vector<bool> states;
+  for (int r = 0; r < parent->rowCount(); r++) {
+    auto* pchild = parent->child(r, 0);
+    states.push_back(pchild->checkState() == Qt::Checked);
+  }
+
+  const bool all_on
+      = std::all_of(states.begin(), states.end(), [](bool v) { return v; });
+  const bool any_on
+      = std::any_of(states.begin(), states.end(), [](bool v) { return v; });
+
+  if (all_on) {
+    parent->setCheckState(Qt::Checked);
+  } else if (any_on) {
+    parent->setCheckState(Qt::PartiallyChecked);
+  } else {
+    parent->setCheckState(Qt::Unchecked);
+  }
+}
+
+bool DRCWidget::setVisibleDRC(QStandardItem* item,
+                              bool visible,
+                              bool announce_parent)
+{
+  QVariant data = item->data();
+  if (data.isValid()) {
+    auto violation = data.value<DRCViolation*>();
+    if (item->isCheckable() && violation->isVisible() != visible) {
+      item->setCheckState(visible ? Qt::Checked : Qt::Unchecked);
+      violation->setIsVisible(visible);
+      renderer_->redraw();
+      if (announce_parent) {
+        toggleParent(item);
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void DRCWidget::clicked(const QModelIndex& index)
 {
   QStandardItem* item = model_->itemFromIndex(index);
   QVariant data = item->data();
   if (data.isValid()) {
     auto violation = data.value<DRCViolation*>();
-    if (qGuiApp->keyboardModifiers() & Qt::ControlModifier) {
+    const bool is_visible = item->checkState() == Qt::Checked;
+    if (setVisibleDRC(item, is_visible, true)) {
+      // do nothing, since its handled in function
+    } else if (qGuiApp->keyboardModifiers() & Qt::ControlModifier) {
       violation->clearViewed();
     } else {
       Selected t = Gui::get()->makeSelected(violation);
       emit selectDRC(t);
+    }
+  } else {
+    if (item->hasChildren()) {
+      const bool state = item->checkState() == Qt::Checked;
+      for (int r = 0; r < item->rowCount(); r++) {
+        auto* child = item->child(r, 0);
+        setVisibleDRC(child, state, false);
+      }
     }
   }
 }
@@ -363,6 +447,8 @@ void DRCWidget::updateModel()
 
   for (const auto& [type, violation_list] : violation_by_type) {
     QStandardItem* type_group = makeItem(QString::fromStdString(type));
+    type_group->setCheckable(true);
+    type_group->setCheckState(Qt::Checked);
 
     int violation_idx = 1;
     for (const auto& violation : violation_list) {
@@ -373,6 +459,9 @@ void DRCWidget::updateModel()
       QStandardItem* violation_index
           = makeItem(QString::number(violation_idx++));
       violation_index->setData(QVariant::fromValue(violation));
+      violation_index->setCheckable(true);
+      violation_index->setCheckState(violation->isVisible() ? Qt::Checked
+                                                            : Qt::Unchecked);
 
       type_group->appendRow({violation_index, violation_item});
     }
@@ -433,6 +522,7 @@ void DRCWidget::loadTRReport(const QString& filename)
 
   std::regex violation_type("\\s*violation type: (.*)");
   std::regex srcs("\\s*srcs: (.*)");
+  std::regex congestion_line("\\s*congestion information: (.*)");
   std::regex bbox_layer("\\s*bbox = (.*) on Layer (.*)");
   std::regex bbox_corners(
       "\\s*\\(\\s*(.*),\\s*(.*)\\s*\\)\\s*-\\s*\\(\\s*(.*),\\s*(.*)\\s*\\)");
@@ -455,8 +545,11 @@ void DRCWidget::loadTRReport(const QString& filename)
     if (std::regex_match(line, base_match, violation_type)) {
       type = base_match[1].str();
     } else {
-      logger_->error(
-          utl::GUI, 45, "Unable to parse line as violation type (line: {}): {}", line_number, line);
+      logger_->error(utl::GUI,
+                     45,
+                     "Unable to parse line as violation type (line: {}): {}",
+                     line_number,
+                     line);
     }
 
     // sources of violation
@@ -467,23 +560,42 @@ void DRCWidget::loadTRReport(const QString& filename)
     if (std::regex_match(line, base_match, srcs)) {
       sources = base_match[1].str();
     } else {
-      logger_->error(
-          utl::GUI, 46, "Unable to parse line as violation source (line: {}): {}", line_number, line);
+      logger_->error(utl::GUI,
+                     46,
+                     "Unable to parse line as violation source (line: {}): {}",
+                     line_number,
+                     line);
     }
 
     line_number++;
     std::getline(report, line);
+    std::string congestion_information;
+
+    // congestion information (optional)
+    if (std::regex_match(line, base_match, congestion_line)) {
+      congestion_information = base_match[1].str();
+      line_number++;
+      std::getline(report, line);
+    }
+
     // bounding box and layer
     if (!std::regex_match(line, base_match, bbox_layer)) {
       logger_->error(
-          utl::GUI, 47, "Unable to parse line as violation location (line: {}): {}", line_number, line);
+          utl::GUI,
+          47,
+          "Unable to parse line as violation location (line: {}): {}",
+          line_number,
+          line);
     }
 
     std::string bbox = base_match[1].str();
     odb::dbTechLayer* layer = tech->findLayer(base_match[2].str().c_str());
-    if (layer == nullptr) {
-      logger_->warn(
-          utl::GUI, 40, "Unable to find tech layer (line: {}): {}", line_number, base_match[2].str());
+    if (layer == nullptr && base_match[2].str() != "-") {
+      logger_->warn(utl::GUI,
+                    40,
+                    "Unable to find tech layer (line: {}): {}",
+                    line_number,
+                    base_match[2].str());
     }
 
     odb::Rect rect;
@@ -498,18 +610,30 @@ void DRCWidget::loadTRReport(const QString& filename)
         rect.set_yhi(std::stod(base_match[4].str())
                      * block_->getDbUnitsPerMicron());
       } catch (std::invalid_argument&) {
-        logger_->error(utl::GUI, 48, "Unable to parse bounding box (line: {}): {}", line_number, bbox);
+        logger_->error(utl::GUI,
+                       48,
+                       "Unable to parse bounding box (line: {}): {}",
+                       line_number,
+                       bbox);
       } catch (std::out_of_range&) {
-        logger_->error(utl::GUI, 49, "Unable to parse bounding box (line: {}): {}", line_number, bbox);
+        logger_->error(utl::GUI,
+                       49,
+                       "Unable to parse bounding box (line: {}): {}",
+                       line_number,
+                       bbox);
       }
     } else {
-      logger_->error(utl::GUI, 50, "Unable to parse bounding box (line: {}): {}", line_number, bbox);
+      logger_->error(utl::GUI,
+                     50,
+                     "Unable to parse bounding box (line: {}): {}",
+                     line_number,
+                     bbox);
     }
 
     std::vector<std::any> srcs_list;
     std::stringstream srcs_stream(sources);
     std::string single_source;
-    std::string comment = "";
+    std::string comment;
 
     // split sources list
     while (getline(srcs_stream, single_source, ' ')) {
@@ -517,60 +641,82 @@ void DRCWidget::loadTRReport(const QString& filename)
         continue;
       }
 
-      auto ident = single_source.find(":");
+      auto ident = single_source.find(':');
       std::string item_type = single_source.substr(0, ident);
       std::string item_name = single_source.substr(ident + 1);
 
-      std::any item;
+      std::any item = nullptr;
 
       if (item_type == "net") {
         odb::dbNet* net = block_->findNet(item_name.c_str());
         if (net != nullptr) {
           item = net;
         } else {
-          logger_->warn(utl::GUI, 44, "Unable to find net (line: {}): {}", source_line_number, item_name);
+          logger_->warn(utl::GUI,
+                        44,
+                        "Unable to find net (line: {}): {}",
+                        source_line_number,
+                        item_name);
         }
       } else if (item_type == "inst") {
         odb::dbInst* inst = block_->findInst(item_name.c_str());
         if (inst != nullptr) {
           item = inst;
         } else {
-          logger_->warn(utl::GUI, 43, "Unable to find instance (line: {}): {}", source_line_number, item_name);
+          logger_->warn(utl::GUI,
+                        43,
+                        "Unable to find instance (line: {}): {}",
+                        source_line_number,
+                        item_name);
         }
       } else if (item_type == "iterm") {
         odb::dbITerm* iterm = block_->findITerm(item_name.c_str());
         if (iterm != nullptr) {
           item = iterm;
         } else {
-          logger_->warn(utl::GUI, 42, "Unable to find iterm (line: {}): {}", source_line_number, item_name);
+          logger_->warn(utl::GUI,
+                        42,
+                        "Unable to find iterm (line: {}): {}",
+                        source_line_number,
+                        item_name);
         }
       } else if (item_type == "bterm") {
         odb::dbBTerm* bterm = block_->findBTerm(item_name.c_str());
         if (bterm != nullptr) {
           item = bterm;
         } else {
-          logger_->warn(utl::GUI, 41, "Unable to find bterm (line: {}): {}", source_line_number, item_name);
+          logger_->warn(utl::GUI,
+                        41,
+                        "Unable to find bterm (line: {}): {}",
+                        source_line_number,
+                        item_name);
         }
       } else if (item_type == "obstruction") {
         bool found = false;
         if (layer != nullptr) {
-          for (const auto& obs : block_->getObstructions()) {
+          for (const auto obs : block_->getObstructions()) {
             auto obs_bbox = obs->getBBox();
             if (obs_bbox->getTechLayer() == layer) {
-              odb::Rect obs_rect;
-              obs_bbox->getBox(obs_rect);
+              odb::Rect obs_rect = obs_bbox->getBox();
               if (obs_rect.intersects(rect)) {
-                srcs_list.push_back(obs);
+                srcs_list.emplace_back(obs);
                 found = true;
               }
             }
           }
         }
         if (!found) {
-          logger_->warn(utl::GUI, 52, "Unable to find obstruction (line: {})", source_line_number);
+          logger_->warn(utl::GUI,
+                        52,
+                        "Unable to find obstruction (line: {})",
+                        source_line_number);
         }
       } else {
-        logger_->warn(utl::GUI, 51, "Unknown source type (line: {}): {}", source_line_number, item_type);
+        logger_->warn(utl::GUI,
+                      51,
+                      "Unknown source type (line: {}): {}",
+                      source_line_number,
+                      item_type);
       }
 
       if (item.has_value()) {
@@ -590,6 +736,8 @@ void DRCWidget::loadTRReport(const QString& filename)
     }
     name += ", Sources: " + sources;
 
+    comment += congestion_information;
+
     std::vector<DRCViolation::DRCShape> shapes({rect});
     violations_.push_back(std::make_unique<DRCViolation>(
         name, type, srcs_list, shapes, layer, comment, violation_line_number));
@@ -603,62 +751,157 @@ void DRCWidget::loadJSONReport(const QString& filename)
   boost::property_tree::ptree tree;
   try {
     boost::property_tree::json_parser::read_json(filename.toStdString(), tree);
+  } catch (const boost::property_tree::json_parser_error& e1) {
+    logger_->error(utl::GUI,
+                   55,
+                   "Unable to parse JSON file {}: {}",
+                   filename.toStdString(),
+                   e1.what());
   }
-  catch (const boost::property_tree::json_parser_error& e1) {
-    logger_->error(utl::GUI, 55, "Unable to parse JSON file {}: {}", filename.toStdString(), e1.what());
+  auto tech = block_->getDataBase()->getTech();
+  int dbUnits = block_->getDataBase()->getTech()->getDbUnitsPerMicron();
+  // check if DRC key exists
+  if (tree.find("DRC") == tree.not_found()) {
+    logger_->error(utl::GUI,
+                   87,
+                   "Unable to find the DRC key in JSON file {}",
+                   filename.toStdString());
   }
-
   for (const auto& rule : tree.get_child("DRC")) {
     auto& drc_rule = rule.second;
 
-    const std::string violation_type = drc_rule.get<std::string>("name");
-    const std::string violation_text = drc_rule.get<std::string>("description");
-
-    int  i = 0;
-    for (const auto& violation_shape : drc_rule.get_child("violations")) {
-      auto& shape = violation_shape.second;
+    const std::string violation_type = drc_rule.get<std::string>("name", "");
+    const std::string violation_text
+        = drc_rule.get<std::string>("description", "");
+    int i = 0;
+    auto violations_arr = drc_rule.get_child_optional("violations");
+    if (!violations_arr) {
+      logger_->error(utl::GUI,
+                     86,
+                     "Unable to find the violations key in JSON file {}",
+                     filename.toStdString());
+    }
+    for (const auto& [_, violation] : violations_arr.value()) {
+      std::string layer_str = violation.get<std::string>("layer", "-");
+      const std::string shape_type = violation.get<std::string>("type", "-");
+      odb::dbTechLayer* layer = nullptr;
+      if (!layer_str.empty()) {
+        layer = tech->findLayer(layer_str.c_str());
+        if (layer == nullptr && layer_str != "-") {
+          logger_->warn(
+              utl::GUI, 79, "Unable to find tech layer: {}", layer_str);
+        }
+      }
 
       std::vector<odb::Point> shape_points;
-      for (const auto& shape_pt : shape.get_child("shape")) {
-        auto& pt = shape_pt.second;
-        shape_points.push_back(odb::Point(
-            pt.get<double>("x") * block_->getDbUnitsPerMicron(),
-            pt.get<double>("y") * block_->getDbUnitsPerMicron()));
+      auto shape = violation.get_child_optional("shape");
+      if (shape) {
+        for (const auto& [_, pt] : shape.value()) {
+          double x = pt.get<double>("x", 0.0);
+          double y = pt.get<double>("y", 0.0);
+          shape_points.emplace_back(x * dbUnits, y * dbUnits);
+        }
+      } else {
+        logger_->warn(utl::GUI, 99, "Unable to find shape of violation");
       }
 
       std::vector<DRCViolation::DRCShape> shapes;
-      const std::string shape_type = shape.get<std::string>("type");
       if (shape_type == "box") {
-        shapes.push_back(DRCViolation::DRCRect(shape_points[0], shape_points[1]));
+        shapes.emplace_back(
+            DRCViolation::DRCRect(shape_points[0], shape_points[1]));
       } else if (shape_type == "edge") {
-        shapes.push_back(DRCViolation::DRCLine(shape_points[0], shape_points[1]));
+        shapes.emplace_back(
+            DRCViolation::DRCLine(shape_points[0], shape_points[1]));
+      } else if (shape_type == "edge_pair") {
+        shapes.emplace_back(
+            DRCViolation::DRCLine(shape_points[0], shape_points[1]));
+        shapes.emplace_back(
+            DRCViolation::DRCLine(shape_points[2], shape_points[3]));
       } else if (shape_type == "polygon") {
-        shapes.push_back(DRCViolation::DRCPoly(shape_points));
+        shapes.emplace_back(DRCViolation::DRCPoly(shape_points));
       } else {
-        logger_->error(utl::GUI, 56, "Unable to parse violation shape: {}", shape_type);
+        logger_->error(
+            utl::GUI, 58, "Unable to parse violation shape: {}", shape_type);
+      }
+      std::vector<std::any> srcs_list;
+      auto sources_arr = violation.get_child_optional("sources");
+      if (sources_arr) {
+        for (const auto& [_, src] : sources_arr.value()) {
+          std::string src_type = src.get<std::string>("type", "-");
+          std::string src_name = src.get<std::string>("name", "-");
+
+          std::any item = nullptr;
+          if (src_type == "net") {
+            odb::dbNet* net = block_->findNet(src_name.c_str());
+            if (net != nullptr) {
+              item = net;
+            } else {
+              logger_->warn(utl::GUI, 85, "Unable to find net: {}", src_name);
+            }
+          } else if (src_type == "inst") {
+            odb::dbInst* inst = block_->findInst(src_name.c_str());
+            if (inst != nullptr) {
+              item = inst;
+            } else {
+              logger_->warn(
+                  utl::GUI, 84, "Unable to find instance: {}", src_name);
+            }
+          } else if (src_type == "iterm") {
+            odb::dbITerm* iterm = block_->findITerm(src_name.c_str());
+            if (iterm != nullptr) {
+              item = iterm;
+            } else {
+              logger_->warn(utl::GUI, 83, "Unable to find iterm: {}", src_name);
+            }
+          } else if (src_type == "bterm") {
+            odb::dbBTerm* bterm = block_->findBTerm(src_name.c_str());
+            if (bterm != nullptr) {
+              item = bterm;
+            } else {
+              logger_->warn(utl::GUI, 82, "Unable to find bterm: {}", src_name);
+            }
+          } else if (src_type == "obstruction") {
+            if (layer != nullptr) {
+              for (const auto obs : block_->getObstructions()) {
+                auto obs_bbox = obs->getBBox();
+                if (obs_bbox->getTechLayer() == layer) {
+                  // TODO: check if obs_rect is inside shape
+                  srcs_list.emplace_back(obs);
+                }
+              }
+            }
+          } else {
+            logger_->warn(utl::GUI, 81, "Unknown source type: {}", src_type);
+          }
+
+          if (item.has_value()) {
+            srcs_list.push_back(item);
+          } else {
+            if (!src_name.empty()) {
+              logger_->warn(
+                  utl::GUI, 80, "Failed to add source item: {}", src_name);
+            }
+          }
+        }
       }
 
       std::string name = violation_type + " - " + std::to_string(++i);
       violations_.push_back(std::make_unique<DRCViolation>(
-          name,
-          violation_type,
-          shapes,
-          violation_text,
-          0));
+          name, violation_type, srcs_list, shapes, layer, violation_text, 0));
     }
   }
 }
 
 ////////
 
-DRCRenderer::DRCRenderer(const std::vector<std::unique_ptr<DRCViolation>>& violations) :
-    violations_(violations)
+DRCRenderer::DRCRenderer(
+    const std::vector<std::unique_ptr<DRCViolation>>& violations)
+    : violations_(violations)
 {
 }
 
 void DRCRenderer::drawObjects(Painter& painter)
 {
-  int min_box = 20.0 / painter.getPixelsPerDBU();
   Painter::Color pen_color = Painter::white;
   Painter::Color brush_color = pen_color;
   brush_color.a = 50;
@@ -666,18 +909,15 @@ void DRCRenderer::drawObjects(Painter& painter)
   painter.setPen(pen_color, true, 0);
   painter.setBrush(brush_color, Painter::Brush::DIAGONAL);
   for (const auto& violation : violations_) {
-    const odb::Rect& box = violation->getBBox();
-    if (std::max(box.dx(), box.dy()) < min_box) {
-      // box is too small to be useful, so draw X instead
-      odb::Point center(box.xMin() + box.dx() / 2, box.yMin() + box.dy() / 2);
-      painter.drawX(center.x(), center.y(), min_box);
-    } else {
-      violation->paint(painter);
+    if (!violation->isVisible()) {
+      continue;
     }
+    violation->paint(painter);
   }
 }
 
-SelectionSet DRCRenderer::select(odb::dbTechLayer* layer, const odb::Rect& region)
+SelectionSet DRCRenderer::select(odb::dbTechLayer* layer,
+                                 const odb::Rect& region)
 {
   if (layer != nullptr) {
     return SelectionSet();
@@ -687,6 +927,9 @@ SelectionSet DRCRenderer::select(odb::dbTechLayer* layer, const odb::Rect& regio
 
   SelectionSet selections;
   for (const auto& violation : violations_) {
+    if (!violation->isVisible()) {
+      continue;
+    }
     if (violation->getBBox().intersects(region)) {
       selections.insert(gui->makeSelected(violation.get()));
     }

@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _TA_FIG_H_
-#define _TA_FIG_H_
+#pragma once
 
 #include <memory>
 
@@ -39,7 +38,7 @@ class taFig : public taBlockObject
 {
  public:
   // getters
-  virtual void getBBox(Rect& box) const = 0;
+  virtual Rect getBBox() const = 0;
   // setters
   // others
   virtual void move(const dbTransform& xform) = 0;
@@ -104,5 +103,3 @@ class taPinFig : public taConnFig
 };
 
 }  // namespace fr
-
-#endif

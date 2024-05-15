@@ -35,29 +35,38 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
+#include <set>
+#include <unordered_map>
+#include <vector>
 
-#include "Core.h"
-#include "HungarianMatching.h"
-#include "Netlist.h"
-#include "Parameters.h"
-#include "Slots.h"
-
-namespace ord {
-class OpenRoad;
-}
+#include "odb/geom.h"
+#include "ppl/Parameters.h"
 
 namespace utl {
 class Logger;
 }
 
 namespace odb {
+class dbBTerm;
+class dbBlock;
 class dbDatabase;
 class dbTech;
-class dbBlock;
+class dbTechLayer;
 }  // namespace odb
 
 namespace ppl {
+class AbstractIOPlacerRenderer;
+class Core;
+class Interval;
+class IOPin;
+class Netlist;
+class SimulatedAnnealing;
+struct Constraint;
+struct Section;
+struct Slot;
+struct TopLayerGrid;
 
 using odb::Point;
 using odb::Rect;
@@ -65,8 +74,27 @@ using odb::Rect;
 using utl::Logger;
 
 // A list of pins that will be placed together in the die boundary
-typedef std::set<odb::dbBTerm*> PinList;
-typedef std::vector<odb::dbBTerm*> PinGroup;
+using PinSet = std::set<odb::dbBTerm*>;
+using PinList = std::vector<odb::dbBTerm*>;
+using MirroredPins = std::unordered_map<odb::dbBTerm*, odb::dbBTerm*>;
+
+struct PinGroup
+{
+  PinList pins;
+  bool order;
+};
+
+struct PinGroupByIndex
+{
+  std::vector<int> pin_indices;
+  bool order;
+};
+
+struct FallbackPins
+{
+  std::vector<std::pair<std::vector<int>, bool>> groups;
+  std::vector<int> pins;
+};
 
 enum class Edge
 {
@@ -77,159 +105,83 @@ enum class Edge
   invalid
 };
 
-struct Interval
+enum class Direction
 {
-  Edge edge;
-  int begin;
-  int end;
-  int layer;
-  Interval() = default;
-  Interval(Edge edg, int b, int e) : edge(edg), begin(b), end(e), layer(-1) {}
-  Interval(Edge edg, int b, int e, int l)
-      : edge(edg), begin(b), end(e), layer(l)
-  {
-  }
-  Edge getEdge() { return edge; }
-  int getBegin() { return begin; }
-  int getEnd() { return end; }
-  int getLayer() { return layer; }
+  input,
+  output,
+  inout,
+  feedthru,
+  invalid
 };
 
-struct Constraint
-{
-  PinList pin_list;
-  Direction direction;
-  Interval interval;
-  odb::Rect box;
-  std::vector<Section> sections;
-  float pins_per_slots;
-  Constraint() = default;
-  Constraint(PinList pins, Direction dir, Interval interv)
-      : pin_list(pins), direction(dir), interval(interv)
-  {
-    box = odb::Rect(-1, -1, -1, -1);
-    pins_per_slots = 0;
-  }
-  Constraint(PinList pins, Direction dir, odb::Rect b)
-      : pin_list(pins), direction(dir), box(b)
-  {
-    interval = Interval(Edge::invalid, -1, -1);
-    pins_per_slots = 0;
-  }
-};
-
-struct TopLayerGrid
-{
-  int layer;
-  int x_step;
-  int y_step;
-  int llx;
-  int lly;
-  int urx;
-  int ury;
-  int width;
-  int height;
-  int keepout;
-  TopLayerGrid() = default;
-  TopLayerGrid(int l,
-               int x_s,
-               int y_s,
-               int x_l,
-               int y_l,
-               int x_u,
-               int y_u,
-               int w,
-               int h,
-               int k)
-      : layer(l),
-        x_step(x_s),
-        y_step(y_s),
-        llx(x_l),
-        lly(y_l),
-        urx(x_u),
-        ury(y_u),
-        width(w),
-        height(h),
-        keepout(k)
-  {
-  }
-};
+using int64 = std::int64_t;
 
 class IOPlacer
 {
  public:
+  IOPlacer();
+  ~IOPlacer();
   void init(odb::dbDatabase* db, Logger* logger);
   void clear();
-  void clearConstraints() { constraints_.clear(); };
+  void clearConstraints();
   void run(bool random_mode);
-  void printConfig();
+  void runAnnealing(bool random);
+  void reportHPWL();
+  void printConfig(bool annealing = false);
   Parameters* getParameters() { return parms_.get(); }
-  int returnIONetsHPWL();
+  int64 computeIONetsHPWL();
   void excludeInterval(Edge edge, int begin, int end);
-  void addNamesConstraint(PinList* pins, Edge edge, int begin, int end);
-  void excludeInterval(Interval interval);
+  void addNamesConstraint(PinSet* pins, Edge edge, int begin, int end);
   void addDirectionConstraint(Direction direction,
                               Edge edge,
                               int begin,
                               int end);
-  void addTopLayerConstraint(PinList* pins, int x1, int y1, int x2, int y2);
-  void addHorLayer(int layer) { hor_layers_.insert(layer); }
-  void addVerLayer(int layer) { ver_layers_.insert(layer); }
-  Edge getEdge(std::string edge);
-  Direction getDirection(std::string direction);
-  // 0419 haoyuan enhance ioplacer
-  void readIOfromFileIntoDB(odb::dbBTerm* _pin_name, odb::dbTechLayer* _layer, double _llx, double _lly, double _width, double _depth, Edge _orientation);
-  void addPinGroup(PinGroup* group);
-  void addTopLayerPinPattern(int layer,
+  void addTopLayerConstraint(PinSet* pins, const odb::Rect& region);
+  void addMirroredPins(odb::dbBTerm* bterm1, odb::dbBTerm* bterm2);
+  void addHorLayer(odb::dbTechLayer* layer);
+  void addVerLayer(odb::dbTechLayer* layer);
+  void addPinGroup(PinList* group, bool order);
+  void addTopLayerPinPattern(odb::dbTechLayer* layer,
                              int x_step,
                              int y_step,
-                             int llx,
-                             int lly,
-                             int urx,
-                             int ury,
-                             int width,
-                             int height,
+                             const Rect& region,
+                             int pin_width,
+                             int pin_height,
                              int keepout);
-  int getTopLayer() { return top_grid_.layer; }
+  odb::dbTechLayer* getTopLayer() const;
   void placePin(odb::dbBTerm* bterm,
-                int layer,
+                odb::dbTechLayer* layer,
                 int x,
                 int y,
                 int width,
                 int height,
                 bool force_to_die_bound);
 
+  static Direction getDirection(const std::string& direction);
+  static Edge getEdge(const std::string& edge);
+
+  void setAnnealingConfig(float temperature,
+                          int max_iterations,
+                          int perturb_per_iter,
+                          float alpha);
+  void checkPinPlacement();
+
+  void setRenderer(std::unique_ptr<AbstractIOPlacerRenderer> ioplacer_renderer);
+  AbstractIOPlacerRenderer* getRenderer();
+
+  // annealing debug functions
+  void setAnnealingDebugOn();
+  bool isAnnealingDebugOn() const;
+
+  void setAnnealingDebugPaintInterval(int iters_between_paintings);
+  void setAnnealingDebugNoPauseMode(bool no_pause_mode);
+
+  void writePinPlacement(const char* file_name);
+
  private:
-  Netlist netlist_;
-  Core core_;
-  std::vector<IOPin> assignment_;
-
-  int slots_per_section_;
-  float slots_increase_factor_;
-
-  std::vector<Interval> excluded_intervals_;
-  std::vector<Constraint> constraints_;
-  std::vector<PinGroup> pin_groups_;
-
-  Logger* logger_;
-  std::unique_ptr<Parameters> parms_;
-  Netlist netlist_io_pins_;
-  std::vector<Slot> slots_;
-  std::vector<Slot> top_layer_slots_;
-  std::vector<Section> sections_;
-  std::vector<IOPin> zero_sink_ios_;
-  std::set<int> hor_layers_;
-  std::set<int> ver_layers_;
-  TopLayerGrid top_grid_;
-
-  // db variables
-  odb::dbDatabase* db_;
-  odb::dbTech* tech_;
-  odb::dbBlock* block_;
-
   void createTopLayerPinPattern();
-  void initNetlistAndCore(std::set<int> hor_layer_idx,
-                          std::set<int> ver_layer_idx);
+  void initNetlistAndCore(const std::set<int>& hor_layer_idx,
+                          const std::set<int>& ver_layer_idx);
   void initIOLists();
   void initParms();
   std::vector<int> getValidSlots(int first, int last, bool top_layer);
@@ -238,6 +190,20 @@ class IOPlacer
                        std::vector<int> slot_indices,
                        bool top_layer,
                        bool is_group);
+  int placeFallbackPins(bool random);
+  void assignMirroredPins(IOPin& io_pin,
+                          MirroredPins& mirrored_pins,
+                          std::vector<IOPin>& assignment);
+  int getSlotIdxByPosition(const odb::Point& position,
+                           int layer,
+                           std::vector<Slot>& slots);
+  int getFirstSlotToPlaceGroup(int first_slot,
+                               int last_slot,
+                               int group_size,
+                               bool check_mirrored,
+                               IOPin& first_pin);
+  void placeFallbackGroup(const std::pair<std::vector<int>, bool>& group,
+                          int place_slot);
   void findSlots(const std::set<int>& layers, Edge edge);
   void findSlotsForTopLayer();
   void filterObstructedSlotsForTopLayer();
@@ -247,30 +213,45 @@ class IOPlacer
                     int end,
                     Edge edge,
                     std::vector<Section>& sections);
-  std::vector<Section> createSectionsPerConstraint(
-      const Constraint& constraint);
+  std::vector<Section> createSectionsPerConstraint(Constraint& constraint);
   void getPinsFromDirectionConstraint(Constraint& constraint);
-  void initConstraints();
+  void initMirroredPins(bool annealing = false);
+  void initConstraints(bool annealing = false);
   void sortConstraints();
+  void checkPinsInMultipleConstraints();
+  void checkPinsInMultipleGroups();
   bool overlappingConstraints(const Constraint& c1, const Constraint& c2);
   void createSectionsPerEdge(Edge edge, const std::set<int>& layers);
   void createSections();
+  void addGroupToFallback(const std::vector<int>& pin_group, bool order);
   void setupSections(int assigned_pins_count);
   bool assignPinsToSections(int assigned_pins_count);
   bool assignPinToSection(IOPin& io_pin,
                           int idx,
                           std::vector<Section>& sections);
-  int assignGroupsToSections();
+  void assignMirroredPin(IOPin& io_pin);
+  int assignGroupsToSections(int& mirrored_pins_cnt);
+  int updateSection(Section& section, std::vector<Slot>& slots);
+  int updateConstraintSections(Constraint& constraint);
   void assignConstrainedGroupsToSections(Constraint& constraint,
-                                         std::vector<Section>& sections);
+                                         std::vector<Section>& sections,
+                                         int& mirrored_pins_cnt,
+                                         bool mirrored_only);
+  bool groupHasMirroredPin(const std::vector<int>& group);
   int assignGroupToSection(const std::vector<int>& io_group,
-                           std::vector<Section>& sections);
-  std::vector<Section> assignConstrainedPinsToSections(Constraint& constraint);
+                           std::vector<Section>& sections,
+                           bool order);
+  std::vector<Section> assignConstrainedPinsToSections(Constraint& constraint,
+                                                       int& mirrored_pins_cnt,
+                                                       bool mirrored_only);
   std::vector<int> findPinsForConstraint(const Constraint& constraint,
-                                         Netlist& netlist);
-  int returnIONetsHPWL(Netlist&);
-  void findPinAssignment(std::vector<Section>& sections);
+                                         Netlist* netlist,
+                                         bool mirrored_only);
+  int64 computeIONetsHPWL(Netlist* netlist);
+  void findPinAssignment(std::vector<Section>& sections,
+                         bool mirrored_groups_only);
   void updateSlots();
+  void excludeInterval(Interval interval);
 
   void updateOrientation(IOPin& pin);
   void updatePinArea(IOPin& pin);
@@ -286,17 +267,66 @@ class IOPlacer
   void getBlockedRegionsFromMacros();
   void getBlockedRegionsFromDbObstructions();
   double dbuToMicrons(int64_t dbu);
+  int micronsToDbu(double microns);
+  Edge getMirroredEdge(const Edge& edge);
+  int computeRegionIncrease(const Interval& interval, int num_pins);
 
   // db functions
-  void populateIOPlacer(std::set<int> hor_layer_idx,
-                        std::set<int> ver_layer_idx);
+  void populateIOPlacer(const std::set<int>& hor_layer_idx,
+                        const std::set<int>& ver_layer_idx);
   void commitIOPlacementToDB(std::vector<IOPin>& assignment);
-  // 0419 haoyuan enhance ioplacer
-  int micronsToMfgGrid(double dist) const;
   void commitIOPinToDB(const IOPin& pin);
-  void initCore(std::set<int> hor_layer_idxs, std::set<int> ver_layer_idxs);
+  void initCore(const std::set<int>& hor_layer_idxs,
+                const std::set<int>& ver_layer_idxs);
   void initNetlist();
   void initTracks();
+  odb::dbBlock* getBlock() const;
+  odb::dbTech* getTech() const;
+  std::string getEdgeString(Edge edge);
+
+  std::unique_ptr<Netlist> netlist_;
+  std::unique_ptr<Core> core_;
+  std::vector<IOPin> assignment_;
+
+  int slots_per_section_ = 0;
+  float slots_increase_factor_ = 0;
+  int top_layer_pins_count_ = 0;
+  // set the offset on tracks as 15 to approximate the size of a GCell in global
+  // router
+  const int num_tracks_offset_ = 15;
+  const int pins_per_report_ = 5;
+  const int default_min_dist_ = 2;
+
+  std::vector<Interval> excluded_intervals_;
+  std::vector<Constraint> constraints_;
+  std::vector<PinGroup> pin_groups_;
+  MirroredPins mirrored_pins_;
+  FallbackPins fallback_pins_;
+
+  Logger* logger_ = nullptr;
+  std::unique_ptr<Parameters> parms_;
+  std::unique_ptr<Netlist> netlist_io_pins_;
+  std::vector<Slot> slots_;
+  std::vector<Slot> top_layer_slots_;
+  std::vector<Section> sections_;
+  std::vector<IOPin> zero_sink_ios_;
+  std::set<int> hor_layers_;
+  std::set<int> ver_layers_;
+  std::unique_ptr<TopLayerGrid> top_grid_;
+
+  std::unique_ptr<AbstractIOPlacerRenderer> ioplacer_renderer_;
+
+  // simulated annealing variables
+  float init_temperature_ = 0;
+  int max_iterations_ = 0;
+  int perturb_per_iter_ = 0;
+  float alpha_ = 0;
+
+  // simulated annealing debugger variables
+  bool annealing_debug_mode_ = false;
+
+  // db variables
+  odb::dbDatabase* db_ = nullptr;
 };
 
 }  // namespace ppl

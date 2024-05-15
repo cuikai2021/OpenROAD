@@ -35,260 +35,271 @@
 
 #pragma once
 
+#include <cstdint>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include "CtsObserver.h"
 #include "Util.h"
 #include "db.h"
-#include "stt/SteinerTreeBuilder.h"
 #include "utl/Logger.h"
 
+namespace stt {
+class SteinerTreeBuilder;
+}
 namespace cts {
 
 class CtsOptions
 {
  public:
   CtsOptions(utl::Logger* logger, stt::SteinerTreeBuilder* sttBuildder)
-      : _logger(logger), _sttBuilder(sttBuildder)
+      : logger_(logger), sttBuilder_(sttBuildder)
   {
   }
 
-  void setBlockName(const std::string& blockName) { _blockName = blockName; }
-  std::string getBlockName() const { return _blockName; }
-
-  void setClockNets(const std::string& clockNets) { _clockNets = clockNets; }
-  std::string getClockNets() const { return _clockNets; }
-  void setRootBuffer(const std::string& buffer) { _rootBuffer = buffer; }
-  std::string getRootBuffer() const { return _rootBuffer; }
-  void setBufferList(std::vector<std::string> buffers)
+  void setClockNets(const std::string& clockNets) { clockNets_ = clockNets; }
+  std::string getClockNets() const { return clockNets_; }
+  void setRootBuffer(const std::string& buffer) { rootBuffer_ = buffer; }
+  std::string getRootBuffer() const { return rootBuffer_; }
+  void setBufferList(const std::vector<std::string>& buffers)
   {
-    _bufferList = buffers;
+    bufferList_ = buffers;
   }
-  std::vector<std::string> getBufferList() const { return _bufferList; }
-  void setDbUnits(int units) { _dbUnits = units; }
-  int getDbUnits() const { return _dbUnits; }
+  std::vector<std::string> getBufferList() const { return bufferList_; }
+  void setDbUnits(int units) { dbUnits_ = units; }
+  int getDbUnits() const { return dbUnits_; }
   void setWireSegmentUnit(unsigned wireSegmentUnit)
   {
-    _wireSegmentUnit = wireSegmentUnit;
+    wireSegmentUnit_ = wireSegmentUnit;
   }
-  unsigned getWireSegmentUnit() const { return _wireSegmentUnit; }
-  void setPlotSolution(bool plot) { _plotSolution = plot; }
-  bool getPlotSolution() const { return _plotSolution; }
-  void setGuiDebug() { gui_debug_ = true; }
-  bool getGuiDebug() const { return gui_debug_; }
-  void setSimpleCts(bool enable) { _simpleCts = enable; }
-  bool getSimpleCts() const { return _simpleCts; }
-  void setSinkClustering(bool enable) { _sinkClusteringEnable = enable; }
-  bool getSinkClustering() const { return _sinkClusteringEnable; }
+  unsigned getWireSegmentUnit() const { return wireSegmentUnit_; }
+  void setPlotSolution(bool plot) { plotSolution_ = plot; }
+  bool getPlotSolution() const { return plotSolution_; }
+
+  void setObserver(std::unique_ptr<CtsObserver> observer)
+  {
+    observer_ = std::move(observer);
+  }
+  CtsObserver* getObserver() const { return observer_.get(); }
+
+  void setSinkClustering(bool enable) { sinkClusteringEnable_ = enable; }
+  bool getSinkClustering() const { return sinkClusteringEnable_; }
   void setSinkClusteringUseMaxCap(bool useMaxCap)
   {
-    _sinkClusteringUseMaxCap = useMaxCap;
+    sinkClusteringUseMaxCap_ = useMaxCap;
   }
-  bool getSinkClusteringUseMaxCap() const { return _sinkClusteringUseMaxCap; }
-  void setNumMaxLeafSinks(unsigned numSinks) { _numMaxLeafSinks = numSinks; }
-  unsigned getNumMaxLeafSinks() const { return _numMaxLeafSinks; }
-  void setMaxSlew(unsigned slew) { _maxSlew = slew; }
-  unsigned getMaxSlew() const { return _maxSlew; }
-  void setMaxCharSlew(double slew) { _maxCharSlew = slew; }
-  double getMaxCharSlew() const { return _maxCharSlew; }
-  void setMaxCharCap(double cap) { _maxCharCap = cap; }
-  double getMaxCharCap() const { return _maxCharCap; }
-  void setCharLoadIterations(unsigned loadIterations)
-  {
-    _charLoadIterations = loadIterations;
-  }
-  unsigned getCharLoadIterations() const { return _charLoadIterations; }
-  void setCharSlewIterations(unsigned slewIterations)
-  {
-    _charSlewIterations = slewIterations;
-  }
-  unsigned getCharSlewIterations() const { return _charSlewIterations; }
+  bool getSinkClusteringUseMaxCap() const { return sinkClusteringUseMaxCap_; }
+  void setNumMaxLeafSinks(unsigned numSinks) { numMaxLeafSinks_ = numSinks; }
+  unsigned getNumMaxLeafSinks() const { return numMaxLeafSinks_; }
+  void setMaxSlew(unsigned slew) { maxSlew_ = slew; }
+  unsigned getMaxSlew() const { return maxSlew_; }
+  void setMaxCharSlew(double slew) { maxCharSlew_ = slew; }
+  double getMaxCharSlew() const { return maxCharSlew_; }
+  void setMaxCharCap(double cap) { maxCharCap_ = cap; }
+  double getMaxCharCap() const { return maxCharCap_; }
   void setCharWirelengthIterations(unsigned wirelengthIterations)
   {
-    _charWirelengthIterations = wirelengthIterations;
+    charWirelengthIterations_ = wirelengthIterations;
   }
   unsigned getCharWirelengthIterations() const
   {
-    return _charWirelengthIterations;
+    return charWirelengthIterations_;
   }
-  void setOutputPath(const std::string& path) { _outputPath = path; }
-  std::string getOutputPath() const { return _outputPath; }
-  void setCapInter(double cap) { _capInter = cap; }
-  double getCapInter() const { return _capInter; }
-  void setSlewInter(double slew) { _slewInter = slew; }
-  double getSlewInter() const { return _slewInter; }
-  void setClockTreeMaxDepth(unsigned depth) { _clockTreeMaxDepth = depth; }
-  unsigned getClockTreeMaxDepth() const { return _clockTreeMaxDepth; }
-  void setEnableFakeLutEntries(bool enable) { _enableFakeLutEntries = enable; }
-  unsigned isFakeLutEntriesEnabled() const { return _enableFakeLutEntries; }
+  void setCapSteps(int steps) { capSteps_ = steps; }
+  int getCapSteps() const { return capSteps_; }
+  void setSlewSteps(int steps) { slewSteps_ = steps; }
+  int getSlewSteps() const { return slewSteps_; }
+  void setClockTreeMaxDepth(unsigned depth) { clockTreeMaxDepth_ = depth; }
+  unsigned getClockTreeMaxDepth() const { return clockTreeMaxDepth_; }
+  void setEnableFakeLutEntries(bool enable) { enableFakeLutEntries_ = enable; }
+  unsigned isFakeLutEntriesEnabled() const { return enableFakeLutEntries_; }
   void setForceBuffersOnLeafLevel(bool force)
   {
-    _forceBuffersOnLeafLevel = force;
+    forceBuffersOnLeafLevel_ = force;
   }
-  bool forceBuffersOnLeafLevel() const { return _forceBuffersOnLeafLevel; }
-  void setWriteOnlyClockNets(bool writeOnlyClk)
+  bool forceBuffersOnLeafLevel() const { return forceBuffersOnLeafLevel_; }
+  void setBufDistRatio(double ratio) { bufDistRatio_ = ratio; }
+  double getBufDistRatio() { return bufDistRatio_; }
+  void setClockNetsObjs(const std::vector<odb::dbNet*>& nets)
   {
-    _writeOnlyClockNets = writeOnlyClk;
+    clockNetsObjs_ = nets;
   }
-  bool writeOnlyClockNets() const { return _writeOnlyClockNets; }
-  void setRunPostCtsOpt(bool run) { _runPostCtsOpt = run; }
-  bool runPostCtsOpt() { return _runPostCtsOpt; }
-  void setBufDistRatio(double ratio) { _bufDistRatio = ratio; }
-  double getBufDistRatio() { return _bufDistRatio; }
-  void setClockNetsObjs(std::vector<odb::dbNet*> nets)
-  {
-    _clockNetsObjs = nets;
-  }
-  std::vector<odb::dbNet*> getClockNetsObjs() const { return _clockNetsObjs; }
+  std::vector<odb::dbNet*> getClockNetsObjs() const { return clockNetsObjs_; }
   void setMetricsFile(const std::string& metricFile)
   {
-    _metricFile = metricFile;
+    metricFile_ = metricFile;
   }
-  std::string getMetricsFile() const { return _metricFile; }
-  void setNumClockRoots(unsigned roots) { _clockRoots = roots; }
-  long int getNumClockRoots() const { return _clockRoots; }
-  void setNumClockSubnets(long int nets) { _clockSubnets = nets; }
-  long int getNumClockSubnets() const { return _clockSubnets; }
-  void setNumBuffersInserted(long int buffers) { _buffersInserted = buffers; }
-  long int getNumBuffersInserted() const { return _buffersInserted; }
-  void setNumSinks(long int sinks) { _sinks = sinks; }
-  long int getNumSinks() const { return _sinks; }
-  void setTreeBuffer(const std::string& buffer) { _treeBuffer = buffer; }
-  std::string getTreeBuffer() const { return _treeBuffer; }
-  unsigned getClusteringPower() const { return _clusteringPower; }
-  void setClusteringPower(unsigned power) { _clusteringPower = power; }
-  double getClusteringCapacity() const { return _clusteringCapacity; }
+  std::string getMetricsFile() const { return metricFile_; }
+  void setNumClockRoots(unsigned roots) { clockRoots_ = roots; }
+  int getNumClockRoots() const { return clockRoots_; }
+  void setNumClockSubnets(int nets) { clockSubnets_ = nets; }
+  int getNumClockSubnets() const { return clockSubnets_; }
+  void setNumBuffersInserted(int buffers) { buffersInserted_ = buffers; }
+  int getNumBuffersInserted() const { return buffersInserted_; }
+  void setNumSinks(int sinks) { sinks_ = sinks; }
+  int getNumSinks() const { return sinks_; }
+  void setTreeBuffer(const std::string& buffer) { treeBuffer_ = buffer; }
+  std::string getTreeBuffer() const { return treeBuffer_; }
+  unsigned getClusteringPower() const { return clusteringPower_; }
+  void setClusteringPower(unsigned power) { clusteringPower_ = power; }
+  double getClusteringCapacity() const { return clusteringCapacity_; }
   void setClusteringCapacity(double capacity)
   {
-    _clusteringCapacity = capacity;
+    clusteringCapacity_ = capacity;
   }
-  double getBufferDistance() const { return _bufDistance; }
-  void setBufferDistance(double distance) { _bufDistance = distance; }
-  double getVertexBufferDistance() const { return _vertexBufDistance; }
-  void setVertexBufferDistance(double distance)
+
+  // BufferDistance is in DBU
+  int32_t getBufferDistance() const
   {
-    _vertexBufDistance = distance;
+    if (bufDistance_) {
+      return *bufDistance_;
+    }
+
+    if (dbUnits_ == -1) {
+      logger_->error(
+          utl::CTS, 542, "Must provide a dbUnit conversion though setDbUnits.");
+    }
+
+    return 100 /*um*/ * dbUnits_;
   }
-  bool isVertexBuffersEnabled() const { return _vertexBuffersEnable; }
-  void setVertexBuffersEnabled(bool enable) { _vertexBuffersEnable = enable; }
-  bool isSimpleSegmentEnabled() const { return _simpleSegmentsEnable; }
-  void setSimpleSegmentsEnabled(bool enable) { _simpleSegmentsEnable = enable; }
-  double getMaxDiameter() const { return _maxDiameter; }
+  void setBufferDistance(int32_t distance_dbu) { bufDistance_ = distance_dbu; }
+
+  // VertexBufferDistance is in DBU
+  int32_t getVertexBufferDistance() const
+  {
+    if (vertexBufDistance_) {
+      return *vertexBufDistance_;
+    }
+
+    if (dbUnits_ == -1) {
+      logger_->error(
+          utl::CTS, 543, "Must provide a dbUnit conversion though setDbUnits.");
+    }
+
+    return 240 /*um*/ * dbUnits_;
+  }
+  void setVertexBufferDistance(int32_t distance_dbu)
+  {
+    vertexBufDistance_ = distance_dbu;
+  }
+  bool isVertexBuffersEnabled() const { return vertexBuffersEnable_; }
+  void setVertexBuffersEnabled(bool enable) { vertexBuffersEnable_ = enable; }
+  bool isSimpleSegmentEnabled() const { return simpleSegmentsEnable_; }
+  void setSimpleSegmentsEnabled(bool enable) { simpleSegmentsEnable_ = enable; }
+  double getMaxDiameter() const { return maxDiameter_; }
   void setMaxDiameter(double distance)
   {
-    _maxDiameter = distance;
-    _sinkClusteringUseMaxCap = false;
+    maxDiameter_ = distance;
+    sinkClusteringUseMaxCap_ = false;
+    maxDiameterSet_ = true;
   }
-  unsigned getSizeSinkClustering() const { return _sinkClustersSize; }
-  void setSizeSinkClustering(unsigned size)
+  bool isMaxDiameterSet() const { return maxDiameterSet_; }
+  unsigned getSinkClusteringSize() const { return sinkClustersSize_; }
+  void setSinkClusteringSize(unsigned size)
   {
-    _sinkClustersSize = size;
-    _sinkClusteringUseMaxCap = false;
+    sinkClustersSize_ = size;
+    sinkClusteringUseMaxCap_ = false;
+    sinkClustersSizeSet_ = true;
   }
-  unsigned getSinkClusteringLevels() const { return _sinkClusteringLevels; }
+  bool isSinkClusteringSizeSet() const { return sinkClustersSizeSet_; }
+  unsigned getSinkClusteringLevels() const { return sinkClusteringLevels_; }
   void setSinkClusteringLevels(unsigned levels)
   {
-    _sinkClusteringLevels = levels;
+    sinkClusteringLevels_ = levels;
   }
-  unsigned getNumStaticLayers() const { return _numStaticLayers; }
-  void setBalanceLevels(bool balance) { _balanceLevels = balance; }
-  bool getBalanceLevels() const { return _balanceLevels; }
-  void setNumStaticLayers(unsigned num) { _numStaticLayers = num; }
-  void setSinkBuffer(const std::string& buffer) { _sinkBuffer = buffer; }
-  void setSinkBufferMaxCap(double cap) { _sinkBufferMaxCap = cap; }
-  double getSinkBufferMaxCap() const { return _sinkBufferMaxCap; }
-  void setSinkBufferInputCap(double cap) { _sinkBufferInputCap = cap; }
-  double getSinkBufferInputCap() const { return _sinkBufferInputCap; }
-  std::string getSinkBuffer() const { return _sinkBuffer; }
-  void setEnableNNC(bool enable) { _enableNNC = enable; }
-  bool getEnableNNC() const { return _enableNNC; }
-  void setNNCTopoPbFile(std::string file_name) { _nncTopoPb = file_name; }
-  const std::string& getNNCTopoFile() const { return _nncTopoPb; }
-  void setNNCBanyan(bool enable) { _nncBanyan = enable; }
-  bool getNNCBanyan() const { return _nncBanyan; }
-  utl::Logger* getLogger() { return _logger; }
-  stt::SteinerTreeBuilder* getSttBuilder() { return _sttBuilder; }
-  void setBufferTestInSlew(double in_slew) { buffer_in_slew = in_slew; }
-  double getBufferTestInSlew() const { return buffer_in_slew; }
-  void setSlewDegradationBound(double bound) { slew_degradation_bound = bound; }
-  double getSlewDegradationBound() const { return slew_degradation_bound; }
-  void setMergeDelayThreshold(double delay_threshold) { merge_delay_threshold = delay_threshold; }
-  double getMergeDelayThreshold() const { return merge_delay_threshold; }
-  void setBalanceDelayThreshold(double balance_threshold) { balance_delay_threshold = balance_threshold; }
-  double getBalanceDelayThreshold() const { return balance_delay_threshold; }
-  void setBufferMaxLoadCap(double load_cap) { buffer_max_load_cap = load_cap; }
-  double getBufferMaxLoadCap() const { return buffer_max_load_cap; }
-  unsigned getMaxFanout() const { return _max_fanout; }
-  void setMaxFanout(unsigned num) { _max_fanout = num; }
-  double getAvgDistance() const { return avg_distance; }
-  void setAvgDistance(double distance) { avg_distance = distance; }
-  void setMetricJsonFormat(bool json_format) { _metric_json_format = json_format; }
-  bool getMetricJsonFormat() const { return _metric_json_format; }
+  unsigned getNumStaticLayers() const { return numStaticLayers_; }
+  void setBalanceLevels(bool balance) { balanceLevels_ = balance; }
+  bool getBalanceLevels() const { return balanceLevels_; }
+  void setNumStaticLayers(unsigned num) { numStaticLayers_ = num; }
+  void setSinkBuffer(const std::string& buffer) { sinkBuffer_ = buffer; }
+  void setSinkBufferInputCap(double cap) { sinkBufferInputCap_ = cap; }
+  double getSinkBufferInputCap() const { return sinkBufferInputCap_; }
+  std::string getSinkBuffer() const { return sinkBuffer_; }
+  utl::Logger* getLogger() const { return logger_; }
+  stt::SteinerTreeBuilder* getSttBuilder() const { return sttBuilder_; }
+  void setObstructionAware(bool obs) { obsAware_ = obs; }
+  bool getObstructionAware() const { return obsAware_; }
+  void setApplyNDR(bool ndr) { applyNDR_ = ndr; }
+  bool applyNDR() const { return applyNDR_; }
+  void enableInsertionDelay(bool insDelay) { insertionDelay_ = insDelay; }
+  bool insertionDelayEnabled() const { return insertionDelay_; }
+  void setBufferListInferred(bool inferred) { bufferListInferred_ = inferred; }
+  bool isBufferListInferred() const { return bufferListInferred_; }
+  void setSinkBufferInferred(bool inferred) { sinkBufferInferred_ = inferred; }
+  bool isSinkBufferInferred() const { return sinkBufferInferred_; }
+  void setRootBufferInferred(bool inferred) { rootBufferInferred_ = inferred; }
+  bool isRootBufferInferred() const { return rootBufferInferred_; }
+  void setSinkBufferMaxCapDerate(float derate)
+  {
+    sinkBufferMaxCapDerate_ = derate;
+    sinkBufferMaxCapDerateSet_ = true;
+  }
+  float getSinkBufferMaxCapDerate() const { return sinkBufferMaxCapDerate_; }
+  bool isSinkBufferMaxCapDerateSet() const
+  {
+    return sinkBufferMaxCapDerateSet_;
+  }
+  void enableDummyLoad(bool dummyLoad) { dummyLoad_ = dummyLoad; }
+  bool dummyLoadEnabled() const { return dummyLoad_; }
 
  private:
-  std::string _blockName = "";
-  std::string _outputPath = "";
-  std::string _clockNets = "";
-  std::string _rootBuffer = "";
-  std::string _sinkBuffer = "";
-  std::string _treeBuffer = "";
-  std::string _metricFile = "";
-  int _dbUnits = -1;
-  unsigned _wireSegmentUnit = 0;
-  bool _plotSolution = false;
-  bool _simpleCts = false;
-  bool _sinkClusteringEnable = true;
-  bool _sinkClusteringUseMaxCap = true;
-  bool _simpleSegmentsEnable = false;
-  bool _vertexBuffersEnable = false;
-  bool gui_debug_ = false;
-  double _vertexBufDistance = 240;
-  double _bufDistance = 100;
-  double _clusteringCapacity = 0.6;
-  unsigned _clusteringPower = 4;
-  unsigned _numMaxLeafSinks = 15;
-  unsigned _maxSlew = 4;
-  double _maxCharSlew = 0;
-  double _maxCharCap = 0;
-  double _sinkBufferMaxCap = 0;
-  double _sinkBufferInputCap = 0;
-  double _capInter = 0;
-  double _slewInter = 0;
-  unsigned _charWirelengthIterations = 4;
-  unsigned _charLoadIterations = 34;
-  unsigned _charSlewIterations = 12;
-  unsigned _clockTreeMaxDepth = 100;
-  bool _enableFakeLutEntries = true;
-  bool _forceBuffersOnLeafLevel = true;
-  bool _writeOnlyClockNets = false;
-  bool _runPostCtsOpt = true;
-  double _bufDistRatio = 0.1;
-  long int _clockRoots = 0;
-  long int _clockSubnets = 0;
-  long int _buffersInserted = 0;
-  long int _sinks = 0;
-  double _maxDiameter = 50;
-  unsigned _sinkClustersSize = 20;
-  bool _balanceLevels = false;
-  unsigned _sinkClusteringLevels = 0;
-  unsigned _numStaticLayers = 0;
-  std::vector<std::string> _bufferList;
-  std::vector<odb::dbNet*> _clockNetsObjs;
-  utl::Logger* _logger;
-  stt::SteinerTreeBuilder* _sttBuilder;
-  bool _enableNNC = false;
-  std::string _nncTopoPb;
-  bool _nncBanyan = false;
-  float buffer_in_slew = -1;
-  float slew_degradation_bound = 5.0e-10;
-  float merge_delay_threshold = 2.0e-10;
-  float balance_delay_threshold = -1;
-  float buffer_max_load_cap = -1;
-  unsigned _max_fanout = 0;
-  double avg_distance = 0;
-  bool _metric_json_format = false;
+  std::string clockNets_ = "";
+  std::string rootBuffer_ = "";
+  std::string sinkBuffer_ = "";
+  std::string treeBuffer_ = "";
+  std::string metricFile_ = "";
+  int dbUnits_ = -1;
+  unsigned wireSegmentUnit_ = 0;
+  bool plotSolution_ = false;
+  bool sinkClusteringEnable_ = true;
+  bool sinkClusteringUseMaxCap_ = true;
+  bool simpleSegmentsEnable_ = false;
+  bool vertexBuffersEnable_ = false;
+  std::unique_ptr<CtsObserver> observer_;
+  std::optional<int> vertexBufDistance_;
+  std::optional<int> bufDistance_;
+  double clusteringCapacity_ = 0.6;
+  unsigned clusteringPower_ = 4;
+  unsigned numMaxLeafSinks_ = 15;
+  unsigned maxSlew_ = 4;
+  double maxCharSlew_ = 0;
+  double maxCharCap_ = 0;
+  double sinkBufferInputCap_ = 0;
+  int capSteps_ = 20;
+  int slewSteps_ = 7;
+  unsigned charWirelengthIterations_ = 4;
+  unsigned clockTreeMaxDepth_ = 100;
+  bool enableFakeLutEntries_ = true;
+  bool forceBuffersOnLeafLevel_ = true;
+  double bufDistRatio_ = 0.1;
+  int clockRoots_ = 0;
+  int clockSubnets_ = 0;
+  int buffersInserted_ = 0;
+  int sinks_ = 0;
+  double maxDiameter_ = 50;
+  bool maxDiameterSet_ = false;
+  unsigned sinkClustersSize_ = 20;
+  bool sinkClustersSizeSet_ = false;
+  bool balanceLevels_ = false;
+  unsigned sinkClusteringLevels_ = 0;
+  unsigned numStaticLayers_ = 0;
+  std::vector<std::string> bufferList_;
+  std::vector<odb::dbNet*> clockNetsObjs_;
+  utl::Logger* logger_ = nullptr;
+  stt::SteinerTreeBuilder* sttBuilder_ = nullptr;
+  bool obsAware_ = false;
+  bool applyNDR_ = false;
+  bool insertionDelay_ = false;
+  bool bufferListInferred_ = false;
+  bool sinkBufferInferred_ = false;
+  bool rootBufferInferred_ = false;
+  bool sinkBufferMaxCapDerateSet_ = false;
+  float sinkBufferMaxCapDerateDefault_ = 0.01;
+  float sinkBufferMaxCapDerate_ = sinkBufferMaxCapDerateDefault_;
+  bool dummyLoad_ = false;
 };
 
 }  // namespace cts

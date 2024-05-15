@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GR_SHAPE_H_
-#define _GR_SHAPE_H_
+#pragma once
 
 #include "db/grObj/grFig.h"
 #include "db/infra/frSegStyle.h"
@@ -106,11 +105,7 @@ class grPathSeg : public grShape
   }
   grPathSeg(const frPathSeg& in);
   // getters
-  void getPoints(Point& beginIn, Point& endIn) const
-  {
-    beginIn = begin;
-    endIn = end;
-  }
+  std::pair<Point, Point> getPoints() const { return {begin, end}; }
 
   // setters
   void setPoints(const Point& beginIn, const Point& endIn)
@@ -198,9 +193,9 @@ class grPathSeg : public grShape
    * getBBox
    */
   // needs to be updated
-  void getBBox(Rect& boxIn) const override
+  Rect getBBox() const override
   {
-    boxIn.init(begin.x(), begin.y(), end.x(), end.y());
+    return Rect(begin.x(), begin.y(), end.x(), end.y());
   }
 
   void setIter(frListIter<std::unique_ptr<grShape>>& in) override { iter = in; }
@@ -216,5 +211,3 @@ class grPathSeg : public grShape
   frListIter<std::unique_ptr<grShape>> iter;
 };
 }  // namespace fr
-
-#endif

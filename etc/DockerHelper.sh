@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -20,12 +20,11 @@ usage: $0 [CMD] [OPTIONS]
   OPTIONS:
   -compiler=COMPILER_NAME       Choose between gcc (default) and clang. Valid
                                   only if the target is 'builder'.
-  -os=OS_NAME                   Choose beween centos7 (default) and ubuntu20.
+  -os=OS_NAME                   Choose beween centos7 (default), ubuntu20.04, ubuntu22.04, rhel, opensuse, debian10 and debian11.
   -target=TARGET                Choose target fo the Docker image:
                                   'dev': os + packages to compile app
                                   'builder': os + packages to compile app +
                                              copy source code and build app
-                                  'runtime': os + packages to run a compiled app
                                   'binary': os + packages to run a compiled
                                             app + binary set as entrypoint
   -threads                      Max number of threads to use if compiling.
@@ -33,6 +32,7 @@ usage: $0 [CMD] [OPTIONS]
   -sha                          Use git commit sha as the tag image. Default is
                                   'latest'.
   -h -help                      Show this message and exits
+  -local                        Installs with prefix /home/openroad-deps
 
 EOF
     exit "${1:-1}"
@@ -52,8 +52,23 @@ _setup() {
         "centos7")
             osBaseImage="centos:centos7"
             ;;
-        "ubuntu20")
+        "ubuntu20.04")
             osBaseImage="ubuntu:20.04"
+            ;;
+        "ubuntu22.04")
+            osBaseImage="ubuntu:22.04"
+            ;;
+        "opensuse")
+            osBaseImage="opensuse/leap"
+            ;;
+        "debian10")
+            osBaseImage="debian:buster"
+            ;;
+        "debian11")
+            osBaseImage="debian:bullseye"
+            ;;
+        "rhel")
+            osBaseImage="redhat/ubi8"
             ;;
         *)
             echo "Target OS ${os} not supported" >&2
@@ -72,21 +87,27 @@ _setup() {
             context="."
             buildArgs="--build-arg compiler=${compiler}"
             buildArgs="${buildArgs} --build-arg numThreads=${numThreads}"
+            if [[ "${isLocal}" == "yes" ]]; then
+                buildArgs="${buildArgs} --build-arg LOCAL_PATH=${LOCAL_PATH}/bin"
+            fi
             imageName="${IMAGE_NAME_OVERRIDE:-"${imageName}-${compiler}"}"
             ;;
         "dev" )
             fromImage="${FROM_IMAGE_OVERRIDE:-$osBaseImage}"
             context="etc"
             buildArgs=""
-            ;;
-        "runtime" )
-            fromImage="${FROM_IMAGE_OVERRIDE:-$osBaseImage}"
-            context="etc"
-            copyImage="${COPY_IMAGE_OVERRIDE:-"${org}/${os}-builder-${compiler}"}:${imageTag}"
-            buildArgs="--build-arg copyImage=${copyImage}"
+            if [[ "${isLocal}" == "yes" ]]; then
+                buildArgs="-prefix=${LOCAL_PATH}"
+            fi
+            if [[ "${equivalenceDeps}" == "yes" ]]; then
+                buildArgs="${buildArgs} -eqy"
+            fi
+            if [[ "${buildArgs}" != "" ]]; then
+                buildArgs="--build-arg INSTALLER_ARGS='${buildArgs}'"
+            fi
             ;;
         "binary" )
-            fromImage="${FROM_IMAGE_OVERRIDE:-${org}/${os}-runtime}:${imageTag}"
+            fromImage="${FROM_IMAGE_OVERRIDE:-${org}/${os}-dev}:${imageTag}"
             context="etc"
             copyImage="${COPY_IMAGE_OVERRIDE:-"${org}/${os}-builder-${compiler}"}:${imageTag}"
             buildArgs="--build-arg copyImage=${copyImage}"
@@ -120,7 +141,7 @@ _test() {
 
 _create() {
     echo "Create docker image ${imagePath} using ${file}"
-    docker build --file "${file}" --tag "${imagePath}" ${buildArgs} "${context}"
+    eval docker build --file "${file}" --tag "${imagePath}" ${buildArgs} "${context}"
 }
 
 _push() {
@@ -131,30 +152,37 @@ _push() {
             if [[ $REPLY =~ ^[Yy]$  ]]; then
                 mkdir -p build
 
-                # create image with sha and latest tag for both os
-                ./etc/DockerHelper.sh create -target=dev \
-                    2>&1 | tee build/create-centos-latest.log
-                ./etc/DockerHelper.sh create -target=dev -sha \
-                    2>&1 | tee build/create-centos-${commitSha}.log
-                ./etc/DockerHelper.sh create -target=dev -os=ubuntu20 \
-                    2>&1 | tee build/create-ubuntu20-latest.log
-                ./etc/DockerHelper.sh create -target=dev -os=ubuntu20 -sha \
-                    2>&1 | tee build/create-ubuntu20-${commitSha}.log
+                OS_LIST="centos7 ubuntu20.04 ubuntu22.04"
+                # create image with sha and latest tag for all os
+                for os in ${OS_LIST}; do
+                    ./etc/DockerHelper.sh create -target=dev \
+                        2>&1 | tee build/create-${os}-latest.log &
+                done
+                wait
 
-                # test image with sha and latest tag for both os and compiler
-                ./etc/DockerHelper.sh test -target=builder \
-                    2>&1 | tee build/test-centos-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -compiler=clang \
-                    2>&1 | tee build/test-centos-clang-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=ubuntu20 \
-                    2>&1 | tee build/test-ubuntu20-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=ubuntu20 -compiler=clang \
-                    2>&1 | tee build/test-ubuntu20-clang-latest.log
+                for os in ${OS_LIST}; do
+                    ./etc/DockerHelper.sh create -target=dev -sha \
+                        2>&1 | tee build/create-${os}-${commitSha}.log &
+                done
+                wait
 
-                echo [DRY-RUN] docker push openroad/centos7-dev:latest
-                echo [DRY-RUN] docker push openroad/centos7-dev:${commitSha}
-                echo [DRY-RUN] docker push openroad/ubuntu20-dev:latest
-                echo [DRY-RUN] docker push openroad/ubuntu20-dev:${commitSha}
+                # test image with sha and latest tag for all os and compiler
+                for os in ${OS_LIST}; do
+                    ./etc/DockerHelper.sh test -target=builder -sha \
+                        2>&1 | tee build/test-${os}-gcc-latest.log &
+                done
+                wait
+
+                for os in ${OS_LIST}; do
+                    ./etc/DockerHelper.sh test -target=builder -sha -compiler=clang \
+                        2>&1 | tee build/test-${os}-clang-latest.log &
+                done
+                wait
+
+                for os in ${OS_LIST}; do
+                    echo [DRY-RUN] docker push openroad/${os}-dev:latest
+                    echo [DRY-RUN] docker push openroad/${os}-dev:${commitSha}
+                done
 
             else
                 echo "Will not push."
@@ -191,7 +219,20 @@ os="centos7"
 target="dev"
 compiler="gcc"
 useCommitSha="no"
-numThreads="$(nproc)"
+isLocal="no"
+equivalenceDeps="yes"
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  numThreads=$(nproc --all)
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+  numThreads=$(sysctl -n hw.ncpu)
+else
+  cat << EOF
+WARNING: Unsupported OSTYPE: cannot determine number of host CPUs"
+  Defaulting to 2 threads. Use --threads N to use N threads"
+EOF
+  numThreads=2
+fi
+LOCAL_PATH="/home/openroad-deps"
 
 while [ "$#" -gt 0 ]; do
     case "${1}" in
@@ -212,6 +253,12 @@ while [ "$#" -gt 0 ]; do
             ;;
         -sha )
             useCommitSha=yes
+            ;;
+        -local )
+            isLocal=yes
+            ;;
+        -no_eqy )
+            equivalenceDeps=no
             ;;
         -compiler | -os | -target )
             echo "${1} requires an argument" >&2

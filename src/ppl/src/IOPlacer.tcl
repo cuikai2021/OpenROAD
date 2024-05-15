@@ -49,9 +49,9 @@ proc define_pin_shape_pattern { args } {
 
   if [info exists keys(-layer)] {
     set layer_name $keys(-layer)
-    set layer_idx [ppl::parse_layer_name $layer_name]
+    set layer [ppl::parse_layer_name $layer_name]
 
-    if { $layer_idx == 0 } {
+    if { $layer == 0 } {
       utl::error PPL 52 "Routing layer not found for name $layer_name."
     }
   } else {
@@ -82,6 +82,7 @@ proc define_pin_shape_pattern { args } {
     } else {
       utl::error PPL 63 "-region is not a list of 4 values {llx lly urx ury}."
     }
+    odb::Rect region $llx $lly $urx $ury
   } else {
     utl::error PPL 55 "-region is required."
   }
@@ -109,83 +110,137 @@ proc define_pin_shape_pattern { args } {
     set keepout [[[ord::get_db_tech] findLayer $keys(-layer)] getSpacing $max_dim]
   }
 
-  ppl::create_pin_shape_pattern $layer_idx $x_step $y_step $llx $lly $urx $ury $width $height $keepout
+  ppl::create_pin_shape_pattern $layer $x_step $y_step region $width $height $keepout
 }
 
 sta::define_cmd_args "set_io_pin_constraint" {[-direction direction] \
                                               [-pin_names names] \
-                                              [-region region]}
+                                              [-region region] \
+                                              [-mirrored_pins pins] \
+                                              [-group]
+                                              [-order]}
 
 proc set_io_pin_constraint { args } {
   sta::parse_key_args "set_io_pin_constraint" args \
-  keys {-direction -pin_names -region}
+  keys {-direction -pin_names -region -mirrored_pins} \
+  flags {-group -order}
 
   sta::check_argc_eq0 "set_io_pin_constraint" $args
-
-  if [info exists keys(-region)] {
-    set region $keys(-region)
-  }
 
   set dbTech [ord::get_db_tech]
   set dbBlock [ord::get_db_block]
   set lef_units [$dbTech getLefUnits]
 
-  if [regexp -all {(top|bottom|left|right):(.+)} $region - edge interval] {
-    set edge_ [ppl::parse_edge "-region" $edge]
+  if {[info exists keys(-region)] && [info exists keys(-mirrored_pins)]} {
+    utl::error PPL 83 "Both -region and -mirrored_pins constraints not allowed."
+  }
 
-    if [regexp -all {([0-9]+[.]*[0-9]*|[*]+)-([0-9]+[.]*[0-9]*|[*]+)} $interval - begin end] {
-      if {$begin == {*}} {
+  if {[info exists keys(-mirrored_pins)] && [info exists flags(-group)]} {
+    utl::error PPL 87 "Both -mirrored_pins and -group constraints not allowed."
+  }
+
+  if [info exists keys(-region)] {
+    set region $keys(-region)
+    if [regexp -all {(top|bottom|left|right):(.+)} $region - edge interval] {
+      set edge_ [ppl::parse_edge "-region" $edge]
+
+      if [regexp -all {([0-9]+[.]*[0-9]*|[*]+)-([0-9]+[.]*[0-9]*|[*]+)} $interval - begin end] {
+        if {$begin == {*}} {
+          set begin [ppl::get_edge_extreme "-region" 1 $edge]
+        } else {
+          set begin [ord::microns_to_dbu $begin]
+        }
+
+        if {$end == {*}} {
+          set end [ppl::get_edge_extreme "-region" 0 $edge]
+        } else {
+          set end [ord::microns_to_dbu $end]
+        }
+      } elseif {$interval == {*}} {
         set begin [ppl::get_edge_extreme "-region" 1 $edge]
-      }
-      if {$end == {*}} {
         set end [ppl::get_edge_extreme "-region" 0 $edge]
       }
 
-      set begin [expr { int($begin * $lef_units) }]
-      set end [expr { int($end * $lef_units) }]
-    } elseif {$interval == {*}} {
-      set begin [ppl::get_edge_extreme "-region" 1 $edge]
-      set end [ppl::get_edge_extreme "-region" 0 $edge]
-    }
+      if {[info exists keys(-direction)] && [info exists keys(-pin_names)]} {
+        utl::error PPL 16 "Both -direction and -pin_names constraints not allowed."
+      }
 
-    if {[info exists keys(-direction)] && [info exists keys(-pin_names)]} {
-      utl::error PPL 16 "Both -direction and -pin_names constraints not allowed."
-    }
+      if [info exists keys(-direction)] {
+        set direction $keys(-direction)
+        set dir [ppl::parse_direction "set_io_pin_constraint" $direction]
+        utl::info PPL 49 "Restrict $direction pins to region [ord::dbu_to_microns $begin]u-[ord::dbu_to_microns $end]u, in the $edge edge."
+        ppl::add_direction_constraint $dir $edge_ $begin $end
+      }
 
-    if [info exists keys(-direction)] {
-      set direction $keys(-direction)
-      set dir [ppl::parse_direction "set_io_pin_constraint" $direction]
-      utl::info PPL 49 "Restrict $direction pins to region [ord::dbu_to_microns $begin]u-[ord::dbu_to_microns $end]u, in the $edge edge."
-      ppl::add_direction_constraint $dir $edge_ $begin $end
-    }
+      if [info exists keys(-pin_names)] {
+        set names $keys(-pin_names)
+        ppl::add_pins_to_constraint "set_io_pin_constraint" $names $edge_ $begin $end $edge
+      }
+    } elseif [regexp -all {(up):(.*)} $region - edge box] {
+      if {$box == "*"} {
+        set die_area [$dbBlock getDieArea]
+        set llx [$die_area xMin]
+        set lly [$die_area yMin]
+        set urx [$die_area xMax]
+        set ury [$die_area yMax]
+      } elseif [regexp -all {([0-9]+[.]*[0-9]*) ([0-9]+[.]*[0-9]*) ([0-9]+[.]*[0-9]*) ([0-9]+[.]*[0-9]*)} $box - llx lly urx ury] {
+        set llx [ord::microns_to_dbu $llx]
+        set lly [ord::microns_to_dbu $lly]
+        set urx [ord::microns_to_dbu $urx]
+        set ury [ord::microns_to_dbu $ury]
+      } else {
+        utl::error PPL 59 "Box at top layer must have 4 values (llx lly urx ury)."
+      }
 
-    if [info exists keys(-pin_names)] {
-      set names $keys(-pin_names)
-      ppl::add_pins_to_constraint "set_io_pin_constraint" $names $edge_ $begin $end $edge
-    }
-  } elseif [regexp -all {(up):(.*)} $region - edge box] {
-    if {$box == "*"} {
-      set die_area [$dbBlock getDieArea]
-      set llx [$die_area xMin]
-      set lly [$die_area yMin]
-      set urx [$die_area xMax]
-      set ury [$die_area yMax]
-    } elseif [regexp -all {([0-9]+[.]*[0-9]*) ([0-9]+[.]*[0-9]*) ([0-9]+[.]*[0-9]*) ([0-9]+[.]*[0-9]*)} $box - llx lly urx ury] {
-      set llx [ord::microns_to_dbu $llx]
-      set lly [ord::microns_to_dbu $lly]
-      set urx [ord::microns_to_dbu $urx]
-      set ury [ord::microns_to_dbu $ury]
+      if [info exists keys(-pin_names)] {
+        set names $keys(-pin_names)
+        ppl::add_pins_to_top_layer "set_io_pin_constraint" $names $llx $lly $urx $ury
+      }
     } else {
-      utl::error PPL 59 "Box at top layer must have 4 values (llx lly urx ury)."
+      utl::warn PPL 73 "Constraint with region $region has an invalid edge."
+    }
+  }
+
+  if [info exists flags(-group)] {
+    if [info exists keys(-pin_names)] {
+        set group $keys(-pin_names)
+    } else {
+      utl::error PPL 58 "The -pin_names argument is required when using -group flag."
     }
 
-    if [info exists keys(-pin_names)] {
-      set names $keys(-pin_names)
-      ppl::add_pins_to_top_layer "set_io_pin_constraint" $names $llx $lly $urx $ury
+    set pin_list {}
+    set final_group ""
+    foreach pin_name $group {
+      set db_bterm [$dbBlock findBTerm $pin_name]
+      if { $db_bterm != "NULL" } {
+        lappend pin_list $db_bterm
+        set final_group "$final_group $pin_name"
+      } else {
+        utl::warn PPL 47 "Group pin $pin_name not found in the design."
+      }
     }
-  } else {
-    utl::warn PPL 73 "Constraint with region $region has an invalid edge."
+
+    if { [llength $pin_list] != 0} {
+      ppl::add_pin_group $pin_list [info exists flags(-order)]
+      incr group_idx
+    }
+  } elseif [info exists flags(-order)] {
+    utl::error PPL 95 "-order cannot be used without -group."
   }
+
+  if [info exists keys(-mirrored_pins)] {
+    set mirrored_pins $keys(-mirrored_pins)
+    if { [expr [llength $mirrored_pins] % 2] != 0 } {
+      utl::error PPL 81 "List of pins must have an even number of pins."
+    }
+
+    foreach {pin1 pin2} $mirrored_pins {
+      set bterm1 [ppl::parse_pin_names "set_io_pin_constraint -mirrored_pins" $pin1]
+      set bterm2 [ppl::parse_pin_names "set_io_pin_constraint -mirrored_pins" $pin2]
+      ppl::add_mirrored_pins $bterm1 $bterm2
+    }
+  }
+
 }
 
 proc clear_io_pin_constraints {} {
@@ -203,11 +258,11 @@ proc set_pin_length { args } {
   sta::check_argc_eq0 "set_pin_length" $args
 
   if [info exists keys(-hor_length)] {
-    ppl::set_hor_length $keys(-hor_length)
+    ppl::set_hor_length [ord::microns_to_dbu $keys(-hor_length)]
   }
 
   if [info exists keys(-ver_length)] {
-    ppl::set_ver_length $keys(-ver_length)
+    ppl::set_ver_length [ord::microns_to_dbu $keys(-ver_length)]
   }
 }
 
@@ -216,17 +271,17 @@ sta::define_cmd_args "set_pin_length_extension" {[-hor_extension h_ext]\
 }
 
 proc set_pin_length_extension { args } {
-  sta::parse_key_args "set_pin_length" args \
+  sta::parse_key_args "set_pin_length_extension" args \
   keys {-hor_extension -ver_extension}
 
   sta::check_argc_eq0 "set_pin_length_extension" $args
 
   if [info exists keys(-hor_extension)] {
-    ppl::set_hor_length_extend $keys(-hor_extension)
+    ppl::set_hor_length_extend [ord::microns_to_dbu $keys(-hor_extension)]
   }
 
   if [info exists keys(-ver_extension)] {
-    ppl::set_ver_length_extend $keys(-ver_extension)
+    ppl::set_ver_length_extend [ord::microns_to_dbu $keys(-ver_extension)]
   }
 }
 
@@ -235,7 +290,7 @@ sta::define_cmd_args "set_pin_thick_multiplier" {[-hor_multiplier h_mult]\
 }
 
 proc set_pin_thick_multiplier { args } {
-  sta::parse_key_args "set_pin_length" args \
+  sta::parse_key_args "set_pin_thick_multiplier" args \
   keys {-hor_multiplier -ver_multiplier}
 
   sta::check_argc_eq0 "set_pin_thick_multiplier" $args
@@ -249,6 +304,62 @@ proc set_pin_thick_multiplier { args } {
   }
 }
 
+sta::define_cmd_args "set_simulated_annealing" {[-temperature temperature]\
+                                                [-max_iterations iters]\
+                                                [-perturb_per_iter perturbs]\
+                                                [-alpha alpha]
+}
+
+proc set_simulated_annealing { args } {
+  sta::parse_key_args "set_simulated_annealing" args \
+  keys {-temperature -max_iterations -perturb_per_iter -alpha}
+
+  set temperature 0
+  if [info exists keys(-temperature)] {
+    set temperature $keys(-temperature)
+    sta::check_positive_float "-temperature" $temperature
+  }
+
+  set max_iterations 0
+  if [info exists keys(-max_iterations)] {
+    set max_iterations $keys(-max_iterations)
+    sta::check_positive_int "-max_iterations" $max_iterations
+  }
+
+  set perturb_per_iter 0
+  if [info exists keys(-perturb_per_iter)] {
+    set perturb_per_iter $keys(-perturb_per_iter)
+    sta::check_positive_int "-perturb_per_iter" $perturb_per_iter
+  }
+
+  set alpha 0
+  if [info exists keys(-alpha)] {
+    set alpha $keys(-alpha)
+    sta::check_positive_float "-alpha" $alpha
+  }
+
+  ppl::set_simulated_annealing $temperature $max_iterations $perturb_per_iter $alpha
+}
+
+sta::define_cmd_args "simulated_annealing_debug" {
+  [-iters_between_paintings iters]
+  [-no_pause_mode no_pause_mode] # Print solver state every second based on iters_between_paintings
+}
+
+proc simulated_annealing_debug { args } {
+  sta::parse_key_args "simulated_annealing_debug" args \
+  keys {-iters_between_paintings} \
+  flags {-no_pause_mode}
+
+  if [info exists keys(-iters_between_paintings)] {
+    set iters $keys(-iters_between_paintings)
+    sta::check_positive_int "-iters_between_paintings" $iters
+    ppl::simulated_annealing_debug $iters [info exists flags(-no_pause_mode)]
+  } else {
+    utl::error PPL 108 "The -iters_between_paintings argument is required when using debug."
+  }
+}
+
 sta::define_cmd_args "place_pin" {[-pin_name pin_name]\
                                   [-layer layer]\
                                   [-location location]\
@@ -259,7 +370,7 @@ sta::define_cmd_args "place_pin" {[-pin_name pin_name]\
 proc place_pin { args } {
   sta::parse_key_args "place_pin" args \
   keys {-pin_name -layer -location -pin_size}\
-  flags {-force_to_die_boundary}
+  flags {-force_to_die_boundary -placed_status}
 
   sta::check_argc_eq0 "place_pin" $args
 
@@ -291,7 +402,7 @@ proc place_pin { args } {
   if [info exists keys(-pin_size)] {
     set pin_size $keys(-pin_size)
   } else {
-    utl::error PPL 67 "-pin_size is required."
+    set pin_size {0 0}
   }
 
   if { [llength $pin_size] != 2 } {
@@ -306,9 +417,16 @@ proc place_pin { args } {
     utl::error PPL 71 "Command place_pin should receive only one pin name."
   }
 
-  set layer_idx [ppl::parse_layer_name $layer]
+  set layer [ppl::parse_layer_name $layer]
 
-  ppl::place_pin $pin $layer_idx $x $y $width $height [info exists flags(-force_to_die_boundary)]
+  ppl::place_pin $pin $layer $x $y $width $height [info exists flags(-force_to_die_boundary)]
+}
+
+sta::define_cmd_args "write_pin_placement" { file_name }
+
+proc write_pin_placement { args } {
+  set file_name $args
+  ppl::write_pin_placement $file_name
 }
 
 sta::define_cmd_args "place_pins" {[-hor_layers h_layers]\
@@ -319,93 +437,18 @@ sta::define_cmd_args "place_pins" {[-hor_layers h_layers]\
                                   [-min_distance min_dist]\
                                   [-min_distance_in_tracks]\
                                   [-exclude region]\
-                                  [-group_pins pin_list]
+                                  [-group_pins pin_list]\
+                                  [-annealing] \
+                                  [-write_pin_placement file_name]
                                  }
-
-proc io_placer { args } {
-  utl::warn PPL 14 "io_placer command is deprecated. Use place_pins instead."
-  [eval place_pins $args]
-}
-sta::define_cmd_args "read_pin" {[-name pin_name]\
-                                [-layer pin_layer]\
-                                [-loc location]\
-                                [-width pin_width]\
-                                [-depth pin_depth]\
-                                [-orientation side]
-                                 }
-#haoyuan, tag 
-proc read_pin { args } {
-  sta::parse_key_args "place_pins" args \
-  keys {-name -layer -loc -width -depth -orientation}
-
-  set dbTech [ord::get_db_tech]
-  if { $dbTech == "NULL" } {
-    utl::error PPL 100 "no technology found."
-  }
-
-  set dbBlock [ord::get_db_block]
-  if { $dbBlock == "NULL" } {
-    utl::error PPL 101 "no block found."
-  }
-
-  if [info exists keys(-name)] {
-    set pin_name $keys(-name)
-  } else {
-    utl::error PPL 102 "-name is required."
-  }
-
-  if [info exists keys(-layer)] {
-    set pin_layer $keys(-layer)
-  } else {
-    utl::error PPL 103 "-layer is required."
-  }
-
-  if [info exists keys(-loc)] {
-    set location $keys(-loc)
-  } else {
-    utl::error PPL 104 "-loc is required."
-  }
-
-  if {! [llength $location] eq 2} {
-    utl::error PPL 105 "x y are needed"
-  }
-
-  if [info exists keys(-width)] {
-    set width $keys(-width)
-  } else {
-    utl::error PPL 106 "-width is required."
-  }
-
-  if [info exists keys(-depth)] {
-    set depth $keys(-depth)
-  } else {
-    utl::error PPL 107 "-depth is required."
-  }
-
-  if [info exists keys(-orientation)] {
-    set orientation $keys(-orientation)
-  } else {
-    utl::error PPL 108 "-orientation is required."
-  }
-  set db_bterm [$dbBlock findBTerm $pin_name]
-  if {$db_bterm == "NULL"} {
-    utl::error PPL 109 "pin $pin_name not found."
-  }
-  set edge_ [ppl::parse_edge "-orientation" $orientation]
-  #$dbTech findLayer $pin_layer
-  set layer_ [$dbTech findRoutingLayer $pin_layer]
-  puts "$pin_name $pin_layer [lindex $location 0] [lindex $location 1] $width $depth $orientation"
-  ppl::run_single_io_read $db_bterm $layer_ [lindex $location 0] [lindex $location 1] $width $depth $edge_
-}
-
 
 proc place_pins { args } {
   set regions [ppl::parse_excludes_arg $args]
   set pin_groups [ppl::parse_group_pins_arg $args]
   sta::parse_key_args "place_pins" args \
   keys {-hor_layers -ver_layers -random_seed -corner_avoidance \
-        -min_distance -exclude -group_pins} \
-  flags {-random -min_distance_in_tracks}
+        -min_distance -exclude -group_pins -write_pin_placement} \
+  flags {-random -min_distance_in_tracks -annealing}
 
   sta::check_argc_eq0 "place_pins" $args
 
@@ -425,7 +468,7 @@ proc place_pins { args } {
 
   foreach inst [$dbBlock getInsts] {
     if { [$inst isBlock] } {
-      if { ![$inst isPlaced] } {
+      if { ![$inst isPlaced] && ![info exists flags(-random)]} {
         utl::warn PPL 15 "Macro [$inst getName] is not placed."
       } else {
         lappend blockages $inst
@@ -457,9 +500,6 @@ proc place_pins { args } {
   set distance 1
   if [info exists keys(-corner_avoidance)] {
     set distance $keys(-corner_avoidance)
-    ppl::set_corner_avoidance [ord::microns_to_dbu $distance]
-  } else {
-    utl::report "Using ${distance}u default distance from corners."
     ppl::set_corner_avoidance [ord::microns_to_dbu $distance]
   }
 
@@ -493,12 +533,11 @@ proc place_pins { args } {
       utl::error PPL 21 "Horizontal routing tracks not found for layer $hor_layer_name."
     }
 
-    set h_tech_layer [$dbTech findRoutingLayer $hor_layer]
-    if { [$h_tech_layer getDirection] != "HORIZONTAL" } {
+    if { [$hor_layer getDirection] != "HORIZONTAL" } {
       utl::error PPL 45 "Layer $hor_layer_name preferred direction is not horizontal."
     }
 
-    set hor_track_grid [$dbBlock findTrackGrid $h_tech_layer]
+    set hor_track_grid [$dbBlock findTrackGrid $hor_layer]
 
     set num_tracks_y [expr $num_tracks_y+[llength [$hor_track_grid getGridY]]]
 
@@ -512,12 +551,11 @@ proc place_pins { args } {
       utl::error PPL 23 "Vertical routing tracks not found for layer $ver_layer_name."
     }
 
-    set v_tech_layer [$dbTech findRoutingLayer $ver_layer]
-    if { [$v_tech_layer getDirection] != "VERTICAL" } {
+    if { [$ver_layer getDirection] != "VERTICAL" } {
       utl::error PPL 46 "Layer $ver_layer_name preferred direction is not vertical."
     }
 
-    set ver_track_grid [$dbBlock findTrackGrid $v_tech_layer]
+    set ver_track_grid [$dbBlock findTrackGrid $ver_layer]
 
     set num_tracks_x [expr $num_tracks_x+[llength [$ver_track_grid getGridX]]]
 
@@ -525,10 +563,6 @@ proc place_pins { args } {
   }
 
   set num_slots [expr (2*$num_tracks_x + 2*$num_tracks_y)/$min_dist]
-
-  if { ($bterms_cnt > $num_slots) } {
-    utl::error PPL 24 "Number of pins $bterms_cnt exceeds max possible $num_slots."
-  }
 
   if { $regions != {} } {
     set lef_units [$dbTech getLefUnits]
@@ -575,12 +609,20 @@ proc place_pins { args } {
           utl::warn PPL 43 "Pin $pin_name not found in group $group_idx."
         }
       }
-      ppl::add_pin_group $pin_list
+      ppl::add_pin_group $pin_list 0
       incr group_idx
     }
   }
 
-  ppl::run_io_placement [info exists flags(-random)]
+  if [info exists keys(-write_pin_placement)] {
+    ppl::set_pin_placement_file $keys(-write_pin_placement)
+  }
+
+  if { [info exists flags(-annealing)] } {
+    ppl::run_annealing [info exists flags(-random)]
+  } else {
+    ppl::run_io_placement [info exists flags(-random)]
+  }
 }
 
 namespace eval ppl {
@@ -655,6 +697,8 @@ proc get_edge_extreme { cmd begin edge } {
       utl::error PPL 30 "Invalid edge for command $cmd, should be one of top, bottom, left, right."
     }
   }
+
+  return $extreme
 }
 
 proc exclude_intervals { cmd intervals } {
@@ -674,13 +718,10 @@ proc parse_layer_name { layer_name } {
   if { $tech_layer == "NULL" } {
     utl::error PPL 51 "Layer $layer_name not found."
   }
-  set layer_idx [$tech_layer getRoutingLevel]
-
-  return $layer_idx
+  return $tech_layer
 }
 
 proc add_pins_to_constraint {cmd names edge begin end edge_name} {
-  utl::info PPL 48 "Restrict pins \[$names\] to region [ord::dbu_to_microns $begin]u-[ord::dbu_to_microns $end]u at the $edge_name edge."
   set pin_list [ppl::parse_pin_names $cmd $names]
   ppl::add_names_constraint $pin_list $edge $begin $end
 }
@@ -688,7 +729,12 @@ proc add_pins_to_constraint {cmd names edge begin end edge_name} {
 proc add_pins_to_top_layer {cmd names llx lly urx ury} {
   set tech [ord::get_db_tech]
   set top_layer [ppl::get_top_layer]
-  set top_layer_name [[$tech findRoutingLayer $top_layer] getConstName]
+  
+  if {$top_layer == "NULL"} {
+    utl::error PPL 99 "Constraint up:{$llx $lly $urx $ury} cannot be created. Pin placement grid on top layer not created."
+  }
+
+  set top_layer_name [$top_layer getConstName]
   utl::info PPL 60 "Restrict pins \[$names\] to region ([ord::dbu_to_microns $llx]u, [ord::dbu_to_microns $lly]u)-([ord::dbu_to_microns $urx]u, [ord::dbu_to_microns $urx]u) at routing layer $top_layer_name."
   set pin_list [ppl::parse_pin_names $cmd $names]
   ppl::add_top_layer_constraint $pin_list $llx $lly $urx $ury

@@ -147,9 +147,11 @@ int MacroPlacer::getSolutionCount()
   return solution_count_;
 }
 
-void MacroPlacer::init()
+bool MacroPlacer::init()
 {
-  findMacros();
+  if (!findMacros()) {
+    return false;
+  }
 
   // Connection driven will be disabled if some instances are missing liberty
   // cells.
@@ -160,10 +162,11 @@ void MacroPlacer::init()
     findAdjacencies();
   } else {
     logger_->warn(MPL,
-                  2,
+                  98,
                   "Some instances do not have Liberty models. TritonMP will "
                   "place macros without connection information.");
   }
+  return true;
 }
 
 bool MacroPlacer::isMissingLiberty()
@@ -190,14 +193,16 @@ void MacroPlacer::reportEdgePinCounts()
   }
   for (int i = 0; i < core_edge_count; i++) {
     CoreEdge edge = coreEdgeFromIndex(i);
-    logger_->info(MPL, 9, "{} pins {}.", coreEdgeString(edge), counts[i]);
+    logger_->info(MPL, 102, "{} pins {}.", coreEdgeString(edge), counts[i]);
   }
 }
 
 // Use parquefp on all the macros in the lower left corner.
 void MacroPlacer::placeMacrosCornerMinWL()
 {
-  init();
+  if (!init()) {
+    return;
+  }
 
   double wl = getWeightedWL();
   logger_->info(MPL, 67, "Initial weighted wire length {:g}.", wl);
@@ -266,7 +271,9 @@ void MacroPlacer::setDbInstLocations(Partition& partition)
 // wire lengths of connections between the macros to force them to the corners.
 void MacroPlacer::placeMacrosCornerMaxWl()
 {
-  init();
+  if (!init()) {
+    return;
+  }
 
   double wl = getWeightedWL();
   logger_->info(MPL, 69, "Initial weighted wire length {:g}.", wl);
@@ -404,7 +411,7 @@ void MacroPlacer::placeMacrosCornerMaxWl()
   solution_count_ = 0;
   bool found_best = false;
   int best_setIdx = 0;
-  double bestWwl = -DBL_MAX;
+  double bestWwl = std::numeric_limits<double>::lowest();
   for (auto& partition_set : allSets) {
     // skip for top partition
     if (partition_set.size() == 1) {
@@ -504,9 +511,17 @@ void MacroPlacer::cutRoundUp(const Layout& layout,
                              bool horizontal)
 {
   dbBlock* block = db_->getChip()->getBlock();
-  dbSet<dbRow> rows = block->getRows();
+  dbSite* site = nullptr;
+  for (auto* row : block->getRows()) {
+    if (row->getSite()->getClass() != odb::dbSiteClass::PAD) {
+      site = row->getSite();
+      break;
+    }
+  }
+  if (site == nullptr) {
+    logger_->error(utl::MPL, 97, "Unable to find a site");
+  }
   const double dbu = db_->getTech()->getDbUnitsPerMicron();
-  dbSite* site = rows.begin()->getSite();
   if (horizontal) {
     double siteSizeX = site->getWidth() / dbu;
     cutLine = round(cutLine / siteSizeX) * siteSizeX;
@@ -691,7 +706,7 @@ vector<pair<Partition, Partition>> MacroPlacer::getPartitions(
         uClass = SE;
         break;
       default:
-        logger_->error(MPL, 12, "Unhandled partition class.");
+        logger_->error(MPL, 64, "Unhandled partition class.");
         lClass = W;
         uClass = E;
         break;
@@ -780,7 +795,7 @@ double MacroPlacer::paddedHeight(const Macro& macro)
   return macro.h + spacings.getSpacingY() * 2;
 }
 
-void MacroPlacer::findMacros()
+bool MacroPlacer::findMacros()
 {
   dbBlock* block = db_->getChip()->getBlock();
   const int dbu = db_->getTech()->getDbUnitsPerMicron();
@@ -791,7 +806,7 @@ void MacroPlacer::findMacros()
       if (dps == dbPlacementStatus::NONE
           || dps == dbPlacementStatus::UNPLACED) {
         logger_->error(MPL,
-                       3,
+                       99,
                        "Macro {} is unplaced, use global_placement to get an "
                        "initial placement before macro placement.",
                        inst->getConstName());
@@ -811,10 +826,13 @@ void MacroPlacer::findMacros()
   }
 
   if (macros_.empty()) {
-    logger_->error(MPL, 4, "No macros found.");
+    logger_->warn(MPL, 100, "No macros found.");
+    return false;
   }
 
-  logger_->info(MPL, 5, "Found {} macros.", macros_.size());
+  logger_->info(MPL, 101, "Found {} macros.", macros_.size());
+  logger_->metric("floorplan__design__instance__count__macros", macros_.size());
+  return true;
 }
 
 static bool isWithIn(int val, int min, int max)
@@ -1087,9 +1105,7 @@ void MacroPlacer::copyFaninsAcrossRegisters(sta::BfsFwdIterator& bfs,
     sta::Instance* inst = leaf_iter->next();
     sta::LibertyCell* lib_cell = network->libertyCell(inst);
     if (lib_cell->hasSequentials() && !lib_cell->isMacro()) {
-      sta::LibertyCellSequentialIterator seq_iter(lib_cell);
-      while (seq_iter.hasNext()) {
-        sta::Sequential* seq = seq_iter.next();
+      for (sta::Sequential* seq : lib_cell->sequentials()) {
         sta::FuncExpr* data_expr = seq->data();
         sta::FuncExprPortIterator data_port_iter(data_expr);
         while (data_port_iter.hasNext()) {
@@ -1200,14 +1216,11 @@ void MacroPlacer::fillMacroWeights(AdjWeightMap& adj_map)
   macro_weights_.resize(weight_size);
   for (size_t i = 0; i < weight_size; i++) {
     macro_weights_[i].resize(weight_size);
-    macro_weights_[i] = {0};
   }
 
-  for (auto pair_weight : adj_map) {
-    const MacroPair& from_to = pair_weight.first;
+  for (const auto& [from_to, weight] : adj_map) {
     Macro* from = from_to.first;
     Macro* to = from_to.second;
-    float weight = pair_weight.second;
     if (!(macroIndexIsEdge(from) && macroIndexIsEdge(to))) {
       int idx1 = macroIndex(from);
       int idx2 = macroIndex(to);
@@ -1272,7 +1285,7 @@ CoreEdge MacroPlacer::findNearestEdge(dbBTerm* bTerm)
   if (status == dbPlacementStatus::UNPLACED
       || status == dbPlacementStatus::NONE) {
     logger_->warn(
-        MPL, 11, "Pin {} is not placed, using west.", bTerm->getConstName());
+        MPL, 65, "Pin {} is not placed, using west.", bTerm->getConstName());
     return CoreEdge::West;
   } else {
     const double dbu = db_->getTech()->getDbUnitsPerMicron();

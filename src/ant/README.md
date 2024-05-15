@@ -1,19 +1,13 @@
 # Antenna Rule Checker
 
-This tool checks antenna violations of a design in OpenDB, and generates
-a report to indicate violated nets. APIs are provided to help fix antenna
-violations during the diode insertion flow in global route.
-
-## Antenna Report Example
+This tool checks antenna violations and generates a report to indicate
+violated nets. See LEF/DEF 5.8 Language Reference, Appendix C,
+"Calculating and Fixing Process Antenna Violations" (p.389) 
+for a [description](https://coriolis.lip6.fr/doc/lefdef/lefdefref/lefdefref.pdf) of antenna violations.
 
 This is an example of the detailed and simple reports of the antenna checker:
 
-```{image} ./doc/images/ant_report_print.png
-:alt: Antenna checker report
-:class: bg-primary
-:width: 500px
-:align: center
-```
+| <img src="./doc/images/ant_report_print.png" width=500px> |
 
 Abbreviations Index:
 
@@ -24,6 +18,48 @@ Abbreviations Index:
 -   `C. Area`: Cumulative Gate Area
 -   `C. S. Area`: Cumulative Side (Diffusion) Area
 
+Antenna violations can be repaired after global routing with the `repair_design` command.
+
+## Commands
+
+```{note}
+- Parameters in square brackets `[-param param]` are optional.
+- Parameters without square brackets `-param2 param2` are required.
+```
+
+### Check Antennas
+
+```tcl
+check_antennas 
+    [-net net] 
+    [-verbose]
+```
+
+#### Options
+
+| Switch Name | Description |
+| ----- | ----- |
+| `-verbose` | Report all antenna calculations for violating nets. |
+| `-net` | Check antennas on the specified net. |
+
+## Regression tests
+
+There are a set of regression tests in `./test`. For more information, refer to this [section](../../README.md#regression-tests).
+
+Simply run the following script:
+
+```shell
+./test/regression
+```
+
+## Limitations
+
+## FAQs
+
+Check out [GitHub discussion](https://github.com/The-OpenROAD-Project/OpenROAD/discussions/categories/q-a?discussions_q=category%3AQ%26A+antenna+in%3Atitle)
+about this tool.
+
+## Algorithm
 
 | <img src="./doc/images/example_ant.png" width=400px> | <img src="./doc/images/step1.png" width=400px> |
 |:--:|:--:|
@@ -37,26 +73,6 @@ Abbreviations Index:
 | <img src="./doc/images/step8.png" width=400px> |
 | Step 8: (a) Pick up a gate ITerm and a node of a wire (e.g., M4,1). Find possible paths that connect them, look up the PAR value of the wires along these paths, and add them up to get the CAR of the (gate, wire) pair. (b) Compare to the AntennaRule to see if the CAR violates the rules. (c) Check this for all (gate, wire) pairs. |
 
-## Commands
-
-### `check_antennas`
-
-Check antenna violations on all nets and generate a report.
-
-```
-check_antennas [-report_filename <FILE>] [-report_violating_nets]
-```
-
--   `-report_filename`: specifies the filename path where the antenna violation report is to be saved.
--   `-report_violating_nets`: provides a summary of the violated nets.
-
-## Limitations
-
-## FAQs
-
-Check out [GitHub discussion](https://github.com/The-OpenROAD-Project/OpenROAD/discussions/categories/q-a?discussions_q=category%3AQ%26A+antenna+in%3Atitle)
-about this tool.
-
 ## License
 
-BSD 3-Clause License. See [LICENSE](LICENSE) file.
+BSD 3-Clause License. See [LICENSE](../../LICENSE) file.

@@ -40,13 +40,6 @@ namespace gpl {
 class FFT
 {
  public:
-  enum
-  {
-    DCT = -1,
-    IDCT = 1
-  };
-
-  FFT();
   FFT(int binCntX, int binCntY, int binSizeX, int binSizeY);
   ~FFT();
 
@@ -63,10 +56,10 @@ class FFT
  private:
   // 2D array; width: binCntX_, height: binCntY_;
   // No hope to use Vector at this moment...
-  float** binDensity_;
-  float** electroPhi_;
-  float** electroForceX_;
-  float** electroForceY_;
+  float** binDensity_ = nullptr;
+  float** electroPhi_ = nullptr;
+  float** electroForceX_ = nullptr;
+  float** electroForceY_ = nullptr;
 
   // cos/sin table (prev: w_2d)
   // length:  max(binCntX, binCntY) * 3 / 2
@@ -80,18 +73,14 @@ class FFT
   std::vector<float> wy_;
   std::vector<float> wySquare_;
 
-  // work area for bit reversal (int * ip)
-  // length of ip < sqrt(n), where n = max(binCntX_/2, binCntY_/2)
-  //    refer the Proof of ip.size in function makeipt
-  // ip[0],ip[1] are pointers of the cos/sin table.
+  // work area for bit reversal (prev: ip)
+  // length: round(sqrt( max(binCntX_, binCntY_) )) + 2
   std::vector<int> workArea_;
 
-  int binCntX_;
-  int binCntY_;
-  int binSizeX_;
-  int binSizeY_;
-
-  void init();
+  int binCntX_ = 0;
+  int binCntY_ = 0;
+  int binSizeX_ = 0;
+  int binSizeY_ = 0;
 };
 
 //

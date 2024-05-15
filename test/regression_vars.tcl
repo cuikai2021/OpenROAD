@@ -1,4 +1,5 @@
-# Copyright (c) 2019, Parallax Software, Inc.
+# Copied from OpenSTA/test/regression_vars.tcl
+# Copyright (c) 2021, Parallax Software, Inc.
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +18,11 @@
 
 # Application program to run tests on.
 set app "openroad"
-set app_path [file join $openroad_dir "build" "src" $app]
+if { [info exist ::env(OPENROAD_EXE)] } {
+  set app_path "$::env(OPENROAD_EXE)"
+} else {
+  set app_path [file join $openroad_dir "build" "src" $app]
+}
 # Application options.
 set app_options "-no_init -no_splash -exit"
 # Log files for each test are placed in result_dir.
@@ -74,10 +79,18 @@ proc record_tests1 { tests cmp_logfile } {
 
 # Record a test in the regression suite.
 proc record_test { test cmd_dir pass_criteria } {
-  global cmd_dirs test_groups test_pass_criteria
+  global cmd_dirs test_groups test_pass_criteria test_langs
   set cmd_dirs($test) $cmd_dir
   lappend test_groups(all) $test
   set test_pass_criteria($test) $pass_criteria
+  set test_langs($test) [list]
+  if {[file exists [file join $cmd_dir "$test.tcl"]]} {
+    lappend test_langs($test) tcl
+  }
+
+  if {[file exists [file join $cmd_dir "$test.py"]]} {
+    lappend test_langs($test) py
+  }
   return $test
 }
 

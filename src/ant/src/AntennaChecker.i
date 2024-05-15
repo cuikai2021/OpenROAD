@@ -54,46 +54,46 @@ odb::dbDatabase *getDb();
 namespace ant {
 
 int
-check_antennas(char* report_filename, bool report_violating_nets)
+check_antennas(const char *net_name, bool verbose)
 {
-  return getAntennaChecker()->check_antennas(report_filename, report_violating_nets);
+  auto app = ord::OpenRoad::openRoad();
+  auto block = app->getDb()->getChip()->getBlock();
+  dbNet* net = nullptr;
+  if (strlen(net_name) > 0) {
+    net = block->findNet(net_name);
+    if (!net) {
+      auto logger = app->getLogger();
+      logger->error(utl::ANT, 12, "Net {} not found.", net_name);
+    }
+  }
+  return getAntennaChecker()->checkAntennas(net, verbose);
 }
 
-void
-check_max_length(const char *net_name,
-                 int layer)
+int
+antenna_violation_count()
 {
-  AntennaChecker *checker = getAntennaChecker();
-  checker->check_max_length(net_name, layer);
+  return getAntennaChecker()->antennaViolationCount();
 }
 
-void
-load_antenna_rules()
-{
-  getAntennaChecker()->load_antenna_rules();
-}
-
-// check if an input net is violated, return 1 if the net is violated
-//   - -net_name: set the net name for checking
+// check a net for antenna violations
 bool
 check_net_violation(char* net_name)
 { 
   odb::dbNet* net = ord::getDb()->getChip()->getBlock()->findNet(net_name);
   if (net) {
-    auto vios = getAntennaChecker()->get_net_antenna_violations(net);
+    auto vios = getAntennaChecker()->getAntennaViolations(net, nullptr, 0);
     return !vios.empty();
   }
   else
     return false;
 }
 
-// Prints the longest wire in the design
 void
-find_max_wire_length()
+set_report_file_name(char* file_name)
 {
-  getAntennaChecker()->find_max_wire_length();
+  getAntennaChecker()->setReportFileName(file_name);
 }
 
-}
+} // namespace
 
 %} // inline

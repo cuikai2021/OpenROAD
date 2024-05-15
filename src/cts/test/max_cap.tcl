@@ -1,3 +1,4 @@
+source "helpers.tcl"
 # sky130hs liberty cap axis != max_capacitance -> max cap violations
 read_lef sky130hs/sky130hs.tlef
 read_lef sky130hs/sky130hs_std_cell.lef
@@ -21,8 +22,9 @@ set_wire_rc -clock  -layer met3
 #set_wire_rc -clock  -capacitance [expr 1.4e-10 * 1e-6 * 1e+12] -resistance [expr 166800.0 * 1e-6 * 1e-3]
 #set_wire_rc -clock  -capacitance [expr 100e-10 * 1e-6 * 1e+12] -resistance [expr 166800.0 * 1e-6 * 1e-3]
 
-clock_tree_synthesis_old -root_buf sky130_fd_sc_hs__clkbuf_1 \
-                     -buf_list sky130_fd_sc_hs__clkbuf_1
+clock_tree_synthesis -root_buf sky130_fd_sc_hs__clkbuf_1 \
+                     -buf_list sky130_fd_sc_hs__clkbuf_1 \
+                     -obstruction_aware    
 
 set_propagated_clock clk1
 estimate_parasitics -placement

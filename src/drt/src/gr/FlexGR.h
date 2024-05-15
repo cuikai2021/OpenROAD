@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_FLEXGR_H_
-#define _FR_FLEXGR_H_
+#pragma once
 
 #include <boost/icl/interval_map.hpp>
 #include <boost/icl/interval_set.hpp>
@@ -41,7 +40,7 @@
 namespace odb {
 class dbDatabase;
 class Rect;
-}
+}  // namespace odb
 namespace stt {
 class SteinerTreeBuilder;
 }
@@ -52,8 +51,15 @@ class FlexGR
 {
  public:
   // constructors
-  FlexGR(frDesign* designIn, Logger* logger, stt::SteinerTreeBuilder* stt_builder)
-      : design_(designIn), cmap_(nullptr), cmap2D_(nullptr), logger_(logger), stt_builder_(stt_builder)
+  FlexGR(frDesign* designIn,
+         Logger* logger,
+         stt::SteinerTreeBuilder* stt_builder)
+      : db_(nullptr),
+        design_(designIn),
+        cmap_(nullptr),
+        cmap2D_(nullptr),
+        logger_(logger),
+        stt_builder_(stt_builder)
   {
   }
 
@@ -74,6 +80,7 @@ class FlexGR
   void main(odb::dbDatabase* db = nullptr);
 
  private:
+  odb::dbDatabase* db_;
   frDesign* design_;
   std::unique_ptr<FlexGRCMap> cmap_;
   std::unique_ptr<FlexGRCMap> cmap2D_;
@@ -109,7 +116,7 @@ class FlexGR
                          unsigned workerHistCost,
                          double congThresh,
                          bool is2DRouting,
-                         int mode);
+                         RipUpMode mode);
   void searchRepair(int iter,
                     int size,
                     int offset,
@@ -118,7 +125,7 @@ class FlexGR
                     unsigned workerHistCost,
                     double congThresh,
                     bool is2DRouting,
-                    int mode,
+                    RipUpMode mode,
                     bool TEST);
 
   void end();
@@ -230,7 +237,7 @@ class FlexGR
       std::vector<frNode*>& steinerNodes);
   // utility
   void writeToGuide();
-  void writeGuideFile();
+  void updateDb();
   void getBatchInfo(int& batchStepX, int& batchStepY);
 };
 
@@ -288,7 +295,6 @@ class FlexGRWorker
         workerHistCost_(0),
         congThresh_(1.0),
         is2DRouting_(false),
-        ripupMode_(0),
         nets_(),
         owner2nets_(), /*owner2extBoundPtNodes(), owner2routeBoundPtNodes(),
                           owner2pinGCellNodes(),*/
@@ -307,7 +313,7 @@ class FlexGRWorker
   void setHistCost(int in) { workerHistCost_ = in; }
   void setCongThresh(double in) { congThresh_ = in; }
   void set2D(bool in) { is2DRouting_ = in; }
-  void setRipupMode(int in) { ripupMode_ = in; }
+  void setRipupMode(RipUpMode in) { ripupMode_ = in; }
 
   // getters
   frTechObject* getTech() const { return design_->getTech(); }
@@ -362,7 +368,7 @@ class FlexGRWorker
   int workerHistCost_;
   double congThresh_;
   bool is2DRouting_;
-  int ripupMode_;
+  RipUpMode ripupMode_{fr::RipUpMode::DRC};
 
   // local storage
   std::vector<std::unique_ptr<grNet>> nets_;
@@ -485,5 +491,3 @@ class FlexGRWorker
   void routeNet_printNet(grNet* net);
 };
 }  // namespace fr
-
-#endif

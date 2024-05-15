@@ -33,16 +33,28 @@
 ##
 ###############################################################################
 
+
+if(ENABLE_TESTS)
+  add_subdirectory(gtest EXCLUDE_FROM_ALL)
+endif()
+
 if (NOT USE_SYSTEM_ABC)
 
   set(ABC_USE_NAMESPACE "abc")
-  set(ABC_USE_NO_READLINE 1)
 
   # abc does not have "platform" support for macos so force it to use stdint.h
   if (CMAKE_OSX_SYSROOT)
      set(ABC_USE_STDINT_H 1)
   endif()
 
+  # make sure not to include readline headers to avoid extra dependencies
+  # readline is not needed since we call abc from c++
+  set(READLINE_FOUND FALSE)
+
+# apple clang 14.0.0 seg faults on abc without -g
+add_compile_options(
+  $<$<CXX_COMPILER_ID:AppleClang>:-g>
+)
   add_subdirectory(abc)
 
 endif()
@@ -56,4 +68,3 @@ target_include_directories(tomlpp
   INTERFACE
       tomlpp/include
 )
-

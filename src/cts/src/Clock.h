@@ -36,6 +36,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <unordered_map>
@@ -65,153 +66,161 @@ class ClockInst
             int x,
             int y,
             odb::dbITerm* pinObj = nullptr,
-            float inputCap = 0.0)
-      : _name(name),
-        _master(master),
-        _type(type),
-        _location(x, y),
-        _inputPinObj(pinObj),
-        _inputCap(inputCap)
+            float inputCap = 0.0,
+            float insertionDelay = 0.0,
+            float outputCap = 0.0,
+            float idealOutputCap = 0.0)
+      : name_(name),
+        master_(master),
+        type_(type),
+        location_(x, y),
+        inputPinObj_(pinObj),
+        inputCap_(inputCap),
+        insertionDelay_(insertionDelay),
+        outputCap_(outputCap),
+        idealOutputCap_(idealOutputCap)
   {
   }
 
-  std::string getName() const { return _name; }
-  std::string getMaster() const { return _master; }
-  int getX() const { return _location.getX(); }
-  int getY() const { return _location.getY(); }
-  Point<int> getLocation() const { return _location; }
+  std::string getName() const { return name_; }
+  std::string getMaster() const { return master_; }
+  int getX() const { return location_.getX(); }
+  int getY() const { return location_.getY(); }
+  Point<int> getLocation() const { return location_; }
 
-  void setInstObj(odb::dbInst* inst) { _instObj = inst; }
-  odb::dbInst* getDbInst() const { return _instObj; }
-  void setInputPinObj(odb::dbITerm* pin) { _inputPinObj = pin; }
-  odb::dbITerm* getDbInputPin() const { return _inputPinObj; }
-  void setInputCap(float cap) { _inputCap = cap; }
-  float getInputCap() const { return _inputCap; }
+  void setInstObj(odb::dbInst* inst) { instObj_ = inst; }
+  odb::dbInst* getDbInst() const { return instObj_; }
+  void setInputPinObj(odb::dbITerm* pin) { inputPinObj_ = pin; }
+  odb::dbITerm* getDbInputPin() const { return inputPinObj_; }
+  void setInputCap(float cap) { inputCap_ = cap; }
+  float getInputCap() const { return inputCap_; }
+  bool isClockBuffer() const { return type_ == CLOCK_BUFFER; }
+  double getInsertionDelay() const { return insertionDelay_; }
+  void setOutputCap(float cap) { outputCap_ = cap; }
+  float getOutputCap() const { return outputCap_; }
+  void setIdealOutputCap(float cap) { idealOutputCap_ = cap; }
+  float getIdealOutputCap() const { return idealOutputCap_; }
 
-  bool isClockBuffer() const { return _type == CLOCK_BUFFER; }
-
- protected:
-  std::string _name;
-  std::string _master;
-  InstType _type;
-  Point<int> _location;
-  odb::dbInst* _instObj = nullptr;
-  odb::dbITerm* _inputPinObj = nullptr;
-  float _inputCap;
+ private:
+  std::string name_;
+  std::string master_;
+  InstType type_;
+  Point<int> location_;
+  odb::dbInst* instObj_ = nullptr;
+  odb::dbITerm* inputPinObj_ = nullptr;
+  float inputCap_;
+  double insertionDelay_;  // insertion delay in terms of length, not time
+  float outputCap_;        // current load cap seen by this instance
+  float idealOutputCap_;   // ideal load cap needed for perfectly balanced tree
 };
 
 //-----------------------------------------------------------------------------
 
+class ClockSubNet
+{
+ private:
+  std::string name_;
+  std::deque<ClockInst*> instances_;
+  std::unordered_map<ClockInst*, unsigned> mapInstToIdx_;
+  bool leafLevel_ = false;
+
+ public:
+  explicit ClockSubNet(const std::string& name) : name_(name) {}
+
+  void setLeafLevel(bool isLeaf) { leafLevel_ = isLeaf; }
+  bool isLeafLevel() const { return leafLevel_; }
+
+  void addInst(ClockInst& inst)
+  {
+    instances_.push_back(&inst);
+    mapInstToIdx_[&inst] = instances_.size() - 1;
+  }
+
+  unsigned findIndex(ClockInst* inst) const { return mapInstToIdx_.at(inst); }
+
+  void replaceSink(ClockInst* curSink, ClockInst* newSink)
+  {
+    const unsigned idx = findIndex(curSink);
+    instances_[idx] = newSink;
+    mapInstToIdx_.erase(curSink);
+    mapInstToIdx_[newSink] = idx;
+  }
+
+  void removeSinks(std::set<ClockInst*> sinksToRemove)
+  {
+    ClockInst* driver = getDriver();
+    std::vector<ClockInst*> instsToPreserve;
+    forEachSink([&](ClockInst* inst) {
+      if (sinksToRemove.find(inst) == sinksToRemove.end()) {
+        instsToPreserve.emplace_back(inst);
+      }
+    });
+    instances_.clear();
+    mapInstToIdx_.clear();
+    addInst(*driver);
+    for (auto inst : instsToPreserve) {
+      addInst(*inst);
+    }
+  }
+
+  std::string getName() const { return name_; }
+  int getNumSinks() const { return instances_.size() - 1; }
+
+  ClockInst* getDriver() const
+  {
+    assert(instances_.size() > 0);
+    return instances_[0];
+  }
+
+  void forEachSink(const std::function<void(ClockInst*)>& func) const
+  {
+    if (instances_.size() < 2) {
+      return;
+    }
+    for (unsigned inst = 1; inst < instances_.size(); ++inst) {
+      func(instances_[inst]);
+    }
+  }
+};
+
 class Clock
 {
  public:
-  class SubNet
-  {
-   protected:
-    std::string _name;
-    std::deque<ClockInst*> _instances;
-    std::unordered_map<ClockInst*, unsigned> _mapInstToIdx;
-    bool _leafLevel;
-
-   public:
-    SubNet(const std::string& name) : _name(name), _leafLevel(false) {}
-
-    void setLeafLevel(bool isLeaf) { _leafLevel = isLeaf; }
-    bool isLeafLevel() const { return _leafLevel; }
-
-    void addInst(ClockInst& inst)
-    {
-      _instances.push_back(&inst);
-      _mapInstToIdx[&inst] = _instances.size() - 1;
-    }
-
-    unsigned findIndex(ClockInst* inst) const { return _mapInstToIdx.at(inst); }
-
-    void replaceSink(ClockInst* curSink, ClockInst* newSink)
-    {
-      unsigned idx = findIndex(curSink);
-      _instances[idx] = newSink;
-      _mapInstToIdx.erase(curSink);
-      _mapInstToIdx[newSink] = idx;
-    }
-
-    void removeSinks(std::set<ClockInst*> sinksToRemove)
-    {
-      ClockInst* driver = getDriver();
-      std::vector<ClockInst*> instsToPreserve;
-      forEachSink([&](ClockInst* inst) {
-        if (sinksToRemove.find(inst) == sinksToRemove.end()) {
-          instsToPreserve.emplace_back(inst);
-        }
-      });
-      _instances.clear();
-      _mapInstToIdx.clear();
-      addInst(*driver);
-      for (auto inst : instsToPreserve) {
-        addInst(*inst);
-      }
-    }
-
-    std::string getName() const { return _name; }
-    int getNumSinks() const { return _instances.size() - 1; }
-
-    ClockInst* getDriver() const
-    {
-      assert(_instances.size() > 0);
-      return _instances[0];
-    }
-
-    void forEachSink(const std::function<void(ClockInst*)>& func) const
-    {
-      if (_instances.size() < 2) {
-        return;
-      }
-      for (unsigned inst = 1; inst < _instances.size(); ++inst) {
-        func(_instances[inst]);
-      }
-    }
-  };
-
   Clock(const std::string& netName,
         const std::string& clockPin,
         const std::string& sdcClockName,
         int clockPinX,
-        int clockPinY)
-      : _netName(netName),
-        _clockPin(clockPin),
-        _sdcClockName(sdcClockName),
-        _clockPinX(clockPinX),
-        _clockPinY(clockPinY){};
+        int clockPinY);
 
   ClockInst& addClockBuffer(const std::string& name,
                             const std::string& master,
                             int x,
                             int y)
   {
-    _clockBuffers.emplace_back(
-        getName() + "_" + name, master, CLOCK_BUFFER, x, y);
-    _mapNameToInst[getName() + "_" + name] = &_clockBuffers.back();
-    return _clockBuffers.back();
+    clockBuffers_.emplace_back(
+        name + "_" + getName(), master, CLOCK_BUFFER, x, y);
+    mapNameToInst_[name + "_" + getName()] = &clockBuffers_.back();
+    return clockBuffers_.back();
   }
 
-  ClockInst* findClockByName(std::string name)
+  ClockInst* findClockByName(const std::string& name)
   {
-    if (_mapNameToInst.find(name) == _mapNameToInst.end()) {
+    if (mapNameToInst_.find(name) == mapNameToInst_.end()) {
       return nullptr;
-    } else {
-      return _mapNameToInst.at(name);
     }
+
+    return mapNameToInst_.at(name);
   }
 
-  SubNet& addSubNet(const std::string& name)
+  ClockSubNet& addSubNet(const std::string& name)
   {
-    _subNets.emplace_back(getName() + "_" + name);
-    return _subNets.back();
+    subNets_.emplace_back(name + "_" + getName());
+    return subNets_.back();
   }
 
   void addSink(const std::string& name, int x, int y)
   {
-    _sinks.emplace_back(name, "", CLOCK_SINK, x, y);
+    sinks_.emplace_back(name, "", CLOCK_SINK, x, y);
   }
 
   void addSink(const std::string& name,
@@ -220,80 +229,78 @@ class Clock
                odb::dbITerm* pinObj,
                float inputCap)
   {
-    _sinks.emplace_back(name, "", CLOCK_SINK, x, y, pinObj, inputCap);
+    sinks_.emplace_back(name, "", CLOCK_SINK, x, y, pinObj, inputCap);
   }
 
-  std::string getName() const { return _netName; }
-  unsigned getNumSinks() const { return _sinks.size(); }
+  void addSink(const std::string& name,
+               int x,
+               int y,
+               odb::dbITerm* pinObj,
+               float inputCap,
+               float insDelay)
+  {
+    sinks_.emplace_back(name, "", CLOCK_SINK, x, y, pinObj, inputCap, insDelay);
+  }
+
+  std::string getName() const { return netName_; }
+  unsigned getNumSinks() const { return sinks_.size(); }
 
   Box<int> computeSinkRegion();
   Box<double> computeSinkRegionClustered(
       std::vector<std::pair<float, float>> sinks);
   Box<double> computeNormalizedSinkRegion(double factor);
 
-  void report(utl::Logger* _logger) const;
+  void report(utl::Logger* logger) const;
 
   void forEachSink(const std::function<void(const ClockInst&)>& func) const;
   void forEachSink(const std::function<void(ClockInst&)>& func);
   void forEachClockBuffer(
       const std::function<void(const ClockInst&)>& func) const;
   void forEachClockBuffer(const std::function<void(ClockInst&)>& func);
-  void forEachSubNet(const std::function<void(const SubNet&)>& func) const
+  void forEachSubNet(const std::function<void(const ClockSubNet&)>& func) const
   {
-    for (const SubNet& subNet : _subNets) {
+    for (const ClockSubNet& subNet : subNets_) {
       func(subNet);
     }
   }
 
-  void forEachSubNet(const std::function<void(SubNet&)>& func)
+  void forEachSubNet(const std::function<void(ClockSubNet&)>& func)
   {
-    unsigned size = _subNets.size();
+    unsigned size = subNets_.size();
     // We want to use ranged for loops in here beacause
-    // the user may add new items to _subNets.
+    // the user may add new items to subNets_.
     // C++11 "for each" loops will crash due to invalid
     // iterators.
     for (unsigned idx = 0; idx < size; ++idx) {
-      func(_subNets[idx]);
+      func(subNets_[idx]);
     }
   }
 
-  void setMaxLevel(unsigned level) { _numLevels = level; }
-  unsigned getMaxLevel() const { return _numLevels; }
+  void setMaxLevel(unsigned level) { numLevels_ = level; }
+  unsigned getMaxLevel() const { return numLevels_; }
 
-  void setNetObj(odb::dbNet* net) { _netObj = net; }
-  odb::dbNet* getNetObj() { return _netObj; }
+  void setNetObj(odb::dbNet* net) { netObj_ = net; }
+  odb::dbNet* getNetObj() { return netObj_; }
 
-  void setDriverPin(odb::dbObject* pin) { _driverPin = pin; }
-  odb::dbObject* getDriverPin() const { return _driverPin; }
-
-  int getClockPinX() const { return _clockPinX; }
-  int getClockPinY() const { return _clockPinY; }
-
-  int getBufferCount() const { return _clockBuffers.size(); }
-  std::vector<std::string> getTopBufferNames() const { return _topBufferNames; }
-  void addTopBuffer(std::string bufferName) { _topBufferNames.push_back(getName() + "_" + bufferName); }
-  std::vector<ClockInst*> getTopInsts() const { return _topInsts; }
-  void addTopInst(ClockInst* inst) { _topInsts.push_back(inst); }
-
+  void setDriverPin(odb::dbObject* pin) { driverPin_ = pin; }
+  odb::dbObject* getDriverPin() const { return driverPin_; }
 
  private:
-  std::string _netName;
-  std::string _clockPin;
-  std::string _sdcClockName;
-  int _clockPinX;
-  int _clockPinY;
+  std::string netName_;
+  std::string clockPin_;
+  std::string sdcClockName_;
+  int clockPinX_;
+  int clockPinY_;
 
-  std::deque<ClockInst> _sinks;
-  std::deque<ClockInst> _clockBuffers;
-  std::deque<SubNet> _subNets;
-  std::vector<std::string> _topBufferNames;
-  std::vector<ClockInst*> _topInsts;
-  std::unordered_map<std::string, ClockInst*> _mapNameToInst;
+  std::deque<ClockInst> sinks_;
+  std::deque<ClockInst> clockBuffers_;
+  std::deque<ClockSubNet> subNets_;
+  std::unordered_map<std::string, ClockInst*> mapNameToInst_;
 
-  odb::dbNet* _netObj = nullptr;
-  odb::dbObject* _driverPin = nullptr;
+  odb::dbNet* netObj_ = nullptr;
+  odb::dbObject* driverPin_ = nullptr;
 
-  unsigned _numLevels = 0;
+  unsigned numLevels_ = 0;
 };
 
 }  // namespace cts

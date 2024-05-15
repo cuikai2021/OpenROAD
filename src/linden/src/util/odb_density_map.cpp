@@ -1,11 +1,9 @@
 #include "linden/odb_density_map.hpp"
 #include "odb/db.h"
-#include "linden/odb_util.hpp"
+#include "../util/odb_util.hpp"
 #include "fassert.hpp"
 
 using namespace std;
-
-using namespace linden::odb_util;
 
 namespace linden {
 namespace density {

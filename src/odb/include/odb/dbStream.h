@@ -33,11 +33,16 @@
 #pragma once
 
 #include <array>
-#include <string.h>
-
+#include <cstdint>
+#include <cstring>
+#include <istream>
+#include <ostream>
 #include <string>
+#include <unordered_map>
+#include <variant>
 
 #include "ZException.h"
+#include "dbObject.h"
 #include "map"
 #include "odb.h"
 #include "tuple"
@@ -46,21 +51,26 @@ namespace odb {
 
 class _dbDatabase;
 
+inline constexpr size_t kTemplateRecursionLimit = 16;
+
 class dbOStream
 {
   _dbDatabase* _db;
-  FILE* _f;
+  std::ostream& _f;
   double _lef_area_factor;
   double _lef_dist_factor;
 
-  void write_error()
+  // By default values are written as their string ("255" vs 0xFF)
+  // representations when using the << stream method. In dbOstream we are
+  // primarly writing the byte representation which the below accomplishes.
+  template <typename T>
+  void writeValueAsBytes(T type)
   {
-    throw ZIOError(ferror(_f),
-                   "write failed on database stream; system io error: ");
+    _f.write(reinterpret_cast<char*>(&type), sizeof(T));
   }
 
  public:
-  dbOStream(_dbDatabase* db, FILE* f);
+  dbOStream(_dbDatabase* db, std::ostream& f);
 
   _dbDatabase* getDatabase() { return _db; }
 
@@ -72,104 +82,86 @@ class dbOStream
 
   dbOStream& operator<<(char c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(unsigned char c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
-  dbOStream& operator<<(short c)
+  dbOStream& operator<<(int16_t c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
-  dbOStream& operator<<(unsigned short c)
+  dbOStream& operator<<(uint16_t c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(int c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(uint64_t c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(unsigned int c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(int8_t c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(float c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(double c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(long double c)
   {
-    int n = fwrite(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      write_error();
+    writeValueAsBytes(c);
     return *this;
   }
 
   dbOStream& operator<<(const char* c)
   {
-    if (c == NULL) {
+    if (c == nullptr) {
       *this << 0;
     } else {
       int l = strlen(c) + 1;
       *this << l;
-      int n = fwrite(c, l, 1, _f);
-      if (n != 1)
-        write_error();
+      _f.write(c, l);
     }
 
+    return *this;
+  }
+
+  dbOStream& operator<<(dbObjectType c)
+  {
+    writeValueAsBytes(c);
     return *this;
   }
 
@@ -184,11 +176,14 @@ class dbOStream
   template <size_t I = 0, typename... Ts>
   constexpr dbOStream& operator<<(const std::tuple<Ts...>& tup)
   {
+    static_assert(I <= kTemplateRecursionLimit,
+                  "OpenROAD disallows of std::tuple larger than 16 "
+                  "elements. You should look into alternate solutions");
     if constexpr (I == sizeof...(Ts)) {
       return *this;
     } else {
       *this << std::get<I>(tup);
-      return ((*this).operator<<<I + 1>(tup));
+      return ((*this).operator<< <I + 1>(tup));
     }
   }
 
@@ -204,16 +199,28 @@ class dbOStream
     return *this;
   }
 
-  template <class T, std::size_t SIZE>
-  dbOStream& operator<<(const std::array<T, SIZE>& a)
+  template <class T1, class T2>
+  dbOStream& operator<<(const std::unordered_map<T1, T2>& m)
   {
-    for(auto& val : a) {
+    uint sz = m.size();
+    *this << sz;
+    for (auto const& [key, val] : m) {
+      *this << key;
       *this << val;
     }
     return *this;
   }
 
-  dbOStream& operator<<(std::string s)
+  template <class T, std::size_t SIZE>
+  dbOStream& operator<<(const std::array<T, SIZE>& a)
+  {
+    for (auto& val : a) {
+      *this << val;
+    }
+    return *this;
+  }
+
+  dbOStream& operator<<(const std::string& s)
   {
     char* tmp = strdup(s.c_str());
     *this << tmp;
@@ -221,12 +228,21 @@ class dbOStream
     return *this;
   }
 
-  void markStream()
+  template <uint32_t I = 0, typename... Ts>
+  dbOStream& operator<<(const std::variant<Ts...>& v)
   {
-    int marker = ftell(_f);
-    int magic = 0xCCCCCCCC;
-    *this << magic;
-    *this << marker;
+    static_assert(I <= kTemplateRecursionLimit,
+                  "OpenROAD disallows of std::variants larger than 16 "
+                  "elements. You should look into alternate solutions");
+    if constexpr (I == sizeof...(Ts)) {
+      return *this;
+    } else {
+      if (I == v.index()) {
+        *this << (uint32_t) v.index();
+        *this << std::get<I>(v);
+      }
+      return ((*this).operator<< <I + 1>(v));
+    }
   }
 
   double lefarea(int value) { return ((double) value * _lef_area_factor); }
@@ -236,23 +252,13 @@ class dbOStream
 
 class dbIStream
 {
-  FILE* _f;
+  std::istream& _f;
   _dbDatabase* _db;
   double _lef_area_factor;
   double _lef_dist_factor;
 
-  void read_error()
-  {
-    if (feof(_f))
-      throw ZException(
-          "read failed on database stream (unexpected end-of-file encounted).");
-    else
-      throw ZIOError(ferror(_f),
-                     "read failed on database stream; system io error: ");
-  }
-
  public:
-  dbIStream(_dbDatabase* db, FILE* f);
+  dbIStream(_dbDatabase* db, std::istream& f);
 
   _dbDatabase* getDatabase() { return _db; }
 
@@ -266,89 +272,67 @@ class dbIStream
 
   dbIStream& operator>>(char& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
   dbIStream& operator>>(unsigned char& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
-  dbIStream& operator>>(short& c)
+  dbIStream& operator>>(int16_t& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
-  dbIStream& operator>>(unsigned short& c)
+  dbIStream& operator>>(uint16_t& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
   dbIStream& operator>>(int& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
   dbIStream& operator>>(uint64_t& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
   dbIStream& operator>>(unsigned int& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
   dbIStream& operator>>(int8_t& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
   dbIStream& operator>>(float& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
   dbIStream& operator>>(double& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
   dbIStream& operator>>(long double& c)
   {
-    int n = fread(&c, sizeof(c), 1, _f);
-    if (n != 1)
-      read_error();
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
@@ -357,15 +341,19 @@ class dbIStream
     int l;
     *this >> l;
 
-    if (l == 0)
-      c = NULL;
-    else {
+    if (l == 0) {
+      c = nullptr;
+    } else {
       c = (char*) malloc(l);
-      int n = fread(c, l, 1, _f);
-      if (n != 1)
-        read_error();
+      _f.read(reinterpret_cast<char*>(c), l);
     }
 
+    return *this;
+  }
+
+  dbIStream& operator>>(dbObjectType& c)
+  {
+    _f.read(reinterpret_cast<char*>(&c), sizeof(c));
     return *this;
   }
 
@@ -390,6 +378,20 @@ class dbIStream
     }
     return *this;
   }
+  template <class T1, class T2>
+  dbIStream& operator>>(std::unordered_map<T1, T2>& m)
+  {
+    uint sz;
+    *this >> sz;
+    for (uint i = 0; i < sz; i++) {
+      T1 key;
+      T2 val;
+      *this >> key;
+      *this >> val;
+      m[key] = val;
+    }
+    return *this;
+  }
   template <class T, std::size_t SIZE>
   dbIStream& operator>>(std::array<T, SIZE>& a)
   {
@@ -402,6 +404,9 @@ class dbIStream
   template <size_t I = 0, typename... Ts>
   constexpr dbIStream& operator>>(std::tuple<Ts...>& tup)
   {
+    static_assert(I <= kTemplateRecursionLimit,
+                  "OpenROAD disallows of std::tuple larger than 16 "
+                  "elements. You should look into alternate solutions");
     if constexpr (I == sizeof...(Ts)) {
       return *this;
     } else {
@@ -419,20 +424,34 @@ class dbIStream
     return *this;
   }
 
-  void checkStream()
+  template <uint32_t I = 0, typename... Ts>
+  dbIStream& operator>>(std::variant<Ts...>& v)
   {
-    int marker = ftell(_f);
-    int magic = 0xCCCCCCCC;
-    int smarker;
-    int smagic;
-    *this >> smagic;
-    *this >> smarker;
-    ZASSERT((magic == smagic) && (marker == smarker));
+    uint32_t index = 0;
+    *this >> index;
+    return variantHelper(index, v);
   }
 
   double lefarea(int value) { return ((double) value * _lef_area_factor); }
 
   double lefdist(int value) { return ((double) value * _lef_dist_factor); }
+
+ private:
+  template <uint32_t I = 0, typename... Ts>
+  dbIStream& variantHelper(uint32_t index, std::variant<Ts...>& v)
+  {
+    static_assert(I <= kTemplateRecursionLimit,
+                  "OpenROAD disallows of std::variants larger than 16 "
+                  "elements. You should look into alternate solutions");
+    if constexpr (I == sizeof...(Ts)) {
+      return *this;
+    } else {
+      if (I == index) {
+        *this >> std::get<I>(v);
+      }
+      return ((*this).operator>><I + 1>(v));
+    }
+  }
 };
 
 }  // namespace odb

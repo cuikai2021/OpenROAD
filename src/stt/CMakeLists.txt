@@ -59,25 +59,41 @@ swig_lib(NAME      stt
          SCRIPTS   src/SteinerTreeBuilder.tcl
 )
 
-target_sources(stt
-  PRIVATE
+add_library(stt_lib
     src/SteinerTreeBuilder.cpp
-    src/MakeSteinerTreeBuilder.cpp
     ${FLUTE_HOME}/flute.cpp
     ${POWV9_CPP}
     ${POST9_CPP}
-    ${PDR_HOME}/src/pdrev.cpp
-    ${PDR_HOME}/src/graph.cpp
-    ${PDR_HOME}/src/node.cpp
-    ${PDR_HOME}/src/edge.cpp
+    ${PDR_HOME}/src/pd.cpp
+)
+
+target_sources(stt
+  PRIVATE
+    src/MakeSteinerTreeBuilder.cpp
+    src/LinesRenderer.cpp
+)
+
+target_include_directories(stt_lib
+  PUBLIC
+    include
 )
 
 target_include_directories(stt
   PUBLIC
     include
+  PRIVATE
+    src
+)
+
+target_link_libraries(stt_lib
+    utl_lib
+    OpenSTA
+    odb
+    lemon
 )
 
 target_link_libraries(stt
+    stt_lib
     utl
     gui
     OpenSTA
@@ -86,3 +102,24 @@ target_link_libraries(stt
 messages(
   TARGET stt
 )
+
+if (Python3_FOUND AND BUILD_PYTHON)
+  swig_lib(NAME          stt_py
+           NAMESPACE     stt
+           LANGUAGE      python
+           I_FILE        src/SteinerTreeBuilder-py.i
+           SWIG_INCLUDES ${PROJECT_SOURCE_DIR}/include/stt
+           SCRIPTS       ${CMAKE_CURRENT_BINARY_DIR}/stt_py.py
+  )
+
+  target_include_directories(stt_py
+    PUBLIC
+      include
+  )
+
+  target_link_libraries(stt_py
+    PUBLIC
+      stt
+  )
+
+endif()

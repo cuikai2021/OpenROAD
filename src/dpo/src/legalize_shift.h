@@ -41,61 +41,53 @@
 //////////////////////////////////////////////////////////////////////////////
 // Includes.
 //////////////////////////////////////////////////////////////////////////////
-#include <cmath>
-#include <map>
-#include <set>
 #include <vector>
-#include "architecture.h"
-#include "network.h"
-#include "router.h"
 
 namespace dpo {
 
 //////////////////////////////////////////////////////////////////////////////
 // Forward declarations.
 //////////////////////////////////////////////////////////////////////////////
+class Architecture;
 class DetailedSeg;
 class DetailedMgr;
+class Node;
+class Network;
+class RoutingParams;
 
 //////////////////////////////////////////////////////////////////////////////
 // Classes.
 //////////////////////////////////////////////////////////////////////////////
 
-class ShiftLegalizerParams {
+class ShiftLegalizer
+{
  public:
-  ShiftLegalizerParams() {}
-};
-
-class ShiftLegalizer {
- public:
-  ShiftLegalizer(ShiftLegalizerParams& params);
-  virtual ~ShiftLegalizer();
+  ShiftLegalizer();
+  ~ShiftLegalizer();
 
   bool legalize(DetailedMgr& mgr);
 
- protected:
-  class Clump;
+ private:
+  struct Clump;
 
   double shift(std::vector<Node*>& cells);
   double clump(std::vector<Node*>& order);
   void merge(Clump* r);
   bool violated(Clump* r, Clump*& l, int& dist);
 
-  ShiftLegalizerParams& m_params;
-
-  DetailedMgr* m_mgr;
-  Architecture* m_arch;
-  Network* m_network;
-  RoutingParams* m_rt;
+  DetailedMgr* mgr_ = nullptr;
+  Architecture* arch_ = nullptr;
+  Network* network_ = nullptr;
+  RoutingParams* rt_ = nullptr;
 
   // For clumping.
-  std::vector<Clump> m_clumps;
-  std::vector<int> m_offset;
-  std::vector<Clump*> m_ptr;
-  std::vector<std::vector<int> > m_outgoing;
-  std::vector<std::vector<int> > m_incoming;
-  std::vector<Node*> m_dummiesRight;
-  std::vector<Node*> m_dummiesLeft;
+  std::vector<Clump> clumps_;
+  std::vector<int> offset_;
+  std::vector<Clump*> ptr_;
+  std::vector<std::vector<int>> outgoing_;
+  std::vector<std::vector<int>> incoming_;
+  std::vector<Node*> dummiesRight_;
+  std::vector<Node*> dummiesLeft_;
 };
 
 }  // namespace dpo

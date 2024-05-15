@@ -35,18 +35,51 @@
 
 #pragma once
 
+#include <cmath>
+#include <iomanip>
 #include <ostream>
 
+#include "utl/Logger.h"
+
 namespace cts {
+
+inline bool fuzzyEqual(double x1, double x2, double epsilon = 1e-6)
+{
+  if (fabs(x1 - x2) < epsilon) {
+    return true;
+  }
+  return false;
+}
+
+// x1 >= x2
+inline bool fuzzyEqualOrGreater(double x1, double x2, double epsilon = 1e-6)
+{
+  if (fabs(x1 - x2) < epsilon) {
+    return true;
+  }
+  return (x1 > x2);
+}
+
+// x1 <= x2
+inline bool fuzzyEqualOrSmaller(double x1, double x2, double epsilon = 1e-6)
+{
+  if (fabs(x1 - x2) < epsilon) {
+    return true;
+  }
+  return (x1 < x2);
+}
 
 template <class T>
 class Point
 {
  public:
-  Point(T x, T y) : _x(x), _y(y) {}
+  Point(T x, T y) : x_(x), y_(y) {}
 
-  T getX() const { return _x; }
-  T getY() const { return _y; }
+  T getX() const { return x_; }
+  T getY() const { return y_; }
+
+  void setX(T x) { x_ = x; }
+  void setY(T y) { y_ = y; }
 
   T computeDist(const Point<T>& other) const
   {
@@ -72,40 +105,84 @@ class Point
     return dy;
   }
 
+  bool equal(const Point<T>& other, double epsilon = 1e-6) const
+  {
+    if ((fabs(getX() - other.getX()) < epsilon)
+        && (fabs(getY() - other.getY()) < epsilon)) {
+      return true;
+    }
+    return false;
+  }
+
   bool operator<(const Point<T>& other) const
   {
     if (getX() != other.getX()) {
       return getX() < other.getX();
-    } else {
-      return getY() < other.getY();
     }
+
+    return getY() < other.getY();
+  }
+
+  bool operator==(const Point<T>& other) const
+  {
+    if (equal(other)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  bool operator!=(const Point<T>& other) const
+  {
+    if (equal(other)) {
+      return false;
+    }
+
+    return true;
   }
 
   friend std::ostream& operator<<(std::ostream& out, const Point<T>& point)
   {
-    out << "[(" << point.getX() << ", " << point.getY() << ")]";
+    out << "[(" << std::fixed << std::setprecision(3) << point.getX() << ", "
+        << std::fixed << std::setprecision(3) << point.getY() << ")]";
     return out;
   }
 
  private:
-  T _x;
-  T _y;
+  T x_;
+  T y_;
 };
 
 template <class T>
 class Box
 {
  public:
-  T getMinX() const { return _xMin; }
-  T getMinY() const { return _yMin; }
-  T getMaxX() const { return _xMin + _width; }
-  T getMaxY() const { return _yMin + _height; }
-  T getWidth() const { return _width; }
-  T getHeight() const { return _height; }
+  T getMinX() const { return xMin_; }
+  T getMinY() const { return yMin_; }
+  T getMaxX() const { return xMin_ + width_; }
+  T getMaxY() const { return yMin_ + height_; }
+  T getWidth() const { return width_; }
+  T getHeight() const { return height_; }
 
-  Point<T> computeCenter() const
+  Point<T> getCenter()
   {
-    return Point<T>(_xMin + _width / 2, _yMin + _height / 2);
+    if (centerSet_) {
+      Point<T> center(centerX_, centerY_);
+      return center;
+    }
+
+    centerX_ = xMin_ + width_ / 2;
+    centerY_ = yMin_ + height_ / 2;
+    Point<T> center(centerX_, centerY_);
+    centerSet_ = true;
+    return center;
+  }
+
+  void setCenter(Point<T> point)
+  {
+    centerX_ = point.getX();
+    centerY_ = point.getY();
+    centerSet_ = true;
   }
 
   Box<double> normalize(double factor)
@@ -116,9 +193,9 @@ class Box
                        getMaxY() * factor);
   }
 
-  Box() : _xMin(0), _yMin(0), _width(0), _height(0) {}
+  Box() : xMin_(0), yMin_(0), width_(0), height_(0) {}
   Box(T xMin, T yMin, T xMax, T yMax)
-      : _xMin(xMin), _yMin(yMin), _width(xMax - xMin), _height(yMax - yMin)
+      : xMin_(xMin), yMin_(yMin), width_(xMax - xMin), height_(yMax - yMin)
   {
   }
 
@@ -129,11 +206,16 @@ class Box
     return out;
   }
 
- protected:
-  T _xMin;
-  T _yMin;
-  T _width;
-  T _height;
+ private:
+  T xMin_;
+  T yMin_;
+  T width_;
+  T height_;
+  T centerX_ = 0;
+  T centerY_ = 0;
+  bool centerSet_ = false;
 };
+
+using utl::format_as;
 
 }  // namespace cts

@@ -33,32 +33,46 @@
 // This file is only used when we can't find Qt5 and are thus
 // disabling the GUI.  It is not included when Qt5 is found.
 
+#include <tcl.h>
+
 #include <cstdio>
 
 #include "gui/gui.h"
+#include "ord/OpenRoad.hh"
 
 namespace gui {
 
 Gui* Gui::singleton_ = nullptr;
 
 // Used by toString to convert dbu to microns
-DBUToString Descriptor::Property::convert_dbu = [](int value, bool) { return std::to_string(value); };
-StringToDBU Descriptor::Property::convert_string = [](const std::string& value, bool*) { return 0; };
+DBUToString Descriptor::Property::convert_dbu
+    = [](int value, bool) { return std::to_string(value); };
+StringToDBU Descriptor::Property::convert_string
+    = [](const std::string& value, bool*) { return 0; };
 
 // empty heat map class
 class PlacementDensityDataSource
 {
  public:
-   PlacementDensityDataSource() {}
-   ~PlacementDensityDataSource() {}
+  PlacementDensityDataSource() {}
+  ~PlacementDensityDataSource() {}
+};
+
+class RUDYDataSource
+{
+ public:
+  RUDYDataSource() = default;
+  ~RUDYDataSource() = default;
 };
 
 ////
 
-Gui::Gui() : continue_after_close_(false),
-             logger_(nullptr),
-             db_(nullptr),
-             placement_density_heat_map_(nullptr)
+Gui::Gui()
+    : continue_after_close_(false),
+      logger_(nullptr),
+      db_(nullptr),
+      placement_density_heat_map_(nullptr),
+      rudy_heat_map_(nullptr)
 {
 }
 
@@ -69,7 +83,7 @@ Gui* gui::Gui::get()
 
 bool gui::Gui::enabled()
 {
-   return false;
+  return false;
 }
 
 void gui::Gui::registerRenderer(gui::Renderer*)
@@ -96,6 +110,10 @@ void Gui::status(const std::string& /* message */)
 {
 }
 
+void Gui::triggerAction(const std::string& /* action */)
+{
+}
+
 void Renderer::redraw()
 {
 }
@@ -104,8 +122,7 @@ Renderer::~Renderer()
 {
 }
 
-SpectrumGenerator::SpectrumGenerator(double scale) :
-    scale_(scale)
+SpectrumGenerator::SpectrumGenerator(double scale) : scale_(scale)
 {
 }
 
@@ -114,14 +131,15 @@ bool Renderer::checkDisplayControl(const std::string& /* name */)
   return false;
 }
 
-void Renderer::addDisplayControl(const std::string& /* name */,
-                                 bool /* initial_visible */,
-                                 const DisplayControlCallback& /* setup */,
-                                 const std::vector<std::string>& /* mutual_exclusivity */)
+void Renderer::addDisplayControl(
+    const std::string& /* name */,
+    bool /* initial_visible */,
+    const DisplayControlCallback& /* setup */,
+    const std::vector<std::string>& /* mutual_exclusivity */)
 {
 }
 
-const Renderer::Settings Renderer::getSettings()
+Renderer::Settings Renderer::getSettings()
 {
   return {};
 }
@@ -130,17 +148,17 @@ void Renderer::setSettings(const Renderer::Settings& /* settings */)
 {
 }
 
-Selected Gui::makeSelected(std::any /* object */, void* /* additional_data */)
+Selected Gui::makeSelected(const std::any& /* object */)
 {
   return Selected();
 }
 
-void Gui::setSelected(Selected selection)
+void Gui::setSelected(const Selected& selection)
 {
 }
 
 void Gui::registerDescriptor(const std::type_info& type,
-                        const Descriptor* descriptor)
+                             const Descriptor* descriptor)
 {
 }
 
@@ -157,21 +175,17 @@ void Gui::removeSelectedByType(const std::string& /* type */)
 {
 }
 
-void Gui::addInstToHighlightSet(const char* name, int highlight_group)
-{
-}
-
-std::vector<std::string> Gui::getDisplayControlsOrderedLabelNames() {
-  return {};
-}
-
 std::string Descriptor::Property::toString(const std::any& /* value */)
 {
   return "";
 }
 
 // using namespace odb;
-int startGui(int& argc, char* argv[], Tcl_Interp* interp, const std::string& script, bool interactive)
+int startGui(int& argc,
+             char* argv[],
+             Tcl_Interp* interp,
+             const std::string& script,
+             bool interactive)
 {
   printf(
       "[ERROR] This code was compiled with the GUI disabled.  Please recompile "
@@ -187,6 +201,21 @@ namespace ord {
 class OpenRoad;
 void initGui(OpenRoad* openroad)
 {
+  auto interp = openroad->tclInterp();
+  // Tcl requires this to be a writable string
+  std::string cmd_save_image(
+      "proc save_image { args } {"
+      "  utl::error GUI 4 \"Command save_image is not available as OpenROAD "
+      "was not compiled with QT support.\""
+      "}");
+  Tcl_Eval(interp, cmd_save_image.c_str());
+  std::string cmd_supported(
+      "namespace eval gui {"
+      "  proc supported {} {"
+      "    return 0"
+      "  }"
+      "}");
+  Tcl_Eval(interp, cmd_supported.c_str());
 }
 
 }  // namespace ord

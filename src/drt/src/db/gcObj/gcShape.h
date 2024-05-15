@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GC_SHAPE_H_
-#define _GC_SHAPE_H_
+#pragma once
 
 #include <boost/polygon/polygon.hpp>
 
@@ -72,15 +71,6 @@ class gcShape : public gcPinFig
   // constructors
   gcShape() : gcPinFig() {}
   gcShape(const gcShape& in) : gcPinFig(in) {}
-
- protected:
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<gcPinFig>(*this);
-  }
-
-  friend class boost::serialization::access;
 };
 
 class gcCorner : public gtl::point_data<frCoord>
@@ -125,21 +115,6 @@ class gcCorner : public gtl::point_data<frCoord>
   frCornerTypeEnum cornerType_;
   frCornerDirEnum cornerDir_;  // points away from poly for convex and concave
   bool fixed_;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<gtl::point_data<frCoord>>(*this);
-    (ar) & prevCorner_;
-    (ar) & nextCorner_;
-    (ar) & prevEdge_;
-    (ar) & nextEdge_;
-    (ar) & cornerType_;
-    (ar) & cornerDir_;
-    (ar) & fixed_;
-  }
-
-  friend class boost::serialization::access;
 };
 
 class gcSegment : public gtl::segment_data<frCoord>, public gcShape
@@ -202,8 +177,9 @@ class gcSegment : public gtl::segment_data<frCoord>, public gcShape
     }
     return dir;
   }
-  //returns the direction to the inner side of the polygon
-  frDirEnum getInnerDir() {
+  // returns the direction to the inner side of the polygon
+  frDirEnum getInnerDir()
+  {
     switch (getDir()) {
       case frDirEnum::N:
         return frDirEnum::W;
@@ -217,8 +193,9 @@ class gcSegment : public gtl::segment_data<frCoord>, public gcShape
         return frDirEnum::UNKNOWN;
     }
   }
-  //returns the direction to the outer side of the polygon
-  frDirEnum getOuterDir() {
+  // returns the direction to the outer side of the polygon
+  frDirEnum getOuterDir()
+  {
     switch (getDir()) {
       case frDirEnum::N:
         return frDirEnum::E;
@@ -231,6 +208,12 @@ class gcSegment : public gtl::segment_data<frCoord>, public gcShape
       default:
         return frDirEnum::UNKNOWN;
     }
+  }
+  gtl::orientation_2d getOrientation() const
+  {
+    const frDirEnum dir = getDir();
+    return (dir == frDirEnum::W || dir == frDirEnum::E) ? gtl::HORIZONTAL
+                                                        : gtl::VERTICAL;
   }
   // setters
   void setSegment(const gtl::segment_data<frCoord>& in)
@@ -285,9 +268,8 @@ class gcSegment : public gtl::segment_data<frCoord>, public gcShape
   void addToNet(gcNet* in) override { net_ = in; }
 
   void removeFromNet() override { net_ = nullptr; }
-  int length() {
-    return gtl::length(*this);
-  }
+  int length() { return gtl::length(*this); }
+
  private:
   frLayerNum layer_;
   gcPin* pin_;
@@ -297,23 +279,6 @@ class gcSegment : public gtl::segment_data<frCoord>, public gcShape
   gcCorner* lowCorner_;
   gcCorner* highCorner_;
   bool fixed_;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<gtl::segment_data<frCoord>>(*this);
-    (ar) & boost::serialization::base_object<gcShape>(*this);
-    (ar) & layer_;
-    (ar) & pin_;
-    (ar) & net_;
-    (ar) & prev_edge_;
-    (ar) & next_edge_;
-    (ar) & lowCorner_;
-    (ar) & highCorner_;
-    (ar) & fixed_;
-  }
-
-  friend class boost::serialization::access;
 };
 
 class gcRect : public gtl::rectangle_data<frCoord>, public gcShape
@@ -446,22 +411,6 @@ class gcRect : public gtl::rectangle_data<frCoord>, public gcShape
   gcNet* net_;
   bool fixed_;
   bool tapered_;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar)
-        & boost::serialization::base_object<gtl::rectangle_data<frCoord>>(
-            *this);
-    (ar) & boost::serialization::base_object<gcShape>(*this);
-    (ar) & layer_;
-    (ar) & pin_;
-    (ar) & net_;
-    (ar) & fixed_;
-    (ar) & tapered_;
-  }
-
-  friend class boost::serialization::access;
 };
 
 class gcPolygon : public gtl::polygon_90_with_holes_data<frCoord>,
@@ -561,22 +510,6 @@ class gcPolygon : public gtl::polygon_90_with_holes_data<frCoord>,
   frLayerNum layer_;
   gcPin* pin_;
   gcNet* net_;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar)
-        & boost::serialization::base_object<
-            gtl::polygon_90_with_holes_data<frCoord>>(*this);
-    (ar) & boost::serialization::base_object<gcShape>(*this);
-    (ar) & layer_;
-    (ar) & pin_;
-    (ar) & net_;
-  }
-
-  friend class boost::serialization::access;
 };
 
 }  // namespace fr
-
-#endif

@@ -31,13 +31,16 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "gpl/initialPlace.h"
+#include "initialPlace.h"
 
-#include "gpl/placerBase.h"
-#include "utl/Logger.h"
+#include <utility>
+
+#include "placerBase.h"
+#include "solver.h"
 
 namespace gpl {
-using namespace std;
+
+using T = Eigen::Triplet<float>;
 
 InitialPlaceVars::InitialPlaceVars()
 {
@@ -49,46 +52,115 @@ void InitialPlaceVars::reset()
   maxIter = 20;
   minDiffLength = 1500;
   maxSolverIter = 100;
+  maxFanout = 200;
   netWeightScale = 800.0;
   debug = false;
-}
-
-InitialPlace::InitialPlace() : ipVars_(), pb_(nullptr), log_(nullptr)
-{
+  forceCPU = false;
 }
 
 InitialPlace::InitialPlace(InitialPlaceVars ipVars,
-                           std::shared_ptr<PlacerBase> pb,
+                           std::shared_ptr<PlacerBaseCommon> pbc,
+                           std::vector<std::shared_ptr<PlacerBase>>& pbVec,
                            utl::Logger* log)
-    : ipVars_(ipVars), pb_(pb), log_(log)
+    : ipVars_(ipVars), pbc_(std::move(pbc)), pbVec_(pbVec), log_(log)
 {
 }
 
-InitialPlace::~InitialPlace()
+void InitialPlace::doBicgstabPlace()
 {
-  reset();
-}
+  ResidualError error;
+  bool run_cpu = true;
 
-void InitialPlace::reset()
-{
-  pb_ = nullptr;
-  ipVars_.reset();
-}
+  std::unique_ptr<Graphics> graphics;
+  if (ipVars_.debug && Graphics::guiActive()) {
+    graphics = std::make_unique<Graphics>(log_, pbc_, pbVec_);
+  }
 
-const std::vector<Instance*>& InitialPlace::placeInsts() const
-{
-  return pb_->placeInsts();
+  placeInstsCenter();
+
+  // set ExtId for idx reference // easy recovery
+  setPlaceInstExtId();
+
+  for (size_t iter = 1; iter <= ipVars_.maxIter; iter++) {
+    updatePinInfo();
+    createSparseMatrix();
+#ifdef ENABLE_GPU
+    if (!ipVars_.forceCPU) {
+      int gpu_count = 0;
+      cudaGetDeviceCount(&gpu_count);
+      if (gpu_count != 0) {
+        run_cpu = false;
+        // CUSOLVER based on sparse matrix and QR decomposition for initial
+        // place
+        error = cudaSparseSolve(iter,
+                                placeInstForceMatrixX_,
+                                fixedInstForceVecX_,
+                                instLocVecX_,
+                                placeInstForceMatrixY_,
+                                fixedInstForceVecY_,
+                                instLocVecY_,
+                                log_);
+      } else
+        log_->warn(GPL, 250, "GPU is not available. CPU solve is being used.");
+    }
+#endif
+    if (run_cpu) {
+      if (ipVars_.forceCPU) {
+        log_->warn(GPL, 251, "CPU solver is forced to be used.");
+      }
+      error = cpuSparseSolve(ipVars_.maxSolverIter,
+                             iter,
+                             placeInstForceMatrixX_,
+                             fixedInstForceVecX_,
+                             instLocVecX_,
+                             placeInstForceMatrixY_,
+                             fixedInstForceVecY_,
+                             instLocVecY_,
+                             log_);
+    }
+    float error_max = std::max(error.x, error.y);
+    log_->report("[InitialPlace]  Iter: {} CG residual: {:0.8f} HPWL: {}",
+                 iter,
+                 error_max,
+                 pbc_->hpwl());
+    updateCoordi();
+
+    if (graphics) {
+      graphics->cellPlot(true);
+    }
+
+    if (error_max <= 1e-5 && iter >= 5) {
+      break;
+    }
+  }
 }
 
 // starting point of initial place is center.
 void InitialPlace::placeInstsCenter()
 {
-  const int centerX = pb_->die().coreCx();
-  const int centerY = pb_->die().coreCy();
+  const int centerX = pbc_->die().coreCx();
+  const int centerY = pbc_->die().coreCy();
 
-  for (auto& inst : placeInsts()) {
+  for (auto& inst : pbc_->placeInsts()) {
     if (!inst->isLocked()) {
-      inst->setCenterLocation(centerX, centerY);
+      auto group = inst->dbInst()->getGroup();
+      if (group && group->getType() == odb::dbGroupType::POWER_DOMAIN) {
+        auto domain_region = group->getRegion();
+        int domain_xMin = std::numeric_limits<int>::max();
+        int domain_yMin = std::numeric_limits<int>::max();
+        int domain_xMax = std::numeric_limits<int>::min();
+        int domain_yMax = std::numeric_limits<int>::min();
+        for (auto boundary : domain_region->getBoundaries()) {
+          domain_xMin = std::min(domain_xMin, boundary->xMin());
+          domain_yMin = std::min(domain_yMin, boundary->yMin());
+          domain_xMax = std::max(domain_xMax, boundary->xMax());
+          domain_yMax = std::max(domain_yMax, boundary->yMax());
+        }
+        inst->setCenterLocation(domain_xMax - (domain_xMax - domain_xMin) / 2,
+                                domain_yMax - (domain_yMax - domain_yMin) / 2);
+      } else {
+        inst->setCenterLocation(centerX, centerY);
+      }
     }
   }
 }
@@ -96,67 +168,260 @@ void InitialPlace::placeInstsCenter()
 void InitialPlace::setPlaceInstExtId()
 {
   // reset ExtId for all instances
-  for (auto& inst : pb_->insts()) {
+  for (auto& inst : pbc_->insts()) {
     inst->setExtId(INT_MAX);
   }
   // set index only with place-able instances
-  for (auto& inst : placeInsts()) {
-    inst->setExtId(&inst - &(placeInsts()[0]));
+  for (auto& inst : pbc_->placeInsts()) {
+    inst->setExtId(&inst - pbc_->placeInsts().data());
   }
 }
 
-void InitialPlace::updateCoordi()
+void InitialPlace::updatePinInfo()
 {
-  for (auto& inst : placeInsts()) {
-    int idx = inst->extId();
-    if (!inst->isLocked()) {
-      auto x = norm2absLoc(instLocVec_[X](idx), X);
-      auto y = norm2absLoc(instLocVec_[Y](idx), Y);
-      inst->dbSetCenterLocation(x, y);
-      inst->dbSetPlaced();
+  // reset all MinMax attributes
+  for (auto& pin : pbc_->pins()) {
+    pin->unsetMinPinX();
+    pin->unsetMinPinY();
+    pin->unsetMaxPinX();
+    pin->unsetMaxPinY();
+  }
+
+  for (auto& net : pbc_->nets()) {
+    Pin *pinMinX = nullptr, *pinMinY = nullptr;
+    Pin *pinMaxX = nullptr, *pinMaxY = nullptr;
+    int lx = INT_MAX, ly = INT_MAX;
+    int ux = INT_MIN, uy = INT_MIN;
+
+    // Mark B2B info on Pin structures
+    for (auto& pin : net->pins()) {
+      if (lx > pin->cx()) {
+        if (pinMinX) {
+          pinMinX->unsetMinPinX();
+        }
+        lx = pin->cx();
+        pinMinX = pin;
+        pinMinX->setMinPinX();
+      }
+
+      if (ux < pin->cx()) {
+        if (pinMaxX) {
+          pinMaxX->unsetMaxPinX();
+        }
+        ux = pin->cx();
+        pinMaxX = pin;
+        pinMaxX->setMaxPinX();
+      }
+
+      if (ly > pin->cy()) {
+        if (pinMinY) {
+          pinMinY->unsetMinPinY();
+        }
+        ly = pin->cy();
+        pinMinY = pin;
+        pinMinY->setMinPinY();
+      }
+
+      if (uy < pin->cy()) {
+        if (pinMaxY) {
+          pinMaxY->unsetMaxPinY();
+        }
+        uy = pin->cy();
+        pinMaxY = pin;
+        pinMaxY->setMaxPinY();
+      }
     }
   }
 }
 
-// origin point of the normalized coordinates
-int InitialPlace::normOriginLoc(DIMENSION dim) const
+// solve placeInstForceMatrixX_ * xcg_x_ = xcg_b_ and placeInstForceMatrixY_ *
+// ycg_x_ = ycg_b_ eq.
+void InitialPlace::createSparseMatrix()
 {
-#if 0
-  // disabled，因为normalize 到die的中心点之后，结果似乎并没有变好
-  // 要和Harry进一步分析后再定是否要做这个normalize
-  return dim == X ? pb_->die().dieCx() :pb_->die().dieCy();
-#else
-  return 0; // absolute location respect to the die's origin (0, 0)
-#endif
+  const int placeCnt = pbc_->placeInsts().size();
+  instLocVecX_.resize(placeCnt);
+  fixedInstForceVecX_.resize(placeCnt);
+  instLocVecY_.resize(placeCnt);
+  fixedInstForceVecY_.resize(placeCnt);
+
+  placeInstForceMatrixX_.resize(placeCnt, placeCnt);
+  placeInstForceMatrixY_.resize(placeCnt, placeCnt);
+
+  //
+  // listX and listY is a temporary vector that have tuples, (idx1, idx2, val)
+  //
+  // listX finally becomes placeInstForceMatrixX_
+  // listY finally becomes placeInstForceMatrixY_
+  //
+  // The triplet vector is recommended usages
+  // to fill in SparseMatrix from Eigen docs.
+  //
+
+  std::vector<T> listX, listY;
+  listX.reserve(1000000);
+  listY.reserve(1000000);
+
+  // initialize vector
+  for (auto& inst : pbc_->placeInsts()) {
+    int idx = inst->extId();
+
+    instLocVecX_(idx) = inst->cx();
+    instLocVecY_(idx) = inst->cy();
+
+    fixedInstForceVecX_(idx) = fixedInstForceVecY_(idx) = 0;
+  }
+
+  // for each net
+  for (auto& net : pbc_->nets()) {
+    // skip for small nets.
+    if (net->pins().size() <= 1) {
+      continue;
+    }
+
+    // escape long time cals on huge fanout.
+    //
+    if (net->pins().size() >= ipVars_.maxFanout) {
+      continue;
+    }
+
+    float netWeight = ipVars_.netWeightScale / (net->pins().size() - 1);
+
+    // foreach two pins in single nets.
+    auto& pins = net->pins();
+    for (int pinIdx1 = 1; pinIdx1 < pins.size(); ++pinIdx1) {
+      Pin* pin1 = pins[pinIdx1];
+      for (int pinIdx2 = 0; pinIdx2 < pinIdx1; ++pinIdx2) {
+        Pin* pin2 = pins[pinIdx2];
+
+        // no need to fill in when instance is same
+        if (pin1->instance() == pin2->instance()) {
+          continue;
+        }
+
+        // B2B modeling on min/maxX pins.
+        if (pin1->isMinPinX() || pin1->isMaxPinX() || pin2->isMinPinX()
+            || pin2->isMaxPinX()) {
+          int diffX = abs(pin1->cx() - pin2->cx());
+          float weightX = 0;
+          if (diffX > ipVars_.minDiffLength) {
+            weightX = netWeight / diffX;
+          } else {
+            weightX = netWeight / ipVars_.minDiffLength;
+          }
+
+          // both pin cames from instance
+          if (pin1->isPlaceInstConnected() && pin2->isPlaceInstConnected()) {
+            const int inst1 = pin1->instance()->extId();
+            const int inst2 = pin2->instance()->extId();
+
+            listX.emplace_back(inst1, inst1, weightX);
+            listX.emplace_back(inst2, inst2, weightX);
+
+            listX.emplace_back(inst1, inst2, -weightX);
+            listX.emplace_back(inst2, inst1, -weightX);
+
+            fixedInstForceVecX_(inst1)
+                += -weightX
+                   * ((pin1->cx() - pin1->instance()->cx())
+                      - (pin2->cx() - pin2->instance()->cx()));
+
+            fixedInstForceVecX_(inst2)
+                += -weightX
+                   * ((pin2->cx() - pin2->instance()->cx())
+                      - (pin1->cx() - pin1->instance()->cx()));
+          }
+          // pin1 from IO port / pin2 from Instance
+          else if (!pin1->isPlaceInstConnected()
+                   && pin2->isPlaceInstConnected()) {
+            const int inst2 = pin2->instance()->extId();
+            listX.emplace_back(inst2, inst2, weightX);
+
+            fixedInstForceVecX_(inst2)
+                += weightX
+                   * (pin1->cx() - (pin2->cx() - pin2->instance()->cx()));
+          }
+          // pin1 from Instance / pin2 from IO port
+          else if (pin1->isPlaceInstConnected()
+                   && !pin2->isPlaceInstConnected()) {
+            const int inst1 = pin1->instance()->extId();
+            listX.emplace_back(inst1, inst1, weightX);
+
+            fixedInstForceVecX_(inst1)
+                += weightX
+                   * (pin2->cx() - (pin1->cx() - pin1->instance()->cx()));
+          }
+        }
+
+        // B2B modeling on min/maxY pins.
+        if (pin1->isMinPinY() || pin1->isMaxPinY() || pin2->isMinPinY()
+            || pin2->isMaxPinY()) {
+          int diffY = abs(pin1->cy() - pin2->cy());
+          float weightY = 0;
+          if (diffY > ipVars_.minDiffLength) {
+            weightY = netWeight / diffY;
+          } else {
+            weightY = netWeight / ipVars_.minDiffLength;
+          }
+
+          // both pin cames from instance
+          if (pin1->isPlaceInstConnected() && pin2->isPlaceInstConnected()) {
+            const int inst1 = pin1->instance()->extId();
+            const int inst2 = pin2->instance()->extId();
+
+            listY.emplace_back(inst1, inst1, weightY);
+            listY.emplace_back(inst2, inst2, weightY);
+
+            listY.emplace_back(inst1, inst2, -weightY);
+            listY.emplace_back(inst2, inst1, -weightY);
+
+            fixedInstForceVecY_(inst1)
+                += -weightY
+                   * ((pin1->cy() - pin1->instance()->cy())
+                      - (pin2->cy() - pin2->instance()->cy()));
+
+            fixedInstForceVecY_(inst2)
+                += -weightY
+                   * ((pin2->cy() - pin2->instance()->cy())
+                      - (pin1->cy() - pin1->instance()->cy()));
+          }
+          // pin1 from IO port / pin2 from Instance
+          else if (!pin1->isPlaceInstConnected()
+                   && pin2->isPlaceInstConnected()) {
+            const int inst2 = pin2->instance()->extId();
+            listY.emplace_back(inst2, inst2, weightY);
+
+            fixedInstForceVecY_(inst2)
+                += weightY
+                   * (pin1->cy() - (pin2->cy() - pin2->instance()->cy()));
+          }
+          // pin1 from Instance / pin2 from IO port
+          else if (pin1->isPlaceInstConnected()
+                   && !pin2->isPlaceInstConnected()) {
+            const int inst1 = pin1->instance()->extId();
+            listY.emplace_back(inst1, inst1, weightY);
+
+            fixedInstForceVecY_(inst1)
+                += weightY
+                   * (pin2->cy() - (pin1->cy() - pin1->instance()->cy()));
+          }
+        }
+      }
+    }
+  }
+
+  placeInstForceMatrixX_.setFromTriplets(listX.begin(), listX.end());
+  placeInstForceMatrixY_.setFromTriplets(listY.begin(), listY.end());
 }
 
-float InitialPlace::norm2absLoc(float loc, DIMENSION dim) const
+void InitialPlace::updateCoordi()
 {
-  return loc - normOriginLoc(dim);
-}
-
-float InitialPlace::abs2normLoc(float loc, DIMENSION dim) const
-{
-  return loc + normOriginLoc(dim);
-}
-
-std::pair<int, int> InitialPlace::minmaxLoc(DIMENSION dim) const
-{
-  std::pair<int, int> minmax;
-  int& minLoc = minmax.first;
-  int& maxLoc = minmax.second;
-  auto die = pb_->die();
-  minLoc = dim == X ? die.dieLx() : die.dieLy();
-  maxLoc = dim == X ? die.dieUx() : die.dieUy();
-
-  const double scale = sqrt(double(pb_->placeInstsArea()) / die.coreArea());
-  const int delta = (1 - scale) * (dim == X ? die.dieDx() : die.dieDy());
-  minLoc += delta;
-  maxLoc -= delta;
-
-  minLoc = abs2normLoc(minLoc, dim);
-  maxLoc = abs2normLoc(maxLoc, dim);
-  return minmax;
+  for (auto& inst : pbc_->placeInsts()) {
+    int idx = inst->extId();
+    if (!inst->isLocked()) {
+      inst->dbSetCenterLocation(instLocVecX_(idx), instLocVecY_(idx));
+      inst->dbSetPlaced();
+    }
+  }
 }
 
 }  // namespace gpl

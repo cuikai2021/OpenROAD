@@ -327,7 +327,6 @@ void ScanChain::reportScanChain(const char *filename) {
   if (filename == nullptr) {
     return;
   }
-
   metrics::Config mcfg = metrics::Config::sink_to_file(filename);
   metrics::Reporter reporter(mcfg);
 

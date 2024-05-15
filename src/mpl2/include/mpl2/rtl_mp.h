@@ -33,41 +33,90 @@
 
 #pragma once
 
-#include <algorithm>
-#include <iostream>
-#include <random>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include <memory>
 
 #include "utl/Logger.h"
-#include "odb/db.h"
 
+namespace odb {
+class dbDatabase;
+class dbInst;
+class dbOrientType;
+}  // namespace odb
 
-namespace mpl {
+namespace sta {
+class dbNetwork;
+class dbSta;
+}  // namespace sta
+
+namespace par {
+class PartitionMgr;
+}
+
+namespace mpl2 {
+
+class HierRTLMP;
+class Mpl2Observer;
 
 class MacroPlacer2
 {
  public:
-  void init(odb::dbDatabase* db,
-            utl::Logger* logger);
-  bool place(const char* config_file,
-             const char* report_directory,
-             const float area_wt, 
-             const float wirelength_wt, 
-             const float outline_wt,
-             const float boundary_wt, 
-             const float macro_blockage_wt, 
-             const float location_wt, 
-             const float notch_wt,
-             const float macro_halo,
-             const char* report_file,
-             const char* macro_blockage_file,
-             const char* prefer_location_file);
+  MacroPlacer2();
+  ~MacroPlacer2();
+
+  void init(sta::dbNetwork* network,
+            odb::dbDatabase* db,
+            sta::dbSta* sta,
+            utl::Logger* logger,
+            par::PartitionMgr* tritonpart);
+
+  bool place(int num_threads,
+             int max_num_macro,
+             int min_num_macro,
+             int max_num_inst,
+             int min_num_inst,
+             float tolerance,
+             int max_num_level,
+             float coarsening_ratio,
+             int num_bundled_ios,
+             int large_net_threshold,
+             int signature_net_threshold,
+             float halo_width,
+             float halo_height,
+             float fence_lx,
+             float fence_ly,
+             float fence_ux,
+             float fence_uy,
+             float area_weight,
+             float outline_weight,
+             float wirelength_weight,
+             float guidance_weight,
+             float fence_weight,
+             float boundary_weight,
+             float notch_weight,
+             float macro_blockage_weight,
+             float pin_access_th,
+             float target_util,
+             float target_dead_space,
+             float min_ar,
+             int snap_layer,
+             bool bus_planning_flag,
+             const char* report_directory);
+
+  void placeMacro(odb::dbInst* inst,
+                  const float& x_origin,
+                  const float& y_origin,
+                  const odb::dbOrientType& orientation);
+
+  void setMacroPlacementFile(const std::string& file_name);
+  void writeMacroPlacement(const std::string& file_name);
+
+  void setDebug(std::unique_ptr<Mpl2Observer>& graphics);
 
  private:
-  odb::dbDatabase* db_ = nullptr;
+  std::unique_ptr<HierRTLMP> hier_rtlmp_;
+
   utl::Logger* logger_ = nullptr;
+  odb::dbDatabase* db_ = nullptr;
 };
 
-}  // namespace mpl
+}  // namespace mpl2

@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_VIARULEGEN_H_
-#define _FR_VIARULEGEN_H_
+#pragma once
 
 #include <memory>
 
@@ -80,25 +79,5 @@ class frViaRuleGenerate
   frLayerNum botLayerNum;
   frLayerNum cutLayerNum;
   frLayerNum topLayerNum;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & name;
-    (ar) & isDefault;
-    (ar) & botEnc;
-    (ar) & cutRect;
-    (ar) & cutSpacing;
-    (ar) & topEnc;
-    (ar) & botLayerNum;
-    (ar) & cutLayerNum;
-    (ar) & topLayerNum;
-  }
-
-  frViaRuleGenerate() = default; // for serialization
-
-  friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

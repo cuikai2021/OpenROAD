@@ -1,7 +1,3 @@
-#include <base/io/ioAbc.h>
-#include <base/main/main.h>
-#include <base/main/mainInt.h>
-#include <map/amap/amapInt.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -39,6 +35,11 @@
 #include "sta/Search.hh"
 #include "sta/Sta.hh"
 #include "utl/Logger.h"
+
+#include <base/io/ioAbc.h>
+#include <base/main/main.h>
+#include <base/main/mainInt.h>
+#include <map/amap/amapInt.h>
 
 //#define DEBUG_RESTRUCT
 //#define REGRESS_RESTRUCT

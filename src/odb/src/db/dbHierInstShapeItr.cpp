@@ -68,9 +68,7 @@ bool dbHierInstShapeItr::iterate_leaf(dbInst* inst, unsigned filter, int level)
 
   _callback->beginInst(inst, level);
 
-  int x, y;
-  inst->getOrigin(x, y);
-  push_transform(dbTransform(inst->getOrient(), Point(x, y)));
+  push_transform(inst->getTransform());
   dbMaster* master = inst->getMaster();
 
   if (!isFiltered(filter, INST_OBS | INST_VIA)) {
@@ -165,9 +163,7 @@ bool dbHierInstShapeItr::iterate_inst(dbInst* inst, unsigned filter, int level)
 
   _callback->beginInst(inst, level);
 
-  int x, y;
-  inst->getOrigin(x, y);
-  push_transform(dbTransform(inst->getOrient(), Point(x, y)));
+  push_transform(inst->getTransform());
   dbBlock* child = inst->getChild();
   dbShape shape;
 
@@ -281,7 +277,7 @@ bool dbHierInstShapeItr::drawNet(unsigned filter,
   draw_via = false;
   draw_segment = false;
 
-  switch (type) {
+  switch (type.getValue()) {
     case dbSigType::SCAN:
     case dbSigType::ANALOG:
     case dbSigType::TIEOFF:
@@ -413,7 +409,7 @@ bool dbHierInstShapeItr::iterate_wire(unsigned filter,
 {
   dbWire* wire = net->getWire();
 
-  if (wire == NULL)
+  if (wire == nullptr)
     return true;
 
   _callback->beginWire(wire);
@@ -460,8 +456,7 @@ void dbHierInstShapeItr::transform(dbShape& shape)
 
 void dbHierInstShapeItr::getShape(dbBox* box, dbShape& shape)
 {
-  Rect r;
-  box->getBox(r);
+  Rect r = box->getBox();
   dbTransform& t = _transforms.back();
   t.apply(r);
 

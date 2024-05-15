@@ -26,12 +26,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_VIADEF_H_
-#define _FR_VIADEF_H_
+#pragma once
 
+#include <iostream>
 #include <memory>
 #include <vector>
-#include <iostream>
 
 #include "db/obj/frShape.h"
 #include "frBaseTypes.h"
@@ -42,10 +41,7 @@ class frLef58CutClass
 {
  public:
   // constructors
-  frLef58CutClass()
-      : name(""), viaWidth(0), viaLength(0), numCut(1)
-  {
-  }
+  frLef58CutClass() : name(""), viaWidth(0), viaLength(0), numCut(1) {}
   // getters
   void getName(std::string& in) const { in = name; }
   std::string getName() const { return name; }
@@ -74,17 +70,6 @@ class frLef58CutClass
   frUInt4 numCut;  // this value is not equal to #multi cuts, only used for
                    // calculating resistance, currently ignored in rule checking
                    // process
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & name;
-    (ar) & viaWidth;
-    (ar) & viaLength;
-    (ar) & numCut;
-  }
-
-  friend class boost::serialization::access;
 };
 
 class frViaDef
@@ -92,7 +77,8 @@ class frViaDef
  public:
   // constructors
   frViaDef()
-      : name(),
+      : id_(0),
+        name(),
         isDefault(false),
         layer1Figs(),
         layer2Figs(),
@@ -106,7 +92,8 @@ class frViaDef
   {
   }
   frViaDef(const std::string& nameIn)
-      : name(nameIn),
+      : id_(0),
+        name(nameIn),
         isDefault(false),
         layer1Figs(),
         layer2Figs(),
@@ -171,22 +158,19 @@ class frViaDef
   // setters
   void addLayer1Fig(std::unique_ptr<frShape> figIn)
   {
-    Rect box;
-    figIn->getBBox(box);
+    Rect box = figIn->getBBox();
     layer1ShapeBox.merge(box);
     layer1Figs.push_back(std::move(figIn));
   }
   void addLayer2Fig(std::unique_ptr<frShape> figIn)
   {
-    Rect box;
-    figIn->getBBox(box);
+    Rect box = figIn->getBBox();
     layer2ShapeBox.merge(box);
     layer2Figs.push_back(std::move(figIn));
   }
   void addCutFig(std::unique_ptr<frShape> figIn)
   {
-    Rect box;
-    figIn->getBBox(box);
+    Rect box = figIn->getBBox();
     cutShapeBox.merge(box);
     cutFigs.push_back(std::move(figIn));
   }
@@ -194,18 +178,23 @@ class frViaDef
   void setCutClass(frLef58CutClass* in) { cutClass = in; }
   void setCutClassIdx(int in) { cutClassIdx = in; }
   void setAddedByRouter(bool in) { addedByRouter = in; }
-  const Rect& getLayer1ShapeBox() { return layer1ShapeBox; }
-  const Rect& getLayer2ShapeBox() { return layer2ShapeBox; }
-  const Rect& getCutShapeBox() { return cutShapeBox; }
-  const Rect& getShapeBox(frLayerNum lNum) { 
+  const Rect& getLayer1ShapeBox() const { return layer1ShapeBox; }
+  const Rect& getLayer2ShapeBox() const { return layer2ShapeBox; }
+  const Rect& getCutShapeBox() const { return cutShapeBox; }
+  const Rect& getShapeBox(frLayerNum lNum)
+  {
     if (lNum == getLayer1Num())
-      return layer1ShapeBox; 
+      return layer1ShapeBox;
     if (lNum == getLayer2Num())
-      return layer2ShapeBox; 
-    throw std::invalid_argument("Error: via does not have shape on layer " + std::to_string(lNum));
+      return layer2ShapeBox;
+    throw std::invalid_argument("Error: via does not have shape on layer "
+                                + std::to_string(lNum));
   }
+  void setId(int in) { id_ = in; }
+  int getId() const { return id_; }
 
  private:
+  int id_;
   std::string name;
   bool isDefault;
   std::vector<std::unique_ptr<frShape>> layer1Figs;
@@ -218,24 +207,5 @@ class frViaDef
   Rect layer1ShapeBox;
   Rect layer2ShapeBox;
   Rect cutShapeBox;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & name;
-    (ar) & isDefault;
-    (ar) & layer1Figs;
-    (ar) & layer2Figs;
-    (ar) & cutFigs;
-    (ar) & cutClass;
-    (ar) & cutClassIdx;
-    (ar) & addedByRouter;
-    (ar) & layer1ShapeBox;
-    (ar) & layer2ShapeBox;
-    (ar) & cutShapeBox;
-  }
-
-  friend class boost::serialization::access;
 };
 }  // namespace fr
-#endif

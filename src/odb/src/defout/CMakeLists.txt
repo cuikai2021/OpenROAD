@@ -10,7 +10,8 @@ target_include_directories(defout
         ${OPENROAD_HOME}/include
 )
 target_link_libraries(defout
-    utl
+    db
+    utl_lib
 )
 
 set_target_properties(defout

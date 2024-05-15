@@ -44,6 +44,7 @@ class dbFill;
 class dbInst;
 class dbMaster;
 class dbNet;
+class dbIoType;
 class dbITerm;
 class dbWire;
 class dbBTerm;
@@ -53,7 +54,9 @@ class dbPlacementStatus;
 class dbObstruction;
 class dbRegion;
 class dbRow;
+class dbSBox;
 class dbSWire;
+
 ///////////////////////////////////////////////////////////////////////////////
 ///
 /// dbBlockCallBackObj - An object comprising a list of stub routines
@@ -70,7 +73,9 @@ class dbBlockCallBackObj
   virtual void inDbInstCreate(dbInst*) {}
   virtual void inDbInstCreate(dbInst*, dbRegion*) {}
   virtual void inDbInstDestroy(dbInst*) {}
-  virtual void inDbInstPlacementStatusBefore(dbInst*, const dbPlacementStatus&) {}
+  virtual void inDbInstPlacementStatusBefore(dbInst*, const dbPlacementStatus&)
+  {
+  }
   virtual void inDbInstSwapMasterBefore(dbInst*, dbMaster*) {}
   virtual void inDbInstSwapMasterAfter(dbInst*) {}
   virtual void inDbPreMoveInst(dbInst*) {}
@@ -98,6 +103,7 @@ class dbBlockCallBackObj
   virtual void inDbBTermPostConnect(dbBTerm*) {}
   virtual void inDbBTermPreDisconnect(dbBTerm*) {}
   virtual void inDbBTermPostDisConnect(dbBTerm*, dbNet*) {}
+  virtual void inDbBTermSetIoType(dbBTerm*, const dbIoType&) {}
   // dbBTerm End
 
   // dbBPin Start
@@ -128,6 +134,7 @@ class dbBlockCallBackObj
   // dbWire Start
   virtual void inDbWireCreate(dbWire*) {}
   virtual void inDbWireDestroy(dbWire*) {}
+  virtual void inDbWirePostModify(dbWire*) {}
   virtual void inDbWirePreAttach(dbWire*, dbNet*) {}
   virtual void inDbWirePostAttach(dbWire*) {}
   virtual void inDbWirePreDetach(dbWire*) {}
@@ -145,6 +152,8 @@ class dbBlockCallBackObj
   // dbSWire Start
   virtual void inDbSWireCreate(dbSWire*) {}
   virtual void inDbSWireDestroy(dbSWire*) {}
+  virtual void inDbSWireAddSBox(dbSBox*) {}
+  virtual void inDbSWireRemoveSBox(dbSBox*) {}
   virtual void inDbSWirePreDestroySBoxes(dbSWire*) {}
   virtual void inDbSWirePostDestroySBoxes(dbSWire*) {}
   // dbSWire End
@@ -157,16 +166,16 @@ class dbBlockCallBackObj
   virtual void inDbBlockStreamOutAfter(dbBlock*) {}
   virtual void inDbBlockReadNetsBefore(dbBlock*) {}
   virtual void inDbBlockSetDieArea(dbBlock*) {}
-  
+
   // allow ECO client initialization - payam
   virtual dbBlockCallBackObj& operator()() { return *this; }
 
   // Manipulate _callback list of owner -- in journal.cpp
   void addOwner(dbBlock* new_owner);
-  bool hasOwner() const { return (_owner != NULL); }
+  bool hasOwner() const { return (_owner != nullptr); }
   void removeOwner();
 
-  dbBlockCallBackObj() { _owner = NULL; }
+  dbBlockCallBackObj() { _owner = nullptr; }
   virtual ~dbBlockCallBackObj() { removeOwner(); }
 
  private:

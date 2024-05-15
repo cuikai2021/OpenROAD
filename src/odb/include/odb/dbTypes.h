@@ -109,6 +109,11 @@ class dbOrientType
   ///
   dbOrientType flipY() const;
 
+  ///
+  /// Returns true if the orientation is any kind of 90 degrees rotation
+  ///
+  bool isRightAngleRotation() const;
+
  private:
   Value _value;
 };
@@ -122,7 +127,8 @@ class dbGroupType
   enum Value
   {
     PHYSICAL_CLUSTER,
-    VOLTAGE_DOMAIN
+    VOLTAGE_DOMAIN,
+    POWER_DOMAIN
   };
 
   ///
@@ -222,9 +228,12 @@ class dbSigType
   bool isSupply() const;
 
   ///
-  /// Cast operator
+  /// Comparison operators for type safe dbSigType
   ///
-  operator Value() const { return _value; }
+  bool operator==(const dbSigType& v) const { return _value == v._value; };
+  bool operator!=(const dbSigType& v) const { return _value != v._value; };
+  bool operator==(const Value v) const { return _value == v; };
+  bool operator!=(const Value v) const { return _value != v; };
 
  private:
   Value _value;
@@ -277,9 +286,12 @@ class dbIoType
   const char* getString() const;
 
   ///
-  /// Cast operator
+  /// Comparison operators for type safe dbIoType
   ///
-  operator Value() const { return _value; }
+  bool operator==(const dbIoType& v) const { return _value == v._value; };
+  bool operator!=(const dbIoType& v) const { return _value != v._value; };
+  bool operator==(const Value v) const { return _value == v; };
+  bool operator!=(const Value v) const { return _value != v; };
 
  private:
   Value _value;
@@ -362,34 +374,46 @@ class dbMasterType
  public:
   enum Value
   {
-    NONE,              /** */
-    COVER,             /** */
-    COVER_BUMP,        /** */
-    RING,              /** */
-    BLOCK,             /** */
-    BLOCK_BLACKBOX,    /** */
-    BLOCK_SOFT,        /** */
-    PAD,               /** */
-    PAD_INPUT,         /** */
-    PAD_OUTPUT,        /** */
-    PAD_INOUT,         /** */
-    PAD_POWER,         /** */
-    PAD_SPACER,        /** */
-    PAD_AREAIO,        /** */
-    CORE,              /** */
-    CORE_FEEDTHRU,     /** */
-    CORE_TIEHIGH,      /** */
-    CORE_TIELOW,       /** */
-    CORE_SPACER,       /** */
-    CORE_ANTENNACELL,  /** */
-    CORE_WELLTAP,      /** */
-    ENDCAP,            /** */
-    ENDCAP_PRE,        /** */
-    ENDCAP_POST,       /** */
-    ENDCAP_TOPLEFT,    /** */
-    ENDCAP_TOPRIGHT,   /** */
-    ENDCAP_BOTTOMLEFT, /** */
-    ENDCAP_BOTTOMRIGHT /** */
+    NONE,                           /** */
+    COVER,                          /** */
+    COVER_BUMP,                     /** */
+    RING,                           /** */
+    BLOCK,                          /** */
+    BLOCK_BLACKBOX,                 /** */
+    BLOCK_SOFT,                     /** */
+    PAD,                            /** */
+    PAD_INPUT,                      /** */
+    PAD_OUTPUT,                     /** */
+    PAD_INOUT,                      /** */
+    PAD_POWER,                      /** */
+    PAD_SPACER,                     /** */
+    PAD_AREAIO,                     /** */
+    CORE,                           /** */
+    CORE_FEEDTHRU,                  /** */
+    CORE_TIEHIGH,                   /** */
+    CORE_TIELOW,                    /** */
+    CORE_SPACER,                    /** */
+    CORE_ANTENNACELL,               /** */
+    CORE_WELLTAP,                   /** */
+    ENDCAP,                         /** */
+    ENDCAP_PRE,                     /** */
+    ENDCAP_POST,                    /** */
+    ENDCAP_TOPLEFT,                 /** */
+    ENDCAP_TOPRIGHT,                /** */
+    ENDCAP_BOTTOMLEFT,              /** */
+    ENDCAP_BOTTOMRIGHT,             /** */
+    ENDCAP_LEF58_BOTTOMEDGE,        /** */
+    ENDCAP_LEF58_TOPEDGE,           /** */
+    ENDCAP_LEF58_LEFTEDGE,          /** */
+    ENDCAP_LEF58_RIGHTEDGE,         /** */
+    ENDCAP_LEF58_RIGHTBOTTOMEDGE,   /** */
+    ENDCAP_LEF58_LEFTBOTTOMEDGE,    /** */
+    ENDCAP_LEF58_RIGHTTOPEDGE,      /** */
+    ENDCAP_LEF58_LEFTTOPEDGE,       /** */
+    ENDCAP_LEF58_RIGHTBOTTOMCORNER, /** */
+    ENDCAP_LEF58_LEFTBOTTOMCORNER,  /** */
+    ENDCAP_LEF58_RIGHTTOPCORNER,    /** */
+    ENDCAP_LEF58_LEFTTOPCORNER,     /** */
   };
 
   ///
@@ -492,17 +516,17 @@ class dbTechLayerType
   ///
   /// Create a dbTechLayerType instance with an explicit value.
   ///
-  dbTechLayerType(Value value);
+  dbTechLayerType(Value value) { _value = value; }
 
   ///
   /// Create a dbTechLayerType instance with value = "none".
   ///
-  dbTechLayerType();
+  dbTechLayerType() { _value = ROUTING; }
 
   ///
   /// Copy constructor.
   ///
-  dbTechLayerType(const dbTechLayerType& value);
+  dbTechLayerType(const dbTechLayerType& value) { _value = value._value; }
 
   ///
   /// Returns the layer-value.
@@ -546,17 +570,17 @@ class dbTechLayerDir
   ///
   /// Create a dbTechLayerDir instance with an explicit direction.
   ///
-  dbTechLayerDir(Value value);
+  dbTechLayerDir(Value value) { _value = value; }
 
   ///
   /// Create a dbTechLayerDir instance with direction = "none".
   ///
-  dbTechLayerDir();
+  dbTechLayerDir() { _value = NONE; }
 
   ///
   /// Copy constructor.
   ///
-  dbTechLayerDir(const dbTechLayerDir& value);
+  dbTechLayerDir(const dbTechLayerDir& value) { _value = value._value; }
 
   ///
   /// Returns the layer-direction.
@@ -1219,28 +1243,15 @@ class dbSourceType
   Value _value;
 };
 
-const uint64 MAX_UINT64 = 0xffffffffffffffffLL;
-const uint64 MIN_UINT64 = 0;
-const uint MAX_UINT = 0xffffffff;
-const uint MIN_UINT = 0;
+constexpr uint64 MAX_UINT64 = 0xffffffffffffffffLL;
+constexpr uint64 MIN_UINT64 = 0;
+constexpr uint MAX_UINT = 0xffffffff;
+constexpr uint MIN_UINT = 0;
 
-const int64 MAX_INT64 = 0x7fffffffffffffffLL;
-const int64 MIN_INT64 = 0x8000000000000000LL;
-const int MAX_INT = 0x7fffffff;
-const int MIN_INT = 0x80000000;
-
-//
-// Adding this to the inheritance list of your class causes your class (and
-// its descendants) to be non-copy.
-//
-class Ads_NoCopy
-{
- public:
-  Ads_NoCopy() {}
-  Ads_NoCopy(const Ads_NoCopy& q);
-  Ads_NoCopy& operator=(const Ads_NoCopy& q);
-};
-
+constexpr int64 MAX_INT64 = 0x7fffffffffffffffLL;
+constexpr int64 MIN_INT64 = 0x8000000000000000LL;
+constexpr int MAX_INT = 0x7fffffff;
+constexpr int MIN_INT = 0x80000000;
 
 ///
 /// Defines the type of shapes.
@@ -1353,7 +1364,5 @@ class dbAccessType
  private:
   Value _value;
 };
-
-
 
 }  // namespace odb

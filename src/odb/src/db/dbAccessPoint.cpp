@@ -51,76 +51,75 @@
 #include "dbMaster.h"
 #include "dbTech.h"
 #include "dbTechLayer.h"
+#include "dbTechVia.h"
+#include "dbVia.h"
 #include "utl/Logger.h"
 // User Code End Includes
 namespace odb {
-
 template class dbTable<_dbAccessPoint>;
 
 bool _dbAccessPoint::operator==(const _dbAccessPoint& rhs) const
 {
-  if (point_ != rhs.point_)
+  if (point_ != rhs.point_) {
     return false;
-
-  if (layer_ != rhs.layer_)
+  }
+  if (layer_ != rhs.layer_) {
     return false;
-
-  if (lib_ != rhs.lib_)
+  }
+  if (lib_ != rhs.lib_) {
     return false;
-
-  if (master_ != rhs.master_)
+  }
+  if (master_ != rhs.master_) {
     return false;
-
-  if (mpin_ != rhs.mpin_)
+  }
+  if (mpin_ != rhs.mpin_) {
     return false;
-
-  if (bpin_ != rhs.bpin_)
+  }
+  if (bpin_ != rhs.bpin_) {
     return false;
+  }
 
-  // User Code Begin ==
-  // User Code End ==
   return true;
 }
+
 bool _dbAccessPoint::operator<(const _dbAccessPoint& rhs) const
 {
-  if (point_ >= rhs.point_)
+  if (point_ >= rhs.point_) {
     return false;
-
-  if (layer_ >= rhs.layer_)
+  }
+  if (layer_ >= rhs.layer_) {
     return false;
-
-  if (lib_ >= rhs.lib_)
+  }
+  if (lib_ >= rhs.lib_) {
     return false;
-
-  if (master_ >= rhs.master_)
+  }
+  if (master_ >= rhs.master_) {
     return false;
-
-  if (mpin_ >= rhs.mpin_)
+  }
+  if (mpin_ >= rhs.mpin_) {
     return false;
-
-  if (bpin_ >= rhs.bpin_)
+  }
+  if (bpin_ >= rhs.bpin_) {
     return false;
+  }
 
-  // User Code Begin <
-  // User Code End <
   return true;
 }
+
 void _dbAccessPoint::differences(dbDiff& diff,
                                  const char* field,
                                  const _dbAccessPoint& rhs) const
 {
   DIFF_BEGIN
-
   DIFF_FIELD(point_);
   DIFF_FIELD(layer_);
   DIFF_FIELD(lib_);
   DIFF_FIELD(master_);
   DIFF_FIELD(mpin_);
   DIFF_FIELD(bpin_);
-  // User Code Begin Differences
-  // User Code End Differences
   DIFF_END
 }
+
 void _dbAccessPoint::out(dbDiff& diff, char side, const char* field) const
 {
   DIFF_OUT_BEGIN
@@ -131,16 +130,16 @@ void _dbAccessPoint::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_FIELD(mpin_);
   DIFF_OUT_FIELD(bpin_);
 
-  // User Code Begin Out
-  // User Code End Out
   DIFF_END
 }
+
 _dbAccessPoint::_dbAccessPoint(_dbDatabase* db)
 {
   // User Code Begin Constructor
   accesses_.fill(false);
   // User Code End Constructor
 }
+
 _dbAccessPoint::_dbAccessPoint(_dbDatabase* db, const _dbAccessPoint& r)
 {
   point_ = r.point_;
@@ -166,6 +165,8 @@ dbIStream& operator>>(dbIStream& stream, _dbAccessPoint& obj)
   stream >> obj.bpin_;
   stream >> obj.accesses_;
   stream >> obj.iterms_;
+  stream >> obj.vias_;
+  stream >> obj.path_segs_;
   // User Code Begin >>
   int8_t low, high;
   stream >> low;
@@ -175,6 +176,7 @@ dbIStream& operator>>(dbIStream& stream, _dbAccessPoint& obj)
   // User Code End >>
   return stream;
 }
+
 dbOStream& operator<<(dbOStream& stream, const _dbAccessPoint& obj)
 {
   stream << obj.point_;
@@ -185,6 +187,8 @@ dbOStream& operator<<(dbOStream& stream, const _dbAccessPoint& obj)
   stream << obj.bpin_;
   stream << obj.accesses_;
   stream << obj.iterms_;
+  stream << obj.vias_;
+  stream << obj.path_segs_;
   // User Code Begin <<
   int8_t low = static_cast<int8_t>(obj.low_type_);
   int8_t high = static_cast<int8_t>(obj.high_type_);
@@ -192,12 +196,6 @@ dbOStream& operator<<(dbOStream& stream, const _dbAccessPoint& obj)
   stream << high;
   // User Code End <<
   return stream;
-}
-
-_dbAccessPoint::~_dbAccessPoint()
-{
-  // User Code Begin Destructor
-  // User Code End Destructor
 }
 
 // User Code Begin PrivateMethods
@@ -240,9 +238,26 @@ void dbAccessPoint::setLayer(dbTechLayer* layer)
 
 // User Code Begin dbAccessPointPublicMethods
 
+void dbAccessPoint::addSegment(const Rect& segment,
+                               const bool& begin_style_trunc,
+                               const bool& end_style_trunc)
+{
+  _dbAccessPoint* obj = (_dbAccessPoint*) this;
+  std::tuple path_seg
+      = std::make_tuple(segment, begin_style_trunc, end_style_trunc);
+  obj->path_segs_.push_back(std::move(path_seg));
+}
+
+const std::vector<std::tuple<Rect, bool, bool>>& dbAccessPoint::getSegments()
+    const
+{
+  _dbAccessPoint* obj = (_dbAccessPoint*) this;
+  return obj->path_segs_;
+}
+
 void dbAccessPoint::setAccesses(const std::vector<dbDirection>& accesses)
 {
-  for (auto dir : accesses) {
+  for (const auto& dir : accesses) {
     setAccess(true, dir);
   }
 }
@@ -348,6 +363,45 @@ dbBPin* dbAccessPoint::getBPin() const
   _dbBlock* block = (_dbBlock*) obj->getOwner();
   return (dbBPin*) block->_bpin_tbl->getPtr(obj->bpin_);
 }
+std::vector<std::vector<dbObject*>> dbAccessPoint::getVias() const
+{
+  _dbAccessPoint* obj = (_dbAccessPoint*) this;
+  dbDatabase* db = (dbDatabase*) obj->getDatabase();
+  _dbTech* tech = (_dbTech*) db->getTech();
+  _dbBlock* block = (_dbBlock*) obj->getOwner();
+  std::vector<std::vector<dbObject*>> result;
+  for (const auto& cutVias : obj->vias_) {
+    result.push_back(std::vector<dbObject*>());
+    for (const auto& [type, id] : cutVias) {
+      if (type == dbObjectType::dbViaObj) {
+        result.back().push_back(
+            (dbObject*) block->_via_tbl->getPtr(dbId<_dbVia>(id)));
+      } else {
+        result.back().push_back(
+            (dbTechVia*) tech->_via_tbl->getPtr(dbId<_dbTechVia>(id)));
+      }
+    }
+  }
+  return result;
+}
+
+void dbAccessPoint::addTechVia(int num_cuts, dbTechVia* via)
+{
+  _dbAccessPoint* obj = (_dbAccessPoint*) this;
+  if (num_cuts > obj->vias_.size())
+    obj->vias_.resize(num_cuts);
+  obj->vias_[num_cuts - 1].push_back(
+      {via->getObjectType(), via->getImpl()->getOID()});
+}
+
+void dbAccessPoint::addBlockVia(int num_cuts, dbVia* via)
+{
+  _dbAccessPoint* obj = (_dbAccessPoint*) this;
+  if (num_cuts > obj->vias_.size())
+    obj->vias_.resize(num_cuts);
+  obj->vias_[num_cuts - 1].push_back(
+      {via->getObjectType(), via->getImpl()->getOID()});
+}
 
 dbAccessPoint* dbAccessPoint::create(dbBlock* block_, dbMPin* pin, uint idx)
 {
@@ -407,7 +461,7 @@ void dbAccessPoint::destroy(dbAccessPoint* ap)
         }
       }
     }
-    for (auto iterm_id : _ap->iterms_) {
+    for (const auto& iterm_id : _ap->iterms_) {
       _dbITerm* iterm = block->_iterm_tbl->getPtr(iterm_id);
       auto ap_itr = iterm->aps_.begin();
       while (ap_itr != iterm->aps_.end()) {
@@ -425,4 +479,4 @@ void dbAccessPoint::destroy(dbAccessPoint* ap)
 }
 // User Code End dbAccessPointPublicMethods
 }  // namespace odb
-   // Generator Code End Cpp
+// Generator Code End Cpp

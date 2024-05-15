@@ -326,14 +326,13 @@ void Restructure::getBlob(unsigned max_depth)
   open_sta_->ensureLevelized();
   open_sta_->searchPreamble();
 
-  sta::PinSet ends;
-  //    (open_sta_->getDbNetwork());
+  sta::PinSet ends(open_sta_->getDbNetwork());
 
   getEndPoints(ends, is_area_mode_, max_depth);
   if (ends.size()) {
     sta::PinSet boundary_points = !is_area_mode_
-                                      ? resizer_->findFanins(&ends)
-                                      : resizer_->findFaninFanouts(&ends);
+                                      ? resizer_->findFanins(ends)
+                                      : resizer_->findFaninFanouts(ends);
     // fanin_fanouts.insert(ends.begin(), ends.end()); // Add seq cells
     logger_->report("Found {} pins in extracted logic.",
                     boundary_points.size());
@@ -491,7 +490,9 @@ void Restructure::runABC()
 
   for (const auto& file_to_remove : files_to_remove) {
     if (!logger_->debugCheck(RMP, "remap", 1))
-      std::remove(file_to_remove.c_str());
+      if (std::remove(file_to_remove.c_str()) != 0) {
+        logger_->error(RMP, 37, "Fail to remove file {}", file_to_remove);
+      }
   }
 }
 
@@ -856,7 +857,7 @@ bool Restructure::readAbcLog(std::string abc_file_name,
           }
           break;
         }
-        prev_token = token;
+        prev_token = std::move(token);
       }
     }
   }
@@ -950,12 +951,10 @@ bool Restructure::isRegInput(sta::Network* nwk, sta::Vertex* v)
   sta::LibertyPort* port = nwk->libertyPort(v->pin());
   if (port) {
     sta::LibertyCell* cell = port->libertyCell();
-    sta::TimingArcSetSeq* seq = cell->timingArcSets(nullptr, port);
-    if (seq) {
-      for (auto arc_set : *seq) {
-        if (arc_set->role()->genericRole() == sta::TimingRole::setup())
-          return true;
-      }
+    const sta::TimingArcSetSeq& seq = cell->timingArcSets(nullptr, port);
+    for (auto arc_set : seq) {
+      if (arc_set->role()->genericRole() == sta::TimingRole::setup())
+        return true;
     }
   }
   return false;
@@ -966,8 +965,8 @@ bool Restructure::isRegOutput(sta::Network* nwk, sta::Vertex* v)
   sta::LibertyPort* port = nwk->libertyPort(v->pin());
   if (port) {
     sta::LibertyCell* cell = port->libertyCell();
-    sta::TimingArcSetSeq* seq = cell->timingArcSets(nullptr, port);
-    for (auto arc_set : *seq) {
+    const sta::TimingArcSetSeq& seq = cell->timingArcSets(nullptr, port);
+    for (auto arc_set : seq) {
       if (arc_set->role()->genericRole() == sta::TimingRole::regClkToQ())
         return true;
     }
@@ -1521,9 +1520,9 @@ void Cut::Print(sta::Network* nwk)
 bool Cut::Check(sta::Network* nwk)
 {
   bool ret = true;
-  std::set<sta::Pin*> root_leaves;
-  std::set<sta::Pin*> leaves;
-  std::set<sta::Pin*> roots;
+  std::set<const sta::Pin*> root_leaves;
+  std::set<const sta::Pin*> leaves;
+  std::set<const sta::Pin*> roots;
   std::set<sta::Instance*> volume;
   for (auto i : volume_) {
     volume.insert(i);
@@ -2167,10 +2166,10 @@ void Ntk2Cut::BuildNwkElements()
         sta::Net* orig_sink_net = target_nwk_->net(cut_->roots_[i]);
         sta::Port* driver_port = target_nwk_->port(driving_pin);
         sta::Instance* driving_instance = target_nwk_->instance(driving_pin);
-        ((sta::NetworkEdit*) target_nwk_)->disconnectPin(cut_->roots_[i]);
+        ((sta::NetworkEdit*) target_nwk_)->disconnectPin(const_cast<sta::Pin*>(cut_->roots_[i]));
         cut_->roots_[i] = driving_pin;
         ((sta::NetworkEdit*) target_nwk_)
-            ->connectPin(cut_->roots_[i], orig_sink_net);
+            ->connectPin(const_cast<sta::Pin*>(cut_->roots_[i]), orig_sink_net);
       }
     } else {
       // we are intentionally modifying this pin, so unconst it

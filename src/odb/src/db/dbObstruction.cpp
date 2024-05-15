@@ -61,10 +61,10 @@ _dbObstruction::_dbObstruction(_dbDatabase*)
 {
   _flags._slot_obs = 0;
   _flags._fill_obs = 0;
+  _flags._except_pg_nets = 0;
   _flags._pushed_down = 0;
   _flags._has_min_spacing = 0;
   _flags._has_effective_width = 0;
-  _flags._except_pgnet = 0;
   _flags._spare_bits = 0;
   _min_spacing = 0;
   _effective_width = 0;
@@ -94,6 +94,12 @@ dbIStream& operator>>(dbIStream& stream, _dbObstruction& obs)
   stream >> obs._min_spacing;
   stream >> obs._effective_width;
 
+  _dbDatabase* db = obs.getImpl()->getDatabase();
+  if (!db->isSchema(db_schema_except_pg_nets_obstruction)) {
+    // assume false for older databases
+    obs._flags._except_pg_nets = false;
+  }
+
   return stream;
 }
 
@@ -105,6 +111,9 @@ bool _dbObstruction::operator==(const _dbObstruction& rhs) const
   if (_flags._fill_obs != rhs._flags._fill_obs)
     return false;
 
+  if (_flags._except_pg_nets != rhs._flags._except_pg_nets)
+    return false;
+
   if (_flags._pushed_down != rhs._flags._pushed_down)
     return false;
 
@@ -113,9 +122,6 @@ bool _dbObstruction::operator==(const _dbObstruction& rhs) const
 
   if (_flags._has_effective_width != rhs._flags._has_effective_width)
     return false;
-
-  if (_flags._except_pgnet != rhs._flags._except_pgnet)
-	return false;
 
   if (_inst != rhs._inst)
     return false;
@@ -136,10 +142,10 @@ void _dbObstruction::differences(dbDiff& diff,
   DIFF_BEGIN
   DIFF_FIELD(_flags._slot_obs);
   DIFF_FIELD(_flags._fill_obs);
+  DIFF_FIELD(_flags._except_pg_nets);
   DIFF_FIELD(_flags._pushed_down);
   DIFF_FIELD(_flags._has_min_spacing);
   DIFF_FIELD(_flags._has_effective_width);
-  DIFF_FIELD(_flags._except_pgnet);
   DIFF_FIELD(_min_spacing);
   DIFF_FIELD(_effective_width);
 
@@ -174,10 +180,10 @@ void _dbObstruction::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_BEGIN
   DIFF_OUT_FIELD(_flags._slot_obs);
   DIFF_OUT_FIELD(_flags._fill_obs);
+  DIFF_OUT_FIELD(_flags._except_pg_nets);
   DIFF_OUT_FIELD(_flags._pushed_down);
   DIFF_OUT_FIELD(_flags._has_min_spacing);
   DIFF_OUT_FIELD(_flags._has_effective_width);
-  DIFF_OUT_FIELD(_flags._except_pgnet);
   DIFF_OUT_FIELD(_min_spacing);
   DIFF_OUT_FIELD(_effective_width);
 
@@ -189,7 +195,7 @@ void _dbObstruction::out(dbDiff& diff, char side, const char* field) const
       _dbInst* inst = blk->_inst_tbl->getPtr(_inst);
       diff.out(side, "_inst", inst->_name);
     } else {
-      diff.out(side, "_inst", "(NULL)");
+      diff.out(side, "_inst", "(nullptr)");
     }
   }
 
@@ -238,6 +244,12 @@ bool _dbObstruction::operator<(const _dbObstruction& rhs) const
     if (_flags._fill_obs > rhs._flags._fill_obs)
       return false;
 
+    if (_flags._except_pg_nets < rhs._flags._except_pg_nets)
+      return true;
+
+    if (_flags._except_pg_nets > rhs._flags._except_pg_nets)
+      return false;
+
     if (_flags._pushed_down < rhs._flags._pushed_down)
       return true;
 
@@ -254,12 +266,6 @@ bool _dbObstruction::operator<(const _dbObstruction& rhs) const
       return true;
 
     if (_flags._has_effective_width > rhs._flags._has_effective_width)
-      return false;
-
-    if (_flags._except_pgnet < rhs._flags._except_pgnet)
-      return true;
-
-    if (_flags._except_pgnet > rhs._flags._except_pgnet)
       return false;
 
     if (_min_spacing < rhs._min_spacing)
@@ -296,7 +302,7 @@ dbInst* dbObstruction::getInstance()
   _dbObstruction* obs = (_dbObstruction*) this;
 
   if (obs->_inst == 0)
-    return NULL;
+    return nullptr;
 
   _dbBlock* block = (_dbBlock*) obs->getOwner();
   return (dbInst*) block->_inst_tbl->getPtr(obs->_inst);
@@ -324,6 +330,18 @@ bool dbObstruction::isFillObstruction()
 {
   _dbObstruction* obs = (_dbObstruction*) this;
   return obs->_flags._fill_obs == 1;
+}
+
+void dbObstruction::setExceptPGNetsObstruction()
+{
+  _dbObstruction* obs = (_dbObstruction*) this;
+  obs->_flags._except_pg_nets = 1;
+}
+
+bool dbObstruction::isExceptPGNetsObstruction()
+{
+  _dbObstruction* obs = (_dbObstruction*) this;
+  return obs->_flags._except_pg_nets == 1;
 }
 
 void dbObstruction::setPushedDown()
@@ -355,18 +373,6 @@ int dbObstruction::getEffectiveWidth()
 {
   _dbObstruction* obs = (_dbObstruction*) this;
   return obs->_effective_width;
-}
-
-void dbObstruction::setExceptPGNet()
-{
-  _dbObstruction* obs = (_dbObstruction*)this;
-  obs->_flags._except_pgnet = 1U;
-}
-
-bool dbObstruction::hasExceptPGNet() const
-{
-  _dbObstruction* obs = (_dbObstruction*)this;
-  return obs->_flags._except_pgnet == 1U;
 }
 
 bool dbObstruction::hasMinSpacing()

@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -eu
+set -euo pipefail
 
 cd "$(dirname $(readlink -f $0))/../"
 
@@ -14,9 +14,9 @@ EOF
 }
 
 _lcov() {
-    ./test/regression | tee /dev/null
+    ./test/regression
 
-    mkdir -p coverage_results
+    mkdir -p coverage-output
     lcov \
         --capture \
         --directory ./build \
@@ -24,18 +24,31 @@ _lcov() {
         --exclude "/opt/*" \
         --exclude "/usr/lib/*" \
         --exclude "/usr/local/*" \
+        --exclude "*/.local/*" \
         --exclude "*build*" \
-        --output-file ./coverage_results/main_coverage.info > ./coverage_results/coverage.log
+        --exclude "*/third-party/*" \
+        --output-file ./coverage-output/main_coverage.info
 
-    genhtml ./coverage_results/main_coverage.info \
-        --output-directory ./coverage_results \
-        --ignore-errors source > ./coverage_results/coverage.log
+    genhtml ./coverage-output/main_coverage.info \
+        --output-directory ./coverage-output \
+        --ignore-errors source
 
 }
 
 _coverity() {
     cmake -B build .
+    # compile abc before calling cov-build to exclude from analysis.
+    # Coverity fails to process abc code due to -fpermissive flag.
+    cmake --build build -j $(nproc) --target abc
     cov-build --dir cov-int cmake --build build -j $(nproc)
+    log_file=cov-int/build-log.txt
+    regex='Emitted.*compilation units.*\(\d+%\)'
+    # get compilation coverage percentage
+    percent=$(grep -Poi "${regex}" ${log_file} | grep -Po '\d+' | tail -n 1)
+    if [[ ${percent} -lt 85  ]]; then
+        echo "Coverity requires more than 85% of compilation coverage. Only got ${percentage}%."
+        exit 1
+    fi
     tar czvf openroad.tgz cov-int
     commitSha="$(git rev-parse HEAD)"
     curl --form token=$COVERITY_TOKEN \

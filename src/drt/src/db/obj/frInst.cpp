@@ -32,43 +32,43 @@
 #include "frMaster.h"
 using namespace fr;
 
-void frInst::getBBox(Rect& boxIn) const
+Rect frInst::getBBox() const
 {
-  getMaster()->getBBox(boxIn);
-  dbTransform xform;
-  getTransform(xform);
-  Point s(boxIn.xMax(), boxIn.yMax());
+  Rect box = getMaster()->getBBox();
+  dbTransform xform = getTransform();
+  Point s(box.xMax(), box.yMax());
   updateXform(xform, s);
-  xform.apply(boxIn);
+  xform.apply(box);
+  return box;
 }
 
-void frInst::getBoundaryBBox(Rect& boxIn) const
+Rect frInst::getBoundaryBBox() const
 {
-  getMaster()->getDieBox(boxIn);
-  dbTransform xform;
-  getTransform(xform);
-  Point s(boxIn.xMax(), boxIn.yMax());
+  Rect box = getMaster()->getDieBox();
+  dbTransform xform = getTransform();
+  Point s(box.xMax(), box.yMax());
   updateXform(xform, s);
-  xform.apply(boxIn);
+  xform.apply(box);
+  return box;
 }
 
-void frInst::getUpdatedXform(dbTransform& in, bool noOrient) const
+dbTransform frInst::getUpdatedXform(bool noOrient) const
 {
-  getTransform(in);
-  Rect mbox;
-  getMaster()->getDieBox(mbox);
+  dbTransform xfm = getTransform();
+  Rect mbox = getMaster()->getDieBox();
   Point origin(mbox.xMin(), mbox.yMin());
-  dbTransform(in.getOrient(), Point(0, 0)).apply(origin);
-  Point offset(in.getOffset());
-  offset.x() += origin.getX();
-  offset.y() += origin.getY();
-  in.setOffset(offset);
+  dbTransform(xfm.getOrient(), Point(0, 0)).apply(origin);
+  Point offset(xfm.getOffset());
+  offset.addX(origin.getX());
+  offset.addY(origin.getY());
+  xfm.setOffset(offset);
   if (!noOrient) {
     Point s(mbox.xMax(), mbox.yMax());
-    updateXform(in, s);
+    updateXform(xfm, s);
   } else {
-    in.setOrient(dbOrientType(dbOrientType::R0));
+    xfm.setOrient(dbOrientType(dbOrientType::R0));
   }
+  return xfm;
 }
 
 // Adjust the transform so that when applied to an inst, the origin is in the
@@ -76,30 +76,28 @@ void frInst::getUpdatedXform(dbTransform& in, bool noOrient) const
 void frInst::updateXform(dbTransform& xform, Point& size)
 {
   Point p = xform.getOffset();
-  int& x = p.x();
-  int& y = p.y();
   switch (xform.getOrient()) {
     case dbOrientType::R90:
-      x += size.getY();
+      p.addX(size.getY());
       break;
     case dbOrientType::R180:
-      x += size.getX();
-      y += size.getY();
+      p.addX(size.getX());
+      p.addY(size.getY());
       break;
     case dbOrientType::R270:
-      y += size.getX();
+      p.addY(size.getX());
       break;
     case dbOrientType::MY:
-      x += size.getX();
+      p.addX(size.getX());
       break;
     case dbOrientType::MXR90:
       break;
     case dbOrientType::MX:
-      y += size.getY();
+      p.addY(size.getY());
       break;
     case dbOrientType::MYR90:
-      x += size.getY();
-      y += size.getX();
+      p.addX(size.getY());
+      p.addY(size.getX());
       break;
     // case R0: == default
     default:
@@ -108,11 +106,11 @@ void frInst::updateXform(dbTransform& xform, Point& size)
   xform.setOffset(p);
 }
 
-
-  frInstTerm* frInst::getInstTerm(const std::string& name) {
-      for (auto& it : instTerms_) {
-          if (it->getTerm()->getName() == name)
-              return it.get();
-      }
-      return nullptr;
+frInstTerm* frInst::getInstTerm(const std::string& name)
+{
+  for (auto& it : instTerms_) {
+    if (it->getTerm()->getName() == name)
+      return it.get();
   }
+  return nullptr;
+}

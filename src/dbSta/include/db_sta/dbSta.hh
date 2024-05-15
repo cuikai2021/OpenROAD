@@ -36,16 +36,11 @@
 #pragma once
 
 #include <memory>
-#include <functional>
 
 #include "odb/db.h"
 #include "odb/dbBlockCallBackObj.h"
+#include "ord/OpenRoadObserver.hh"
 #include "sta/Sta.hh"
-#include "ord/OpenRoad.hh"
-
-namespace gui {
-class Gui;
-}
 
 namespace ord {
 class OpenRoad;
@@ -61,113 +56,86 @@ class dbSta;
 class dbNetwork;
 class dbStaReport;
 class dbStaCbk;
-class PathRenderer;
-class PowerDensityDataSource;
+class AbstractPathRenderer;
+class AbstractPowerDensityDataSource;
 
-using ord::OpenRoad;
 using utl::Logger;
 
+using odb::dbBlock;
+using odb::dbBlockCallBackObj;
+using odb::dbBTerm;
 using odb::dbDatabase;
-using odb::dbLib;
-using odb::dbNet;
 using odb::dbInst;
 using odb::dbITerm;
-using odb::dbBTerm;
-using odb::dbBlock;
-using odb::dbTech;
 using odb::dbLib;
 using odb::dbMaster;
-using odb::dbBlockCallBackObj;
+using odb::dbNet;
+using odb::dbTech;
 
-class dbSta : public Sta, public ord::OpenRoad::Observer
+class dbSta : public Sta, public ord::OpenRoadObserver
 {
-public:
-  dbSta();
-  virtual ~dbSta();
-  void init(Tcl_Interp *tcl_interp,
-	    dbDatabase *db,
-            gui::Gui *gui,
-            Logger *logger);
-  // for makeBlockSta
-  void initVars(Tcl_Interp *tcl_interp,
-                dbDatabase *db,
-                gui::Gui *gui,
-                Logger *logger);
+ public:
+  ~dbSta() override;
 
-  dbDatabase *db() { return db_; }
-  dbNetwork *getDbNetwork() { return db_network_; }
-  dbStaReport *getDbReport() { return db_report_; }
+  void initVars(Tcl_Interp* tcl_interp,
+                odb::dbDatabase* db,
+                utl::Logger* logger);
 
-  Slack netSlack(const dbNet *net,
-		 const MinMax *min_max);
+  void setPathRenderer(std::unique_ptr<AbstractPathRenderer> path_renderer);
+  void setPowerDensityDataSource(std::unique_ptr<AbstractPowerDensityDataSource>
+                                     power_density_data_source);
+
+  // Creates a dbSta instance for the given dbBlock using the same context as
+  // this dbSta instance (e.g. TCL interpreter, units, etc.)
+  std::unique_ptr<dbSta> makeBlockSta(odb::dbBlock* block);
+
+  dbDatabase* db() { return db_; }
+  dbNetwork* getDbNetwork() { return db_network_; }
+  dbStaReport* getDbReport() { return db_report_; }
+
+  Slack netSlack(const dbNet* net, const MinMax* min_max);
 
   // From ord::OpenRoad::Observer
-  virtual void postReadLef(odb::dbTech* tech, odb::dbLib* library) override;
-  virtual void postReadDef(odb::dbBlock* block) override;
-  virtual void postReadDb(odb::dbDatabase* db) override;
+  void postReadLef(odb::dbTech* tech, odb::dbLib* library) override;
+  void postReadDef(odb::dbBlock* block) override;
+  void postReadDb(odb::dbDatabase* db) override;
 
-  // Find clock nets connected by combinational gates from the clock roots. 
+  // Find clock nets connected by combinational gates from the clock roots.
   std::set<dbNet*> findClkNets();
-  std::set<dbNet*> findClkNets(const Clock *clk);
+  std::set<dbNet*> findClkNets(const Clock* clk);
 
-  virtual void deleteInstance(Instance *inst) override;
-  virtual void deleteNet(Net *net) override;
-  virtual Pin* connectPin(Instance *inst,
-			  Port *port,
-			  Net *net) override;
-  virtual Pin* connectPin(Instance *inst,
-			  LibertyPort *port,
-			  Net *net) override;
-  virtual void disconnectPin(Pin *pin) override;
+  void deleteInstance(Instance* inst) override;
+  void deleteNet(Net* net) override;
+  Pin* connectPin(Instance* inst, Port* port, Net* net) override;
+  Pin* connectPin(Instance* inst, LibertyPort* port, Net* net) override;
+  void disconnectPin(Pin* pin) override;
+
   // Highlight path in the gui.
-  void highlight(PathRef *path);
+  void highlight(PathRef* path);
 
   void initClkNets();
-  // ICBench Methods public
-  void setSdcOpt(std::string const& name);
-  void forEachSdc(std::function<void()> const& func);
 
   using Sta::netSlack;
   using Sta::replaceCell;
 
-protected:
-  virtual void makeReport() override;
-  virtual void makeNetwork() override;
-  virtual void makeSdcNetwork() override;
+ private:
+  void makeReport() override;
+  void makeNetwork() override;
+  void makeSdcNetwork() override;
 
-  virtual void replaceCell(Instance *inst,
-                           Cell *to_cell,
-                           LibertyCell *to_lib_cell) override;
+  void replaceCell(Instance* inst,
+                   Cell* to_cell,
+                   LibertyCell* to_lib_cell) override;
 
-  dbDatabase *db_;
-  gui::Gui *gui_;
-  Logger *logger_;
+  dbDatabase* db_ = nullptr;
+  Logger* logger_ = nullptr;
 
-  dbNetwork *db_network_;
-  dbStaReport *db_report_;
-  dbStaCbk *db_cbk_;
-  PathRenderer *path_renderer_;
+  dbNetwork* db_network_ = nullptr;
+  dbStaReport* db_report_ = nullptr;
+  dbStaCbk* db_cbk_ = nullptr;
 
-  std::unique_ptr<PowerDensityDataSource> power_density_heatmap_;
-  
-  // ICBench Methods protected
-  Sdc* getOrCreateSdcOpt(std::string const& name);
-  void backupMode();
-  void deleteModes();
-  void switchMode();
-
-
-  // ICBench variables
-  typedef sta::Map<std::string, Sdc*> StaMap;
-
-  StaMap sta_map_;
-  const std::string default_sdc_name_ = "default";
-  std::string opt_sdc_name_ = default_sdc_name_;
+  std::unique_ptr<AbstractPathRenderer> path_renderer_;
+  std::unique_ptr<AbstractPowerDensityDataSource> power_density_data_source_;
 };
 
-// Make a stand-alone (scratchpad) sta for block.
-dbSta *
-makeBlockSta(OpenRoad *openroad,
-             dbBlock *block);
-
-} // namespace
+}  // namespace sta

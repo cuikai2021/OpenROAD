@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_BOUNDARY_H_
-#define _FR_BOUNDARY_H_
+#pragma once
 
 #include <memory>
 
@@ -48,7 +47,7 @@ class frBoundary : public frFig
   // others
   frBlockObjectEnum typeId() const override { return frcBoundary; }
 
-  void getBBox(Rect& boxIn) const override
+  Rect getBBox() const override
   {
     frCoord llx = 0;
     frCoord lly = 0;
@@ -66,7 +65,7 @@ class frBoundary : public frFig
       urx = (urx > point.x()) ? urx : point.x();
       ury = (ury > point.y()) ? ury : point.y();
     }
-    boxIn.init(llx, lly, urx, ury);
+    return {llx, lly, urx, ury};
   }
   void move(const dbTransform& xform) override
   {
@@ -78,16 +77,5 @@ class frBoundary : public frFig
 
  protected:
   std::vector<Point> points_;
-
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    (ar) & boost::serialization::base_object<frFig>(*this);
-    (ar) & points_;
-  }
-
-  friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

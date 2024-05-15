@@ -33,6 +33,9 @@
 ##
 ###############################################################################
 include("openroad")
+include(FindZLIB)
+find_package(TCL)
+
 project(dst
   LANGUAGES CXX
 )
@@ -61,10 +64,18 @@ target_include_directories(dst
 target_link_libraries(dst
   PUBLIC
     utl
-    ${OPENSTA_LIBRARY}
-    ${Boost_LIBRARIES}
+    OpenSTA
+    ${TCL_LIBRARY}
+    ${ZLIB_LIBRARIES}
+    Boost::serialization
+    Boost::system
+    Boost::thread
 )
 
 messages(
   TARGET dst
 )
+
+if(ENABLE_TESTS)
+  add_subdirectory(test/cpp)
+endif()
