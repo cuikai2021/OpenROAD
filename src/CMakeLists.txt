@@ -172,7 +172,7 @@ if (BUILD_TCLX AND TCLX_H)
   message(STATUS "TclX header: ${TCLX_H}")
 endif()
 
-find_package(SWIG 3.0 REQUIRED)
+find_package(SWIG 4.0 REQUIRED)
 if (SWIG_VERSION VERSION_GREATER_EQUAL "4.1.0")
   message(STATUS "Using SWIG >= ${SWIG_VERSION} -flatstaticmethod flag for python")
 endif()
@@ -298,10 +298,8 @@ add_subdirectory(cts)
 add_subdirectory(grt)
 add_subdirectory(tap)
 add_subdirectory(mpl)
-add_subdirectory(mpl2)
 add_subdirectory(rcx)
 add_subdirectory(psm)
-add_subdirectory(par)
 add_subdirectory(ant)
 add_subdirectory(gui)
 add_subdirectory(drt)
@@ -314,6 +312,8 @@ add_subdirectory(sc)
 add_subdirectory(Laurel)
 add_subdirectory(Banyan)
 add_subdirectory(linden)
+add_subdirectory(mpl2)
+add_subdirectory(par)
 
 ################################################################
 
@@ -393,6 +393,8 @@ target_link_libraries(eden
   Banyan
   linden
   ${Boost_STACKTRACE_BACKTRACE_LIBRARY}
+  mpl2
+  par
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -408,6 +410,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 else()
   message(STATUS "Removing MPL2 and PAR to avoid run time fatal error.")
 endif()
+target_compile_definitions(openroad PRIVATE BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 # tclReadline
 if (TCL_READLINE_LIBRARY AND TCL_READLINE_H)
@@ -476,6 +479,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
     psm_py
     pdn_py
     dft_py
+    par_py
   )
 
   if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -518,6 +522,11 @@ endif()
 # executable
 install(TARGETS eden DESTINATION bin)
 execute_process( COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_CURRENT_BINARY_DIR}/eden" "${CMAKE_CURRENT_BINARY_DIR}/openroad")
+
+
+if(BUILD_MAN)
+  install(DIRECTORY ${MANPAGE_DIR} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/man)
+endif()
 
 ################################################################
 

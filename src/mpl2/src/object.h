@@ -43,10 +43,11 @@
 #include <string>
 #include <vector>
 
-#include "odb.h"
 #include "odb/dbTypes.h"
+#include "odb/odb.h"
 
 namespace odb {
+class Rect;
 class Point;
 class dbInst;
 class dbModule;
@@ -107,7 +108,7 @@ int micronToDbu(float metric, float dbu);
 // along the corresponding { B, L, T, R } boundary
 // The size of the hard macro blockage is determined the by the
 // size of that cluster
-enum PinAccess
+enum Boundary
 {
   NONE,
   B,
@@ -116,8 +117,8 @@ enum PinAccess
   R
 };
 
-std::string toString(const PinAccess& pin_access);
-PinAccess opposite(const PinAccess& pin_access);
+std::string toString(const Boundary& pin_access);
+Boundary opposite(const Boundary& pin_access);
 
 // Define the type for clusters
 // StdCellCluster only has std cells. In the cluster type, it
@@ -130,6 +131,16 @@ enum ClusterType
   StdCellCluster,
   HardMacroCluster,
   MixedCluster
+};
+
+// The parameters necessary to compute one coordinate of the new
+// origin for aligning the macros' pins to the track-grid
+struct SnapParameters
+{
+  int offset = 0;
+  int pitch = 0;
+  int pin_width = 0;
+  int pin_to_origin = 0;
 };
 
 // Metrics class for logical modules and clusters
@@ -200,12 +211,13 @@ class Cluster
   void clearHardMacros();
   void copyInstances(const Cluster& cluster);  // only based on cluster type
 
-  // IO cluster
   // Position must be specified when setting an IO cluster
   void setAsIOCluster(const std::pair<float, float>& pos,
                       float width,
                       float height);
   bool isIOCluster() const;
+  void setAsArrayOfInterconnectedMacros();
+  bool isArrayOfInterconnectedMacros() const;
 
   // Metrics Support
   void setMetrics(const Metrics& metrics);
@@ -244,6 +256,7 @@ class Cluster
   void addConnection(int cluster_id, float weight);
   const std::map<int, float> getConnection() const;
   bool isSameConnSignature(const Cluster& cluster, float net_threshold);
+  bool hasMacroConnectionWith(const Cluster& cluster, float net_threshold);
   // Get closely-connected cluster if such cluster exists
   // For example, if a small cluster A is closely connected to a
   // well-formed cluster B, (there are also other well-formed clusters
@@ -256,11 +269,11 @@ class Cluster
   // not have any connections outsize the parent cluster
   // All the outside connections have been converted to the connections
   // related to pin access
-  void setPinAccess(int cluster_id, PinAccess pin_access, float weight);
-  void addBoundaryConnection(PinAccess pin_a, PinAccess pin_b, float num_net);
-  const std::pair<PinAccess, float> getPinAccess(int cluster_id);
-  const std::map<int, std::pair<PinAccess, float>> getPinAccessMap() const;
-  const std::map<PinAccess, std::map<PinAccess, float>> getBoundaryConnection()
+  void setPinAccess(int cluster_id, Boundary pin_access, float weight);
+  void addBoundaryConnection(Boundary pin_a, Boundary pin_b, float num_net);
+  const std::pair<Boundary, float> getPinAccess(int cluster_id);
+  const std::map<int, std::pair<Boundary, float>> getPinAccessMap() const;
+  const std::map<Boundary, std::map<Boundary, float>> getBoundaryConnection()
       const;
 
   // virtual connections
@@ -297,6 +310,7 @@ class Cluster
   // We model bundled IOS (Pads) as a cluster with no area
   // The position be the center of IOs
   bool is_io_cluster_ = false;
+  bool is_array_of_interconnected_macros = false;
 
   // Each cluster uses metrics to store its statistics
   Metrics metrics_;
@@ -324,8 +338,8 @@ class Cluster
   std::vector<std::pair<int, int>> virtual_connections_;
 
   // pin access for each bundled connection
-  std::map<int, std::pair<PinAccess, float>> pin_access_map_;
-  std::map<PinAccess, std::map<PinAccess, float>> boundary_connection_map_;
+  std::map<int, std::pair<Boundary, float>> pin_access_map_;
+  std::map<Boundary, std::map<Boundary, float>> boundary_connection_map_;
   utl::Logger* logger_;
 };
 
@@ -394,31 +408,11 @@ class HardMacro
   odb::dbInst* getInst() const;
   const std::string getName() const;
   const std::string getMasterName() const;
-  // update the location and orientation of the macro inst in OpenDB
-  // The macro should be snaped to placement grids
-  void updateDb(float pitch_x, float pitch_y, odb::dbBlock* block);
-  odb::Point computeSnapOrigin(const Rect& macro_box,
-                               const odb::dbOrientType& orientation,
-                               float& pitch_x,
-                               float& pitch_y,
-                               odb::dbBlock* block);
 
-  void computeDirectionSpacingParameters(odb::dbBlock* block,
-                                         odb::dbTechLayer* layer,
-                                         odb::dbBox* box,
-                                         float& offset,
-                                         float& pitch,
-                                         float& pin_width,
-                                         const bool& is_vertical_direction);
-  void getDirectionTrackGrid(odb::dbTrackGrid* track_grid,
-                             std::vector<int>& coordinate_grid,
-                             const bool& is_vertical_direction);
-  float getDirectionPitch(odb::dbTechLayer* layer,
-                          const bool& is_vertical_direction);
-  float getDirectionOffset(odb::dbTechLayer* layer,
-                           const bool& is_vertical_direction);
-  float getDirectionPinWidth(odb::dbBox* box,
-                             const bool& is_vertical_direction);
+  void updateDb(odb::dbBlock* block);
+  odb::Point computeSnapOrigin(const odb::Rect& macro_box,
+                               const odb::dbOrientType& orientation,
+                               odb::dbBlock* block);
 
   int getXDBU() const { return micronToDbu(getX(), dbu_); }
 
@@ -449,6 +443,18 @@ class HardMacro
   void setYDBU(int y) { setY(dbuToMicron(y, dbu_)); }
 
  private:
+  SnapParameters computeSnapParameters(odb::dbBlock* block,
+                                       odb::dbTechLayer* layer,
+                                       odb::dbBox* box,
+                                       bool is_vertical_direction);
+  void getDirectionTrackGrid(odb::dbTrackGrid* track_grid,
+                             std::vector<int>& coordinate_grid,
+                             bool is_vertical_direction);
+  int getDirectionPitch(odb::dbTechLayer* layer, bool is_vertical_direction);
+  int getDirectionOffset(odb::dbTechLayer* layer, bool is_vertical_direction);
+  int getDirectionPinWidth(odb::dbBox* box, bool is_vertical_direction);
+  int getPinToOriginDistance(odb::dbBox* box, bool is_vertical_direction);
+
   // We define x_, y_ and orientation_ here
   // to avoid keep updating OpenDB during simulated annealing
   // Also enable the multi-threading
@@ -860,6 +866,12 @@ struct Rect
   float f_y = 0.0;
 
   bool fixed_flag = false;
+};
+
+struct SequencePair
+{
+  std::vector<int> pos_sequence;
+  std::vector<int> neg_sequence;
 };
 
 }  // namespace mpl2

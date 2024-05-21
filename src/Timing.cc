@@ -42,8 +42,9 @@
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "sta/Search.hh"
-//#include "ord/Tech.h"
+// #include "ord/Tech.h"
 #include "ord/Design.h"
+#include "rsz/Resizer.hh"
 #include "sta/Corner.hh"
 #include "sta/Liberty.hh"
 #include "sta/TimingArc.hh"
@@ -260,6 +261,22 @@ std::vector<sta::Corner*> Timing::getCorners()
   return {corners->begin(), corners->end()};
 }
 
+sta::Corner* Timing::cmdCorner()
+{
+  return getSta()->cmdCorner();
+}
+
+sta::Corner* Timing::findCorner(const char* name)
+{
+  for (auto* corner : getCorners()) {
+    if (strcmp(corner->name(), name) == 0) {
+      return corner;
+    }
+  }
+
+  return nullptr;
+}
+
 float Timing::getPinSlack(odb::dbITerm* db_pin, RiseFall rf, MinMax minmax)
 {
   sta::dbSta* sta = getSta();
@@ -369,4 +386,31 @@ float Timing::dynamicPower(odb::dbInst* inst, sta::Corner* corner)
   return (power.internal() + power.switching());
 }
 
+void Timing::makeEquivCells()
+{
+  auto app = OpenRoad::openRoad();
+  rsz::Resizer* resizer = app->getResizer();
+  resizer->makeEquivCells();
+}
+
+std::vector<odb::dbMaster*> Timing::equivCells(odb::dbMaster* master)
+{
+  sta::dbSta* sta = getSta();
+  sta::dbNetwork* network = sta->getDbNetwork();
+  sta::Cell* cell = network->dbToSta(master);
+  std::vector<odb::dbMaster*> masterSeq;
+  if (cell) {
+    sta::LibertyCell* libcell = network->libertyCell(cell);
+    sta::LibertyCellSeq* equiv_cells = sta->equivCells(libcell);
+    if (equiv_cells) {
+      for (sta::LibertyCell* equiv_cell : *equiv_cells) {
+        odb::dbMaster* equiv_master = network->staToDb(equiv_cell);
+        masterSeq.emplace_back(equiv_master);
+      }
+    } else {
+      masterSeq.emplace_back(master);
+    }
+  }
+  return masterSeq;
+}
 }  // namespace ord

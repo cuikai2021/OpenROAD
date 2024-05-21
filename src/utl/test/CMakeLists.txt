@@ -1,8 +1,20 @@
-add_executable(utl_unittest
-    metrics_unittest.cpp
+# add_executable(utl_unittest
+#     metrics_unittest.cpp
+# )
+
+# target_link_libraries(utl_unittest
+#     utl
+#     testa
+# )
+include("openroad")
+
+set(TEST_NAMES
+test_info
+    test_error
+    test_suppress_message
+    test_metrics
 )
 
-target_link_libraries(utl_unittest
-    utl
-    testa
-)
+foreach(TEST_NAME IN LISTS TEST_NAMES)
+    or_integration_test("utl" ${TEST_NAME}  ${CMAKE_CURRENT_SOURCE_DIR}/regression)
+endforeach()

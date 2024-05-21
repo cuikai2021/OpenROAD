@@ -6,6 +6,8 @@ record_tests {
   simple01-uniform
   simple01-ref
   simple01-skip-io
+  simple01-rd
+  simple02-rd
   simple02
   simple03
   simple04
@@ -25,5 +27,11 @@ record_tests {
   convergence01
   nograd01
   clust01
+<<<<<<< HEAD
  #clust02
+=======
+  #gpl_man_tcl_check
+  #gpl_readme_msgs_check
+>>>>>>> dac8235cb595faa1a41737ede8c88a0b13b91159
 }
+#  clust02

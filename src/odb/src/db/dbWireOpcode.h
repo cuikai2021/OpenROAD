@@ -32,8 +32,8 @@
 
 #pragma once
 
-#include "db.h"
-#include "odb.h"
+#include "odb/db.h"
+#include "odb/odb.h"
 
 namespace odb {
 
@@ -139,8 +139,9 @@ prevOpCode:
       if (get_layer) {
         pnt._layer = dbTechLayer::getTechLayer(tech, data[idx]);
 
-        if ((look_for_x == false) && (look_for_y == false))
+        if ((look_for_x == false) && (look_for_y == false)) {
           return;
+        }
 
         get_layer = false;
       }
@@ -159,8 +160,9 @@ prevOpCode:
         look_for_x = false;
         pnt._x = data[idx];
 
-        if ((look_for_y == false) && (get_layer == false))
+        if ((look_for_y == false) && (get_layer == false)) {
           return;
+        }
       }
 
       --idx;
@@ -172,8 +174,9 @@ prevOpCode:
         look_for_y = false;
         pnt._y = data[idx];
 
-        if ((look_for_x == false) && (get_layer == false))
+        if ((look_for_x == false) && (get_layer == false)) {
           return;
+        }
       }
 
       --idx;
@@ -184,13 +187,15 @@ prevOpCode:
       if (get_layer) {
         dbVia* via = dbVia::getVia(block, data[idx]);
 
-        if (opcode & WOP_VIA_EXIT_TOP)
+        if (opcode & WOP_VIA_EXIT_TOP) {
           pnt._layer = via->getTopLayer();
-        else
+        } else {
           pnt._layer = via->getBottomLayer();
+        }
 
-        if ((look_for_x == false) && (look_for_y == false))
+        if ((look_for_x == false) && (look_for_y == false)) {
           return;
+        }
 
         get_layer = false;
       }
@@ -203,13 +208,15 @@ prevOpCode:
       if (get_layer) {
         dbTechVia* via = dbTechVia::getTechVia(tech, data[idx]);
 
-        if (opcode & WOP_VIA_EXIT_TOP)
+        if (opcode & WOP_VIA_EXIT_TOP) {
           pnt._layer = via->getTopLayer();
-        else
+        } else {
           pnt._layer = via->getBottomLayer();
+        }
 
-        if ((look_for_x == false) && (look_for_y == false))
+        if ((look_for_x == false) && (look_for_y == false)) {
           return;
+        }
 
         get_layer = false;
       }

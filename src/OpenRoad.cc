@@ -38,6 +38,8 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
+
+#include "ord/Version.hh"
 #ifdef ENABLE_PYTHON3
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"
@@ -49,6 +51,7 @@
 #include "db_sta/dbNetwork.hh"
 #include "db_sta/dbReadVerilog.hh"
 #include "db_sta/dbSta.hh"
+#include "dft/MakeDft.hh"
 #include "dpl/MakeOpendp.h"
 #include "dpo/MakeOptdp.h"
 #include "dst/MakeDistributed.h"
@@ -58,11 +61,7 @@
 #include "gui/MakeGui.h"
 #include "ifp//MakeInitFloorplan.hh"
 #include "mpl/MakeMacroPlacer.h"
-#ifdef ENABLE_MPL2
-// mpl2 aborts with link error on darwin
 #include "mpl2/MakeMacroPlacer.h"
-#endif
-#include "dft/MakeDft.hh"
 #include "odb/cdl.h"
 #include "odb/db.h"
 #include "odb/defin.h"
@@ -71,10 +70,7 @@
 #include "odb/lefout.h"
 #include "ord/InitOpenRoad.hh"
 #include "pad/MakeICeWall.h"
-#ifdef ENABLE_PAR
-// par causes abseil link error at startup on apple silicon
 #include "par/MakePartitionMgr.h"
-#endif
 #include "pdn/MakePdnGen.hh"
 #include "ppl/MakeIoplacer.h"
 #include "psm/MakePDNSim.hh"
@@ -142,9 +138,7 @@ OpenRoad::~OpenRoad()
   deleteTritonCts(tritonCts_);
   deleteTapcell(tapcell_);
   deleteMacroPlacer(macro_placer_);
-#ifdef ENABLE_MPL2
   deleteMacroPlacer2(macro_placer2_);
-#endif
   deleteOpenRCX(extractor_);
   deleteTritonRoute(detailed_router_);
   deleteBanyan(banyan_);
@@ -152,9 +146,7 @@ OpenRoad::~OpenRoad()
   deleteFinale(finale_);
   deleteAntennaChecker(antenna_checker_);
   odb::dbDatabase::destroy(db_);
-#ifdef ENABLE_PAR
   deletePartitionMgr(partitionMgr_);
-#endif
   deletePdnGen(pdngen_);
   deleteICeWall(icewall_);
   deleteDistributed(distributer_);
@@ -204,18 +196,14 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   tritonCts_ = makeTritonCts();
   tapcell_ = makeTapcell();
   macro_placer_ = makeMacroPlacer();
-#ifdef ENABLE_MPL2
   macro_placer2_ = makeMacroPlacer2();
-#endif
   extractor_ = makeOpenRCX();
   detailed_router_ = makeTritonRoute();
   banyan_ = makeBanyan();
   replace_ = makeReplace();
   pdnsim_ = makePDNSim();
   antenna_checker_ = makeAntennaChecker();
-#ifdef ENABLE_PAR
   partitionMgr_ = makePartitionMgr();
-#endif
   pdngen_ = makePdnGen();
   icewall_ = makeICeWall();
   distributer_ = makeDistributed();
@@ -247,9 +235,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initTritonCts(this);
   initTapcell(this);
   initMacroPlacer(this);
-#ifdef ENABLE_MPL2
   initMacroPlacer2(this);
-#endif
   initOpenRCX(this);
   initICeWall(this);
   initRestructure(this);
@@ -257,9 +243,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initBanyan(this);
   initPDNSim(this);
   initAntennaChecker(this);
-#ifdef ENABLE_PAR
   initPartitionMgr(this);
-#endif
   initPdnGen(this);
   initDistributed(this);
   initSteinerTreeBuilder(this);
@@ -545,10 +529,14 @@ void OpenRoad::readVerilog(const char* filename)
   dbReadVerilog(filename, verilog_network_);
 }
 
-void OpenRoad::linkDesign(const char* design_name)
+void OpenRoad::linkDesign(const char* design_name, bool hierarchy)
 
 {
-  dbLinkDesign(design_name, verilog_network_, db_, logger_);
+  dbLinkDesign(design_name, verilog_network_, db_, logger_, hierarchy);
+  if (hierarchy) {
+    sta::dbSta* sta = getSta();
+    sta->getDbNetwork()->setHierarchy();
+  }
   for (OpenRoadObserver* observer : observers_) {
     observer->postReadDb(db_);
   }
@@ -631,6 +619,36 @@ void OpenRoad::setThreadCount(const char* threads, bool printInfo)
 int OpenRoad::getThreadCount()
 {
   return threads_;
+}
+
+const char* OpenRoad::getVersion()
+{
+  return OPENROAD_VERSION;
+}
+
+const char* OpenRoad::getGitDescribe()
+{
+  return OPENROAD_GIT_DESCRIBE;
+}
+
+bool OpenRoad::getGPUCompileOption()
+{
+  return GPU;
+}
+
+bool OpenRoad::getPythonCompileOption()
+{
+  return BUILD_PYTHON;
+}
+
+bool OpenRoad::getGUICompileOption()
+{
+  return BUILD_GUI;
+}
+
+bool OpenRoad::getChartsCompileOption()
+{
+  return ENABLE_CHARTS;
 }
 
 }  // namespace ord

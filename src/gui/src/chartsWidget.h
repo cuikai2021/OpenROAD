@@ -32,9 +32,11 @@
 
 #pragma once
 
-#include <QComboBox>
 #include <QDockWidget>
 #include <QLabel>
+
+#ifdef ENABLE_CHARTS
+#include <QComboBox>
 #include <QPushButton>
 #include <QString>
 #include <QtCharts>
@@ -43,41 +45,128 @@
 #include "gui/gui.h"
 
 namespace sta {
+class Pin;
 class dbSta;
-}
+class Clock;
+}  // namespace sta
+#endif
 
 namespace gui {
+#ifdef ENABLE_CHARTS
+class STAGuiInterface;
+
+struct SlackHistogramData
+{
+  std::vector<const sta::Pin*> constrained_pins;
+  std::set<sta::Clock*> clocks;
+  float max_slack = 0;
+  float min_slack = 0;
+};
+
+struct Buckets
+{
+  std::deque<std::vector<const sta::Pin*>> positive;
+  std::deque<std::vector<const sta::Pin*>> negative;
+};
+
+class HistogramView : public QChartView
+{
+  Q_OBJECT
+
+ public:
+  HistogramView(QChart* chart, QWidget* parent);
+
+  virtual void mousePressEvent(QMouseEvent* event) override;
+
+ signals:
+  void barIndex(int bar_index);
+};
+
+#endif
 
 class ChartsWidget : public QDockWidget
 {
   Q_OBJECT
 
  public:
+  ChartsWidget(QWidget* parent = nullptr);
+#ifdef ENABLE_CHARTS
   enum Mode
   {
     SELECT,
     SLACK_HISTOGRAM
   };
-  ChartsWidget(QWidget* parent = nullptr);
 
-  void setSTA(sta::dbSta* sta) { sta_ = sta; };
-  void setLogger(utl::Logger* logger);
-  void setSlackMode();
-  void clearChart();
+  void setSTA(sta::dbSta* sta);
+  void setLogger(utl::Logger* logger)
+  {
+    logger_ = logger;
+  }
+
+ signals:
+  void endPointsToReport(const std::set<const sta::Pin*>& report_pins);
 
  private slots:
   void changeMode();
+  void showToolTip(bool is_hovering, int bar_index);
+  void emitEndPointsInBucket(int bar_index);
 
  private:
+  void setSlackMode();
+
+  void setBucketInterval(float max_slack, float min_slack);
+  void setBucketInterval(float bucket_interval)
+  {
+    bucket_interval_ = bucket_interval;
+  }
+  void setNegativeCountOffset(int neg_count_offset)
+  {
+    neg_count_offset_ = neg_count_offset;
+  }
+  void setDecimalPrecision(int precision_count)
+  {
+    precision_count_ = precision_count;
+  }
+
+  SlackHistogramData fetchSlackHistogramData() const;
+  void populateBuckets(const SlackHistogramData& data);
+
+  int computeSnapBucketInterval(float exact_interval);
+  float computeSnapBucketDecimalInterval(float minimum_interval);
+  int computeNumberofBuckets(int bucket_interval,
+                             float max_slack,
+                             float min_slack);
+
+  void setXAxisConfig(int all_bars_count, const std::set<sta::Clock*>& clocks);
+  void setYAxisConfig();
+  QString createXAxisTitle(const std::set<sta::Clock*>& clocks);
+  int computeMaxYSnap();
+  int computeNumberOfDigits(int value);
+  int computeFirstDigit(int value, int digits);
+  int computeYInterval();
+
+  void clearChart();
+
   utl::Logger* logger_;
   sta::dbSta* sta_;
+  std::unique_ptr<STAGuiInterface> stagui_;
 
-  QLabel* label_;
   QComboBox* mode_menu_;
   QChart* chart_;
-  QChartView* display_;
-  QBarCategoryAxis* axis_x_;
+  HistogramView* display_;
+  QValueAxis* axis_x_;
   QValueAxis* axis_y_;
+
+  std::unique_ptr<Buckets> buckets_;
+
+  const int default_number_of_buckets_ = 15;
+  int largest_slack_count_ = 0;  // Used to configure the y axis.
+  int precision_count_ = 0;      // Used to configure the x labels.
+
+  float bucket_interval_ = 0;
+  int neg_count_offset_ = 0;
+#endif
+  QLabel* label_;
 };
 
 }  // namespace gui
