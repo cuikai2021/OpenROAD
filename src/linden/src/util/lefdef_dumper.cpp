@@ -15,14 +15,6 @@ IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
 namespace linden {
 
 namespace {
-path gen_base_filename()
-{
-    auto tm = chrono::system_clock::now().time_since_epoch();
-    auto tm_ms = chrono::duration_cast<chrono::milliseconds>(tm).count();
-    ostringstream oss;
-    oss << LINDEN_TMP_FILE_ROOT_DIR() << "/lindendp_" << tm_ms;
-    return oss.str();
-}
 
 path write_tech(::ord::OpenRoad& openroad, const path& basename)
 {
@@ -60,6 +52,15 @@ path write_def(::ord::OpenRoad& openroad, const path& basename)
 }
 
 }  // namespace
+
+path gen_base_filename()
+{
+    auto tm = chrono::system_clock::now().time_since_epoch();
+    auto tm_ms = chrono::duration_cast<chrono::milliseconds>(tm).count();
+    ostringstream oss;
+    oss << LINDEN_TMP_FILE_ROOT_DIR() << "/lindendp_" << tm_ms;
+    return oss.str();
+}
 
 LefDefDumper::LefDefDumper(::ord::OpenRoad& ord)
 {

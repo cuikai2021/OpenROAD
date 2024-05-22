@@ -23,4 +23,6 @@ struct LefDefDumper
     std::ostream& print_dumped_files(std::ostream& oss) const;
 };
 
+std::filesystem::path gen_base_filename();
+
 }  // namespace linden
