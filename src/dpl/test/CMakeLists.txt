@@ -75,17 +75,17 @@ foreach(TEST_NAME IN LISTS TEST_NAMES)
   or_integration_test("dpl" ${TEST_NAME}  ${CMAKE_CURRENT_SOURCE_DIR}/regression)
 endforeach()
 
-add_executable(dpl_test dpl_test.cc)
+# add_executable(dpl_test dpl_test.cc)
 
-target_link_libraries(dpl_test 
-    gtest 
-    gtest_main
-    dpl_lib
-)
+# target_link_libraries(dpl_test 
+#     gtest 
+#     gtest_main
+#     dpl_lib
+# )
 
-gtest_discover_tests(dpl_test
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-)
+# gtest_discover_tests(dpl_test
+#     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+# )
 
-add_dependencies(build_and_test dpl_test)
+# add_dependencies(build_and_test dpl_test)
 

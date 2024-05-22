@@ -312,10 +312,10 @@ dbScanChain* dbScanChain::create(dbDft* dft)
 #endif
 #include "dbScanChain.h"
 
-#include "db.h"
+#include "odb/db.h"
 #include "dbTable.h"
 #include "dbTable.hpp"
-#include "dbDiff.h"
+#include "odb/dbDiff.h"
 #include "dbDiff.hpp"
 #include "dbBlock.h"
 #include "dbITerm.h"

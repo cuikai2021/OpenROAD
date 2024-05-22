@@ -329,6 +329,7 @@ dbSta::initClkNets()
   for (odb::dbNet* net : clock_nets) {
 	net->setSigType(odb::dbSigType::CLOCK);
   }
+}
 std::string dbSta::getInstanceTypeText(InstType type)
 {
   switch (type) {

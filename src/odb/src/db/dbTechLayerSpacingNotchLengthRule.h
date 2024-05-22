@@ -1,9 +1,9 @@
 #pragma once
 
 #include "dbCore.h"
-#include "dbId.h"
-#include "dbTypes.h"
-#include "odb.h"
+#include "odb/dbId.h"
+#include "odb/dbTypes.h"
+#include "odb/odb.h"
 
 namespace odb {
 

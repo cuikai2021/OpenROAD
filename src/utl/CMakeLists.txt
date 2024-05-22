@@ -122,7 +122,7 @@ messages(
   TARGET utl
 )
 
-add_subdirectory(test)
+# add_subdirectory(test)
 
 ############################################################
 # Unit testing

@@ -150,8 +150,8 @@ class dbScanChain;
 class dbScanInst;
 class dbScanList;
 class dbScanPartition;
-class dbScanPin;
 #endif
+class dbScanPin;
 class dbTechLayer;
 class dbTechLayerAreaRule;
 class dbTechLayerArraySpacingRule;
@@ -7989,6 +7989,7 @@ class dbScanPartition : public dbObject
   static dbScanPartition* create(dbScanChain* chain);
   // User Code End dbScanPartition
 };
+#endif
 
 // This is a helper class to contain dbBTerms and dbITerms in the same field. We
 // need this difference because some pins may need to be conected to top level
@@ -8006,7 +8007,6 @@ class dbScanPin : public dbObject
   static dbId<dbScanPin> create(dbDft* dft, dbITerm* iterm);
   // User Code End dbScanPin
 };
-#endif
 
 class dbTechLayer : public dbObject
 {

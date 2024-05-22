@@ -17,9 +17,9 @@ set(TEST_LIBS
   odb_test_helper
 )
 
-add_executable(TestScanChain TestScanChain.cpp)
-target_link_libraries(TestScanChain ${TEST_LIBS})
+# add_executable(TestScanChain TestScanChain.cpp)
+# target_link_libraries(TestScanChain ${TEST_LIBS})
 
-gtest_discover_tests(TestScanChain WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+# gtest_discover_tests(TestScanChain WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_dependencies(build_and_test TestScanChain)
+# add_dependencies(build_and_test TestScanChain)

@@ -152,6 +152,8 @@ db_network_initclknets()
   ord::OpenRoad *openroad = ord::getOpenRoad();
   sta::dbSta *sta = openroad->getSta();
   sta->initClkNets();
+}
+void
 report_cell_usage_cmd()
 {
   cmdLinkedNetwork();

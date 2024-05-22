@@ -1,7 +1,7 @@
 #include "sc/MakeScanChain.h"
 
 #include "sc/ScanChain.h"
-#include "db.h"
+#include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
 

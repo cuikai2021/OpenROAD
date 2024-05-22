@@ -85,9 +85,9 @@
 #include "utl/Logger.h"
 #include "utl/MakeLogger.h"
 #include "sc/MakeScanChain.h"
-#include "lrl/MakeLaurel.hh"
-#include "banyan/MakeBanyan.h"
-#include "linden/make_linden.hpp"
+// #include "lrl/MakeLaurel.hh"
+// #include "banyan/MakeBanyan.h"
+// #include "linden/make_linden.hpp"
 
 namespace sta {
 extern const char* openroad_swig_tcl_inits[];
@@ -141,7 +141,7 @@ OpenRoad::~OpenRoad()
   deleteMacroPlacer2(macro_placer2_);
   deleteOpenRCX(extractor_);
   deleteTritonRoute(detailed_router_);
-  deleteBanyan(banyan_);
+  // deleteBanyan(banyan_);
   deleteReplace(replace_);
   deleteFinale(finale_);
   deleteAntennaChecker(antenna_checker_);
@@ -153,7 +153,7 @@ OpenRoad::~OpenRoad()
   deleteSteinerTreeBuilder(stt_builder_);
   dft::deleteDft(dft_);
   deleteScanChain(scan_chain_);
-  deleteLaurel(laurel_);
+  // deleteLaurel(laurel_);
   delete logger_;
 }
 
@@ -199,7 +199,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   macro_placer2_ = makeMacroPlacer2();
   extractor_ = makeOpenRCX();
   detailed_router_ = makeTritonRoute();
-  banyan_ = makeBanyan();
+  // banyan_ = makeBanyan();
   replace_ = makeReplace();
   pdnsim_ = makePDNSim();
   antenna_checker_ = makeAntennaChecker();
@@ -210,7 +210,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   stt_builder_ = makeSteinerTreeBuilder();
   dft_ = dft::makeDft();
   scan_chain_ = makeScanChain();
-  laurel_ = makeLaurel();
+  // laurel_ = makeLaurel();
 
   // Init components.
   Openroad_swig_Init(tcl_interp);
@@ -240,7 +240,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initICeWall(this);
   initRestructure(this);
   initTritonRoute(this);
-  initBanyan(this);
+  // initBanyan(this);
   initPDNSim(this);
   initAntennaChecker(this);
   initPartitionMgr(this);
@@ -249,8 +249,8 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initSteinerTreeBuilder(this);
   dft::initDft(this);
   initScanChain(this);
-  initLaurel(this);
-  linden::init(this);
+  // initLaurel(this);
+  // linden::init(this);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");
@@ -623,12 +623,12 @@ int OpenRoad::getThreadCount()
 
 const char* OpenRoad::getVersion()
 {
-  return OPENROAD_VERSION;
+  return EDEN_VERSION;
 }
 
 const char* OpenRoad::getGitDescribe()
 {
-  return OPENROAD_GIT_DESCRIBE;
+  return EDEN_GIT_DESCRIBE;
 }
 
 bool OpenRoad::getGPUCompileOption()

@@ -109,7 +109,7 @@ add_library(db
     # dbScanInst.cpp
     # dbScanList.cpp
     # dbScanPartition.cpp
-    # dbScanPin.cpp
+    dbScanPin.cpp
     dbTechLayer.cpp
     dbTechLayerAreaRule.cpp
     dbTechLayerArraySpacingRule.cpp

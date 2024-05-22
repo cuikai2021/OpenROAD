@@ -114,7 +114,7 @@
 #include "dbSBoxItr.h"
 #include "dbSWire.h"
 #include "dbSWireItr.h"
-#include "dbShape.h"
+#include "odb/dbShape.h"
 #include "dbScanChain.h"
 #include "dbTable.h"
 #include "dbTable.hpp"
@@ -1309,7 +1309,7 @@ bool _dbBlock::operator==(const _dbBlock& rhs) const
   if (_diearea_rt_blockages != rhs._diearea_rt_blockages)
     return false;
 
-  if (_chip != rhs._chip)
+  if (_chip != rhs._chip) {
     return false;
   }
 

@@ -309,9 +309,9 @@ add_subdirectory(dst)
 add_subdirectory(pdn)
 add_subdirectory(dft)
 add_subdirectory(sc)
-add_subdirectory(Laurel)
-add_subdirectory(Banyan)
-add_subdirectory(linden)
+# add_subdirectory(Laurel)
+# add_subdirectory(Banyan)
+# add_subdirectory(linden)
 add_subdirectory(mpl2)
 add_subdirectory(par)
 
@@ -389,9 +389,9 @@ target_link_libraries(eden
   pdn
   dft
   sc
-  Laurel
-  Banyan
-  linden
+  # Laurel
+  # Banyan
+  # linden
   ${Boost_STACKTRACE_BACKTRACE_LIBRARY}
   mpl2
   par
@@ -410,7 +410,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 else()
   message(STATUS "Removing MPL2 and PAR to avoid run time fatal error.")
 endif()
-target_compile_definitions(openroad PRIVATE BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+target_compile_definitions(eden PRIVATE BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 # tclReadline
 if (TCL_READLINE_LIBRARY AND TCL_READLINE_H)

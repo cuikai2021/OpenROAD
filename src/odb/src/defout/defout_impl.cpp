@@ -231,11 +231,11 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
     int y1 = defdist(r.yMin());
     int x2 = defdist(r.xMax());
     int y2 = defdist(r.yMax());
+  
+    if ((x1 != 0) || (y1 != 0) || (x2 != 0) || (y2 != 0)) {
+      fprintf(_out, "DIEAREA ( %d %d ) ( %d %d ) ;\n", x1, y1, x2, y2);
+    }
   }
-  if ((x1 != 0) || (y1 != 0) || (x2 != 0) || (y2 != 0)) {
-    fprintf(_out, "DIEAREA ( %d %d ) ( %d %d ) ;\n", x1, y1, x2, y2);
-  }
-
   writeRows(block);
   writeTracks(block);
   writeGCells(block);

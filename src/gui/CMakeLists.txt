@@ -85,6 +85,7 @@ if (Qt5_FOUND AND BUILD_GUI)
       ${CHARTS_LIB}
       utl
       Boost::boost
+      boost_regex
   )
 
 messages(

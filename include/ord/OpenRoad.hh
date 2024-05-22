@@ -154,13 +154,13 @@ namespace sc {
 class ScanChain;
 }
 
-namespace lrl {
-class Laurel;
-}
+// namespace lrl {
+// class Laurel;
+// }
 
-namespace banyan {
-class Banyan;
-}
+// namespace banyan {
+// class Banyan;
+// }
 
 namespace ord {
 
@@ -208,8 +208,8 @@ class OpenRoad
   stt::SteinerTreeBuilder* getSteinerTreeBuilder() { return stt_builder_; }
   dft::Dft* getDft() { return dft_; }
   sc::ScanChain *getScanChain() { return scan_chain_; }
-  lrl::Laurel *getLaurel() { return laurel_; }
-  banyan::Banyan *getBanyan() { return banyan_; }
+  // lrl::Laurel *getLaurel() { return laurel_; }
+  // banyan::Banyan *getBanyan() { return banyan_; }
 
   // Return the bounding box of the db rows.
   odb::Rect getCore();
@@ -303,8 +303,8 @@ class OpenRoad
   stt::SteinerTreeBuilder* stt_builder_ = nullptr;
   dft::Dft* dft_ = nullptr;
   sc::ScanChain *scan_chain_ = nullptr;
-  lrl::Laurel *laurel_ = nullptr;
-  banyan::Banyan *banyan_ = nullptr;
+  // lrl::Laurel *laurel_ = nullptr;
+  // banyan::Banyan *banyan_ = nullptr;
 
   std::set<OpenRoadObserver*> observers_;
 

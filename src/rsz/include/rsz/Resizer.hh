@@ -175,7 +175,6 @@ class Resizer : public dbStaState
             GlobalRouter* global_router,
             dpl::Opendp* opendp,
             std::unique_ptr<AbstractSteinerRenderer> steiner_renderer);
-<<<<<<< HEAD
   void init(Logger* logger,
             dbDatabase* db,
             dbSta* sta,
@@ -185,10 +184,6 @@ class Resizer : public dbStaState
 
   void setLayerRC(dbTechLayer *layer,
                   const Corner *corner,
-=======
-  void setLayerRC(dbTechLayer* layer,
-                  const Corner* corner,
->>>>>>> dac8235cb595faa1a41737ede8c88a0b13b91159
                   double res,
                   double cap);
   void layerRC(dbTechLayer* layer,

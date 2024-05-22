@@ -111,9 +111,9 @@ enum dbObjectType
   dbScanChainObj,
   dbScanInstObj,
   dbScanListObj,
-  dbScanPartitionObj,
-  dbScanPinObj,
+  dbScanPartitionObj, 
 #endif
+  dbScanPinObj,
   dbTechLayerObj,
   dbTechLayerAreaRuleObj,
   dbTechLayerArraySpacingRuleObj,

@@ -62,7 +62,7 @@ using sta::dbSta;
 using sta::dbNetwork;
 using rsz::Resizer;
 using sc::ScanChain;
-using lrl::Laurel;
+// using lrl::Laurel;
 
 using odb::dbDatabase;
 
@@ -233,19 +233,19 @@ getScanChain()
   return openroad->getScanChain();
 }
 
-lrl::Laurel *
-getLaurel()
-{
-  OpenRoad *openroad = getOpenRoad();
-  return openroad->getLaurel();
-}
+// lrl::Laurel *
+// getLaurel()
+// {
+//   OpenRoad *openroad = getOpenRoad();
+//   return openroad->getLaurel();
+// }
 
-banyan::Banyan *
-getBanyan()
-{
-  OpenRoad *openroad = getOpenRoad();
-  return openroad->getBanyan();
-}
+// banyan::Banyan *
+// getBanyan()
+// {
+//   OpenRoad *openroad = getOpenRoad();
+//   return openroad->getBanyan();
+// }
 
 } // namespace ord
 
