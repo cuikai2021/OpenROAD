@@ -3,6 +3,8 @@
 set skip {
   define_corners
   exit
+  scan_chain_reorder
+  scan_chain_trace
 }
 
 foreach command [info commands] {
