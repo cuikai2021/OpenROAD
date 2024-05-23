@@ -998,7 +998,7 @@ bool RepairSetup::isPortEqiv(sta::FuncExpr* expr,
   size_t input_port_count = 0;
   while (port_iter.hasNext()) {
     LibertyPort* port = port_iter.next();
-    if (port->direction()->isInput()) {
+    if (port->direction()->isInput() || port->direction()->isInternal()) {
       ++input_port_count;
       port_stimulus[port] = {};
     }

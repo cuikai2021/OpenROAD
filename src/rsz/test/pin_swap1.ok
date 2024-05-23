@@ -1253,14 +1253,14 @@ sky130_fd_sc_hd__sdfxtp_4/D ->
 sky130_fd_sc_hd__sdfxtp_4/SCD ->
 sky130_fd_sc_hd__sdfxtp_4/SCE ->
 sky130_fd_sc_hd__sdlclkp_1/CLK ->
-sky130_fd_sc_hd__sdlclkp_1/GATE ->
-sky130_fd_sc_hd__sdlclkp_1/SCE ->
+sky130_fd_sc_hd__sdlclkp_1/GATE -> SCE
+sky130_fd_sc_hd__sdlclkp_1/SCE -> GATE
 sky130_fd_sc_hd__sdlclkp_2/CLK ->
-sky130_fd_sc_hd__sdlclkp_2/GATE ->
-sky130_fd_sc_hd__sdlclkp_2/SCE ->
+sky130_fd_sc_hd__sdlclkp_2/GATE -> SCE
+sky130_fd_sc_hd__sdlclkp_2/SCE -> GATE
 sky130_fd_sc_hd__sdlclkp_4/CLK ->
-sky130_fd_sc_hd__sdlclkp_4/GATE ->
-sky130_fd_sc_hd__sdlclkp_4/SCE ->
+sky130_fd_sc_hd__sdlclkp_4/GATE -> SCE
+sky130_fd_sc_hd__sdlclkp_4/SCE -> GATE
 sky130_fd_sc_hd__sedfxbp_1/CLK ->
 sky130_fd_sc_hd__sedfxbp_1/D ->
 sky130_fd_sc_hd__sedfxbp_1/DE ->
