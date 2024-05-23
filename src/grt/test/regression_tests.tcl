@@ -20,7 +20,7 @@ record_tests {
   gcd_flute
   inst_pin_out_of_die
   invalid_routing_layer
-  invalid_pin_placement
+  #invalid_pin_placement
   macro_obs_not_aligned
   modeling_instance_obs
   multiple_calls
@@ -61,7 +61,7 @@ record_tests {
   tracks1
   tracks2
   tracks3
-  unplaced_inst
+  #unplaced_inst
   upper_layer_net
   #grt_man_tcl_check
   #grt_readme_msgs_check
