@@ -26,12 +26,9 @@ record_tests {
   density01
   convergence01
   nograd01
-  clust01
-<<<<<<< HEAD
+  # clust01
  #clust02
-=======
   #gpl_man_tcl_check
   #gpl_readme_msgs_check
->>>>>>> dac8235cb595faa1a41737ede8c88a0b13b91159
 }
 #  clust02
