@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "banyan_db.pb.h"
-#include "dbTypes.h"
+#include "odb/dbTypes.h"
 #include "db_sta/dbNetwork.hh"
 #include "db_sta/dbSta.hh"
 #include "lef/lef.pb.h"
