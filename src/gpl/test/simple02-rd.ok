@@ -74,17 +74,17 @@
 [INFO GPL-0038] TileCnt:      14   14
 [INFO GPL-0039] numRoutingLayers: 10
 [INFO GPL-0040] NumTiles: 196
-[INFO GPL-0063] TotalRouteOverflowH2: 0.0
-[INFO GPL-0064] TotalRouteOverflowV2: 0.0
+[INFO GPL-0063] TotalRouteOverflowH2: 0
+[INFO GPL-0064] TotalRouteOverflowV2: 0
 [INFO GPL-0065] OverflowTileCnt2: 0
 [INFO GPL-0066] 0.5%RC: 1.0000
 [INFO GPL-0067] 1.0%RC: 1.0000
 [INFO GPL-0068] 2.0%RC: 0.9439
 [INFO GPL-0069] 5.0%RC: 0.8037
-[INFO GPL-0070] 0.5rcK: 1.0
-[INFO GPL-0071] 1.0rcK: 1.0
-[INFO GPL-0072] 2.0rcK: 0.0
-[INFO GPL-0073] 5.0rcK: 0.0
+[INFO GPL-0070] 0.5rcK: 1
+[INFO GPL-0071] 1.0rcK: 1
+[INFO GPL-0072] 2.0rcK: 0
+[INFO GPL-0073] 5.0rcK: 0
 [INFO GPL-0074] FinalRC: 1.0000
 [INFO GPL-0078] FinalRC lower than minRC (1e+30), min RC updated.
 [INFO GPL-0045] InflatedAreaDelta:        0.000 um^2
@@ -116,19 +116,19 @@
 [INFO GPL-0038] TileCnt:      14   14
 [INFO GPL-0039] numRoutingLayers: 10
 [INFO GPL-0040] NumTiles: 196
-[INFO GPL-0063] TotalRouteOverflowH2: 0.0
-[INFO GPL-0064] TotalRouteOverflowV2: 0.0
+[INFO GPL-0063] TotalRouteOverflowH2: 0
+[INFO GPL-0064] TotalRouteOverflowV2: 0
 [INFO GPL-0065] OverflowTileCnt2: 0
 [INFO GPL-0066] 0.5%RC: 1.0000
 [INFO GPL-0067] 1.0%RC: 0.9733
 [INFO GPL-0068] 2.0%RC: 0.9333
 [INFO GPL-0069] 5.0%RC: 0.8269
-[INFO GPL-0070] 0.5rcK: 1.0
-[INFO GPL-0071] 1.0rcK: 1.0
-[INFO GPL-0072] 2.0rcK: 0.0
-[INFO GPL-0073] 5.0rcK: 0.0
+[INFO GPL-0070] 0.5rcK: 1
+[INFO GPL-0071] 1.0rcK: 1
+[INFO GPL-0072] 2.0rcK: 0
+[INFO GPL-0073] 5.0rcK: 0
 [INFO GPL-0074] FinalRC: 0.9867
-[INFO GPL-0077] FinalRC lower than targetRC(1.0), routability not needed.
+[INFO GPL-0077] FinalRC lower than targetRC(1), routability not needed.
 [NesterovSolve] Iter:  420 overflow: 0.192 HPWL: 4857987
 [NesterovSolve] Iter:  430 overflow: 0.161 HPWL: 4890728
 [NesterovSolve] Iter:  440 overflow: 0.135 HPWL: 4922673

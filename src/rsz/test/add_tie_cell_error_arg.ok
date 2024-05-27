@@ -6,5 +6,5 @@ RSZ-0201
 RSZ-0202
 [ERROR RSZ-0203] Missing mandatory parameter -tie_high_pin
 RSZ-0203
-[ERROR STA-0402] add_tie_cell -tie_high_pim is not a known keyword or flag.
-STA-0402
+[ERROR STA-0562] add_tie_cell -tie_high_pim is not a known keyword or flag.
+STA-0562

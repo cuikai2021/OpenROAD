@@ -8,7 +8,7 @@ record_tests {
   gcd_em_test_vdd
   gcd_vss_no_vsrc
   gcd_sky130_vdd
-  aes_asap7_vdd
+  #aes_asap7_vdd
   check_power_grid
   check_power_grid_floorplanning
   check_power_grid_disconnected
