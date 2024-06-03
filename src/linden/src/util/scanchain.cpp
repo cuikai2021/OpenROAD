@@ -94,6 +94,12 @@ void PairedCell::init_scan_enable() {
         return;
     }
     sta::LibertyPort* lib_port = test_cell->scanEnable();
+    if(lib_port == nullptr) {
+        spdlog::error(
+            "Cell {} has test-cell definition in .lib but no scan-enable pin.",
+            sta().name());
+        return;
+    }
     odb::dbITerm* db_pin = db().findITerm(lib_port->name());
     PairedPin se(db_pin, lib_port);
     scan_enable_ = std::move(se);
