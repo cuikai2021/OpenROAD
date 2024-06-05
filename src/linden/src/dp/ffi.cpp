@@ -50,6 +50,7 @@ deque<string> split(const string& raw, const string_view& seps) noexcept {
     return res;
 }
 
+
 optional<DpConfig> parse_from(std::deque<std::string> args) {
     const string_view FILLER_LIST_ARG("--filler-list");
     const string_view NOT_TO_STOP_WHEN_ILLEGAL("--not-to-stop-when-illegal");
@@ -57,6 +58,7 @@ optional<DpConfig> parse_from(std::deque<std::string> args) {
     const string_view CRITICAL_CELLS("--critical-cells");
     const string_view TIMING_DATA("--timing-data");
     const string_view SUPPRESS_OUTPUT("--suppress-output");
+    const string_view ROUTING_TOP_LAYER("--routing-top-layer");
 
     DpConfig res;
     optional<string> filler_list = nullopt;
@@ -112,6 +114,16 @@ optional<DpConfig> parse_from(std::deque<std::string> args) {
         } else if (s == SUPPRESS_OUTPUT) {
             // this is a secret arg. it is just for testing so far.
             res.suppress_output = true;
+        } else if ( s == ROUTING_TOP_LAYER ){
+            auto param = args_.next();
+            if (!param) {
+                spdlog::error(
+                    "{} requires a top slayer to tell banyan what layers are routable.",
+                    ROUTING_TOP_LAYER
+                );
+                return nullopt;
+            }
+            res.routing_top_layer = *param;
         } else {
             spdlog::info("ignore arg: {}", s);
         }
@@ -150,4 +162,13 @@ int incr_dp_gogogo(deque<string> args) {
     }
 }
 
+int rddp_gogogo(deque<string> args) {
+    auto dp_cfg = parse_from(args);
+    if (dp_cfg) {
+        ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
+        return rddp(ord, *dp_cfg);
+    } else {
+        return 50;
+    }
+}
 } // namespace linden

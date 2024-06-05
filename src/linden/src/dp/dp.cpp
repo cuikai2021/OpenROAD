@@ -11,6 +11,10 @@
 #include "envflag/envflag.hpp"
 #include "fassert.hpp"
 #include "pblefdef.pb.h"
+#include "banyan/Banyan.h"
+#include "banyan_cmap.pb.h"
+#include "fassert.hpp"
+#include "linden/geom/dimension.hpp"
 #include <spdlog/spdlog.h>
 #include <boost/process.hpp>
 #include <exception>
@@ -26,7 +30,7 @@
 #include <filesystem>
 
 using namespace std;
-
+using linden::geom::Dimension;
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR);
 
 namespace linden {
@@ -46,6 +50,16 @@ std::filesystem::path get_basic_dp_exe() {
 std::filesystem::path get_incr_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
     return dir / "linden-incremental-legalizer";
+}
+
+std::filesystem::path get_routability_driven_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "linden-routability-driven-detailed-placer";
+}
+
+std::filesystem::path get_pbdef_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "pbdef";
 }
 
 filesystem::path output_def_name(
@@ -137,6 +151,34 @@ int exec_incr_dp(
     return exec(cfg, exe, args);
 }
 
+int exec_routability_driven_dp(
+    const DpConfig& cfg,
+    const string& input_cfg,
+    const string& outdef)
+{
+    deque<string> args;
+    args.push_back("--input-config");
+    args.push_back(input_cfg);
+    args.push_back("--to");
+    args.push_back(outdef);
+    auto exe = std::move(get_routability_driven_dp_exe());
+    return exec(cfg, exe, args);
+}
+
+int exec_pbdef(
+    const DpConfig& cfg,
+    const string& from,
+    const string& to)
+{
+    deque<string> args;
+    args.push_back("--from");
+    args.push_back(from);
+    args.push_back("--to");
+    args.push_back(to);
+    auto exe = std::move(get_pbdef_exe());
+    return exec(cfg, exe, args);
+}
+
 filesystem::path write_input_config(
     const DpConfig& cfg,
     const filesystem::path& basename,
@@ -170,6 +212,9 @@ filesystem::path write_input_config(
     }
     if (auto const& td = cfg.timing_data; td) {
         root.emplace("timing-data", td->string());
+    }
+    if (auto const& td = cfg.routing_congestion_data; td) {
+        root.emplace("routability-data", td->string());
     }
     if (auto const& cc = cfg.critical_cells; cc) {
         toml::array critical_cells;
@@ -251,6 +296,56 @@ void read_back(const filesystem::path& outdef)
     resizer.estimateParasitics(rsz::ParasiticsSrc::placement);
 }
 
+std::filesystem::path generate_routability_data_file(const string_view& routing_top_layer) {
+    banyan::Banyan& banyan = *::ord::OpenRoad::openRoad() -> getBanyan();
+    auto cmap_filepath = gen_base_filename() / fmt::format(".cmap");
+    banyan.clearWires(false, false);
+    banyan.cmap(cmap_filepath.string(), false, routing_top_layer);
+    return cmap_filepath;
+}
+
+double calc_fulfill(double demand, double supply) noexcept {
+    if (supply == 0) {
+        return 100; // an arbitrary but large enough value
+    }
+    return demand / supply;
+}
+
+optional<banyan::Cmap> parse_cmap(const filesystem::path& cmap_file)
+{
+    banyan::Cmap cmap;
+    ifstream input(cmap_file, ios::binary);
+    if (!input) {
+        spdlog::error("Failed to open file: {}", cmap_file);
+        return nullopt;
+    } else if (!cmap.ParseFromIstream(&input)) {
+        spdlog::error("Failed to parse cmap file: {}", cmap_file);
+        return nullopt;
+    }
+    return cmap;
+}
+
+int64_t is_congestion_meet_expectation(const banyan::Cmap& cmap) 
+{
+    std::array<std::vector<double>, 2> rc_vals_xy;
+    for (auto dim : {Dimension::X, Dimension::Y}) {
+        auto& rc_vals = rc_vals_xy[dim];
+        rc_vals.reserve(cmap.wgrids() * cmap.hgrids());
+        auto const& tiles = (dim == Dimension::X ? cmap.htiles() : cmap.vtiles());
+        for (auto const& tile: tiles) {
+            rc_vals.push_back(calc_fulfill(tile.demand(), tile.supply()));
+        }
+        std::sort(rc_vals.begin(), rc_vals.end(), greater<double>());
+        double median = rc_vals[rc_vals.size() / 2];
+        double max = rc_vals.front();
+        if (max > median * 1.2 && max > 1.0) {
+            int64_t n_tile_overloaded = 
+                upper_bound(rc_vals.begin(), rc_vals.end(), 1.0l, std::greater<double>()) - rc_vals.begin();
+            return n_tile_overloaded;
+        }
+    }
+    return 0;
+}
 } // namespace
 
 int basic_dp(::ord::OpenRoad& ord, const DpConfig& cfg) {
@@ -293,6 +388,85 @@ int incr_dp(::ord::OpenRoad& ord, const DpConfig& cfg) {
     int ret = exec_incr_dp(cfg, input_cfg_fn, outdef);
     read_back(outdef);
     return ret;
+}
+
+int rddp(::ord::OpenRoad& ord, DpConfig& dpcfg) {
+    const int64_t N_TRIES = 3;
+    std::vector<pair<std::filesystem::path, int64_t>> tried_results;
+    tried_results.reserve(N_TRIES + 1);
+    
+    const LefDefDumper dumper(ord);
+    auto const& basename = dumper.basename;
+    filesystem::path last_def = basename;
+    last_def += ".pbdef";
+    exec_pbdef(dpcfg, dumper.def, last_def);
+
+    deque<filesystem::path> lefs;
+    lefs.push_back(dumper.tech_lef);
+    for (auto const& x: dumper.lib_lefs) {
+        lefs.push_back(x);
+    }
+    
+    dpcfg.routing_congestion_data = generate_routability_data_file(*dpcfg.routing_top_layer);
+    auto cmap = parse_cmap(*dpcfg.routing_congestion_data);
+    if (!cmap.has_value()) {
+        return 1;
+    }
+
+    int64_t n_overloaded_tiles = is_congestion_meet_expectation(*cmap);
+    if (!n_overloaded_tiles) {
+        return 0;
+    } else {
+        const filesystem::path& def = last_def;
+        tried_results.push_back(make_pair(def, n_overloaded_tiles));
+    }
+
+    for (int64_t tried = 0; tried < N_TRIES; tried++) {
+        const auto& basename = gen_base_filename();
+        filesystem::path input_cfg_fn = write_input_config(dpcfg, basename, lefs, last_def);
+        const filesystem::path& out_def = output_def_name(basename, dpcfg.suppress_output);
+        int64_t ret = exec_routability_driven_dp(dpcfg, input_cfg_fn, out_def);
+        if (ret) {
+            spdlog::error(
+                "Routability-Driven Detailed Placement failed, ",
+                "code: {}",
+                ret
+            );
+            return ret;
+        }
+        read_back(out_def);
+
+        dpcfg.routing_congestion_data = generate_routability_data_file(*dpcfg.routing_top_layer);
+        auto cmap = parse_cmap(*dpcfg.routing_congestion_data);
+        if (!cmap.has_value()) {
+            return 1;
+        }
+        int64_t n_overloaded_tiles = is_congestion_meet_expectation(*cmap);
+        if (!n_overloaded_tiles) {
+            tried_results.push_back(make_pair(last_def,0));
+            break;
+        } else {
+            const filesystem::path& def = last_def;
+            tried_results.push_back(make_pair(def, n_overloaded_tiles));
+        }
+        last_def = out_def;
+    }
+
+    optional<std::filesystem::path> best_try;
+    int64_t n_overloaded_in_best_try = INT64_MAX;
+    for (auto [path, n_overloaded_tiles]: tried_results) {
+        if (n_overloaded_in_best_try > n_overloaded_tiles) {
+            n_overloaded_in_best_try = n_overloaded_tiles;
+            best_try = path;
+        }
+    }
+    // `read_back` will discard cell halos added by linden RDDP.
+    // This behaviour is by design because RDDP consider cell halos slightly different with what the LEF/DEF standard defines.
+    // Suppose that a tapcell appears in the halo of a cell. Standard may consider it as a violation but RDDP thinks it is okay.
+    // So we discard halos added by RDDP, in order to make placement checkers happy.
+    read_back(*best_try);
+    spdlog::info("Pick the best solution among {} tries. def_path: {}", tried_results.size(), *best_try);
+    return 0;
 }
 
 } // namespace linden

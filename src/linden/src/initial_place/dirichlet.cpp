@@ -21,6 +21,9 @@ void sync_cell_positions_to_ldb(linden::db::Database& ldb) {
         if (oinst == nullptr) {
             continue;
         }
+        if(!cell.movable()) {
+            continue;
+        }
         linden::geom::Rect shape = inst_located_shape(*oinst);
         cell.move_to(shape.center());
     }

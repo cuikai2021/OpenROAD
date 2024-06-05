@@ -28,3 +28,10 @@ proc linden_incremental_legalize { args } {
     linden::linden_incr_legalize a
 }
 
+proc linden_routability_driven_legalize { args } {
+    linden::StrDeque a
+    foreach x $args {
+        a push_back $x
+    }
+    linden::routability_driven_legalize a
+}

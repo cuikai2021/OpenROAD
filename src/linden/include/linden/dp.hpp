@@ -16,6 +16,8 @@ struct DpConfig
     // inputs
     std::optional<std::deque<std::string>> selected_fillers;
     std::optional<std::filesystem::path> timing_data;
+    std::optional<std::filesystem::path> routing_congestion_data;
+    std::optional<std::string> routing_top_layer;
     // At most one of `critical_cells` and `baseline_def` is allowed to be specified.
     // When both are, the behaviour is quite arbitrary.
     std::optional<std::deque<std::string>> critical_cells;
@@ -30,5 +32,6 @@ struct DpConfig
 
 int basic_dp(::ord::OpenRoad&, const DpConfig&);
 int incr_dp(::ord::OpenRoad&, const DpConfig&);
+int rddp(::ord::OpenRoad&, DpConfig&);
 
 } // namespace linden

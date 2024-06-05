@@ -120,6 +120,10 @@ int linden_incr_legalize(StrDeque& args) {
     return linden::incr_dp_gogogo(std::move(args.elems_));
 }
 
+int routability_driven_legalize(StrDeque& args) {
+    return linden::rddp_gogogo(std::move(args.elems_));
+}
+
 %} // lindendp
 
 %inline %{

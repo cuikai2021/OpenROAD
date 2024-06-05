@@ -10,4 +10,6 @@ record_tests {
   incr_tdp_data
   incr_tdp_data_disconnect
   latch_to_pb
+
+  rddp
 }
