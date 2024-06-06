@@ -431,10 +431,6 @@ shared_ptr<linden::db::Database> build_linden_db() noexcept {
     linden::db::Database::Config lcfg = {
         die_region: die,
         core_region: core,
-        cells: 0, // number of cells. not really used in linden
-        nets: 0, // max number of nets. not really used in linden
-        iterm_pins: 0, // max number of iterm_pins. not really used in linden
-        bterm_pins: 0, // max number of bterm_pins. not really used in linden
     };
 
     IgnoredNets ignored_nets;
