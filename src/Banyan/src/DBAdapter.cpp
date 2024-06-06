@@ -781,15 +781,18 @@ void OpenDBAdapter::getInstancesFromODB()
     component->set_name(instance->getName());
     component->set_macroname(master->getName());
     component->set_orient(odbOrient2Banyan(instance->getOrient()));
-    auto point = component->mutable_origin();
 
-    int x = 0;
-    int y = 0;
-    auto p = instance->getOrigin();
-    x = p.x();
-    y = p.y();
-    point->set_x(x);
-    point->set_y(y);
+    auto oriPoint = component->mutable_origin();
+    auto instOri = instance->getOrigin();
+    oriPoint->set_x(instOri.x());
+    oriPoint->set_y(instOri.y());
+
+    int locationX = 0;
+    int locationY = 0;
+    instance->getLocation(locationX, locationY);
+    auto locationPoint = component->mutable_location();
+    locationPoint->set_x(locationX);
+    locationPoint->set_y(locationY);
   }
 }
 
@@ -883,6 +886,54 @@ void OpenDBAdapter::getWireBudgetingFromLrl()
   }
 }
 
+void OpenDBAdapter::getGcellsFromODB()
+{
+  auto chip = db_->getChip();
+  auto block = chip->getBlock();
+  auto gcellGrid = block->getGCellGrid();
+  if (gcellGrid == nullptr) {
+    return;
+  }
+  auto designGcellGraph = design_->mutable_gcellgridgraph();
+  std::vector<int> vLines;
+  gcellGrid->getGridX(vLines);
+  for (auto vLine : vLines) {
+    designGcellGraph->add_vlines(vLine);
+  }
+
+  std::vector<int> hLines;
+  gcellGrid->getGridY(hLines);
+  for (auto hLine : hLines) {
+    designGcellGraph->add_hlines(hLine);
+  }
+
+  auto numVPatterns = gcellGrid->getNumGridPatternsX();
+  for (int i = 0; i < numVPatterns; i++) {
+    int id = 0;
+    int origin = 0;
+    int lineCount = 0;
+    int step = 0;
+    gcellGrid->getGridPatternX(id, origin, lineCount, step);
+    auto vgridparrten = designGcellGraph->add_vgridparrtens();
+    vgridparrten->set_start(origin);
+    vgridparrten->set_step(step);
+    vgridparrten->set_nums(lineCount);
+  }
+
+  auto numHPatterns = gcellGrid->getNumGridPatternsY();
+  for (int i = 0; i < numHPatterns; i++) {
+    int id = 0;
+    int origin = 0;
+    int lineCount = 0;
+    int step = 0;
+    gcellGrid->getGridPatternY(id, origin, lineCount, step);
+    auto hgridparrten = designGcellGraph->add_hgridparrtens();
+    hgridparrten->set_start(origin);
+    hgridparrten->set_step(step);
+    hgridparrten->set_nums(lineCount);
+  }
+}
+
 void OpenDBAdapter::loadDesignFromODB()
 {
   design_.reset();
@@ -898,6 +949,7 @@ void OpenDBAdapter::loadDesignFromODB()
   getBlockagesFromODB();
   getRowsFromODB();
   getWireBudgetingFromLrl();
+  getGcellsFromODB();
 }
 
 void OpenDBAdapter::loadDesignFromBanyanDB(std::string pbfile)
