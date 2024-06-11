@@ -3285,7 +3285,18 @@ void GlobalRouter::findNetsObstructions(odb::Rect& die_area)
             continue;
           } else {
             odb::Rect wire_rect = s->getBox();
-            int l = s->getTechLayer()->getRoutingLevel();
+            auto wireLayer = s->getTechLayer();
+            if (wireLayer == nullptr) {
+              logger_->warn(GRT,
+                            676,
+                            "wire rect {} {} {} {} has no layer info",
+                            wire_rect.xMin(),
+                            wire_rect.yMin(),
+                            wire_rect.xMax(),
+                            wire_rect.yMax());
+              continue;
+            }
+            int l = wireLayer->getRoutingLevel();
 
             if (min_routing_layer_ <= l && l <= max_routing_layer_) {
               odb::Point lower_bound
@@ -3317,7 +3328,18 @@ void GlobalRouter::findNetsObstructions(odb::Rect& die_area)
             continue;
           } else {
             odb::Rect wire_rect = pshape.shape.getBox();
-            int l = pshape.shape.getTechLayer()->getRoutingLevel();
+            auto wireLayer = pshape.shape.getTechLayer();
+            if (wireLayer == nullptr) {
+              logger_->warn(GRT,
+                            677,
+                            "wire rect {} {} {} {} has no layer info",
+                            wire_rect.xMin(),
+                            wire_rect.yMin(),
+                            wire_rect.xMax(),
+                            wire_rect.yMax());
+              continue;
+            }
+            int l = wireLayer->getRoutingLevel();
 
             if (min_routing_layer_ <= l && l <= max_routing_layer_) {
               odb::Point lower_bound
