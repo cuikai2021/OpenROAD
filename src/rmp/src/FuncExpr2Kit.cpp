@@ -13,15 +13,16 @@ to a Kit data structure suitable for abc transformation
 #include <sta/Network.hh>
 #include <sta/StringUtil.hh>
 
-namespace sta {
 
-FuncExpr2Kit::FuncExpr2Kit(FuncExpr* fe, int& var_count, unsigned*& kit_table)
+namespace rmp {
+
+FuncExpr2Kit::FuncExpr2Kit(sta::FuncExpr* fe, int& var_count, unsigned*& kit_table)
 {
   var_count_ = 0;
 
-  FuncExprPortIterator iter(fe);
+  sta::FuncExprPortIterator iter(fe);
   while (iter.hasNext()) {
-    LibertyPort* lp = iter.next();
+    sta::LibertyPort* lp = iter.next();
     lib_ports_[var_count_] = lp;
     var_count_++;
   }
@@ -38,16 +39,16 @@ FuncExpr2Kit::FuncExpr2Kit(FuncExpr* fe, int& var_count, unsigned*& kit_table)
   RecursivelyEvaluate(fe, kit_table);
 }
 
-void FuncExpr2Kit::RecursivelyEvaluate(FuncExpr* fe, unsigned* result)
+void FuncExpr2Kit::RecursivelyEvaluate(sta::FuncExpr* fe, unsigned* result)
 {
   if (fe) {
     switch (fe->op()) {
-      case FuncExpr::op_port: {
-        LibertyPort* p = fe->port();
+      case sta::FuncExpr::op_port: {
+        sta::LibertyPort* p = fe->port();
         abc::Kit_TruthCopy(result, kit_vars_[p], var_count_);
       } break;
 
-      case FuncExpr::op_not: {
+      case sta::FuncExpr::op_not: {
         int nWords = abc::Kit_TruthWordNum(var_count_);
         unsigned* result_left = ABC_ALLOC(unsigned, nWords);
         RecursivelyEvaluate(fe->left(), result_left);
@@ -55,7 +56,7 @@ void FuncExpr2Kit::RecursivelyEvaluate(FuncExpr* fe, unsigned* result)
         ABC_FREE(result_left);
       } break;
 
-      case FuncExpr::op_or: {
+      case sta::FuncExpr::op_or: {
         int nWords = abc::Kit_TruthWordNum(var_count_);
         unsigned* result_left = ABC_ALLOC(unsigned, nWords);
         unsigned* result_right = ABC_ALLOC(unsigned, nWords);
@@ -65,7 +66,7 @@ void FuncExpr2Kit::RecursivelyEvaluate(FuncExpr* fe, unsigned* result)
         ABC_FREE(result_left);
         ABC_FREE(result_right);
       } break;
-      case FuncExpr::op_and: {
+      case sta::FuncExpr::op_and: {
         int nWords = abc::Kit_TruthWordNum(var_count_);
         unsigned* result_left = ABC_ALLOC(unsigned, nWords);
         unsigned* result_right = ABC_ALLOC(unsigned, nWords);
@@ -75,7 +76,7 @@ void FuncExpr2Kit::RecursivelyEvaluate(FuncExpr* fe, unsigned* result)
         ABC_FREE(result_left);
         ABC_FREE(result_right);
       } break;
-      case FuncExpr::op_xor: {
+      case sta::FuncExpr::op_xor: {
         int nWords = abc::Kit_TruthWordNum(var_count_);
         unsigned* result_left = ABC_ALLOC(unsigned, nWords);
         unsigned* result_right = ABC_ALLOC(unsigned, nWords);
@@ -85,7 +86,7 @@ void FuncExpr2Kit::RecursivelyEvaluate(FuncExpr* fe, unsigned* result)
         ABC_FREE(result_left);
         ABC_FREE(result_right);
       } break;
-      case FuncExpr::op_one: {
+      case sta::FuncExpr::op_one: {
         int nWords = abc::Kit_TruthWordNum(var_count_);
         unsigned* const_zero = ABC_ALLOC(unsigned, nWords);
         abc::Kit_TruthFill(const_zero, var_count_);
@@ -93,7 +94,7 @@ void FuncExpr2Kit::RecursivelyEvaluate(FuncExpr* fe, unsigned* result)
         ABC_FREE(const_zero);
       } break;
 
-      case FuncExpr::op_zero: {
+      case sta::FuncExpr::op_zero: {
         abc::Kit_TruthFill(result, var_count_);
       } break;
     }

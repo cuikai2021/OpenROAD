@@ -51,7 +51,6 @@ target_sources(rmp
     CutGen.cpp
     MakeRestructure.cpp
     FuncExpr2Kit.cpp
-    CutNpn.cpp
 )
 
 messages(

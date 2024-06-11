@@ -76,8 +76,11 @@
 #include "utl/Logger.h"
 
 //#define DEBUG_RESTRUCT
+//#define DEBUG_GENERIC_RESTRUCT 1
 //#define REGRESS_RESTRUCT
 //#define DEBUG_CUT_RESYNTH
+//extern "C"              void Abc_TruthNpnRPrint( char * pCanonPermInit, unsigned uCanonPhase, int nVars );
+
 using utl::RMP;
 
 using namespace abc;
@@ -125,9 +128,9 @@ void Restructure::reset()
 
 void Restructure::cutresynthrun(char* target_library,
                                 char* script,
-				sta::Pin* head_pin,
+                                sta::Pin* head_pin,
                                 bool single_op,
-				bool unconstrained,
+                                bool unconstrained,
                                 bool oracle_remap,
                                 bool verbose)
 {
@@ -138,9 +141,13 @@ void Restructure::cutresynthrun(char* target_library,
   sta::Graph* graph = sta->ensureGraph();
   sta->ensureLevelized();
   sta->searchPreamble();
-
   logger_->report("Cut based Restructuring.");
 
+  sta::LibertyLibrary* cut_library=nullptr;
+  if (oracle_remap){
+    cut_library = new sta::LibertyLibrary("cut_library","cut_library.lib");
+  }
+  
 #ifdef REGRESS_RESTRUCT
   {
     FILE* cond_file = fopen("cmd.txt", "w+");
@@ -155,7 +162,6 @@ void Restructure::cutresynthrun(char* target_library,
     fclose(cond_file);
   }
 #endif
-
   LibRead liberty_library(logger_, target_library, false);
 
   Cut* cut_to_remap = nullptr;
@@ -165,11 +171,13 @@ void Restructure::cutresynthrun(char* target_library,
     generateWaveFrontSingleOpCutSet(network,
 				    head_pin,
 				    cut_set);
+    logger_->report("Generated {} constrained cuts (generateWaveFrontSingleOpCutSet).", cut_set.size());    
   }  
-  else
+  else{
     generateUnconstrainedCuts(cut_set, single_op);
-  
-  logger_->report("Generated {} cuts.", cut_set.size());
+    logger_->report("Generated  {} unconstrained cuts.", cut_set.size());    
+  }
+
 
   //
   // For test just pick one cut: choice one with biggest volume
@@ -197,7 +205,7 @@ void Restructure::cutresynthrun(char* target_library,
         best_cut->leaves_.size());
     cut_to_remap = best_cut;
     
-#ifdef DEBUG_CUT_RESYNTH    
+#ifdef DEBUG_GENERIC_RESTRUCT
     cut_to_remap -> Print(network);
 #endif    
 			  
@@ -209,13 +217,6 @@ void Restructure::cutresynthrun(char* target_library,
     std::vector<std::pair<const sta::Pin*, TimingRecord*>> timing_requirements;
     annotateCutTiming(cut_to_remap, timing_requirements);
 
-    //
-    // In development. Use oracle
-    //
-    if (oracle_remap) {
-      //      cut_to_remap->GenerateOracleSignature();
-      ;
-    }
 
     // Remap the cut with the physical timing constraints
     // onto the target library.
@@ -225,7 +226,6 @@ void Restructure::cutresynthrun(char* target_library,
       script_name = script;
       script_present = true;
     }
-    logger_->report("PhysRemapping cut {}.", cut_to_remap->id_);
     PhysRemap prm(logger_,
                   network,
                   cut_to_remap,
@@ -275,29 +275,33 @@ void Restructure::run(char* liberty_file_name,
                       unsigned max_depth,
                       char* workdir_name,
                       char* abc_logfile,
-
                       bool cut_restructure, //if true, use cut restructuring
-		      //cut mapping options
-		      char* head_pin_str, //if set we start resynthesis from here		      
-		      bool unconstrained, //if true, don't use wavefront method for cuts
+                      //cut mapping options
+                      char* head_pin_str, //if set we start resynthesis from here		      
+                      bool unconstrained, //if true, don't use wavefront method for cuts
                       bool single_op_cut, //if true, only use single output cuts,
-		      bool oracle, //if true use oracle remapping method
+                      bool oracle, //if true use oracle remapping method
                       char* script) //if set we apply script method.
   
 {
   if (cut_restructure == true) {
     sta::Pin* head_pin = nullptr;
     void* ptr=nullptr;
-    convertPtrFromString(head_pin_str,&ptr);
+    if (head_pin_str == nullptr ||
+        *head_pin_str == '0' ||
+        *head_pin_str == '\0')
+      head_pin = nullptr;
+    else
+      convertPtrFromString(head_pin_str,&ptr);
     if (ptr){
       head_pin = (sta::Pin*)ptr;
     }
     cutresynthrun(liberty_file_name,
                   script,
-		  head_pin,
+                  head_pin,
                   single_op_cut,
-		  unconstrained,
-                  oracle,  // no oracle remap
+                  unconstrained,
+                  oracle,
                   false);
   } else {
     reset();
@@ -326,7 +330,11 @@ void Restructure::getBlob(unsigned max_depth)
   open_sta_->ensureLevelized();
   open_sta_->searchPreamble();
 
+  //
+  //  sta::PinSet ends;
+  //
   sta::PinSet ends(open_sta_->getDbNetwork());
+
 
   getEndPoints(ends, is_area_mode_, max_depth);
   if (ends.size()) {
@@ -1029,7 +1037,6 @@ void Restructure::generateUnconstrainedCut(sta::Pin* head_pin,
   
   // generate a single output cut from a start pin, head_pin
   if (single_op) {
-    sta::LibertyLibrary* liberty_lib = nullptr;
     // get the driver (note a root is a memory or similar)
     // regular case starting from an output pin
     sta::PinSet* drivers = nwk->drivers(head_pin);
@@ -1129,7 +1136,7 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
 
   // accumulate the start and end points
   open_sta_->visitEndpoints(&accumulate_sorted_slack_end_points);
-#ifdef DEBUG_RESTRUCT
+#ifdef DEBUG_GENERIC_RESTRUCT
   printf("Dump of end points\n");
   for (auto sst : sorted_slack_times)
     printf("Vertex %d slack time %s\n",
@@ -1140,7 +1147,7 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
       end_points);
   open_sta_->visitStartpoints(&accumulate_sorted_slack_start_points);
 
-#ifdef DEBUG_RESTRUCT
+#ifdef DEBUG_GENERIC_RESTRUCT
   printf("Starting cut construction for end point list of size %d\n",
          vertex_slack_times.size());
 #endif
@@ -1153,13 +1160,12 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
     // map stores smallest item first, so this is by default the least slack
     sta::Vertex* head_vertex = (*sorted_slack_times.begin()).second;
     sta::Pin* cur_pin = head_vertex->pin();
-#ifdef DEBUG_RESTRUCT
+#ifdef DEBUG_GENERIC_RESTRUCT
     printf("Generating cut from pin %s on instance %s\n",
            nwk->pathName(cur_pin),
            nwk->name(nwk->instance(cur_pin)));
 #endif
     if (single_op) {
-      sta::LibertyLibrary* liberty_lib = nullptr;
       // get the driver (note a root is a memory or similar)
       // regular case
       sta::PinSet* drivers = nwk->drivers(cur_pin);
@@ -1201,6 +1207,8 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
 
       // check if cut degenerate.
       Cut* cut = extractCut(cut_id);
+
+      
       logger_->report(
           "Extracted cut {} with {} roots and {} leaves and Volume {} ",
           cut->id_,
@@ -1215,6 +1223,10 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
       }
       cut_set.push_back(cut);
 
+      printf("**Cut extracted\n");
+      cut -> Print(nwk);
+      exit(0);
+      
       // remove visited vertices from stash of sorted & vertex slack times
       for (auto cut_root : cut->roots_) {
         sta::Vertex* root_vertex = graph->vertex(nwk->vertexId(cut_root));
@@ -1228,6 +1240,8 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
     }
   }
 }
+
+
 
 void Restructure::updateVertexList(
     sta::Vertex* root,
@@ -1275,6 +1289,11 @@ void Restructure::walkBackwardsToTimingEndPointsR(sta::Graph* graph,
                                                   sta::Pin* start_pin,
                                                   int depth)
 {
+#ifdef DEBUG_GENERIC_RESTRUCT
+  printf("Walking back to leaf points from pin %s depth %d\n",
+	 nwk -> pathName(start_pin),
+	 depth);
+#endif   
   if (start_pin && pin_visited_.find(start_pin) == pin_visited_.end()) {
     pin_visited_.insert(start_pin);
     sta::Port* start_port = nwk->port(start_pin);
@@ -1286,27 +1305,48 @@ void Restructure::walkBackwardsToTimingEndPointsR(sta::Graph* graph,
     if (isRegOutput(nwk, vertex)
         || ((end_points_.find(vertex) != end_points_.end()) && depth != 0)) {
       leaves_[start_pin] = leaves_.size();
+#ifdef DEBUG_GENERIC_RESTRUCT
+      printf("Inserted reg op leaf: %s\n",
+	 nwk -> pathName(start_pin),
+	 depth);
+#endif   
+      
       return;
     }
     // hit an invariant point: the output of a primary port (top level port)
     else if (nwk->direction(start_port) == sta::PortDirection::input()
              && isPrimary(nwk, vertex) && depth != 0) {
       leaves_[start_pin] = leaves_.size();
+#ifdef DEBUG_GENERIC_RESTRUCT
+      printf("Inserted primary ip leaf: %s\n",
+	 nwk -> pathName(start_pin),
+	 depth);
+#endif   
       return;
     }
-    // a primary output at depth 0, walk
-    else if (nwk->direction(start_port) == sta::PortDirection::output()
-             && isPrimary(nwk, vertex) && depth == 0) {
-      // traverse back
-      sta::PinSet* drivers = nwk->drivers(start_pin);
-      if (drivers) {
-        sta::PinSet::Iterator drvr_iter(drivers);
-        sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
-        walkBackwardsToTimingEndPointsR(graph, nwk, driving_pin, depth + 1);
+    
+    // a primary output at depth 0 push down into hierarchy
+    // (special start case)
+    else if (nwk->direction(start_port) ==
+	     sta::PortDirection::output()
+             && isPrimary(nwk, vertex) && depth == 0 ){
+      sta::Instance* cur_inst = nwk->instance(start_pin);
+      sta::Term* below_term = nwk->term(start_pin);
+      if (below_term) {
+	sta::Net* below_net = nwk->net(below_term);
+	// get driver
+	sta::NetPinIterator* fanin_pin_iter = nwk->pinIterator(below_net);
+	while (fanin_pin_iter->hasNext()) {
+	  const sta::Pin* driving_pin = fanin_pin_iter->next();
+	  if (nwk->direction(driving_pin) == sta::PortDirection::output()){
+	    walkBackwardsToTimingEndPointsR(graph, nwk,
+                                      const_cast<sta::Pin*>(driving_pin),
+                                      depth + 1);
+	  }
+	}
       }
-      return;
+      return;      
     }
-
     // an instance input
     else if (nwk->direction(start_port) == sta::PortDirection::input()
              && !isPrimary(nwk, vertex)) {
@@ -1353,6 +1393,8 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
                                                  sta::Pin* start_pin,
                                                  int depth)
 {
+  static int debug;
+  debug++;
   if (start_pin && pin_visited_.find(start_pin) == pin_visited_.end()) {
     sta::Instance* cur_inst = nwk->instance(start_pin);
 
@@ -1361,6 +1403,11 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
     sta::Port* start_port = nwk->port(start_pin);
     sta::Vertex* vertex = graph->vertex(nwk->vertexId(start_pin));
 
+#ifdef DEBUG_GENERIC_RESTRUCT
+    printf("D %d Walking forwards from pin %s\n",
+	   debug,
+	   nwk -> pathName(start_pin));
+#endif    
     // hit an end point. we are done
     if ((end_points_.find(vertex) != end_points_.end()) && depth != 0) {
       // avoid make clock and reset lines points for resynthesis
@@ -1387,9 +1434,12 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
         walkForwardsToTimingEndPointsR(graph, nwk, connected_pin, depth + 1);
       }
     }
-
+    
     // output of an instance
     else if (nwk->direction(start_port) == sta::PortDirection::output()) {
+      if (isPrimary(nwk,vertex)){
+	printf("Hit candidate root !!\n");
+      }
       sta::PinConnectedPinIterator* connected_pin_iter
           = nwk->connectedPinIterator(start_pin);
       sta::Instance* cur_inst = nwk->instance(start_pin);
@@ -1415,13 +1465,34 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
         if (nwk->direction(nwk->port(cur_pin))
             == sta::PortDirection::output()) {
           // get the fanout of the pin
+	  printf("**Walking forwards from  output pin %s\n",
+		 nwk -> name(cur_pin));
+
+	  //code to handle terms, to allow hierarchy traversal
           sta::Net* cur_net = nwk->net(cur_pin);
           if (cur_net) {
+	    //code to handle terms, to allow hierarchy traversal
+	    sta::NetTermIterator* fanout_term_iter = nwk -> termIterator(cur_net);
+	    while (fanout_term_iter -> hasNext()){
+	      const sta::Term* fanout_term = fanout_term_iter -> next();
+	      sta::Pin* fanout_pin = nwk -> pin(fanout_term);
+	      sta::Vertex* vertex = graph->vertex(nwk->vertexId(fanout_pin));
+	      if ((nwk -> direction(fanout_pin)== sta::PortDirection::output()) &&
+		  isPrimary(nwk,vertex)){
+		printf("**Term: Hit primary output %s\n", nwk -> name(fanout_pin));
+		roots_[fanout_pin] = roots_.size();
+	      }
+	    }
+	    
             sta::NetPinIterator* fanout_pin_iter = nwk->pinIterator(cur_net);
             while (fanout_pin_iter->hasNext()) {
               const sta::Pin* fanout_pin = fanout_pin_iter->next();
               if (fanout_pin != cur_pin) {
                 sta::Vertex* vertex = graph->vertex(nwk->vertexId(fanout_pin));
+		if (isPrimary(nwk,vertex))
+		  printf("**Hit primary output pin %s\n",
+			 nwk -> name(fanout_pin));
+		
                 if (isPrimary(nwk, vertex) || isRegInput(nwk, vertex)) {
                   if ((strstr(nwk->pathName(fanout_pin), "CK"))
                       || (strstr(nwk->pathName(fanout_pin), "RN"))
@@ -1435,7 +1506,14 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
                       roots_[const_cast<sta::Pin*>(fanout_pin)] = roots_.size();
                   }
                 } else {
-                  if (nwk->direction(fanout_pin)
+		  sta::Port* next_port = nwk -> port(fanout_pin);
+		  sta::Vertex* next_vertex = graph -> vertex(nwk -> vertexId(fanout_pin));
+		  if (nwk -> direction(fanout_pin) == sta::PortDirection::output() &&
+		      isPrimary(nwk,next_vertex)){
+		    printf("Hit primary output root !\n");
+		    roots_[const_cast<sta::Pin*>(fanout_pin)] = roots_.size();		    
+		  }
+		  else  if (nwk->direction(fanout_pin)
                       == sta::PortDirection::input()) {
                     walkForwardsToTimingEndPointsR(
                         graph,
@@ -1500,10 +1578,12 @@ void Cut::Print(sta::Network* nwk)
   printf("---\n");
   printf("Roots:\n");
   for (auto r : roots_)
-    printf("Root %s\n", nwk->pathName(r));
+    printf("Root %s (%s)\n", nwk->pathName(r), nwk -> direction(r) -> isInput() ? "IP" : "OP");
   printf("Leaves:\n");
   for (auto l : leaves_)
-    printf("Leaf %s\n", nwk->pathName(l));
+    printf("Leaf %s (%s)\n",
+	   nwk->pathName(l),
+	   nwk -> direction(l) -> isInput() ? "IP" : "OP");
   printf("Volume:\n");
   for (auto v : volume_)
     printf("V: %s\n", nwk->pathName(v));
@@ -1555,6 +1635,12 @@ bool Cut::Check(sta::Network* nwk)
                nwk->pathName(cur_pin));
         ret = false;
       }
+
+
+      // Check that every sink is either a root or something in the volume
+
+      //check that every root is driven by something.
+      
       // Check that every driver is either driven by something in the volume
       // or a leaf
       if (nwk->direction(cur_pin)->isInput()) {
@@ -1580,7 +1666,6 @@ bool Cut::Check(sta::Network* nwk)
     }
   }
   assert(ret);
-  printf("Success: Cut passes axiom checks\n");
   return ret;
 }
 
@@ -1617,6 +1702,9 @@ void Restructure::AmendCutForEscapeLeaves(sta::Network* nwk)
     }
   }
 }
+
+
+
 
 Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
 {
@@ -1724,7 +1812,6 @@ Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
   // code to inspect the netlist
   Abc_NtkSetName(abc_nwk_, Extra_UtilStrsav(cut_name_.c_str()));
   // SopNwkCheck(abc_nwk_);
-
   Abc_Ntk_t* ret = Abc_NtkDup(abc_nwk_);
   Abc_NtkTrasferNames(abc_nwk_, ret);
   return ret;
@@ -1772,11 +1859,12 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
     if (sta_nwk_->direction(op_pin)->isOutput()) {
       std::vector<Abc_Obj_t*> product_terms;
       sta::LibertyPort* lp = sta_nwk_->libertyPort(op_pin);
+      
       if (lp && lp->function()) {
         // Get the kit representation
         int var_count = 0;
         /*word32*/ unsigned* kit_tables;
-        sta::FuncExpr2Kit(lp->function(), var_count, kit_tables);
+        FuncExpr2Kit(lp->function(), var_count, kit_tables);
         unsigned num_bits_to_set = (0x01 << var_count);
         unsigned mask = 0x00;
         for (unsigned j = 0; j < num_bits_to_set; j++)
@@ -1792,7 +1880,6 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
         // wire up the inputs
         for (int i = 0; i < var_count; i++)
           Abc_ObjAddFanin(ret, ip_nets[i]);
-
         // wire up the output
         if (net_table_sta2abc_.find(op_pin) != net_table_sta2abc_.end()) {
           debug++;
@@ -1801,6 +1888,7 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
         } else {
           // make net and wire it in
           Abc_Obj_t* sop_op_net = Abc_NtkCreateNet(abc_nwk_);
+	  //net name is same as output pin
           Abc_ObjAssignName(
               sop_op_net, (char*) (sta_nwk_->pathName(op_pin)), NULL);
           Abc_ObjAddFanin(sop_op_net, ret);
@@ -1997,6 +2085,7 @@ LibRead::LibRead(utl::Logger* logger, char* lib_file_name, bool verbose)
 {
   Abc_Start();
   std::string cmd("read_lib -v ");
+
   std::string cmd_line = cmd + lib_file_name_;
   Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
   Cmd_CommandExecute(pAbc, cmd_line.c_str());
@@ -2310,5 +2399,7 @@ void Restructure::annotateCutTiming(
 #endif
   }
 }
+
+
 
 }  // namespace rmp

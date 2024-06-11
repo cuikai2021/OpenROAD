@@ -86,6 +86,7 @@ namespace rmp {
     float load;
   } ;
 
+    
   //Cut: Region of network to optimize
   struct Cut {
     std::vector<const sta::Pin*> roots_;
@@ -93,16 +94,9 @@ namespace rmp {
     std::vector<sta::Instance*> volume_;
     std::map<const sta::Pin*,sta::LibertyPort*> internal_pins_;
     int id_;
-    
-
 
     void Print(sta::Network* nwk);
     bool Check(sta::Network* nwk);
-
-
-    sta::LibertyCell*  GenerateLibertyCell(sta::Network*,
-					   sta::LibertyLibrary* cut_library);
-
     
     void BuildFuncExpr(sta::Network* nwk,
 		       sta::LibertyCell* cut_cell,
@@ -130,15 +124,15 @@ namespace rmp {
 				   sta::LibertyCell* cut_cell,
 				   sta::LibertyBuilder &lib_builder);
   };
-
-  
-
+    
   
   class CutGen {
     public:
     using expansionSet=std::vector<std::pair<std::vector<const sta::Pin*>, std::vector<const sta::Pin*> > >;
     CutGen(sta::Network* nwk, sta::LibertyLibrary* liberty_lib):
       network_(nwk),liberty_lib_(liberty_lib){}
+
+    void AmendCutForEscapeRoots(Cut* cur_cut);
     
     void GenerateInstanceWaveFrontCutSet(sta::Instance*,std::vector<Cut*>&);
     bool EnumerateExpansions(std::vector<const sta::Pin*>& candidate_wavefront,

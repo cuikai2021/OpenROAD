@@ -57,7 +57,6 @@ Fanout     Cap    Slew   Delay    Time   Description
                                  -1.78   slack (VIOLATED)
 
 
-Setting cut_remap
 [WARNING STA-0328] port 'Z' not found.
 [WARNING STA-0328] port 'Z' not found.
 Cut based Restructuring.
@@ -65,10 +64,9 @@ Cmd warning: redefining '%graft'
 Warning: Detected 6 multi-output gates (for example, "ADFM2HM").
 Successfully read in library
 
-Generated 7 cuts.
+Worst slack -1.783  Best slack 0.000 Size of end point list 1
+Generated  7 unconstrained cuts.
 Processing cut 4 of volume 4 with 1 roots and 8 leaves.
-PhysRemapping cut 4.
-Success: Cut passes axiom checks
 Startpoint: x[0] (input port)
 Endpoint: op (output port)
 Path Group: path delay
