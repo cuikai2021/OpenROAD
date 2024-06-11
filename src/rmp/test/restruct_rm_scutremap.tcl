@@ -23,7 +23,7 @@ set output_pin [get_pins "op"]
 set tiehi "LOGIC1_X1/Z"
 set tielo "LOGIC0_X1/Z"
 
-restructure -liberty_file $liberty_library -target area -abc_logfile results/noise.log -tielo_port $tielo -tiehi_port $tiehi -work_dir ./results -cutremap -so_cut -head_pin $output_pin
+restructure -liberty_file $liberty_library -target area -abc_logfile results/noise.log -tielo_port $tielo -tiehi_port $tiehi -work_dir ./results -cutremap -cutremap true -so_cut -head_pin $output_pin
 
 report_checks -path_delay max -fields {slew cap input nets fanout} -format full_clock_expanded
 write_verilog "./results/restruct_rm.v"

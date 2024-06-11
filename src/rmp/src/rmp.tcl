@@ -80,13 +80,14 @@ proc restructure { args } {
   set head_pin 0    
   set cut_remap 0
   set script_string ""
+    
   #undocumented/unused    
   set unconstrained 0
   set oracle 0    
   if { [info exists keys(-head_pin)] } {
       set head_pin $keys(-head_pin)
   }     
-  if { [info exists keys(-s_cut)] } {
+  if { [info exists keys(-so_cut)] } {
     set so_cut 1
   } 
   if { [info exists keys(-script)] } {
@@ -96,7 +97,6 @@ proc restructure { args } {
 
   if { [info exists keys(-cutremap)] } {
       set cut_remap 1
-      puts "Setting cut_remap"
   } 
     
   if { [info exists keys(-slack_threshold)] } {

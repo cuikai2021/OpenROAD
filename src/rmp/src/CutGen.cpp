@@ -67,24 +67,23 @@
 #include "sta/Sdc.hh"
 #include "sta/Search.hh"
 #include "sta/Sta.hh"
+#include "sta/FuncExpr.hh"
+#include "sta/LibertyBuilder.hh"
 #include "utl/Logger.h"
 
-
-#include <base/io/ioAbc.h>
-#include <base/main/main.h>
-#include <base/main/mainInt.h>
-#include <map/amap/amapInt.h>
+#include <rmp/FuncExpr2Kit.h>
 
 /*
 Cut Generator
 */
-// #include "rmp/Restructure.h"
+
 
 //#define CUTGEN_DEBUG 1
 
 using utl::RMP;
 
 using namespace abc;
+
 namespace rmp {
 
 void CutGen::GenerateInstanceWaveFrontCutSet(sta::Instance* cur_inst,
@@ -119,14 +118,56 @@ void CutGen::GenerateInstanceWaveFrontCutSet(sta::Instance* cur_inst,
     std::vector<const sta::Pin*> expand = exp_el.second;
     Cut* cur_cut
         = BuildCutFromExpansionElement(cur_inst, root_pin, keep, expand);
-#ifdef CUTGEN_DEBUG
-    printf("Cut generated:\n");
-    cur_cut->Print(network_);
-#endif
+    //Legalize cuts to handle escape nodes.
+    AmendCutForEscapeRoots(cur_cut);
     inst_cut_set.push_back(cur_cut);
   }
 }
 
+//Add fanout not in cut to root set
+void
+CutGen::AmendCutForEscapeRoots(Cut* cur_cut){
+  std::set<const sta::Pin*> cut_roots;
+  std::set<sta::Instance*> cut_volume;
+  for (auto i : cur_cut -> volume_) {
+    cut_volume.insert(i);
+  }
+  for (auto l : cur_cut -> roots_) {
+    cut_roots.insert(l);
+  }
+  for (auto i : cur_cut -> volume_) {
+    sta::InstancePinIterator* pin_it = network_->pinIterator(i);
+    while (pin_it->hasNext()) {
+      sta::Pin* cur_pin = pin_it->next();
+      if (network_->direction(cur_pin)->isOutput()) {
+	if (cut_roots.find(cur_pin) != cut_roots.end())
+	  continue;
+	// Check that every volume sink is either driven by something in the volume
+	// or a leaf 
+	sta::PinSet visited_drvrs;
+	sta::PinSeq loads;
+	sta::PinSeq drvrs;
+	sta::FindNetDrvrLoads visitor (cur_pin, visited_drvrs, loads, drvrs, network_);
+	network_ -> visitConnectedPins(cur_pin,visitor);
+	for (auto sink_pin: loads){
+          sta::Instance* sink_instance = network_ ->instance(sink_pin);
+	  if (cut_volume.find(sink_instance) == cut_volume.end()) {
+	    if (cut_roots.find(cur_pin) == cut_roots.end()){
+	      cur_cut -> roots_.push_back(cur_pin);
+	      cut_roots.insert(cur_pin);
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+  
+
+
+  
+  
 Cut* CutGen::BuildCutFromExpansionElement(
     sta::Instance* cur_inst,
     const sta::Pin* root_pin,
@@ -268,6 +309,29 @@ Cut* CutGen::BuildCutFromExpansionElement(
   return ret;
 }
 
+static inline int   TruthWordNum(unsigned* p, int nVars )  {(void)p; return nVars <= 5 ? 1 : (1 << (nVars - 5));}
+
+bool IsBuffer(unsigned* p, int n_vars){
+  bool ret = true;
+  int n_words = TruthWordNum(p,n_vars);
+  assert(n_words > 0);
+  for (int i=0; i < n_words; i++){
+    if (p[i] != 0xAAAAAAAAAAAAAAAA)
+      return false;
+  }
+  return ret;
+}
+
+bool IsInverter(unsigned* p, int n_vars){
+    bool ret = true;
+    int n_words = TruthWordNum(p,n_vars);
+    assert(n_words > 0);
+    for (int i=0; i < n_words; i++){
+      if (p[i] != 0x55555555)
+	return false;
+    }
+    return ret;
+}
 //
 // walk through a driving pin
 //
@@ -276,55 +340,52 @@ const sta::Pin* CutGen::WalkThroughBuffersAndInverters(
     const sta::Pin* op_pin,
     std::set<const sta::Pin*>& unique_set)
 {
-  sta::Instance* cur_inst = network_->instance(op_pin);
-  sta::InstancePinIterator* cpin_iter = network_->pinIterator(cur_inst);
-  int var_count = 0;
+    sta::Instance* cur_inst = network_ -> instance(op_pin);
+  sta::InstancePinIterator *cpin_iter = network_ -> pinIterator(cur_inst);
+  int var_count=0;
   const sta::Pin* ip_pin;
-  while (cpin_iter->hasNext()) {
-    const sta::Pin* c_pin = cpin_iter->next();
-    if (network_->direction(c_pin)->isInput()) {
+  while (cpin_iter -> hasNext()){
+    const sta::Pin *c_pin = cpin_iter -> next();
+    if (network_ -> direction(c_pin) -> isInput()){
       var_count++;
       ip_pin = c_pin;
     }
   }
-  if (var_count == 1) {
-    sta::LibertyPort* lp = network_->libertyPort(op_pin);
-    if (lp && lp->function()) {
+  if (var_count == 1){
+    sta::LibertyPort* lp = network_ -> libertyPort(op_pin);
+    if (lp && lp -> function()){
       unsigned* kit_table = nullptr;
-      // TODO
-      //	FuncExpr2Kit FuncExpr2Kit(lp -> function(), var_count,
-      //kit_table);
-      unsigned num_bits_to_set = (0x01 << var_count);
-      unsigned mask = 0x00;
-      for (unsigned j = 0; j < num_bits_to_set; j++)
-        mask = mask | (0x1 << j);
+      FuncExpr2Kit FuncExpr2Kit(lp -> function(), var_count, kit_table);
+            unsigned num_bits_to_set = (0x01 << var_count );			        
+      unsigned mask=0x00;
+      for (unsigned j=0; j < num_bits_to_set; j++)
+	mask = mask | (0x1<< j);
       unsigned result = *kit_table & mask;
 
-      if (0) /*(Kit::Kit_IsBuffer(kit_table,var_count) ||
-               Kit::Kit_IsInverter(kit_table,var_count))*/
-      {
-        if (ip_pin) {
-#ifdef CUTGEN_DEBUG
-          printf("Walking through buffer/inverter\n");
-#endif
-          sta::PinSet* drvrs = network_->drivers(ip_pin);
-          sta::PinSet::Iterator drvr_iter(drvrs);
-          if (drvr_iter.hasNext()) {
-            const sta::Pin* driving_pin = drvr_iter.next();
-            if (unique_set.find(driving_pin) == unique_set.end()) {
-              unique_set.insert(driving_pin);
-              cut->volume_.push_back(cur_inst);
-              cut->internal_pins_[driving_pin] = lp;
-              return WalkThroughBuffersAndInverters(
-                  cut, driving_pin, unique_set);
-            } else
-              return driving_pin;
-          }
-        }
+      if (IsBuffer(kit_table,var_count) || IsInverter(kit_table,var_count)){
+	if (ip_pin){
+#ifdef CUTGEN_DEBUG    	  
+	  printf("Walking through buffer/inverter\n");
+#endif	  
+	  sta::PinSet* drvrs = network_ -> drivers(ip_pin);	  
+	  sta::PinSet::Iterator drvr_iter(drvrs);
+	  if (drvr_iter.hasNext()){
+	    const sta::Pin* driving_pin = drvr_iter.next();
+	    if (unique_set.find(driving_pin) ==
+		unique_set.end()){
+	      unique_set.insert(driving_pin);
+	      cut -> volume_.push_back(cur_inst);
+	      cut -> internal_pins_[driving_pin] = lp;	  	      
+	      return WalkThroughBuffersAndInverters(cut,driving_pin,unique_set);
+	    }
+	    else
+	      return driving_pin;
+	  }
+	}
       }
     }
   }
-  // default do nothing
+  //default do nothing
   return op_pin;
 }
 
@@ -510,6 +571,229 @@ bool CutGen::Boundary(const sta::Pin* cur_pin)
     if (cell->isMemory() || cell->hasSequentials())
       return true;
   }
+  return false;
+}
+
+sta::FuncExpr* Cut::ExpandFunctionExprR(
+                                        sta::Network* nwk,
+                                        const sta::Pin* op_pin,
+                                        sta::FuncExpr* op_pin_fe,
+                                        std::map<const sta:: Pin*, sta::LibertyPort*>& leaf_pin_to_port,
+                                        std::map<const sta::Pin*, sta::FuncExpr*>& visited,
+                                        sta::LibertyCell* cut_cell,
+                                        sta::LibertyBuilder& lib_builder
+				   )
+{
+  if (op_pin && (visited.find(op_pin) != visited.end())) {
+    return visited[op_pin];
+  }
+  sta::Instance* cur_inst = nwk->instance(op_pin);
+  sta::InstancePinIterator* pin_iter = nwk->pinIterator(cur_inst);
+  // generate logic functions for each input
+  while (pin_iter->hasNext()) {
+    const sta::Pin* ip_pin = pin_iter->next();
+    if (nwk->direction(ip_pin)->isInput()) {
+      sta::PinSet* drvrs = nwk->drivers(ip_pin);
+      if (drvrs) {
+        sta::PinSet::Iterator drvr_iter(drvrs);
+        if (drvr_iter.hasNext()) {
+          const sta::Pin* cur_pin = drvr_iter.next();
+          // stop on leaf pins
+          if (LeafPin(cur_pin)) {
+            sta::LibertyPort* lp_pin = nwk->libertyPort(ip_pin);
+            leaf_pin_to_port[cur_pin] = lp_pin;
+          }
+          // push back through internal pins
+          else if (nwk->direction(cur_pin)->isOutput()) {
+            if (internal_pins_.find(cur_pin) != internal_pins_.end()) {
+              sta::LibertyPort* lp = nwk->libertyPort(cur_pin);
+              if (lp && lp->function()) {
+                sta::FuncExpr* cur_pin_fn = ExpandFunctionExprR(nwk,
+                                                           cur_pin,
+                                                           lp->function(),
+                                                           leaf_pin_to_port,
+                                                           visited,
+							   cut_cell,
+                                                           lib_builder);
+                // register the internal pin function
+                visited[cur_pin] = cur_pin_fn;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  // make function for gate from inputs
+  sta::FuncExpr* gate_fn = BuildFuncExprR(
+				     nwk, cur_inst, op_pin, op_pin_fe, leaf_pin_to_port, visited, cut_cell,lib_builder);
+  visited[op_pin] = gate_fn;
+  return gate_fn;
+}
+
+sta::FuncExpr* Cut::BuildFuncExprR(sta::Network* nwk,
+                              sta::Instance* cur_inst,
+                              const sta::Pin* op_pin,
+                              sta::FuncExpr* op_pin_fe,
+                              std::map<const sta::Pin*, sta::LibertyPort*>& leaf_pin2port,
+                              std::map<const sta::Pin*, sta::FuncExpr*>& visited_pins,
+                              sta::LibertyCell* cut_cell,			      
+                              sta::LibertyBuilder& lib_builder)
+{
+  sta::FuncExpr* ret = nullptr;
+
+  if (op_pin && (visited_pins.find(op_pin) != visited_pins.end()))
+    return visited_pins[op_pin];
+
+  if (op_pin_fe) {
+    switch (op_pin_fe->op()) {
+    case sta::FuncExpr::op_port: {
+      sta::LibertyPort* lp = op_pin_fe->port();
+
+        if (op_pin == nullptr) {
+          // fish out the port on the cell
+          sta::InstancePinIterator* pin_iter = nwk->pinIterator(cur_inst);
+          while (pin_iter->hasNext()) {
+            const sta::Pin* ip_pin = pin_iter->next();
+            if (nwk->direction(ip_pin)->isInput()) {
+              sta::LibertyPort* candidate_lp = nwk->libertyPort(ip_pin);
+              if (candidate_lp == lp) {
+                op_pin = ip_pin;
+              }
+            }
+          }
+        }
+
+        assert(op_pin);
+
+        if ((visited_pins.find(op_pin) != visited_pins.end()))
+          return visited_pins[op_pin];
+
+        if (LeafPin(op_pin)) {
+          sta::FuncExpr* ret = op_pin_fe->copy();
+          visited_pins[op_pin] = ret;
+          leaf_pin2port[op_pin] = lp;
+          return ret;
+        }
+
+        sta::PinSet* drvrs = nwk->drivers(op_pin);
+        if (drvrs) {
+          sta::PinSet::Iterator drvr_iter(drvrs);
+          const sta::Pin* driving_pin = drvr_iter.next();
+          //
+          // driving pin is a leaf.
+          //
+          if (LeafPin(driving_pin)) {
+            sta::LibertyPort* dup_port = lib_builder.makePort(cut_cell, lp->name());
+            sta::FuncExpr* ret = sta::FuncExpr::makePort(dup_port);
+            visited_pins[op_pin] = ret;
+            leaf_pin2port[op_pin] = dup_port;
+            return ret;
+          }
+          sta::LibertyPort* driving_lp = nwk->libertyPort(driving_pin);
+          if (driving_lp) {
+            sta::Instance* driving_inst = nwk->instance(driving_pin);
+            sta::FuncExpr* op_fe = BuildFuncExprR(nwk,
+                                             driving_inst,
+                                             driving_pin,
+                                             driving_lp->function(),
+                                             leaf_pin2port,
+                                             visited_pins,
+					     cut_cell,
+                                             lib_builder);
+            visited_pins[driving_pin] = op_fe;
+            return op_fe;
+          }
+        }
+      } break;
+
+    case sta::FuncExpr::op_not: {
+        // left
+      sta::FuncExpr* arg = BuildFuncExprR(nwk,
+                                       cur_inst,
+                                       nullptr,
+                                       op_pin_fe->left(),
+                                       leaf_pin2port,
+                                       visited_pins,
+				       cut_cell,
+                                       lib_builder);
+      return sta::FuncExpr::makeNot(arg);
+      } break;
+    case sta::FuncExpr::op_and: {
+      sta::FuncExpr* left = BuildFuncExprR(nwk,
+                                        cur_inst,
+                                        nullptr,
+                                        op_pin_fe->left(),
+                                        leaf_pin2port,
+                                        visited_pins,
+					cut_cell,
+                                        lib_builder);
+
+      sta::FuncExpr* right = BuildFuncExprR(nwk,
+                                         cur_inst,
+                                         nullptr,
+                                         op_pin_fe->right(),
+                                         leaf_pin2port,
+                                         visited_pins,
+					 cut_cell,
+                                         lib_builder);
+
+      sta::FuncExpr* ret = sta::FuncExpr::makeAnd(left, right);
+        return ret;
+      } break;
+    case sta::FuncExpr::op_or: {
+      sta::FuncExpr* left = BuildFuncExprR(nwk,
+                                        cur_inst,
+                                        nullptr,
+                                        op_pin_fe->left(),
+                                        leaf_pin2port,
+                                        visited_pins,
+					cut_cell,
+                                        lib_builder);
+
+      sta::FuncExpr* right = BuildFuncExprR(nwk,
+                                         cur_inst,
+                                         nullptr,
+                                         op_pin_fe->right(),
+                                         leaf_pin2port,
+                                         visited_pins,
+					 cut_cell,
+                                         lib_builder);
+      sta::FuncExpr* ret = sta::FuncExpr::makeOr(left, right);
+        return ret;
+      } break;
+      default:
+        return nullptr;
+    }
+  }
+  return ret;
+}
+
+void Cut::BuildFuncExpr(sta::Network* nwk,
+                        sta::LibertyCell* cut_cell,
+                        sta::LibertyBuilder& liberty_builder,
+                        std::vector<sta::FuncExpr*>& root_fns) {
+  std::map<const sta::Pin*, sta::LibertyPort*> leaf_pin_to_port;
+  std::map<const sta::Pin*, sta::FuncExpr*> visited_pins;
+  for (auto i : roots_) {
+    sta::LibertyPort* lp = nwk->libertyPort(i);
+    if (lp && lp->function()) {
+      sta::FuncExpr* lp_fn = lp->function();
+      sta::FuncExpr* fe = ExpandFunctionExprR(
+					 nwk, i, lp_fn, leaf_pin_to_port,
+					 visited_pins, cut_cell,liberty_builder
+					 );
+      root_fns.push_back(fe);
+    }
+  }
+}
+  
+
+bool Cut::LeafPin(const sta::Pin* cur_pin)
+{
+  for (auto i : leaves_)
+    if (i == cur_pin)
+      return true;
   return false;
 }
 

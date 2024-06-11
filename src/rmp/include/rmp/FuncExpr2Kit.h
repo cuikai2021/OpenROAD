@@ -5,16 +5,16 @@
 #include <sta/Network.hh>
 
 
-namespace sta {
+namespace rmp {
 
   class FuncExpr2Kit {
   public:    
-    FuncExpr2Kit(FuncExpr* fe, int& var_count, unsigned *&kit_tables);
-    void RecursivelyEvaluate(FuncExpr* fe, unsigned*);
+    FuncExpr2Kit(sta::FuncExpr* fe, int& var_count, unsigned *&kit_tables);
+    void RecursivelyEvaluate(sta::FuncExpr* fe, unsigned*);
 
   private:
-    std::map<LibertyPort*, unsigned*> kit_vars_; //pointer (not name) addressed.
-    std::map<int,LibertyPort*>  lib_ports_;
+    std::map<sta::LibertyPort*, unsigned*> kit_vars_; //pointer (not name) addressed.
+    std::map<int, sta::LibertyPort*>  lib_ports_;
     int var_count_;
   };
   

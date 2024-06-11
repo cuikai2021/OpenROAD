@@ -1,3 +1,4 @@
+
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -44,28 +45,39 @@
 //#define DEBUG_RESTRUCT
 //#define REGRESS_RESTRUCT
 
+
+
 using utl::RMP;
 using namespace sta;
 using namespace abc;
 
 namespace rmp {
 
-// for each output we generate: /*unsigned* ttable, int &n_vars, char*
-// &pCanonPerm, unsigned& uCanonPhase*/);
-//
-
 
   LibertyCell* Cut::GenerateLibertyCell(Network* nwk,
-					LibertyLibrary* cut_library){
+					LibertyLibrary* cut_library
+					){
     LibertyBuilder lib_builder;
     std::string cut_name = "cut_" + std::to_string(id_);    
     LibertyCell* cut_cell = lib_builder.makeCell(cut_library, cut_name.c_str(), nullptr);
     std::vector<FuncExpr*> root_fns;
     BuildFuncExpr(nwk,cut_cell,lib_builder,root_fns);
-    //
-    //TODO:
-    //set up liberty cell npn terms here.
-    //
+    for (auto fe: root_fns){
+      unsigned* kit_table;
+      struct NpnSig * signature = new NpnSig();
+      FuncExpr2Kit(fe, signature -> var_count_, kit_table);
+      printf("Table to encode 0x%x\n",*kit_table);
+      //encode.
+      signature -> signature_ = *kit_table;
+      for (int i=0; i < signature -> var_count_;i++)
+        signature -> pCanonPerm_[i]='a'+i;
+
+      signature -> phase_ = luckyCanonicizer_final_fast(&(signature -> signature_),
+                                                        signature -> var_count_,
+                                                        signature -> pCanonPerm_
+						);
+      signature -> Print();
+    }
     return cut_cell;
   }
   
@@ -87,7 +99,8 @@ namespace rmp {
       root_fns.push_back(fe);
     }
   }
-}
+  }
+  
 
 FuncExpr* Cut::ExpandFunctionExprR(
     Network* nwk,

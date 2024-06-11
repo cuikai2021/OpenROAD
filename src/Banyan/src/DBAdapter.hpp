@@ -106,6 +106,7 @@ class OpenDBAdapter
   void getInstancesFromODB();
   void getRowsFromODB();
   void getWireBudgetingFromLrl();
+  void getGcellsFromODB();
   bool isLegalized();
 
  public:
