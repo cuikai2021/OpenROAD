@@ -503,6 +503,8 @@ static void showSplash()
       strcasecmp(BUILD_TYPE, "release") == 0
           ? ""
           : fmt::format(" : {}", BUILD_TYPE));
+  string sha = ord::OpenRoad::getGitDescribe();
+  logger->report("EDEN {} {}", ord::OpenRoad::getVersion(), sha.c_str());
   logger->report(
       "This program is licensed under the BSD-3 license. See the LICENSE file "
       "for details.");
