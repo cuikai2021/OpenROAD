@@ -3542,8 +3542,34 @@ void GlobalRouter::findNetsObstructions(odb::Rect& die_area)
             }
           } else {
             odb::Rect wire_rect = s->getBox();
-            odb::dbTechLayer* tech_layer = s->getTechLayer();
-            applyNetObstruction(wire_rect, tech_layer, die_area, db_net);
+            auto wireLayer = s->getTechLayer();
+            if (wireLayer == nullptr) {
+              logger_->warn(GRT,
+                            676,
+                            "wire rect {} {} {} {} has no layer info",
+                            wire_rect.xMin(),
+                            wire_rect.yMin(),
+                            wire_rect.xMax(),
+                            wire_rect.yMax());
+              continue;
+            }
+            int l = wireLayer->getRoutingLevel();
+
+            if (min_routing_layer_ <= l && l <= max_routing_layer_) {
+              odb::Point lower_bound
+                  = odb::Point(wire_rect.xMin(), wire_rect.yMin());
+              odb::Point upper_bound
+                  = odb::Point(wire_rect.xMax(), wire_rect.yMax());
+              odb::Rect obstruction_rect = odb::Rect(lower_bound, upper_bound);
+              if (!die_area.contains(obstruction_rect)) {
+                if (verbose_)
+                  logger_->warn(GRT,
+                                40,
+                                "Net {} has wires outside die area.",
+                                db_net->getConstName());
+              }
+              applyObstructionAdjustment(obstruction_rect, s->getTechLayer());
+            }
           }
         }
       }
@@ -3555,23 +3581,41 @@ void GlobalRouter::findNetsObstructions(odb::Rect& die_area)
       odb::dbWirePathItr pitr;
       for (pitr.begin(wire); pitr.getNextPath(path);) {
         while (pitr.getNextShape(pshape)) {
-          const odb::dbShape& shape = pshape.shape;
-          if (shape.isVia()) {
-            odb::dbShape::getViaBoxes(shape, via_boxes);
-            for (const odb::dbShape& box : via_boxes) {
-              odb::dbTechLayer* tech_layer = box.getTechLayer();
-              if (tech_layer->getRoutingLevel() == 0) {
-                continue;
+          if (pshape.shape.isVia()) {
+            continue;
+          } else {
+            odb::Rect wire_rect = pshape.shape.getBox();
+            auto wireLayer = pshape.shape.getTechLayer();
+            if (wireLayer == nullptr) {
+              logger_->warn(GRT,
+                            677,
+                            "wire rect {} {} {} {} has no layer info",
+                            wire_rect.xMin(),
+                            wire_rect.yMin(),
+                            wire_rect.xMax(),
+                            wire_rect.yMax());
+              continue;
+            }
+            int l = wireLayer->getRoutingLevel();
+
+            if (min_routing_layer_ <= l && l <= max_routing_layer_) {
+              odb::Point lower_bound
+                  = odb::Point(wire_rect.xMin(), wire_rect.yMin());
+              odb::Point upper_bound
+                  = odb::Point(wire_rect.xMax(), wire_rect.yMax());
+              odb::Rect obstruction_rect = odb::Rect(lower_bound, upper_bound);
+              if (!die_area.contains(obstruction_rect)) {
+                if (verbose_)
+                  logger_->warn(GRT,
+                                41,
+                                "Net {} has wires outside die area.",
+                                db_net->getConstName());
               }
-              odb::Rect via_rect = box.getBox();
+              odb::Rect via_rect = pshape.shape.getBox();
+              odb::dbTechLayer* tech_layer = pshape.shape.getTechLayer();
               applyNetObstruction(via_rect, tech_layer, die_area, db_net);
             }
-          } else {
-            odb::Rect wire_rect = shape.getBox();
-            odb::dbTechLayer* tech_layer = shape.getTechLayer();
-
-            applyNetObstruction(wire_rect, tech_layer, die_area, db_net);
-          }
+          } 
         }
       }
     }
