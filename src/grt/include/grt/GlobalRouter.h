@@ -427,6 +427,7 @@ class GlobalRouter : public ant::GlobalRouteSource
   void ensureLayerForGuideDimension(int max_routing_layer);
   void configFastRoute();
   void checkOverflow();
+  void wireViaOutsideLog(odb::dbNet* db_net);
 
   utl::Logger* logger_;
   stt::SteinerTreeBuilder* stt_builder_;

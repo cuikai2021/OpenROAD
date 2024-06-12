@@ -3512,6 +3512,13 @@ int GlobalRouter::findInstancesObstructions(
   return obstructions_cnt;
 }
 
+void GlobalRouter::wireViaOutsideLog(odb::dbNet* db_net) {
+    logger_->warn(GRT,
+                  41,
+                  "Net {} has wires/vias outside die area.",
+                  db_net->getConstName()); 
+}
+
 void GlobalRouter::findNetsObstructions(odb::Rect& die_area)
 {
   odb::dbSet<odb::dbNet> nets = block_->getNets();
@@ -3606,10 +3613,7 @@ void GlobalRouter::findNetsObstructions(odb::Rect& die_area)
               odb::Rect obstruction_rect = odb::Rect(lower_bound, upper_bound);
               if (!die_area.contains(obstruction_rect)) {
                 if (verbose_)
-                  logger_->warn(GRT,
-                                41,
-                                "Net {} has wires outside die area.",
-                                db_net->getConstName());
+                  wireViaOutsideLog(db_net);
               }
               odb::Rect via_rect = pshape.shape.getBox();
               odb::dbTechLayer* tech_layer = pshape.shape.getTechLayer();
@@ -3635,10 +3639,7 @@ void GlobalRouter::applyNetObstruction(const odb::Rect& rect,
     odb::Rect obstruction_rect = odb::Rect(lower_bound, upper_bound);
     if (!die_area.contains(obstruction_rect)) {
       if (verbose_) {
-        logger_->warn(GRT,
-                      41,
-                      "Net {} has wires/vias outside die area.",
-                      db_net->getConstName());
+        wireViaOutsideLog(db_net);
       }
     }
     applyObstructionAdjustment(obstruction_rect, tech_layer);
