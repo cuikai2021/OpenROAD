@@ -496,7 +496,7 @@ static void showSplash()
 {
   utl::Logger* logger = ord::OpenRoad::openRoad()->getLogger();
   string sha = EDEN_GIT_DESCRIBE;
-  logger->report("OpenROAD {} {}", EDEN_VERSION, sha.c_str());
+  logger->report("EDEN {} {}", EDEN_VERSION, sha.c_str());
   logger->report(
       "This program is licensed under the BSD-3 license. See the LICENSE file "
       "for details.");
