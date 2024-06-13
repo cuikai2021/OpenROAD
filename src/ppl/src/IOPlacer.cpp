@@ -192,7 +192,8 @@ void IOPlacer::randomPlacement()
           constraint, netlist_io_pins_.get(), mirrored_pins);
       pin_indices.insert(pin_indices.end(), indices.begin(), indices.end());
     }
-    randomPlacement(pin_indices, valid_slots, top_layer, false);
+    randomPlacement(
+        std::move(pin_indices), std::move(valid_slots), top_layer, false);
   }
 
   for (auto& io_group : netlist_io_pins_->getIOGroups()) {
@@ -215,7 +216,7 @@ void IOPlacer::randomPlacement()
     }
   }
 
-  randomPlacement(std::move(pin_indices), valid_slots, false, false);
+  randomPlacement(std::move(pin_indices), std::move(valid_slots), false, false);
   placeFallbackPins(true);
 }
 
@@ -387,8 +388,8 @@ int IOPlacer::placeFallbackPins(bool random)
                            "constrained region {:.2f}-{:.2f} at {} edge. "
                            "First pin of the group is {}.",
                            group.first.size(),
-                           dbuToMicrons(interval.getBegin()),
-                           dbuToMicrons(interval.getEnd()),
+                           getBlock()->dbuToMicrons(interval.getBegin()),
+                           getBlock()->dbuToMicrons(interval.getEnd()),
                            getEdgeString(interval.getEdge()),
                            io_pin.getName());
           }
@@ -410,7 +411,7 @@ int IOPlacer::placeFallbackPins(bool random)
             PPL,
             109,
             "Pin group of size {} does not fit any region in the die "
-            "boundaries. Not enough conmtiguous slots available. The first pin "
+            "boundaries. Not enough contiguous slots available. The first pin "
             "of the group is {}.",
             group.first.size(),
             io_pin.getName());
@@ -670,16 +671,6 @@ void IOPlacer::getBlockedRegionsFromDbObstructions()
   }
 }
 
-double IOPlacer::dbuToMicrons(int64_t dbu)
-{
-  return static_cast<double>(dbu) / (getBlock()->getDbUnitsPerMicron());
-}
-
-int IOPlacer::micronsToDbu(double microns)
-{
-  return (int64_t) (microns * getBlock()->getDbUnitsPerMicron());
-}
-
 void IOPlacer::writePinPlacement(const char* file_name)
 {
   std::string filename = file_name;
@@ -703,8 +694,10 @@ void IOPlacer::writePinPlacement(const char* file_name)
         odb::dbTechLayer* tech_layer = getTech()->findRoutingLayer(layer);
         const odb::Point& pos = io_pin.getPosition();
         out << "place_pin -pin_name " << io_pin.getName() << " -layer "
-            << tech_layer->getName() << " -location {" << dbuToMicrons(pos.x())
-            << " " << dbuToMicrons(pos.y()) << "} -force_to_die_boundary\n";
+            << tech_layer->getName() << " -location {"
+            << getBlock()->dbuToMicrons(pos.x()) << " "
+            << getBlock()->dbuToMicrons(pos.y())
+            << "} -force_to_die_boundary\n";
       }
     }
   }
@@ -728,8 +721,8 @@ Edge IOPlacer::getMirroredEdge(const Edge& edge)
   return mirrored_edge;
 }
 
-int IOPlacer::computeRegionIncrease(const Interval& interval,
-                                    const int num_pins)
+int IOPlacer::computeNewRegionLength(const Interval& interval,
+                                     const int num_pins)
 {
   const bool vertical_pin
       = interval.getEdge() == Edge::top || interval.getEdge() == Edge::bottom;
@@ -745,12 +738,20 @@ int IOPlacer::computeRegionIncrease(const Interval& interval,
       min_dist = std::max(layer_min_dist, min_dist);
     }
   } else {
-    for (int layer_idx : ver_layers_) {
-      const int layer_min_dist = core_->getMinDstPinsX()[layer_idx];
+    for (int layer_idx : hor_layers_) {
+      const int layer_min_dist = core_->getMinDstPinsY()[layer_idx];
       min_dist = std::max(layer_min_dist, min_dist);
     }
   }
 
+  const int increase = computeIncrease(min_dist, num_pins, interval_length);
+  return increase + interval_length;
+}
+
+int64_t IOPlacer::computeIncrease(int min_dist,
+                                  const int64_t num_pins,
+                                  const int64_t curr_length)
+{
   const bool dist_in_tracks = parms_->getMinDistanceInTracks();
   const int user_min_dist = parms_->getMinDistance();
   if (dist_in_tracks) {
@@ -762,8 +763,7 @@ int IOPlacer::computeRegionIncrease(const Interval& interval,
     min_dist *= default_min_dist_;
   }
 
-  const int increase = (num_pins * min_dist) - interval_length;
-
+  const int64_t increase = (num_pins * min_dist) - curr_length;
   return increase;
 }
 
@@ -801,8 +801,8 @@ void IOPlacer::findSlots(const std::set<int>& layers, Edge edge)
     if (offset == -1) {
       offset = num_tracks_offset_ * tech_min_dst;
       // limit default offset to 1um
-      if (offset > micronsToDbu(1.0)) {
-        offset = micronsToDbu(1.0);
+      if (offset > getBlock()->micronsToDbu(1.0)) {
+        offset = getBlock()->micronsToDbu(1.0);
       }
     }
 
@@ -907,12 +907,29 @@ void IOPlacer::defineSlots()
   int regular_pin_count = static_cast<int>(netlist_io_pins_->getIOPins().size())
                           - top_layer_pins_count_;
   if (regular_pin_count > slots_.size()) {
-    logger_->error(PPL,
-                   24,
-                   "Number of IO pins ({}) exceeds maximum number of available "
-                   "positions ({}).",
-                   regular_pin_count,
-                   slots_.size());
+    int min_dist = std::numeric_limits<int>::min();
+    for (int layer_idx : ver_layers_) {
+      const int layer_min_dist = core_->getMinDstPinsX()[layer_idx];
+      min_dist = std::max(layer_min_dist, min_dist);
+    }
+    for (int layer_idx : hor_layers_) {
+      const int layer_min_dist = core_->getMinDstPinsY()[layer_idx];
+      min_dist = std::max(layer_min_dist, min_dist);
+    }
+
+    const int64_t die_margin = getBlock()->getDieArea().margin();
+    const int64_t new_margin
+        = computeIncrease(min_dist, regular_pin_count, die_margin) + die_margin;
+
+    logger_->error(
+        PPL,
+        24,
+        "Number of IO pins ({}) exceeds maximum number of available "
+        "positions ({}). Increase the die perimeter from {:.2f}um to {:.2f}um.",
+        regular_pin_count,
+        slots_.size(),
+        getBlock()->dbuToMicrons(die_margin),
+        getBlock()->dbuToMicrons(new_margin));
   }
 
   if (top_layer_pins_count_ > top_layer_slots_.size()) {
@@ -1221,10 +1238,10 @@ int IOPlacer::assignGroupToSection(const std::vector<int>& io_group,
                     "{})-({}, {}) at edge {} to place the pin "
                     "group of size {}.",
                     available_slots,
-                    dbuToMicrons(section_begin.getX()),
-                    dbuToMicrons(section_begin.getY()),
-                    dbuToMicrons(section_end.getX()),
-                    dbuToMicrons(section_end.getY()),
+                    getBlock()->dbuToMicrons(section_begin.getX()),
+                    getBlock()->dbuToMicrons(section_begin.getY()),
+                    getBlock()->dbuToMicrons(section_end.getX()),
+                    getBlock()->dbuToMicrons(section_end.getY()),
                     edge_str,
                     group_size);
     }
@@ -1523,8 +1540,8 @@ void IOPlacer::updatePinArea(IOPin& pin)
                      "Pin {} area {:2.4f}um^2 is lesser than the minimum "
                      "required area {:2.4f}um^2.",
                      pin.getName(),
-                     dbuToMicrons(dbuToMicrons(pin.getArea())),
-                     dbuToMicrons(dbuToMicrons(required_min_area)));
+                     getBlock()->dbuAreaToMicrons(pin.getArea()),
+                     getBlock()->dbuAreaToMicrons(required_min_area));
     }
   } else {
     int pin_width = top_grid_->pin_width;
@@ -1607,8 +1624,8 @@ void IOPlacer::addNamesConstraint(PinSet* pins, Edge edge, int begin, int end)
                1,
                "Restrict pins [ {}] to region {:.2f}u-{:.2f}u at the {} edge.",
                pin_names,
-               dbuToMicrons(begin),
-               dbuToMicrons(end),
+               getBlock()->dbuToMicrons(begin),
+               getBlock()->dbuToMicrons(end),
                getEdgeString(edge));
   } else {
     logger_->info(
@@ -1616,8 +1633,8 @@ void IOPlacer::addNamesConstraint(PinSet* pins, Edge edge, int begin, int end)
         48,
         "Restrict pins [ {}] to region {:.2f}u-{:.2f}u at the {} edge.",
         pin_names,
-        dbuToMicrons(begin),
-        dbuToMicrons(end),
+        getBlock()->dbuToMicrons(begin),
+        getBlock()->dbuToMicrons(end),
         getEdgeString(edge));
   }
 
@@ -1763,6 +1780,11 @@ void IOPlacer::initConstraints(bool annealing)
     getPinsFromDirectionConstraint(constraint);
     constraint.sections = createSectionsPerConstraint(constraint);
     int num_slots = 0;
+    const int region_begin = constraint.interval.getBegin();
+    const int region_end = constraint.interval.getEnd();
+    const std::string region_edge
+        = getEdgeString(constraint.interval.getEdge());
+
     for (const Section& sec : constraint.sections) {
       num_slots += sec.num_slots;
     }
@@ -1770,15 +1792,24 @@ void IOPlacer::initConstraints(bool annealing)
       constraint.pins_per_slots
           = static_cast<float>(constraint.pin_list.size()) / num_slots;
       if (constraint.pins_per_slots > 1) {
-        int increase = computeRegionIncrease(constraint.interval,
-                                             constraint.pin_list.size());
+        const Interval& interval = constraint.interval;
+        const int interval_length
+            = std::abs(interval.getEnd() - interval.getBegin());
+        int new_length
+            = computeNewRegionLength(interval, constraint.pin_list.size());
         logger_->warn(PPL,
                       110,
                       "Constraint has {} pins, but only {} available slots.\n"
-                      "Increase the region in at least {}um.",
+                      "Increase the region {:.2f}um-{:.2f}um on the {} edge "
+                      "from {:.2f}um "
+                      "to at least {:.2f}um.",
                       constraint.pin_list.size(),
                       num_slots,
-                      dbuToMicrons(increase));
+                      getBlock()->dbuToMicrons(region_begin),
+                      getBlock()->dbuToMicrons(region_end),
+                      region_edge,
+                      getBlock()->dbuToMicrons(interval_length),
+                      getBlock()->dbuToMicrons(new_length));
         constraints_no_slots++;
       }
     } else {
@@ -2066,8 +2097,10 @@ void IOPlacer::run(bool random_mode)
               "at edge {}. Not "
               "enough space in the defined region.",
               constraint.pin_list.size(),
-              static_cast<float>(dbuToMicrons(constraint.interval.getBegin())),
-              static_cast<float>(dbuToMicrons(constraint.interval.getEnd())),
+              static_cast<float>(
+                  getBlock()->dbuToMicrons(constraint.interval.getBegin())),
+              static_cast<float>(
+                  getBlock()->dbuToMicrons(constraint.interval.getEnd())),
               edge_str);
         }
 
@@ -2232,7 +2265,7 @@ void IOPlacer::reportHPWL()
   logger_->info(PPL,
                 12,
                 "I/O nets HPWL: {:.2f} um.",
-                static_cast<float>(dbuToMicrons(total_hpwl)));
+                static_cast<float>(getBlock()->dbuToMicrons(total_hpwl)));
 }
 
 void IOPlacer::placePin(odb::dbBTerm* bterm,
@@ -2288,8 +2321,8 @@ void IOPlacer::placePin(odb::dbBTerm* bterm,
         "Pin {} has dimension {:.2f}u which is less than the min width "
         "{:.2f}u of layer {}.",
         bterm->getName(),
-        dbuToMicrons(pin_width),
-        dbuToMicrons(layer->getWidth()),
+        getBlock()->dbuToMicrons(pin_width),
+        getBlock()->dbuToMicrons(layer->getWidth()),
         layer->getName());
   }
 
@@ -2369,8 +2402,8 @@ void IOPlacer::placePin(odb::dbBTerm* bterm,
                 70,
                 "Pin {} placed at ({:.2f}um, {:.2f}um).",
                 bterm->getName(),
-                dbuToMicrons(pos.x()),
-                dbuToMicrons(pos.y()));
+                getBlock()->dbuToMicrons(pos.x()),
+                getBlock()->dbuToMicrons(pos.y()));
 }
 
 void IOPlacer::movePinToTrack(odb::Point& pos,

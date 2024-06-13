@@ -40,6 +40,7 @@ find_package(Boost 1.74 REQUIRED)
 swig_lib(NAME      utl
          NAMESPACE utl
          I_FILE    src/Logger.i
+         SCRIPTS   src/Utl.tcl
          SWIG_INCLUDES ${PROJECT_SOURCE_DIR}/src
 )
 
@@ -113,9 +114,15 @@ target_link_libraries(utl
     fassert
     prettyprint
     spdlog::spdlog
+  PRIVATE
+    OpenSTA
 )
 
-add_subdirectory(test)
+messages(
+  TARGET utl
+)
+
+# add_subdirectory(test)
 
 ############################################################
 # Unit testing
@@ -137,3 +144,5 @@ if(ENABLE_TESTS)
     utl
   )
 endif()
+
+add_subdirectory(test)

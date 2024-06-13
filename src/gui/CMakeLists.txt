@@ -29,10 +29,6 @@ if (Qt5_FOUND AND BUILD_GUI)
 
     target_compile_definitions(gui PRIVATE ENABLE_CHARTS)
 
-    list(APPEND CHARTS_SRC
-      "src/chartsWidget.cpp"
-    )
-
     list(APPEND CHARTS_LIB
       "Qt5::Charts"
     )
@@ -70,14 +66,13 @@ if (Qt5_FOUND AND BUILD_GUI)
     src/heatMap.cpp
     src/heatMapSetup.cpp
     src/heatMapPlacementDensity.cpp
-    src/heatMapRUDY.cpp
     src/browserWidget.cpp
     src/globalConnectDialog.cpp
     src/clockWidget.cpp
     src/gui_utils.cpp
     src/colorGenerator.cpp
     src/bufferTreeDescriptor.cpp
-    ${CHARTS_SRC}
+    src/chartsWidget.cpp
     resources/resource.qrc
   )
 
@@ -90,6 +85,7 @@ if (Qt5_FOUND AND BUILD_GUI)
       ${CHARTS_LIB}
       utl
       Boost::boost
+      boost_regex
   )
 
 messages(
@@ -119,3 +115,5 @@ target_include_directories(gui
     ${OPENSTA_HOME}/include
     ${DBSTA_HOME}/include
 )
+
+add_subdirectory(test)

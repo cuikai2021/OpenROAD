@@ -1,6 +1,6 @@
 #include "dbTechLayerSpacingTableJogToJogSpacingRule.h"
 
-#include "db.h"
+#include "odb/db.h"
 #include "dbDatabase.h"
 #include "dbDiff.hpp"
 #include "dbTable.h"

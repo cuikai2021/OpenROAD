@@ -2,9 +2,9 @@
 #include <iostream>
 #include <string>
 
-#include "db.h"
+#include "odb/db.h"
 #include "lefLayerPropParser.h"
-#include "lefin.h"
+#include "odb/lefin.h"
 
 namespace lefTechLayerSpacingTableJogToJogSpacing {
 

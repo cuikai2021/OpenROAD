@@ -40,7 +40,6 @@
 #include <set>
 #include <string>
 
-#include "db.h"
 #include "dbAccessPoint.h"
 #include "dbArrayTable.h"
 #include "dbArrayTable.hpp"
@@ -48,7 +47,6 @@
 #include "dbBPinItr.h"
 #include "dbBTerm.h"
 #include "dbBTermItr.h"
-#include "dbBlockCallBackObj.h"
 #include "dbBlockItr.h"
 #include "dbBlockage.h"
 #include "dbBox.h"
@@ -59,9 +57,8 @@
 #include "dbCapNodeItr.h"
 #include "dbChip.h"
 #include "dbDatabase.h"
-#include "dbDiff.h"
+#include "dbDft.h"
 #include "dbDiff.hpp"
-#include "dbExtControl.h"
 #include "dbFill.h"
 #include "dbGCellGrid.h"
 #include "dbGlobalConnect.h"
@@ -84,10 +81,20 @@
 #include "dbJournal.h"
 #include "dbLevelShifter.h"
 #include "dbLogicPort.h"
+#include "dbModBTerm.h"
+#include "dbModITerm.h"
 #include "dbModInst.h"
+#include "dbModNet.h"
 #include "dbModule.h"
 #include "dbModuleInstItr.h"
+#include "dbModuleModBTermItr.h"
 #include "dbModuleModInstItr.h"
+#include "dbModuleModInstModITermItr.h"
+#include "dbModuleModNetBTermItr.h"
+#include "dbModuleModNetITermItr.h"
+#include "dbModuleModNetItr.h"
+#include "dbModuleModNetModBTermItr.h"
+#include "dbModuleModNetModITermItr.h"
 #include "dbNameCache.h"
 #include "dbNet.h"
 #include "dbNetTrack.h"
@@ -107,7 +114,7 @@
 #include "dbSBoxItr.h"
 #include "dbSWire.h"
 #include "dbSWireItr.h"
-#include "dbShape.h"
+#include "odb/dbShape.h"
 #include "dbScanChain.h"
 #include "dbTable.h"
 #include "dbTable.hpp"
@@ -118,9 +125,14 @@
 #include "dbTrackGrid.h"
 #include "dbVia.h"
 #include "dbWire.h"
-#include "defout.h"
-#include "lefout.h"
-#include "parse.h"
+#include "odb/db.h"
+#include "odb/dbBlockCallBackObj.h"
+#include "odb/dbDiff.h"
+#include "odb/dbExtControl.h"
+#include "odb/dbShape.h"
+#include "odb/defout.h"
+#include "odb/lefout.h"
+#include "odb/parse.h"
 #include "utl/Logger.h"
 
 namespace odb {
@@ -171,6 +183,7 @@ _dbBlock::_dbBlock(_dbDatabase* db)
   _maxRSegId = 0;
   _maxCCSegId = 0;
 
+  _currentCcAdjOrder = 0;
   _bterm_tbl = new dbTable<_dbBTerm>(
       db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbBTermObj);
 
@@ -191,6 +204,15 @@ _dbBlock::_dbBlock(_dbDatabase* db)
 
   _modinst_tbl = new dbTable<_dbModInst>(
       db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbModInstObj);
+
+  _modbterm_tbl = new dbTable<_dbModBTerm>(
+      db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbModBTermObj);
+
+  _moditerm_tbl = new dbTable<_dbModITerm>(
+      db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbModITermObj);
+
+  _modnet_tbl = new dbTable<_dbModNet>(
+      db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbModNetObj);
 
   _powerdomain_tbl = new dbTable<_dbPowerDomain>(
       db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbPowerDomainObj);
@@ -319,10 +341,19 @@ _dbBlock::_dbBlock(_dbDatabase* db)
 
   _extControl = new dbExtControl();
 
+  _dft_tbl = new dbTable<_dbDft>(
+      db, this, (GetObjTbl_t) &_dbBlock::getObjectTable, dbDftObj, 4096, 12);
+  _dbDft* dft_ptr = _dft_tbl->create();
+  dft_ptr->initialize();
+  _dft = dft_ptr->getId();
+
   _net_hash.setTable(_net_tbl);
   _inst_hash.setTable(_inst_tbl);
   _module_hash.setTable(_module_tbl);
   _modinst_hash.setTable(_modinst_tbl);
+  _modbterm_hash.setTable(_modbterm_tbl);
+  _moditerm_hash.setTable(_moditerm_tbl);
+  _modnet_hash.setTable(_modnet_tbl);
   _powerdomain_hash.setTable(_powerdomain_tbl);
   _logicport_hash.setTable(_logicport_tbl);
   _powerswitch_hash.setTable(_powerswitch_tbl);
@@ -355,6 +386,17 @@ _dbBlock::_dbBlock(_dbDatabase* db)
   _module_inst_itr = new dbModuleInstItr(_inst_tbl);
 
   _module_modinst_itr = new dbModuleModInstItr(_modinst_tbl);
+
+  _module_modinstmoditerm_itr = new dbModuleModInstModITermItr(_moditerm_tbl);
+
+  _module_modbterm_itr = new dbModuleModBTermItr(_modbterm_tbl);
+
+  _module_modnet_itr = new dbModuleModNetItr(_modnet_tbl);
+
+  _module_modnet_modbterm_itr = new dbModuleModNetModBTermItr(_modbterm_tbl);
+  _module_modnet_moditerm_itr = new dbModuleModNetModITermItr(_moditerm_tbl);
+  _module_modnet_iterm_itr = new dbModuleModNetITermItr(_iterm_tbl);
+  _module_modnet_bterm_itr = new dbModuleModNetBTermItr(_bterm_tbl);
 
   _region_group_itr = new dbRegionGroupItr(_group_tbl);
 
@@ -425,7 +467,8 @@ _dbBlock::_dbBlock(_dbDatabase* db, const _dbBlock& block)
       _maxCCSegId(block._maxCCSegId),
       _children(block._children),
       _component_mask_shift(block._component_mask_shift),
-      _currentCcAdjOrder(block._currentCcAdjOrder)
+      _currentCcAdjOrder(block._currentCcAdjOrder),
+      _dft(block._dft)
 {
   if (block._name) {
     _name = strdup(block._name);
@@ -526,6 +569,8 @@ _dbBlock::_dbBlock(_dbDatabase* db, const _dbBlock& block)
 
   _extControl = new dbExtControl();
 
+  _dft_tbl = new dbTable<_dbDft>(db, this, *block._dft_tbl);
+
   _net_hash.setTable(_net_tbl);
   _inst_hash.setTable(_inst_tbl);
   _module_hash.setTable(_module_tbl);
@@ -599,8 +644,9 @@ _dbBlock::_dbBlock(_dbDatabase* db, const _dbBlock& block)
 
 _dbBlock::~_dbBlock()
 {
-  if (_name)
+  if (_name) {
     free((void*) _name);
+  }
 
   delete _bterm_tbl;
   delete _iterm_tbl;
@@ -609,6 +655,9 @@ _dbBlock::~_dbBlock()
   delete _inst_tbl;
   delete _module_tbl;
   delete _modinst_tbl;
+  delete _modbterm_tbl;
+  delete _moditerm_tbl;
+  delete _modnet_tbl;
   delete _powerdomain_tbl;
   delete _logicport_tbl;
   delete _powerswitch_tbl;
@@ -657,6 +706,13 @@ _dbBlock::~_dbBlock()
   delete _region_inst_itr;
   delete _module_inst_itr;
   delete _module_modinst_itr;
+  delete _module_modinstmoditerm_itr;
+  delete _module_modbterm_itr;
+  delete _module_modnet_itr;
+  delete _module_modnet_modbterm_itr;
+  delete _module_modnet_moditerm_itr;
+  delete _module_modnet_iterm_itr;
+  delete _module_modnet_bterm_itr;
   delete _region_group_itr;
   delete _group_itr;
   delete _guide_itr;
@@ -667,17 +723,20 @@ _dbBlock::~_dbBlock()
   delete _group_ground_net_itr;
   delete _bpin_itr;
   delete _prop_itr;
+  delete _dft_tbl;
 
   std::list<dbBlockCallBackObj*>::iterator _cbitr;
   while (_callbacks.begin() != _callbacks.end()) {
     _cbitr = _callbacks.begin();
     (*_cbitr)->removeOwner();
   }
-  if (_journal)
+  {
     delete _journal;
+  }
 
-  if (_journal_pending)
+  {
     delete _journal_pending;
+  }
 }
 
 void dbBlock::clear()
@@ -701,8 +760,9 @@ void dbBlock::clear()
   callbacks.swap(block->_callbacks);
 
   // unlink the child from the parent
-  if (parent)
+  if (parent) {
     unlink_child_from_parent(block, parent);
+  }
 
   // destroy the block contents
   block->~_dbBlock();
@@ -875,6 +935,10 @@ dbObjectTable* _dbBlock::getObjectTable(dbObjectType type)
 
     case dbPropertyObj:
       return _prop_tbl;
+
+    case dbDftObj:
+      return _dft_tbl;
+
     default:
       break;
   }
@@ -886,10 +950,12 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
 {
   std::list<dbBlockCallBackObj*>::const_iterator cbitr;
   for (cbitr = block._callbacks.begin(); cbitr != block._callbacks.end();
-       ++cbitr)
+       ++cbitr) {
     (**cbitr)().inDbBlockStreamOutBefore(
         (dbBlock*) &block);  // client ECO initialization  - payam
-
+  }
+  _dbDatabase* db = block.getImpl()->getDatabase();
+  dbOStreamScope scope(stream, "dbBlock");
   stream << block._def_units;
   stream << block._dbu_per_micron;
   stream << block._hier_delimeter;
@@ -917,6 +983,11 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   stream << block._inst_hash;
   stream << block._module_hash;
   stream << block._modinst_hash;
+  if (db->isSchema(db_schema_update_hierarchy)) {
+    stream << block._modbterm_hash;
+    stream << block._moditerm_hash;
+    stream << block._modnet_hash;
+  }
   stream << block._powerdomain_hash;
   stream << block._logicport_hash;
   stream << block._powerswitch_hash;
@@ -931,6 +1002,7 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   stream << block._children;
   stream << block._component_mask_shift;
   stream << block._currentCcAdjOrder;
+
   stream << *block._bterm_tbl;
   stream << *block._iterm_tbl;
   stream << *block._net_tbl;
@@ -938,6 +1010,11 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   stream << *block._inst_tbl;
   stream << *block._module_tbl;
   stream << *block._modinst_tbl;
+  if (db->isSchema(db_schema_update_hierarchy)) {
+    stream << *block._modbterm_tbl;
+    stream << *block._moditerm_tbl;
+    stream << *block._modnet_tbl;
+  }
   stream << *block._powerdomain_tbl;
   stream << *block._logicport_tbl;
   stream << *block._powerswitch_tbl;
@@ -965,15 +1042,18 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   stream << *block._non_default_rule_tbl;
   stream << *block._layer_rule_tbl;
   stream << *block._prop_tbl;
+
   stream << *block._name_cache;
   stream << *block._r_val_tbl;
   stream << *block._c_val_tbl;
   stream << *block._cc_val_tbl;
-  stream << *block._cap_node_tbl;  // DKF - 2/21/05
-  stream << *block._r_seg_tbl;     // DKF - 2/21/05
-  stream << *block._cc_seg_tbl;
+  stream << NamedTable("cap_node_tbl", block._cap_node_tbl);
+  stream << NamedTable("r_seg_tbl", block._r_seg_tbl);
+  stream << NamedTable("cc_seg_tbl", block._cc_seg_tbl);
   stream << *block._scan_chain_tbl;
   stream << *block._extControl;
+  stream << block._dft;
+  stream << *block._dft_tbl;
 
   //---------------------------------------------------------- stream out
   // properties
@@ -986,8 +1066,9 @@ dbOStream& operator<<(dbOStream& stream, const _dbBlock& block)
   //----------------------------------------------------------
 
   for (cbitr = block._callbacks.begin(); cbitr != block._callbacks.end();
-       ++cbitr)
+       ++cbitr) {
     (*cbitr)->inDbBlockStreamOutAfter((dbBlock*) &block);
+  }
   return stream;
 }
 
@@ -1026,6 +1107,11 @@ dbIStream& operator>>(dbIStream& stream, _dbBlock& block)
   stream >> block._inst_hash;
   stream >> block._module_hash;
   stream >> block._modinst_hash;
+  if (db->isSchema(db_schema_update_hierarchy)) {
+    stream >> block._modbterm_hash;
+    stream >> block._moditerm_hash;
+    stream >> block._modnet_hash;
+  }
   stream >> block._powerdomain_hash;
   stream >> block._logicport_hash;
   stream >> block._powerswitch_hash;
@@ -1057,6 +1143,11 @@ dbIStream& operator>>(dbIStream& stream, _dbBlock& block)
   stream >> *block._inst_tbl;
   stream >> *block._module_tbl;
   stream >> *block._modinst_tbl;
+  if (db->isSchema(db_schema_update_hierarchy)) {
+    stream >> *block._modbterm_tbl;
+    stream >> *block._moditerm_tbl;
+    stream >> *block._modnet_tbl;
+  }
   stream >> *block._powerdomain_tbl;
   stream >> *block._logicport_tbl;
   stream >> *block._powerswitch_tbl;
@@ -1099,6 +1190,10 @@ dbIStream& operator>>(dbIStream& stream, _dbBlock& block)
   stream >> *block._cc_seg_tbl;
   stream >> *block._scan_chain_tbl;
   stream >> *block._extControl;
+  if (db->isSchema(db_schema_add_scan)) {
+    stream >> block._dft;
+    stream >> *block._dft_tbl;
+  }
 
   //---------------------------------------------------------- stream in
   // properties
@@ -1108,10 +1203,11 @@ dbIStream& operator>>(dbIStream& stream, _dbBlock& block)
   dbId<_dbProperty> propList;
   stream >> propList;
 
-  if (propList != 0)
+  if (propList != 0) {
     table->setPropList(block.getOID(), propList);
-  else if (oldList != 0)
+  } else if (oldList != 0) {
     table->setPropList(block.getOID(), 0);
+  }
   // TOM
   //-------------------------------------------------------------------------------
 
@@ -1122,67 +1218,84 @@ void _dbBlock::add_rect(const Rect& rect)
 {
   _dbBox* box = _box_tbl->getPtr(_bbox);
 
-  if (_flags._valid_bbox)
+  if (_flags._valid_bbox) {
     box->_shape._rect.merge(rect);
+  }
 }
 void _dbBlock::add_oct(const Oct& oct)
 {
   _dbBox* box = _box_tbl->getPtr(_bbox);
 
-  if (_flags._valid_bbox)
+  if (_flags._valid_bbox) {
     box->_shape._rect.merge(oct);
+  }
 }
 
 void _dbBlock::remove_rect(const Rect& rect)
 {
   _dbBox* box = _box_tbl->getPtr(_bbox);
 
-  if (_flags._valid_bbox)
+  if (_flags._valid_bbox) {
     _flags._valid_bbox = box->_shape._rect.inside(rect);
+  }
 }
 
 bool _dbBlock::operator==(const _dbBlock& rhs) const
 {
-  if (_flags._valid_bbox != rhs._flags._valid_bbox)
+  if (_flags._valid_bbox != rhs._flags._valid_bbox) {
     return false;
+  }
 
-  if (_def_units != rhs._def_units)
+  if (_def_units != rhs._def_units) {
     return false;
+  }
 
-  if (_dbu_per_micron != rhs._dbu_per_micron)
+  if (_dbu_per_micron != rhs._dbu_per_micron) {
     return false;
+  }
 
-  if (_hier_delimeter != rhs._hier_delimeter)
+  if (_hier_delimeter != rhs._hier_delimeter) {
     return false;
+  }
 
-  if (_left_bus_delimeter != rhs._left_bus_delimeter)
+  if (_left_bus_delimeter != rhs._left_bus_delimeter) {
     return false;
+  }
 
-  if (_right_bus_delimeter != rhs._right_bus_delimeter)
+  if (_right_bus_delimeter != rhs._right_bus_delimeter) {
     return false;
+  }
 
-  if (_num_ext_corners != rhs._num_ext_corners)
+  if (_num_ext_corners != rhs._num_ext_corners) {
     return false;
+  }
 
-  if (_corners_per_block != rhs._corners_per_block)
+  if (_corners_per_block != rhs._corners_per_block) {
     return false;
+  }
   if (_corner_name_list && rhs._corner_name_list) {
-    if (strcmp(_corner_name_list, rhs._corner_name_list) != 0)
+    if (strcmp(_corner_name_list, rhs._corner_name_list) != 0) {
       return false;
-  } else if (_corner_name_list || rhs._corner_name_list)
+    }
+  } else if (_corner_name_list || rhs._corner_name_list) {
     return false;
+  }
 
   if (_name && rhs._name) {
-    if (strcmp(_name, rhs._name) != 0)
+    if (strcmp(_name, rhs._name) != 0) {
       return false;
-  } else if (_name || rhs._name)
+    }
+  } else if (_name || rhs._name) {
     return false;
+  }
 
-  if (_die_area != rhs._die_area)
+  if (_die_area != rhs._die_area) {
     return false;
+  }
 
-  if (_tech != rhs._tech)
+  if (_tech != rhs._tech) {
     return false;
+  }
 
   if (_die_area_polygon != rhs._die_area_polygon)
     return false;
@@ -1196,117 +1309,153 @@ bool _dbBlock::operator==(const _dbBlock& rhs) const
   if (_diearea_rt_blockages != rhs._diearea_rt_blockages)
     return false;
 
-  if (_chip != rhs._chip)
+  if (_chip != rhs._chip) {
     return false;
+  }
 
-  if (_bbox != rhs._bbox)
+  if (_bbox != rhs._bbox) {
     return false;
+  }
 
-  if (_parent != rhs._parent)
+  if (_parent != rhs._parent) {
     return false;
+  }
 
-  if (_next_block != rhs._next_block)
+  if (_next_block != rhs._next_block) {
     return false;
+  }
 
-  if (_gcell_grid != rhs._gcell_grid)
+  if (_gcell_grid != rhs._gcell_grid) {
     return false;
+  }
 
-  if (_parent_block != rhs._parent_block)
+  if (_parent_block != rhs._parent_block) {
     return false;
+  }
 
-  if (_parent_inst != rhs._parent_inst)
+  if (_parent_inst != rhs._parent_inst) {
     return false;
+  }
 
-  if (_top_module != rhs._top_module)
+  if (_top_module != rhs._top_module) {
     return false;
+  }
 
-  if (_net_hash != rhs._net_hash)
+  if (_net_hash != rhs._net_hash) {
     return false;
+  }
 
-  if (_inst_hash != rhs._inst_hash)
+  if (_inst_hash != rhs._inst_hash) {
     return false;
+  }
 
-  if (_module_hash != rhs._module_hash)
+  if (_module_hash != rhs._module_hash) {
     return false;
+  }
 
-  if (_modinst_hash != rhs._modinst_hash)
+  if (_modinst_hash != rhs._modinst_hash) {
     return false;
+  }
 
-  if (_powerdomain_hash != rhs._powerdomain_hash)
+  if (_powerdomain_hash != rhs._powerdomain_hash) {
     return false;
+  }
 
-  if (_logicport_hash != rhs._logicport_hash)
+  if (_logicport_hash != rhs._logicport_hash) {
     return false;
+  }
 
-  if (_powerswitch_hash != rhs._powerswitch_hash)
+  if (_powerswitch_hash != rhs._powerswitch_hash) {
     return false;
+  }
 
-  if (_isolation_hash != rhs._isolation_hash)
+  if (_isolation_hash != rhs._isolation_hash) {
     return false;
+  }
 
   if (_levelshifter_hash != rhs._levelshifter_hash) {
     return false;
   }
 
-  if (_group_hash != rhs._group_hash)
+  if (_group_hash != rhs._group_hash) {
     return false;
+  }
 
-  if (_inst_hdr_hash != rhs._inst_hdr_hash)
+  if (_inst_hdr_hash != rhs._inst_hdr_hash) {
     return false;
+  }
 
-  if (_bterm_hash != rhs._bterm_hash)
+  if (_bterm_hash != rhs._bterm_hash) {
     return false;
+  }
 
-  if (_maxCapNodeId != rhs._maxCapNodeId)
+  if (_maxCapNodeId != rhs._maxCapNodeId) {
     return false;
+  }
 
-  if (_maxRSegId != rhs._maxRSegId)
+  if (_maxRSegId != rhs._maxRSegId) {
     return false;
+  }
 
-  if (_maxCCSegId != rhs._maxCCSegId)
+  if (_maxCCSegId != rhs._maxCCSegId) {
     return false;
+  }
 
-  if (_children != rhs._children)
+  if (_children != rhs._children) {
     return false;
+  }
 
-  if (_component_mask_shift != rhs._component_mask_shift)
+  if (_component_mask_shift != rhs._component_mask_shift) {
     return false;
+  }
 
-  if (_currentCcAdjOrder != rhs._currentCcAdjOrder)
+  if (_currentCcAdjOrder != rhs._currentCcAdjOrder) {
     return false;
+  }
 
-  if (*_bterm_tbl != *rhs._bterm_tbl)
+  if (*_bterm_tbl != *rhs._bterm_tbl) {
     return false;
+  }
 
-  if (*_iterm_tbl != *rhs._iterm_tbl)
+  if (*_iterm_tbl != *rhs._iterm_tbl) {
     return false;
+  }
 
-  if (*_net_tbl != *rhs._net_tbl)
+  if (*_net_tbl != *rhs._net_tbl) {
     return false;
+  }
 
-  if (*_inst_hdr_tbl != *rhs._inst_hdr_tbl)
+  if (*_inst_hdr_tbl != *rhs._inst_hdr_tbl) {
     return false;
+  }
 
-  if (*_inst_tbl != *rhs._inst_tbl)
+  if (*_inst_tbl != *rhs._inst_tbl) {
     return false;
+  }
 
-  if (*_module_tbl != *rhs._module_tbl)
+  if (*_module_tbl != *rhs._module_tbl) {
     return false;
+  }
 
-  if (*_modinst_tbl != *rhs._modinst_tbl)
+  if (*_modinst_tbl != *rhs._modinst_tbl) {
     return false;
+  }
 
-  if (*_powerdomain_tbl != *rhs._powerdomain_tbl)
+  if (*_powerdomain_tbl != *rhs._powerdomain_tbl) {
     return false;
+  }
 
-  if (*_logicport_tbl != *rhs._logicport_tbl)
+  if (*_logicport_tbl != *rhs._logicport_tbl) {
     return false;
+  }
 
-  if (*_powerswitch_tbl != *rhs._powerswitch_tbl)
+  if (*_powerswitch_tbl != *rhs._powerswitch_tbl) {
     return false;
+  }
 
-  if (*_isolation_tbl != *rhs._isolation_tbl)
+  if (*_isolation_tbl != *rhs._isolation_tbl) {
     return false;
+  }
 
   if (*_levelshifter_tbl != *rhs._levelshifter_tbl) {
     {
@@ -1314,89 +1463,125 @@ bool _dbBlock::operator==(const _dbBlock& rhs) const
     }
   }
 
-  if (*_group_tbl != *rhs._group_tbl)
+  if (*_group_tbl != *rhs._group_tbl) {
     return false;
+  }
 
-  if (*ap_tbl_ != *rhs.ap_tbl_)
+  if (*ap_tbl_ != *rhs.ap_tbl_) {
     return false;
+  }
 
-  if (*_guide_tbl != *rhs._guide_tbl)
+  if (*_guide_tbl != *rhs._guide_tbl) {
     return false;
+  }
 
-  if (*_net_tracks_tbl != *rhs._net_tracks_tbl)
+  if (*_net_tracks_tbl != *rhs._net_tracks_tbl) {
     return false;
+  }
 
-  if (*_box_tbl != *rhs._box_tbl)
+  if (*_box_tbl != *rhs._box_tbl) {
     return false;
+  }
 
-  if (*_via_tbl != *rhs._via_tbl)
+  if (*_via_tbl != *rhs._via_tbl) {
     return false;
+  }
 
-  if (*_gcell_grid_tbl != *rhs._gcell_grid_tbl)
+  if (*_gcell_grid_tbl != *rhs._gcell_grid_tbl) {
     return false;
+  }
 
-  if (*_track_grid_tbl != *rhs._track_grid_tbl)
+  if (*_track_grid_tbl != *rhs._track_grid_tbl) {
     return false;
+  }
 
-  if (*_obstruction_tbl != *rhs._obstruction_tbl)
+  if (*_obstruction_tbl != *rhs._obstruction_tbl) {
     return false;
+  }
 
-  if (*_blockage_tbl != *rhs._blockage_tbl)
+  if (*_blockage_tbl != *rhs._blockage_tbl) {
     return false;
+  }
 
-  if (*_wire_tbl != *rhs._wire_tbl)
+  if (*_wire_tbl != *rhs._wire_tbl) {
     return false;
+  }
 
-  if (*_swire_tbl != *rhs._swire_tbl)
+  if (*_swire_tbl != *rhs._swire_tbl) {
     return false;
+  }
 
-  if (*_sbox_tbl != *rhs._sbox_tbl)
+  if (*_sbox_tbl != *rhs._sbox_tbl) {
     return false;
+  }
 
-  if (*_row_tbl != *rhs._row_tbl)
+  if (*_row_tbl != *rhs._row_tbl) {
     return false;
+  }
 
-  if (*_fill_tbl != *rhs._fill_tbl)
+  if (*_fill_tbl != *rhs._fill_tbl) {
     return false;
+  }
 
-  if (*_region_tbl != *rhs._region_tbl)
+  if (*_region_tbl != *rhs._region_tbl) {
     return false;
+  }
 
-  if (*_hier_tbl != *rhs._hier_tbl)
+  if (*_hier_tbl != *rhs._hier_tbl) {
     return false;
+  }
 
-  if (*_bpin_tbl != *rhs._bpin_tbl)
+  if (*_bpin_tbl != *rhs._bpin_tbl) {
     return false;
+  }
 
-  if (*_non_default_rule_tbl != *rhs._non_default_rule_tbl)
+  if (*_non_default_rule_tbl != *rhs._non_default_rule_tbl) {
     return false;
+  }
 
-  if (*_layer_rule_tbl != *rhs._layer_rule_tbl)
+  if (*_layer_rule_tbl != *rhs._layer_rule_tbl) {
     return false;
+  }
 
-  if (*_prop_tbl != *rhs._prop_tbl)
+  if (*_prop_tbl != *rhs._prop_tbl) {
     return false;
+  }
 
-  if (*_name_cache != *rhs._name_cache)
+  if (*_name_cache != *rhs._name_cache) {
     return false;
+  }
 
-  if (*_r_val_tbl != *rhs._r_val_tbl)
+  if (*_r_val_tbl != *rhs._r_val_tbl) {
     return false;
+  }
 
-  if (*_c_val_tbl != *rhs._c_val_tbl)
+  if (*_c_val_tbl != *rhs._c_val_tbl) {
     return false;
+  }
 
-  if (*_cc_val_tbl != *rhs._cc_val_tbl)
+  if (*_cc_val_tbl != *rhs._cc_val_tbl) {
     return false;
+  }
 
-  if (*_cap_node_tbl != *rhs._cap_node_tbl)
+  if (*_cap_node_tbl != *rhs._cap_node_tbl) {
     return false;
+  }
 
-  if (*_r_seg_tbl != *rhs._r_seg_tbl)
+  if (*_r_seg_tbl != *rhs._r_seg_tbl) {
     return false;
+  }
 
-  if (*_cc_seg_tbl != *rhs._cc_seg_tbl)
+  if (*_cc_seg_tbl != *rhs._cc_seg_tbl) {
     return false;
+  }
+
+  if (_dft != rhs._dft) {
+    return false;
+  }
+
+  if (*_dft_tbl != *rhs._dft_tbl) {
+    return false;
+  }
 
   if (*_scan_chain_tbl != *rhs._scan_chain_tbl)
 	 return false;
@@ -1486,15 +1671,20 @@ void _dbBlock::differences(dbDiff& diff,
   DIFF_TABLE(_layer_rule_tbl);
   DIFF_TABLE_NO_DEEP(_prop_tbl);
   DIFF_NAME_CACHE(_name_cache);
+  DIFF_FIELD(_dft);
+  DIFF_TABLE(_dft_tbl);
 
-  if (*_r_val_tbl != *rhs._r_val_tbl)
+  if (*_r_val_tbl != *rhs._r_val_tbl) {
     _r_val_tbl->differences(diff, "_r_val_tbl", *rhs._r_val_tbl);
+  }
 
-  if (*_c_val_tbl != *rhs._c_val_tbl)
+  if (*_c_val_tbl != *rhs._c_val_tbl) {
     _c_val_tbl->differences(diff, "_c_val_tbl", *rhs._c_val_tbl);
+  }
 
-  if (*_cc_val_tbl != *rhs._cc_val_tbl)
+  if (*_cc_val_tbl != *rhs._cc_val_tbl) {
     _cc_val_tbl->differences(diff, "_c_val_tbl", *rhs._cc_val_tbl);
+  }
 
   DIFF_TABLE_NO_DEEP(_cap_node_tbl);
   DIFF_TABLE_NO_DEEP(_r_seg_tbl);
@@ -1583,6 +1773,8 @@ void _dbBlock::out(dbDiff& diff, char side, const char* field) const
   DIFF_OUT_TABLE(_layer_rule_tbl);
   DIFF_OUT_TABLE_NO_DEEP(_prop_tbl);
   DIFF_OUT_NAME_CACHE(_name_cache);
+  DIFF_OUT_FIELD(_dft);
+  DIFF_OUT_TABLE(_dft_tbl);
 
   _r_val_tbl->out(diff, side, "_r_val_tbl");
   _c_val_tbl->out(diff, side, "_c_val_tbl");
@@ -1617,8 +1809,9 @@ dbBox* dbBlock::getBBox()
 {
   _dbBlock* block = (_dbBlock*) this;
 
-  if (block->_flags._valid_bbox == 0)
+  if (block->_flags._valid_bbox == 0) {
     ComputeBBox();
+  }
 
   _dbBox* bbox = block->_box_tbl->getPtr(block->_bbox);
   return (dbBox*) bbox;
@@ -1724,8 +1917,9 @@ dbInst* dbBlock::getParentInst()
 {
   _dbBlock* block = (_dbBlock*) this;
 
-  if (block->_parent_block == 0)
+  if (block->_parent_block == 0) {
     return nullptr;
+  }
 
   _dbChip* chip = (_dbChip*) block->getOwner();
   _dbBlock* parent_block = chip->_block_tbl->getPtr(block->_parent_block);
@@ -1754,8 +1948,9 @@ dbBlock* dbBlock::findChild(const char* name_)
 
   for (itr = children.begin(); itr != children.end(); ++itr) {
     _dbBlock* child = (_dbBlock*) *itr;
-    if (strcmp(child->_name, name_) == 0)
+    if (strcmp(child->_name, name_) == 0) {
       return (dbBlock*) child;
+    }
   }
 
   return nullptr;
@@ -1795,6 +1990,18 @@ dbSet<dbModInst> dbBlock::getModInsts()
 {
   _dbBlock* block = (_dbBlock*) this;
   return dbSet<dbModInst>(block, block->_modinst_tbl);
+}
+
+dbSet<dbModBTerm> dbBlock::getModBTerms()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return dbSet<dbModBTerm>(block, block->_modbterm_tbl);
+}
+
+dbSet<dbModNet> dbBlock::getModNets()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return dbSet<dbModNet>(block, block->_modnet_tbl);
 }
 
 dbSet<dbPowerDomain> dbBlock::getPowerDomains()
@@ -1914,8 +2121,9 @@ dbModInst* dbBlock::findModInst(const char* path)
   char* token = strtok(_path, "/");
   while (token != nullptr) {
     cur_inst = cur_mod->findModInst(token);
-    if (cur_inst == nullptr)
+    if (cur_inst == nullptr) {
       break;
+    }
     cur_mod = cur_inst->getMaster();
     token = strtok(nullptr, "/");
   }
@@ -1937,16 +2145,18 @@ dbITerm* dbBlock::findITerm(const char* name)
 
   std::string::size_type idx = s.rfind(block->_hier_delimeter);
 
-  if (idx == std::string::npos)  // no delimeter
+  if (idx == std::string::npos) {  // no delimeter
     return nullptr;
+  }
 
   std::string instName = s.substr(0, idx);
   std::string termName = s.substr(idx + 1, s.size());
 
   dbInst* inst = findInst(instName.c_str());
 
-  if (inst == nullptr)
+  if (inst == nullptr) {
     return nullptr;
+  }
 
   return inst->findITerm(termName.c_str());
 }
@@ -2058,8 +2268,9 @@ dbNet* dbBlock::findNet(const char* name)
 
 bool dbBlock::findSomeMaster(const char* names, std::vector<dbMaster*>& masters)
 {
-  if (!names || names[0] == '\0')
+  if (!names || names[0] == '\0') {
     return false;
+  }
 
   dbLib* lib = getChip()->getDb()->findLib("lib");
   dbMaster* master;
@@ -2078,18 +2289,20 @@ bool dbBlock::findSomeMaster(const char* names, std::vector<dbMaster*>& masters)
     atoi(&masterName[0]); master = dbNet::getValidNet(this, noid);
     }
     */
-    if (master)
+    if (master) {
       masters.push_back(master);
-    else
+    } else {
       getImpl()->getLogger()->warn(
           utl::ODB, 5, "Can not find master {}", masterName);
+    }
   }
-  return masters.size() ? true : false;
+  return !masters.empty() ? true : false;
 }
 bool dbBlock::findSomeNet(const char* names, std::vector<dbNet*>& nets)
 {
-  if (!names || names[0] == '\0')
+  if (!names || names[0] == '\0') {
     return false;
+  }
   _dbBlock* block = (_dbBlock*) this;
   dbNet* net;
   auto parser = std::make_unique<Ath__parser>(getImpl()->getLogger());
@@ -2103,18 +2316,20 @@ bool dbBlock::findSomeNet(const char* names, std::vector<dbNet*>& nets)
       noid = netName[0] == 'N' ? atoi(&netName[1]) : atoi(&netName[0]);
       net = dbNet::getValidNet(this, noid);
     }
-    if (net)
+    if (net) {
       nets.push_back(net);
-    else
+    } else {
       getImpl()->getLogger()->warn(utl::ODB, 6, "Can not find net {}", netName);
+    }
   }
-  return nets.size() ? true : false;
+  return !nets.empty() ? true : false;
 }
 
 bool dbBlock::findSomeInst(const char* names, std::vector<dbInst*>& insts)
 {
-  if (!names || names[0] == '\0')
+  if (!names || names[0] == '\0') {
     return false;
+  }
   _dbBlock* block = (_dbBlock*) this;
   dbInst* inst;
   auto parser = std::make_unique<Ath__parser>(getImpl()->getLogger());
@@ -2128,13 +2343,14 @@ bool dbBlock::findSomeInst(const char* names, std::vector<dbInst*>& insts)
       ioid = instName[0] == 'I' ? atoi(&instName[1]) : atoi(&instName[0]);
       inst = dbInst::getValidInst(this, ioid);
     }
-    if (inst)
+    if (inst) {
       insts.push_back(inst);
-    else
+    } else {
       getImpl()->getLogger()->warn(
           utl::ODB, 7, "Can not find inst {}", instName);
+    }
   }
-  return insts.size() ? true : false;
+  return !insts.empty() ? true : false;
 }
 
 dbVia* dbBlock::findVia(const char* name)
@@ -2145,8 +2361,9 @@ dbVia* dbBlock::findVia(const char* name)
   for (itr = vias.begin(); itr != vias.end(); ++itr) {
     _dbVia* via = (_dbVia*) *itr;
 
-    if (strcmp(via->_name, name) == 0)
+    if (strcmp(via->_name, name) == 0) {
       return (dbVia*) via;
+    }
   }
 
   return nullptr;
@@ -2174,8 +2391,9 @@ dbGCellGrid* dbBlock::getGCellGrid()
 {
   _dbBlock* block = (_dbBlock*) this;
 
-  if (block->_gcell_grid == 0)
+  if (block->_gcell_grid == 0) {
     return nullptr;
+  }
 
   return (dbGCellGrid*) block->_gcell_grid_tbl->getPtr(block->_gcell_grid);
 }
@@ -2194,8 +2412,9 @@ dbRegion* dbBlock::findRegion(const char* name)
   for (itr = regions.begin(); itr != regions.end(); ++itr) {
     _dbRegion* r = (_dbRegion*) *itr;
 
-    if (strcmp(r->_name, name) == 0)
+    if (strcmp(r->_name, name) == 0) {
       return (dbRegion*) r;
+    }
   }
 
   return nullptr;
@@ -2217,6 +2436,52 @@ int dbBlock::getDbUnitsPerMicron()
 {
   _dbBlock* block = (_dbBlock*) this;
   return block->_dbu_per_micron;
+}
+
+double dbBlock::dbuToMicrons(int dbu)
+{
+  const double dbu_micron = getTech()->getDbUnitsPerMicron();
+  return dbu / dbu_micron;
+}
+
+double dbBlock::dbuToMicrons(unsigned int dbu)
+{
+  const double dbu_micron = getTech()->getDbUnitsPerMicron();
+  return dbu / dbu_micron;
+}
+
+double dbBlock::dbuToMicrons(int64_t dbu)
+{
+  const double dbu_micron = getTech()->getDbUnitsPerMicron();
+  return dbu / dbu_micron;
+}
+
+double dbBlock::dbuToMicrons(double dbu)
+{
+  const double dbu_micron = getTech()->getDbUnitsPerMicron();
+  return dbu / dbu_micron;
+}
+
+double dbBlock::dbuAreaToMicrons(const int64_t dbu_area)
+{
+  const double dbu_micron = getTech()->getDbUnitsPerMicron();
+  return dbu_area / (dbu_micron * dbu_micron);
+}
+
+int dbBlock::micronsToDbu(const double microns)
+{
+  const int dbu_per_micron = getTech()->getDbUnitsPerMicron();
+  double dbu = microns * dbu_per_micron;
+  return static_cast<int>(std::round(dbu));
+}
+
+int64_t dbBlock::micronsAreaToDbu(const double micronsArea)
+{
+  const int dbu_per_micron = getTech()->getDbUnitsPerMicron();
+  const int64_t dbu_per_square_micron
+      = static_cast<int64_t>(dbu_per_micron) * dbu_per_micron;
+  double dbuArea = micronsArea * dbu_per_square_micron;
+  return static_cast<int64_t>(std::round(dbuArea));
 }
 
 char dbBlock::getHierarchyDelimeter()
@@ -2254,8 +2519,9 @@ dbTrackGrid* dbBlock::findTrackGrid(dbTechLayer* layer)
   for (itr = tracks.begin(); itr != tracks.end(); ++itr) {
     dbTrackGrid* g = *itr;
 
-    if (g->getTechLayer() == layer)
+    if (g->getTechLayer() == layer) {
       return g;
+    }
   }
 
   return nullptr;
@@ -2290,22 +2556,19 @@ Rect dbBlock::getDieArea()
 
 Rect dbBlock::getCoreArea()
 {
-  // filter rows to remove those with site class PAD
-  std::vector<odb::dbRow*> rows;
+  Rect rect;
+  rect.mergeInit();
+
   for (dbRow* row : getRows()) {
     if (row->getSite()->getClass() != odb::dbSiteClass::PAD) {
-      rows.push_back(row);
-    }
-  }
-  if (!rows.empty()) {
-    Rect rect;
-    rect.mergeInit();
-
-    for (dbRow* row : rows) {
       rect.merge(row->getBBox());
     }
+  }
+
+  if (!rect.isInverted()) {
     return rect;
   }
+
   // Default to die area if there aren't any rows.
   return getDieArea();
 }
@@ -2328,13 +2591,20 @@ dbExtControl* dbBlock::getExtControl()
   return (block->_extControl);
 }
 
+dbDft* dbBlock::getDft() const
+{
+  _dbBlock* block = (_dbBlock*) this;
+  return (dbDft*) block->_dft_tbl->getPtr(block->_dft);
+}
+
 void dbBlock::getExtCornerNames(std::list<std::string>& ecl)
 {
   _dbBlock* block = (_dbBlock*) this;
-  if (block->_corner_name_list)
+  if (block->_corner_name_list) {
     ecl.push_back(block->_corner_name_list);
-  else
+  } else {
     ecl.push_back("");
+  }
 }
 
 dbSet<dbCCSeg> dbBlock::getCCSegs()
@@ -2366,8 +2636,9 @@ dbTechNonDefaultRule* dbBlock::findNonDefaultRule(const char* name)
   for (itr = rules.begin(); itr != rules.end(); ++itr) {
     _dbTechNonDefaultRule* r = (_dbTechNonDefaultRule*) *itr;
 
-    if (strcmp(r->_name, name) == 0)
+    if (strcmp(r->_name, name) == 0) {
       return (dbTechNonDefaultRule*) r;
+    }
   }
 
   return nullptr;
@@ -2389,25 +2660,31 @@ void dbBlock::copyExtDb(uint fr,
   _dbBlock* block = (_dbBlock*) this;
   uint j;
   if (resFactor != 1.0) {
-    for (j = 1; j < block->_r_val_tbl->size(); j += extDbCnt)
+    for (j = 1; j < block->_r_val_tbl->size(); j += extDbCnt) {
       (*block->_r_val_tbl)[j + to] = (*block->_r_val_tbl)[j + fr] * resFactor;
+    }
   } else {
-    for (j = 1; j < block->_r_val_tbl->size(); j += extDbCnt)
+    for (j = 1; j < block->_r_val_tbl->size(); j += extDbCnt) {
       (*block->_r_val_tbl)[j + to] = (*block->_r_val_tbl)[j + fr];
+    }
   }
   if (ccFactor != 1.0) {
-    for (j = 1; j < block->_cc_val_tbl->size(); j += extDbCnt)
+    for (j = 1; j < block->_cc_val_tbl->size(); j += extDbCnt) {
       (*block->_cc_val_tbl)[j + to] = (*block->_cc_val_tbl)[j + fr] * ccFactor;
+    }
   } else {
-    for (j = 1; j < block->_cc_val_tbl->size(); j += extDbCnt)
+    for (j = 1; j < block->_cc_val_tbl->size(); j += extDbCnt) {
       (*block->_cc_val_tbl)[j + to] = (*block->_cc_val_tbl)[j + fr];
+    }
   }
   if (gndcFactor != 1.0) {
-    for (j = 1; j < block->_c_val_tbl->size(); j += extDbCnt)
+    for (j = 1; j < block->_c_val_tbl->size(); j += extDbCnt) {
       (*block->_c_val_tbl)[j + to] = (*block->_c_val_tbl)[j + fr] * gndcFactor;
+    }
   } else {
-    for (j = 1; j < block->_c_val_tbl->size(); j += extDbCnt)
+    for (j = 1; j < block->_c_val_tbl->size(); j += extDbCnt) {
       (*block->_c_val_tbl)[j + to] = (*block->_c_val_tbl)[j + fr];
+    }
   }
 }
 
@@ -2432,15 +2709,17 @@ bool dbBlock::adjustCC(float adjFactor,
     ccs = *ccitr;
     ccs->setMark(false);
   }
-  if (adjusted)
+  if (adjusted) {
     ((_dbBlock*) this)->_currentCcAdjOrder = adjustOrder;
+  }
   return adjusted;
 }
 
 bool dbBlock::groundCC(float gndFactor)
 {
-  if (gndFactor == 0.0)
+  if (gndFactor == 0.0) {
     return false;
+  }
   bool grounded = false;
   dbNet* net;
   dbSet<dbNet> nets = getNets();
@@ -2480,16 +2759,19 @@ void dbBlock::adjustRC(double resFactor, double ccFactor, double gndcFactor)
   _dbBlock* block = (_dbBlock*) this;
   uint j;
   if (resFactor != 1.0) {
-    for (j = 1; j < block->_r_val_tbl->size(); j++)
+    for (j = 1; j < block->_r_val_tbl->size(); j++) {
       (*block->_r_val_tbl)[j] *= resFactor;
+    }
   }
   if (ccFactor != 1.0) {
-    for (j = 1; j < block->_cc_val_tbl->size(); j++)
+    for (j = 1; j < block->_cc_val_tbl->size(); j++) {
       (*block->_cc_val_tbl)[j] *= ccFactor;
+    }
   }
   if (gndcFactor != 1.0) {
-    for (j = 1; j < block->_c_val_tbl->size(); j++)
+    for (j = 1; j < block->_c_val_tbl->size(); j++) {
       (*block->_c_val_tbl)[j] *= gndcFactor;
+    }
   }
 }
 
@@ -2573,9 +2855,9 @@ void dbBlock::initParasiticsValueTables()
 
   int ttttClear = 1;
   _dbDatabase* db = block->_cap_node_tbl->_db;
-  if (ttttClear)
+  if (ttttClear) {
     block->_cap_node_tbl->clear();
-  else {
+  } else {
     delete block->_cap_node_tbl;
     block->_cap_node_tbl
         = new dbTable<_dbCapNode>(db,
@@ -2587,9 +2869,9 @@ void dbBlock::initParasiticsValueTables()
   }
   block->_maxCapNodeId = 0;
 
-  if (ttttClear)
+  if (ttttClear) {
     block->_r_seg_tbl->clear();
-  else {
+  } else {
     delete block->_r_seg_tbl;
     block->_r_seg_tbl
         = new dbTable<_dbRSeg>(db,
@@ -2601,9 +2883,9 @@ void dbBlock::initParasiticsValueTables()
   }
   block->_maxRSegId = 0;
 
-  if (ttttClear)
+  if (ttttClear) {
     block->_cc_seg_tbl->clear();
-  else {
+  } else {
     delete block->_cc_seg_tbl;
     block->_cc_seg_tbl
         = new dbTable<_dbCCSeg>(db,
@@ -2615,25 +2897,25 @@ void dbBlock::initParasiticsValueTables()
   }
   block->_maxCCSegId = 0;
 
-  if (ttttClear)
+  if (ttttClear) {
     block->_cc_val_tbl->clear();
-  else {
+  } else {
     delete block->_cc_val_tbl;
     block->_cc_val_tbl = new dbPagedVector<float, 4096, 12>();
   }
   block->_cc_val_tbl->push_back(0.0);
 
-  if (ttttClear)
+  if (ttttClear) {
     block->_r_val_tbl->clear();
-  else {
+  } else {
     delete block->_r_val_tbl;
     block->_r_val_tbl = new dbPagedVector<float, 4096, 12>();
   }
   block->_r_val_tbl->push_back(0.0);
 
-  if (ttttClear)
+  if (ttttClear) {
     block->_c_val_tbl->clear();
-  else {
+  } else {
     delete block->_c_val_tbl;
     block->_c_val_tbl = new dbPagedVector<float, 4096, 12>();
   }
@@ -2682,16 +2964,18 @@ void dbBlock::setCornerCount(int cornersStoredCnt,
   block->_corners_per_block = cornersStoredCnt;
   block->_num_ext_dbs = extDbCnt;
   if (name_list != nullptr) {
-    if (block->_corner_name_list)
+    if (block->_corner_name_list) {
       free(block->_corner_name_list);
+    }
     block->_corner_name_list = strdup((char*) name_list);
   }
 }
 dbBlock* dbBlock::getExtCornerBlock(uint corner)
 {
   dbBlock* block = findExtCornerBlock(corner);
-  if (!block)
+  if (!block) {
     block = this;
+  }
   return block;
 }
 
@@ -2720,13 +3004,14 @@ dbBlock* dbBlock::createExtCornerBlock(uint corner)
       getImpl()->getLogger()->error(
           utl::ODB, 8, "Cannot duplicate net {}", net->getConstName());
     }
-    if (xnet->getId() != net->getId())
+    if (xnet->getId() != net->getId()) {
       getImpl()->getLogger()->warn(utl::ODB,
                                    9,
                                    "id mismatch ({},{}) for net {}",
                                    xnet->getId(),
                                    net->getId(),
                                    net->getConstName());
+    }
     dbSigType ty = net->getSigType();
     if (ty.isSupply()) {
       xnet->setSpecial();
@@ -2748,8 +3033,9 @@ void dbBlock::setCornerNameList(const char* name_list)
 {
   _dbBlock* block = (_dbBlock*) this;
 
-  if (block->_corner_name_list != nullptr)
+  if (block->_corner_name_list != nullptr) {
     free(block->_corner_name_list);
+  }
 
   block->_corner_name_list = strdup(name_list);
 }
@@ -2757,12 +3043,14 @@ void dbBlock::getExtCornerName(int corner, char* cName)
 {
   cName[0] = '\0';
   _dbBlock* block = (_dbBlock*) this;
-  if (block->_num_ext_corners == 0)
+  if (block->_num_ext_corners == 0) {
     return;
+  }
   ZASSERT((corner >= 0) && (corner < block->_num_ext_corners));
 
-  if (block->_corner_name_list == nullptr)
+  if (block->_corner_name_list == nullptr) {
     return;
+  }
 
   char buff[1024];
   strcpy(buff, block->_corner_name_list);
@@ -2778,14 +3066,14 @@ void dbBlock::getExtCornerName(int corner, char* cName)
     word = strtok(nullptr, " ");
     ii++;
   }
-  return;
 }
 int dbBlock::getExtCornerIndex(const char* cornerName)
 {
   _dbBlock* block = (_dbBlock*) this;
 
-  if (block->_corner_name_list == nullptr)
+  if (block->_corner_name_list == nullptr) {
     return -1;
+  }
 
   char buff[1024];
   strcpy(buff, block->_corner_name_list);
@@ -2793,8 +3081,9 @@ int dbBlock::getExtCornerIndex(const char* cornerName)
   uint ii = 0;
   char* word = strtok(buff, " ");
   while (word != nullptr) {
-    if (strcmp(cornerName, word) == 0)
+    if (strcmp(cornerName, word) == 0) {
       return ii;
+    }
 
     word = strtok(nullptr, " ");
     ii++;
@@ -2821,8 +3110,9 @@ dbBlock* dbBlock::create(dbChip* chip_,
 {
   _dbChip* chip = (_dbChip*) chip_;
 
-  if (chip->_top != 0)
+  if (chip->_top != 0) {
     return nullptr;
+  }
 
   if (!tech_) {
     tech_ = chip_->getDb()->getTech();
@@ -2841,8 +3131,9 @@ dbBlock* dbBlock::create(dbBlock* parent_,
                          dbTech* tech_,
                          char hier_delimeter)
 {
-  if (parent_->findChild(name_))
+  if (parent_->findChild(name_)) {
     return nullptr;
+  }
 
   if (!tech_) {
     tech_ = parent_->getTech();
@@ -2862,8 +3153,9 @@ dbBlock* dbBlock::duplicate(dbBlock* child_, const char* name_)
   _dbBlock* child = (_dbBlock*) child_;
 
   // must be a child block
-  if (child->_parent == 0)
+  if (child->_parent == 0) {
     return nullptr;
+  }
 
   _dbBlock* parent = (_dbBlock*) child_->getParent();
   _dbChip* chip = (_dbChip*) child->getOwner();
@@ -2906,9 +3198,9 @@ void dbBlock::destroy(dbBlock* block_)
     destroy((dbBlock*) child);
   }
   // Deleting top block
-  if (block->_parent == 0)
+  if (block->_parent == 0) {
     chip->_top = 0;
-  else {
+  } else {
     // unlink this block from the parent
     _dbBlock* parent = chip->_block_tbl->getPtr(block->_parent);
     unlink_child_from_parent(block, parent);
@@ -2961,8 +3253,9 @@ void dbBlock::getWireUpdatedNets(std::vector<dbNet*>& result)
 
     _dbNet* n = (_dbNet*) *nitr;
 
-    if (n->_flags._wire_altered != 1)
+    if (n->_flags._wire_altered != 1) {
       continue;
+    }
     upd++;
     enc++;
 
@@ -3018,8 +3311,9 @@ void dbBlock::destroyCornerParasitics(std::vector<dbNet*>& nets)
 void dbBlock::destroyParasitics(std::vector<dbNet*>& nets)
 {
   destroyCornerParasitics(nets);
-  if (!extCornersAreIndependent())
+  if (!extCornersAreIndependent()) {
     return;
+  }
   int numcorners = getCornerCount();
   dbBlock* extBlock;
   for (int corner = 1; corner < numcorners; corner++) {
@@ -3033,8 +3327,9 @@ void dbBlock::getCcHaloNets(std::vector<dbNet*>& changedNets,
 {
   uint jj;
   dbNet* ccNet;
-  for (jj = 0; jj < changedNets.size(); jj++)
+  for (jj = 0; jj < changedNets.size(); jj++) {
     changedNets[jj]->setMark(true);
+  }
   for (jj = 0; jj < changedNets.size(); jj++) {
     dbSet<dbCapNode> capNodes = changedNets[jj]->getCapNodes();
     dbSet<dbCapNode>::iterator citr;
@@ -3046,21 +3341,25 @@ void dbBlock::getCcHaloNets(std::vector<dbNet*>& changedNets,
         dbCCSeg* cc = *ccitr;
         ++ccitr;
         dbCapNode* tcap = cc->getSourceCapNode();
-        if (tcap != capn)
+        if (tcap != capn) {
           ccNet = tcap->getNet();
-        else
+        } else {
           ccNet = cc->getTargetCapNode()->getNet();
-        if (ccNet->isMarked())
+        }
+        if (ccNet->isMarked()) {
           continue;
+        }
         ccNet->setMark(true);
         ccHaloNets.push_back(ccNet);
       }
     }
   }
-  for (jj = 0; jj < changedNets.size(); jj++)
+  for (jj = 0; jj < changedNets.size(); jj++) {
     changedNets[jj]->setMark(false);
-  for (jj = 0; jj < ccHaloNets.size(); jj++)
+  }
+  for (jj = 0; jj < ccHaloNets.size(); jj++) {
     ccHaloNets[jj]->setMark(false);
+  }
 }
 
 void dbBlock::restoreOldCornerParasitics(dbBlock* pblock,
@@ -3084,14 +3383,17 @@ void dbBlock::restoreOldCornerParasitics(dbBlock* pblock,
     net = dbNet::getNet(this, nets[jj]->getId());
     net->set1stCapNodeId(capnn[jj]);
     // have extId of terms becoming per corner ??
-    if (pblock == this)
+    if (pblock == this) {
       net->setTermExtIds(1);
+    }
     net->set1stRSegId(rsegn[jj]);
   }
-  for (itr = nets.begin(); itr != nets.end(); ++itr)
+  for (itr = nets.begin(); itr != nets.end(); ++itr) {
     (*itr)->setMark(true);
-  for (itr = ccHaloNets.begin(); itr != ccHaloNets.end(); ++itr)
+  }
+  for (itr = ccHaloNets.begin(); itr != ccHaloNets.end(); ++itr) {
     (*itr)->setMark_1(true);
+  }
   for (itr = nets.begin(); itr != nets.end(); ++itr) {
     net = dbNet::getNet(this, (*itr)->getId());
     dbSet<dbCapNode> nodeSet = net->getCapNodes();
@@ -3104,11 +3406,12 @@ void dbBlock::restoreOldCornerParasitics(dbBlock* pblock,
         ccSeg = *ccitr;
         otherCapnode = ccSeg->getTheOtherCapn(capnd, otherid);
         otherNet = dbNet::getNet(pblock, otherCapnode->getNet()->getId());
-        if (otherNet->isMarked())
+        if (otherNet->isMarked()) {
           continue;
-        if (otherNet->isMark_1ed() || !coupled_rc)  // link_cc_seg
+        }
+        if (otherNet->isMark_1ed() || !coupled_rc) {  // link_cc_seg
           ccSeg->Link_cc_seg(otherCapnode, otherid);
-        else {
+        } else {
           getImpl()->getLogger()->warn(
               utl::ODB,
               11,
@@ -3129,10 +3432,12 @@ void dbBlock::restoreOldCornerParasitics(dbBlock* pblock,
       }
     }
   }
-  for (itr = nets.begin(); itr != nets.end(); ++itr)
+  for (itr = nets.begin(); itr != nets.end(); ++itr) {
     (*itr)->setMark(false);
-  for (itr = ccHaloNets.begin(); itr != ccHaloNets.end(); ++itr)
+  }
+  for (itr = ccHaloNets.begin(); itr != ccHaloNets.end(); ++itr) {
     (*itr)->setMark_1(false);
+  }
 }
 
 void dbBlock::restoreOldParasitics(std::vector<dbNet*>& nets,
@@ -3143,8 +3448,9 @@ void dbBlock::restoreOldParasitics(std::vector<dbNet*>& nets,
 {
   restoreOldCornerParasitics(
       this, nets, coupled_rc, ccHaloNets, capnn[0], rsegn[0]);
-  if (!extCornersAreIndependent())
+  if (!extCornersAreIndependent()) {
     return;
+  }
   int numcorners = getCornerCount();
   dbBlock* extBlock;
   for (int corner = 1; corner < numcorners; corner++) {
@@ -3186,8 +3492,9 @@ void dbBlock::destroyOldParasitics(std::vector<dbNet*>& nets,
                                    std::vector<uint>* rsegn)
 {
   destroyOldCornerParasitics(nets, capnn[0], rsegn[0]);
-  if (!extCornersAreIndependent())
+  if (!extCornersAreIndependent()) {
     return;
+  }
   int numcorners = getCornerCount();
   dbBlock* extBlock;
   for (int corner = 1; corner < numcorners; corner++) {
@@ -3253,10 +3560,12 @@ void dbBlock::keepOldCornerParasitics(dbBlock* pblock,
 
   std::vector<dbNet*>::iterator itr;
 
-  for (itr = nets.begin(); itr != nets.end(); ++itr)
+  for (itr = nets.begin(); itr != nets.end(); ++itr) {
     (*itr)->setMark(true);
-  for (itr = ccHaloNets.begin(); itr != ccHaloNets.end(); ++itr)
+  }
+  for (itr = ccHaloNets.begin(); itr != ccHaloNets.end(); ++itr) {
     (*itr)->setMark_1(true);
+  }
   for (itr = nets.begin(); itr != nets.end(); ++itr) {
     net = dbNet::getNet(this, (*itr)->getId());
     dbSet<dbCapNode> nodeSet = net->getCapNodes();
@@ -3269,29 +3578,34 @@ void dbBlock::keepOldCornerParasitics(dbBlock* pblock,
         ccSeg = *ccitr;
         other = ccSeg->getTheOtherCapn(capnd, cid);
         onet = dbNet::getNet(pblock, other->getNet()->getId());
-        if (onet->isMarked())
+        if (onet->isMarked()) {
           continue;
-        if (onet->isMark_1ed() || !coupled_rc)
+        }
+        if (onet->isMark_1ed() || !coupled_rc) {
           ccSeg->unLink_cc_seg(other);
-        else
+        } else {
           getImpl()->getLogger()->error(
               utl::ODB,
               13,
               "ccseg {} has other capn {} not from changed or halo nets",
               ccSeg->getId(),
               other->getId());
+        }
       }
     }
   }
-  for (itr = nets.begin(); itr != nets.end(); ++itr)
+  for (itr = nets.begin(); itr != nets.end(); ++itr) {
     (*itr)->setMark(false);
-  for (itr = ccHaloNets.begin(); itr != ccHaloNets.end(); ++itr)
+  }
+  for (itr = ccHaloNets.begin(); itr != ccHaloNets.end(); ++itr) {
     (*itr)->setMark_1(false);
+  }
   for (itr = nets.begin(); itr != nets.end(); ++itr) {
     net = dbNet::getNet(this, (*itr)->getId());
     // have extId of terms becoming per corner ??
-    if (pblock == this)
+    if (pblock == this) {
       net->setTermExtIds(0);
+    }
     capnn.push_back(net->get1stCapNodeId());
     net->set1stCapNodeId(0);
     rsegn.push_back(net->get1stRSegId());
@@ -3307,8 +3621,9 @@ void dbBlock::keepOldParasitics(std::vector<dbNet*>& nets,
 {
   keepOldCornerParasitics(
       this, nets, coupled_rc, ccHaloNets, capnn[0], rsegn[0]);
-  if (!extCornersAreIndependent())
+  if (!extCornersAreIndependent()) {
     return;
+  }
   int numcorners = getCornerCount();
   dbBlock* extBlock;
   for (int corner = 1; corner < numcorners; corner++) {
@@ -3521,12 +3836,14 @@ void dbBlock::writeDb(char* filename, int allNode)
   _dbBlock* block = (_dbBlock*) this;
   std::string dbname;
   if (allNode) {
-    if (block->_journal)
+    if (block->_journal) {
       dbname = fmt::format("{}.main.{}.db", filename, getpid());
-    else
+    } else {
       dbname = fmt::format("{}.remote.{}.db", filename, getpid());
-  } else
+    }
+  } else {
     dbname = fmt::format("{}.db", filename);
+  }
   std::ofstream file(dbname, std::ios::binary);
   if (!file) {
     getImpl()->getLogger()->warn(
@@ -3563,8 +3880,9 @@ void dbBlock::writeGuides(const char* filename) const
   std::vector<dbNet*> nets;
   nets.reserve(block->getNets().size());
   for (auto net : block->getNets()) {
-    if (!net->getGuides().empty())
+    if (!net->getGuides().empty()) {
       nets.push_back(net);
+    }
   }
   std::sort(nets.begin(), nets.end(), [](odb::dbNet* net1, odb::dbNet* net2) {
     return strcmp(net1->getConstName(), net2->getConstName()) < 0;
@@ -3601,31 +3919,36 @@ bool dbBlock::differences(dbBlock* block1,
 uint dbBlock::levelize(std::vector<dbInst*>& startingInsts,
                        std::vector<dbInst*>& instsToBeLeveled)
 {
-  if (startingInsts.size() <= 0)
+  if (startingInsts.empty()) {
     return 0;
+  }
 
   std::vector<dbInst*>::iterator itr;
   for (itr = startingInsts.begin(); itr != startingInsts.end(); ++itr) {
     dbInst* inst = *itr;
     int l = inst->getLevel();
-    if (l == 0)
+    if (l == 0) {
       continue;
+    }
     uint level = 0;
-    if (l < 0)
+    if (l < 0) {
       level = -l;
-    else
+    } else {
       level = l;
+    }
     dbSet<dbITerm> iterms = inst->getITerms();
     dbSet<dbITerm>::iterator iitr;
     for (iitr = iterms.begin(); iitr != iterms.end(); ++iitr) {
       dbITerm* iterm = *iitr;
       if ((iterm->getSigType() == dbSigType::GROUND)
-          || (iterm->getSigType() == dbSigType::POWER))
+          || (iterm->getSigType() == dbSigType::POWER)) {
         continue;
+      }
 
       if ((iterm->getIoType() == dbIoType::INPUT)
-          || (iterm->getIoType() == dbIoType::INOUT))
+          || (iterm->getIoType() == dbIoType::INOUT)) {
         continue;
+      }
 
       dbNet* net = iterm->getNet();
       if (net != nullptr) {
@@ -3650,22 +3973,25 @@ uint dbBlock::levelizeFromPrimaryInputs()
 
     if (net != nullptr) {
       if ((net->getSigType() == dbSigType::GROUND)
-          || (net->getSigType() == dbSigType::POWER))
+          || (net->getSigType() == dbSigType::POWER)) {
         continue;
+      }
 
       net->setLevelAtFanout(level, true, instsToBeLeveled);
     }
   }
-  if (instsToBeLeveled.size() <= 0)
+  if (instsToBeLeveled.empty()) {
     return 0;
+  }
 
   while (1) {
     std::vector<dbInst*> startingInsts = instsToBeLeveled;
     instsToBeLeveled.clear();
 
     uint cnt = levelize(startingInsts, instsToBeLeveled);
-    if (cnt == 0)
+    if (cnt == 0) {
       break;
+    }
   }
   return 0;
 }
@@ -3678,21 +4004,24 @@ uint dbBlock::levelizeFromSequential()
 
   for (iitr = insts.begin(); iitr != insts.end(); ++iitr) {
     dbInst* inst = *iitr;
-    if (!inst->getMaster()->isSequential())
+    if (!inst->getMaster()->isSequential()) {
       continue;
+    }
     inst->setLevel(1, false);
     instsToBeLeveled.push_back(inst);
   }
-  if (instsToBeLeveled.size() <= 0)
+  if (instsToBeLeveled.empty()) {
     return 0;
+  }
 
   while (1) {
     std::vector<dbInst*> startingInsts = instsToBeLeveled;
     instsToBeLeveled.clear();
 
     uint cnt = levelize(startingInsts, instsToBeLeveled);
-    if (cnt == 0)
+    if (cnt == 0) {
       break;
+    }
   }
   return 0;
 }
@@ -3708,16 +4037,18 @@ int dbBlock::markBackwardsUser2(dbInst* firstInst,
 
     for (iitr = insts.begin(); iitr != insts.end(); ++iitr) {
       dbInst* inst = *iitr;
-      if (!inst->getMaster()->isSequential())
+      if (!inst->getMaster()->isSequential()) {
         continue;
+      }
 
       instsToBeMarked.push_back(inst);
     }
   } else {
     instsToBeMarked.push_back(firstInst);
   }
-  if (instsToBeMarked.size() <= 0)
+  if (instsToBeMarked.empty()) {
     return 0;
+  }
 
   while (1) {
     std::vector<dbInst*> startingInsts = instsToBeMarked;
@@ -3725,10 +4056,12 @@ int dbBlock::markBackwardsUser2(dbInst* firstInst,
 
     int cnt
         = markBackwardsUser2(startingInsts, instsToBeMarked, mark, resultTable);
-    if (cnt == 0)
+    if (cnt == 0) {
       break;
-    if (!mark && (cnt < 0))
+    }
+    if (!mark && (cnt < 0)) {
       return -1;
+    }
   }
   return 0;
 }
@@ -3798,43 +4131,51 @@ int dbBlock::markBackwardsUser2(std::vector<dbInst*>& startingInsts,
                                 bool mark,
                                 std::vector<dbInst*>& resultTable)
 {
-  if (startingInsts.size() <= 0)
+  if (startingInsts.empty()) {
     return 0;
+  }
 
   std::vector<dbInst*>::iterator itr;
   for (itr = startingInsts.begin(); itr != startingInsts.end(); ++itr) {
     dbInst* inst = *itr;
 
-    if (inst->getMaster()->isSequential())
+    if (inst->getMaster()->isSequential()) {
       continue;
+    }
 
     if (mark) {
       ;  // inst->setUserFlag2();
       // resultTable.push_back(inst);
-    } else if (inst->getUserFlag2())
+    } else if (inst->getUserFlag2()) {
       return -1;
+    }
 
     dbMaster* master = inst->getMaster();
     for (uint ii = 0; ii < (uint) master->getMTermCount(); ii++) {
       dbITerm* iterm = inst->getITerm(ii);
-      if (!iterm->isInputSignal())
+      if (!iterm->isInputSignal()) {
         continue;
-      if (iterm->isClocked())
+      }
+      if (iterm->isClocked()) {
         continue;
+      }
 
       dbNet* inputNet = iterm->getNet();
 
-      if (inputNet == nullptr)
+      if (inputNet == nullptr) {
         continue;
+      }
 
       if ((inputNet->getSigType() == dbSigType::GROUND)
-          || (inputNet->getSigType() == dbSigType::POWER))
+          || (inputNet->getSigType() == dbSigType::POWER)) {
         continue;
+      }
 
       dbITerm* out = inputNet->getFirstOutput();
 
-      if (out == nullptr)
+      if (out == nullptr) {
         continue;
+      }
 
       dbInst* faninInst = out->getInst();
       if (faninInst->getMaster()->getType() != dbMasterType::CORE) {
@@ -3846,8 +4187,9 @@ int dbBlock::markBackwardsUser2(std::vector<dbInst*>& startingInsts,
         if (!faninInst->getUserFlag2()) {
           faninInst->setUserFlag2();
           resultTable.push_back(faninInst);
-          if (!faninInst->getMaster()->isSequential())
+          if (!faninInst->getMaster()->isSequential()) {
             instsToMark.push_back(faninInst);
+          }
         }
       } else if (faninInst->getUserFlag2()) {
         return -1;
@@ -3865,10 +4207,12 @@ int dbBlock::markBackwardsUser2(dbNet* net,
 
   int n = markBackwardsUser2(net, instsToBeMarked, mark, resultTable);
 
-  if (n == 0)
+  if (n == 0) {
     return 0;
-  if (!mark && (n < 0))
+  }
+  if (!mark && (n < 0)) {
     return -1;
+  }
 
   while (1) {
     std::vector<dbInst*> startingInsts = instsToBeMarked;
@@ -3876,10 +4220,12 @@ int dbBlock::markBackwardsUser2(dbNet* net,
 
     int cnt
         = markBackwardsUser2(startingInsts, instsToBeMarked, mark, resultTable);
-    if (cnt == 0)
+    if (cnt == 0) {
       break;
-    if (!mark && (cnt < 0))
+    }
+    if (!mark && (cnt < 0)) {
       return -1;
+    }
   }
   return 0;
 }
@@ -3889,12 +4235,14 @@ int dbBlock::markBackwardsUser2(dbNet* net,
                                 bool mark,
                                 std::vector<dbInst*>& resultTable)
 {
-  if (net == nullptr)
+  if (net == nullptr) {
     return 0;
+  }
 
   dbITerm* out = net->getFirstOutput();
-  if (out == nullptr)
+  if (out == nullptr) {
     return 0;
+  }
 
   dbInst* faninInst = out->getInst();
   if (mark) {
@@ -3902,11 +4250,13 @@ int dbBlock::markBackwardsUser2(dbNet* net,
       faninInst->setUserFlag2();
       resultTable.push_back(faninInst);
     }
-  } else if (faninInst->getUserFlag2())
+  } else if (faninInst->getUserFlag2()) {
     return -1;
+  }
 
-  if (!faninInst->getMaster()->isSequential())
+  if (!faninInst->getMaster()->isSequential()) {
     instsToMark.push_back(faninInst);
+  }
 
   return instsToMark.size();
 }
@@ -3931,8 +4281,9 @@ void dbBlock::setDrivingItermsforNets()
   for (nitr = nets.begin(); nitr != nets.end(); ++nitr) {
     dbNet* net = *nitr;
     if ((net->getSigType() == dbSigType::GROUND)
-        || (net->getSigType() == dbSigType::POWER))
+        || (net->getSigType() == dbSigType::POWER)) {
       continue;
+    }
 
     net->setDrivingITerm(0);
     dbSet<dbITerm> iterms = net->getITerms();
@@ -3951,12 +4302,15 @@ void dbBlock::setDrivingItermsforNets()
 
 void dbBlock::preExttreeMergeRC(double max_cap, uint corner)
 {
-  if (!getExtControl()->_exttreePreMerg)
+  if (!getExtControl()->_exttreePreMerg) {
     return;
-  if (max_cap == 0.0)
+  }
+  if (max_cap == 0.0) {
     max_cap = 10.0;
-  if (getExtControl()->_exttreeMaxcap >= max_cap)
+  }
+  if (getExtControl()->_exttreeMaxcap >= max_cap) {
     return;
+  }
   getExtControl()->_exttreeMaxcap = max_cap;
   dbSet<dbNet> bnets = getNets();
   dbSet<dbNet>::iterator net_itr;

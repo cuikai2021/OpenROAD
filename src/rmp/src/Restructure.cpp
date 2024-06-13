@@ -1076,7 +1076,8 @@ void Restructure::generateUnconstrainedCut(sta::Pin* head_pin,
         nwk, sorted_slack_times, vertex_slack_times, end_points);
     sta::Sta* sta = sta::Sta::sta();
     // accumulate the start and end points
-    open_sta_->visitEndpoints(&accumulate_sorted_slack_end_points);
+    open_sta_->ensureGraph();
+    open_sta_->search()->visitEndpoints(&accumulate_sorted_slack_end_points);
     ResetCutTemporaries();
     // harvest the leaves
     walkBackwardsToTimingEndPointsR(graph, nwk, head_pin, 0);
@@ -1135,7 +1136,8 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
   sta::Sta* sta = sta::Sta::sta();
 
   // accumulate the start and end points
-  open_sta_->visitEndpoints(&accumulate_sorted_slack_end_points);
+  open_sta_->ensureGraph();
+  open_sta_->search()->visitEndpoints(&accumulate_sorted_slack_end_points);
 #ifdef DEBUG_GENERIC_RESTRUCT
   printf("Dump of end points\n");
   for (auto sst : sorted_slack_times)
@@ -1145,7 +1147,8 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
 #endif
   AccumulateSortedSlackStartPoints accumulate_sorted_slack_start_points(
       end_points);
-  open_sta_->visitStartpoints(&accumulate_sorted_slack_start_points);
+  open_sta_->ensureGraph();
+  open_sta_->search()->visitStartpoints(&accumulate_sorted_slack_start_points);
 
 #ifdef DEBUG_GENERIC_RESTRUCT
   printf("Starting cut construction for end point list of size %d\n",

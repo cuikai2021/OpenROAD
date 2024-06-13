@@ -6,7 +6,7 @@
 #include <optional>
 
 #include "banyan_db.pb.h"
-#include "db.h"
+#include "odb/db.h"
 #include "string.h"
 #include "utl/Logger.h"
 

@@ -106,6 +106,11 @@ class Timing
 
   std::vector<odb::dbMTerm*> getTimingFanoutFrom(odb::dbMTerm* input);
   std::vector<sta::Corner*> getCorners();
+  sta::Corner* cmdCorner();
+  sta::Corner* findCorner(const char* name);
+
+  void makeEquivCells();
+  std::vector<odb::dbMaster*> equivCells(odb::dbMaster* master);
 
  private:
   sta::dbSta* getSta();

@@ -123,3 +123,5 @@ if (Python3_FOUND AND BUILD_PYTHON)
   )
 
 endif()
+
+add_subdirectory(test)

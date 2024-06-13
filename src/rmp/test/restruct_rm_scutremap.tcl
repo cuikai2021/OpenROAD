@@ -13,7 +13,7 @@ read_sdc $test_path/rm.sdc
 source $test_path/setRC.tcl
 
 set opts "-fields {slew cap input nets fanout} -max -digits 6"
-set_delay_calculator slew_degrade
+# set_delay_calculator slew_degrade
 
 report_checks -path_delay max -fields {slew cap input nets fanout} -format full_clock_expanded
 

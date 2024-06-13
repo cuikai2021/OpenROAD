@@ -1,15 +1,5 @@
 include("openroad")
 
-find_program (BASH_PROGRAM bash REQUIRED)
-
-function(gpl_test test_name)
-  add_test (
-    NAME gpl.${test_name} 
-    COMMAND ${BASH_PROGRAM} ${CMAKE_CURRENT_SOURCE_DIR}/regression ${test_name}
-  )
-  set_tests_properties(gpl.${test_name}  PROPERTIES LABELS "IntegrationTest")
-endfunction()
-
 set(TEST_NAMES
 simple01
 simple01-obs
@@ -42,7 +32,7 @@ clust01
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)
-  gpl_test(${TEST_NAME})
+  or_integration_test("gpl" ${TEST_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/regression)
 endforeach()
 
 add_executable(fft_test fft_test.cc)

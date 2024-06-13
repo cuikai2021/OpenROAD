@@ -90,6 +90,7 @@ enum dbObjectType
   dbScanChainCompObj,
   // Generator Code Begin DbObjectType
   dbAccessPointObj,
+  dbDftObj,
   dbGCellGridObj,
   dbGlobalConnectObj,
   dbGroupObj,
@@ -98,7 +99,10 @@ enum dbObjectType
   dbLevelShifterObj,
   dbLogicPortObj,
   dbMetalWidthViaMapObj,
+  dbModBTermObj,
   dbModInstObj,
+  dbModITermObj,
+  dbModNetObj,
   dbModuleObj,
   dbNetTrackObj,
   dbPowerDomainObj,
@@ -106,9 +110,10 @@ enum dbObjectType
 #if 0
   dbScanChainObj,
   dbScanInstObj,
-  dbScanPartitionObj,
-  dbScanPinObj,
+  dbScanListObj,
+  dbScanPartitionObj, 
 #endif
+  dbScanPinObj,
   dbTechLayerObj,
   dbTechLayerAreaRuleObj,
   dbTechLayerArraySpacingRuleObj,
@@ -128,6 +133,7 @@ enum dbObjectType
   dbTechLayerSpacingNotchLengthRuleObj,
   dbTechLayerSpacingTablePrlRuleObj,
   dbTechLayerSpacingTableJogToJogSpacingRuleObj,
+  dbTechLayerTwoWiresForbiddenSpcRuleObj,
   dbTechLayerWidthTableRuleObj,
   dbTechLayerWrongDirSpacingRuleObj,
   // Generator Code End DbObjectType
