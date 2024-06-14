@@ -467,12 +467,12 @@ void defout_impl::writeVia(dbVia* via)
 
     std::string pname = via->getPattern();
     if (strcmp(pname.c_str(), "") != 0) {
-      fprintf(_out, " + PATTERNNAME %s", pname.c_str());
+      fprintf(_out, " + PATTERN %s", pname.c_str());
     }
   } else {
     std::string pname = via->getPattern();
     if (strcmp(pname.c_str(), "") != 0) {
-      fprintf(_out, " + PATTERNNAME %s", pname.c_str());
+      fprintf(_out, " + PATTERN %s", pname.c_str());
     }
 
     int i = 0;
