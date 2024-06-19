@@ -178,13 +178,9 @@
 [WARNING STA-1002] Nangate45_typ.lib line 132096, library unsupported feature drive_strength.
 [WARNING STA-1002] Nangate45_typ.lib line 132495, library unsupported feature drive_strength.
 [WARNING STA-1002] Nangate45_typ.lib line 132894, library unsupported feature drive_strength.
-[INFO ODB-0222] Reading LEF file: Nangate45.lef
-[INFO ODB-0223]     Created 22 technology layers
-[INFO ODB-0224]     Created 27 technology vias
-[INFO ODB-0225]     Created 134 library cells
-[INFO ODB-0226] Finished LEF file:  Nangate45.lef
+[INFO ODB-0227] LEF file: Nangate45.lef, created 22 layers, 27 vias, 134 library cells
 [WARNING STA-0197] latch_to_pb.v line 1, module top declared signal in2 is not in the port list.
-[WARNING STA-0337] port 'mode' not found.
+[WARNING STA-0366] port 'mode' not found.
 [LRL-TDP] write incr tdp data pb file to: results/latch_to_pb.pb
 -------test the dumped result-------
 

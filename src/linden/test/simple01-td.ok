@@ -178,11 +178,7 @@
 [WARNING STA-1002] ./Nangate45_typ.lib line 132096, library unsupported feature drive_strength.
 [WARNING STA-1002] ./Nangate45_typ.lib line 132495, library unsupported feature drive_strength.
 [WARNING STA-1002] ./Nangate45_typ.lib line 132894, library unsupported feature drive_strength.
-[INFO ODB-0222] Reading LEF file: ./nangate45.lef
-[INFO ODB-0223]     Created 22 technology layers
-[INFO ODB-0224]     Created 27 technology vias
-[INFO ODB-0225]     Created 134 library cells
-[INFO ODB-0226] Finished LEF file:  ./nangate45.lef
+[INFO ODB-0227] LEF file: ./nangate45.lef, created 22 layers, 27 vias, 134 library cells
 [INFO ODB-0127] Reading DEF file: ./simple01-td.def
 [INFO ODB-0128] Design: gcd
 [INFO ODB-0130]     Created 54 pins.
@@ -197,25 +193,22 @@ linden::gp::Config {
 }
 [linden/gpl] initialPlacePolicy: dirichlet
 [INFO GPL-0002] DBU: 2000
-[INFO GPL-0003] SiteSize: 380 2800
-[INFO GPL-0004] CoreAreaLxLy: 0 0
-[INFO GPL-0005] CoreAreaUxUy: 61940 61600
-[INFO GPL-0006] NumInstances: 286
-[INFO GPL-0007] NumPlaceInstances: 286
-[INFO GPL-0008] NumFixedInstances: 0
-[INFO GPL-0009] NumDummyInstances: 0
-[INFO GPL-0010] NumNets: 356
-[INFO GPL-0011] NumPins: 1106
-[INFO GPL-0012] DieAreaLxLy: 0 0
-[INFO GPL-0013] DieAreaUxUy: 61940 61600
-[INFO GPL-0014] CoreAreaLxLy: 0 0
-[INFO GPL-0015] CoreAreaUxUy: 61940 61600
-[INFO GPL-0016] CoreArea: 3815504000
-[INFO GPL-0017] NonPlaceInstsArea: 0
-[INFO GPL-0018] PlaceInstsArea: 2213120000
-[INFO GPL-0019] Util(%): 58.00
-[INFO GPL-0020] StdInstsArea: 2213120000
-[INFO GPL-0021] MacroInstsArea: 0
+[INFO GPL-0003] SiteSize: (  0.190  1.400 ) um
+[INFO GPL-0004] CoreBBox: (  0.000  0.000 ) ( 30.970 30.800 ) um
+[INFO GPL-0006] NumInstances:               286
+[INFO GPL-0007] NumPlaceInstances:          286
+[INFO GPL-0008] NumFixedInstances:            0
+[INFO GPL-0009] NumDummyInstances:            0
+[INFO GPL-0010] NumNets:                    356
+[INFO GPL-0011] NumPins:                   1106
+[INFO GPL-0012] DieBBox:  (  0.000  0.000 ) ( 30.970 30.800 ) um
+[INFO GPL-0013] CoreBBox: (  0.000  0.000 ) ( 30.970 30.800 ) um
+[INFO GPL-0016] CoreArea:               953.876 um^2
+[INFO GPL-0017] NonPlaceInstsArea:        0.000 um^2
+[INFO GPL-0018] PlaceInstsArea:         553.280 um^2
+[INFO GPL-0019] Util:                    58.003 %
+[INFO GPL-0020] StdInstsArea:           553.280 um^2
+[INFO GPL-0021] MacroInstsArea:           0.000 um^2
 [InitialPlace]  Iter: 1 CG residual: 0.00000011 HPWL: 5614340
 [InitialPlace]  Iter: 2 CG residual: 0.00000011 HPWL: 4984546
 [InitialPlace]  Iter: 3 CG residual: 0.00000010 HPWL: 4974780
@@ -236,63 +229,63 @@ linden::gp::Config {
 [nPlace] Iter: 1 overflow: 0.86461 HPWL: 3527328
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.4e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 10 overflow: 0.76788 HPWL: 4036162
-[nPlace] Iter: 20 overflow: 0.766568 HPWL: 4025092
-[nPlace] Iter: 30 overflow: 0.76734 HPWL: 4022540
-[nPlace] Iter: 40 overflow: 0.767041 HPWL: 4023036
-[nPlace] Iter: 50 overflow: 0.766491 HPWL: 4023118
-[nPlace] Iter: 60 overflow: 0.76637 HPWL: 4023172
-[nPlace] Iter: 70 overflow: 0.766508 HPWL: 4023864
-[nPlace] Iter: 80 overflow: 0.76655 HPWL: 4024435
-[nPlace] Iter: 90 overflow: 0.765853 HPWL: 4025562
-[nPlace] Iter: 100 overflow: 0.765154 HPWL: 4027351
-[nPlace] Iter: 110 overflow: 0.764459 HPWL: 4030268
-[nPlace] Iter: 120 overflow: 0.763212 HPWL: 4035102
-[nPlace] Iter: 130 overflow: 0.761113 HPWL: 4042769
-[nPlace] Iter: 140 overflow: 0.757265 HPWL: 4054740
-[nPlace] Iter: 150 overflow: 0.749834 HPWL: 4072692
-[nPlace] Iter: 160 overflow: 0.740957 HPWL: 4098755
-[nPlace] Iter: 170 overflow: 0.728049 HPWL: 4136443
-[nPlace] Iter: 180 overflow: 0.716987 HPWL: 4178475
-[nPlace] Iter: 190 overflow: 0.700774 HPWL: 4234135
-[nPlace] Iter: 200 overflow: 0.681203 HPWL: 4289164
-[nPlace] Iter: 210 overflow: 0.652038 HPWL: 4372241
+[nPlace] Iter: 10 overflow: 0.767874 HPWL: 4036178
+[nPlace] Iter: 20 overflow: 0.766567 HPWL: 4025081
+[nPlace] Iter: 30 overflow: 0.767346 HPWL: 4022531
+[nPlace] Iter: 40 overflow: 0.767044 HPWL: 4023081
+[nPlace] Iter: 50 overflow: 0.766491 HPWL: 4023119
+[nPlace] Iter: 60 overflow: 0.766372 HPWL: 4023170
+[nPlace] Iter: 70 overflow: 0.766488 HPWL: 4023791
+[nPlace] Iter: 80 overflow: 0.766541 HPWL: 4024448
+[nPlace] Iter: 90 overflow: 0.765858 HPWL: 4025520
+[nPlace] Iter: 100 overflow: 0.765163 HPWL: 4027332
+[nPlace] Iter: 110 overflow: 0.764457 HPWL: 4030237
+[nPlace] Iter: 120 overflow: 0.763201 HPWL: 4035083
+[nPlace] Iter: 130 overflow: 0.761108 HPWL: 4042726
+[nPlace] Iter: 140 overflow: 0.757262 HPWL: 4054691
+[nPlace] Iter: 150 overflow: 0.749835 HPWL: 4072597
+[nPlace] Iter: 160 overflow: 0.740945 HPWL: 4098874
+[nPlace] Iter: 170 overflow: 0.728042 HPWL: 4136602
+[nPlace] Iter: 180 overflow: 0.716979 HPWL: 4178556
+[nPlace] Iter: 190 overflow: 0.70078 HPWL: 4234184
+[nPlace] Iter: 200 overflow: 0.681193 HPWL: 4289186
+[nPlace] Iter: 210 overflow: 0.652032 HPWL: 4372240
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.42e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 220 overflow: 0.621481 HPWL: 4492532
-[nPlace] Iter: 230 overflow: 0.597708 HPWL: 4577057
-[nPlace] Iter: 240 overflow: 0.571554 HPWL: 4642797
-[nPlace] Iter: 250 overflow: 0.540773 HPWL: 4734134
-[nPlace] Iter: 260 overflow: 0.502372 HPWL: 4802596
+[nPlace] Iter: 220 overflow: 0.621482 HPWL: 4492650
+[nPlace] Iter: 230 overflow: 0.597717 HPWL: 4576860
+[nPlace] Iter: 240 overflow: 0.571545 HPWL: 4642451
+[nPlace] Iter: 250 overflow: 0.540605 HPWL: 4733879
+[nPlace] Iter: 260 overflow: 0.502263 HPWL: 4802807
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 270 overflow: 0.476734 HPWL: 4796037
-[nPlace] Iter: 280 overflow: 0.454197 HPWL: 4863416
-[nPlace] Iter: 290 overflow: 0.413164 HPWL: 4813540
-[nPlace] Iter: 300 overflow: 0.378005 HPWL: 4899025
-[nPlace] Iter: 310 overflow: 0.347895 HPWL: 4849689
-[nPlace] Iter: 320 overflow: 0.325372 HPWL: 4883549
-[nPlace] Iter: 330 overflow: 0.293721 HPWL: 4929872
+[nPlace] Iter: 270 overflow: 0.47683 HPWL: 4795473
+[nPlace] Iter: 280 overflow: 0.454154 HPWL: 4863121
+[nPlace] Iter: 290 overflow: 0.413335 HPWL: 4814135
+[nPlace] Iter: 300 overflow: 0.376075 HPWL: 4901133
+[nPlace] Iter: 310 overflow: 0.349438 HPWL: 4847643
+[nPlace] Iter: 320 overflow: 0.325365 HPWL: 4883331
+[nPlace] Iter: 330 overflow: 0.293145 HPWL: 4930134
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 340 overflow: 0.275848 HPWL: 4938201
-[nPlace] Iter: 350 overflow: 0.259233 HPWL: 4961473
-[nPlace] Iter: 360 overflow: 0.245268 HPWL: 5035786
-[nPlace] Iter: 370 overflow: 0.226067 HPWL: 5071984
+[nPlace] Iter: 340 overflow: 0.275734 HPWL: 4935839
+[nPlace] Iter: 350 overflow: 0.259113 HPWL: 4962154
+[nPlace] Iter: 360 overflow: 0.245732 HPWL: 5036995
+[nPlace] Iter: 370 overflow: 0.228634 HPWL: 5077509
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 380 overflow: 0.191995 HPWL: 5084871
-[nPlace] Iter: 390 overflow: 0.169333 HPWL: 5078765
-[nPlace] Iter: 400 overflow: 0.150461 HPWL: 5123415
+[nPlace] Iter: 380 overflow: 0.191431 HPWL: 5088344
+[nPlace] Iter: 390 overflow: 0.170153 HPWL: 5076197
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.4e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 410 overflow: 0.133389 HPWL: 5164630
-[nPlace] Iter: 420 overflow: 0.126173 HPWL: 5194762
-[nPlace] Iter: 430 overflow: 0.115282 HPWL: 5251705
-[nPlace] Iter: 440 overflow: 0.103627 HPWL: 5312867
+[nPlace] Iter: 400 overflow: 0.149093 HPWL: 5120235
+[nPlace] Iter: 410 overflow: 0.133919 HPWL: 5164095
+[nPlace] Iter: 420 overflow: 0.123358 HPWL: 5193012
+[nPlace] Iter: 430 overflow: 0.113712 HPWL: 5250179
+[nPlace] Iter: 440 overflow: 0.103548 HPWL: 5310415
 {
   "gp": {
-    "iter": 447
+    "iter": 444
   }
 }worst slack 1.37
 No differences found.

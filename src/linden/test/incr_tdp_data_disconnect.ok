@@ -999,13 +999,8 @@
 [WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 54023, library unsupported feature power_down_function.
 [WARNING STA-1002] sky130hd/sky130_fd_sc_hd__ss_n40C_1v40.lib line 54131, library unsupported feature sim_opt.
 [WARNING STA-1002] message limit reached, this message will no longer print
-[INFO ODB-0222] Reading LEF file: sky130hd/sky130hd.tlef
-[INFO ODB-0223]     Created 13 technology layers
-[INFO ODB-0224]     Created 25 technology vias
-[INFO ODB-0226] Finished LEF file:  sky130hd/sky130hd.tlef
-[INFO ODB-0222] Reading LEF file: sky130hd/sky130hd_std_cell.lef
-[INFO ODB-0225]     Created 437 library cells
-[INFO ODB-0226] Finished LEF file:  sky130hd/sky130hd_std_cell.lef
+[INFO ODB-0227] LEF file: sky130hd/sky130hd.tlef, created 13 layers, 25 vias
+[INFO ODB-0227] LEF file: sky130hd/sky130hd_std_cell.lef, created 437 library cells
 worst slack -0.03
 Design area 100 u^2 100% utilization.
 [LRL-TDP] write incr tdp data pb file to: results/incr_tdp_data_disconnect.pb
