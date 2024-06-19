@@ -9,6 +9,7 @@
 #include "db_sta/dbNetwork.hh"
 
 #include "fassert.hpp"
+#include <string_view>
 
 namespace rsz {
 
@@ -130,22 +131,30 @@ ResizerAddTieCell::addTieCell(const char* tie_lo_cname,
     auto [tie_cell, tie_port] = findLibertyCellAndPort(tie_cname, tie_pname);
     size_t new_tie_cell_count = 0;
     for (auto net : nets) {
+      std::string_view net_name(network_->name(net));
       auto pin_iter = network_->connectedPinIterator(net);
       const Pin* left_pin = nullptr;
       for (auto pin : staIter2StableDeque(pin_iter)) {
+        std::string_view pin_name(network_->name(pin));
         // Intention: some DEFs have net and special net with same name,
         // and OpenDB merges both to one net. So we need skip the pin from special net.
         if (is_special_pin(pin)) {
           // Ensure that non-special net is empty when there is no left pin.
-          FASSERT(db_network_->isSpecial(net));
+          FASSERT(db_network_->isSpecial(net))
+            (net_name.data())
+            (pin_name.data());
           continue;
         }
         // Intention: When a pin is a top output port,
         // different net and pin names introduce an extra verilog assigment that connects the port and the net.
         // Use the same name to avoid such assignments.
-        if (strcmp(network_->name(pin), network_->name(net)) == 0) {
-          FASSERT(!db_network_->isSpecial(net));
-          FASSERT(left_pin == nullptr);
+        if (net_name == pin_name) {
+          FASSERT(!db_network_->isSpecial(net))
+            (net_name.data())
+            (pin_name.data());
+          FASSERT(left_pin == nullptr)
+            (net_name.data())
+            (pin_name.data());
           left_pin = pin;
           continue;
         }
