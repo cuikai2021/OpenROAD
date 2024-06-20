@@ -337,6 +337,7 @@ struct dbWirePathShape
 
 class dbWirePathItr
 {
+ protected:
   dbWireDecoder _decoder;
   dbWireDecoder::OpCode _opcode;
   int _prev_x;
@@ -348,6 +349,7 @@ class dbWirePathItr
   dbTechNonDefaultRule* _rule;
 
   void getTerms(dbWirePathShape& s);
+  virtual bool getNextRect(dbWirePathShape& shape) { return false; }
 
  public:
   dbWirePathItr();
@@ -356,6 +358,12 @@ class dbWirePathItr
   void begin(dbWire* wire);
   bool getNextPath(dbWirePath& path);
   bool getNextShape(dbWirePathShape& shape);
+};
+
+class dbWirePathFullItr : public dbWirePathItr
+{
+ protected:
+  bool getNextRect(dbWirePathShape& shape);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

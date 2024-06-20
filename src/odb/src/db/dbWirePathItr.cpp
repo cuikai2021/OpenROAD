@@ -207,6 +207,24 @@ inline void dbWirePathItr::getTerms(dbWirePathShape& s)
   }
 }
 
+bool dbWirePathFullItr::getNextRect(dbWirePathShape& s)
+{
+  s.junction_id = _decoder.getJunctionId();
+  s.point.setX(_prev_x);
+  s.point.setY(_prev_y);
+  s.layer = _decoder.getLayer();
+  int deltaX1;
+  int deltaY1;
+  int deltaX2;
+  int deltaY2;
+  _decoder.getRect(deltaX1, deltaY1, deltaX2, deltaY2);
+  s.shape.setSegmentFromRect(deltaX1, deltaY1, deltaX2, deltaY2, s.layer);
+  getTerms(s);
+  _prev_ext = 0;
+  _has_prev_ext = false;
+  return true;
+}
+
 bool dbWirePathItr::getNextShape(dbWirePathShape& s)
 {
   s.iterm = nullptr;
@@ -222,6 +240,8 @@ nextOpCode:
     case dbWireDecoder::RECT: {
       // order wires doesn't understand RECTs so just hide them for now
       // they aren't required to establish connectivity in our flow
+      if (getNextRect(s))
+        break;
       _opcode = _decoder.next();
       goto nextOpCode;
     }
