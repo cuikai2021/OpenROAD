@@ -188,12 +188,6 @@ void InitialPlaceEV::build_placeable_insts() {
 
 void InitialPlaceEV::run()
 {
-    // minDiffLength = 1500;
-    // maxSolverIter = 100;
-    // netWeightScale = 800.0;
-    // debug = false;
-
-    // place_insts_to_core_center();
     refine_placeable_insts_to_max_connected_component();
     if (placeable_insts_.size() <= 1) {
         return;
@@ -233,19 +227,12 @@ void InitialPlaceEV::run()
         bicgInit(idSolver, aList, L, aB, aInstLocs);
 
         float errors[DIMENSION_CNT] = {0.0f, 0.0f};
-        // std::unique_ptr<Graphics> graphics;
-        // if (ipVars_.debug && Graphics::guiActive()) {
-        //     graphics = make_unique<Graphics>(log_, pb_);
-        // }
         const size_t MAX_ITER = 20;
         for (size_t i = 1; i <= MAX_ITER; i++) {
             for (auto dim : {X, Y}) {
                 errors[dim] = bicgSolve(L, aB[dim], aInstLocs[dim]);
             }
             updateInstLocs(idSolver, aInstLocs);
-            // if (graphics) {
-            //     graphics->cellPlot(true);
-            // }
 
             spdlog::debug(
                 "[InitialPlaceEVBicg] Iter: {} CG Error: {:0.8f} HPWL: {}",
@@ -346,12 +333,6 @@ void InitialPlaceEV::tuneVertexWeights(
 
     snap.ratio = placeCnt;
 
-//   FIXME:
-//   std::unique_ptr<Graphics> graphics;
-//   if (ipVars_.debug && Graphics::guiActive()) {
-//     graphics = make_unique<Graphics>(log_, pb_);
-//   }
-
     const int MAX_ITER = 100;  // todo: make it configurable in runtime
     int iter = 1;
     const int K = 4;  // number of eig values to get
@@ -439,10 +420,6 @@ void InitialPlaceEV::tuneVertexWeights(
             updateInstLocs(snap.eig_vecs);
             spdlog::info(
                 "[InitialPlace/EVPlace] Iter: {}, HPWL: {}", iter, hpwl(ldb_));
-            // FIXME:
-            // if (graphics) {
-            //     graphics->cellPlot(true);
-            // }
         }
         if (snap.ratio < 1.2) {
             spdlog::info(

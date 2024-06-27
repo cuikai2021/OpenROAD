@@ -22,26 +22,4 @@ void init(::ord::OpenRoad* ord) {
     sta::evalTclInit(interp, sta::linden_tcl_inits);
 }
 
-} // namespace
-// namespace ord {
-
-// gpl::LindenGlobalPlace*
-// makeLindenGlobalPlace() {
-//   return new gpl::LindenGlobalPlace();
-// }
-
-// void
-// initLindenGlobalPlace(OpenRoad* openroad) {
-//   Tcl_Interp* tcl_interp = openroad->tclInterp();
-//   Linden_Init(tcl_interp);
-//   sta::evalTclInit(tcl_interp, sta::linden_tcl_inits);
-// //   FIXME:
-// //   openroad->getLindenGlobalPlace()->init(openroad->getDb(), openroad->getLogger());
-// }
-
-// void
-// deleteLindenGlobalPlace(gpl::LindenGlobalPlace *gp) {
-//   delete gp;
-// }
-
-// }
+} // namespace linden

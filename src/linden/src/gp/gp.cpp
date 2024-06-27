@@ -200,13 +200,7 @@ bool update_net_weights(
             if (auto s = rs->resizeNetSlack(o_net); s) {
                 if (s < slack_max) {
                     weight = 1 + NET_WEIGHT_SCALE * (slack_max - *s) / (slack_max - slack_min);
-                    ++reweight_net_cnt;// void analyze_banyan_cmap_file_cmd(
-//     const char* cmap_file,
-//     const char* report_file)
-// {
-//     linden::cgr::analyze_banyan_cmap_file(cmap_file, report_file);
-// }
-
+                    ++reweight_net_cnt;
                     spdlog::debug(
                         "[linden/gpl] timing: net:{} slack:{} weight:{}",
                         l_net.name(),
