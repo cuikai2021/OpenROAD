@@ -62,45 +62,50 @@ Successfully read in library
 Worst slack -1.783  Best slack 0.000 Size of end point list 1
 Generated  7 unconstrained cuts.
 Processing cut 4 of volume 4 with 1 roots and 8 leaves.
-Startpoint: x[0] (input port)
+Startpoint: x[2] (input port)
 Endpoint: op (output port)
 Path Group: path delay
 Path Type: max
 
 Fanout     Cap    Slew   Delay    Time   Description
 -----------------------------------------------------------------------------
-                          0.20    0.20 ^ input external delay
-     7    0.01    0.00    0.00    0.20 ^ x[0] (in)
-                                         x[0] (net)
-                  0.00    0.00    0.20 ^ CKINVM2HM_3/A (CKINVM2HM)
-     2    0.00    0.07    0.05    0.25 v CKINVM2HM_3/Z (CKINVM2HM)
-                                         CKINVM2HM_3_10 (net)
-                  0.07    0.00    0.25 v OR2M2HM_9/A (OR2M2HM)
-     2    0.00    0.10    0.27    0.52 v OR2M2HM_9/Z (OR2M2HM)
-                                         OR2M2HM_9_16 (net)
-                  0.10    0.00    0.52 v OAI211M2HM_14/A2 (OAI211M2HM)
-     3    0.01    0.38    0.27    0.79 ^ OAI211M2HM_14/Z (OAI211M2HM)
-                                         OAI211M2HM_14_21 (net)
-                  0.38    0.00    0.79 ^ CKINVM2HM_15/A (CKINVM2HM)
-     2    0.00    0.15    0.16    0.95 v CKINVM2HM_15/Z (CKINVM2HM)
-                                         CKINVM2HM_15_22 (net)
-                  0.15    0.00    0.95 v AOI22M2HM_17/B2 (AOI22M2HM)
-     1    0.00    0.26    0.27    1.23 ^ AOI22M2HM_17/Z (AOI22M2HM)
-                                         AOI22M2HM_17_24 (net)
-                  0.26    0.00    1.23 ^ OAI22B10M2HM_18/B2 (OAI22B10M2HM)
-     1    0.00    0.09    0.15    1.38 v OAI22B10M2HM_18/Z (OAI22B10M2HM)
+                          0.10    0.10 v input external delay
+     7    0.01    0.00    0.00    0.10 v x[2] (in)
+                                         x[2] (net)
+                  0.00    0.00    0.10 v _40_/A1 (AO21M2HM)
+     1    0.00    0.08    0.20    0.30 v _40_/Z (AO21M2HM)
+                                         _09_ (net)
+                  0.08    0.00    0.30 v _42_/B (ND3M2HM)
+     1    0.00    0.17    0.13    0.43 ^ _42_/Z (ND3M2HM)
+                                         _11_ (net)
+                  0.17    0.00    0.43 ^ _43_/C (XOR3M2HM)
+     3    0.00    0.13    0.46    0.89 v _43_/Z (XOR3M2HM)
+                                         _12_ (net)
+                  0.13    0.00    0.89 v CKINVM2HM_1/A (CKINVM2HM)
+     2    0.00    0.10    0.10    0.99 ^ CKINVM2HM_1/Z (CKINVM2HM)
+                                         CKINVM2HM_1_8 (net)
+                  0.10    0.00    0.99 ^ AOI21B01M2HM_8/NB (AOI21B01M2HM)
+     1    0.00    0.22    0.26    1.25 ^ AOI21B01M2HM_8/Z (AOI21B01M2HM)
+                                         AOI21B01M2HM_8_15 (net)
+                  0.22    0.00    1.25 ^ OAI22M2HM_18/B2 (OAI22M2HM)
+     1    0.00    0.13    0.16    1.41 v OAI22M2HM_18/Z (OAI22M2HM)
+                                         OAI22M2HM_18_25 (net)
+                  0.13    0.00    1.41 v ND2M2HM_26/B (ND2M2HM)
+     1    0.00    0.08    0.10    1.51 ^ ND2M2HM_26/Z (ND2M2HM)
                                          _18_ (net)
-                  0.09    0.00    1.38 v op (out)
-                                  1.38   data arrival time
+                  0.08    0.00    1.51 ^ op (out)
+                                  1.51   data arrival time
 
                           0.25    0.25   max_delay
                           0.00    0.25   output external delay
                                   0.25   data required time
 -----------------------------------------------------------------------------
                                   0.25   data required time
-                                 -1.38   data arrival time
+                                 -1.51   data arrival time
 -----------------------------------------------------------------------------
-                                 -1.13   slack (VIOLATED)
+                                 -1.26   slack (VIOLATED)
 
 
-No differences found.
+Differences found at line 20.
+ wire ND2M2HM_2_9;
+ wire CKINVM2HM_2_9;

@@ -9,7 +9,9 @@ namespace rmp {
 
   class FuncExpr2Kit {
   public:    
-    FuncExpr2Kit(sta::FuncExpr* fe, int& var_count, unsigned *&kit_tables);
+    FuncExpr2Kit(sta::FuncExpr* fe, int& var_count, unsigned *&kit_tables,
+                 std::map<int,std::string>& ix2var
+                 );
     void RecursivelyEvaluate(sta::FuncExpr* fe, unsigned*);
 
   private:

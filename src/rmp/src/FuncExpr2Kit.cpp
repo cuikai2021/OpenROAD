@@ -16,18 +16,26 @@ to a Kit data structure suitable for abc transformation
 
 namespace rmp {
 
-FuncExpr2Kit::FuncExpr2Kit(sta::FuncExpr* fe, int& var_count, unsigned*& kit_table)
+  FuncExpr2Kit::FuncExpr2Kit(sta::FuncExpr* fe,
+                             int& var_count,
+                             unsigned*& kit_table,
+                             std::map<int,std::string>& ix2var)
 {
   var_count_ = 0;
 
+  //  printf("Compiling string %s\n", fe -> asString());
   sta::FuncExprPortIterator iter(fe);
   while (iter.hasNext()) {
     sta::LibertyPort* lp = iter.next();
+    //    printf("Liberty port %s --var ix %d\n", lp -> name(),var_count_);
+    std::string op_name =std::string(lp -> name());
+    ix2var[var_count_] = op_name;
     lib_ports_[var_count_] = lp;
     var_count_++;
   }
   var_count = var_count_;
 
+  
   for (int i = 0; i < var_count_; i++) {
     int nWords = abc::Kit_TruthWordNum(var_count_);
     unsigned* pTruth = ABC_ALLOC(unsigned, nWords);
@@ -37,6 +45,8 @@ FuncExpr2Kit::FuncExpr2Kit(sta::FuncExpr* fe, int& var_count, unsigned*& kit_tab
   int nWords = abc::Kit_TruthWordNum(var_count_);
   kit_table = ABC_ALLOC(unsigned, nWords);
   RecursivelyEvaluate(fe, kit_table);
+  //  printf("Var count %d Kit table 0x%x\n",var_count_,kit_table);
+
 }
 
 void FuncExpr2Kit::RecursivelyEvaluate(sta::FuncExpr* fe, unsigned* result)
@@ -97,6 +107,10 @@ void FuncExpr2Kit::RecursivelyEvaluate(sta::FuncExpr* fe, unsigned* result)
       case sta::FuncExpr::op_zero: {
         abc::Kit_TruthFill(result, var_count_);
       } break;
+
+    default:{
+      ;
+    }
     }
   }
 }

@@ -154,6 +154,10 @@ CutGen::AmendCutForEscapeRoots(Cut* cur_cut){
 	  if (cut_volume.find(sink_instance) == cut_volume.end()) {
 	    if (cut_roots.find(cur_pin) == cut_roots.end()){
 	      cur_cut -> roots_.push_back(cur_pin);
+#ifdef CUTGEN_DEBUG        
+        printf("Adding escape root %s to cut %d\n",network_ -> name(cur_pin),
+               cur_cut -> id_);
+#endif        
 	      cut_roots.insert(cur_pin);
 	    }
 	  }
@@ -355,7 +359,8 @@ const sta::Pin* CutGen::WalkThroughBuffersAndInverters(
     sta::LibertyPort* lp = network_ -> libertyPort(op_pin);
     if (lp && lp -> function()){
       unsigned* kit_table = nullptr;
-      FuncExpr2Kit FuncExpr2Kit(lp -> function(), var_count, kit_table);
+      std::map<int,std::string> ix2var;
+      FuncExpr2Kit FuncExpr2Kit(lp -> function(), var_count, kit_table,ix2var);
             unsigned num_bits_to_set = (0x01 << var_count );			        
       unsigned mask=0x00;
       for (unsigned j=0; j < num_bits_to_set; j++)

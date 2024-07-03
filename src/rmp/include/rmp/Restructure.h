@@ -83,6 +83,7 @@ namespace rmp {
     float required_fall;
     float arrival_rise;
     float arrival_fall;
+    float slack;
     float load;
   } ;
 
@@ -95,7 +96,9 @@ namespace rmp {
     std::map<const sta::Pin*,sta::LibertyPort*> internal_pins_;
     int id_;
 
-    void Print(sta::Network* nwk);
+    void Print(FILE* fp,sta::Network* nwk);
+    void PrintVerilog(FILE* fp,sta::Network* nwk);
+    //todo print dot 
     bool Check(sta::Network* nwk);
     
     void BuildFuncExpr(sta::Network* nwk,
@@ -201,6 +204,29 @@ namespace rmp {
   public:
     Ntk2Cut(abc::Abc_Ntk_t_*, Cut*, sta::Network*);
     void BuildNwkElements();
+    void FuseNets(int root_ix,
+                  sta::Pin* new_driving_pin,
+                  sta::Net* new_driving_net,
+                  sta::Pin* orig_driving_pin,
+                  sta::Net* orig_driving_net);
+
+    abc::Abc_Obj_t_* DrivesAbcPO(abc::Abc_Obj_t_* obj);
+    int GetPOIx(abc::Abc_Ntk_t_* nwk, abc::Abc_Obj_t_* obj);
+    //Routines to debug cut creation in network.
+    void ReportInstanceIpsOps(int depth,FILE* fp,sta::Instance* cur_inst);
+    void WriteCutEnvironment(char* str,FILE* fp);
+    void WritePinEnvironment(FILE* fp,
+                             const sta::Pin*,
+                             const char* str);
+    void Tabs(FILE* fp,int depth);
+    void WriteCutInNwk(FILE* fp);
+    void WriteCutInNwkR(FILE* fp,
+                        int depth,
+                        const sta::Pin* op_pin,
+                        std::set<const sta::Pin*>& end_points,
+                        std::set<const sta::Pin*>& visited);
+
+    
   private:
     abc::Abc_Ntk_t_* mapped_netlist_;
     Cut* cut_;
@@ -238,7 +264,7 @@ namespace rmp {
     void AnnotateTimingRequirementsOntoABCNwk(abc::Abc_Ntk_t_* sop_logic_nwk);
     bool getAbcResult(abc::Abc_Ntk_t_*&);
     void BuildCutRealization(abc::Abc_Ntk_t_*);
-    float TimingGain();
+    float TimingGain(FILE* fp=nullptr);
     
   private:
     utl::Logger* logger_;

@@ -76,17 +76,17 @@ void set_tiehi_port_cmd(LibertyPort* tieHiport)
  
 void
 restructure_cmd(char* liberty_file_name,
-		char* target,
-		float slack_threshold,
+                char* target,
+                float slack_threshold,
                 int depth_threshold,
-		char* workdir_name,
-		char* abc_logfile,
-		bool cut_restructure,
-		char* head_pin_ptr_str,
-		bool unconstrained,
-		bool single_op_cut,
-		bool oracle,
-		char* script)
+                char* workdir_name,
+                char* abc_logfile,
+                bool cut_restructure,
+                char* head_pin_ptr_str,
+                bool unconstrained,
+                bool single_op_cut,
+                bool oracle,
+                char* script)
 {
   getRestructure()->setMode(target);
   getRestructure()->run(liberty_file_name,

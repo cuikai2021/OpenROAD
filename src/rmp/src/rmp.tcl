@@ -86,6 +86,7 @@ proc restructure { args } {
   set oracle 0    
   if { [info exists keys(-head_pin)] } {
       set head_pin $keys(-head_pin)
+      puts "Using head_pin $head_pin"
   }     
   if { [info exists keys(-so_cut)] } {
     set so_cut 1
