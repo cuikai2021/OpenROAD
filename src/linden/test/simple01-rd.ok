@@ -618,18 +618,18 @@ linden::gp::Config {
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 1 inflationIterCnt: 1 bloatIterCnt: 0
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (11.234810352337865, 17.680683082906903)
-[linden/gpl] OverflowTileCnt: (42, 39)
+[linden/gpl] TotalRouteOverflow: (11.210177588554007, 15.695067101830473)
+[linden/gpl] OverflowTileCnt: (37, 38)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1.1304347826086958)
-[linden/gpl] 2.0%RC: (1, 1.085144927536232)
-[linden/gpl] 5.0%RC: (0.6538648849376818, 1.0283816425120773)
+[linden/gpl] 1.0%RC: (1, 1.2000000000000002)
+[linden/gpl] 2.0%RC: (1, 1.1272727272727272)
+[linden/gpl] 5.0%RC: (0.6621899599718091, 1.0424242424242425)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.5652173913043479
-[linden/gpl/rdp] InflatedAreaDelta: 2138691424
+[linden/gpl] FinalRC: 0.6000000000000001
+[linden/gpl/rdp] InflatedAreaDelta: 2187860712
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
 [linden/gpl/rdp] MovableInstsArea: 3813654508
@@ -637,11 +637,11 @@ linden/gpl NumTiles: 196
 [linden/gpl/rdp] TotalFillerArea: 0
 [linden/gpl/rdp] TotalGCellsArea: 3813654508
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813264872
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813264872
+[linden/gpl/rdp] NewMovableInstsArea: 3813092368
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813092368
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 190 overflow: 0.686859 HPWL: 4632291
-[nPlace] Iter: 200 overflow: 0.67468 HPWL: 4705357
+[nPlace] Iter: 190 overflow: 0.688224 HPWL: 4638862
+[nPlace] Iter: 200 overflow: 0.676689 HPWL: 4706648
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
 [INFO BY-0001] unit cap 0
 [WARNING BY-0001] budgeting for net resp_msg\[9\] cap 0 wirelen -9223372036854775808
@@ -1015,29 +1015,29 @@ linden/gpl NumTiles: 196
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 2 inflationIterCnt: 2 bloatIterCnt: 0
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (14.441077751050493, 24.52557322633025)
-[linden/gpl] OverflowTileCnt: (43, 55)
+[linden/gpl] TotalRouteOverflow: (12.687628951991408, 9.592342183652843)
+[linden/gpl] OverflowTileCnt: (34, 29)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 2)
-[linden/gpl] 2.0%RC: (1, 1.6666666666666667)
-[linden/gpl] 5.0%RC: (0.8911111111111111, 1.2222222222222223)
+[linden/gpl] 1.0%RC: (2, 1.5)
+[linden/gpl] 2.0%RC: (1.6666666666666667, 1.111111111111111)
+[linden/gpl] 5.0%RC: (1.0310960591133005, 0.7102240944918291)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 1
-[linden/gpl/rdp] InflatedAreaDelta: 1716906732
+[linden/gpl/rdp] InflatedAreaDelta: 1804838088
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813264872
-[linden/gpl/rdp] MovableStdInstsArea: 3813264872
+[linden/gpl/rdp] MovableInstsArea: 3813092368
+[linden/gpl/rdp] MovableStdInstsArea: 3813092368
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813264872
+[linden/gpl/rdp] TotalGCellsArea: 3813092368
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813165580
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813165580
+[linden/gpl/rdp] NewMovableInstsArea: 3813390844
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813390844
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 210 overflow: 0.647659 HPWL: 4849940
+[nPlace] Iter: 210 overflow: 0.653011 HPWL: 4834127
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
 [INFO BY-0001] unit cap 0
 [WARNING BY-0001] budgeting for net resp_msg\[9\] cap 0 wirelen -9223372036854775808
@@ -1314,29 +1314,29 @@ linden/gpl NumTiles: 196
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 3 inflationIterCnt: 3 bloatIterCnt: 0
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (7.709793288931236, 13.487336503627388)
-[linden/gpl] OverflowTileCnt: (36, 46)
+[linden/gpl] TotalRouteOverflow: (8.830047304139065, 11.171586824244983)
+[linden/gpl] OverflowTileCnt: (33, 37)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (2, 1)
-[linden/gpl] 2.0%RC: (1.3611111111111114, 1)
-[linden/gpl] 5.0%RC: (0.6097874166501618, 0.7777777777777779)
+[linden/gpl] 1.0%RC: (1, 1)
+[linden/gpl] 2.0%RC: (1, 1)
+[linden/gpl] 5.0%RC: (0.665925925925926, 0.7065416065416065)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 1
-[linden/gpl/rdp] InflatedAreaDelta: 997706784
+[linden/gpl] FinalRC: 0.5
+[linden/gpl/rdp] InflatedAreaDelta: 1072406708
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813165580
-[linden/gpl/rdp] MovableStdInstsArea: 3813165580
+[linden/gpl/rdp] MovableInstsArea: 3813390844
+[linden/gpl/rdp] MovableStdInstsArea: 3813390844
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813165580
+[linden/gpl/rdp] TotalGCellsArea: 3813390844
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813386380
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813386380
+[linden/gpl/rdp] NewMovableInstsArea: 3813393692
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813393692
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 220 overflow: 0.626784 HPWL: 4945035
+[nPlace] Iter: 220 overflow: 0.629121 HPWL: 4958095
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
@@ -1344,29 +1344,29 @@ linden/gpl NumTiles: 196
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 4 inflationIterCnt: 4 bloatIterCnt: 0
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (7.823940374945256, 16.350894774632913)
-[linden/gpl] OverflowTileCnt: (32, 48)
+[linden/gpl] TotalRouteOverflow: (4.265517421748072, 13.087038303615207)
+[linden/gpl] OverflowTileCnt: (34, 51)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 1)
-[linden/gpl] 5.0%RC: (0.6015669515669515, 0.9238095238095239)
+[linden/gpl] 1.0%RC: (0.375, 1)
+[linden/gpl] 2.0%RC: (0.30853174603174605, 1)
+[linden/gpl] 5.0%RC: (0.2310287565318525, 0.6359316164808155)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 985082912
+[linden/gpl/rdp] InflatedAreaDelta: 996264752
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813386380
-[linden/gpl/rdp] MovableStdInstsArea: 3813386380
+[linden/gpl/rdp] MovableInstsArea: 3813393692
+[linden/gpl/rdp] MovableStdInstsArea: 3813393692
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813386380
+[linden/gpl/rdp] TotalGCellsArea: 3813393692
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813463296
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813463296
+[linden/gpl/rdp] NewMovableInstsArea: 3813430284
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813430284
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 230 overflow: 0.603439 HPWL: 5033731
+[nPlace] Iter: 230 overflow: 0.601642 HPWL: 5108540
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
@@ -1374,29 +1374,29 @@ linden/gpl NumTiles: 196
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 5 inflationIterCnt: 0 bloatIterCnt: 1
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (5.179026099745914, 10.828073512613827)
-[linden/gpl] OverflowTileCnt: (30, 44)
+[linden/gpl] TotalRouteOverflow: (3.9689430093993296, 9.026420544801216)
+[linden/gpl] OverflowTileCnt: (27, 33)
 [linden/gpl] 0.5%RC: (0, 0)
 [linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (0.611111111111111, 1)
-[linden/gpl] 5.0%RC: (0.39656084656084656, 0.6772486772486772)
+[linden/gpl] 2.0%RC: (0.5, 0.8000000000000002)
+[linden/gpl] 5.0%RC: (0.27551089261615574, 0.55)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 572357244
+[linden/gpl/rdp] InflatedAreaDelta: 669847172
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813463296
-[linden/gpl/rdp] MovableStdInstsArea: 3813463296
+[linden/gpl/rdp] MovableInstsArea: 3813430284
+[linden/gpl/rdp] MovableStdInstsArea: 3813430284
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813463296
+[linden/gpl/rdp] TotalGCellsArea: 3813430284
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813371528
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813371528
+[linden/gpl/rdp] NewMovableInstsArea: 3813451748
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813451748
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 240 overflow: 0.560376 HPWL: 5143180
+[nPlace] Iter: 240 overflow: 0.577496 HPWL: 5201216
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
@@ -1404,29 +1404,29 @@ linden/gpl NumTiles: 196
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 6 inflationIterCnt: 1 bloatIterCnt: 1
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (3.247287870368366, 25.20505076495721)
-[linden/gpl] OverflowTileCnt: (28, 75)
+[linden/gpl] TotalRouteOverflow: (8.722905046039045, 20.45243188601566)
+[linden/gpl] OverflowTileCnt: (31, 58)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (0.25, 1)
-[linden/gpl] 2.0%RC: (0.24074074074074078, 1)
-[linden/gpl] 5.0%RC: (0.19611992945326281, 1)
+[linden/gpl] 1.0%RC: (1, 1)
+[linden/gpl] 2.0%RC: (1, 1)
+[linden/gpl] 5.0%RC: (0.750462962962963, 1)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 823180604
+[linden/gpl/rdp] InflatedAreaDelta: 664512872
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813371528
-[linden/gpl/rdp] MovableStdInstsArea: 3813371528
+[linden/gpl/rdp] MovableInstsArea: 3813451748
+[linden/gpl/rdp] MovableStdInstsArea: 3813451748
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813371528
+[linden/gpl/rdp] TotalGCellsArea: 3813451748
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813407304
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813407304
+[linden/gpl/rdp] NewMovableInstsArea: 3813357944
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813357944
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 250 overflow: 0.529482 HPWL: 5127968
+[nPlace] Iter: 250 overflow: 0.543248 HPWL: 5257425
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
@@ -1434,193 +1434,12 @@ linden/gpl NumTiles: 196
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 7 inflationIterCnt: 2 bloatIterCnt: 1
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (5.847830940988835, 15.34915061556601)
-[linden/gpl] OverflowTileCnt: (30, 44)
-[linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (0.611111111111111, 1)
-[linden/gpl] 5.0%RC: (0.39802283486494006, 0.8721340388007055)
-[linden/gpl] 0.5rcK: 1
-[linden/gpl] 1.0rcK: 1
-[linden/gpl] 2.0rcK: 0
-[linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 736630728
-[linden/gpl/rdp] TargetDensity: 0.5973229224762967
-[linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813407304
-[linden/gpl/rdp] MovableStdInstsArea: 3813407304
-[linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813407304
-[linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813365284
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813365284
-[linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 260 overflow: 0.487836 HPWL: 5254040
-[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[linden/gpl] TileLxLy=(0, 0)
-[linden/gpl] TileSize=(4424, 4400), TileArea=19465600
-[linden/gpl] TileCnt=(14, 14)
-[linden/gpl] NumTiles=196
-[linden/gpl/rdp] Routability numCall: 8 inflationIterCnt: 3 bloatIterCnt: 1
-linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (10.65587204744224, 12.50140826452678)
-[linden/gpl] OverflowTileCnt: (39, 49)
-[linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 1)
-[linden/gpl] 5.0%RC: (0.828042328042328, 0.6342592592592592)
-[linden/gpl] 0.5rcK: 1
-[linden/gpl] 1.0rcK: 1
-[linden/gpl] 2.0rcK: 0
-[linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 593868000
-[linden/gpl/rdp] TargetDensity: 0.5973229224762967
-[linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813365284
-[linden/gpl/rdp] MovableStdInstsArea: 3813365284
-[linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813365284
-[linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813325700
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813325700
-[linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 270 overflow: 0.453469 HPWL: 5386693
-[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[linden/gpl] TileLxLy=(0, 0)
-[linden/gpl] TileSize=(4424, 4400), TileArea=19465600
-[linden/gpl] TileCnt=(14, 14)
-[linden/gpl] NumTiles=196
-[linden/gpl/rdp] Routability numCall: 9 inflationIterCnt: 4 bloatIterCnt: 1
-linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (8.991722776707295, 9.780366039189564)
-[linden/gpl] OverflowTileCnt: (26, 48)
-[linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 0.8333333333333334)
-[linden/gpl] 5.0%RC: (0.7976190476190477, 0.47634445591101937)
-[linden/gpl] 0.5rcK: 1
-[linden/gpl] 1.0rcK: 1
-[linden/gpl] 2.0rcK: 0
-[linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 466449652
-[linden/gpl/rdp] TargetDensity: 0.5973229224762967
-[linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813325700
-[linden/gpl/rdp] MovableStdInstsArea: 3813325700
-[linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813325700
-[linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813293796
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813293796
-[linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 280 overflow: 0.441215 HPWL: 5411134
-[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[linden/gpl] TileLxLy=(0, 0)
-[linden/gpl] TileSize=(4424, 4400), TileArea=19465600
-[linden/gpl] TileCnt=(14, 14)
-[linden/gpl] NumTiles=196
-[linden/gpl/rdp] Routability numCall: 10 inflationIterCnt: 0 bloatIterCnt: 2
-linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (5.27305178481649, 8.75258886280558)
-[linden/gpl] OverflowTileCnt: (31, 44)
-[linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (0.7777777777777777, 1)
-[linden/gpl] 5.0%RC: (0.38233618233618233, 0.49464458829783897)
-[linden/gpl] 0.5rcK: 1
-[linden/gpl] 1.0rcK: 1
-[linden/gpl] 2.0rcK: 0
-[linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 385682256
-[linden/gpl/rdp] TargetDensity: 0.5973229224762967
-[linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813293796
-[linden/gpl/rdp] MovableStdInstsArea: 3813293796
-[linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813293796
-[linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813250080
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813250080
-[linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 290 overflow: 0.402609 HPWL: 5419049
-[nPlace] Iter: 300 overflow: 0.376528 HPWL: 5484089
-[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[linden/gpl] TileLxLy=(0, 0)
-[linden/gpl] TileSize=(4424, 4400), TileArea=19465600
-[linden/gpl] TileCnt=(14, 14)
-[linden/gpl] NumTiles=196
-[linden/gpl/rdp] Routability numCall: 11 inflationIterCnt: 1 bloatIterCnt: 2
-linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (10.348078310578307, 13.74498320307144)
-[linden/gpl] OverflowTileCnt: (41, 49)
-[linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 1)
-[linden/gpl] 5.0%RC: (0.671957671957672, 0.7355820105820106)
-[linden/gpl] 0.5rcK: 1
-[linden/gpl] 1.0rcK: 1
-[linden/gpl] 2.0rcK: 0
-[linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 614548948
-[linden/gpl/rdp] TargetDensity: 0.5973229224762967
-[linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813250080
-[linden/gpl/rdp] MovableStdInstsArea: 3813250080
-[linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813250080
-[linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813193388
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813193388
-[linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 310 overflow: 0.344672 HPWL: 5504273
-[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[linden/gpl] TileLxLy=(0, 0)
-[linden/gpl] TileSize=(4424, 4400), TileArea=19465600
-[linden/gpl] TileCnt=(14, 14)
-[linden/gpl] NumTiles=196
-[linden/gpl/rdp] Routability numCall: 12 inflationIterCnt: 2 bloatIterCnt: 2
-linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (13.112167566695422, 11.535581330434267)
-[linden/gpl] OverflowTileCnt: (51, 45)
-[linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 1)
-[linden/gpl] 5.0%RC: (0.637037037037037, 0.6269119769119769)
-[linden/gpl] 0.5rcK: 1
-[linden/gpl] 1.0rcK: 1
-[linden/gpl] 2.0rcK: 0
-[linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 665660080
-[linden/gpl/rdp] TargetDensity: 0.5973229224762967
-[linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813193388
-[linden/gpl/rdp] MovableStdInstsArea: 3813193388
-[linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813193388
-[linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813281204
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813281204
-[linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 320 overflow: 0.320978 HPWL: 5444813
-[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[linden/gpl] TileLxLy=(0, 0)
-[linden/gpl] TileSize=(4424, 4400), TileArea=19465600
-[linden/gpl] TileCnt=(14, 14)
-[linden/gpl] NumTiles=196
-[linden/gpl/rdp] Routability numCall: 13 inflationIterCnt: 3 bloatIterCnt: 2
-linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (18.278125099874323, 18.029892329892323)
-[linden/gpl] OverflowTileCnt: (41, 55)
+[linden/gpl] TotalRouteOverflow: (14.37984326176209, 10.932992882814528)
+[linden/gpl] OverflowTileCnt: (44, 44)
 [linden/gpl] 0.5%RC: (0, 0)
 [linden/gpl] 1.0%RC: (3, 2)
-[linden/gpl] 2.0%RC: (2, 1.5)
-[linden/gpl] 5.0%RC: (1.3174603174603174, 1.0185185185185184)
+[linden/gpl] 2.0%RC: (2.0833333333333335, 1.4166666666666667)
+[linden/gpl] 5.0%RC: (1.1198412698412699, 0.7304843304843304)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
@@ -1631,6 +1450,6 @@ linden/gpl NumTiles: 196
 [NPlace] Revert back to snapshot coordi
 {
   "gp": {
-    "iter": 322
+    "iter": 257
   }
 }No differences found.
