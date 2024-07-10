@@ -23,5 +23,5 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-routability-driven-detailed-placer,dst=/build/bin/linden-routability-driven-detailed-placer \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/pbdef,dst=/build/bin/pbdef \
   --entrypoint /bin/bash \
-  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20240429T0939Z_bae7ef9 \
+  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20240709T0624Z_afb4115 \
   -c "cd $workdir; $cmd"

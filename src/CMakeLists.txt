@@ -276,6 +276,15 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(lemon REQUIRED)
 message(STATUS "lemon (${LEMON_LIB_NAME}): ${LEMON_INCLUDE_DIR}, ${LEMON_LIBRARY}")
 
+find_package(gperf QUIET)
+if(gperf_FOUND)
+  message(STATUS "found google perftools")
+  set(GPERF_LIB gperf::tcmalloc_and_profiler)
+else()
+  message(STATUS "not found google perftools")
+  set(GPERF_LIB)
+endif()
+
 ################################################################
 
 # Build flow tools
@@ -345,18 +354,6 @@ target_include_directories(eden
     ../include
 )
 
-find_library(GPERF NAME tcmalloc_and_profiler
-  PATHS
-  /usr/lib
-  /usr/lib64
-  /usr/local/lib
-  /usr/local/lib64)
-
-if(GPERF)
-  set(PERF_LIBRARIES tcmalloc_and_profiler)
-else()
-  set(PERF_LIBRARIES )
-endif()
 
 target_link_libraries(eden
   ifp
@@ -398,7 +395,7 @@ target_link_libraries(eden
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
-  ${PERF_LIBRARIES}
+  ${GPERF_LIB}
   backtrace
 )
 
