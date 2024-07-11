@@ -1,0 +1,9 @@
+[INFO ODB-0227] LEF file: Nangate45/Nangate45.lef, created 22 layers, 27 vias, 135 library cells
+Cut based Restructuring.
+Cmd warning: redefining '%graft'
+Warning: Detected 2 multi-output gates (for example, "FA_X1").
+Successfully read in library
+
+Generated 2 constrained cuts (generateWaveFrontSingleOpCutSet).
+Processing cut 2 of volume 3 with 1 roots and 4 leaves.
+No differences found.

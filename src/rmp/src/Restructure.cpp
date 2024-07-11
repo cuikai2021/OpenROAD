@@ -132,7 +132,8 @@ void Restructure::cutresynthrun(char* target_library,
                                 bool single_op,
                                 bool unconstrained,
                                 bool oracle_remap,
-                                bool verbose)
+                                bool verbose,
+                                bool verify)
 {
   reset();
 
@@ -205,14 +206,16 @@ void Restructure::cutresynthrun(char* target_library,
         best_cut->leaves_.size());
     cut_to_remap = best_cut;
     
-#ifdef DEBUG_RESTRUCT
-    cut_to_remap -> Print(stdout,network);
-    char fname[1000];
-    sprintf(fname,"beforemap_cut_%d.v",cut_to_remap -> id_);
-    FILE* fp =fopen(fname,"w+");
-    cut_to_remap -> PrintVerilog(fp,network);
-    fclose(fp);
-#endif    
+    if (verify){
+      cut_to_remap -> Print(stdout,network);
+      char fname[1000];
+      sprintf(fname,"beforemap_cut_%d.v",cut_to_remap -> id_);
+      printf("Input cut to be remapped saved in verification file %s\n",
+             fname);
+      FILE* fp =fopen(fname,"w+");
+      cut_to_remap -> PrintVerilog(fp,network);
+      fclose(fp);
+    }
 			  
     //
     // We are going to remap "cut_to_remap"
@@ -239,7 +242,8 @@ void Restructure::cutresynthrun(char* target_library,
                   liberty_library,
                   script_present,
                   script_name,
-                  true);
+                  true,
+                  verify);
     prm.Remap();
   }
 }
@@ -286,7 +290,8 @@ void Restructure::run(char* liberty_file_name,
                       bool unconstrained, //if true, don't use wavefront method for cuts
                       bool single_op_cut, //if true, only use single output cuts,
                       bool oracle, //if true use oracle remapping method
-                      char* script) //if set we apply script method.
+                      char* script,
+                      bool verify) //if set we apply script method.
   
 {
   if (cut_restructure == true) {
@@ -298,6 +303,7 @@ void Restructure::run(char* liberty_file_name,
       head_pin = nullptr;
     else
       convertPtrFromString(head_pin_str,&ptr);
+    
     if (ptr){
       head_pin = (sta::Pin*)ptr;
     }
@@ -307,7 +313,8 @@ void Restructure::run(char* liberty_file_name,
                   single_op_cut,
                   unconstrained,
                   oracle,
-                  false);
+                  false,
+                  verify);
   } else {
     reset();
     block_ = db_->getChip()->getBlock();
@@ -1735,6 +1742,10 @@ void Cut::PrintVerilog(FILE* fp, sta::Network* nwk)
   
   //  fprintf(fp,"//wires from leaf inputs\n");
   for (auto n: leaf_driver_names){
+    if (n.first == n.second &&
+        ip_names.find(n.first) != ip_names.end())
+      continue;
+    
     fprintf(fp,"wire \\%s ; \n", n.first.c_str());
     fprintf(fp,"assign \\%s = \\%s ; \n",
             n.first.c_str(),
@@ -2190,7 +2201,7 @@ void PhysRemap::Remap()
   // else remap the logic after structure hashing and balancing
   Abc_Ntk_t* cut_logic = Abc_NtkToLogic(sop_logic_nwk);
 
-#ifdef REGRESS_RESTRUCT
+  if (verify_){
   //dress up the blif for formal
   Abc_Ntk_t* nwk_logic = Abc_NtkToNetlist(cut_logic);
   for (int i = 0; i < Abc_NtkPiNum(nwk_logic); i++) {
@@ -2200,9 +2211,6 @@ void PhysRemap::Remap()
                        fanout_obj -> Id);
     Abc_ObjAssignName(fanout_obj, (char*)
                       (nwk_->pathName(cut_ -> leaves_[i])), NULL);
-    printf("object %d name %s\n",
-           fanout_obj -> Id,
-           Abc_ObjName(fanout_obj));
   }
   for (int i = 0; i < Abc_NtkPoNum(nwk_logic); i++) {
     Abc_Obj_t* abc_po = Abc_NtkPo(nwk_logic,i);
@@ -2211,18 +2219,17 @@ void PhysRemap::Remap()
                        fanin_obj -> Id);
     Abc_ObjAssignName(fanin_obj, (char*)
                       (nwk_->pathName(cut_ -> roots_[i])), NULL);
-    printf("object %d name %s\n",
-           fanin_obj -> Id,
-           Abc_ObjName(fanin_obj));
   }
   
   Abc_NtkSetName(nwk_logic, Extra_UtilStrsav(cut_name_.c_str()));
-  printf("Writing out cut %s for regression\n", cut_name_.c_str());
   char fname[1000];
   sprintf(fname,"ip_%d.blif",cut_ -> id_);
+  printf("Writing out cut %s for regression as blif file %s\n", cut_name_.c_str(),fname);
   std::string op_name = fname;
   Io_WriteBlif(nwk_logic, const_cast<char*>(op_name.c_str()),1,0,0);
-#endif
+  }
+
+  
 
   if (1) {
     Abc_Ntk_t* pNtk = Abc_NtkStrash(cut_logic, 0, 0, 0);
@@ -2238,7 +2245,7 @@ void PhysRemap::Remap()
       Abc_Ntk_t* mapped_netlist = Abc_FrameReadNtk(Abc_FrameGetGlobalFrame());
       intermediate_result_ = mapped_netlist;
 
-#ifdef REGRESS_RESTRUCT
+      if (verify_)
     {
       char tgain[100];
       sprintf(tgain,"tg_%d.txt",cut_ -> id_);
@@ -2249,9 +2256,41 @@ void PhysRemap::Remap()
       Abc_Ntk_t* result_logic = Abc_NtkToLogic(m_netlist);
       char fname[1000];
       sprintf(fname,"op_%d.blif",cut_ -> id_);
-      Io_Write(result_logic, const_cast<char*>(fname), IO_FILE_BLIF);
+      printf("Writing out mapped cut as blif file %s\n",fname);
+
+      //set up names to match inputs
+      for (int i = 0; i < Abc_NtkPiNum(result_logic); i++) {
+        Abc_Obj_t* abc_pi = Abc_NtkPi(result_logic,i);
+        Nm_ManDeleteIdName(abc_pi -> pNtk -> pManName,
+                           abc_pi -> Id);
+        
+        Abc_ObjAssignName(abc_pi, (char*)
+                          (nwk_->pathName(cut_ -> leaves_[i])), NULL);
+        
+        Abc_Obj_t* fanout_obj = Abc_ObjFanout0(abc_pi);
+        Nm_ManDeleteIdName(fanout_obj -> pNtk -> pManName,
+                           fanout_obj -> Id);
+        Abc_ObjAssignName(fanout_obj, (char*)
+                          (nwk_->pathName(cut_ -> leaves_[i])), NULL);
+      } 
+
+      for (int i = 0; i < Abc_NtkPoNum(result_logic); i++) {
+        Abc_Obj_t* abc_po = Abc_NtkPo(result_logic,i);
+        Nm_ManDeleteIdName(abc_po -> pNtk -> pManName,
+                           abc_po -> Id);
+        
+        Abc_ObjAssignName(abc_po, (char*)
+                          (nwk_->pathName(cut_ -> roots_[i])), NULL);
+        
+        Abc_Obj_t* fanin_obj = Abc_ObjFanin0(abc_po);
+        Nm_ManDeleteIdName(fanin_obj -> pNtk -> pManName,
+                           fanin_obj -> Id);
+        Abc_ObjAssignName(fanin_obj, (char*)
+                          (nwk_->pathName(cut_ -> roots_[i])), NULL);
+      }
+        Io_Write(result_logic, const_cast<char*>(fname), IO_FILE_BLIF);
     }
-#endif
+
       
       if (accept_)
         BuildCutRealization(mapped_netlist);
@@ -2276,7 +2315,8 @@ void PhysRemap::Remap()
     Abc_Ntk_t* mapped = Abc_NtkDarAmap(pNtk_res, &Pars_local);
     Abc_Ntk_t* mapped_netlist = Abc_NtkToNetlist(mapped);
     intermediate_result_ = mapped_netlist;
-#ifdef REGRESS_RESTRUCT
+
+    if (verify_)
     {
       char tgain[100];
       sprintf(tgain,"tg_%d.txt",cut_ -> id_);
@@ -2291,7 +2331,6 @@ void PhysRemap::Remap()
       sprintf(fname,"op_%d.blif",cut_ -> id_);
       Io_Write(result_logic, const_cast<char*>(fname), IO_FILE_BLIF);
     }
-#endif
 
     // stitch the result back into the physical
     // netlist, if we are instructed to do so.
@@ -2667,9 +2706,6 @@ void Ntk2Cut::BuildNwkElements()
     sta::Net* ip_net = target_nwk_->net(cut_ip_pin);
     if (!ip_net) {
       ip_net = target_nwk_->findNet(target_nwk_->pathName(cut_ip_pin));
-      if (!ip_net)
-        printf("Error cannot find ip net for leaf %s\n",
-               target_nwk_->pathName(cut_ip_pin));
     }
     cut_ip_nets[cut_ip_pin] = ip_net;
     abc2net[pObj] = ip_net;
@@ -2793,8 +2829,8 @@ void Ntk2Cut::BuildNwkElements()
   WriteCutEnvironment("after",fp);
 #endif  
   fclose(fp);
-}
-
+} 
+ 
 
 void Ntk2Cut:: FuseNets(int root_ix,
                         sta::Pin* new_driving_pin,

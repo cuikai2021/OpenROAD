@@ -56,9 +56,11 @@ sta::define_cmd_args "restructure" { \
                                       [-slack_threshold slack]\
                                       [-depth_threshold depth]\
                                       [-target area|timing]\
-				      [-cutremap]\
-				      [-so_cut]\
-				      [-script script_string]\
+                                      [-cutremap ]\
+                                      [-so_cut ]\
+                                      [-verify ]\                                         
+                                      [-head_pin head_pin_string ]\
+                                      [-script script_string]\
                                       [-abc_logfile logfile]\
                                       [-liberty_file liberty_file]\
                                       [-tielo_port tielow_port]\
@@ -69,7 +71,7 @@ sta::define_cmd_args "restructure" { \
 proc restructure { args } {
   sta::parse_key_args "restructure" args \
     keys {-slack_threshold -head_pin -depth_threshold -target -liberty_file -abc_logfile -cutremap -so_cut -script\
-          -tielo_port -tiehi_port -work_dir} flags {}
+          -tielo_port -tiehi_port -work_dir -verify} flags {}
 
   set slack_threshold_value 0
   set depth_threshold_value 16
@@ -80,23 +82,27 @@ proc restructure { args } {
   set head_pin 0    
   set cut_remap 0
   set script_string ""
+  set verify 0
     
   #undocumented/unused    
   set unconstrained 0
   set oracle 0    
   if { [info exists keys(-head_pin)] } {
       set head_pin $keys(-head_pin)
-      puts "Using head_pin $head_pin"
   }     
   if { [info exists keys(-so_cut)] } {
     set so_cut 1
-  } 
+  }
+
+  if { [info exists keys(-verify)] } {
+    set verify 1
+  }     
   if { [info exists keys(-script)] } {
       set script_string $keys(-script)
       puts "Using script $script_string"
   } 
 
-  if { [info exists keys(-cutremap)] } {
+    if { [info exists keys(-cutremap)] } {
       set cut_remap 1
   } 
     
@@ -158,5 +164,5 @@ proc restructure { args } {
     set workdir_name $keys(-work_dir)
   }
 
-  rmp::restructure_cmd $liberty_file_name $target $slack_threshold_value $depth_threshold_value $workdir_name $abc_logfile $cut_remap $head_pin $unconstrained  $so_cut $oracle $script_string
+  rmp::restructure_cmd $liberty_file_name $target $slack_threshold_value $depth_threshold_value $workdir_name $abc_logfile $cut_remap $head_pin $unconstrained  $so_cut $oracle $script_string $verify
 }

@@ -238,23 +238,25 @@ namespace rmp {
   class PhysRemap{
   public:
     PhysRemap(utl::Logger* logger,
-	      sta::Network* nwk,
-	      Cut* cut_to_remap,
-	      std::vector<std::pair<const sta::Pin*, TimingRecord*> > & timing_requirements,
-	      char* lib_name,
-	      LibRead& lib_file,
-	      bool script,
-	      std::string &script_to_apply,
-	      bool accept
+              sta::Network* nwk,
+              Cut* cut_to_remap,
+              std::vector<std::pair<const sta::Pin*, TimingRecord*> > & timing_requirements,
+              char* lib_name,
+              LibRead& lib_file,
+              bool script,
+              std::string &script_to_apply,
+              bool accept,
+              bool verify=false
 	      ):logger_(logger),
-		nwk_(nwk),
-		cut_(cut_to_remap),
-		timing_requirements_(timing_requirements),
-		lib_name_(lib_name),
-		liberty_library_(lib_file.lib_),
-		script_(script),
-		script_to_apply_(script_to_apply),
-		accept_(accept)
+          nwk_(nwk),
+          cut_(cut_to_remap),
+          timing_requirements_(timing_requirements),
+          lib_name_(lib_name),
+          liberty_library_(lib_file.lib_),
+          script_(script),
+          script_to_apply_(script_to_apply),
+          accept_(accept),
+          verify_(verify)
     {
       cut_name_ = "cut_" + std::to_string(cut_to_remap -> id_);
       global_optimize_ = false;
@@ -282,6 +284,7 @@ namespace rmp {
     std::string script_to_apply_;
     bool accept_;
     abc::Abc_Ntk_t_* intermediate_result_;
+    bool verify_;
     friend class Restructure;    
   };
 
@@ -314,12 +317,13 @@ class Restructure
   void reset();
   
   void cutresynthrun(char* liberty_file_name,
-		     char* script,
-		     sta::Pin* head_pin,
-		     bool single_op,
-		     bool unconstrained,
-		     bool oracle_remap,
-		     bool verbose);
+                     char* script,
+                     sta::Pin* head_pin,
+                     bool single_op,
+                     bool unconstrained,
+                     bool oracle_remap,
+                     bool verbose,
+                     bool verify=false);
 
 
   void run(char* liberty_file_name,
@@ -327,13 +331,13 @@ class Restructure
            unsigned max_depth,
            char* workdir_name,
            char* abc_logfile,
-	   
-	   bool cut_restructure, //if true use cut restructuring, else old flow
-	   char* head_pin_ptr_str, //the start pin to generate the cut
-	   bool unconstrained,  //unconstrained -> walk back to invariant points for resynth
-	   bool single_op_cut,  //generate single or multiple output cuts
-	   bool oracle,         //undocumented
-	   char* script);
+           bool cut_restructure, //if true use cut restructuring, else old flow
+           char* head_pin_ptr_str, //the start pin to generate the cut
+           bool unconstrained,  //unconstrained -> walk back to invariant points for resynth
+           bool single_op_cut,  //generate single or multiple output cuts
+           bool oracle,         //undocumented
+           char* script,
+           bool verify);
 
   void setMode(const char* mode_name);
   void setTieLoPort(sta::LibertyPort* loport);

@@ -1,5 +1,7 @@
 record_tests {
   restruct_rm_scutremap
+  escapenode
+  floploop
   #gcd_restructure
   #const_cell_removal
   blif_writer

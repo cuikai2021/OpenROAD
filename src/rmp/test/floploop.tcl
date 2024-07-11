@@ -1,3 +1,4 @@
+#cd /home/andy/Eden_restr_bug_fix/src/rmp/test
 source "./helpers.tcl"
 set liberty_library Nangate45/Nangate45_typ.lib
 read_liberty $liberty_library

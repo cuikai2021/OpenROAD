@@ -30,9 +30,9 @@ module floploop (clk_i,
 
    XOR2_X1 U3 (.A(mux2_1_int),
                .B(xor2_1_int),
-               .Z(xor2_1_int));
+               .Z(xor2_2_int));
    
-   DFF_X1 U4 (.D(xor2_1_int),
+   DFF_X1 U4 (.D(xor2_2_int),
               .CK(clk_i),
               .Q(q_int));
 

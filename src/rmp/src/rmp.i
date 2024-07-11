@@ -86,20 +86,22 @@ restructure_cmd(char* liberty_file_name,
                 bool unconstrained,
                 bool single_op_cut,
                 bool oracle,
-                char* script)
+                char* script,
+                bool verify)
 {
   getRestructure()->setMode(target);
   getRestructure()->run(liberty_file_name,
-			slack_threshold,
-			depth_threshold,
+                        slack_threshold,
+                        depth_threshold,
                         workdir_name,
-			abc_logfile,
-			cut_restructure,
-			head_pin_ptr_str,
-			unconstrained,
-			single_op_cut,
-			oracle,
-			script);
+                        abc_logfile,
+                        cut_restructure,
+                        head_pin_ptr_str,
+                        unconstrained,
+                        single_op_cut,
+                        oracle,
+                        script,
+                        verify);
 }
 
 // Locally Exposed for testing only..
