@@ -17,12 +17,7 @@
     minjog:/build/bin/:755
     sat_server:/build/bin/:755
     cgss2:/build/bin/:755
-    banyan_dprouter.so:/build/lib/banyan_dprouter.so
-    banyan_gmap.so:/build/lib/banyan_gmap.so
-    banyan_maze.so:/build/lib/banyan_maze.so
-    banyan_mcf.so:/build/lib/banyan_mcf.so
-    banyan_nleg.so:/build/lib/banyan_nleg.so
-    banyan_opt.so:/build/lib/banyan_opt.so
+    *.so:/build/lib/:755
 
 - name: linden-integrate
   repo: file://src/linden/gpl
