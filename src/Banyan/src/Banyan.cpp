@@ -288,7 +288,7 @@ void Banyan::savedb(std::string dbfile)
 
 void Banyan::loaddb(std::string dbflie)
 {
-  OpenDBAdapter dbAdapter(db_, logger_, nullptr, nullptr);
+  OpenDBAdapter dbAdapter(db_, logger_, laurel_, nullptr);
   dbAdapter.loadDesignFromBanyanDB(dbflie);
   auto design = dbAdapter.getDesign();
   dbAdapter.updateDB(*design);

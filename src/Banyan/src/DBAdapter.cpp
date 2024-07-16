@@ -1028,6 +1028,7 @@ void OpenDBAdapter::updateDB(const Design& design)
     if (netInOpenDB == nullptr) {
       continue;
     }
+    laurel_->cacheNet(netInOpenDB);
     if (net.has_nondefaultrule()) {
       auto NDRName = net.nondefaultrule().value();
       auto odbNDR = tech->findNonDefaultRule(NDRName.c_str());
@@ -1051,6 +1052,7 @@ void OpenDBAdapter::updateDB(const Design& design)
     }
 
     _wire_encoder.end();
+    laurel_->diffNet(netInOpenDB);
   }
 }
 
