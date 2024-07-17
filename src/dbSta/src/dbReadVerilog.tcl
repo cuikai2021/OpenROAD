@@ -38,6 +38,7 @@
 sta::define_cmd_args "read_verilog" {filename}
 
 proc read_verilog { filename } {
+  laurel_record_command read_verilog $filename
   ord::read_verilog_cmd [file nativename $filename]
 }
 

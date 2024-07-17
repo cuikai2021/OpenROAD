@@ -40,6 +40,7 @@ sta::define_cmd_args "set_layer_rc" { [-layer layer]\
                                         [-resistance res]\
                                         [-corner corner]}
 proc set_layer_rc {args} {
+  laurel_record_command set_layer_rc {*}$args
   sta::parse_key_args "set_layer_rc" args \
     keys {-layer -via -capacitance -resistance -corner}\
     flags {}
@@ -136,6 +137,7 @@ sta::define_cmd_args "set_wire_rc" {[-clock] [-signal] [-data]\
                                       [-corner corner]}
 
 proc set_wire_rc { args } {
+  laurel_record_command set_wire_rc {*}$args
   sta::parse_key_args "set_wire_rc" args \
     keys {-layer -layers -resistance -capacitance -corner \
           -h_resistance -h_capacitance -v_resistance -v_capacitance} \

@@ -37,6 +37,7 @@
 sta::define_cmd_args "read_lef" {[-tech] [-library] [-tech_name name] filename}
 
 proc read_lef { args } {
+  laurel_record_command read_lef {*}$args
   sta::parse_key_args "read_lef" args keys {-tech_name} flags {-tech -library}
   sta::check_argc_eq1 "read_lef" $args
 
@@ -76,6 +77,7 @@ sta::define_cmd_args "read_def" {[-floorplan_initialize|-incremental|-child]\
                                    filename}
 
 proc read_def { args } {
+  laurel_record_command read_def {*}$args
   sta::parse_key_args "read_def" args keys {-tech} \
     flags {-floorplan_initialize -incremental \
            -order_wires -continue_on_errors -child}
