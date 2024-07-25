@@ -13,7 +13,6 @@
 #include <map>
 #include <set>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -22,26 +21,18 @@
 #include "db_sta/dbNetwork.hh"
 #include "db_sta/dbSta.hh"
 #include "lef/lef.pb.h"
-#include "lrl/Laurel.hh"
-#include "lrl/Timer/Timer.hh"
-#include "odb/ZException.h"
 #include "odb/db.h"
 #include "odb/dbShape.h"
-#include "odb/dbTransform.h"
 #include "odb/dbWireCodec.h"
 #include "odb/geom.h"
 #include "ord/OpenRoad.hh"
-#include "rsz/Resizer.hh"
-#include "sta/Delay.hh"
-#include "sta/Liberty.hh"
-#include "sta/Network.hh"
 #include "sta/PortDirection.hh"
 #include "stt/SteinerTreeBuilder.h"
 #include "utl/Logger.h"
+#include "lrl/Laurel.hh"
 
 namespace banyan {
 
-using Y2Height = std::pair<int, int>;
 
 namespace ply = boost::polygon;
 using namespace boost::polygon::operators;
@@ -185,6 +176,51 @@ std::string OpenDBAdapter::viaNameFromViaBox(odb::dbBox* box)
   return "";
 }
 
+sta::PortDirection* OpenDBAdapter::findStaPortDirection(std::string macroName,
+                                                       std::string pinName)
+{
+  auto dbNetwork = ::ord::OpenRoad::openRoad()->getDbNetwork();
+  if (dbNetwork == nullptr) {
+    logger_->warn(utl::BY,
+                  1,
+                  "dbNetwork is empty, would use lef file to determine the "
+                  "direction of macro' pins, instead of lib file");
+    return nullptr;
+  }
+  auto staMaster = dbNetwork->findAnyCell(macroName.c_str());
+  if (staMaster == nullptr) {
+    logger_->warn(utl::BY,
+                  1,
+                  "No macro named {} was found in stalib, would use lef "
+                  "file to determine the "
+                  "direction of macro' pins, instead of lib file",
+                  macroName);
+    return nullptr;
+  }
+  auto libCell = dbNetwork->libertyCell(staMaster);
+  if (libCell == nullptr) {
+    logger_->warn(utl::BY,
+                  1,
+                  "No libCell named {} was found in stalib, would use lef "
+                  "file to determine the "
+                  "direction of macro' pins, instead of lib file",
+                  macroName);
+    return nullptr;
+  }
+  auto libPort = libCell->findLibertyPort(pinName.c_str());
+  if (libPort == nullptr) {
+    logger_->warn(utl::BY,
+                  1,
+                  "No pin named {} was found in stacell {}, would use "
+                  "lef file to determine the "
+                  "direction of macro' pins, instead of lib file",
+                  pinName,
+                  macroName);
+    return nullptr;
+  }
+  return libPort->direction();
+}
+
 Pin OpenDBAdapter::odbITerm2Pin(odb::dbITerm* iterm)
 {
   Pin pin;
@@ -192,28 +228,20 @@ Pin OpenDBAdapter::odbITerm2Pin(odb::dbITerm* iterm)
   auto inst = iterm->getInst();
   auto mterm = iterm->getMTerm();
 
-  instPinNames.insert(inst->getName() + "_" + mterm->getName());
+  auto instName = inst->getName();
+  auto masterName = mterm->getMaster()->getName();
+  auto pinName = mterm->getName();
 
-  pin.set_instancename(inst->getName());
-  pin.mutable_portname()->set_value(mterm->getName());
+  pin.set_instancename(instName);
+  pin.mutable_portname()->set_value(pinName);
 
-  ensureStaDB();
-  auto sta_port = sta_db_network_->dbToSta(mterm);
-  auto sta_lib_port = sta_db_network_->libertyPort(sta_port);
-  if (sta_lib_port != nullptr) {
-    auto sta_direction = sta_lib_port->direction();
-    pin.set_direction(staPortDirection2Banyan(sta_direction));
+ 
+  if ( auto staDir  = findStaPortDirection(masterName, pinName); staDir != nullptr) {
+    pin.set_direction(staPortDirection2Banyan(staDir));
   } else {
-    if (not had_warn_no_liberty_) {
-      logger_->warn(
-          utl::BY,
-          4,
-          "there is macro that is not contained in the libs, such as {}",
-          inst->getConstName());
-      had_warn_no_liberty_ = true;
-    }
     pin.set_direction(odbIOType2Banyan(mterm->getIoType()));
   }
+
   return pin;
 }
 
@@ -473,6 +501,7 @@ std::deque<SpecialWire> OpenDBAdapter::dbSWire2SpecialWires(
   }
   return swires;
 }
+
 
 void OpenDBAdapter::getDesignFromODB()
 {
@@ -828,64 +857,6 @@ void OpenDBAdapter::getRowsFromODB()
   }
 }
 
-sta::Pin* OpenDBAdapter::pin2StaPin(sta::dbNetwork* network, Pin* pin)
-{
-  auto chip = db_->getChip();
-  auto block = chip->getBlock();
-  auto instanceName = pin->instancename();
-  if (pin->has_portname()) {
-    auto inst = block->findInst(instanceName.c_str());
-    auto iterm = inst->findITerm(pin->portname().value().c_str());
-    return network->dbToSta(iterm);
-  } else {
-    auto bterm = block->findBTerm(instanceName.c_str());
-    return network->dbToSta(bterm);
-  }
-}
-
-void OpenDBAdapter::ensureStaDB() {
-  if (sta_db_network_ == nullptr)
-    sta_db_network_ = ord::OpenRoad::openRoad()->getSta()->getDbNetwork();
-}
-
-void OpenDBAdapter::getWireBudgetingFromLrl()
-{
-  sta::dbNetwork* network = ::ord::OpenRoad::openRoad()->getDbNetwork();
-  auto sta = ::ord::OpenRoad::openRoad()->getSta();
-  auto unitCap = resizer_->wireSignalCapacitance(sta->cmdCorner());
-  odb::dbTech* tech = db_->getTech();
-  auto dbu = tech->getDbUnitsPerMicron();
-  logger_->info(utl::BY, 1, "unit cap {}", unitCap);
-  if (network->isLinked()) {
-    auto chip = db_->getChip();
-    auto block = chip->getBlock();
-    auto netsSize = block->getNets().size();
-
-    lrl::GBAReporter gba;
-    gba.update();
-
-    for (int i = 0; i < design_->nets_size(); i++) {
-      auto net = design_->mutable_nets(i);
-      auto odbNet = block->findNet(net->name().c_str());
-      for (int j = 0; j < net->pins_size(); j++) {
-        auto pin = net->mutable_pins(j);
-        auto stapin = pin2StaPin(network, pin);
-        pin->mutable_minslack()->set_value(gba.slack(gba.network().vertex(stapin)));
-      }
-      double wire_cap = laurel_->wireCap(odbNet);
-      net->set_capbudget(wire_cap);
-      odb::int64 wire_len = (odb::int64) (wire_cap / unitCap * METER_TO_MICRON * dbu);
-      net->set_wirelenbudget(wire_len);
-      logger_->warn(utl::BY,
-                    1,
-                    "budgeting for net {} cap {} wirelen {}",
-                    net->name(),
-                    wire_cap,
-                    wire_len);
-    }
-  }
-}
-
 void OpenDBAdapter::getGcellsFromODB()
 {
   auto chip = db_->getChip();
@@ -948,7 +919,6 @@ void OpenDBAdapter::loadDesignFromODB()
   getSpecialNetsFromODB();
   getBlockagesFromODB();
   getRowsFromODB();
-  getWireBudgetingFromLrl();
   getGcellsFromODB();
 }
 
@@ -958,7 +928,9 @@ void OpenDBAdapter::loadDesignFromBanyanDB(std::string pbfile)
   BanyanCase bydb;
   std::ifstream dbfs;
   dbfs.open(pbfile);
-  bydb.ParseFromIstream(&dbfs);
+  if (!bydb.ParseFromIstream(&dbfs)) {
+    logger_->error(utl::BY, 10, "Parse {} BanyanDB fail", pbfile);
+  }
   dbfs.close();
   design_ = std::unique_ptr<Design>(bydb.release_design());
 }
@@ -970,17 +942,17 @@ void OpenDBAdapter::updateDB(const Design& design)
   odb::dbWireEncoder _wire_encoder;
 
   auto pbVia2ODBVia = [&](const std::string& layerName, const ViaPoint& pbvia) {
-    auto layerInOpenDB = tech->findLayer(layerName.c_str());
-    _wire_encoder.newPath(layerInOpenDB, odb::dbWireType("ROUTED"));
+    auto vianame = pbvia.vianame();
+    odb::dbTechVia* tech_via = tech->findVia(vianame.c_str());
+    odb::dbVia* db_via = tech_via ? nullptr : block->findVia(vianame.c_str());
+
+    _wire_encoder.newPath(tech_via ? tech_via->getBottomLayer() : db_via->getBottomLayer(), odb::dbWireType("ROUTED"));
 
     auto point = pbvia.point();
     _wire_encoder.addPoint(point.x(), point.y());
-    auto vianame = pbvia.vianame();
-    odb::dbTechVia* tech_via = tech->findVia(vianame.c_str());
     if (tech_via != nullptr) {
       _wire_encoder.addTechVia(tech_via);
     } else {
-      odb::dbVia* db_via = block->findVia(vianame.c_str());
       _wire_encoder.addVia(db_via);
     }
   };

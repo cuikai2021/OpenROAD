@@ -60,6 +60,11 @@ void loadDB(std::string dbfile)
     ord::OpenRoad::openRoad()->getBanyan()->loaddb(dbfile);
 }
 
+void loadDef(std::string deffile)
+{
+    ord::OpenRoad::openRoad()->getBanyan()->loaddef(deffile);
+}
+
 }
 
 %} // inline

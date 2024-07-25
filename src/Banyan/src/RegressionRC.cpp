@@ -21,8 +21,8 @@ namespace banyan {
 inline namespace {
 
 void assert_(bool expr) {
-  [[unlikely]]
   if (!expr)
+  [[unlikely]]
     ord::OpenRoad::openRoad()->getLogger()
       ->error(utl::BY, 5, "assert failed in regression_RC");
 }

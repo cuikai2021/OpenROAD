@@ -3,9 +3,6 @@
 
 #include <dlfcn.h>
 #include <tcl.h>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/process.hpp>
 #include <charconv>
 #include <cstdint>
 #include <filesystem>
@@ -15,7 +12,13 @@
 #include <numeric>
 #include <string>
 #include <vector>
+#include <boost/algorithm/string.hpp>
+#include <boost/process.hpp>
+#include <google/protobuf/message.h>
+#include <google/protobuf/descriptor.h>
+#include <google/protobuf/util/message_differencer.h>
 
+#include "banyan_db.pb.h"
 #include "ord/OpenRoad.hh"
 #include "odb/db.h"
 
@@ -49,8 +52,7 @@ class Banyan : public ord::OpenRoadObserver
             odb::dbDatabase* db,
             stt::SteinerTreeBuilder* stt_builder,
             utl::Logger* logger,
-            lrl::Laurel* laurel,
-            rsz::Resizer* resizer);
+            lrl::Laurel* laurel);
 
   int main(std::vector<std::string> args, bool updateDB);
   int cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_layer);
@@ -61,6 +63,7 @@ class Banyan : public ord::OpenRoadObserver
                      const char* corner_name);
   void savedb(std::string dbfile);
   void loaddb(std::string dbfile);
+  void loaddef(std::string_view deffile);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
                            odb::dbTech*,
@@ -79,9 +82,11 @@ class Banyan : public ord::OpenRoadObserver
   stt::SteinerTreeBuilder* stt_builder_;
   utl::Logger* logger_;
   lrl::Laurel* laurel_;
-  rsz::Resizer* resizer_;
   std::string tech_lef_file_name_;
   std::vector<std::string> other_lef_file_names_;
+
+ private:
+  odb::dbDatabase* createODB(std::string_view deffile);
 };  // class Banyan
 
 }  // namespace banyan

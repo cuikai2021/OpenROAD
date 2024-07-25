@@ -1,0 +1,19 @@
+[[inputs]]
+  name = "nangate_test.def"
+  uri = "https://aqua.icbench.com/benchmark/data/6698faba9b3e6a5691ab7b33"
+
+[[inputs]]
+  name = "nangate_test.db"
+  uri = "https://aqua.icbench.com/benchmark/data/6698fb079b3e6a5691ab7b39"
+
+[[inputs]]
+  name = "nangate_test_wire.def"
+  uri = "https://aqua.icbench.com/benchmark/data/6698fa979b3e6a5691ab7b30"
+
+[[inputs]]
+  name = "nangate_test_error.def"
+  uri = "https://aqua.icbench.com/benchmark/data/6698faeb9b3e6a5691ab7b36"
+
+[[inputs]]
+  name = "nangate_test_ordering_changed.def"
+  uri = "https://aqua.icbench.com/benchmark/data/669dd8329b3e6a5691ac3a85"

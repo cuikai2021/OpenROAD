@@ -22,8 +22,7 @@ void initBanyan(OpenRoad* openroad)
       openroad->getDb(), 
       openroad->getSteinerTreeBuilder(),
       openroad->getLogger(), 
-      openroad->getLaurel(),
-      openroad->getResizer());
+      openroad->getLaurel());
   openroad->addObserver(openroad->getBanyan());
 }
 

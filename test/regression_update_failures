@@ -45,6 +45,7 @@ array set all_test_dirs {
   dft "src/dft/test"
   gui "src/gui/test"
   lrl "src/Laurel/test"
+  bya "src/Banyan/test"
 }
 
 proc read_failures_item { failures_file } {

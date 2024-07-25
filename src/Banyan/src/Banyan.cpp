@@ -1,17 +1,16 @@
 #include "banyan/Banyan.h"
 
-#include <spdlog/spdlog.h>
-
-#include <boost/program_options.hpp>
 #include <chrono>
-#include <iostream>
 #include <sstream>
-#include <thread>
+#include <spdlog/spdlog.h>
+#include <boost/program_options.hpp>
+#include <iostream>
 
+#include "BanyanTimer.hpp"
 #include "DBAdapter.hpp"
-#include "banyan_instance_movement.pb.h"
-// #include "cgr/congestionRepair.hpp"
-#include "odb/db.h"
+#include "odb/defin.h"
+#include "odb/defout.h"
+#include "odb/lefin.h"
 #include "odb/lefout.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
@@ -31,6 +30,52 @@ extern int Banyan_Init(Tcl_Interp* interp);
 
 namespace banyan {
 
+bool designEqualExceptWires(const Design& oldDesign, const Design& newDesign, std::string& differences)
+{
+  google::protobuf::util::MessageDifferencer differencer;
+
+  auto designDesc = Design::descriptor();
+  differencer.TreatAsSet(designDesc->FindFieldByName("tracks"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("nets"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("specialNets"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("blockages"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("vias"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("instances"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("pins"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("rows"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("viaRules"));
+  differencer.TreatAsSet(designDesc->FindFieldByName("nonDefaultRules"));
+
+  auto specialNetDesc = SpecialNet::descriptor();
+  const google::protobuf::FieldDescriptor* spNetWiresField = specialNetDesc->FindFieldByName("wires");
+  differencer.TreatAsSet(spNetWiresField);
+  const google::protobuf::FieldDescriptor* spNetPinsField = specialNetDesc->FindFieldByName("pins");
+  differencer.TreatAsSet(spNetPinsField);
+
+  auto netDesc = Net::descriptor();
+  const google::protobuf::FieldDescriptor* netWiresField = netDesc->FindFieldByName("wires");
+  differencer.IgnoreField(netWiresField);
+  const google::protobuf::FieldDescriptor* netPinsField = netDesc->FindFieldByName("pins");
+  differencer.TreatAsSet(netPinsField);
+
+  differencer.set_report_moves(false);
+  differencer.set_report_ignores(false);
+
+  std::string diff_report;
+  differencer.ReportDifferencesToString(&diff_report);
+  auto equal = differencer.Compare(oldDesign, newDesign);
+  if (!equal) {
+    differences = diff_report;
+  }
+  return equal;
+}
+
+std::string getFileName(std::string_view path)
+{
+  std::filesystem::path p(path);
+  return p.filename().string();
+}
+
 constexpr int SUCCESS = 0;
 constexpr int ERROR = -1;
 constexpr int HELP = -2;
@@ -49,14 +94,12 @@ void Banyan::init(Tcl_Interp* tcl_interp,
                   odb::dbDatabase* db,
                   stt::SteinerTreeBuilder* stt_builder,
                   utl::Logger* logger,
-                  lrl::Laurel* laurel,
-                  rsz::Resizer* resizer)
+                  lrl::Laurel* laurel)
 {
   db_ = db;
   stt_builder_ = stt_builder;
   logger_ = logger;
   laurel_ = laurel;
-  resizer_ = resizer;
   // Define swig TCL commands.
   Banyan_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::Banyan_tcl_inits);
@@ -180,15 +223,18 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     args.push_back(lef);
   }
 
-  bool timingDriven = vm.count("timing_driven");
-  OpenDBAdapter dbAdapter(
-      db_, logger_, laurel_, resizer_, timingDriven);
+  // bool timingDriven = vm.count("timing_driven");
+  OpenDBAdapter dbAdapter(db_, logger_, laurel_);
 
   if (!vm.count("db")) {
     dbAdapter.loadDesignFromODB();
     auto design = dbAdapter.getDesign();
+    BanyanTimer byTimer(db_, logger_, laurel_, design);
+    auto timeReport = byTimer.getTimeReport();
+
     BanyanCase byCase;
     byCase.set_allocated_design(design.release());
+    byCase.set_allocated_timingreport(timeReport.release());
     inPbFilePath = genTempFilePath(logger_, ".pb");
     std::ofstream pbfs;
     pbfs.open(inPbFilePath,
@@ -271,12 +317,16 @@ void Banyan::clearWires(bool excludeClock, bool excludeSignal)
 
 void Banyan::savedb(std::string dbfile)
 {
-  OpenDBAdapter dbAdapter(db_, logger_, laurel_, resizer_, true);
+  OpenDBAdapter dbAdapter(db_, logger_, laurel_);
   dbAdapter.loadDesignFromODB();
   auto design = dbAdapter.getDesign();
+  BanyanTimer byTimer(db_, logger_, laurel_, design);
+  auto timeReport = byTimer.getTimeReport();
+  
   BanyanCase byCase;
-  byCase.set_allocated_design(design.get());
-  design.release();
+  byCase.set_allocated_design(design.release());
+  byCase.set_allocated_timingreport(timeReport.release());
+
   std::ofstream pbfs;
   pbfs.open(dbfile,
             std::ofstream::in | std::ofstream::out | std::ofstream::trunc);
@@ -288,10 +338,64 @@ void Banyan::savedb(std::string dbfile)
 
 void Banyan::loaddb(std::string dbflie)
 {
-  OpenDBAdapter dbAdapter(db_, logger_, laurel_, nullptr);
+  OpenDBAdapter dbAdapter(db_, logger_, laurel_);
   dbAdapter.loadDesignFromBanyanDB(dbflie);
   auto design = dbAdapter.getDesign();
   dbAdapter.updateDB(*design);
+}
+
+odb::dbDatabase* Banyan::createODB(std::string_view deffile)
+{
+  auto newdb = odb::dbDatabase::create();
+  odb::lefin lef_reader(newdb, logger_, false);
+  std::vector<odb::dbLib*> search_libs;
+  auto techlib = lef_reader.createTechAndLib(getFileName(tech_lef_file_name_).c_str(), getFileName(tech_lef_file_name_).c_str(), tech_lef_file_name_.c_str());
+  search_libs.push_back(techlib);
+  auto tech = newdb->getTech();
+  for (auto libfile : other_lef_file_names_) {
+    if (auto lib = lef_reader.createLib(
+            tech, getFileName(libfile).c_str(), libfile.c_str());
+        lib != nullptr) {
+      search_libs.push_back(lib);
+    }
+  }
+  odb::defin def_reader(newdb, logger_);
+  if (auto chip
+      = def_reader.createChip(search_libs, std::string(deffile).c_str(), tech);
+      chip == nullptr) {
+    odb::dbDatabase::destroy(newdb);
+    logger_->error(utl::BY, 2, "create chip fail, def file {}", deffile);
+  }
+  return newdb;
+}
+
+void Banyan::loaddef(std::string_view deffile)
+{
+  auto newdb = createODB(deffile);
+
+  OpenDBAdapter newDBAdapter(
+      newdb,
+      logger_,
+      nullptr);  // laurel设置为空确保非mainDbAdapter不会调用updateDB
+  newDBAdapter.loadDesignFromODB();
+  auto newDesign = *newDBAdapter.getDesign().release();
+
+  OpenDBAdapter mainDBAdapter(db_, logger_, laurel_);
+  mainDBAdapter.loadDesignFromODB();
+  auto mainDesign = *mainDBAdapter.getDesign().release();
+
+  std::string messagesDiff = "";
+  if (!designEqualExceptWires(mainDesign, newDesign, messagesDiff)) {
+    odb::dbDatabase::destroy(newdb);
+    logger_->error(utl::BY,
+                   3,
+                   "Except for the wires field, the two designs have "
+                   "inconsistent fields. {}",
+                   messagesDiff);
+  } else {
+    mainDBAdapter.updateDB(newDesign);
+    odb::dbDatabase::destroy(newdb);
+  }
 }
 
 }  // namespace banyan

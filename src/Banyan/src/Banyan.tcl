@@ -1,6 +1,5 @@
 proc banyan { args } {
-  set now [clock format [clock seconds] -format %y%m%d-%T-%Z]
-  utl::info BY 6 "run banyan with args: `$args' at $now"
+  utl::info BY 6 "run banyan with args: '$args'"
   banyan::banyan $args true
 }
 
@@ -49,4 +48,9 @@ proc banyan_save_db { dbfile } {
 sta::define_cmd_args "banyan_load_db" { dbfile }
 proc banyan_load_db { dbfile } {
   banyan::loadDB $dbfile
+}
+
+sta::define_cmd_args "banyan_load_def" { deffile }
+proc banyan_load_def { deffile } {
+  banyan::loadDef $deffile
 }
