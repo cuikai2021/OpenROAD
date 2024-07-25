@@ -145,6 +145,9 @@ class dbSta : public Sta, public ord::OpenRoadObserver
   std::set<dbNet*> findClkNets();
   std::set<dbNet*> findClkNets(const Clock* clk);
 
+  Instance *makePureNameInstance(const char *name, LibertyCell *cell, Instance *parent);
+  Net *makePureNameNet(const char *name, Instance *parent);
+
   void deleteInstance(Instance* inst) override;
   void deleteNet(Net* net) override;
   Pin* connectPin(Instance* inst, Port* port, Net* net) override;

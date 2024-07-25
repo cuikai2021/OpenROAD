@@ -523,6 +523,21 @@ void dbSta::report_cell_usage()
 // These override the default sta functions that call sta before/after
 // functions because the db calls them via callbacks.
 
+Instance *dbSta::makePureNameInstance(const char *name, LibertyCell *cell, Instance *parent)
+{
+  auto dbn = (dbNetwork*)network_;
+  auto instance = dbn->dbNetwork::makeInstance(cell, name, parent);
+  NetworkEdit *network = networkCmdEdit();
+  network->makePins(instance);
+  makeInstanceAfter(instance);
+  return instance;
+}
+Net *dbSta::makePureNameNet(const char *name, Instance *parent)
+{
+  auto dbn = (dbNetwork*)network_;
+  return dbn->dbNetwork::makeNet(name, parent);
+}
+
 void dbSta::deleteInstance(Instance* inst)
 {
   NetworkEdit* network = networkCmdEdit();
