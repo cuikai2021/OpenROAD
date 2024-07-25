@@ -11,6 +11,8 @@
 #include <memory>
 #include <deque>
 #include <string>
+#include "envflag/envflag.hpp"
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
 %}
 
 %inline %{
@@ -167,3 +169,11 @@ int analyze_banyan_cmap_file_cmd(const char* cmap_file, const char* report_file)
 }
 
 %} // cgr
+
+%inline %{
+
+const char* env_tmp_file_root_dir() {
+    return LINDEN_TMP_FILE_ROOT_DIR().data();
+}
+
+%} // exposing envflags
