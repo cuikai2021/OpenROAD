@@ -1,0 +1,11 @@
+[[inputs]]
+  name = "route.def"
+  uri = "https://aqua.icbench.com/benchmark/data/6608d756c5d3f58108ba824e"
+
+[[inputs]]
+  name = "scc011u_8lm_1tm_thin_ALPA.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/65ba20821bf6c9509e09f762"
+
+[[inputs]]
+  name = "scc011ums_hd_rvt_ant.lef"
+  uri = "https://aqua.icbench.com/benchmark/data/64225d2e9a4441efa3fbcb2c"

@@ -29,6 +29,7 @@ file(GLOB cpps
     remove_fillers/*.cpp
     timing_data/*.cpp
     util/*.cpp
+    eco_placer/*.cpp
 )
 target_sources(linden
 PRIVATE
