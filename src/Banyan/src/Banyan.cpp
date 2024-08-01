@@ -350,7 +350,9 @@ odb::dbDatabase* Banyan::createODB(std::string_view deffile)
   odb::lefin lef_reader(newdb, logger_, false);
   std::vector<odb::dbLib*> search_libs;
   auto techlib = lef_reader.createTechAndLib(getFileName(tech_lef_file_name_).c_str(), getFileName(tech_lef_file_name_).c_str(), tech_lef_file_name_.c_str());
-  search_libs.push_back(techlib);
+  if (techlib != nullptr) {
+    search_libs.push_back(techlib);
+  }
   auto tech = newdb->getTech();
   for (auto libfile : other_lef_file_names_) {
     if (auto lib = lef_reader.createLib(
