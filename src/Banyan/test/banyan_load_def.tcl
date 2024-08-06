@@ -13,7 +13,7 @@ read_def nangate_test.def
 proc diff_same {} {
   global out
   write_def $out/nangate_test_same.def
-  diff_file $out/nangate_test_same.def nangate_test.def
+  banyan_diff_defs $out/nangate_test_same.def nangate_test.def
 }
 
 puts "\nTest udpate same def & db"
@@ -30,7 +30,7 @@ puts "\nTest wire change def & db"
 
 banyan_load_def nangate_test_wire.def
 write_def $out/nangate_test_change.def
-diff_file $out/nangate_test_change.def nangate_test.def
+banyan_diff_defs $out/nangate_test_change.def nangate_test.def
 
 banyan_clear_wires
 banyan_load_def nangate_test.def

@@ -15,5 +15,24 @@
   uri = "https://aqua.icbench.com/benchmark/data/6698faeb9b3e6a5691ab7b36"
 
 [[inputs]]
+  name = "nangate_test_remove_wires.def"
+  uri = "https://aqua.icbench.com/benchmark/data/66b034ff9b3e6a5691b0e7cf"
+
+[[inputs]]
   name = "nangate_test_ordering_changed.def"
   uri = "https://aqua.icbench.com/benchmark/data/669dd8329b3e6a5691ac3a85"
+  
+[[inputs]]
+  name = "nangate_test_wire_unordered.def"
+  uri = "https://aqua.icbench.com/benchmark/data/66a733109b3e6a5691af1205"
+
+[[inputs]]
+  name = "nangate_test_wire_ordered.defok"
+  uri = "https://aqua.icbench.com/benchmark/data/66a732fa9b3e6a5691af1202"
+
+[[inputs]]
+  name = "nangate_test_reorder_wires.def"
+  uri = "https://aqua.icbench.com/benchmark/data/66a8af039b3e6a5691af9209"
+
+
+

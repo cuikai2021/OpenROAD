@@ -30,6 +30,7 @@
 #include "stt/SteinerTreeBuilder.h"
 #include "utl/Logger.h"
 #include "lrl/Laurel.hh"
+#include "WireSorter.hpp"
 
 namespace banyan {
 
@@ -935,8 +936,10 @@ void OpenDBAdapter::loadDesignFromBanyanDB(std::string pbfile)
   design_ = std::unique_ptr<Design>(bydb.release_design());
 }
 
-void OpenDBAdapter::updateDB(const Design& design)
+void OpenDBAdapter::updateDB(Design& design)
 {
+  WireSorter::designWireOrdering(design);
+  
   odb::dbBlock* block = db_->getChip()->getBlock();
   odb::dbTech* tech = db_->getTech();
   odb::dbWireEncoder _wire_encoder;

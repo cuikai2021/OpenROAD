@@ -42,7 +42,6 @@ namespace banyan {
 using byvia = std::tuple<int, int, std::string>;
 
 constexpr const std::string_view BANYAN_TMP_FOLDER = "/tmp/banyan/";
-
 class Banyan : public ord::OpenRoadObserver
 {
  public:
@@ -64,6 +63,7 @@ class Banyan : public ord::OpenRoadObserver
   void savedb(std::string dbfile);
   void loaddb(std::string dbfile);
   void loaddef(std::string_view deffile);
+  void diffdefs(std::string_view deffileA,std::string_view deffileB);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
                            odb::dbTech*,
@@ -87,6 +87,7 @@ class Banyan : public ord::OpenRoadObserver
 
  private:
   odb::dbDatabase* createODB(std::string_view deffile);
+  std::unique_ptr<Design> createDesign(std::string_view deffile);
 };  // class Banyan
 
 }  // namespace banyan

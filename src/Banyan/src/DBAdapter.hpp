@@ -121,7 +121,7 @@ class OpenDBAdapter
 
   void loadDesignFromBanyanDB(std::string pbfile);
 
-  void updateDB(const Design& design);
+  void updateDB(Design& design);
 
   static std::deque<Wire> odbWires2Wires(odb::dbWire* odbWires);
 

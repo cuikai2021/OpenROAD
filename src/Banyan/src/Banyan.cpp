@@ -1,13 +1,17 @@
 #include "banyan/Banyan.h"
 
 #include <chrono>
+#include <functional>
 #include <sstream>
 #include <spdlog/spdlog.h>
 #include <boost/program_options.hpp>
 #include <iostream>
+#include <string>
+#include <utility>
 
 #include "BanyanTimer.hpp"
-#include "DBAdapter.hpp"
+#include "banyan_db.pb.h"
+#include "odb/db.h"
 #include "odb/defin.h"
 #include "odb/defout.h"
 #include "odb/lefin.h"
@@ -16,6 +20,8 @@
 #include "sta/StaMain.hh"
 #include "utl/Logger.h"
 #include "envflag/envflag.hpp"
+#include "WireSorter.hpp"
+#include "DBAdapter.hpp"
 
 IMPORT_BOOL_FLAG_WITH_DEFAULT(BANYAN_SUPPRESS_EXE_LOG);
 
@@ -30,9 +36,13 @@ extern int Banyan_Init(Tcl_Interp* interp);
 
 namespace banyan {
 
-bool designEqualExceptWires(const Design& oldDesign, const Design& newDesign, std::string& differences)
+bool designEqual(Design& oldDesign, Design& newDesign, std::string& differences, bool exceptWires)
 {
+
   google::protobuf::util::MessageDifferencer differencer;
+
+  differencer.set_report_moves(false);
+  differencer.set_report_ignores(false);
 
   auto designDesc = Design::descriptor();
   differencer.TreatAsSet(designDesc->FindFieldByName("tracks"));
@@ -54,12 +64,14 @@ bool designEqualExceptWires(const Design& oldDesign, const Design& newDesign, st
 
   auto netDesc = Net::descriptor();
   const google::protobuf::FieldDescriptor* netWiresField = netDesc->FindFieldByName("wires");
-  differencer.IgnoreField(netWiresField);
+  if (exceptWires) differencer.IgnoreField(netWiresField);
+  else {
+    WireSorter::designWireOrdering(oldDesign);
+    WireSorter::designWireOrdering(newDesign);
+  }
   const google::protobuf::FieldDescriptor* netPinsField = netDesc->FindFieldByName("pins");
   differencer.TreatAsSet(netPinsField);
 
-  differencer.set_report_moves(false);
-  differencer.set_report_ignores(false);
 
   std::string diff_report;
   differencer.ReportDifferencesToString(&diff_report);
@@ -266,7 +278,7 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
       outfs.open(outPbFilePath);
       byrst.ParseFromIstream(&outfs);
       outfs.close();
-      dbAdapter.updateDB(byrst.design());
+      dbAdapter.updateDB(*byrst.mutable_design());
     }
   });
 
@@ -370,34 +382,45 @@ odb::dbDatabase* Banyan::createODB(std::string_view deffile)
   }
   return newdb;
 }
+std::unique_ptr<Design> Banyan::createDesign(std::string_view deffile){
+  odb::dbDatabase* newDb = createODB(deffile);
+  OpenDBAdapter dbAdapter(newDb, logger_, nullptr); //laurel设置为空确保 dbAdapter 不会调用updateDB
+  dbAdapter.loadDesignFromODB();
+  odb::dbDatabase::destroy(newDb);
+  return dbAdapter.getDesign();
+}
 
 void Banyan::loaddef(std::string_view deffile)
 {
-  auto newdb = createODB(deffile);
-
-  OpenDBAdapter newDBAdapter(
-      newdb,
-      logger_,
-      nullptr);  // laurel设置为空确保非mainDbAdapter不会调用updateDB
-  newDBAdapter.loadDesignFromODB();
-  auto newDesign = *newDBAdapter.getDesign().release();
-
-  OpenDBAdapter mainDBAdapter(db_, logger_, laurel_);
-  mainDBAdapter.loadDesignFromODB();
-  auto mainDesign = *mainDBAdapter.getDesign().release();
-
+  auto newDesign = createDesign(deffile);
   std::string messagesDiff = "";
-  if (!designEqualExceptWires(mainDesign, newDesign, messagesDiff)) {
-    odb::dbDatabase::destroy(newdb);
-    logger_->error(utl::BY,
-                   3,
-                   "Except for the wires field, the two designs have "
-                   "inconsistent fields. {}",
-                   messagesDiff);
-  } else {
-    mainDBAdapter.updateDB(newDesign);
-    odb::dbDatabase::destroy(newdb);
+  OpenDBAdapter dbAdapter(db_, logger_, laurel_);
+  dbAdapter.loadDesignFromODB();
+  auto oldDesign = dbAdapter.getDesign();
+  bool result = designEqual(*newDesign,*oldDesign,messagesDiff,true);
+  if(result){
+    dbAdapter.updateDB(*newDesign);
   }
+  else{
+    this->logger_->error(utl::BY,
+                         3,
+                         "Except for the wires field, the two designs have "
+                         "inconsistent fields. {}",
+                         messagesDiff);
+  }
+}
+void Banyan::diffdefs(std::string_view deffileA,std::string_view deffileB)
+{
+  std::string messagesDiff = "";
+  auto designA = createDesign(deffileA);
+  auto designB = createDesign(deffileB);
+
+  bool result = designEqual(*designA,*designB,messagesDiff,false);
+  if (result)this->logger_->info(utl::BY,3,"No differences found.");
+  else this->logger_->info(utl::BY,
+                           3,
+                           "The two designs have inconsistent fields. {}",
+                           messagesDiff);
 }
 
 }  // namespace banyan

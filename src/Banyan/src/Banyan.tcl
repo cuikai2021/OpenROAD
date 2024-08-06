@@ -54,3 +54,8 @@ sta::define_cmd_args "banyan_load_def" { deffile }
 proc banyan_load_def { deffile } {
   banyan::loadDef $deffile
 }
+
+sta::define_cmd_args "banyan_diff_defs" { deffileA deffileB }
+proc banyan_diff_defs { deffileA deffileB } {
+  banyan::diffDefs $deffileA $deffileB
+}
