@@ -45,11 +45,3 @@ diff_same
 banyan_clear_wires
 banyan_load_db nangate_test.db
 diff_same
-
-puts "\nTest inst change def"
-
-catch {
-banyan_load_def "nangate_test_error.def"
-} error 
-
-puts $error

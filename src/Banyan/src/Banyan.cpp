@@ -393,29 +393,16 @@ std::unique_ptr<Design> Banyan::createDesign(std::string_view deffile){
 void Banyan::loaddef(std::string_view deffile)
 {
   auto newDesign = createDesign(deffile);
-  std::string messagesDiff = "";
   OpenDBAdapter dbAdapter(db_, logger_, laurel_);
-  dbAdapter.loadDesignFromODB();
-  auto oldDesign = dbAdapter.getDesign();
-  bool result = designEqual(*newDesign,*oldDesign,messagesDiff,true);
-  if(result){
-    dbAdapter.updateDB(*newDesign);
-  }
-  else{
-    this->logger_->error(utl::BY,
-                         3,
-                         "Except for the wires field, the two designs have "
-                         "inconsistent fields. {}",
-                         messagesDiff);
-  }
+  dbAdapter.updateDB(*newDesign);
 }
-void Banyan::diffdefs(std::string_view deffileA,std::string_view deffileB)
+void Banyan::diffdefs(std::string_view deffileA,std::string_view deffileB, bool exceptWires)
 {
   std::string messagesDiff = "";
   auto designA = createDesign(deffileA);
   auto designB = createDesign(deffileB);
 
-  bool result = designEqual(*designA,*designB,messagesDiff,false);
+  bool result = designEqual(*designA,*designB,messagesDiff, exceptWires);
   if (result)this->logger_->info(utl::BY,3,"No differences found.");
   else this->logger_->info(utl::BY,
                            3,

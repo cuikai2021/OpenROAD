@@ -63,7 +63,7 @@ class Banyan : public ord::OpenRoadObserver
   void savedb(std::string dbfile);
   void loaddb(std::string dbfile);
   void loaddef(std::string_view deffile);
-  void diffdefs(std::string_view deffileA,std::string_view deffileB);
+  void diffdefs(std::string_view deffileA,std::string_view deffileB, bool exceptWires);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
                            odb::dbTech*,

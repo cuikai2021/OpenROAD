@@ -64,9 +64,9 @@ void loadDef(std::string deffile)
 {
     ord::OpenRoad::openRoad()->getBanyan()->loaddef(deffile);
 }
-void diffDefs(std::string deffileA, std::string deffileB)
+void diffDefs(std::string deffileA, std::string deffileB, bool exceptWires)
 {
-    ord::OpenRoad::openRoad()->getBanyan()->diffdefs(deffileA, deffileB);
+    ord::OpenRoad::openRoad()->getBanyan()->diffdefs(deffileA, deffileB, exceptWires);
 }
 
 }

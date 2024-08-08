@@ -172,16 +172,3 @@ deleted: nets[111]: { name: "_058_" use: USE_SIGNAL pins { instanceName: "rebuff
 [INFO ODB-0132]     Created 2 special nets and 3716 connections.
 [INFO ODB-0133]     Created 428 nets and 1153 connections.
 [INFO BY-0003] No differences found.
-
-Test inst change def
-[INFO ODB-0227] LEF file: Nangate45/Nangate45_tech.lef, created 22 layers, 27 vias
-[INFO ODB-0227] LEF file: Nangate45/Nangate45_stdcell.lef, created 135 library cells
-[INFO ODB-0128] Design: gcd
-[INFO ODB-0130]     Created 54 pins.
-[INFO ODB-0131]     Created 1858 components and 4869 component-terminals.
-[INFO ODB-0132]     Created 2 special nets and 3716 connections.
-[INFO ODB-0133]     Created 428 nets and 1153 connections.
-[ERROR BY-0003] Except for the wires field, the two designs have inconsistent fields. added: instances[33]: { name: "FILLER_10_369" macroName: "FILLCELL_X4" origin { x: 160360 y: 50400 } location { x: 160360 y: 50400 } }
-deleted: instances[33]: { name: "FILLER_10_369" macroName: "FILLCELL_X8" origin { x: 160360 y: 50400 } location { x: 160360 y: 50400 } }
-
-BY-0003
