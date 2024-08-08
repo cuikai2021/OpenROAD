@@ -4,7 +4,9 @@ read_liberty Nangate45/Nangate45_typ.lib
 read_lef Nangate45/Nangate45.lef
 read_def reg2.def
 
-create_clock -name clk -period 10 {clk1 clk2 clk3}
+create_clock -name clk -period 10 clk1
+create_clock -name clk -period 10 clk2
+create_clock -name clk -period 10 clk3
 set_input_delay -clock clk 0 {in1 in2}
 
 source Nangate45/Nangate45.rc

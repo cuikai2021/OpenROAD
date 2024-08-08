@@ -115,6 +115,26 @@
 [INFO CTS-0101]  Average sink wire length 4904.58 um
 [INFO CTS-0102]  Path depth 17 - 17
 [INFO CTS-0207]  Leaf load cells 4
+info: [clk network patch by lrl] start
+info: [clk network patch by lrl] 'clkload0/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload0/ZN' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload1/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload1/ZN' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload2/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload2/Z' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload3/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload3/Z' is removed from sta clock tree.
+info: [clk network patch by lrl] end
+info: [clk network patch by lrl] start
+info: [clk network patch by lrl] 'clkload0/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload0/ZN' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload1/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload1/ZN' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload2/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload2/Z' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload3/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload3/Z' is removed from sta clock tree.
+info: [clk network patch by lrl] end
 [INFO RSZ-0058] Using max wire length 693um.
 [INFO RSZ-0047] Found 56 long wires.
 [INFO RSZ-0048] Inserted 114 buffers in 56 nets.
@@ -127,6 +147,16 @@ original HPWL          185794.9 u
 legalized HPWL         186281.3 u
 delta HPWL                    0 %
 
+info: [clk network patch by lrl] start
+info: [clk network patch by lrl] 'clkload0/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload0/ZN' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload1/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload1/ZN' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload2/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload2/Z' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload3/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload3/Z' is removed from sta clock tree.
+info: [clk network patch by lrl] end
 Clock clk
    1.24 source latency inst_8_12/clk ^
   -1.09 target latency inst_10_12/clk ^

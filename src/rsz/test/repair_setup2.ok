@@ -4,6 +4,9 @@
 [INFO ODB-0131]     Created 3 components and 15 component-terminals.
 [INFO ODB-0132]     Created 2 special nets and 0 connections.
 [INFO ODB-0133]     Created 7 nets and 9 connections.
+info: [clk network patch by lrl] start
+info: [clk network patch by lrl] 'clk' is removed from sta clock tree.
+info: [clk network patch by lrl] end
 worst slack -0.28
 [INFO RSZ-0058] Using max wire length 693um.
 [INFO RSZ-0037] Found 3 long wires.

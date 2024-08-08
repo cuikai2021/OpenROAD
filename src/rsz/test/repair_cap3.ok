@@ -5,6 +5,9 @@
 [INFO ODB-0131]     Created 105 components and 526 component-terminals.
 [INFO ODB-0132]     Created 2 special nets and 0 connections.
 [INFO ODB-0133]     Created 2 nets and 105 connections.
+info: [clk network patch by lrl] start
+info: [clk network patch by lrl] 'clk1' is removed from sta clock tree.
+info: [clk network patch by lrl] end
 Found 105 slew violations
 Found 1 cap violations
 [INFO RSZ-0058] Using max wire length 2393um.

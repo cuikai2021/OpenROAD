@@ -75,4 +75,8 @@
 [INFO CTS-0101]  Average sink wire length 74.54 um
 [INFO CTS-0102]  Path depth 3 - 3
 [INFO CTS-0207]  Leaf load cells 1
+info: [clk network patch by lrl] start
+info: [clk network patch by lrl] 'clkload0/A' is removed from sta clock tree.
+info: [clk network patch by lrl] 'clkload0/ZN' is removed from sta clock tree.
+info: [clk network patch by lrl] end
 Found 0 unconnected buffers.
