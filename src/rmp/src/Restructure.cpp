@@ -301,9 +301,13 @@ void Restructure::run(char* liberty_file_name,
         *head_pin_str == '0' ||
         *head_pin_str == '\0')
       head_pin = nullptr;
-    else
+    else{
+#ifdef DEBUG_GENERIC_RESTRUCT
+      printf("Converting head string pointer from %s\n",
+             head_pin_str);
+#endif      
       convertPtrFromString(head_pin_str,&ptr);
-    
+    }
     if (ptr){
       head_pin = (sta::Pin*)ptr;
     }
@@ -1859,7 +1863,7 @@ bool Cut::Check(sta::Network* nwk)
             ret = false;
           }
         } else {
-          printf("No driver found for pin %s\n", nwk->pathName(cur_pin));
+          printf("Warning No driver found for pin %s\n", nwk->pathName(cur_pin));
           ret = false;
         }
       }
@@ -1905,13 +1909,10 @@ void Restructure::AmendCutForEscapeLeaves(sta::Network* nwk)
 
 
 
-
+//Axiom: we require the cut to pass the cut check
 Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
 {
   
-  // First check our cut is sane !
-  cut_->Check(sta_nwk_);
-
   // Now build the abc view of the cut
   abc_nwk_ = (Abc_NtkAlloc(ABC_NTK_NETLIST, ABC_FUNC_SOP, 1));
   Abc_NtkSetName(abc_nwk_, Extra_UtilStrsav(cut_name_.c_str()));
@@ -2190,6 +2191,11 @@ void PhysRemap::Remap()
   }
   // Build the abc network for the cut. This is sta -> abc conversion
   Cut2Ntk c2nwk(logger_, nwk_, cut_, cut_name_);
+  if (!cut_->Check(nwk_)){
+    logger_->report("Error. Illegal cut");
+    return;
+  }
+  
   Abc_Ntk_t* sop_logic_nwk = c2nwk.BuildSopLogicNetlist();
 
   // Annotate the timing requirements. We have found the blif

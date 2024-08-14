@@ -252,6 +252,19 @@ Cut* CutGen::BuildCutFromExpansionElement(
           driving_pin = WalkThroughBuffersAndInverters(
               ret, driving_pin, unique_driver_pins);
 
+          // filter: a boundary (eg memory, or primary i/o)
+          if (Boundary(driving_pin)) {
+#ifdef CUTGEN_DEBUG
+            printf("Hit boundary after going through buffers/inverters\n");
+#endif
+            unique_driver_pins.insert(driving_pin);
+            if (!ret -> LeafPin(driving_pin)){
+              ret->leaves_.push_back(const_cast<sta::Pin*>(driving_pin));
+            }
+            continue;
+          }
+
+          
           if (network_->direction(driving_pin)->isOutput()) {
             sta::LibertyPort* lp = network_->libertyPort(driving_pin);
             ret->internal_pins_[driving_pin] = lp;
@@ -400,7 +413,20 @@ bool CutGen::EnumerateExpansions(
 {
   // equivalent to the cartesian product, but organized for physical level.
   // remove trivial cases
-  if (candidate_wavefront.size() == 2) {
+  if (candidate_wavefront.size() == 1) {
+    std::vector<const sta::Pin*> keep;
+    std::vector<const sta::Pin*> expand;
+    const sta::Pin* p1 = candidate_wavefront[0];
+    expand.push_back(p1);
+    expansion_set.push_back(std::pair<std::vector<const
+    sta::Pin*>,std::vector<const sta::Pin*> >(keep,expand));
+    keep.clear();
+    expand.clear();
+    keep.push_back(p1);
+    expansion_set.push_back(std::pair<std::vector<const
+    sta::Pin*>,std::vector<const sta::Pin*> >(keep,expand));
+  }  
+  else if (candidate_wavefront.size() == 2) {
     const sta::Pin* p1 = candidate_wavefront[0];
     const sta::Pin* p2 = candidate_wavefront[1];
     std::vector<const sta::Pin*> keep;
