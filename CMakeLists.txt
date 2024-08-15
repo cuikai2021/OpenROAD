@@ -170,6 +170,10 @@ target_compile_definitions(eden PRIVATE GPU)
 target_compile_definitions(eden PRIVATE BUILD_PYTHON)
 target_compile_definitions(eden PRIVATE BUILD_GUI)
 target_compile_definitions(eden PRIVATE ENABLE_CHARTS)
+target_compile_definitions(ord PRIVATE GPU)
+target_compile_definitions(ord PRIVATE BUILD_PYTHON)
+target_compile_definitions(ord PRIVATE BUILD_GUI)
+target_compile_definitions(ord PRIVATE ENABLE_CHARTS)
 
 ####################################################################
 
@@ -187,7 +191,7 @@ if(BUILD_MAN)
     COMMAND make clean && make preprocess && make all -j${PROCESSOR_COUNT}
     WORKING_DIRECTORY ${OPENROAD_HOME}/docs
   )
-  
+
   # Based on ${CMAKE_INSTALL_PREFIX}, we want to go to ${CMAKE_INSTALL_PREFIX}/share/man
   set(MANPAGE_DIR ${OPENROAD_HOME}/docs/cat)
   install(DIRECTORY ${MANPAGE_DIR} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/man)

@@ -73,8 +73,12 @@ set(OPENROAD_SOURCE
   Timing.cc
   Tech.cc
   OpenRoad.cc
-  Main.cc
-  )
+)
+add_library(ord)
+target_sources(ord
+PRIVATE
+  ${OPENROAD_SOURCE}
+)
 
 if(USE_SYSTEM_BOOST)
   set(Boost_USE_STATIC_LIBS OFF)
@@ -324,13 +328,32 @@ add_subdirectory(linden)
 add_subdirectory(mpl2)
 add_subdirectory(par)
 
+# FIXME:
+# Laurel should care about its own dependencies
+target_link_libraries(LaurelSystem
+PUBLIC
+  Boost::boost
+)
+target_link_libraries(LaurelTest
+PUBLIC
+  Boost::boost
+)
+target_link_libraries(LaurelUtil
+PUBLIC
+  Boost::boost
+)
+
 ################################################################
 
 add_executable(eden
-  ${OPENROAD_SOURCE}
+  Main.cc
 )
 
 target_compile_options(eden
+  PRIVATE
+    -Wextra -pedantic -Wcast-qual
+)
+target_compile_options(ord
   PRIVATE
     -Wextra -pedantic -Wcast-qual
 )
@@ -347,18 +370,38 @@ set_target_properties(eden PROPERTIES
   # Export symbols for stack trace printing
   ENABLE_EXPORTS ON
 )
+set_target_properties(ord PROPERTIES
+  # Disable compiler specific extensions like gnu++11.
+  CXX_EXTENSIONS OFF
+  # Export symbols for stack trace printing
+  ENABLE_EXPORTS ON
+)
 target_compile_features(eden PUBLIC cxx_std_17)
+target_compile_features(ord PUBLIC cxx_std_17)
 
 target_include_directories(eden
   PUBLIC
     ../include
 )
-
+target_include_directories(ord
+  PUBLIC
+    ../include
+)
 
 target_link_libraries(eden
+  ord
+  ${Boost_STACKTRACE_BACKTRACE_LIBRARY}
+  ${ABC_LIBRARY}
+  ${TCL_LIBRARY}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${GPERF_LIB}
+  backtrace
+)
+
+target_link_libraries(ord
+  openroad_swig
   ifp
   pad
-  openroad_swig
   gpl
   dpl
   dpo
@@ -385,18 +428,13 @@ target_link_libraries(eden
   utl
   pdn
   dft
+  mpl2
+  par
+
   sc
   Laurel
   Banyan
   linden
-  ${Boost_STACKTRACE_BACKTRACE_LIBRARY}
-  mpl2
-  par
-  ${ABC_LIBRARY}
-  ${TCL_LIBRARY}
-  ${CMAKE_THREAD_LIBS_INIT}
-  ${GPERF_LIB}
-  backtrace
 )
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -408,12 +446,16 @@ else()
   message(STATUS "Removing MPL2 and PAR to avoid run time fatal error.")
 endif()
 target_compile_definitions(eden PRIVATE BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+target_compile_definitions(ord PRIVATE BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 # tclReadline
 if (TCL_READLINE_LIBRARY AND TCL_READLINE_H)
   target_compile_definitions(eden PRIVATE ENABLE_READLINE)
+  target_compile_definitions(ord PRIVATE ENABLE_READLINE)
   target_link_libraries(eden ${TCL_READLINE_LIBRARY})
+  target_link_libraries(ord ${TCL_READLINE_LIBRARY})
   target_include_directories(eden PRIVATE ${TCL_READLINE_H})
+  target_include_directories(ord PRIVATE ${TCL_READLINE_H})
   message(STATUS "TCL readline enabled")
 else()
   message(STATUS "TCL readline disabled")
@@ -421,8 +463,11 @@ endif()
 
 if (BUILD_TCLX AND TCLX_LIBRARY AND TCLX_H)
   target_compile_definitions(eden PRIVATE ENABLE_TCLX)
+  target_compile_definitions(ord PRIVATE ENABLE_TCLX)
   target_link_libraries(eden ${TCLX_LIBRARY})
+  target_link_libraries(ord ${TCLX_LIBRARY})
   target_include_directories(eden PRIVATE ${TCLX_H})
+  target_include_directories(ord PRIVATE ${TCLX_H})
   message(STATUS "Tcl Extended enabled")
 else()
   message(STATUS "Tcl Extended disabled")
@@ -430,6 +475,7 @@ endif()
 
 if (ZLIB_FOUND)
   target_link_libraries(eden ${ZLIB_LIBRARIES})
+  target_link_libraries(ord ${ZLIB_LIBRARIES})
 endif()
 
 # Optional CUDD library for OpenSTA
@@ -440,6 +486,7 @@ endif()
 if (Python3_FOUND AND BUILD_PYTHON)
   message(STATUS "Python3 enabled")
   target_compile_definitions(eden PRIVATE ENABLE_PYTHON3)
+  target_compile_definitions(ord PRIVATE ENABLE_PYTHON3)
 
   swig_lib(NAME      openroad_swig_py
            NAMESPACE ord
@@ -448,11 +495,16 @@ if (Python3_FOUND AND BUILD_PYTHON)
            SCRIPTS   ${CMAKE_CURRENT_BINARY_DIR}/openroad_swig_py.py
   )
 
+  target_link_libraries(ord
+    Python3::Python
+  )
   target_link_libraries(openroad_swig_py
     PRIVATE
+      ord
       dbSta
       odb
       OpenSTA
+      Python3::Python
   )
   target_link_libraries(eden
     openroad_swig_py

@@ -80,6 +80,7 @@ if (Qt5_FOUND AND BUILD_GUI)
 
   target_link_libraries(gui
     PUBLIC
+      ord
       odb
     PRIVATE
       Qt5::Core

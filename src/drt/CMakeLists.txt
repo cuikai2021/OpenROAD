@@ -192,6 +192,7 @@ if(ENABLE_TESTS)
   )
 
   target_link_libraries(trTest
+    ord
     drt
     odb
   )
