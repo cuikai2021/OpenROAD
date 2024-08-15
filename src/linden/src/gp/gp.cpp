@@ -30,6 +30,7 @@
 #include <cmath>
 #include <optional>
 #include <chrono>
+#include <random>
 
 IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION);
@@ -450,6 +451,48 @@ void linden_global_place(const Config& cfg) noexcept {
     }
     metrics::Reporter metrics_reporter(mcfg);
     metrics_reporter["gp"]["iter"] = iter + 1;
+}
+
+void random_place() noexcept {
+    if (LINDEN_IN_REGRESSION()) {
+        spdlog::set_pattern("%v"); // no timestamp
+    }
+
+    shared_ptr<linden::db::Database> ldb = build_linden_db();
+
+    unique_ptr<Graphics> graphics;
+    if (Graphics::enabled()) {
+        graphics.reset(new Graphics(ldb));
+    }
+
+    const auto& core = ldb->core_region();
+    auto lx = core.lx();
+    auto ly = core.ly();
+    auto ux = core.ux();
+    auto uy = core.uy();
+    mt19937_64 rng(0);
+    uniform_int_distribution<int64_t> x_rng(lx, ux);
+    uniform_int_distribution<int64_t> y_rng(ly, uy);
+    for (auto& cell: ldb->mut_cells()) {
+        if (cell.is_instance() && cell.movable() && !cell.macro()) {
+            int64_t x = x_rng(rng);
+            int64_t y = y_rng(rng);
+            cell.move_to(linden::geom::Point {x, y});
+        }
+    }
+
+    refresh_locations_from_ldb(*ldb);
+    if (graphics) {
+        graphics->finalize();
+        graphics.reset();
+    }
+
+    metrics::Config mcfg = metrics::Config::sink_to_stderr();
+    if (auto opt = LINDEN_GP_METRICS_FILE(); opt) {
+        mcfg = metrics::Config::sink_to_file(*opt);
+    }
+    metrics::Reporter metrics_reporter(mcfg);
+    metrics_reporter["gp"]["iter"] = 0;
 }
 
 } // namespace linden::gp

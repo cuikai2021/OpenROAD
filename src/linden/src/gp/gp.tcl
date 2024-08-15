@@ -20,3 +20,11 @@ proc linden_global_placement { args } {
     }
     linden::lindengp_run_cmd a
 }
+
+sta::define_cmd_args "linden_random_global_placement" {\
+}
+
+# Generates a random but stable (global) placement.
+proc linden_random_global_placement {} {
+    linden::lindengp_random_run_cmd
+}

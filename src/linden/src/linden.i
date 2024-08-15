@@ -86,6 +86,11 @@ void set_continuation(const char* file) {
     Config::get_default()->continuation = file;
 }
 
+void lindengp_random_run_cmd() {
+    linden::gp::random_place();
+}
+
+
 %} // inline lindengp
 
 %inline %{ // linden others

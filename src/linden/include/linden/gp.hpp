@@ -132,4 +132,9 @@ struct Config {
 
 void linden_global_place(const Config&) noexcept;
 
+/**
+ * Generates a random but stable (global) placement.
+ */
+void random_place() noexcept;
+
 } // namespace linden::gp
