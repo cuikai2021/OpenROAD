@@ -12,4 +12,6 @@ record_tests {
   latch_to_pb
 
   rddp
+
+  eco_placer
 }
