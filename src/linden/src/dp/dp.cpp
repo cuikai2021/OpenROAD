@@ -32,6 +32,7 @@
 using namespace std;
 using linden::geom::Dimension;
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR);
+IMPORT_STR_FLAG(LINDEN_DP_ALGORITHM);
 
 namespace linden {
 
@@ -44,12 +45,24 @@ namespace {
 
 std::filesystem::path get_basic_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
-    return dir / "lindendp";
+    string exec;
+    if (LINDEN_DP_ALGORITHM().value_or(""sv) == "deblais"sv) {
+        exec = "deblais-dp";
+    } else {
+        exec = "lindendp";
+    };
+    return dir / exec;
 }
 
 std::filesystem::path get_incr_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
-    return dir / "linden-incremental-legalizer";
+        string exec;
+    if (LINDEN_DP_ALGORITHM().value_or(""sv) == "deblais"sv) {
+        exec = "deblais-incrdp";
+    } else {
+        exec = "linden-incremental-legalizer";
+    };
+    return dir / exec;
 }
 
 std::filesystem::path get_routability_driven_dp_exe() {

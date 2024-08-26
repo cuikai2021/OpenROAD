@@ -48,6 +48,11 @@ DEFINE_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR,
     "/build/bin/"
 )
 
+DEFINE_STR_FLAG(
+    LINDEN_DP_ALGORITHM,
+    "Specify the algorithm chosen for placement"
+)
+
 // flags for debugging purpose
 DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION,
     "Disable timestamp in spdlog, when run in regression mode",
