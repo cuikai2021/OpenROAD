@@ -145,6 +145,7 @@ namespace rmp {
 				      std::vector<const sta::Pin*>& keep, //set of pins to keep
 				      std::vector<const sta::Pin*>& expand);
     bool Boundary(const sta::Pin* cur_pin);
+    bool SelfFeedBack(const sta::Instance*);
     const sta::Pin* WalkThroughBuffersAndInverters(Cut*,
 						   const sta::Pin* op_pin,
 						   std::set<const sta::Pin*>& unique_set);

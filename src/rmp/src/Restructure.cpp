@@ -172,7 +172,7 @@ void Restructure::cutresynthrun(char* target_library,
     generateWaveFrontSingleOpCutSet(network,
 				    head_pin,
 				    cut_set);
-    logger_->report("Generated {} constrained cuts (generateWaveFrontSingleOpCutSet).", cut_set.size());    
+    logger_->report("Generated {} constrained cuts.", cut_set.size());    
   }  
   else{
     generateUnconstrainedCuts(cut_set, single_op);

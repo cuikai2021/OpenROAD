@@ -4,6 +4,6 @@ Cmd warning: redefining '%graft'
 Warning: Detected 2 multi-output gates (for example, "FA_X1").
 Successfully read in library
 
-Generated 2 constrained cuts (generateWaveFrontSingleOpCutSet).
+Generated 2 constrained cuts.
 Processing cut 2 of volume 3 with 1 roots and 4 leaves.
 No differences found.

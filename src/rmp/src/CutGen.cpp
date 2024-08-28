@@ -89,6 +89,9 @@ namespace rmp {
 void CutGen::GenerateInstanceWaveFrontCutSet(sta::Instance* cur_inst,
                                              std::vector<Cut*>& inst_cut_set)
 {
+  //filter pathological case
+  if (SelfFeedBack(cur_inst))
+    return;
   // build candidate wave front for cut enumeration
   std::vector<const sta::Pin*> candidate_wavefront;
   sta::InstancePinIterator* cpin_iter = network_->pinIterator(cur_inst);
@@ -590,6 +593,37 @@ bool CutGen::EnumerateExpansions(
   return false;
 }
 
+bool CutGen::SelfFeedBack(const sta::Instance* cur_inst){
+
+  std::set<const sta::Pin*> ops;
+  sta::InstancePinIterator* ipin_iter = network_->pinIterator(cur_inst);
+#ifdef CUTGEN_DEBUG  
+  printf("Checking self feedback for %s\n",
+         network_ -> name(cur_inst));
+#endif  
+  while (ipin_iter->hasNext()) {
+    const sta::Pin* cur_pin = ipin_iter->next();
+    if (network_->direction(cur_pin)->isOutput()) {
+      	sta::PinSet visited_drvrs;
+	sta::PinSeq loads;
+	sta::PinSeq drvrs;
+        sta::FindNetDrvrLoads visitor(cur_pin,visited_drvrs,loads,drvrs,network_);
+        network_ -> visitConnectedPins(cur_pin,visitor);
+        for (auto sink_pin: loads){
+          sta::Instance* sink_instance = network_ -> instance(sink_pin);
+#ifdef CUTGEN_DEBUG            
+          printf("Sink load %s\n", network_ -> name(sink_instance));
+#endif          
+          if (sink_instance == cur_inst){
+            return true;
+          }
+        }
+    }
+  }
+  return false;
+}
+
+
 bool CutGen::Boundary(const sta::Pin* cur_pin)
 {
   // a terminal
@@ -597,6 +631,9 @@ bool CutGen::Boundary(const sta::Pin* cur_pin)
     return true;
   // a memory
   sta::Instance* cur_inst = network_->instance(cur_pin);
+  if (SelfFeedBack(cur_inst)){
+    return true;
+  }
   if (cur_inst) {
     sta::LibertyCell* cell = network_->libertyCell(cur_inst);
     if (cell->isMemory() || cell->hasSequentials())

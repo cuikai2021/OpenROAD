@@ -1,4 +1,6 @@
 record_tests {
+  asynch_path
+  multilevel
   restruct_rm_scutremap
   escapenode
   floploop

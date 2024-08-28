@@ -1,0 +1,48 @@
+[WARNING ODB-0220] WARNING (LEFPARS-2007): NAMESCASESENSITIVE statement is obsolete in version 5.6 and later.
+The LEF parser will ignore this statement.
+To avoid this warning in the future, remove this statement from the LEF file with version 5.6 or later. See file ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll_6m2t.lef at line 9.
+
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI1 :" ARRAYSPACING CUTSPACING 0.24 ARRAYCUTS 6 SPACING 0.24 ; "
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI2 :" ARRAYSPACING CUTSPACING 0.24 ARRAYCUTS 6 SPACING 0.24 ; "
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI3 :" ARRAYSPACING CUTSPACING 0.24 ARRAYCUTS 6 SPACING 0.24 ; "
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI4 :" ARRAYSPACING CUTSPACING 0.45 ARRAYCUTS 6 SPACING 0.45 ; "
+[INFO ODB-0388] unsupported LEF57_ARRAYSPACING property for layer VI5 :" ARRAYSPACING CUTSPACING 0.45 ARRAYCUTS 6 SPACING 0.45 ; "
+[INFO ODB-0227] LEF file: ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll_6m2t.lef, created 17 layers, 46 vias
+[INFO ODB-0394] Duplicate site CORE_6T in ua11lscef15bdrll already seen in ua11lscef15bdrll_6m2t
+[WARNING ODB-0220] WARNING (LEFPARS-2002): NAMESCASESENSITIVE is a required statement on LEF file with version 5.5 and earlier.
+Without NAMESCASESENSITIVE defined, the LEF file is technically incorrect.
+Refer the LEF/DEF 5.5 or earlier Language Referece manual on how to define this statement. See file ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll.lef at line 99017.
+
+[INFO ODB-0227] LEF file: ../../rmp/test/cases/restr_unit/rm/lefs/ua11lscef15bdrll.lef, created 820 library cells
+[WARNING STA-0356] port 'Z' not found.
+[WARNING STA-0356] port 'Z' not found.
+Cut based Restructuring.
+Cmd warning: redefining '%graft'
+Warning: Detected 6 multi-output gates (for example, "ADFM2HM").
+Successfully read in library
+
+Generated 7 constrained cuts.
+Processing cut 1 of volume 1 with 1 roots and 3 leaves.
+module asynch_path (clk_i,
+    clk_inv_i,
+    d_i,
+    latch_o);
+ input clk_i;
+ input clk_inv_i;
+ input d_i;
+ output latch_o;
+
+ wire async_int;
+ wire latch_second_stage_int;
+
+ INVM0HM U2 (.A(async_int),
+    .Z(latch_second_stage_int));
+ MUX2M1HM U3 (.A(latch_o),
+    .B(latch_second_stage_int),
+    .S(clk_inv_i),
+    .Z(latch_o));
+ MUX2M2HM MUX2M2HM_1 (.A(latch_o),
+    .B(d_i),
+    .S(clk_i),
+    .Z(async_int));
+endmodule
