@@ -4,38 +4,35 @@ DEF file added.
 Initialization complete.
 Starting to find vacant places...
 Number of vacant places found: 9
-Place 0: 133640 140000 MX
-Place 1: 134020 140000 MX
-Place 2: 134400 140000 MX
-Place 3: 134780 140000 MX
-Place 4: 135160 140000 MX
-Place 5: 135540 140000 MX
-Place 6: 135920 140000 MX
-Place 7: 136300 140000 MX
+Place 0: 135160 140000 MX
+Place 1: 134780 140000 MX
+Place 2: 135540 140000 MX
+Place 3: 134400 140000 MX
+Place 4: 135920 140000 MX
+Place 5: 134020 140000 MX
+Place 6: 136300 140000 MX
+Place 7: 133640 140000 MX
 Place 8: 136680 140000 MX
  
-Inserting cell 'cell_0' at place: 133640 140000 MX
+Inserting cell 'cell_0' at place: 135160 140000 MX
 Cell inserted.
 Finding vacant places after cell insertion...
-Number of vacant places found after insertion: 5
-Place 0: 135160 140000 MX
-Place 1: 135540 140000 MX
-Place 2: 135920 140000 MX
-Place 3: 136300 140000 MX
-Place 4: 136680 140000 MX
+Number of vacant places found after insertion: 2
+Place 0: 133640 140000 MX
+Place 1: 136680 140000 MX
  
 Removing cell 'cell_0'.
 Cell removed.
 Finding vacant places after cell removal...
 Number of vacant places found after removal: 9
-Place 0: 133640 140000 MX
-Place 1: 134020 140000 MX
-Place 2: 134400 140000 MX
-Place 3: 134780 140000 MX
-Place 4: 135160 140000 MX
-Place 5: 135540 140000 MX
-Place 6: 135920 140000 MX
-Place 7: 136300 140000 MX
+Place 0: 135160 140000 MX
+Place 1: 134780 140000 MX
+Place 2: 135540 140000 MX
+Place 3: 134400 140000 MX
+Place 4: 135920 140000 MX
+Place 5: 134020 140000 MX
+Place 6: 136300 140000 MX
+Place 7: 133640 140000 MX
 Place 8: 136680 140000 MX
  
 ECO Placer operations completed.
