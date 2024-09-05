@@ -267,6 +267,17 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
 
 ////////////////////////////////////////////////////////////////
 
+void OpenRoad::updateTech(const char* filename)
+{
+  odb::lefin lef_reader(db_, logger_, false);
+  if(db_->getTech()==nullptr) {
+    logger_->error(ORD, 60, "Must read technology lef first");
+  }
+  if (!lef_reader.updateTech(db_->getTech(), filename)) {
+    logger_->error(ORD, 61, "Update technology lef {} fail", filename);
+  }
+}
+
 void OpenRoad::readLef(const char* filename,
                        const char* lib_name,
                        const char* tech_name,

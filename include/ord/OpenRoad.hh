@@ -216,6 +216,8 @@ class OpenRoad
   // Return true if the command units have been initialized.
   bool unitsInitialized();
 
+  void updateTech(const char* filename);
+
   void readLef(const char* filename,
                const char* lib_name,
                const char* tech_name,

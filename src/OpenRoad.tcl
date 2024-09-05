@@ -33,6 +33,14 @@
 ##
 ############################################################################
 
+sta::define_cmd_args "update_tech" {filename}
+proc update_tech { args } {
+  sta::parse_key_args "update_tech" args keys {} flags {}
+  sta::check_argc_eq1 "update_tech" $args
+  set filename [file nativename [lindex $args 0]]
+  ord::update_tech_cmd $filename
+}
+
 # -library is the default
 sta::define_cmd_args "read_lef" {[-tech] [-library] [-tech_name name] filename}
 

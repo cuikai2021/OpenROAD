@@ -350,6 +350,12 @@ openroad_charts_compiled()
   return ord::OpenRoad::getChartsCompileOption();
 }
 
+void update_tech_cmd(const char* filename)
+{
+  OpenRoad* ord = getOpenRoad();
+  ord->updateTech(filename);
+}
+
 void
 read_lef_cmd(const char *filename,
 	     const char *lib_name,
