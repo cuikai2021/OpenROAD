@@ -48,9 +48,10 @@ DEFINE_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR,
     "/build/bin/"
 )
 
-DEFINE_STR_FLAG(
+DEFINE_STR_FLAG_WITH_DEFAULT(
     LINDEN_DP_ALGORITHM,
-    "Specify the algorithm chosen for placement"
+    "Specify the algorithm chosen for placement",
+    "deblais"
 )
 
 // flags for debugging purpose

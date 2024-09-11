@@ -32,7 +32,7 @@
 using namespace std;
 using linden::geom::Dimension;
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR);
-IMPORT_STR_FLAG(LINDEN_DP_ALGORITHM);
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_DP_ALGORITHM);
 
 namespace linden {
 
@@ -46,7 +46,7 @@ namespace {
 std::filesystem::path get_basic_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
     string exec;
-    if (LINDEN_DP_ALGORITHM().value_or(""sv) == "deblais"sv) {
+    if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
         exec = "deblais-dp";
     } else {
         exec = "lindendp";
@@ -57,7 +57,7 @@ std::filesystem::path get_basic_dp_exe() {
 std::filesystem::path get_incr_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
         string exec;
-    if (LINDEN_DP_ALGORITHM().value_or(""sv) == "deblais"sv) {
+    if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
         exec = "deblais-incrdp";
     } else {
         exec = "linden-incremental-legalizer";
@@ -104,10 +104,14 @@ int exec(
         throw std::runtime_error("fail to run lindendp");
     }
     int ec = 0;
+    auto env = boost::this_process::environment();
+    boost::process::environment env1 = env;
+    env1["LINDEN_DP_ALGORITHM"] = string(LINDEN_DP_ALGORITHM());
     if (!cfg.suppress_output) {
-        ec = boost::process::system(string(exe), boost::process::args(args));
+        ec = boost::process::system(string(exe), boost::process::args(args), env1);
     } else {
         ec = boost::process::system(string(exe), boost::process::args(args),
+            env1,
             boost::process::std_out > boost::process::null,
             boost::process::std_err > boost::process::null);
     }
@@ -338,7 +342,7 @@ optional<banyan::Cmap> parse_cmap(const filesystem::path& cmap_file)
     return cmap;
 }
 
-int64_t is_congestion_meet_expectation(const banyan::Cmap& cmap) 
+int64_t is_congestion_meet_expectation(const banyan::Cmap& cmap)
 {
     std::array<std::vector<double>, 2> rc_vals_xy;
     for (auto dim : {Dimension::X, Dimension::Y}) {
@@ -352,7 +356,7 @@ int64_t is_congestion_meet_expectation(const banyan::Cmap& cmap)
         double median = rc_vals[rc_vals.size() / 2];
         double max = rc_vals.front();
         if (max > median * 1.2 && max > 1.0) {
-            int64_t n_tile_overloaded = 
+            int64_t n_tile_overloaded =
                 upper_bound(rc_vals.begin(), rc_vals.end(), 1.0l, std::greater<double>()) - rc_vals.begin();
             return n_tile_overloaded;
         }
@@ -407,7 +411,7 @@ int rddp(::ord::OpenRoad& ord, DpConfig& dpcfg) {
     const int64_t N_TRIES = 3;
     std::vector<pair<std::filesystem::path, int64_t>> tried_results;
     tried_results.reserve(N_TRIES + 1);
-    
+
     const LefDefDumper dumper(ord);
     auto const& basename = dumper.basename;
     filesystem::path last_def = basename;
@@ -419,7 +423,7 @@ int rddp(::ord::OpenRoad& ord, DpConfig& dpcfg) {
     for (auto const& x: dumper.lib_lefs) {
         lefs.push_back(x);
     }
-    
+
     dpcfg.routing_congestion_data = generate_routability_data_file(*dpcfg.routing_top_layer);
     auto cmap = parse_cmap(*dpcfg.routing_congestion_data);
     if (!cmap.has_value()) {
