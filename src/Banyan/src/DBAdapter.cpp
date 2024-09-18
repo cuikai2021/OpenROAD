@@ -881,11 +881,10 @@ void OpenDBAdapter::getGcellsFromODB()
 
   auto numVPatterns = gcellGrid->getNumGridPatternsX();
   for (int i = 0; i < numVPatterns; i++) {
-    int id = 0;
     int origin = 0;
     int lineCount = 0;
     int step = 0;
-    gcellGrid->getGridPatternX(id, origin, lineCount, step);
+    gcellGrid->getGridPatternX(i, origin, lineCount, step);
     auto vgridparrten = designGcellGraph->add_vgridparrtens();
     vgridparrten->set_start(origin);
     vgridparrten->set_step(step);
@@ -894,11 +893,10 @@ void OpenDBAdapter::getGcellsFromODB()
 
   auto numHPatterns = gcellGrid->getNumGridPatternsY();
   for (int i = 0; i < numHPatterns; i++) {
-    int id = 0;
     int origin = 0;
     int lineCount = 0;
     int step = 0;
-    gcellGrid->getGridPatternY(id, origin, lineCount, step);
+    gcellGrid->getGridPatternY(i, origin, lineCount, step);
     auto hgridparrten = designGcellGraph->add_hgridparrtens();
     hgridparrten->set_start(origin);
     hgridparrten->set_step(step);
