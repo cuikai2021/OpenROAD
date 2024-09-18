@@ -1,7 +1,9 @@
 #include "linden/eco_placer.hpp"
 
+#include "../util/lefdef_dumper.hpp"
 #include "fassert.hpp"
 #include "linden/dp/lib.rs.h"
+#include "ord/OpenRoad.hh"
 
 namespace linden {
 namespace {
@@ -139,6 +141,19 @@ EcoPlacer::EcoPlacer(
 : _gs(nullptr)
 {
     _gs = ::linden::ffi::init_grid_site(string_to_rust_vec(lefs), string_to_rust_vec(defs));
+}
+
+EcoPlacer::EcoPlacer() noexcept
+: _gs(nullptr)
+{
+    ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
+    const LefDefDumper dumper(ord);
+    std::vector<std::filesystem::path> lefs{dumper.tech_lef};
+    std::vector<std::filesystem::path> defs{dumper.def};
+    for (const auto& lef : dumper.lib_lefs) {
+        lefs.push_back(lef);
+    }
+    _gs = ::linden::ffi::init_grid_site(path_to_rust_vec(lefs), path_to_rust_vec(defs));
 }
 
 EcoPlacer::~EcoPlacer() noexcept

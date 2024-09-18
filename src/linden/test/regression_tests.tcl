@@ -13,5 +13,6 @@ record_tests {
 
   rddp
 
-  eco_placer
+  eco_placer_from_lefdef
+  eco_placer_from_odb
 }

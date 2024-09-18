@@ -297,6 +297,11 @@ void eco_placer_init(EcoPlacerSwig* eps) {
     eps->_ep = new linden::EcoPlacer(eps->_lefs, eps->_defs);
 }
 
+// Initializes the EcoPlacer instance from OpenRoad.
+void eco_placer_init_from_odb(EcoPlacerSwig* eps) {
+    eps->_ep = new linden::EcoPlacer();
+}
+
 // Finds vacant places within a specified range and returns a list of place descriptions.
 std::vector<const char*> eco_placer_find_vacant_places_i(
     EcoPlacerSwig* eps, 

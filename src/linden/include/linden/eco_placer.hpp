@@ -44,6 +44,7 @@ public:
      */
     EcoPlacer(const std::vector<std::filesystem::path>& lefs, const std::vector<std::filesystem::path>& defs) noexcept;
     EcoPlacer(const std::vector<std::string>& lefs, const std::vector<std::string>& defs) noexcept;
+    EcoPlacer() noexcept;
     ~EcoPlacer() noexcept;
 
     /**
