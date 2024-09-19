@@ -16,8 +16,7 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$HOME/.ssh,dst=/root/.ssh \
   --mount type=bind,src=$workdir,dst=$workdir \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/,dst=/build/lib --env LD_LIBRARY_PATH=/build/lib \
-  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/banyan,dst=/build/bin/banyan \
-  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/maxhs,dst=/build/bin/maxhs \
+  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate,dst=/build/bin \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/lindendp,dst=/build/bin/lindendp \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-incremental-legalizer,dst=/build/bin/linden-incremental-legalizer \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-routability-driven-detailed-placer,dst=/build/bin/linden-routability-driven-detailed-placer \
