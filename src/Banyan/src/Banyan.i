@@ -50,11 +50,6 @@ void regression_RC_cmd(const char* spef,
         spef, setRC_tcl, plot_file_prefix, corner_name);
 }
 
-void saveDB(std::string dbfile)
-{
-    ord::OpenRoad::openRoad()->getBanyan()->savedb(dbfile);
-}
-
 void loadDB(std::string dbfile)
 {
     ord::OpenRoad::openRoad()->getBanyan()->loaddb(dbfile);

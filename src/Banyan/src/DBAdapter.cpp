@@ -812,11 +812,6 @@ void OpenDBAdapter::getInstancesFromODB()
     component->set_macroname(master->getName());
     component->set_orient(odbOrient2Banyan(instance->getOrient()));
 
-    auto oriPoint = component->mutable_origin();
-    auto instOri = instance->getOrigin();
-    oriPoint->set_x(instOri.x());
-    oriPoint->set_y(instOri.y());
-
     int locationX = 0;
     int locationY = 0;
     instance->getLocation(locationX, locationY);

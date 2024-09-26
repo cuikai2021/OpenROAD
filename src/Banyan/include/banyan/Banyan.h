@@ -60,7 +60,6 @@ class Banyan : public ord::OpenRoadObserver
                      const char* setRC_tcl,
                      const char* plot_file_prefix,
                      const char* corner_name);
-  void savedb(std::string dbfile);
   void loaddb(std::string dbfile);
   void loaddef(std::string_view deffile);
   void diffdefs(std::string_view deffileA,std::string_view deffileB, bool exceptWires);

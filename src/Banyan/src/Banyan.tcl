@@ -40,10 +40,6 @@ proc regression_RC { spef setRC_tcl args } {
   banyan::regression_RC_cmd $spef $setRC_tcl $plot $corner
 }
 
-sta::define_cmd_args "banyan_save_db" { dbfile }
-proc banyan_save_db { dbfile } {
-  banyan::saveDB $dbfile
-}
 
 sta::define_cmd_args "banyan_load_db" { dbfile }
 proc banyan_load_db { dbfile } {

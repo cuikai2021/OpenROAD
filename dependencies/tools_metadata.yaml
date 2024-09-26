@@ -17,6 +17,7 @@
     minjog:/build/bin/:755
     sat_server:/build/bin/:755
     cgss2:/build/bin/:755
+    bypbdef:/build/bin/:755
     *.so:/build/lib/:755
 
 - name: linden-integrate

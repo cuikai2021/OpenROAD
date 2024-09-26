@@ -179,18 +179,15 @@ int exec(utl::Logger* logger, const std::vector<std::string>& args)
 
 int Banyan::main(std::vector<std::string> args, bool updateDB)
 {
-  std::string inPbFilePath = "";
   std::string outPbFilePath = "";
   std::vector<std::string> unregister;
-
+  
   namespace po = boost::program_options;
   po::options_description desc("Banyan");
   desc.add_options()                                                         //
       ("help,h", "")                                                         //
       ("timing_driven", "")                                                  //
-      ("techlef", po::value<std::string>(), "")                              //
       ("save_db", po::value<std::string>(&outPbFilePath), "")                //
-      ("db", po::value<std::string>(&inPbFilePath), "")                      //
       ("unregister", po::value<std::vector<std::string>>(&unregister), "");  //
 
   po::positional_options_description posDesc;
@@ -224,43 +221,22 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     logger_->error(utl::BY, 1, "subcommand is required but missing");
   }
 
-  if (!vm.count("techlef")) {
-    args.push_back("--techlef");
-    args.push_back(tech_lef_file_name_);
+  if(vm.count("db") || vm.count("techlef") || vm.count("lef")|| vm.count("def")) {
+    logger_->error(utl::BY, 2, "The --db, --techlef, --lef, --def options is not supported. Please use read_lef, read_def to read the design.");
   }
 
-  // 重复路径可在 banyan bin 处处理。应该不存在 LEF 冲突的情况。
+  args.push_back("--techlef");
+  args.push_back(tech_lef_file_name_);
   for (const auto& lef : other_lef_file_names_) {
     args.push_back("--lef");
     args.push_back(lef);
   }
+  auto defFilepath = genTempFilePath(logger_, ".def");
+  ord::OpenRoad::openRoad()->writeDef(defFilepath.c_str(), "5.8");
+  args.push_back("--def");
+  args.push_back(defFilepath);
 
-  // bool timingDriven = vm.count("timing_driven");
   OpenDBAdapter dbAdapter(db_, logger_, laurel_);
-
-  if (!vm.count("db")) {
-    dbAdapter.loadDesignFromODB();
-    auto design = dbAdapter.getDesign();
-    BanyanTimer byTimer(db_, logger_, laurel_, design);
-    auto timeReport = byTimer.getTimeReport();
-
-    BanyanCase byCase;
-    byCase.set_allocated_design(design.release());
-    byCase.set_allocated_timingreport(timeReport.release());
-    inPbFilePath = genTempFilePath(logger_, ".pb");
-    std::ofstream pbfs;
-    pbfs.open(inPbFilePath,
-              std::ofstream::in | std::ofstream::out | std::ofstream::trunc);
-    if (!byCase.SerializeToOstream(&pbfs)) {
-      logger_->error(utl::BY, 1, "save protobuf file to {} fail", inPbFilePath);
-    }
-    pbfs.close();
-    args.push_back("--db");
-    args.push_back(inPbFilePath);
-  } else {
-    dbAdapter.loadDesignFromBanyanDB(inPbFilePath);
-  }
-
   if (updateDB && !vm.count("save_db")) {
     if (outPbFilePath == "") {
       outPbFilePath = genTempFilePath(logger_, ".pb");
@@ -268,7 +244,6 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     args.push_back("--save_db");
     args.push_back(outPbFilePath);
   }
-
   defer _(nullptr, [&](...) {
     if (updateDB) {
       logger_->info(
@@ -325,27 +300,6 @@ void Banyan::clearWires(bool excludeClock, bool excludeSignal)
       odb::dbWire::destroy(wire);
     }
   }
-}
-
-void Banyan::savedb(std::string dbfile)
-{
-  OpenDBAdapter dbAdapter(db_, logger_, laurel_);
-  dbAdapter.loadDesignFromODB();
-  auto design = dbAdapter.getDesign();
-  BanyanTimer byTimer(db_, logger_, laurel_, design);
-  auto timeReport = byTimer.getTimeReport();
-  
-  BanyanCase byCase;
-  byCase.set_allocated_design(design.release());
-  byCase.set_allocated_timingreport(timeReport.release());
-
-  std::ofstream pbfs;
-  pbfs.open(dbfile,
-            std::ofstream::in | std::ofstream::out | std::ofstream::trunc);
-  if (!byCase.SerializeToOstream(&pbfs)) {
-    logger_->error(utl::BY, 1, "save protobuf file to {} fail", dbfile);
-  }
-  pbfs.close();
 }
 
 void Banyan::loaddb(std::string dbflie)
