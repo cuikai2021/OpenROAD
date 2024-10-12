@@ -111,6 +111,10 @@ int exec(utl::Logger* logger, const std::vector<std::string>& args, const char* 
         boost::process::std_out > boost::process::null,
         boost::process::std_err > boost::process::null);
   }
+  logger->info(utl::BY, 1010, "Banyan exec {} done, status code {}", exeName, ec);
+  if (ec != 0) {
+    std::exit(ec);
+  }
   return ec;
 }
 
@@ -281,9 +285,10 @@ banyan_def::DesignExchangeFormat Banyan::def2pbdef(std::string deffile,
     logger_->error(utl::BY, 3, "exec {} fail with exit code {}", BANYAN_PBDEF_DEFAULT, status);
   }
   banyan_def::DesignExchangeFormat pbdef;
-  std::ifstream outfs;
-  outfs.open(pbDefFilePath);
-  pbdef.ParseFromIstream(&outfs);
+  std::ifstream outfs(pbDefFilePath);
+  if(!outfs.is_open() || !pbdef.ParseFromIstream(&outfs)) {
+    logger_->error(utl::BY, 6, "Parse banyan pbdef {} fail", pbDefFilePath);
+  }
   outfs.close();
   //TODO sort pbdef.wires
   return pbdef;
@@ -312,9 +317,10 @@ std::string Banyan::pbdef2def(const banyan_def::DesignExchangeFormat& pbdef)
 void Banyan::loaddb(std::string dbflie)
 {
   BanyanCase bycase;
-  std::ifstream outfs;
-  outfs.open(dbflie);
-  bycase.ParseFromIstream(&outfs);
+  std::ifstream outfs(dbflie);
+  if(!outfs.is_open() || !bycase.ParseFromIstream(&outfs)) {
+    logger_->error(utl::BY, 6, "Parse banyan db {} fail", dbflie);
+  }
   outfs.close();
   loaddef(pbdef2def(bycase.design()));
 }
