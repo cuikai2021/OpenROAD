@@ -1,27 +1,24 @@
 #include "banyan/Banyan.h"
 
 #include <chrono>
-#include <functional>
 #include <sstream>
 #include <spdlog/spdlog.h>
 #include <boost/program_options.hpp>
-#include <iostream>
+#include <filesystem>
 #include <string>
-#include <utility>
 
-#include "BanyanTimer.hpp"
 #include "banyan_db.pb.h"
 #include "odb/db.h"
 #include "odb/defin.h"
 #include "odb/defout.h"
 #include "odb/lefin.h"
 #include "odb/lefout.h"
+#include "odb/wOrder.h"
 #include "ord/OpenRoad.hh"
 #include "sta/StaMain.hh"
+#include "lrl/Laurel.hh"
 #include "utl/Logger.h"
 #include "envflag/envflag.hpp"
-#include "WireSorter.hpp"
-#include "DBAdapter.hpp"
 
 IMPORT_BOOL_FLAG_WITH_DEFAULT(BANYAN_SUPPRESS_EXE_LOG);
 
@@ -35,52 +32,6 @@ extern int Banyan_Init(Tcl_Interp* interp);
 }
 
 namespace banyan {
-
-bool designEqual(Design& oldDesign, Design& newDesign, std::string& differences, bool exceptWires)
-{
-
-  google::protobuf::util::MessageDifferencer differencer;
-
-  differencer.set_report_moves(false);
-  differencer.set_report_ignores(false);
-
-  auto designDesc = Design::descriptor();
-  differencer.TreatAsSet(designDesc->FindFieldByName("tracks"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("nets"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("specialNets"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("blockages"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("vias"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("instances"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("pins"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("rows"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("viaRules"));
-  differencer.TreatAsSet(designDesc->FindFieldByName("nonDefaultRules"));
-
-  auto specialNetDesc = SpecialNet::descriptor();
-  const google::protobuf::FieldDescriptor* spNetWiresField = specialNetDesc->FindFieldByName("wires");
-  differencer.TreatAsSet(spNetWiresField);
-  const google::protobuf::FieldDescriptor* spNetPinsField = specialNetDesc->FindFieldByName("pins");
-  differencer.TreatAsSet(spNetPinsField);
-
-  auto netDesc = Net::descriptor();
-  const google::protobuf::FieldDescriptor* netWiresField = netDesc->FindFieldByName("wires");
-  if (exceptWires) differencer.IgnoreField(netWiresField);
-  else {
-    WireSorter::designWireOrdering(oldDesign);
-    WireSorter::designWireOrdering(newDesign);
-  }
-  const google::protobuf::FieldDescriptor* netPinsField = netDesc->FindFieldByName("pins");
-  differencer.TreatAsSet(netPinsField);
-
-
-  std::string diff_report;
-  differencer.ReportDifferencesToString(&diff_report);
-  auto equal = differencer.Compare(oldDesign, newDesign);
-  if (!equal) {
-    differences = diff_report;
-  }
-  return equal;
-}
 
 std::string getFileName(std::string_view path)
 {
@@ -116,20 +67,16 @@ void Banyan::init(Tcl_Interp* tcl_interp,
   Banyan_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::Banyan_tcl_inits);
 }
+const char BANYAN_EXE_DEFAULT[] = "/build/bin/banyan";
+const char BANYAN_PBDEF_DEFAULT[] = "/build/bin/bypbdef";
 
-std::string getExe()
+std::string getExe(const char* exeName)
 {
-  const char BANYAN_EXE[] = "BANYAN_EXE";
-  const char BANYAN_EXE_DEFAULT[] = "/build/bin/banyan";
-  const char* exe = std::getenv(BANYAN_EXE);
-  if (exe == nullptr) {
-    exe = BANYAN_EXE_DEFAULT;
-  }
-  if (!std::filesystem::exists(exe)) {
-    spdlog::error("Banyan executable not found: {}", exe);
+  if (!std::filesystem::exists(exeName)) {
+    spdlog::error("Banyan executable not found: {}", exeName);
     exit(1);
   }
-  return std::string(exe);
+  return std::string(exeName);
 }
 
 std::string genTempFilePath(utl::Logger* logger, std::string fileExt)
@@ -153,9 +100,9 @@ std::string genTempFilePath(utl::Logger* logger, std::string fileExt)
   return ss.str();
 }
 
-int exec(utl::Logger* logger, const std::vector<std::string>& args)
+int exec(utl::Logger* logger, const std::vector<std::string>& args, const char* exeName)
 {
-  std::string exe = getExe();
+  std::string exe = getExe(exeName);
   int ec = 0;
   if (!BANYAN_SUPPRESS_EXE_LOG()) {
     ec = boost::process::system(exe, boost::process::args(args));
@@ -164,16 +111,6 @@ int exec(utl::Logger* logger, const std::vector<std::string>& args)
         boost::process::std_out > boost::process::null,
         boost::process::std_err > boost::process::null);
   }
-
-  switch (ec) {
-    case 0:
-      logger->info(utl::BY, 1, "Banyan done");
-      // intend to do nothing
-      return ec;
-    default:
-      break;
-  }
-  logger->error(utl::BY, 1, "Run banyan error with exit code: {}", ec);
   return ec;
 }
 
@@ -215,7 +152,7 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     command = unregister[0];
   }
   if (command == "help" || vm.count("help")) {
-    exec(logger_, args);
+    exec(logger_, args, BANYAN_EXE_DEFAULT);
     return HELP;
   } else if (command == "") {
     logger_->error(utl::BY, 1, "subcommand is required but missing");
@@ -231,12 +168,15 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
     args.push_back("--lef");
     args.push_back(lef);
   }
+  for (const auto& lef : other_tech_lef_file_names_) {
+    args.push_back("--lef");
+    args.push_back(lef);
+  }
   auto defFilepath = genTempFilePath(logger_, ".def");
   ord::OpenRoad::openRoad()->writeDef(defFilepath.c_str(), "5.8");
   args.push_back("--def");
   args.push_back(defFilepath);
 
-  OpenDBAdapter dbAdapter(db_, logger_, laurel_);
   if (updateDB && !vm.count("save_db")) {
     if (outPbFilePath == "") {
       outPbFilePath = genTempFilePath(logger_, ".pb");
@@ -246,18 +186,12 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   }
   defer _(nullptr, [&](...) {
     if (updateDB) {
-      logger_->info(
-          utl::BY, 1, "Writing banyan result {} to eden ...", outPbFilePath);
-      BanyanCase byrst;
-      std::ifstream outfs;
-      outfs.open(outPbFilePath);
-      byrst.ParseFromIstream(&outfs);
-      outfs.close();
-      dbAdapter.updateDB(*byrst.mutable_design());
+      logger_->info(utl::BY, 1, "Writing banyan result {} to eden ...", outPbFilePath);
+      loaddb(outPbFilePath);
     }
   });
 
-  return exec(logger_, args);
+  return exec(logger_, args,BANYAN_EXE_DEFAULT);
 }
 
 int Banyan::cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_layer)
@@ -295,19 +229,10 @@ void Banyan::clearWires(bool excludeClock, bool excludeSignal)
     if (excludeSignal && net->getSigType() == odb::dbSigType::SIGNAL) {
       continue;
     }
-    auto wire = net->getWire();
-    if (wire != nullptr) {
+    if (auto wire = net->getWire(); wire != nullptr) {
       odb::dbWire::destroy(wire);
     }
   }
-}
-
-void Banyan::loaddb(std::string dbflie)
-{
-  OpenDBAdapter dbAdapter(db_, logger_, laurel_);
-  dbAdapter.loadDesignFromBanyanDB(dbflie);
-  auto design = dbAdapter.getDesign();
-  dbAdapter.updateDB(*design);
 }
 
 odb::dbDatabase* Banyan::createODB(std::string_view deffile)
@@ -315,7 +240,10 @@ odb::dbDatabase* Banyan::createODB(std::string_view deffile)
   auto newdb = odb::dbDatabase::create();
   odb::lefin lef_reader(newdb, logger_, false);
   std::vector<odb::dbLib*> search_libs;
-  auto techlib = lef_reader.createTechAndLib(getFileName(tech_lef_file_name_).c_str(), getFileName(tech_lef_file_name_).c_str(), tech_lef_file_name_.c_str());
+  auto techlib
+      = lef_reader.createTechAndLib(getFileName(tech_lef_file_name_).c_str(),
+                                    getFileName(tech_lef_file_name_).c_str(),
+                                    tech_lef_file_name_.c_str());
   if (techlib != nullptr) {
     search_libs.push_back(techlib);
   }
@@ -327,6 +255,9 @@ odb::dbDatabase* Banyan::createODB(std::string_view deffile)
       search_libs.push_back(lib);
     }
   }
+  for (auto techfile : other_tech_lef_file_names_) {
+    lef_reader.updateTech(tech, techfile.c_str());
+  }
   odb::defin def_reader(newdb, logger_);
   if (auto chip
       = def_reader.createChip(search_libs, std::string(deffile).c_str(), tech);
@@ -336,32 +267,78 @@ odb::dbDatabase* Banyan::createODB(std::string_view deffile)
   }
   return newdb;
 }
-std::unique_ptr<Design> Banyan::createDesign(std::string_view deffile){
-  odb::dbDatabase* newDb = createODB(deffile);
-  OpenDBAdapter dbAdapter(newDb, logger_, nullptr); //laurel设置为空确保 dbAdapter 不会调用updateDB
-  dbAdapter.loadDesignFromODB();
-  odb::dbDatabase::destroy(newDb);
-  return dbAdapter.getDesign();
+
+banyan_def::DesignExchangeFormat Banyan::def2pbdef(std::string deffile,
+                                                   bool orderWires)
+{
+  std::vector<std::string> args;
+  auto pbDefFilePath = genTempFilePath(logger_, ".pbdef");
+  args.push_back("--from");
+  args.push_back(deffile);
+  args.push_back("--to");
+  args.push_back(pbDefFilePath);
+  if (auto status = exec(logger_, args, BANYAN_PBDEF_DEFAULT); status != 0) {
+    logger_->error(utl::BY, 3, "exec {} fail with exit code {}", BANYAN_PBDEF_DEFAULT, status);
+  }
+  banyan_def::DesignExchangeFormat pbdef;
+  std::ifstream outfs;
+  outfs.open(pbDefFilePath);
+  pbdef.ParseFromIstream(&outfs);
+  outfs.close();
+  //TODO sort pbdef.wires
+  return pbdef;
 }
 
-void Banyan::loaddef(std::string_view deffile)
+std::string Banyan::pbdef2def(const banyan_def::DesignExchangeFormat& pbdef)
 {
-  auto newDesign = createDesign(deffile);
-  OpenDBAdapter dbAdapter(db_, logger_, laurel_);
-  dbAdapter.updateDB(*newDesign);
+  std::vector<std::string> args;
+  auto pbDefFilePath = genTempFilePath(logger_, ".pbdef");
+  std::ofstream output(pbDefFilePath, std::ios::out | std::ios::binary);
+  if (!pbdef.SerializeToOstream(&output)) {
+    logger_->error(utl::BY, 4, "create pbdef {} fail", pbDefFilePath);
+  }
+  output.close();
+  auto outDefFilePath = genTempFilePath(logger_, ".def");
+  args.push_back("--from");
+  args.push_back(pbDefFilePath);
+  args.push_back("--to");
+  args.push_back(outDefFilePath);
+  if (auto status = exec(logger_, args, BANYAN_PBDEF_DEFAULT); status != 0) {
+    logger_->error(utl::BY, 5, "exec {} fail with exit code {}", BANYAN_PBDEF_DEFAULT, status);
+  }
+  return outDefFilePath;
 }
-void Banyan::diffdefs(std::string_view deffileA,std::string_view deffileB, bool exceptWires)
-{
-  std::string messagesDiff = "";
-  auto designA = createDesign(deffileA);
-  auto designB = createDesign(deffileB);
 
-  bool result = designEqual(*designA,*designB,messagesDiff, exceptWires);
-  if (result)this->logger_->info(utl::BY,3,"No differences found.");
-  else this->logger_->info(utl::BY,
-                           3,
-                           "The two designs have inconsistent fields. {}",
-                           messagesDiff);
+void Banyan::loaddb(std::string dbflie)
+{
+  BanyanCase bycase;
+  std::ifstream outfs;
+  outfs.open(dbflie);
+  bycase.ParseFromIstream(&outfs);
+  outfs.close();
+  loaddef(pbdef2def(bycase.design()));
+}
+
+void Banyan::loaddef(std::string deffile)
+{
+  auto newODB = createODB(deffile);
+  for (auto net : newODB->getChip()->getBlock()->getNets()) {
+    auto oriNet = db_->getChip()->getBlock()->findNet(net->getConstName());
+    assert(oriNet != nullptr);
+    laurel_->cacheNet(oriNet);
+    if (auto oriWire = oriNet->getWire(); oriWire != nullptr) {
+      odb::dbWire::destroy(oriWire);
+    }
+    if (auto wire = net->getWire(); wire != nullptr) {
+      std::vector<int> rawdata;
+      std::vector<unsigned char> rawOpCodes;
+      wire->getRawWireData(rawdata, rawOpCodes);
+      auto oriWire = odb::dbWire::create(oriNet);
+      oriWire->setRawWireData(rawdata, rawOpCodes);
+    }
+    laurel_->diffNet(oriNet);
+  }
+  odb::dbDatabase::destroy(newODB);
 }
 
 }  // namespace banyan

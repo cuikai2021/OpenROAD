@@ -4,16 +4,16 @@
 #include <cstddef>
 #include <cstdio>
 #include <fstream>
+#include <functional>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <valarray>
-#include <vector>
 
 #include <eigen3/Eigen/Dense>
-#include "DBAdapter.hpp"
 #include "ord/OpenRoad.hh"
+#include "odb/dbWireCodec.h"
 #include "utl/Logger.h"
 
 namespace banyan {
@@ -25,6 +25,118 @@ void assert_(bool expr) {
   [[unlikely]]
     ord::OpenRoad::openRoad()->getLogger()
       ->error(utl::BY, 5, "assert failed in regression_RC");
+}
+
+void forEachWireLine(odb::dbWire* odbWires,
+                 std::function<void(const std::string&, int, int, int, int, int, int)> cb)
+{
+  auto doAddWire = [&](const std::string& layerName,
+                       int x1,
+                       int y1,
+                       int ext1,
+                       int x2,
+                       int y2,
+                       int ext2) {
+    int beginX = x1;
+    int beginY = y1;
+    int beginExt = ext1;
+    int endX = x2;
+    int endY = y2;
+    int endExt = ext2;
+    assert(beginX == endX || beginY == endY);
+    if (beginX > endX || beginY > endY) {
+      std::swap(beginX, endX);
+      std::swap(beginY, endY);
+      std::swap(beginExt, endExt);
+    }
+    cb(layerName, beginX, beginY, beginExt, endX, endY, endExt);
+  };
+
+  odb::dbWireDecoder decode;
+  int prevX = std::numeric_limits<int>::max();
+  int prevY = std::numeric_limits<int>::max();
+  int prevExt = std::numeric_limits<int>::max();
+  bool hasPrevCoor = false;
+  for (decode.begin(odbWires);;) {
+    odb::dbWireDecoder::OpCode opcode = decode.next();
+
+    switch (opcode) {
+      case odb::dbWireDecoder::PATH:
+      case odb::dbWireDecoder::SHORT:
+      case odb::dbWireDecoder::VWIRE:
+      case odb::dbWireDecoder::JUNCTION: {
+        hasPrevCoor = false;
+        break;
+      }
+
+      case odb::dbWireDecoder::POINT_VIRTUAL: {
+        int x, y, ext;
+        decode.getPoint(x, y);
+        ext = DEFAULT_WIRE_EXT;
+        prevX = x;
+        prevY = y;
+        prevExt = ext;
+        hasPrevCoor = true;
+        break;
+      }
+
+      case odb::dbWireDecoder::POINT: {
+        int x, y, ext;
+        decode.getPoint(x, y);
+        ext = DEFAULT_WIRE_EXT;
+        if (hasPrevCoor) {
+          doAddWire(decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, ext);
+        }
+        prevX = x;
+        prevY = y;
+        prevExt = ext;
+        hasPrevCoor = true;
+        break;
+      }
+
+      case odb::dbWireDecoder::POINT_EXT: {
+        int x, y, ext;
+        decode.getPoint(x, y, ext);
+        if (hasPrevCoor) {
+          doAddWire(decode.getLayer()->getName(), prevX, prevY, prevExt, x, y, ext);
+        }
+        prevX = x;
+        prevY = y;
+        prevExt = ext;
+        hasPrevCoor = true;
+        break;
+      }
+
+      case odb::dbWireDecoder::VIA: {
+        assert(hasPrevCoor);
+        //WireVia
+        break;
+      }
+
+      case odb::dbWireDecoder::TECH_VIA: {
+        assert(hasPrevCoor);
+        //WireVia
+        break;
+      }
+
+      case odb::dbWireDecoder::RECT: {
+        assert(hasPrevCoor);
+        //WireRect
+        break;
+      }
+
+      case odb::dbWireDecoder::ITERM:
+      case odb::dbWireDecoder::BTERM:
+      case odb::dbWireDecoder::RULE:
+        break;
+
+      case odb::dbWireDecoder::END_DECODE:
+        return;
+
+      default:
+        break;
+    }
+  }
 }
 
 std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
@@ -140,16 +252,18 @@ statNetLaWireLens(odb::dbDatabase* db, const std::vector<std::string>& route_lay
       result.erase(net);
       continue;
     }
-    for (auto& wire : OpenDBAdapter::odbWires2Wires(dbwire)) {
-      auto& len = laWireLens[la2id[wire.layername()]];
-      for (auto& seg : wire.segments()) {
-        if (seg.has_line()) {
-          auto line = seg.line();
-          len += line.end().point().x() - line.start().point().x()
-              +  line.end().point().y() - line.start().point().y();
-        }
-      }
-    }
+
+    forEachWireLine(dbwire,
+                    [&](const std::string& layerName,
+                       int beginX,
+                       int beginY,
+                       int beginExt,
+                       int endX,
+                       int endY,
+                       int endExt) {
+                      auto& len = laWireLens[la2id[layerName]];
+                      len += endX - beginX + endY - beginY;
+                    });
 
     for (auto pin : net->getITerms())
       for (auto mpin : pin->getMTerm()->getMPins())

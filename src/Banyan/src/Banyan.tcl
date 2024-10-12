@@ -20,7 +20,7 @@ proc banyan_clear_wires { args } {
 
   set ex_signal [info exists flags(-exclude_signal)]
   set ex_clock [info exists flags(-exclude_clock)]
-  banyan::banyanClearWires $ex_signal $ex_clock
+  banyan::clearWires $ex_signal $ex_clock
 }
 
 sta::define_cmd_args "regression_RC" { spef setRC_tcl [-plot file_prefix] [-corner corner_name] }
@@ -40,22 +40,9 @@ proc regression_RC { spef setRC_tcl args } {
   banyan::regression_RC_cmd $spef $setRC_tcl $plot $corner
 }
 
-
-sta::define_cmd_args "banyan_load_db" { dbfile }
-proc banyan_load_db { dbfile } {
-  banyan::loadDB $dbfile
-}
-
 # This method no longer guarantees that the input def will only have wires changes compared to the existing def in OpenDB.
 # The caller needs to make the above assumptions.
 sta::define_cmd_args "banyan_load_def" { deffile }
 proc banyan_load_def { deffile } {
   banyan::loadDef $deffile
-}
-
-sta::define_cmd_args "banyan_diff_defs" { deffileA deffileB [-except_wires] }
-proc banyan_diff_defs { deffileA deffileB args } {
-  sta::parse_key_args "banyan_diff_defs" args keys {} flags {-except_wires}
-  set except_wires [info exists flags(-except_wires)]
-  banyan::diffDefs $deffileA $deffileB $except_wires
 }

@@ -36,9 +36,14 @@ void banyan(std::vector<std::string> args, bool updateDB)
     ord::OpenRoad::openRoad()->getBanyan()->main(args, updateDB);
 }
 
-void banyanClearWires(bool excludeClock, bool excludeSignal)
+void clearWires(bool excludeClock, bool excludeSignal)
 {
     ord::OpenRoad::openRoad()->getBanyan()->clearWires(excludeClock, excludeSignal);
+}
+
+void loadDef(std::string deffile)
+{
+    ord::OpenRoad::openRoad()->getBanyan()->loaddef(deffile);
 }
 
 void regression_RC_cmd(const char* spef,
@@ -48,20 +53,6 @@ void regression_RC_cmd(const char* spef,
 {
     ord::OpenRoad::openRoad()->getBanyan()->regression_RC(
         spef, setRC_tcl, plot_file_prefix, corner_name);
-}
-
-void loadDB(std::string dbfile)
-{
-    ord::OpenRoad::openRoad()->getBanyan()->loaddb(dbfile);
-}
-
-void loadDef(std::string deffile)
-{
-    ord::OpenRoad::openRoad()->getBanyan()->loaddef(deffile);
-}
-void diffDefs(std::string deffileA, std::string deffileB, bool exceptWires)
-{
-    ord::OpenRoad::openRoad()->getBanyan()->diffdefs(deffileA, deffileB, exceptWires);
 }
 
 }

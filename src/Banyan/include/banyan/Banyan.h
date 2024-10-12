@@ -3,13 +3,6 @@
 
 #include <dlfcn.h>
 #include <tcl.h>
-#include <charconv>
-#include <cstdint>
-#include <filesystem>
-#include <fstream>
-#include <map>
-#include <memory>
-#include <numeric>
 #include <string>
 #include <vector>
 #include <boost/algorithm/string.hpp>
@@ -40,6 +33,7 @@ class SteinerTreeBuilder;
 
 namespace banyan {
 using byvia = std::tuple<int, int, std::string>;
+constexpr int DEFAULT_WIRE_EXT = -1;
 
 constexpr const std::string_view BANYAN_TMP_FOLDER = "/tmp/banyan/";
 class Banyan : public ord::OpenRoadObserver
@@ -60,19 +54,22 @@ class Banyan : public ord::OpenRoadObserver
                      const char* setRC_tcl,
                      const char* plot_file_prefix,
                      const char* corner_name);
+  banyan_def::DesignExchangeFormat def2pbdef(std::string deffile, bool orderWires);                 
+  std::string pbdef2def(const banyan_def::DesignExchangeFormat& pbdef);
   void loaddb(std::string dbfile);
-  void loaddef(std::string_view deffile);
-  void diffdefs(std::string_view deffileA,std::string_view deffileB, bool exceptWires);
+  void loaddef(std::string deffile);
   // From ord::OpenRoad::Observer
   virtual void postReadLef(const char* filename,
-                           odb::dbTech*,
-                           odb::dbLib*,
-                           bool make_tech) override
+                           odb::dbTech* dbTech,
+                           odb::dbLib* dblib,
+                           bool makeTech) override
   {
-    if (make_tech) {
+    if (makeTech) {
       tech_lef_file_name_ = filename;
-    } else {
+    } else if (dblib != nullptr) {
       other_lef_file_names_.emplace_back(filename);
+    } else if (dbTech != nullptr) {
+      other_tech_lef_file_names_.emplace_back(filename);
     }
   }
 
@@ -83,10 +80,11 @@ class Banyan : public ord::OpenRoadObserver
   lrl::Laurel* laurel_;
   std::string tech_lef_file_name_;
   std::vector<std::string> other_lef_file_names_;
+  std::vector<std::string> other_tech_lef_file_names_;
 
  private:
   odb::dbDatabase* createODB(std::string_view deffile);
-  std::unique_ptr<Design> createDesign(std::string_view deffile);
+
 };  // class Banyan
 
 }  // namespace banyan
