@@ -246,371 +246,6 @@ linden::gp::Config {
 [nPlace] Iter: 170 overflow: 0.723379 HPWL: 4412903
 [nPlace] Iter: 180 overflow: 0.706441 HPWL: 4475835
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[INFO BY-0001] unit cap 0
-[WARNING BY-0001] budgeting for net resp_msg\[9\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[8\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[7\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[6\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[5\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[4\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[3\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[2\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[1\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[15\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[14\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[13\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[12\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[11\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[10\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[0\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[9\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[8\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[7\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[6\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[5\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[4\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[3\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[31\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[30\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[2\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[29\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[28\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[27\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[26\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[25\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[24\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[23\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[22\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[21\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[20\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[1\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[19\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[18\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[17\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[16\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[15\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[14\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[13\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[12\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[11\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[10\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[0\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_val cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_rdy cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net reset cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_val cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_rdy cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net clk cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[9\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[8\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[7\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[6\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[5\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[4\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[3\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[2\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[15\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[14\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[13\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[12\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[11\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[10\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[9\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[8\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[7\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[6\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[5\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[4\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[3\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[2\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[15\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[14\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[13\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[12\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[11\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[10\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net ctrl.state.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net ctrl.state.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _275_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _274_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _273_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _272_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _271_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _270_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _269_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _268_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _267_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _266_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _265_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _264_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _263_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _262_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _261_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _260_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _259_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _258_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _257_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _256_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _255_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _254_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _253_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _252_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _251_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _250_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _249_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _248_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _247_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _246_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _245_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _244_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _243_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _242_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _241_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _240_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _239_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _238_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _237_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _236_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _235_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _234_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _233_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _232_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _231_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _230_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _229_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _228_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _227_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _226_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _225_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _224_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _223_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _222_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _221_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _220_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _219_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _218_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _217_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _216_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _215_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _214_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _213_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _212_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _211_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _210_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _209_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _208_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _207_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _206_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _205_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _204_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _203_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _202_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _201_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _200_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _199_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _198_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _197_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _196_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _195_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _194_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _193_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _192_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _191_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _190_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _189_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _188_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _187_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _186_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _185_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _184_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _183_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _182_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _181_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _180_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _179_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _178_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _177_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _176_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _175_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _174_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _173_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _172_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _171_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _170_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _169_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _168_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _167_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _166_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _165_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _164_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _163_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _162_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _161_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _160_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _159_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _158_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _157_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _156_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _155_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _154_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _153_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _152_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _151_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _150_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _149_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _148_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _147_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _146_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _145_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _144_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _143_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _142_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _141_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _140_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _139_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _138_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _137_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _136_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _135_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _134_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _133_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _132_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _131_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _130_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _129_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _128_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _127_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _126_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _125_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _124_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _123_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _122_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _121_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _120_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _119_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _118_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _117_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _116_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _115_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _114_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _113_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _112_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _111_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _110_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _109_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _108_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _107_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _106_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _105_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _104_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _103_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _102_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _101_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _100_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _099_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _098_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _097_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _096_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _095_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _094_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _093_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _092_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _091_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _090_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _089_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _088_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _087_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _086_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _085_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _084_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _083_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _082_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _081_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _080_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _079_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _078_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _077_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _076_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _075_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _074_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _073_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _072_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _071_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _070_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _069_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _068_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _067_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _066_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _065_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _064_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _063_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _062_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _061_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _060_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _059_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _058_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _057_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _056_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _055_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _054_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _053_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _052_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _051_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _050_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _049_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _048_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _047_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _046_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _045_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _044_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _043_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _042_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _041_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _040_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _039_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _038_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _037_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _036_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _035_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _034_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _033_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _032_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _031_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _030_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _029_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _028_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _027_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _026_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _025_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _024_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _023_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _022_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _021_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _020_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _019_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _018_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _017_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _016_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _015_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _014_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _013_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _012_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _011_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _010_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _009_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _008_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _007_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _006_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _005_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _004_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _003_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _002_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _001_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _000_ cap 0 wirelen 0
 [INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
@@ -618,18 +253,18 @@ linden::gp::Config {
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 1 inflationIterCnt: 1 bloatIterCnt: 0
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (11.59761710576453, 15.512744109926507)
-[linden/gpl] OverflowTileCnt: (37, 36)
+[linden/gpl] TotalRouteOverflow: (17.010314052839007, 13.666027671085828)
+[linden/gpl] OverflowTileCnt: (43, 39)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1.3571428571428572)
-[linden/gpl] 2.0%RC: (1, 1.1984126984126984)
-[linden/gpl] 5.0%RC: (0.7170873040299492, 1.066137566137566)
+[linden/gpl] 1.0%RC: (1, 1.1052631578947367)
+[linden/gpl] 2.0%RC: (1, 1.0350877192982455)
+[linden/gpl] 5.0%RC: (0.9629629629629629, 0.9110121457489877)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.6785714285714286
-[linden/gpl/rdp] InflatedAreaDelta: 2336259572
+[linden/gpl] FinalRC: 0.5526315789473684
+[linden/gpl/rdp] InflatedAreaDelta: 2039673216
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
 [linden/gpl/rdp] MovableInstsArea: 3813654508
@@ -637,377 +272,12 @@ linden/gpl NumTiles: 196
 [linden/gpl/rdp] TotalFillerArea: 0
 [linden/gpl/rdp] TotalGCellsArea: 3813654508
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813311744
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813311744
+[linden/gpl/rdp] NewMovableInstsArea: 3813625372
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813625372
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 190 overflow: 0.690177 HPWL: 4647895
-[nPlace] Iter: 200 overflow: 0.680168 HPWL: 4717805
+[nPlace] Iter: 190 overflow: 0.687331 HPWL: 4631424
+[nPlace] Iter: 200 overflow: 0.672612 HPWL: 4697493
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[INFO BY-0001] unit cap 0
-[WARNING BY-0001] budgeting for net resp_msg\[9\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[8\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[7\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[6\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[5\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[4\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[3\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[2\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[1\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[15\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[14\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[13\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[12\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[11\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[10\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[0\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[9\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[8\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[7\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[6\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[5\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[4\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[3\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[31\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[30\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[2\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[29\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[28\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[27\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[26\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[25\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[24\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[23\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[22\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[21\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[20\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[1\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[19\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[18\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[17\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[16\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[15\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[14\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[13\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[12\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[11\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[10\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[0\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_val cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_rdy cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net reset cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_val cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_rdy cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net clk cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[9\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[8\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[7\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[6\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[5\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[4\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[3\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[2\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[15\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[14\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[13\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[12\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[11\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[10\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[9\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[8\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[7\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[6\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[5\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[4\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[3\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[2\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[15\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[14\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[13\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[12\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[11\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[10\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net ctrl.state.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net ctrl.state.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _275_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _274_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _273_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _272_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _271_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _270_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _269_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _268_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _267_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _266_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _265_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _264_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _263_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _262_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _261_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _260_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _259_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _258_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _257_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _256_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _255_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _254_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _253_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _252_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _251_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _250_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _249_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _248_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _247_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _246_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _245_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _244_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _243_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _242_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _241_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _240_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _239_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _238_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _237_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _236_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _235_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _234_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _233_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _232_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _231_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _230_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _229_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _228_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _227_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _226_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _225_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _224_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _223_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _222_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _221_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _220_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _219_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _218_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _217_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _216_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _215_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _214_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _213_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _212_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _211_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _210_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _209_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _208_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _207_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _206_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _205_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _204_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _203_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _202_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _201_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _200_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _199_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _198_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _197_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _196_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _195_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _194_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _193_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _192_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _191_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _190_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _189_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _188_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _187_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _186_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _185_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _184_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _183_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _182_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _181_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _180_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _179_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _178_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _177_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _176_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _175_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _174_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _173_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _172_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _171_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _170_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _169_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _168_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _167_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _166_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _165_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _164_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _163_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _162_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _161_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _160_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _159_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _158_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _157_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _156_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _155_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _154_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _153_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _152_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _151_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _150_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _149_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _148_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _147_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _146_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _145_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _144_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _143_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _142_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _141_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _140_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _139_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _138_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _137_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _136_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _135_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _134_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _133_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _132_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _131_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _130_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _129_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _128_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _127_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _126_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _125_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _124_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _123_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _122_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _121_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _120_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _119_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _118_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _117_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _116_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _115_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _114_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _113_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _112_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _111_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _110_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _109_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _108_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _107_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _106_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _105_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _104_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _103_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _102_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _101_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _100_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _099_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _098_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _097_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _096_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _095_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _094_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _093_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _092_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _091_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _090_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _089_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _088_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _087_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _086_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _085_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _084_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _083_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _082_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _081_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _080_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _079_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _078_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _077_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _076_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _075_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _074_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _073_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _072_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _071_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _070_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _069_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _068_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _067_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _066_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _065_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _064_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _063_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _062_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _061_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _060_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _059_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _058_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _057_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _056_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _055_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _054_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _053_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _052_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _051_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _050_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _049_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _048_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _047_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _046_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _045_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _044_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _043_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _042_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _041_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _040_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _039_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _038_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _037_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _036_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _035_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _034_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _033_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _032_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _031_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _030_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _029_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _028_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _027_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _026_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _025_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _024_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _023_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _022_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _021_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _020_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _019_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _018_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _017_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _016_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _015_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _014_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _013_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _012_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _011_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _010_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _009_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _008_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _007_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _006_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _005_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _004_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _003_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _002_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _001_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _000_ cap 0 wirelen 0
 [INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
@@ -1015,564 +285,302 @@ linden/gpl NumTiles: 196
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 2 inflationIterCnt: 2 bloatIterCnt: 0
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (5.591018989051305, 9.574043635841413)
-[linden/gpl] OverflowTileCnt: (34, 38)
+[linden/gpl] TotalRouteOverflow: (9.966813524053586, 14.226032520484797)
+[linden/gpl] OverflowTileCnt: (39, 42)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (0.45833333333333326, 1)
-[linden/gpl] 2.0%RC: (0.3873456790123457, 0.8333333333333334)
-[linden/gpl] 5.0%RC: (0.306275720164609, 0.5490489783968044)
+[linden/gpl] 1.0%RC: (1, 1)
+[linden/gpl] 2.0%RC: (1, 1)
+[linden/gpl] 5.0%RC: (0.6349820788530466, 0.7767602767602768)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 1205098300
+[linden/gpl/rdp] InflatedAreaDelta: 1535315916
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813311744
-[linden/gpl/rdp] MovableStdInstsArea: 3813311744
+[linden/gpl/rdp] MovableInstsArea: 3813625372
+[linden/gpl/rdp] MovableStdInstsArea: 3813625372
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813311744
+[linden/gpl/rdp] TotalGCellsArea: 3813625372
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813249952
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813249952
+[linden/gpl/rdp] NewMovableInstsArea: 3813349968
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813349968
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 210 overflow: 0.652999 HPWL: 4907354
+[nPlace] Iter: 210 overflow: 0.650808 HPWL: 4796305
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
-[INFO BY-0001] unit cap 0
-[WARNING BY-0001] budgeting for net resp_msg\[9\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[8\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[7\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[6\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[5\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[4\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[3\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[2\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[1\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[15\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[14\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[13\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[12\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[11\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[10\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_msg\[0\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[9\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[8\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[7\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[6\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[5\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[4\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[3\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[31\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[30\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[2\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[29\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[28\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[27\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[26\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[25\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[24\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[23\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[22\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[21\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[20\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[1\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[19\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[18\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[17\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[16\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[15\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[14\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[13\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[12\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[11\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[10\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_msg\[0\] cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_val cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net resp_rdy cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net reset cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_val cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net req_rdy cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net clk cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[9\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[8\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[7\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[6\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[5\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[4\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[3\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[2\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[15\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[14\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[13\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[12\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[11\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[10\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.b_reg.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[9\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[8\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[7\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[6\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[5\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[4\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[3\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[2\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[15\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[14\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[13\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[12\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[11\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[10\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net dpath.a_reg.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net ctrl.state.out_reg\[1\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net ctrl.state.out_reg\[0\].qi cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _275_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _274_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _273_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _272_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _271_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _270_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _269_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _268_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _267_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _266_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _265_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _264_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _263_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _262_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _261_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _260_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _259_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _258_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _257_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _256_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _255_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _254_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _253_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _252_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _251_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _250_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _249_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _248_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _247_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _246_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _245_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _244_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _243_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _242_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _241_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _240_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _239_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _238_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _237_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _236_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _235_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _234_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _233_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _232_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _231_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _230_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _229_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _228_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _227_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _226_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _225_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _224_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _223_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _222_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _221_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _220_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _219_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _218_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _217_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _216_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _215_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _214_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _213_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _212_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _211_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _210_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _209_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _208_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _207_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _206_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _205_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _204_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _203_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _202_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _201_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _200_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _199_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _198_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _197_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _196_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _195_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _194_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _193_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _192_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _191_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _190_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _189_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _188_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _187_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _186_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _185_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _184_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _183_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _182_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _181_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _180_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _179_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _178_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _177_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _176_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _175_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _174_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _173_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _172_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _171_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _170_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _169_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _168_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _167_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _166_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _165_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _164_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _163_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _162_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _161_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _160_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _159_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _158_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _157_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _156_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _155_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _154_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _153_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _152_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _151_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _150_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _149_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _148_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _147_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _146_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _145_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _144_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _143_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _142_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _141_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _140_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _139_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _138_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _137_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _136_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _135_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _134_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _133_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _132_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _131_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _130_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _129_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _128_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _127_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _126_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _125_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _124_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _123_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _122_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _121_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _120_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _119_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _118_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _117_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _116_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _115_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _114_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _113_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _112_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _111_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _110_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _109_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _108_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _107_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _106_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _105_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _104_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _103_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _102_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _101_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _100_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _099_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _098_ cap 0 wirelen 0
-[WARNING BY-0001] budgeting for net _097_ cap 0 wirelen 0
-[WARNING BY-0001] message limit reached, this message will no longer print
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 3 inflationIterCnt: 3 bloatIterCnt: 0
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (5.053996935258423, 4.83043013253214)
-[linden/gpl] OverflowTileCnt: (22, 32)
+[linden/gpl] TotalRouteOverflow: (6.287684678636731, 11.570978190532639)
+[linden/gpl] OverflowTileCnt: (35, 43)
 [linden/gpl] 0.5%RC: (0, 0)
 [linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 0.5111111111111111)
-[linden/gpl] 5.0%RC: (0.4598101078837845, 0.28361315475067594)
+[linden/gpl] 2.0%RC: (0.6825396825396824, 0.888888888888889)
+[linden/gpl] 5.0%RC: (0.418653448001274, 0.5707077522866997)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 559197132
+[linden/gpl/rdp] InflatedAreaDelta: 1093515332
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813249952
-[linden/gpl/rdp] MovableStdInstsArea: 3813249952
+[linden/gpl/rdp] MovableInstsArea: 3813349968
+[linden/gpl/rdp] MovableStdInstsArea: 3813349968
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813249952
+[linden/gpl/rdp] TotalGCellsArea: 3813349968
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813487276
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813487276
+[linden/gpl/rdp] NewMovableInstsArea: 3813345468
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813345468
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 220 overflow: 0.623763 HPWL: 5022951
+[nPlace] Iter: 220 overflow: 0.623766 HPWL: 4930479
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 4 inflationIterCnt: 4 bloatIterCnt: 0
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (4.976434747742797, 8.944526432178309)
-[linden/gpl] OverflowTileCnt: (29, 47)
+[linden/gpl] TotalRouteOverflow: (6.269706749376982, 9.43262393766157)
+[linden/gpl] OverflowTileCnt: (31, 42)
 [linden/gpl] 0.5%RC: (0, 0)
 [linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (0.75, 1)
-[linden/gpl] 5.0%RC: (0.369957264957265, 0.4975308641975309)
+[linden/gpl] 2.0%RC: (1, 1)
+[linden/gpl] 5.0%RC: (0.47019597488705045, 0.5388296888296887)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 596511664
+[linden/gpl/rdp] InflatedAreaDelta: 965646576
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813487276
-[linden/gpl/rdp] MovableStdInstsArea: 3813487276
+[linden/gpl/rdp] MovableInstsArea: 3813345468
+[linden/gpl/rdp] MovableStdInstsArea: 3813345468
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813487276
+[linden/gpl/rdp] TotalGCellsArea: 3813345468
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813212344
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813212344
+[linden/gpl/rdp] NewMovableInstsArea: 3813536620
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813536620
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 230 overflow: 0.598502 HPWL: 5147206
+[nPlace] Iter: 230 overflow: 0.565776 HPWL: 5025373
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 5 inflationIterCnt: 0 bloatIterCnt: 1
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (2.86361338654615, 6.63317380360724)
-[linden/gpl] OverflowTileCnt: (22, 38)
+[linden/gpl] TotalRouteOverflow: (7.916506587705333, 10.395473658421563)
+[linden/gpl] OverflowTileCnt: (37, 40)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (0.5, 0.5)
-[linden/gpl] 2.0%RC: (0.31376518218623484, 0.44427244582043346)
-[linden/gpl] 5.0%RC: (0.21265123908312764, 0.3504311325260757)
+[linden/gpl] 1.0%RC: (1, 1)
+[linden/gpl] 2.0%RC: (1, 1)
+[linden/gpl] 5.0%RC: (0.55765639589169, 0.6951566951566952)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.25
-[linden/gpl/rdp] InflatedAreaDelta: 696341336
+[linden/gpl] FinalRC: 0.5
+[linden/gpl/rdp] InflatedAreaDelta: 661808636
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813212344
-[linden/gpl/rdp] MovableStdInstsArea: 3813212344
+[linden/gpl/rdp] MovableInstsArea: 3813536620
+[linden/gpl/rdp] MovableStdInstsArea: 3813536620
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813212344
+[linden/gpl/rdp] TotalGCellsArea: 3813536620
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813395848
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813395848
+[linden/gpl/rdp] NewMovableInstsArea: 3813415576
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813415576
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 240 overflow: 0.57521 HPWL: 5215044
+[nPlace] Iter: 240 overflow: 0.561978 HPWL: 5104704
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 6 inflationIterCnt: 1 bloatIterCnt: 1
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (7.609122089864789, 14.636600142876215)
-[linden/gpl] OverflowTileCnt: (35, 58)
+[linden/gpl] TotalRouteOverflow: (10.744730834629543, 12.974502220569994)
+[linden/gpl] OverflowTileCnt: (39, 54)
 [linden/gpl] 0.5%RC: (0, 0)
 [linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 1)
-[linden/gpl] 5.0%RC: (0.5776094276094277, 0.8265993265993266)
+[linden/gpl] 2.0%RC: (1, 0.888888888888889)
+[linden/gpl] 5.0%RC: (0.7267806267806268, 0.6216931216931219)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 620876752
+[linden/gpl/rdp] InflatedAreaDelta: 922438800
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813395848
-[linden/gpl/rdp] MovableStdInstsArea: 3813395848
+[linden/gpl/rdp] MovableInstsArea: 3813415576
+[linden/gpl/rdp] MovableStdInstsArea: 3813415576
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813395848
+[linden/gpl/rdp] TotalGCellsArea: 3813415576
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813446860
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813446860
+[linden/gpl/rdp] NewMovableInstsArea: 3813447824
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813447824
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 250 overflow: 0.531572 HPWL: 5331295
+[nPlace] Iter: 250 overflow: 0.52952 HPWL: 5161303
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 7 inflationIterCnt: 2 bloatIterCnt: 1
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (5.9542181416794415, 9.403113071139387)
-[linden/gpl] OverflowTileCnt: (26, 34)
+[linden/gpl] TotalRouteOverflow: (13.653028120456439, 13.077249701921591)
+[linden/gpl] OverflowTileCnt: (45, 47)
 [linden/gpl] 0.5%RC: (0, 0)
 [linden/gpl] 1.0%RC: (1, 1)
 [linden/gpl] 2.0%RC: (1, 1)
-[linden/gpl] 5.0%RC: (0.4905418130392331, 0.6962962962962963)
+[linden/gpl] 5.0%RC: (0.8703703703703705, 0.7018518518518518)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 416838080
+[linden/gpl/rdp] InflatedAreaDelta: 777611944
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813446860
-[linden/gpl/rdp] MovableStdInstsArea: 3813446860
+[linden/gpl/rdp] MovableInstsArea: 3813447824
+[linden/gpl/rdp] MovableStdInstsArea: 3813447824
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813446860
+[linden/gpl/rdp] TotalGCellsArea: 3813447824
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813298016
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813298016
+[linden/gpl/rdp] NewMovableInstsArea: 3813352688
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813352688
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 260 overflow: 0.505977 HPWL: 5448412
+[nPlace] Iter: 260 overflow: 0.484702 HPWL: 5212638
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 8 inflationIterCnt: 3 bloatIterCnt: 1
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (6.066336933844336, 9.065150662031467)
-[linden/gpl] OverflowTileCnt: (31, 46)
+[linden/gpl] TotalRouteOverflow: (11.612729607666678, 10.497413278604556)
+[linden/gpl] OverflowTileCnt: (47, 44)
 [linden/gpl] 0.5%RC: (0, 0)
 [linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (0.625, 0.8333333333333334)
-[linden/gpl] 5.0%RC: (0.4253755503755502, 0.5029711029711029)
+[linden/gpl] 2.0%RC: (1, 1)
+[linden/gpl] 5.0%RC: (0.711111111111111, 0.6157407407407407)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 604861880
+[linden/gpl/rdp] InflatedAreaDelta: 570239804
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813298016
-[linden/gpl/rdp] MovableStdInstsArea: 3813298016
+[linden/gpl/rdp] MovableInstsArea: 3813352688
+[linden/gpl/rdp] MovableStdInstsArea: 3813352688
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813298016
+[linden/gpl/rdp] TotalGCellsArea: 3813352688
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813464740
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813464740
+[linden/gpl/rdp] NewMovableInstsArea: 3813405712
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813405712
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 270 overflow: 0.477663 HPWL: 5452939
+[nPlace] Iter: 270 overflow: 0.460767 HPWL: 5328076
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 9 inflationIterCnt: 4 bloatIterCnt: 1
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (8.786467417209106, 16.334296396757697)
-[linden/gpl] OverflowTileCnt: (30, 54)
+[linden/gpl] TotalRouteOverflow: (8.710327925939046, 17.105414361180614)
+[linden/gpl] OverflowTileCnt: (28, 52)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 1)
-[linden/gpl] 5.0%RC: (0.7469135802469136, 0.8333333333333334)
+[linden/gpl] 1.0%RC: (1, 2)
+[linden/gpl] 2.0%RC: (1, 1.6666666666666667)
+[linden/gpl] 5.0%RC: (0.7058201058201058, 1.009259259259259)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 619633964
+[linden/gpl] FinalRC: 1
+[linden/gpl/rdp] InflatedAreaDelta: 733638184
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813464740
-[linden/gpl/rdp] MovableStdInstsArea: 3813464740
+[linden/gpl/rdp] MovableInstsArea: 3813405712
+[linden/gpl/rdp] MovableStdInstsArea: 3813405712
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813464740
+[linden/gpl/rdp] TotalGCellsArea: 3813405712
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813360688
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813360688
+[linden/gpl/rdp] NewMovableInstsArea: 3813473244
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813473244
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 280 overflow: 0.461101 HPWL: 5472990
-[nPlace] Iter: 290 overflow: 0.418213 HPWL: 5539206
+[nPlace] Iter: 280 overflow: 0.437974 HPWL: 5333657
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 10 inflationIterCnt: 0 bloatIterCnt: 2
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (4.9600403681286025, 5.419418898095366)
-[linden/gpl] OverflowTileCnt: (17, 32)
+[linden/gpl] TotalRouteOverflow: (3.416242718634023, 13.653744028589227)
+[linden/gpl] OverflowTileCnt: (22, 47)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (1, 1)
-[linden/gpl] 2.0%RC: (1, 0.611111111111111)
-[linden/gpl] 5.0%RC: (0.4761633428300094, 0.3597222222222222)
+[linden/gpl] 1.0%RC: (0.6000000000000001, 1)
+[linden/gpl] 2.0%RC: (0.4444444444444444, 1)
+[linden/gpl] 5.0%RC: (0.2622659747659747, 0.7486772486772487)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
 [linden/gpl] FinalRC: 0.5
-[linden/gpl/rdp] InflatedAreaDelta: 292763568
+[linden/gpl/rdp] InflatedAreaDelta: 447729104
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
 [linden/gpl/rdp] WhiteSpaceArea: 3815504000
-[linden/gpl/rdp] MovableInstsArea: 3813360688
-[linden/gpl/rdp] MovableStdInstsArea: 3813360688
+[linden/gpl/rdp] MovableInstsArea: 3813473244
+[linden/gpl/rdp] MovableStdInstsArea: 3813473244
 [linden/gpl/rdp] TotalFillerArea: 0
-[linden/gpl/rdp] TotalGCellsArea: 3813360688
+[linden/gpl/rdp] TotalGCellsArea: 3813473244
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3813292700
-[linden/gpl/rdp] NewMovableStdInstsArea: 3813292700
+[linden/gpl/rdp] NewMovableInstsArea: 3813298732
+[linden/gpl/rdp] NewMovableStdInstsArea: 3813298732
 [linden/gpl/rdp] NewTotalFillerArea: 0
-[nPlace] Iter: 300 overflow: 0.383922 HPWL: 5514267
+[nPlace] Iter: 290 overflow: 0.419067 HPWL: 5309386
+[nPlace] Iter: 300 overflow: 0.353269 HPWL: 5371165
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[INFO BY-0001] Banyan done
 [linden/gpl] TileLxLy=(0, 0)
 [linden/gpl] TileSize=(4424, 4400), TileArea=19465600
 [linden/gpl] TileCnt=(14, 14)
 [linden/gpl] NumTiles=196
 [linden/gpl/rdp] Routability numCall: 11 inflationIterCnt: 1 bloatIterCnt: 2
 linden/gpl NumTiles: 196
-[linden/gpl] TotalRouteOverflow: (10.340080181256651, 12.51266095016095)
-[linden/gpl] OverflowTileCnt: (36, 56)
+[linden/gpl] TotalRouteOverflow: (18.989954720426514, 24.345588153676392)
+[linden/gpl] OverflowTileCnt: (34, 53)
 [linden/gpl] 0.5%RC: (0, 0)
-[linden/gpl] 1.0%RC: (2, 1)
-[linden/gpl] 2.0%RC: (1.3333333333333333, 0.9047619047619048)
-[linden/gpl] 5.0%RC: (0.7962962962962963, 0.5593033509700176)
+[linden/gpl] 1.0%RC: (4, 3)
+[linden/gpl] 2.0%RC: (2.5, 2.5)
+[linden/gpl] 5.0%RC: (1.5, 1.5555555555555556)
 [linden/gpl] 0.5rcK: 1
 [linden/gpl] 1.0rcK: 1
 [linden/gpl] 2.0rcK: 0
 [linden/gpl] 5.0rcK: 0
-[linden/gpl] FinalRC: 1
-[linden/gpl/rdp] RC blew out: curRc=1, minRC=0.25
-[linden/gpl/rdp] Revert Routability Procedure. SavedMinRC: 0.25
+[linden/gpl] FinalRC: 2
+[linden/gpl/rdp] RC blew out: curRc=2, minRC=0.5
+[linden/gpl/rdp] Revert Routability Procedure. SavedMinRC: 0.5
 [NPlace] Revert back to snapshot coordi
 {
   "gp": {
-    "iter": 301
+    "iter": 300
   }
-}Differences found at line 63.
-    - _276_ NOR2_X2 + PLACED ( 19474 28540 ) N ;
-    - _276_ NOR2_X2 + PLACED ( 22589 27625 ) N ;
+}No differences found.
