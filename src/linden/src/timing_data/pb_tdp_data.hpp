@@ -32,4 +32,24 @@ class IncrTdpDataWriter {
   IncrTdpDataWriter& operator=(IncrTdpDataWriter const&) = delete;
 };
 
+class TdpDataWriter
+{
+ public:
+  TdpDataWriter() = delete;
+  TdpDataWriter(ord::OpenRoad* o) : ord_(o) {}
+  // not allowed to be copied
+  TdpDataWriter(TdpDataWriter const&) = delete;
+  TdpDataWriter& operator=(TdpDataWriter const&) = delete;
+  virtual ~TdpDataWriter() = default;
+
+  // write down pb file into specified path
+  bool serialize(std::string const& file_name);
+
+  // debug, report the data but do not store anything.
+  bool deserialize(std::string const& file_name);
+
+ protected:
+  ord::OpenRoad* ord_ = nullptr;
+};
+
 } // namespace rsz

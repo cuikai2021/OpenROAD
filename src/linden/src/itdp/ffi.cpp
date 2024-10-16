@@ -126,19 +126,19 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
             continue;
         }
 
-        res_arc.input_slack = pb_arc.input_slack();
-        res_arc.output_slack = pb_arc.output_slack();
-        res_arc.input_arr = pb_arc.input_arr();
-        res_arc.output_arr = pb_arc.output_arr();
-        res_arc.input_slew = pb_arc.input_slew();
-        res_arc.output_slew = pb_arc.output_slew();
-        res_arc.arc_delay = pb_arc.arc_delay();
-        res_arc.cmax = pb_arc.c_max();
-        res_arc.cpins = pb_arc.c_pins();
-        res_arc.delay_args[0] = pb_arc.delay_args(0);
-        res_arc.delay_args[1] = pb_arc.delay_args(1);
-        res_arc.transition_args[0] = pb_arc.transition_args(0);
-        res_arc.transition_args[1] = pb_arc.transition_args(1);
+        res_arc.input_slack = pb_arc.input_slack().seconds();
+        res_arc.output_slack = pb_arc.output_slack().seconds();
+        res_arc.input_arr = pb_arc.input_arrival().seconds();
+        res_arc.output_arr = pb_arc.output_arrival().seconds();
+        res_arc.input_slew = pb_arc.input_slew().seconds();
+        res_arc.output_slew = pb_arc.output_slew().seconds();
+        res_arc.arc_delay = pb_arc.arc_delay().seconds();
+        res_arc.cmax = pb_arc.capacitance().max_cap();
+        res_arc.cpins = pb_arc.capacitance().load_cap();
+        res_arc.delay_args[0] = pb_arc.delay_loadcap_arg().gradient();
+        res_arc.delay_args[1] = pb_arc.delay_slope_arg().gradient();
+        res_arc.transition_args[0] = pb_arc.transition_loadcap_arg().gradient();
+        res_arc.transition_args[1] = pb_arc.transition_slope_arg().gradient();
 
         res.arcs.emplace_back(res_arc);
     }
@@ -171,13 +171,19 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
         FASSERT(pos != name2bterm.end());
         res_port.bterm = pos->second;
         FASSERT(res_port.bterm != nullptr)(pb_port.port_name());
-        res_port.is_input = pb_port.is_input();
-        res_port.is_output = pb_port.is_output();
-        res_port.cpins = pb_port.c_pins();
-        res_port.cmax = pb_port.c_max();
-        res_port.output_slack = pb_port.output_slack();
-        res_port.arr = pb_port.arr();
-        res_port.slew = pb_port.slew();
+        res_port.is_input = pb_port.has_capacitance();
+        res_port.is_output = pb_port.has_output_slack();
+        if (pb_port.has_capacitance()) {
+          res_port.cpins = pb_port.capacitance().load_cap();
+          res_port.cmax = pb_port.capacitance().max_cap();
+          res_port.output_slack = 0;
+        } else {
+          res_port.output_slack = pb_port.output_slack().seconds();
+          res_port.cpins = 0;
+          res_port.cmax = 0;
+        }
+        res_port.arr = pb_port.arrival().seconds();
+        res_port.slew = pb_port.slew().seconds();
 
         res.ports.emplace_back(res_port);
     }
@@ -194,12 +200,12 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
             continue;
         }
 
-        res_seq_pin.is_start = pb_seq_pin.is_start();
-        res_seq_pin.is_end = pb_seq_pin.is_end();
-        res_seq_pin.slack = pb_seq_pin.slack();
-        res_seq_pin.setup_arg = pb_seq_pin.setup_args();
-        res_seq_pin.arr = pb_seq_pin.arr();
-        res_seq_pin.slew = pb_seq_pin.slew();
+        res_seq_pin.is_start = pb_seq_pin.has_cap();
+        res_seq_pin.is_end = pb_seq_pin.has_setup_slope_arg();
+        res_seq_pin.slack = pb_seq_pin.slack().seconds();
+        res_seq_pin.setup_arg = pb_seq_pin.setup_slope_arg().gradient();
+        res_seq_pin.arr = pb_seq_pin.arrival().seconds();
+        res_seq_pin.slew = pb_seq_pin.slew().seconds();
 
         res.seq_pins.emplace_back(res_seq_pin);
     }

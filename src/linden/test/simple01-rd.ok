@@ -365,4 +365,6 @@ linden/gpl NumTiles: 196
   "gp": {
     "iter": 223
   }
-}No differences found.
+}Differences found at line 63.
+    - _276_ NOR2_X2 + PLACED ( 23517 26471 ) N ;
+    - _276_ NOR2_X2 + PLACED ( 23419 26303 ) N ;

@@ -1003,145 +1003,121 @@
 [INFO ODB-0227] LEF file: sky130hd/sky130hd_std_cell.lef, created 437 library cells
 worst slack -0.03
 Design area 119 u^2 100% utilization.
-[LRL-TDP] write incr tdp data pb file to: results/incr_tdp_data.pb
+[LDN-TDP] write tdp data pb file to: results/incr_tdp_data.pb
 
 -------test the dumped result-------
-[LRL-TDP] read pb_file from:results/incr_tdp_data.pb
+[LDN-TDP] read pb_file from: results/incr_tdp_data.pb
+<mode>: default
+<corner>: default
 <wire_cap>: 1e-11
 <wire_res>: 100000
 port_name: clk
-is_input: true
-  c_pins: 4.735e-15
-  c_max: 1e+30
-is_output: false
-  output_slack: -2.97704e-10
-arr: 2.75e-09
+output_slack: -2.97704e-10
+arrival: 0
 slew: 0
 ----------------------
 port_name: in1
-is_input: true
-  c_pins: 4.9e-15
-  c_max: 1e+30
-is_output: false
-  output_slack: 4.11617e-09
-arr: 1e-10
+output_slack: 4.11617e-09
+arrival: 1e-10
 slew: 0
 ----------------------
 port_name: in2
-is_input: true
-  c_pins: 0
-  c_max: 1e+30
-is_output: false
-  output_slack: 1e+30
-arr: 0
+output_slack: 1e+30
+arrival: 0
 slew: 0
 ----------------------
 port_name: mode
-is_input: true
-  c_pins: 7.806e-15
-  c_max: 1e+30
-is_output: false
-  output_slack: 1e+30
-arr: 0
+output_slack: 1e+30
+arrival: 0
 slew: 0
 ----------------------
 port_name: out
-is_input: false
-  c_pins: 0
-  c_max: 1e+30
-is_output: true
-  output_slack: 4.07834e-09
-arr: 1.12166e-09
+output_slack: 4.07834e-09
+arrival: 1.12166e-09
 slew: 5.75782e-11
 ----------------------
 seq_instance: cg1
 seq_pin_name: GATE
 slack: 4.27937e-09
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 1e-10
+  setup_args: -0.402891
+arrival: 1e-10
 slew: 0
+----------------------
+seq_instance: cg1
+seq_pin_name: GCLK
+slack: -2.97704e-10
+  c_pins: 1.463e-15
+arrival: 0
+slew: 9.93387e-11
 ----------------------
 seq_instance: cg1
 seq_pin_name: SCE
 slack: 1e+30
-is_start: false
-is_end: true
+  setup_args: -0.406567
+arrival: 0
+slew: 0
+----------------------
+seq_instance: cg1
+seq_pin_name: CLK
+slack: -2.97704e-10
   setup_args: 0
-arr: 0
+arrival: 0
 slew: 0
 ----------------------
 seq_instance: r2
 seq_pin_name: D
 slack: 4.11617e-09
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 1e-10
+  setup_args: -0.437758
+arrival: 1e-10
 slew: 0
 ----------------------
 seq_instance: r2
 seq_pin_name: SCD
 slack: 1e+30
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 1e-10
+  setup_args: -0.436289
+arrival: 1e-10
 slew: 0
 ----------------------
 seq_instance: r2
 seq_pin_name: SCE
 slack: 1e+30
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 0
+  setup_args: -0.435928
+arrival: 0
 slew: 0
 ----------------------
 seq_instance: r2
 seq_pin_name: CLK
 slack: -2.97704e-10
-is_start: true
   c_pins: 1.463e-15
-is_end: false
-arr: 3.10133e-09
+arrival: 0
 slew: 9.93387e-11
 ----------------------
 seq_instance: r3
 seq_pin_name: D
 slack: -2.51172e-11
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 4.17438e-09
+  setup_args: -0.437758
+arrival: 4.17438e-09
 slew: 1.09314e-10
 ----------------------
 seq_instance: r3
 seq_pin_name: SCD
 slack: 1e+30
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 1.24429e-09
+  setup_args: -0.436289
+arrival: 1.24429e-09
 slew: 2.0884e-10
 ----------------------
 seq_instance: r3
 seq_pin_name: SCE
 slack: 1e+30
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 0
+  setup_args: -0.435928
+arrival: 0
 slew: 0
 ----------------------
 seq_instance: r3
 seq_pin_name: CLK
 slack: 4.07834e-09
-is_start: true
   c_pins: 4.735e-15
-is_end: false
-arr: 2.75e-09
+arrival: 0
 slew: 0
 ----------------------
   instance: b1
@@ -1149,188 +1125,226 @@ slew: 0
   pin_end: X
   input_slack: 1.17125e-09
   output_slack: 1.17125e-09
-  input_arr: 1.24429e-09
-  output_arr: 2.32679e-09
-  input_slew: 7.95538e-11
-  output_slew: 6.7388e-11
+  input_arrival: 1.24429e-09
+  output_arrival: 2.32679e-09
+  input_slack: 2.0884e-10
+  output_slack: 8.44746e-11
+  arc_delay: 7.64987e-10
+  c_max: 3.33415e-13
+  c_pins: 1.289e-15
+  delay_args: 
+    loadcap_args: 23905.4
+    slope_args: 0.575819
+  transition_args: 
+    loadcap_args: 28629.2
+    slope_args: 0.00250065
+----------------------
+  instance: b1
+  pin_start: A
+  pin_end: X
+  input_slack: 1.17125e-09
+  output_slack: 1.17125e-09
+  input_arrival: 1.24429e-09
+  output_arrival: 2.32679e-09
+  input_slack: 7.95538e-11
+  output_slack: 6.7388e-11
   arc_delay: 1.38609e-09
   c_max: 3.33415e-13
   c_pins: 1.219e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 17091
+    slope_args: 0.536052
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 11080.7
+    slope_args: -0.00757459
 ----------------------
   instance: b2
   pin_start: A
   pin_end: X
   input_slack: -2.51175e-11
   output_slack: -2.51175e-11
-  input_arr: 1.24429e-09
-  output_arr: 1.55148e-09
-  input_slew: 2.0884e-10
-  output_slew: 1.34289e-10
+  input_arrival: 1.24429e-09
+  output_arrival: 1.55148e-09
+  input_slack: 2.0884e-10
+  output_slack: 1.34289e-10
   arc_delay: 3.07193e-10
   c_max: 2.28129e-13
   c_pins: 1.872e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 33634
+    slope_args: 0.558696
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 43775.5
+    slope_args: 0.00273755
 ----------------------
   instance: b3
   pin_start: A
   pin_end: X
   input_slack: -2.51175e-11
   output_slack: -2.51174e-11
-  input_arr: 1.55148e-09
-  output_arr: 1.80369e-09
-  input_slew: 5.40017e-11
-  output_slew: 4.95277e-11
-  arc_delay: 2.64432e-10
+  input_arrival: 1.55148e-09
+  output_arrival: 1.80369e-09
+  input_slack: 1.34289e-10
+  output_slack: 1.16613e-10
+  arc_delay: 2.52213e-10
   c_max: 2.28129e-13
-  c_pins: 1.3e-15
+  c_pins: 1.476e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 33657.2
+    slope_args: 0.558819
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 44119.9
+    slope_args: 0.00456692
 ----------------------
   instance: b4
   pin_start: A
   pin_end: X
   input_slack: -2.51174e-11
   output_slack: -2.51172e-11
-  input_arr: 1.80369e-09
-  output_arr: 2.86651e-09
-  input_slew: 4.95277e-11
-  output_slew: 7.23647e-11
+  input_arrival: 1.80369e-09
+  output_arrival: 2.86651e-09
+  input_slack: 1.16613e-10
+  output_slack: 1.01226e-10
+  arc_delay: 7.2544e-10
+  c_max: 3.33415e-13
+  c_pins: 1.872e-15
+  delay_args: 
+    loadcap_args: 22947.3
+    slope_args: 0.57581
+  transition_args: 
+    loadcap_args: 29503.6
+    slope_args: 0.00327556
+----------------------
+  instance: b4
+  pin_start: A
+  pin_end: X
+  input_slack: -2.51174e-11
+  output_slack: -2.51172e-11
+  input_arrival: 1.80369e-09
+  output_arrival: 2.86651e-09
+  input_slack: 4.95277e-11
+  output_slack: 7.23647e-11
   arc_delay: 1.37697e-09
   c_max: 3.33415e-13
   c_pins: 1.678e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 13058.4
+    slope_args: 0.538181
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 9714.36
+    slope_args: -0.00371942
 ----------------------
   instance: b5
   pin_start: A
   pin_end: X
   input_slack: -2.51172e-11
   output_slack: -2.51172e-11
-  input_arr: 2.86651e-09
-  output_arr: 3.14669e-09
-  input_slew: 7.23647e-11
-  output_slew: 5.40016e-11
+  input_arrival: 2.86651e-09
+  output_arrival: 3.14669e-09
+  input_slack: 7.23647e-11
+  output_slack: 5.40016e-11
   arc_delay: 2.80177e-10
   c_max: 2.28129e-13
   c_pins: 1.678e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 12306.6
+    slope_args: 0.587792
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 11634.7
+    slope_args: 1.54326e-05
 ----------------------
   instance: b6
   pin_start: A
   pin_end: X
   input_slack: -2.51172e-11
   output_slack: -2.51172e-11
-  input_arr: 3.14669e-09
-  output_arr: 3.40955e-09
-  input_slew: 5.40016e-11
-  output_slew: 4.82453e-11
+  input_arrival: 3.14669e-09
+  output_arrival: 3.40955e-09
+  input_slack: 5.40016e-11
+  output_slack: 4.82453e-11
   arc_delay: 2.62869e-10
   c_max: 2.28129e-13
   c_pins: 1.198e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 15321.6
+    slope_args: 0.589926
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 12572.2
+    slope_args: -0.000780799
 ----------------------
   instance: r2
   pin_start: CLK
   pin_end: Q
   input_slack: -2.97704e-10
   output_slack: -2.51175e-11
-  input_arr: 2.72586e-10
-  output_arr: 1.24429e-09
-  input_slew: 9.93387e-11
-  output_slew: 2.0884e-10
+  input_arrival: 0
+  output_arrival: 1.24429e-09
+  input_slack: 9.93387e-11
+  output_slack: 2.0884e-10
   arc_delay: 1.24429e-09
   c_max: 3.09763e-13
   c_pins: 4.943e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 24008.4
+    slope_args: 0.596338
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 31699.6
+    slope_args: 0.0197147
 ----------------------
   instance: r3
   pin_start: CLK
   pin_end: Q
   input_slack: 4.07834e-09
   output_slack: 4.07834e-09
-  input_arr: 0
-  output_arr: 1.12166e-09
-  input_slew: 0
-  output_slew: 5.75782e-11
+  input_arrival: 0
+  output_arrival: 1.12166e-09
+  input_slack: 0
+  output_slack: 5.75782e-11
   arc_delay: 1.12166e-09
   c_max: 3.09763e-13
   c_pins: 0
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 25593.2
+    slope_args: 0.534473
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 30491.8
+    slope_args: 0.0219884
 ----------------------
   instance: u2
   pin_start: B
   pin_end: X
   input_slack: -2.51172e-11
   output_slack: -2.51172e-11
-  input_arr: 3.40955e-09
-  output_arr: 4.17438e-09
-  input_slew: 4.82453e-11
-  output_slew: 1.09314e-10
+  input_arrival: 3.40955e-09
+  output_arrival: 4.17438e-09
+  input_slack: 4.82453e-11
+  output_slack: 1.09314e-10
   arc_delay: 7.64828e-10
   c_max: 5.45512e-13
   c_pins: 1.388e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 15625.1
+    slope_args: 0.567512
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 6990.76
+    slope_args: 0.000145285
 ----------------------
   instance: u2
   pin_start: A
   pin_end: X
   input_slack: 1.17125e-09
   output_slack: -2.51172e-11
-  input_arr: 2.32679e-09
-  output_arr: 4.17438e-09
-  input_slew: 6.7388e-11
-  output_slew: 1.09314e-10
+  input_arrival: 2.32679e-09
+  output_arrival: 4.17438e-09
+  input_slack: 6.7388e-11
+  output_slack: 1.09314e-10
   arc_delay: 6.51227e-10
   c_max: 5.45512e-13
   c_pins: 1.388e-15
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 14389.7
+    slope_args: 0.550188
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 6897.59
+    slope_args: 0.00357286
 ----------------------

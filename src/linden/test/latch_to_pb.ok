@@ -181,73 +181,69 @@
 [INFO ODB-0227] LEF file: Nangate45.lef, created 22 layers, 27 vias, 134 library cells
 [WARNING STA-0197] latch_to_pb.v line 1, module top declared signal in2 is not in the port list.
 [WARNING STA-0366] port 'mode' not found.
-[LRL-TDP] write incr tdp data pb file to: results/latch_to_pb.pb
+[LDN-TDP] write tdp data pb file to: results/latch_to_pb.pb
 -------test the dumped result-------
 
-[LRL-TDP] read pb_file from:results/latch_to_pb.pb
+[LDN-TDP] read pb_file from: results/latch_to_pb.pb
+<mode>: default
+<corner>: default
 <wire_cap>: 0
 <wire_res>: 0
 port_name: clk
-is_input: true
-  c_pins: 4.43894e-15
-  c_max: 1e+30
-is_output: false
-  output_slack: 5.09826e-09
-arr: 2.75e-09
+output_slack: 5.09826e-09
+arrival: 0
 slew: 0
 ----------------------
 port_name: in1
-is_input: true
-  c_pins: 2.8855e-15
-  c_max: 1e+30
-is_output: false
-  output_slack: 5.26615e-09
-arr: 1e-10
+output_slack: 5.26615e-09
+arrival: 1e-10
 slew: 0
 ----------------------
 port_name: out
-is_input: false
-  c_pins: 0
-  c_max: 1e+30
-is_output: true
-  output_slack: 5.11851e-09
-arr: 8.14876e-11
+output_slack: 5.11851e-09
+arrival: 8.14876e-11
 slew: 5.58621e-12
+----------------------
+seq_instance: r1
+seq_pin_name: CK
+slack: 5.09826e-09
+  setup_args: 0
+arrival: 0
+slew: 0
 ----------------------
 seq_instance: r1
 seq_pin_name: E
 slack: 5.26615e-09
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 1e-10
+  setup_args: 0.278167
+arrival: 1e-10
 slew: 0
 ----------------------
 seq_instance: r1
 seq_pin_name: SE
 slack: 5.26795e-09
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 1e-10
+  setup_args: 0.250015
+arrival: 1e-10
 slew: 0
+----------------------
+seq_instance: r1
+seq_pin_name: GCK
+slack: 5.09826e-09
+  c_pins: 9.49653e-16
+arrival: 0
+slew: 4.8817e-12
 ----------------------
 seq_instance: r2
 seq_pin_name: D
 slack: 5.36325e-09
-is_start: false
-is_end: true
-  setup_args: 0
-arr: 1e-10
+  setup_args: 0.406063
+arrival: 1e-10
 slew: 0
 ----------------------
 seq_instance: r2
 seq_pin_name: CK
 slack: 5.09826e-09
-is_start: true
   c_pins: 9.49653e-16
-is_end: false
-arr: 2.7728e-09
+arrival: 0
 slew: 4.8817e-12
 ----------------------
   instance: r2
@@ -255,17 +251,17 @@ slew: 4.8817e-12
   pin_end: Q
   input_slack: 5.09826e-09
   output_slack: 5.11851e-09
-  input_arr: 2.0253e-11
-  output_arr: 8.14876e-11
-  input_slew: 4.8817e-12
-  output_slew: 5.58621e-12
+  input_arrival: 0
+  output_arrival: 8.14876e-11
+  input_slack: 4.8817e-12
+  output_slack: 5.58621e-12
   arc_delay: 8.14876e-11
   c_max: 6.073e-14
   c_pins: 0
   delay_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 2277.13
+    slope_args: 0.415222
   transition_args: 
-    a0: 0
-    a1: 0
+    loadcap_args: 1775.24
+    slope_args: 0.000430117
 ----------------------
