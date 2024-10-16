@@ -265,7 +265,6 @@ const char* env_tmp_file_root_dir() {
     $result = Tcl_NewStringObj($1->c_str(), $1->length());
 }
 
-
 %inline %{
 // Defines a module independent of the OBD to handle operations related to eco_placer.
 class EcoPlacerSwig {
@@ -328,7 +327,39 @@ std::vector<const char*> eco_placer_find_vacant_places_i(
     return string_places;
 }
 
-// Inserts a cell at a specified location, but does not actually insert the cell into the design.
+// Find the nearest place to given point and return a PlaceIterator
+linden::PlaceIterator* eco_placer_find_nearest_place_i(
+    EcoPlacerSwig* eps, 
+    const std::string& instance, 
+    const odb::Point& point, 
+    const std::string& xmin, 
+    const std::string& ymin, 
+    const std::string& xmax, 
+    const std::string& ymax) 
+{
+    std::optional<int> opt_xmin = (xmin == "null") ? std::nullopt : std::optional<int>(std::stoi(xmin));
+    std::optional<int> opt_ymin = (ymin == "null") ? std::nullopt : std::optional<int>(std::stoi(ymin));
+    std::optional<int> opt_xmax = (xmax == "null") ? std::nullopt : std::optional<int>(std::stoi(xmax));
+    std::optional<int> opt_ymax = (ymax == "null") ? std::nullopt : std::optional<int>(std::stoi(ymax));
+    linden::PlaceRange range(opt_xmin, opt_ymin, opt_xmax, opt_ymax);
+    
+    return new linden::PlaceIterator(*(eps->_ep), instance, point, range);
+}
+
+// Get the next place of the PlaceIterator
+const char* eco_placer_next_place(linden::PlaceIterator* pi) {
+    auto place = pi->next();
+    std::string place_str;
+    if (place.has_value()) {
+        place->prettyPrint(place_str);
+    } else {
+        place_str = "null";
+    }
+    char* result = new char[place_str.size() + 1];
+    std::strcpy(result, place_str.c_str());
+    return result;
+}
+// Inserts a cell in place, but does not actually insert the cell into the design.
 void eco_placer_insert_cell(
     EcoPlacerSwig* eps, 
     const std::string& master, 
@@ -338,7 +369,7 @@ void eco_placer_insert_cell(
     eps->_ep->insert_cell(master, instance, place);
 }
 
-const// Removes a unit, but does not actually remove the unit from the design.
+// Removes a unit, but does not actually remove the unit from the design.
 void eco_placer_remove_cell(EcoPlacerSwig* eps, const std::string& master) {
     eps->_ep->remove_cell(master);
 }

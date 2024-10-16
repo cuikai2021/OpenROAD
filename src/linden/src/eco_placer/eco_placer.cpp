@@ -1,5 +1,7 @@
 #include "linden/eco_placer.hpp"
 
+#include <optional>
+
 #include "../util/lefdef_dumper.hpp"
 #include "fassert.hpp"
 #include "linden/dp/lib.rs.h"
@@ -7,19 +9,6 @@
 
 namespace linden {
 namespace {
-PointPlace convert_to_point_place(const ::linden::ffi::PointPlace& p)
-{
-    return PointPlace{odb::Point(p.x, p.y), PointPlace::int_to_orient(p.orient)};
-}
-
-::linden::ffi::PointPlace convert_to_ffi_point_place(
-    const PointPlace& pointPlace)
-{
-    return ::linden::ffi::PointPlace{
-        pointPlace.point.x(),
-        pointPlace.point.y(),
-        PointPlace::orient_to_int(pointPlace.orient)};
-}
 
 rust::Vec<rust::String> path_to_rust_vec(
     const std::vector<std::filesystem::path>& input)
@@ -39,6 +28,49 @@ rust::Vec<rust::String> string_to_rust_vec(
         output.push_back((std::string) item);
     }
     return output;
+}
+
+PointPlace convert_to_point_place(const ::linden::ffi::PointPlace& p)
+{
+    return PointPlace{odb::Point(p.x, p.y), PointPlace::int_to_orient(p.orient)};
+}
+
+::linden::ffi::PointPlace convert_to_ffi_point_place(
+    const PointPlace& pointPlace)
+{
+    return ::linden::ffi::PointPlace{
+        pointPlace.point.x(),
+        pointPlace.point.y(),
+        PointPlace::orient_to_int(pointPlace.orient)};
+}
+
+::linden::ffi::OptionI64 convert_to_option_i64(const std::optional<int>& opt)
+{
+    ::linden::ffi::OptionI64 result;
+    if (opt.has_value()) {
+        result.is_none = false;
+        result.some = static_cast<::std::int64_t>(opt.value());
+    } else {
+        result.is_none = true;
+    }
+    return result;
+}
+
+::linden::ffi::PlaceRange  convert_to_ffi_place_range(const PlaceRange& range)
+{
+    return ::linden::ffi::PlaceRange{
+        convert_to_option_i64(range.x_min),
+        convert_to_option_i64(range.y_min),
+        convert_to_option_i64(range.x_max),
+        convert_to_option_i64(range.y_max)};
+}
+
+std::optional<PointPlace> convert_to_option_place(const ::linden::ffi::OptionPlace place)
+{
+    if (place.is_none) {
+        return std::nullopt;
+    }
+    return convert_to_point_place(place.some);
 }
 
 } // namespace
@@ -74,6 +106,7 @@ std::string PointPlace::orient_to_string(const odb::dbOrientType& orient)
         default:
             FASSERT(false).what("Not Support this odb::dbOrientType");
     }
+    return "";
 }
 
 odb::dbOrientType PointPlace::int_to_orient(std::int64_t orient_int)
@@ -194,6 +227,30 @@ void EcoPlacer::insert_cell(
 void EcoPlacer::remove_cell(const std::string_view& master)
 {
     _gs->remove_cell(::rust::Str{master.data(), master.size()});
+}
+
+PlaceIterator::PlaceIterator(
+    const EcoPlacer& ep,
+    const std::string_view& instance,
+    const odb::Point& point,
+    const PlaceRange& range)
+: _pi(nullptr)
+{
+    _pi = ::linden::ffi::init_place_iterator(
+        ep._gs,
+        ::rust::Str{instance.data(), instance.size()},
+        ::linden::ffi::Point{point.x(), point.y()},
+        convert_to_ffi_place_range(range));
+}
+PlaceIterator::~PlaceIterator() noexcept
+{
+    ::linden::ffi::free_place_iterator(_pi);
+}
+
+std::optional<PointPlace> PlaceIterator::next()
+{
+    auto place = _pi->next();
+    return convert_to_option_place(place);
 }
 
 } // namespace linden

@@ -15,5 +15,6 @@ record_tests {
 
   eco_placer_from_lefdef
   eco_placer_from_odb
+  eco_placer_near_place
   add_tie_cell
 }

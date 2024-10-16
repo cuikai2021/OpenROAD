@@ -1,0 +1,19 @@
+[INFO ODB-0227] LEF file: Nangate45.lef, created 22 layers, 27 vias, 134 library cells
+[INFO ODB-0127] Reading DEF file: gcd_replace.def
+[INFO ODB-0128] Design: gcd
+[INFO ODB-0130]     Created 54 pins.
+[INFO ODB-0131]     Created 549 components and 2166 component-terminals.
+[INFO ODB-0133]     Created 364 nets and 1068 connections.
+[INFO ODB-0134] Finished DEF file: gcd_replace.def
+ECO Placer initialized.
+Initialization from odb complete.
+Place 0: 137820 148400 R0
+Place 1: 138200 148400 R0
+Place 2: 141240 145600 MX
+Place 3: 138580 148400 R0
+
+Place 0: 131360 131600 R0
+Place 1: 130980 131600 R0
+Place 2: 130600 131600 R0
+Place 3: 130220 131600 R0
+Place 4: null

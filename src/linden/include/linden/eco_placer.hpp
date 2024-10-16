@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -8,8 +9,9 @@
 #include "odb/geom.h"
 
 namespace linden::ffi {
-class GridSite;
-}
+struct GridSite;
+struct PlaceIterator;
+} // namespace linden::ffi
 
 namespace linden {
 
@@ -30,10 +32,25 @@ struct PointPlace
     static std::string orient_to_string(const odb::dbOrientType& orient);
 };
 
+struct PlaceRange
+{
+    std::optional<int> x_min;
+    std::optional<int> y_min;
+    std::optional<int> x_max;
+    std::optional<int> y_max;
+
+    PlaceRange() noexcept = default;
+    PlaceRange(std::optional<int> x_min, std::optional<int> y_min, std::optional<int> x_max, std::optional<int> y_max)
+    : x_min(x_min), y_min(y_min), x_max(x_max), y_max(y_max) {}
+};
+
+class PlaceIterator;
+
 class EcoPlacer
 {
 private:
     ::linden::ffi::GridSite* _gs;
+    friend class PlaceIterator;
 
 public:
     /**
@@ -81,6 +98,39 @@ public:
      * @param master Name of the cell to be removed.
      */
     void remove_cell(const std::string_view& master);
+};
+
+class PlaceIterator
+{
+private:
+    ::linden::ffi::PlaceIterator* _pi;
+
+public:
+    /**
+     * Constructor.
+     * Initializes a PlaceIterator object, which iterates over the potential placement locations
+     * for a specified instance within a defined search area.
+     * 
+     * @param ep Reference to the EcoPlacer object, which manages placement operations.
+     * @param instance Instance name of the unit to be placed.
+     * @param point The most ideal location for placing instance.
+     * @param range Defines the search area, including optional minimum and maximum x and y boundaries.
+     *              If no range is provided, the entire available area is considered.
+     */
+    PlaceIterator(
+        const EcoPlacer& ep,
+        const std::string_view& instance,
+        const odb::Point& point,
+        const PlaceRange& range = PlaceRange()) ;
+    ~PlaceIterator() noexcept;
+
+    /**
+     * Get the next available placement location.
+     * 
+     * @return An optional PointPlace object representing the next legal placement location.
+     *         If there are no more locations to iterate over, returns std::nullopt.
+     */
+    std::optional<PointPlace> next();
 };
 
 }; // end namespace linden
