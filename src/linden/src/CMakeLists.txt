@@ -30,6 +30,7 @@ file(GLOB cpps
     timing_data/*.cpp
     util/*.cpp
     eco_placer/*.cpp
+    add_tie_cell/*.cpp
 )
 target_sources(linden
 PRIVATE

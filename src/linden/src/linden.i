@@ -2,6 +2,7 @@
 #include "linden/gp.hpp"
 #include "./cgr/ffi.hpp"
 #include "./dp/ffi.hpp"
+#include "./add_tie_cell/ffi.hpp"
 #include "./gp/ffi.hpp"
 #include "./initial_place/ffi.hpp"
 #include "./itdp/ffi.hpp"
@@ -359,3 +360,12 @@ int vec_point_place_size(std::vector<const char*> places) {
 }
 
 %} // eco_placer
+
+
+%inline %{
+
+int add_tie_cell_cmd(StrDeque& args) {
+    return linden::add_tie_cell_gogogo(std::move(args.elems_));
+}
+
+%} // add_tie_cell

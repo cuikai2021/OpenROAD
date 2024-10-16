@@ -1,12 +1,15 @@
 #pragma once
 
 #include <deque>
-#include <string>
 #include <filesystem>
 #include <optional>
+#include <string>
 
 namespace ord {
 class OpenRoad;
+}
+namespace odb {
+  class dbOrientType;
 }
 
 namespace linden {

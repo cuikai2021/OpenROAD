@@ -22,3 +22,19 @@ proc eco_placer_find_vacant_places {eps buf_x2 p0 p1 x_delta y_delta} {
 }
 
 }
+
+sta::define_cmd_args "add_tie_cell" {
+    [--tie-cell tie-low-cell low-pin tie-high-cell high-pin]
+    [--max-fanout max-fanout]
+    [--max-distance max-distance]
+    [--suppress-output]
+    [--not-to-stop-when-illegal]
+}
+
+proc linden_add_tiecell { args } {
+    linden::StrDeque a
+    foreach x $args {
+        a push_back $x
+    }
+    linden::add_tie_cell_cmd a
+}

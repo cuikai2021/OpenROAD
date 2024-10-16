@@ -1,5 +1,6 @@
 #include "linden/dp.hpp"
 #include "../util/lefdef_dumper.hpp"
+#include "dp.hpp"
 #include "rsz/Resizer.hh"
 #include "lrl/CircuitModifier/CircuitModifier.hh"
 #include "lrl/Laurel.hh"
@@ -40,52 +41,6 @@ DpConfig::DpConfig()
 :   suppress_output(false),
     not_stop_when_illegal(false)
 {}
-
-namespace {
-
-std::filesystem::path get_basic_dp_exe() {
-    std::filesystem::path dir(LINDENDP_EXE_DIR());
-    string exec;
-    if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
-        exec = "deblais-dp";
-    } else {
-        exec = "lindendp";
-    };
-    return dir / exec;
-}
-
-std::filesystem::path get_incr_dp_exe() {
-    std::filesystem::path dir(LINDENDP_EXE_DIR());
-        string exec;
-    if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
-        exec = "deblais-incrdp";
-    } else {
-        exec = "linden-incremental-legalizer";
-    };
-    return dir / exec;
-}
-
-std::filesystem::path get_routability_driven_dp_exe() {
-    std::filesystem::path dir(LINDENDP_EXE_DIR());
-    return dir / "linden-routability-driven-detailed-placer";
-}
-
-std::filesystem::path get_pbdef_exe() {
-    std::filesystem::path dir(LINDENDP_EXE_DIR());
-    return dir / "pbdef";
-}
-
-filesystem::path output_def_name(
-    const filesystem::path& basename,
-    bool suppress_output)
-{
-    filesystem::path res = basename;
-    res += ".out.pbdef";
-    if (!suppress_output) {
-        cout << "out def: " << res << endl;
-    }
-    return res;
-}
 
 int exec(
     const DpConfig& cfg,
@@ -132,6 +87,72 @@ int exec(
     }
     spdlog::warn("`lindendp` exit code: {}", ec);
     throw std::runtime_error("fail to run lindendp");
+}
+
+odb::dbOrientType pb_to_dbOrientType(int pb) noexcept
+{
+    pblefdef::Orient orient = static_cast<pblefdef::Orient>(pb);
+    switch (orient) {
+        case pblefdef::Orient::NORTH: return odb::dbOrientType::R0;
+        case pblefdef::Orient::SOUTH: return odb::dbOrientType::R180;
+        case pblefdef::Orient::EAST: return odb::dbOrientType::R270;
+        case pblefdef::Orient::WEST: return odb::dbOrientType::R90;
+        case pblefdef::Orient::FLIPPED_NORTH: return odb::dbOrientType::MY;
+        case pblefdef::Orient::FLIPPED_SOUTH: return odb::dbOrientType::MX;
+        case pblefdef::Orient::FLIPPED_EAST: return odb::dbOrientType::MYR90;
+        case pblefdef::Orient::FLIPPED_WEST: return odb::dbOrientType::MXR90;
+        default: {
+            FASSERT(false).what("unreachable!");
+            return odb::dbOrientType::R0;
+        }
+    }
+}
+
+filesystem::path output_def_name(
+    const filesystem::path& basename,
+    bool suppress_output)
+{
+    filesystem::path res = basename;
+    res += ".out.pbdef";
+    if (!suppress_output) {
+        cout << "out def: " << res << endl;
+    }
+    return res;
+}
+
+namespace {
+
+std::filesystem::path get_basic_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    string exec;
+    if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
+        exec = "deblais-dp";
+    } else {
+        exec = "lindendp";
+    };
+    return dir / exec;
+}
+
+std::filesystem::path get_incr_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+        string exec;
+    if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
+        exec = "deblais-incrdp";
+    } else {
+        exec = "linden-incremental-legalizer";
+    };
+    return dir / exec;
+}
+
+
+std::filesystem::path get_routability_driven_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "linden-routability-driven-detailed-placer";
+}
+
+std::filesystem::path get_pbdef_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "pbdef";
 }
 
 int exec_basic_dp(
@@ -252,24 +273,6 @@ filesystem::path write_input_config(
         cout << "input-cfg: " << filename << endl;
     }
     return filename;
-}
-
-odb::dbOrientType::Value pb_to_dbOrientType(pblefdef::Orient pb) noexcept
-{
-    switch (pb) {
-        case pblefdef::Orient::NORTH: return odb::dbOrientType::R0;
-        case pblefdef::Orient::SOUTH: return odb::dbOrientType::R180;
-        case pblefdef::Orient::EAST: return odb::dbOrientType::R270;
-        case pblefdef::Orient::WEST: return odb::dbOrientType::R90;
-        case pblefdef::Orient::FLIPPED_NORTH: return odb::dbOrientType::MY;
-        case pblefdef::Orient::FLIPPED_SOUTH: return odb::dbOrientType::MX;
-        case pblefdef::Orient::FLIPPED_EAST: return odb::dbOrientType::MYR90;
-        case pblefdef::Orient::FLIPPED_WEST: return odb::dbOrientType::MXR90;
-        default: {
-            FASSERT(false).what("unreachable!");
-            return odb::dbOrientType::R0;
-        }
-    }
 }
 
 void read_back(const filesystem::path& outdef)
