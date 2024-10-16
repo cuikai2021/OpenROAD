@@ -68,7 +68,8 @@ proc eco_placer_find_nearest_place {args} {
     return $pi
 }
 
-} // end namespace linden
+# end namespace linden
+} 
 
 sta::define_cmd_args "add_tie_cell" {
     [--tie-cell tie-low-cell low-pin tie-high-cell high-pin]
