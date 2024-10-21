@@ -171,4 +171,14 @@ int rddp_gogogo(deque<string> args) {
         return 50;
     }
 }
+
+int opt_gogogo(deque<string> args) {
+    auto dp_cfg = parse_from(args);
+    if (dp_cfg) {
+        ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
+        return opt(ord, *dp_cfg);
+    } else {
+        return 50;
+    }
+}
 } // namespace linden

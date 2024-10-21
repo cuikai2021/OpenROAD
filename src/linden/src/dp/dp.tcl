@@ -35,3 +35,15 @@ proc linden_routability_driven_legalize { args } {
     }
     linden::routability_driven_legalize a
 }
+
+sta::define_cmd_args "linden_optimize" {
+    [--timing-data timing.pb]
+}
+
+proc linden_optimize { args } {
+    linden::StrDeque a
+    foreach x $args {
+        a push_back $x
+    }
+    linden::lindenopt_gogogo a
+}

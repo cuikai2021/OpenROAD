@@ -36,5 +36,6 @@ struct DpConfig
 int basic_dp(::ord::OpenRoad&, const DpConfig&);
 int incr_dp(::ord::OpenRoad&, const DpConfig&);
 int rddp(::ord::OpenRoad&, DpConfig&);
+int opt(::ord::OpenRoad&,const DpConfig&);
 
 } // namespace linden

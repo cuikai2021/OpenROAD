@@ -155,6 +155,11 @@ std::filesystem::path get_pbdef_exe() {
     return dir / "pbdef";
 }
 
+std::filesystem::path get_opt_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "lindenopt";
+}
+
 int exec_basic_dp(
     const DpConfig& cfg,
     const filesystem::path& input_cfg,
@@ -214,6 +219,21 @@ int exec_pbdef(
     args.push_back("--to");
     args.push_back(to);
     auto exe = std::move(get_pbdef_exe());
+    return exec(cfg, exe, args);
+}
+
+int exec_opt(
+    const DpConfig& cfg,
+    const string& input_cfg,
+    const string& outdef)
+{
+    deque<string> args;
+    args.push_back("--input-config");
+    args.push_back(input_cfg);
+    args.push_back("--to");
+    args.push_back(outdef);
+    args.push_back("--cell-only");
+    auto exe = std::move(get_opt_exe());
     return exec(cfg, exe, args);
 }
 
@@ -487,6 +507,27 @@ int rddp(::ord::OpenRoad& ord, DpConfig& dpcfg) {
     read_back(*best_try);
     spdlog::info("Pick the best solution among {} tries. def_path: {}", tried_results.size(), *best_try);
     return 0;
+}
+
+int opt(::ord::OpenRoad& ord, const DpConfig& cfg) {
+    const LefDefDumper dumper(ord);
+    if (!cfg.suppress_output) {
+        dumper.print_dumped_files(std::cout);
+    }
+
+    auto const& basename = dumper.basename;
+    deque<filesystem::path> lefs;
+    lefs.push_back(dumper.tech_lef);
+    for (auto const& x:dumper.lib_lefs) {
+        lefs.push_back(x);
+    }
+    auto const& def = dumper.def;
+    
+    filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
+    filesystem::path outdef = output_def_name(basename, cfg.suppress_output);
+    int ret = exec_opt(cfg, input_cfg_fn, outdef);
+    read_back(outdef);
+    return ret;
 }
 
 } // namespace linden
