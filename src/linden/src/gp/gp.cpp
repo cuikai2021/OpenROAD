@@ -350,8 +350,7 @@ void linden_global_place(const Config& cfg) noexcept {
         }
     }
     {
-        linden::gpl::PlacerConfig::PlacerType ty = linden::gpl::PlacerConfig::NPLACE;
-        linden::gpl::PlacerConfig ncfg(ty);
+        linden::gpl::PlacerConfig ncfg;
         if (cfg.density) {
             ncfg.target_density = *cfg.density;
             ncfg.use_uniform_density = false;
