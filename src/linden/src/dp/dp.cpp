@@ -61,7 +61,7 @@ int exec(
     int ec = 0;
     auto env = boost::this_process::environment();
     boost::process::environment env1 = env;
-    env1["LINDEN_DP_ALGORITHM"] = string(LINDEN_DP_ALGORITHM());
+    env1.set("LINDEN_DP_ALGORITHM", string(LINDEN_DP_ALGORITHM()));
     if (!cfg.suppress_output) {
         ec = boost::process::system(string(exe), boost::process::args(args), env1);
     } else {
@@ -522,7 +522,7 @@ int opt(::ord::OpenRoad& ord, const DpConfig& cfg) {
         lefs.push_back(x);
     }
     auto const& def = dumper.def;
-    
+
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
     filesystem::path outdef = output_def_name(basename, cfg.suppress_output);
     int ret = exec_opt(cfg, input_cfg_fn, outdef);
