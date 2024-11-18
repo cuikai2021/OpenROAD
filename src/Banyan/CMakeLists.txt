@@ -60,6 +60,8 @@ target_link_libraries(Banyan
     fassert
     prettyprint
     banyan_pb
+    tomlpp
+    linden_proto
   PRIVATE
     Eigen3::Eigen
 )

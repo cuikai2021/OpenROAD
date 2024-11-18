@@ -46,3 +46,8 @@ sta::define_cmd_args "banyan_load_def" { deffile }
 proc banyan_load_def { deffile } {
   banyan::loadDef $deffile
 }
+
+sta::define_cmd_args "banyan_optimize_congestion" { max_layer }
+proc banyan_optimize_congestion { max_layer } {
+  banyan::optimizeCongestion $max_layer
+}

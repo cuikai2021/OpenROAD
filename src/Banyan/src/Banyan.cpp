@@ -19,6 +19,7 @@
 #include "lrl/Laurel.hh"
 #include "utl/Logger.h"
 #include "envflag/envflag.hpp"
+#include "congestion_optimizer.hpp"
 
 IMPORT_BOOL_FLAG_WITH_DEFAULT(BANYAN_SUPPRESS_EXE_LOG);
 
@@ -218,6 +219,87 @@ int Banyan::cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_la
   }
 
   return main(args, false);
+}
+
+int Banyan::repair_congestion(std::string_view cmapPb, std::string_view outDb, std::string_view max_layer)
+{
+  std::vector<std::string> args;
+  args.push_back("repair_congestion");
+  if (!max_layer.empty()) {
+    args.push_back("--max_layer");
+    args.emplace_back(max_layer);
+  }
+  args.push_back("--log_level");
+  args.push_back("info");
+  args.push_back("--db");
+  args.emplace_back(outDb);
+  args.push_back("--out_protobuf");
+  args.emplace_back(cmapPb);
+  return main(args, false);
+}
+
+int Banyan::route_clock(std::string_view max_layer, std::string_view outDb) {
+  std::vector<std::string> args;
+  args.push_back("route_clock");
+  args.push_back("--log_level");
+  args.push_back("info");
+  args.push_back("--max_layer");
+  args.emplace_back(max_layer);
+  args.push_back("--save_db");
+  args.emplace_back(outDb);
+  return main(args, false);
+}
+
+int Banyan::optimizeCongestion(std::string_view max_layer) {
+  if (!std::filesystem::exists(banyan::congestion_optimizer::TEMP_FOLDER)) {
+    if (!std::filesystem::create_directories(banyan::congestion_optimizer::TEMP_FOLDER)) {
+      spdlog::error("Unable to create dir {}.", banyan::congestion_optimizer::TEMP_FOLDER);
+      return 1;
+    }
+  }
+
+  using namespace banyan::congestion_optimizer;
+  
+  // write lef files
+  std::vector<std::filesystem::path> lefs;
+  lefs.push_back(std::filesystem::absolute(tech_lef_file_name_));
+  for (auto const& lef: other_lef_file_names_) {
+    lefs.push_back(std::filesystem::absolute(lef));
+  }
+
+  // write def files
+  std::filesystem::path def = banyan::congestion_optimizer::TEMP_FOLDER / "iter_0.def";
+  ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
+  ord.writeDef(def.c_str(), "5.8");
+  
+
+  // define write_congestion_data
+  std::filesystem::path outdb = banyan::congestion_optimizer::TEMP_FOLDER / "out.db";
+  std::filesystem::path congestion_data = banyan::congestion_optimizer::TEMP_FOLDER / "iter_0.pb";
+
+  // define path of output def 
+  std::filesystem::path out_def = banyan::congestion_optimizer::TEMP_FOLDER / "iter_1.pbdef";
+  std::filesystem::path out_inflation = banyan::congestion_optimizer::TEMP_FOLDER / "iter_1.inflation";
+
+  DPConfig dp_cfg = {
+    lefs: lefs, 
+    def: def, 
+    congestion_data: congestion_data, 
+    inflation_data: std::optional<std::filesystem::path>(), 
+    out_def: out_def,
+    out_inflation: out_inflation,
+  };
+
+  Config cfg = Config(dp_cfg, max_layer);
+  Optimizer optimizer = banyan::congestion_optimizer::Optimizer(cfg, this);
+  optimizer.optimize();
+  try {
+    optimizer.write_back_best();
+  } catch(std::exception& e) {
+    spdlog::error("Congestion Optimizer Failed. Leave Def File Unchanged.");
+    return 2;
+  };
+  return 0;
 }
 
 void Banyan::clearWires(bool excludeClock, bool excludeSignal)

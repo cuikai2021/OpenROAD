@@ -55,6 +55,11 @@ void regression_RC_cmd(const char* spef,
         spef, setRC_tcl, plot_file_prefix, corner_name);
 }
 
+void optimizeCongestion(std::string max_layer)
+{
+    ord::OpenRoad::openRoad()->getBanyan()->optimizeCongestion(max_layer);
+}
+
 }
 
 %} // inline
