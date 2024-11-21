@@ -20,7 +20,7 @@
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "utl/metrics.hpp"
-#include "banyan_cmap.pb.h"
+#include "banyan_cmap_v2.pb.h"
 #include "fassert.hpp"
 #include "envflag/envflag.hpp"
 #include <spdlog/spdlog.h>
@@ -240,7 +240,12 @@ filesystem::path estimate_cmap(const gp::Config& cfg) {
 
         spdlog::info("[linden/gpl] Dump a banyan cmap file: {}", cmap_file);
         auto& banyan = *::ord::OpenRoad::openRoad()->getBanyan();
-        banyan.cmap(cmap_file.string(), false, *cfg.highest_layer_to_route);
+        banyan.clearWires(false, false);
+        banyan.route_clock(*cfg.highest_layer_to_route, cmap_file.string() + ".clk.db");
+        banyan.repair_congestion(
+            cmap_file.string(),
+            cmap_file.string() + ".cgr.db",
+            *cfg.highest_layer_to_route);
 
         return cmap_file;
     }
@@ -262,7 +267,7 @@ bool refresh_cmap_to_placer(
     const filesystem::path& cmap_file)
 {
     linden::rdp::CongestionMap cmap;
-    banyan::Cmap banyan_cmap;
+    banyan::CongestionMap banyan_cmap;
     ifstream fin(cmap_file, ios::binary);
     if (!fin) {
         spdlog::error("Fail to open file: {}", cmap_file);
@@ -272,19 +277,71 @@ bool refresh_cmap_to_placer(
         spdlog::error("Fail to parse banyan cmap file: {}", cmap_file);
         throw runtime_error("fail to parse banyan cmap file");
     }
-    cmap.setChipCoreRegion(ldb.core_region());
-    cmap.initGrids(banyan_cmap.wgrids(), banyan_cmap.hgrids());
-    for (int64_t j = 0, n = banyan_cmap.hgrids(); j < n; ++j) {
-        for (int64_t i = 0, m = banyan_cmap.wgrids(); i < m; ++i) {
-            using linden::geom::dimension::X;
-            using linden::geom::dimension::Y;
+    linden::geom::Point ll;
+    int64_t side_length = banyan_cmap.sqr();
+    int64_t n_rows = banyan_cmap.vnodes() + 1;
+    FASSERT(n_rows >= 2)
+        (banyan_cmap.vnodes());
+    int64_t n_cols = banyan_cmap.hnodes() + 1;
+    FASSERT(n_cols >= 2)
+        (banyan_cmap.hnodes());
+    {
+        auto const& core = ldb.core_region();
+        linden::geom::Point offset(
+            banyan_cmap.hoffset() - side_length / 2,
+            banyan_cmap.voffset() - side_length / 2);
+        ll = core.ll() + offset;
+        linden::geom::Point ur = ll + linden::geom::Point(
+            side_length * n_cols,
+            side_length * n_rows);
+        linden::geom::Rect real_region(ll, ur);
+        cmap.setChipCoreRegion(real_region);
+    }
+    cmap.initGrids(n_cols, n_rows);
 
-            const auto idx = j * m + i;
-            for (auto dim : {X, Y}) {
-                const auto& tile = dim == X ? banyan_cmap.htiles(idx) : banyan_cmap.vtiles(idx);
-                cmap.updateSupply(dim, i, j, tile.supply());
-                cmap.updateDemand(dim, i, j, tile.demand());
-            }
+    using linden::geom::dimension::X;
+    int64_t n_hedges_per_row = n_cols - 2;
+    for (auto i = 0; i < banyan_cmap.hedges_size(); ++i) {
+        auto const& edge = banyan_cmap.hedges(i);
+        if (edge.active()) {
+            auto w_idx = i % n_hedges_per_row + 1;
+            auto h_idx = i / n_hedges_per_row;
+            auto const& rect = cmap.rect(w_idx, h_idx);
+            linden::geom::Point offset(side_length * w_idx, side_length * h_idx);
+            FASSERT(rect.ll() == ll + offset)
+                (rect)
+                (ll)
+                (offset)
+                (side_length)
+                (w_idx)
+                (h_idx);
+            cmap.updateSupply(X, w_idx, h_idx, edge.supply() / 2);
+            cmap.updateDemand(X, w_idx, h_idx, edge.demand() / 2);
+            cmap.updateSupply(X, w_idx, h_idx + 1, edge.supply() / 2);
+            cmap.updateDemand(X, w_idx, h_idx + 1, edge.demand() / 2);
+        }
+    }
+
+    using linden::geom::dimension::Y;
+    int64_t n_vedges_per_row = n_rows - 2;
+    for (auto i = 0; i < banyan_cmap.vedges_size(); ++i) {
+        auto const& edge = banyan_cmap.vedges(i);
+        if (edge.active()) {
+            auto w_idx = i / n_vedges_per_row;
+            auto h_idx = i % n_vedges_per_row + 1;
+            auto const& rect = cmap.rect(w_idx, h_idx);
+            linden::geom::Point offset(side_length * w_idx, side_length * h_idx);
+            FASSERT(rect.ll() == ll + offset)
+                (rect)
+                (ll)
+                (offset)
+                (side_length)
+                (w_idx)
+                (h_idx);
+            cmap.updateSupply(Y, w_idx, h_idx, edge.supply() / 2);
+            cmap.updateDemand(Y, w_idx, h_idx, edge.demand() / 2);
+            cmap.updateSupply(Y, w_idx + 1, h_idx, edge.supply() / 2);
+            cmap.updateDemand(Y, w_idx + 1, h_idx, edge.demand() / 2);
         }
     }
     // FIXME: update it after expander's PR is merged
