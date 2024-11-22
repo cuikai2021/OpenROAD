@@ -240,12 +240,12 @@ filesystem::path estimate_cmap(const gp::Config& cfg) {
 
         spdlog::info("[linden/gpl] Dump a banyan cmap file: {}", cmap_file);
         auto& banyan = *::ord::OpenRoad::openRoad()->getBanyan();
-        banyan.clearWires(false, false);
-        banyan.route_clock(*cfg.highest_layer_to_route, cmap_file.string() + ".clk.db");
         banyan.repair_congestion(
             cmap_file.string(),
             cmap_file.string() + ".cgr.db",
-            *cfg.highest_layer_to_route);
+            *cfg.highest_layer_to_route,
+            true
+        );
 
         return cmap_file;
     }

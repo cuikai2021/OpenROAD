@@ -221,10 +221,14 @@ int Banyan::cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_la
   return main(args, false);
 }
 
-int Banyan::repair_congestion(std::string_view cmapPb, std::string_view outDb, std::string_view max_layer)
+int Banyan::repair_congestion(std::string_view cmapPb, std::string_view outDb, std::string_view max_layer, bool nopa)
 {
   std::vector<std::string> args;
   args.push_back("repair_congestion");
+  args.push_back("--enable_dynamic_local");
+  if (nopa) {
+    args.push_back("--no_pa");
+  }
   if (!max_layer.empty()) {
     args.push_back("--max_layer");
     args.emplace_back(max_layer);
