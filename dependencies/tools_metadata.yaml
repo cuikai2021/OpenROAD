@@ -9,6 +9,10 @@
   repo: docker://registry.cn-shanghai.aliyuncs.com/icbench-dev/maple_release_ubuntu
   commit: 86a5ca8
 
+- name: icbrcx
+  repo: docker://registry.cn-shanghai.aliyuncs.com/icb/icbrcx
+  commit: 7303c4b
+
 - name: banyan-integrate
   repo: file://src/Banyan/banyan-integrate
   file: |-
