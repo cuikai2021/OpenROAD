@@ -20,6 +20,8 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/maxhs,dst=/build/bin/maxhs \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/sat_server,dst=/build/bin/sat_server \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/cgss2,dst=/build/bin/cgss2 \
+  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/bypbdef,dst=/build/bin/bypbdef \
+  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/minjog,dst=/build/bin/minjog \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/lindendp,dst=/build/bin/lindendp \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-incremental-legalizer,dst=/build/bin/linden-incremental-legalizer \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-routability-driven-detailed-placer,dst=/build/bin/linden-routability-driven-detailed-placer \
