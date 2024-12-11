@@ -1,6 +1,7 @@
 #include "banyan/Banyan.h"
 
 #include <algorithm>
+#include <boost/algorithm/string/trim.hpp>
 #include <cstddef>
 #include <cstdio>
 #include <fstream>
@@ -12,6 +13,7 @@
 #include <valarray>
 
 #include <eigen3/Eigen/Dense>
+#include <fassert.hpp>
 #include "ord/OpenRoad.hh"
 #include "odb/dbWireCodec.h"
 #include "utl/Logger.h"
@@ -20,11 +22,8 @@ namespace banyan {
 
 inline namespace {
 
-void assert_(bool expr) {
-  if (!expr)
-  [[unlikely]]
-    ord::OpenRoad::openRoad()->getLogger()
-      ->error(utl::BY, 5, "assert failed in regression_RC");
+utl::Logger* getLogger() {
+  return ord::OpenRoad::openRoad()->getLogger();
 }
 
 void forEachWireLine(odb::dbWire* odbWires,
@@ -149,6 +148,9 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
     do {
       if (not std::getline(fin, s))
         return false;
+      boost::trim(s);
+      if (s.starts_with("//"))
+        s.clear();
     } while (s.empty());
     return true;
   };
@@ -165,8 +167,7 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
       else if (buf == "KOHM")
         r_unit = unit * 1;
       else
-        ord::OpenRoad::openRoad()->getLogger()->error(
-            utl::BY, 5, "unsupported Res unit in spef");
+        getLogger()->error(utl::BY, 5, "unsupported Res unit `{}` in spef", buf);
     } else if (s.starts_with("*C_UNIT ")) {
       std::stringstream ss(s);
       std::string buf;
@@ -177,22 +178,21 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
       else if (buf == "PF")
         c_unit = unit * 1;
       else
-        ord::OpenRoad::openRoad()->getLogger()->error(
-            utl::BY, 6, "unsupported Cap unit in spef");
+        getLogger()->error(utl::BY, 6, "unsupported Cap unit `{}` in spef", buf);
     }
-    assert_(s_next());
+    if (!s_next())
+      getLogger()->error(utl::BY, 11, "`*NAME_MAP` not found. Please read the correct .spef file.");
   }
   if (!r_unit || !c_unit)
-    ord::OpenRoad::openRoad()->getLogger()->error(
-      utl::BY, 7, "there isnot R/C unit in spef");
-  assert_(s_next());
+    getLogger()->error(utl::BY, 7, "R/C unit not found");
+  FASSERT(s_next());
 
   std::unordered_map<std::string, odb::dbNet*> id2net;
-  for (; s != "*PORTS"; assert_(s_next())) {
+  for (; s != "*PORTS"; [&]{ FASSERT(s_next()); }()) {
     std::stringstream ss(s);
     std::string id, name;
-    ss >> id >> name;
-    assert_(ss.eof());
+    FASSERT(ss >> id >> name);
+    FASSERT(ss.eof());
     id2net[id] = block->findNet(name.c_str());
   }
 
@@ -209,11 +209,11 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
     ss >> _ >> id;
     auto net = id2net[id];
     auto& RC = RC_data[net];
-    ss >> RC.second;
-    assert_(ss.eof());
+    FASSERT(ss >> RC.second);
+    FASSERT(ss.eof());
 
     bool in_res_section = false;
-    for (; s != "*END"; assert_(s_next())) {
+    for (; s != "*END"; [&]{ FASSERT(s_next()); }()) {
       if (s == "*RES")
         in_res_section = true;
       else if (s == "*CONN")
@@ -224,8 +224,8 @@ std::unordered_map<odb::dbNet*, std::pair<double, double>> loadRCFromSpef(
         ss.clear();
         ss.str(s);
         double res;
-        ss >> _ >> _ >> _ >> res;
-        assert_(ss.eof());
+        FASSERT(ss >> _ >> _ >> _ >> res);
+        FASSERT(ss.eof());
         RC.first += res;
       }
     }
@@ -276,7 +276,7 @@ statNetLaWireLens(odb::dbDatabase* db, const std::vector<std::string>& route_lay
 
 std::pair<std::valarray<std::pair<double, double>>, std::pair<double, double>>
 rcLinearRegression(std::vector<std::valarray<int>> _len_mat, std::vector<std::pair<double, double>> _rc_mat) {
-  assert_(not _len_mat.empty());
+  FASSERT(not _len_mat.empty());
   auto net_cnt = _len_mat.size();
   auto la_cnt = _len_mat.front().size();
 
@@ -317,20 +317,34 @@ void dumpUnitRC2tcl(const std::pair<std::valarray<std::pair<double, double>>,
     ext_args = " -corner " + corner_name;
   }
 
+  bool warn_commented = false;
+  auto maybe_commented = [&warn_commented](double ur, double uc) -> const char* {
+    if (ur > 1e-8 && uc > 1e-8) {
+      return "";
+    } else {
+      if (ur != 0 || uc != 0)
+        warn_commented = true;
+      return "# ";
+    }
+  };
+
   for (size_t la = 0; la < route_layers.size(); la++) {
     auto [ur, uc] = urcs.first[la];
     ur *= DB_units_per_micron;
     uc *= DB_units_per_micron;
-    if (ur > 1e-8 && uc > 1e-8)
-      std::fprintf(fd, "set_layer_rc -layer %s -capacitance %.11f -resistance %.11f%s\n",
-                   route_layers[la].c_str(), uc, ur, ext_args.c_str());
+    std::fprintf(fd, "%sset_layer_rc -layer %s -capacitance %.11f -resistance %.11f%s\n",
+                 maybe_commented(ur, uc), route_layers[la].c_str(), uc, ur, ext_args.c_str());
   }
   auto [ur, uc] = urcs.second;
   ur *= DB_units_per_micron;
   uc *= DB_units_per_micron;
-  assert_(ur > 1e-8 && uc > 1e-8);
-  std::fprintf(fd, "\nset_wire_rc -capacitance %.11f -resistance %.11f%s\n", uc, ur, ext_args.c_str());
+  std::fprintf(fd, "\n%sset_wire_rc -capacitance %.11f -resistance %.11f%s\n",
+               maybe_commented(ur, uc), uc, ur, ext_args.c_str());
   fclose(fd);
+  if (warn_commented)
+    getLogger()->warn(utl::BY, 12,
+                      "Some of the generated `set_*_rc` commands were commented out "
+                      "because they didn't look correct");
 }
 
 void dumpPlotPython(const std::vector<std::valarray<int>>& len_mat,
