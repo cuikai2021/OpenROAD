@@ -47,7 +47,7 @@ struct SeqPin {
 };
 
 struct Port {
-    const db::BTerm* bterm;
+    const db::Pin* bterm;
     bool is_input;
     bool is_output;
     std::optional<double> cpins;

@@ -19,14 +19,13 @@ namespace {
 
 void firm_macros(const linden::db::Database& ldb) noexcept {
     size_t macro_cnt = 0;
-    for (auto& cell: ldb.cells()) {
-        if (cell.is_virtual()) {
-            continue;
-        }
+    for (auto& x: ldb.moveable_insts()) {
+        auto& cell = x.get();
         if (!cell.macro()) {
             continue;
         }
-        auto o_inst = reinterpret_cast<odb::dbInst*>(cell.odb_instance());
+        auto o_inst = reinterpret_cast<odb::dbInst*>(cell.odb_inst());
+        FASSERT(o_inst != nullptr);
         if (o_inst->getPlacementStatus() == odb::dbPlacementStatus::PLACED) {
             o_inst->setPlacementStatus(odb::dbPlacementStatus::FIRM);
             ++macro_cnt;

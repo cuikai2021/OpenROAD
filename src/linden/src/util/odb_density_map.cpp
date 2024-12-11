@@ -18,19 +18,19 @@ OdbDensityMap::OdbDensityMap(odb::dbDatabase& odb) noexcept
         }
         auto type = is_fixed(*inst) ? InstType::FIXED : InstType::MOVABLE;
         for (const auto& rect : rects(*inst)) {
-            add(rect, type);
+            add(rect, 1.0, type);
         }
     }
 }
 
 void OdbDensityMap::add_movable_stdcell(odb::dbInst& inst) noexcept {
   FASSERT(!is_fixed(inst));
-  add(inst_located_shape(inst), InstType::MOVABLE);
+  add(inst_located_shape(inst), 1.0, InstType::MOVABLE);
 }
 
 void OdbDensityMap::remove_movable_stdcell(odb::dbInst& inst) noexcept {
   FASSERT(!is_fixed(inst));
-  remove(inst_located_shape(inst), InstType::MOVABLE);
+  remove(inst_located_shape(inst), 1.0, InstType::MOVABLE);
 }
 
 } // namespace density

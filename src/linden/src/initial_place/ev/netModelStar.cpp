@@ -10,7 +10,8 @@ namespace linden::ip::ev {
 // build matrix A and vector b from Star modeling
 void NetModelStar::buildOn(DIMENSION dim)
 {
-    for (auto& net : nets_) {
+    for (auto& x: nets_) {
+        auto const& net = x.get();
         if (isSkipped(net)) {
             continue;
         }
@@ -31,20 +32,12 @@ void NetModelStar::buildOn(DIMENSION dim)
 
 bool NetModelStar::isSourcePin(const linden::db::Pin& pin) const
 {
-    switch (pin.term_type()) {
-    case linden::db::Pin::ODB_ITERM: {
+    if (pin.cell()) {
         auto o_iterm = reinterpret_cast<odb::dbITerm*>(pin.odb_term());
         return o_iterm->getIoType() != odb::dbIoType::INPUT;
-    }
-    case linden::db::Pin::ODB_BTERM: {
+    } else {
         auto o_bterm = reinterpret_cast<odb::dbBTerm*>(pin.odb_term());
         return o_bterm->getIoType() != odb::dbIoType::OUTPUT;
-    }
-    default: {
-        FASSERT(false)
-            .what("unreachable");
-        return false;
-    }
     }
 }
 

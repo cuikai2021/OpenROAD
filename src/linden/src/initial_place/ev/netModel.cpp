@@ -12,7 +12,7 @@ namespace linden::ip::ev {
 
 NetModel::NetModel(
     float netWeightScale,
-    const std::deque<linden::db::Net>& nets,
+    const std::deque<linden::db::ConstNetRef>& nets,
     const std::vector<linden::db::Cell*>& placeInsts,
     const std::unordered_map<const linden::db::Cell*, size_t>& placeable_insts_indices)
 :   netWeightScale_(netWeightScale),
@@ -66,7 +66,7 @@ void NetModel::addTwoPinConn(
                 return nullopt;
             }
             PinInfo res(p);
-            res.movable = cell.is_instance() && cell.movable();
+            res.movable = !cell.is_virtual() && cell.moveable();
             res.index = it->second;
             return res;
         }
@@ -90,9 +90,9 @@ void NetModel::addTwoPinConn(
             const auto& ano = pins[cur_idx ^ 1];
             if (ano.movable) {
                 aList.push_back(T(cur.index, ano.index, -w));
-                b(cur.index) += w * (ano.pin.offset(dim) - cur.pin.offset(dim));
+                b(cur.index) += w * (ano.pin.offset()[dim] - cur.pin.offset()[dim]);
             } else {
-                b(cur.index) += w * (ano.pin.c(dim) - cur.pin.offset(dim));
+                b(cur.index) += w * (ano.pin.abs_location()[dim] - cur.pin.offset()[dim]);
             }
         }
     }

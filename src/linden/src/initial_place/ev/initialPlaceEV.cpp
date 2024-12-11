@@ -3,6 +3,7 @@
 #include "eigs.h"
 #include "maxDensity.h"
 #include "../../util/odb_util.hpp"
+#include "linden/util/name.hpp"
 #include "odb/dbTypes.h"
 #include "fassert.hpp"
 #include "envflag/envflag.hpp"
@@ -29,7 +30,7 @@ class UnionFindSet {
 public:
     explicit UnionFindSet(const vector<linden::db::Cell*>& insts) noexcept;
 
-    void connect(const string_view& cell0_name, const string_view& cell1_name) noexcept;
+    void connect(const NameView& cell0_name, const NameView& cell1_name) noexcept;
     vector<linden::db::Cell*> max_connected_component() noexcept;
 
 private:
@@ -52,7 +53,7 @@ private:
 
 private:
     vector<Node> nodes;
-    unordered_map<string_view, size_t> name_to_indices_;
+    unordered_map<Name, size_t, NameHash, std::equal_to<>> name_to_indices_;
 };
 
 UnionFindSet::UnionFindSet(const vector<linden::db::Cell*>& insts) noexcept
@@ -61,7 +62,7 @@ UnionFindSet::UnionFindSet(const vector<linden::db::Cell*>& insts) noexcept
     for(auto& cell: insts) {
         size_t idx = nodes.size();
         nodes.emplace_back(cell);
-        name_to_indices_[string_view(cell->name())] = idx;
+        name_to_indices_[cell->name()] = idx;
     }
 }
 
@@ -72,8 +73,8 @@ UnionFindSet::Node::Node(linden::db::Cell* cell) noexcept
 }
 
 void UnionFindSet::connect(
-    const string_view& cell0_name,
-    const string_view& cell1_name) noexcept
+    const NameView& cell0_name,
+    const NameView& cell1_name) noexcept
 {
     auto it0 = name_to_indices_.find(cell0_name);
     if (it0 == name_to_indices_.end()) {
@@ -177,8 +178,9 @@ InitialPlaceEV::InitialPlaceEV(linden::db::Database& ldb)
 }
 
 void InitialPlaceEV::build_placeable_insts() {
-    for (auto& cell: ldb_.mut_cells()) {
-        if (cell.is_instance() && cell.movable() && !cell.macro()) {
+    for (auto& x: ldb_.mut_moveable_insts()) {
+        auto& cell = x.get();
+        if (!cell.macro()) {
             placeable_insts_area_ += cell.rect().area();
             placeable_insts_.push_back(&cell);
         }
@@ -248,26 +250,28 @@ void InitialPlaceEV::run()
 
 void InitialPlaceEV::refine_placeable_insts_to_max_connected_component() noexcept {
     UnionFindSet ufs(placeable_insts_);
-    auto cell_name = [](const linden::db::Pin& pin) -> optional<string_view> {
+    auto cell_name = [](const linden::db::Pin& pin) -> optional<NameView> {
         auto cell = pin.cell();
         if (cell) {
-            return string_view(cell->get().name());
+            return cell->get().name().to_view();
         } else {
             return nullopt;
         }
     };
-    for(auto const& net: ldb_.nets()) {
+    const string EMPTY_STR;
+    for(auto const& x: ldb_.nets()) {
+        auto const& net = x.get();
         auto const& pins = net.pins();
         if (pins.size() <= 1) {
             continue;
         }
-        string_view cell0_name;
+        Name cell0_name(EMPTY_STR);
         auto it = pins.begin();
         for(; it != pins.end(); ++it) {
             auto const& pin = it->get();
             auto c_name = cell_name(pin);
             if (c_name) {
-                cell0_name = *c_name;
+                cell0_name = c_name->to_owned();
                 break;
             }
         }
@@ -275,7 +279,7 @@ void InitialPlaceEV::refine_placeable_insts_to_max_connected_component() noexcep
             auto const& pin = it->get();
             auto c_name = cell_name(pin);
             if (c_name) {
-                ufs.connect(cell0_name, *c_name);
+                ufs.connect(cell0_name.to_view(), *c_name);
             }
         }
     }
@@ -284,7 +288,7 @@ void InitialPlaceEV::refine_placeable_insts_to_max_connected_component() noexcep
 }
 
 void InitialPlaceEV::place_insts_to_core_center() {
-    auto center = ldb_.core_region().center();
+    auto center = ldb_.core_region().c();
     for (auto& cell: placeable_insts_) {
         cell->move_to(center);
     }
@@ -486,8 +490,8 @@ pair<int, int> InitialPlaceEV::minmaxLoc(DIMENSION dim) const noexcept {
     int& minLoc = minmax.first;
     int& maxLoc = minmax.second;
     auto die = ldb_.die_region();
-    minLoc = dim == X ? die.lx() : die.ly();
-    maxLoc = dim == X ? die.ux() : die.uy();
+    minLoc = die.ll()[dim];
+    maxLoc = die.ur()[dim];
 
     const double scale = std::sqrt(placeable_insts_area_ / die.area());
     const int delta = (1 - scale) * (dim == X ? die.dx() : die.dy());
@@ -567,7 +571,7 @@ void InitialPlaceEV::dumpMatrixAB(const Triplets& aList, const std::string& suff
             vector<double> vec;
             vec.reserve(placeable_insts_.size());
             for(auto const& x: placeable_insts_) {
-                vec.push_back(x->rect().c(dim));
+                vec.push_back(x->rect().c()[dim]);
             }
             reposition(vec);
 

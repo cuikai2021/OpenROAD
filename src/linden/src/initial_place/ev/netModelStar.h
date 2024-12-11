@@ -10,7 +10,7 @@ class NetModelStar : public NetModel
 public:
     NetModelStar(
         float netWeightScale,
-        const std::deque<linden::db::Net>& nets,
+        const std::deque<linden::db::ConstNetRef>& nets,
         const std::vector<linden::db::Cell*>& placeInsts,
         const std::unordered_map<const linden::db::Cell*, size_t>& placeable_insts_indices)
     :   NetModel(netWeightScale, nets, placeInsts, placeable_insts_indices)

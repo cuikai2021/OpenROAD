@@ -16,7 +16,8 @@ namespace linden::ip::ev {
 // build matrix A and vector b from B2B modeling
 void NetModelB2B::buildOn(DIMENSION dim)
 {
-    for (auto& net : nets_) {
+    for (auto& x: nets_) {
+        auto const& net = x.get();
         if (isSkipped(net)) {
             continue;
         }
@@ -26,7 +27,7 @@ void NetModelB2B::buildOn(DIMENSION dim)
         // foreach two pins in single nets.
         auto const& pins = net.pins();
         auto cmp = [=](const linden::db::PinRef& p0, const linden::db::PinRef& p1) {
-            return p0.get().c(dim) < p1.get().c(dim);
+            return p0.get().abs_location()[dim] < p1.get().abs_location()[dim];
         };
         auto min_pin_it = min_element(pins.begin(), pins.end(), cmp);
         auto const& min_pin = min_pin_it->get();
@@ -59,7 +60,7 @@ float NetModelB2B::weight(
     float netWeight,
     DIMENSION dim) const
 {
-    int64_t diff = abs(pin1.c(dim) - pin2.c(dim));
+    int64_t diff = abs(pin1.abs_location()[dim] - pin2.abs_location()[dim]);
     float w = 0;
     if (diff > minDiffLength_) {
         w = netWeight / diff;

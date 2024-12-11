@@ -3,6 +3,7 @@
 #include "load_timing_data.hpp"
 #include "../util/odb_util.hpp"
 #include "linden/db/db.hpp"
+#include "linden/util/name.hpp"
 #include "incr_tdp_data.pb.h"
 #include "fassert.hpp"
 #include <spdlog/spdlog.h>
@@ -48,9 +49,12 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
     bool ret = incr_tdp_data.ParseFromIstream(&fin);
     FASSERT(ret);
 
-    std::unordered_map<std::string, const linden::db::Cell*> name2cell;
-    for (auto& cell: ldb.cells()){
-        name2cell[cell.name()] = &cell;
+    std::unordered_map<Name, const linden::db::Cell*, NameHash, std::equal_to<>> name2cell;
+    for (auto& cell: ldb.fixed_insts()){
+        name2cell[cell.get().name()] = &(cell.get());
+    }
+    for (auto& cell: ldb.moveable_insts()){
+        name2cell[cell.get().name()] = &(cell.get());
     }
 
     auto name2pin = [&](const linden::db::Cell& cell, const std::string& pin_name) -> linden::db::Pin* {
@@ -62,7 +66,7 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
         return nullptr;
     };
     auto pinname2net = [&](const linden::db::Cell& cell, const std::string& pin_name) -> odb::dbNet* {
-        odb::dbInst* inst = static_cast<odb::dbInst*>(cell.odb_instance());
+        odb::dbInst* inst = reinterpret_cast<odb::dbInst*>(cell.odb_inst());
         for (auto iterm : inst->getITerms()) {
             if (iterm->getMTerm()->getName() == pin_name) {
                 return iterm->getNet();
@@ -155,9 +159,9 @@ LocalIncrTdpData read_pb(linden::db::Database& ldb, const char* path) {
         return false;
     };
 
-    std::unordered_map<std::string, const linden::db::BTerm*> name2bterm;
+    std::unordered_map<Name, const linden::db::Pin*, NameHash, std::equal_to<>> name2bterm;
     for (auto& pin: ldb.bterm_pins()) {
-        name2bterm[pin.name()] = &pin;
+        name2bterm[pin.get().name()] = &(pin.get());
     }
 
     for (int i = 0, sz = incr_tdp_data.ports_size(); i < sz; ++i) {

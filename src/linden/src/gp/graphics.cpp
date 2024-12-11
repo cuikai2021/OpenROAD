@@ -74,24 +74,18 @@ void GraphicsInner::draw_insts(gui::Painter& painter) const
     deque<linden::db::ConstCellRef> fixed;
     deque<linden::db::ConstCellRef> stdcells;
     deque<linden::db::ConstCellRef> macros;
-    deque<linden::db::ConstCellRef> fillers;
-    for(auto const& cell: db_->cells()) {
-        if (cell.fixed()) {
-            fixed.emplace_back(cell);
-        } else if (cell.is_instance()) {
-            if (cell.macro()) {
-                macros.emplace_back(cell);
-            } else {
-                stdcells.emplace_back(cell);
-            }
+    for(auto const& x: db_->moveable_insts()) {
+        auto const& cell = x.get();
+        if (cell.macro()) {
+            macros.emplace_back(cell);
         } else {
-            fillers.emplace_back(cell);
+            stdcells.emplace_back(cell);
         }
     }
-    draw_fixed(painter, std::move(fixed));
+    draw_fixed(painter, std::move(db_->fixed_insts()));
     draw_stdcells(painter, std::move(stdcells));
     draw_macros(painter, std::move(macros));
-    draw_fillers(painter, std::move(fillers));
+    draw_fillers(painter, std::move(db_->fillers()));
 }
 
 void GraphicsInner::draw_fixed(
@@ -101,7 +95,7 @@ void GraphicsInner::draw_fixed(
     painter.saveState();
     for(auto const& x: fixed) {
         auto const& cell = x.get();
-        if (cell.max_density() < 1.0) {
+        if (cell.density() < 1.0) {
             painter.setPen(gui::Painter::light_gray, true);
         } else {
             painter.setPen(gui::Painter::gray, true);

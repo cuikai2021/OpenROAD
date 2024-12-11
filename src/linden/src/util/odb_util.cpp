@@ -1,6 +1,9 @@
 #include "odb_util.hpp"
 #include "ignored_nets.hpp"
 #include "linden/geom/bbox.hpp"
+#include "linden/geom/rect.hpp"
+#include "linden/geom/point.hpp"
+#include "linden/util/name.hpp"
 #include "rsz/Resizer.hh"
 #include "lrl/CircuitModifier/CircuitModifier.hh"
 #include "lrl/Laurel.hh"
@@ -18,19 +21,17 @@ namespace linden {
 
 linden::geom::Rect orect_to_lrect(const odb::Rect& orect) noexcept {
     return linden::geom::Rect(
-        orect.xMin(),
-        orect.yMin(),
-        orect.xMax(),
-        orect.yMax()
+        linden::geom::Point(orect.xMin(), orect.yMin()),
+        linden::geom::Point(orect.xMax(), orect.yMax())
     );
 }
 
 odb::Rect lrect_to_orect(const linden::geom::Rect& lrect) noexcept {
     return odb::Rect(
-        lrect.lx(),
-        lrect.ly(),
-        lrect.ux(),
-        lrect.uy()
+        lrect.ll().x(),
+        lrect.ll().y(),
+        lrect.ur().x(),
+        lrect.ur().y()
     );
 }
 
@@ -113,11 +114,22 @@ linden::geom::Rect inst_located_shape(odb::dbInst& inst) noexcept
     }
     int64_t urx = llx + w;
     int64_t ury = lly + h;
-    return linden::geom::Rect{llx, lly, urx, ury};
+    linden::geom::Point ll(llx, lly);
+    linden::geom::Point ur(urx, ury);
+    if (auto halo = inst.getHalo(); halo != nullptr) {
+        ll.x() -= halo->xMin();
+        ll.y() -= halo->yMin();
+        ur.x() += halo->xMax();
+        ur.y() += halo->yMax();
+    }
+    return linden::geom::Rect(ll, ur);
 }
 
 std::vector<linden::geom::Rect> rects(odb::dbInst& inst) noexcept {
-    std::vector<linden::geom::Rect> obs_overlap_layer;
+    using linden::geom::Rect;
+    using linden::geom::Point;
+
+    std::vector<Rect> obs_overlap_layer;
     auto master = inst.getMaster();
     for (auto obs : master->getObstructions()) {
         auto layer = obs->getTechLayer();
@@ -125,8 +137,9 @@ std::vector<linden::geom::Rect> rects(odb::dbInst& inst) noexcept {
             odb::Rect rect = obs->getBox();
             odb::dbTransform transform = inst.getTransform();
             transform.apply(rect);
-            obs_overlap_layer.push_back(linden::geom::Rect(
-                rect.xMin(), rect.yMin(), rect.xMax(), rect.yMax()));
+            obs_overlap_layer.push_back(Rect(
+                Point(rect.xMin(), rect.yMin()),
+                Point(rect.xMax(), rect.yMax())));
         }
     }
     if (obs_overlap_layer.empty()) {
@@ -159,18 +172,20 @@ void build_cells(
         auto located_shape = inst_located_shape(*inst);
         auto is_macro = inst->getMaster()->getType().isBlock();
         bool is_fixed = linden::is_fixed(*inst);
+        auto lcell = linden::db::Cell::create(located_shape);
+        lcell->mut_odb_inst() = inst;
+        string name(inst->getName());
+        lcell->mut_name() = Name(name);
+        lcell->mut_macro() = is_macro;
+        lcell->mut_fixed() = is_fixed;
         if (is_fixed) {
-            // FIXME: to support obs layer
+            // 1. [done here] Let density of fixed insts be 0. So stdcells
+            //    are allowed to move inside.
+            // 2. For real obs, such as obs on the overlap layer or the instance
+            //    bbox if no overlap layer, they are considered as full blockages.
+            lcell->mut_density() = 0;
         }
-        auto name = inst->getName();
-        linden::db::Cell lcell(
-            inst,
-            name,
-            located_shape,
-            located_shape.area(),
-            is_macro,
-            is_fixed);
-        ldb.add_cell(std::move(lcell));
+        ldb.add_cell(*lcell);
     }
 }
 
@@ -185,9 +200,9 @@ void build_nets(
             continue;
         }
         auto name = net->getName();
-        linden::db::Net lnet(net, name);
-        lnet.mut_weight() = ignored_nets.get_net_weight(net);
-        ldb.add_net(std::move(lnet));
+        auto lnet = linden::db::Net::create(net, name);
+        lnet->mut_weight() = ignored_nets.get_net_weight(net);
+        ldb.add_net(*lnet);
     }
 }
 
@@ -201,10 +216,11 @@ void build_pins(
         if (!is_supported(*net)) {
             continue;
         }
-        auto l_net = ldb.odb2net(net);
-        if (!l_net) {
+        auto x_net = ldb.odb2net(net);
+        if (!x_net) {
             continue;
         }
+        auto& l_net = const_cast<linden::db::Net&>(x_net->get());
         for(auto iterm: net->getITerms()) {
             if (is_sc_ignored_pins(iterm)) {
                 continue;
@@ -219,23 +235,26 @@ void build_pins(
                         pts.push_back(linden::geom::Point(box->xMax(), box->yMax()));
                     }
                 }
-                auto pin_bbox = linden::geom::bbox(pts.begin(), pts.end());
-                linden::geom::Point cell_center(
-                    iterm->getInst()->getMaster()->getWidth() / 2,
-                    iterm->getInst()->getMaster()->getHeight() / 2);
+                linden::geom::BBox<linden::geom::Rect> bbox;
+                auto pin_bbox = bbox(pts);
                 if (pin_bbox) {
-                    pin_offset = pin_bbox->center() - cell_center;
+                    linden::geom::Point cell_center(
+                        iterm->getInst()->getMaster()->getWidth() / 2,
+                        iterm->getInst()->getMaster()->getHeight() / 2);
+                    pin_offset = pin_bbox->c() - cell_center;
                 }
             }
             auto l_cell = ldb.odb2cell(iterm->getInst());
             if (l_cell) {
                 // pins of std cells/macros
-                linden::db::ITerm term(iterm, l_net->get(), name, l_cell->get(), pin_offset);
-                ldb.add_pin(std::move(term));
+                auto term = linden::db::Pin::create_iterm(iterm, name, l_cell->get(), pin_offset);
+                ldb.add_pin(*term);
+                ldb.connect(l_net, *term);
             } else {
-                // pins of pads
-                linden::db::BTerm term(iterm, l_net->get(), name, pin_offset);
-                ldb.add_pin(std::move(term));
+                // external pins
+                auto term = linden::db::Pin::create_bterm(iterm, name, pin_offset);
+                ldb.add_pin(*term);
+                ldb.connect(l_net, *term);
             }
         }
         for(auto bterm: net->getBTerms()) {
@@ -248,13 +267,15 @@ void build_pins(
                     pts.push_back(linden::geom::Point(box.xMin(), box.yMin()));
                     pts.push_back(linden::geom::Point(box.xMax(), box.yMax()));
                 }
-                auto pin_bbox = linden::geom::bbox(pts.begin(), pts.end());
+                linden::geom::BBox<linden::geom::Rect> bbox;
+                auto pin_bbox = bbox(pts);
                 if (pin_bbox) {
-                    pin_location = pin_bbox->center();
+                    pin_location = pin_bbox->c();
                 }
             }
-            linden::db::BTerm term(bterm, l_net->get(), name, pin_location);
-            ldb.add_pin(std::move(term));
+            auto term = linden::db::Pin::create_bterm(bterm, name, pin_location);
+            ldb.add_pin(*term);
+            ldb.connect(l_net, *term);
         }
     }
 }
@@ -269,21 +290,20 @@ constexpr int64_t max_boundary() {
 
 tuple<size_t, size_t, size_t, size_t> bbox_to_site_range(
     const linden::geom::Rect& core,
-    const odb::Rect& bbox,
+    const linden::geom::Rect& bbox,
     int64_t site_width,
     int64_t site_height)
 {
     static constexpr int64_t MAX_BOUNDARY = max_boundary();
-    linden::geom::Rect l_bbox = orect_to_lrect(bbox);
-    if (auto overlap = core.intersect(l_bbox); overlap) {
+    if (auto overlap = core.intersect(bbox); overlap) {
         if (overlap->area() > 0) {
-            int64_t llr = (overlap->ly() - core.ly() + 1) / site_height;
+            int64_t llr = (overlap->ll().y() - core.ll().y() + 1) / site_height;
             FASSERT(llr >= 0 && llr <= MAX_BOUNDARY)(llr);
-            int64_t llc = (overlap->lx() - core.lx() + 1) / site_width;
+            int64_t llc = (overlap->ll().x() - core.ll().x() + 1) / site_width;
             FASSERT(llc >= 0 && llc <= MAX_BOUNDARY)(llc);
-            int64_t urr = (overlap->uy() - core.ly() - 1) / site_height;
+            int64_t urr = (overlap->ur().y() - core.ll().y() - 1) / site_height;
             FASSERT(urr >= 0 && urr <= MAX_BOUNDARY)(urr);
-            int64_t urc = (overlap->ux() - core.lx() - 1) / site_width;
+            int64_t urc = (overlap->ur().x() - core.ll().x() - 1) / site_width;
             FASSERT(urc >= 0 && urc <= MAX_BOUNDARY)(urc);
             return make_tuple(llr, llc, urr, urc);
         }
@@ -323,49 +343,78 @@ void build_blockages(
     size_t n_rows = core.dy() / site_height;
     size_t n_cols = core.dx() / site_width;
 
-    deque<deque<float>> arena_emptiness;
+    vector<vector<float>> arena_emptiness;
     // initialize and shadow all sites
     for(size_t i = 0; i < n_rows; ++i) {
         arena_emptiness.emplace_back(n_cols, 0);
     }
     // uncover sites where rows cover
     for(auto row: odb.getChip()->getBlock()->getRows()) {
-        auto row_bbox = row->getBBox();
-        size_t start_row, start_col, end_row, end_col;
-        tie(start_row, start_col, end_row, end_col) = bbox_to_site_range(core, row_bbox, site_width, site_height);
+        auto row_bbox = orect_to_lrect(row->getBBox());
+        auto [start_row, start_col, end_row, end_col] =
+            bbox_to_site_range(core, row_bbox, site_width, site_height);
         for(size_t i = start_row; i <= end_row; ++i) {
             for(size_t j = start_col; j <= end_col; ++j) {
                 arena_emptiness[i][j] = 100;
             }
         }
     }
-    // uncover sites by fixed cells (which may be not on rows)
-    // it is weird to uncover these sites and then shadow them again
-    // (in another function). But, so be it.
     for(odb::dbInst* inst: odb.getChip()->getBlock()->getInsts()) {
+        if(!is_supported(*inst)) {
+            continue;
+        }
         if(!inst->isFixed()) {
             continue;
         }
-        // FIXME: to support obs layer
-        auto bbox = inst->getBBox()->getBox();
-        size_t start_row, start_col, end_row, end_col;
-        tie(start_row, start_col, end_row, end_col) = bbox_to_site_range(core, bbox, site_width, site_height);
-        for(size_t i = start_row; i <= end_row; ++i) {
-            for(size_t j = start_col; j <= end_col; ++j) {
-                arena_emptiness[i][j] = 100;
+        deque<linden::geom::Rect> overlap_obs;
+        auto master = inst->getMaster();
+        for (auto obs : master->getObstructions()) {
+            auto layer = obs->getTechLayer();
+            if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
+                odb::Rect rect = obs->getBox();
+                odb::dbTransform transform = inst->getTransform();
+                transform.apply(rect);
+                auto lrect = orect_to_lrect(rect);
+                if(auto halo = inst->getHalo(); halo != nullptr) {
+                    lrect.ll().x() -= halo->xMin();
+                    lrect.ll().y() -= halo->yMin();
+                    lrect.ur().x() += halo->xMax();
+                    lrect.ur().y() += halo->yMax();
+                }
+                overlap_obs.push_back(std::move(lrect));
+            }
+        }
+        if (overlap_obs.empty()) {
+            auto bbox = inst_located_shape(*inst);
+            auto [start_row, start_col, end_row, end_col] =
+                bbox_to_site_range(core, bbox, site_width, site_height);
+            for(size_t i = start_row; i <= end_row; ++i) {
+                for(size_t j = start_col; j <= end_col; ++j) {
+                    arena_emptiness[i][j] = 0;
+                }
+            }
+        } else {
+            for(auto const& rect: overlap_obs) {
+                auto [start_row, start_col, end_row, end_col] =
+                    bbox_to_site_range(core, rect, site_width, site_height);
+                for(size_t i = start_row; i <= end_row; ++i) {
+                    for(size_t j = start_col; j <= end_col; ++j) {
+                        arena_emptiness[i][j] = 0;
+                    }
+                }
             }
         }
     }
     // shadow sites by blockages
     for(odb::dbBlockage* blockage : odb.getChip()->getBlock()->getBlockages()) {
-        auto bbox = blockage->getBBox()->getBox();
+        auto bbox = orect_to_lrect(blockage->getBBox()->getBox());
         float blk_emptiness = blockage->getMaxDensity();
         if(blockage->isSoft()) {
             // global placement should not touch soft blockages.
             blk_emptiness = 0;
         }
-        size_t start_row, start_col, end_row, end_col;
-        tie(start_row, start_col, end_row, end_col) = bbox_to_site_range(core, bbox, site_width, site_height);
+        auto [start_row, start_col, end_row, end_col] =
+            bbox_to_site_range(core, bbox, site_width, site_height);
         for(size_t i = start_row; i <= end_row; ++i) {
             for(size_t j = start_col; j <= end_col; ++j) {
                 arena_emptiness[i][j] = min(arena_emptiness[i][j], blk_emptiness);
@@ -373,22 +422,26 @@ void build_blockages(
         }
     }
     // turn sites to fixed fillers
-    auto add_filler_if_neccessary = [&](
+    auto add_dummy = [&](
         size_t r,
         size_t start_c,
         size_t end_c,
         float emptiness)
     {
+        using linden::geom::Rect;
+        using linden::geom::Point;
         if(emptiness >= 100) {
             return;
         }
-        int64_t lly = core.ly() + r * site_height;
+        int64_t lly = core.ll().y() + r * site_height;
         int64_t ury = lly + site_height;
-        int64_t llx = core.lx() + start_c * site_width;
-        int64_t urx = core.lx() + end_c * site_width;
-        linden::geom::Rect bbox(llx, lly, urx, ury);
-        linden::db::Cell dummy(bbox, true, (100.0 - emptiness) / 100.0);
-        ldb.add_cell(std::move(dummy));
+        int64_t llx = core.ll().x() + start_c * site_width;
+        int64_t urx = core.ll().x() + end_c * site_width;
+        Rect bbox(Point(llx, lly), Point(urx, ury));
+        auto dummy = linden::db::Cell::create(bbox);
+        dummy->mut_fixed() = true;
+        dummy->mut_density() = (100.0 - emptiness) / 100.0;
+        ldb.add_cell(*dummy);
     };
     for(size_t r = 0; r < n_rows; ++r) {
         auto const& row = arena_emptiness[r];
@@ -397,22 +450,22 @@ void build_blockages(
             size_t c = last_col + 1;
             float last_emptiness = row[last_col];
             for(; c < n_cols && row[c] == last_emptiness; ++c);
-            add_filler_if_neccessary(r, last_col, c, last_emptiness);
+            add_dummy(r, last_col, c, last_emptiness);
             last_col = c;
         }
     }
 }
 
-odb::dbOrientType from_linden_orient(linden::db::Orientation lori) noexcept {
+odb::dbOrientType from_linden_orient(linden::db::Orient lori) noexcept {
     switch(lori) {
-    case linden::db::N: return odb::dbOrientType::R0;
-    case linden::db::W: return odb::dbOrientType::R90;
-    case linden::db::S: return odb::dbOrientType::R180;
-    case linden::db::E: return odb::dbOrientType::R270;
-    case linden::db::FN: return odb::dbOrientType::MY;
-    case linden::db::FW: return odb::dbOrientType::MYR90;
-    case linden::db::FS: return odb::dbOrientType::MX;
-    case linden::db::FE: return odb::dbOrientType::MXR90;
+    case linden::db::Orient::N: return odb::dbOrientType::R0;
+    case linden::db::Orient::W: return odb::dbOrientType::R90;
+    case linden::db::Orient::S: return odb::dbOrientType::R180;
+    case linden::db::Orient::E: return odb::dbOrientType::R270;
+    case linden::db::Orient::FN: return odb::dbOrientType::MY;
+    case linden::db::Orient::FW: return odb::dbOrientType::MYR90;
+    case linden::db::Orient::FS: return odb::dbOrientType::MX;
+    case linden::db::Orient::FE: return odb::dbOrientType::MXR90;
     default: {
         FASSERT(false)
             ((size_t) lori)
@@ -454,24 +507,16 @@ void refresh_locations_from_ldb(const linden::db::Database& ldb) noexcept {
     ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
     lrl::NetworkModifier& cm = lrl::Laurel::getPlacementNetworkModifier();
     lrl::STANetwork sta_nw = cm.network;
-    for (auto const& lcell: ldb.cells()) {
-        if (!lcell.is_instance()) {
-            continue;
-        }
-        if (lcell.is_virtual()) {
-            continue;
-        }
-        if (!lcell.movable()) {
-            continue;
-        }
+    for (auto const& x: ldb.moveable_insts()) {
+        auto const& lcell = x.get();
 
-        odb::dbInst* ocell = reinterpret_cast<odb::dbInst*>(lcell.odb_instance());
+        odb::dbInst* ocell = reinterpret_cast<odb::dbInst*>(lcell.odb_inst());
         ocell->setPlacementStatus(odb::dbPlacementStatus::PLACED);
-        odb::dbOrientType orient = from_linden_orient(lcell.orientation());
+        odb::dbOrientType orient = from_linden_orient(lcell.orient());
 
         const linden::geom::Rect& r = lcell.rect();
-        odb::Point target_pt(r.lx(), r.ly());
-        sta::Instance* sta_inst = sta_nw.findInstance(lcell.name().c_str());
+        odb::Point target_pt(r.ll().x(), r.ll().y());
+        sta::Instance* sta_inst = sta_nw.findInstance(lcell.name().raw().c_str());
         FASSERT(sta_inst != nullptr)
             .what("Adding or removing cells are so far unsupported.");
         // FIXME: pad awareness on X coordinates
@@ -484,7 +529,8 @@ void refresh_locations_from_ldb(const linden::db::Database& ldb) noexcept {
 int64_t hpwl(const linden::db::Database& db) noexcept
 {
     int64_t res = 0;
-    for(auto const& net: db.nets()) {
+    for(auto const& x: db.nets()) {
+        auto const& net = x.get();
         if (net.pins().size() <= 1) {
             continue;
         }
@@ -493,10 +539,11 @@ int64_t hpwl(const linden::db::Database& db) noexcept
             auto const& pin = p.get();
             if (auto c = pin.cell(); c) {
                 auto const& cell = c->get();
-                pts.push_back(cell.rect().center());
+                pts.push_back(cell.rect().c());
             }
         }
-        auto net_box = linden::geom::bbox(pts.begin(), pts.end());
+        linden::geom::BBox<linden::geom::Rect> bbox;
+        auto net_box = bbox(pts);
         FASSERT(net_box);
         res += net_box->dx() + net_box->dy();
     }

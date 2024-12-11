@@ -33,7 +33,7 @@ public:
 protected:
     explicit NetModel(
         float netWeightScale,
-        const std::deque<linden::db::Net>& nets,
+        const std::deque<linden::db::ConstNetRef>& nets,
         const std::vector<linden::db::Cell*>& placeInsts,
         const std::unordered_map<const linden::db::Cell*, size_t>& placeable_insts_indices);
 
@@ -52,7 +52,7 @@ protected:
     double getNetWeight(const linden::db::Net&) const noexcept;
 
     float netWeightScale_;
-    const std::deque<linden::db::Net>& nets_;
+    const std::deque<linden::db::ConstNetRef>& nets_;
     const std::vector<linden::db::Cell*>& placeInsts_;// moveable instances
     const std::unordered_map<const linden::db::Cell*, size_t>& placeable_insts_indices_;
     IgnoredNets ignored_nets_;

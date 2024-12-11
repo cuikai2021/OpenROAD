@@ -5,6 +5,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace linden::geom::dimension;
 
 namespace linden {
 
@@ -34,37 +35,59 @@ void init_by(vector<size_t>& out, size_t n, Key key_fn) {
      );
 }
 
+int64_t cell_size_by_index(
+     const linden::db::Database& db,
+     Dimension dim,
+     size_t idx)
+{
+     auto const& fixed = db.fixed_insts();
+     if (idx < fixed.size()) {
+          return fixed[idx].get().rect().c()[dim];
+     }
+     idx -= fixed.size();
+     auto const& moveable = db.moveable_insts();
+     if (idx < moveable.size()) {
+          return moveable[idx].get().rect().c()[dim];
+     }
+     idx -= moveable.size();
+     auto const& fillers = db.fillers();
+     FASSERT(idx < fillers.size())
+          (idx)
+          (fillers.size());
+     return fillers[idx].get().rect().c()[dim];
+}
+
 } // namespace
 
 RelevanceDetector::RelevanceDetector(const linden::db::Database& db)
-:    n_(db.cells().size()),
-     from_db_to_ordered_x_(db.cells().size()),
-     from_db_to_ordered_y_(db.cells().size()),
-     bit_(db.cells().size()),
-     buffer_(db.cells().size())
+:    n_(db.total_cells()),
+     from_db_to_ordered_x_(db.total_cells()),
+     from_db_to_ordered_y_(db.total_cells()),
+     bit_(db.total_cells()),
+     buffer_(db.total_cells())
 {
-     init_by(buffer_, n_, [&](size_t i) {return db.cells()[i].rect().cx();});
+     init_by(buffer_, n_, [&](size_t i) {return cell_size_by_index(db, X, i);});
      invert(from_db_to_ordered_x_, buffer_);
 
-     init_by(buffer_, n_, [&](size_t i) {return db.cells()[i].rect().cy();});
+     init_by(buffer_, n_, [&](size_t i) {return cell_size_by_index(db, Y, i);});
      invert(from_db_to_ordered_y_, buffer_);
 }
 
 tuple<double, double> RelevanceDetector::update(const linden::db::Database& db) {
-     if (db.cells().empty()) {
+     if (db.total_cells() == 0) {
           return make_tuple(0, 0);
      }
 
      double res_x = compute(
           from_db_to_ordered_x_,
           buffer_,
-          [&](size_t i) {return db.cells()[i].rect().cx();});
+          [&](size_t i) {return cell_size_by_index(db, X, i);});
      invert(from_db_to_ordered_x_, buffer_);
 
      double res_y = compute(
           from_db_to_ordered_y_,
           buffer_,
-          [&](size_t i) {return db.cells()[i].rect().cy();});
+          [&](size_t i) {return cell_size_by_index(db, Y, i);});
      invert(from_db_to_ordered_y_, buffer_);
 
      return make_tuple(res_x, res_y);

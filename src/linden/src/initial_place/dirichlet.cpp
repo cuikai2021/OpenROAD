@@ -16,16 +16,16 @@ namespace linden::ip::dirichlet {
 namespace {
 
 void sync_cell_positions_to_ldb(linden::db::Database& ldb) {
-    for (auto& cell: ldb.mut_cells()) {
-        odb::dbInst* oinst = reinterpret_cast<odb::dbInst*>(cell.odb_instance());
+    for (auto& x: ldb.mut_moveable_insts()) {
+        auto& cell = x.get();
+        odb::dbInst* oinst = reinterpret_cast<odb::dbInst*>(cell.odb_inst());
         if (oinst == nullptr) {
             continue;
         }
-        if(!cell.movable()) {
-            continue;
-        }
+        FASSERT(cell.moveable())
+            (cell.name());
         linden::geom::Rect shape = inst_located_shape(*oinst);
-        cell.move_to(shape.center());
+        cell.move_to(shape.c());
     }
 }
 

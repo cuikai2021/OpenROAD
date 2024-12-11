@@ -214,78 +214,82 @@ linden::gp::Config {
 [InitialPlace]  Iter: 3 CG residual: 0.00000010 HPWL: 4974780
 [InitialPlace]  Iter: 4 CG residual: 0.00000010 HPWL: 4982232
 [InitialPlace]  Iter: 5 CG residual: 0.00000009 HPWL: 4985753
-[linden/gpl] use_uniform_target_density.
-    uniform target_density: 0.5800334634690463
-    movable_std_insts_area: 2213120000
-    movable_macro_insts_area:0
-    white_space_area:3815504000
-    core_area:3815504000
-    nonplace_insts_area:0
-
+[linden/gpl] statistics.
+    movable_std_insts_area: 2213120000.0
+    movable_macro_insts_area: 0.0
+    white_space_area: 3815504000.0
+    core_area: 3815504000.0
+    nonplace_insts_area: 0.0
+[linden/gpl] use uniform target density: 0.58
+[linden/gpl] filler init:            
+  total area of the fillers: 0.0000            
+  # of the fillers: 0            
+  area of each filler: 7170614.7860            
+  shape of each filler: 2560.9339 x 2800.0000
 [linden/gpl] Number of Cells: 286
 [linden/gpl] Number of Nets: 356
 [linden/gpl] Number of Pins: 1106
 [linden/gpl] enable timing-driven
-[nPlace] Iter: 1 overflow: 0.86461 HPWL: 3527328
-[linden/gpl] worst 10%% slacks 1.39e-09, 1.4e-09
-[linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 10 overflow: 0.767874 HPWL: 4036178
-[nPlace] Iter: 20 overflow: 0.766567 HPWL: 4025081
-[nPlace] Iter: 30 overflow: 0.767346 HPWL: 4022531
-[nPlace] Iter: 40 overflow: 0.767044 HPWL: 4023081
-[nPlace] Iter: 50 overflow: 0.766491 HPWL: 4023119
-[nPlace] Iter: 60 overflow: 0.766372 HPWL: 4023170
-[nPlace] Iter: 70 overflow: 0.766488 HPWL: 4023791
-[nPlace] Iter: 80 overflow: 0.766541 HPWL: 4024448
-[nPlace] Iter: 90 overflow: 0.765858 HPWL: 4025520
-[nPlace] Iter: 100 overflow: 0.765163 HPWL: 4027332
-[nPlace] Iter: 110 overflow: 0.764457 HPWL: 4030237
-[nPlace] Iter: 120 overflow: 0.763201 HPWL: 4035083
-[nPlace] Iter: 130 overflow: 0.761108 HPWL: 4042726
-[nPlace] Iter: 140 overflow: 0.757262 HPWL: 4054691
-[nPlace] Iter: 150 overflow: 0.749835 HPWL: 4072597
-[nPlace] Iter: 160 overflow: 0.740945 HPWL: 4098874
-[nPlace] Iter: 170 overflow: 0.728042 HPWL: 4136602
-[nPlace] Iter: 180 overflow: 0.716979 HPWL: 4178556
-[nPlace] Iter: 190 overflow: 0.70078 HPWL: 4234184
-[nPlace] Iter: 200 overflow: 0.681193 HPWL: 4289186
-[nPlace] Iter: 210 overflow: 0.652032 HPWL: 4372240
+[nPlace] Iter: 1 overflow: 0.849129 HPWL: 3620370
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.42e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 220 overflow: 0.621482 HPWL: 4492650
-[nPlace] Iter: 230 overflow: 0.597717 HPWL: 4576860
-[nPlace] Iter: 240 overflow: 0.571545 HPWL: 4642451
-[nPlace] Iter: 250 overflow: 0.540605 HPWL: 4733879
-[nPlace] Iter: 260 overflow: 0.502263 HPWL: 4802807
+[nPlace] Iter: 10 overflow: 0.759548 HPWL: 4060362
+[nPlace] Iter: 20 overflow: 0.756135 HPWL: 4061686
+[nPlace] Iter: 30 overflow: 0.756148 HPWL: 4058685
+[nPlace] Iter: 40 overflow: 0.755867 HPWL: 4059502
+[nPlace] Iter: 50 overflow: 0.756528 HPWL: 4058824
+[nPlace] Iter: 60 overflow: 0.756469 HPWL: 4058964
+[nPlace] Iter: 70 overflow: 0.755919 HPWL: 4059711
+[nPlace] Iter: 80 overflow: 0.755845 HPWL: 4060210
+[nPlace] Iter: 90 overflow: 0.75575 HPWL: 4061233
+[nPlace] Iter: 100 overflow: 0.755266 HPWL: 4062914
+[nPlace] Iter: 110 overflow: 0.754241 HPWL: 4065914
+[nPlace] Iter: 120 overflow: 0.752797 HPWL: 4070450
+[nPlace] Iter: 130 overflow: 0.750611 HPWL: 4077834
+[nPlace] Iter: 140 overflow: 0.746178 HPWL: 4089639
+[nPlace] Iter: 150 overflow: 0.740776 HPWL: 4107675
+[nPlace] Iter: 160 overflow: 0.733132 HPWL: 4134492
+[nPlace] Iter: 170 overflow: 0.723444 HPWL: 4172513
+[nPlace] Iter: 180 overflow: 0.716494 HPWL: 4199989
+[nPlace] Iter: 190 overflow: 0.687415 HPWL: 4266201
+[nPlace] Iter: 200 overflow: 0.673251 HPWL: 4312543
+[nPlace] Iter: 210 overflow: 0.648599 HPWL: 4390997
+[linden/gpl] worst 10%% slacks 1.39e-09, 1.42e-09
+[linden/gpl] Reweighted 35 nets.
+[nPlace] Iter: 220 overflow: 0.620476 HPWL: 4489853
+[nPlace] Iter: 230 overflow: 0.595933 HPWL: 4578964
+[nPlace] Iter: 240 overflow: 0.569889 HPWL: 4641707
+[nPlace] Iter: 250 overflow: 0.541731 HPWL: 4747551
+[nPlace] Iter: 260 overflow: 0.503356 HPWL: 4798385
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 270 overflow: 0.47683 HPWL: 4795473
-[nPlace] Iter: 280 overflow: 0.454154 HPWL: 4863121
-[nPlace] Iter: 290 overflow: 0.413335 HPWL: 4814135
-[nPlace] Iter: 300 overflow: 0.376075 HPWL: 4901133
-[nPlace] Iter: 310 overflow: 0.349438 HPWL: 4847643
-[nPlace] Iter: 320 overflow: 0.325365 HPWL: 4883331
-[nPlace] Iter: 330 overflow: 0.293145 HPWL: 4930134
+[nPlace] Iter: 270 overflow: 0.482454 HPWL: 4790884
+[nPlace] Iter: 280 overflow: 0.450772 HPWL: 4846353
+[nPlace] Iter: 290 overflow: 0.414976 HPWL: 4829619
+[nPlace] Iter: 300 overflow: 0.389698 HPWL: 4856414
+[nPlace] Iter: 310 overflow: 0.347406 HPWL: 4885687
+[nPlace] Iter: 320 overflow: 0.320424 HPWL: 4904461
+[nPlace] Iter: 330 overflow: 0.301954 HPWL: 4933050
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 340 overflow: 0.275734 HPWL: 4935839
-[nPlace] Iter: 350 overflow: 0.259113 HPWL: 4962154
-[nPlace] Iter: 360 overflow: 0.245732 HPWL: 5036995
-[nPlace] Iter: 370 overflow: 0.228634 HPWL: 5077509
+[nPlace] Iter: 340 overflow: 0.279503 HPWL: 4968605
+[nPlace] Iter: 350 overflow: 0.254742 HPWL: 4982594
+[nPlace] Iter: 360 overflow: 0.234509 HPWL: 4997303
+[nPlace] Iter: 370 overflow: 0.21582 HPWL: 5025438
 [linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 380 overflow: 0.191431 HPWL: 5088344
-[nPlace] Iter: 390 overflow: 0.170153 HPWL: 5076197
-[linden/gpl] worst 10%% slacks 1.39e-09, 1.4e-09
+[nPlace] Iter: 380 overflow: 0.19748 HPWL: 5082180
+[nPlace] Iter: 390 overflow: 0.173927 HPWL: 5085068
+[nPlace] Iter: 400 overflow: 0.15836 HPWL: 5114935
+[linden/gpl] worst 10%% slacks 1.39e-09, 1.41e-09
 [linden/gpl] Reweighted 35 nets.
-[nPlace] Iter: 400 overflow: 0.149093 HPWL: 5120235
-[nPlace] Iter: 410 overflow: 0.133919 HPWL: 5164095
-[nPlace] Iter: 420 overflow: 0.123358 HPWL: 5193012
-[nPlace] Iter: 430 overflow: 0.113712 HPWL: 5250179
-[nPlace] Iter: 440 overflow: 0.103548 HPWL: 5310415
+[nPlace] Iter: 410 overflow: 0.137791 HPWL: 5165973
+[nPlace] Iter: 420 overflow: 0.129539 HPWL: 5200044
+[nPlace] Iter: 430 overflow: 0.116589 HPWL: 5245147
+[nPlace] Iter: 440 overflow: 0.111729 HPWL: 5321008
 {
   "gp": {
-    "iter": 444
+    "iter": 447
   }
 }worst slack 1.37
 No differences found.

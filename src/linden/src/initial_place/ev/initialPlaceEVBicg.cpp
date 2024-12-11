@@ -64,7 +64,7 @@ void InitialPlaceEV::bicgInit(
             auto w_ij = e.value();
             for (auto j : {e.row(), e.col()}) {
                 if (fixed.count(j)) {
-                    auto f_j = placeable_insts_[j]->rect().c(dim);
+                    auto f_j = placeable_insts_[j]->rect().c()[dim];
                     auto i = j == e.row() ? e.col() : e.row();
                     if (!fixed.count(i)) {
                         i = idSolver.old2new(i);
@@ -80,7 +80,7 @@ void InitialPlaceEV::bicgInit(
         auto& instLocs = aInstLocs[dim];
         instLocs.resize(N);
         for (size_t id = 0; id < N; ++id) {
-            instLocs(id) = placeable_insts_[idSolver.new2old(id)]->rect().c(dim);
+            instLocs(id) = placeable_insts_[idSolver.new2old(id)]->rect().c()[dim];
         }
     }
 }
@@ -129,14 +129,14 @@ void InitialPlaceEV::adsorbInsts(std::set<size_t>& fixedInstIDs)
         bool operator()(const linden::db::Cell* inst0, const linden::db::Cell* inst1)
         {
             const DIMENSION d0 = d0_;
-            const DIMENSION d1 = (DIMENSION) ((d0_ + 1) % 2);
-            if (ne(inst0->rect().c(d0), inst1->rect().c(d0))) {
-                return inst0->rect().c(d0) < inst1->rect().c(d0);
+            const DIMENSION d1 = static_cast<DIMENSION>(1 - d0_);
+            if (ne(inst0->rect().c()[d0], inst1->rect().c()[d0])) {
+                return inst0->rect().c()[d0] < inst1->rect().c()[d0];
             } else {
                 if (reverse_order_on_d1_) {
-                    return inst0->rect().c(d1) > inst1->rect().c(d1);
+                    return inst0->rect().c()[d1] > inst1->rect().c()[d1];
                 } else {
-                    return inst0->rect().c(d1) < inst1->rect().c(d1);
+                    return inst0->rect().c()[d1] < inst1->rect().c()[d1];
                 }
             }
         }
@@ -156,15 +156,15 @@ void InitialPlaceEV::adsorbInsts(std::set<size_t>& fixedInstIDs)
             auto& res = rect[d0][reverse_order_on_d1];
             res.push_back(insts[0]);
             for (size_t i = 1; i < insts.size(); ++i) {
-                if (InstCmp::ne(insts[i]->rect().c(d0), insts[i - 1]->rect().c(d0))) {
+                if (InstCmp::ne(insts[i]->rect().c()[d0], insts[i - 1]->rect().c()[d0])) {
                     res.push_back(insts[i]);
                 }
             }
 
             const DIMENSION d1 = (DIMENSION) ((d0 + 1) % 2);
-            int minmax = insts[0]->rect().c(d1);
+            int minmax = insts[0]->rect().c()[d1];
             for (auto inst : res) {
-                auto v = inst->rect().c(d1);
+                auto v = inst->rect().c()[d1];
                 if (reverse_order_on_d1) {
                     if (v > minmax) {
                         minmax = v;
@@ -177,8 +177,8 @@ void InitialPlaceEV::adsorbInsts(std::set<size_t>& fixedInstIDs)
             }
 
             for (auto inst : res) {
-                auto cx = d1 == X ? minmax : inst->rect().c(X);
-                auto cy = d1 == Y ? minmax : inst->rect().c(Y);
+                auto cx = d1 == X ? minmax : inst->rect().cx();
+                auto cy = d1 == Y ? minmax : inst->rect().cy();
                 inst->move_to(linden::geom::Point(cx, cy));
             }
         }

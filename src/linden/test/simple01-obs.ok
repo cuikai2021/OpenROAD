@@ -28,100 +28,73 @@ linden::gp::Config {
 [INFO GPL-0019] Util:                    77.496 %
 [INFO GPL-0020] StdInstsArea:           569.772 um^2
 [INFO GPL-0021] MacroInstsArea:           0.000 um^2
-[InitialPlace]  Iter: 1 CG residual: 0.00000009 HPWL: 5668660
-[InitialPlace]  Iter: 2 CG residual: 0.00000004 HPWL: 5048725
-[InitialPlace]  Iter: 3 CG residual: 0.00000002 HPWL: 5034377
-[InitialPlace]  Iter: 4 CG residual: 0.00000007 HPWL: 5036666
-[InitialPlace]  Iter: 5 CG residual: 0.00000008 HPWL: 5036282
-[linden/gpl] Use a higher -density or re-floorplan with a larger core area.
-    Given target density: 0.80
-    Suggested target density: 0.90
-Fallback to run with uniform density: 0.9049429657794676
-[linden/gpl] use_uniform_target_density.
-    uniform target_density: 0.9049429657794676
-    movable_std_insts_area: 2279088000
-    movable_macro_insts_area:0
-    white_space_area:2518488000
-    core_area:3815504000
-    nonplace_insts_area:1297016000
-
-[linden/gpl] Number of Cells: 317
+[InitialPlace]  Iter: 1 CG residual: 0.00000010 HPWL: 7807585
+[InitialPlace]  Iter: 2 CG residual: 0.00000009 HPWL: 5048719
+[InitialPlace]  Iter: 3 CG residual: 0.00000004 HPWL: 5034384
+[InitialPlace]  Iter: 4 CG residual: 0.00000005 HPWL: 5036661
+[InitialPlace]  Iter: 5 CG residual: 0.00000005 HPWL: 5036280
+[linden/gpl] statistics.
+    movable_std_insts_area: 2279088000.0
+    movable_macro_insts_area: 0.0
+    white_space_area: 2941428000.0
+    core_area: 3815504000.0
+    nonplace_insts_area: 874076000.0
+[linden/gpl] filler init:            
+  total area of the fillers: 92568042.4513            
+  # of the fillers: 12            
+  area of each filler: 7203079.2453            
+  shape of each filler: 2572.5283 x 2800.0000
+[linden/gpl] Number of Cells: 329
 [linden/gpl] Number of Nets: 364
 [linden/gpl] Number of Pins: 1122
-[nPlace] Iter: 1 overflow: 0.858333 HPWL: 3647815
-[nPlace] Iter: 10 overflow: 0.790191 HPWL: 4230505
-[nPlace] Iter: 20 overflow: 0.790694 HPWL: 4217967
-[nPlace] Iter: 30 overflow: 0.79032 HPWL: 4219927
-[nPlace] Iter: 40 overflow: 0.790467 HPWL: 4220189
-[nPlace] Iter: 50 overflow: 0.790665 HPWL: 4219763
-[nPlace] Iter: 60 overflow: 0.790508 HPWL: 4220791
-[nPlace] Iter: 70 overflow: 0.790372 HPWL: 4221515
-[nPlace] Iter: 80 overflow: 0.790343 HPWL: 4222633
-[nPlace] Iter: 90 overflow: 0.790218 HPWL: 4224506
-[nPlace] Iter: 100 overflow: 0.789752 HPWL: 4227769
-[nPlace] Iter: 110 overflow: 0.788786 HPWL: 4232987
-[nPlace] Iter: 120 overflow: 0.787442 HPWL: 4241271
-[nPlace] Iter: 130 overflow: 0.785075 HPWL: 4254506
-[nPlace] Iter: 140 overflow: 0.781802 HPWL: 4275267
-[nPlace] Iter: 150 overflow: 0.775112 HPWL: 4306044
-[nPlace] Iter: 160 overflow: 0.764199 HPWL: 4351331
-[nPlace] Iter: 170 overflow: 0.750566 HPWL: 4418101
-[nPlace] Iter: 180 overflow: 0.736278 HPWL: 4482981
-[nPlace] Iter: 190 overflow: 0.707855 HPWL: 4550988
-[nPlace] Iter: 200 overflow: 0.676943 HPWL: 4642319
-[nPlace] Iter: 210 overflow: 0.655149 HPWL: 4722159
-[nPlace] Iter: 220 overflow: 0.632711 HPWL: 4828351
-[nPlace] Iter: 230 overflow: 0.600679 HPWL: 4954418
-[nPlace] Iter: 240 overflow: 0.566752 HPWL: 5089471
-[nPlace] Iter: 250 overflow: 0.53896 HPWL: 5152802
-[nPlace] Iter: 260 overflow: 0.506881 HPWL: 5218449
-[nPlace] Iter: 270 overflow: 0.473558 HPWL: 5192625
-[nPlace] Iter: 280 overflow: 0.44464 HPWL: 5226979
-[nPlace] Iter: 290 overflow: 0.416933 HPWL: 5337105
-[nPlace] Iter: 300 overflow: 0.380346 HPWL: 5307792
-[nPlace] Iter: 310 overflow: 0.351935 HPWL: 5349534
-[nPlace] Iter: 320 overflow: 0.324781 HPWL: 5390547
-[nPlace] Iter: 330 overflow: 0.310073 HPWL: 5408177
-[nPlace] Iter: 340 overflow: 0.286868 HPWL: 5447097
-[nPlace] Iter: 350 overflow: 0.266846 HPWL: 5527254
-[nPlace] Iter: 360 overflow: 0.246087 HPWL: 5579364
-[nPlace] Iter: 370 overflow: 0.227764 HPWL: 5595323
-[nPlace] Iter: 380 overflow: 0.221048 HPWL: 5620256
-[nPlace] Iter: 390 overflow: 0.196088 HPWL: 5668075
-[nPlace] Iter: 400 overflow: 0.182652 HPWL: 5691030
-[nPlace] Iter: 410 overflow: 0.175159 HPWL: 5742537
-[nPlace] Iter: 420 overflow: 0.165764 HPWL: 5764438
-[nPlace] Iter: 430 overflow: 0.168403 HPWL: 5790567
-[nPlace] Iter: 440 overflow: 0.164528 HPWL: 5856008
-[nPlace] Iter: 450 overflow: 0.165604 HPWL: 5879859
-[nPlace] Iter: 460 overflow: 0.163844 HPWL: 5910591
-[nPlace] Iter: 470 overflow: 0.165789 HPWL: 5948444
-[nPlace] Iter: 480 overflow: 0.16658 HPWL: 5982541
-[nPlace] Iter: 490 overflow: 0.16336 HPWL: 6005395
-[nPlace] Iter: 500 overflow: 0.163422 HPWL: 6029243
-[nPlace] Iter: 510 overflow: 0.16444 HPWL: 6054062
-[nPlace] Iter: 520 overflow: 0.167864 HPWL: 6086403
-[nPlace] Iter: 530 overflow: 0.169629 HPWL: 6121585
-[nPlace] Iter: 540 overflow: 0.167825 HPWL: 6155849
-[nPlace] Iter: 550 overflow: 0.165343 HPWL: 6190162
-[nPlace] Iter: 560 overflow: 0.167212 HPWL: 6212637
-[nPlace] Iter: 570 overflow: 0.169277 HPWL: 6223345
-[nPlace] Iter: 580 overflow: 0.169815 HPWL: 6224710
-[nPlace] Iter: 590 overflow: 0.17061 HPWL: 6226932
-[nPlace] Iter: 600 overflow: 0.1713 HPWL: 6237249
-[nPlace] Iter: 610 overflow: 0.170852 HPWL: 6243391
-[nPlace] Iter: 620 overflow: 0.169716 HPWL: 6252658
-[nPlace] Iter: 630 overflow: 0.169883 HPWL: 6256585
-[nPlace] Iter: 640 overflow: 0.168863 HPWL: 6260940
-[nPlace] Iter: 650 overflow: 0.169394 HPWL: 6267653
-[nPlace] Iter: 660 overflow: 0.170428 HPWL: 6275136
-[nPlace] Iter: 670 overflow: 0.170078 HPWL: 6285728
-[nPlace] Iter: 680 overflow: 0.181591 HPWL: 6293181
-[nPlace] Iter: 690 overflow: 0.186528 HPWL: 6359613
-[nPlace] Iter: 700 overflow: 0.194719 HPWL: 6713847
-[nPlace] code=307 message=Linden::nPlace divergence detected.
+[nPlace] Iter: 1 overflow: 0.847324 HPWL: 3734274
+[nPlace] Iter: 10 overflow: 0.776644 HPWL: 4229440
+[nPlace] Iter: 20 overflow: 0.779099 HPWL: 4217871
+[nPlace] Iter: 30 overflow: 0.778871 HPWL: 4219968
+[nPlace] Iter: 40 overflow: 0.778993 HPWL: 4220123
+[nPlace] Iter: 50 overflow: 0.779262 HPWL: 4219670
+[nPlace] Iter: 60 overflow: 0.779075 HPWL: 4220509
+[nPlace] Iter: 70 overflow: 0.778847 HPWL: 4221283
+[nPlace] Iter: 80 overflow: 0.778797 HPWL: 4222255
+[nPlace] Iter: 90 overflow: 0.778628 HPWL: 4223913
+[nPlace] Iter: 100 overflow: 0.778029 HPWL: 4226756
+[nPlace] Iter: 110 overflow: 0.776801 HPWL: 4231443
+[nPlace] Iter: 120 overflow: 0.775436 HPWL: 4238905
+[nPlace] Iter: 130 overflow: 0.772591 HPWL: 4250780
+[nPlace] Iter: 140 overflow: 0.767433 HPWL: 4268988
+[nPlace] Iter: 150 overflow: 0.761969 HPWL: 4296593
+[nPlace] Iter: 160 overflow: 0.751138 HPWL: 4335814
+[nPlace] Iter: 170 overflow: 0.743542 HPWL: 4365209
+[nPlace] Iter: 180 overflow: 0.721293 HPWL: 4445569
+[nPlace] Iter: 190 overflow: 0.710094 HPWL: 4502616
+[nPlace] Iter: 200 overflow: 0.677561 HPWL: 4577911
+[nPlace] Iter: 210 overflow: 0.649449 HPWL: 4667257
+[nPlace] Iter: 220 overflow: 0.623909 HPWL: 4757346
+[nPlace] Iter: 230 overflow: 0.597043 HPWL: 4850618
+[nPlace] Iter: 240 overflow: 0.568925 HPWL: 5001846
+[nPlace] Iter: 250 overflow: 0.533795 HPWL: 5076068
+[nPlace] Iter: 260 overflow: 0.506542 HPWL: 5099085
+[nPlace] Iter: 270 overflow: 0.473073 HPWL: 5080500
+[nPlace] Iter: 280 overflow: 0.430617 HPWL: 5134076
+[nPlace] Iter: 290 overflow: 0.402904 HPWL: 5196706
+[nPlace] Iter: 300 overflow: 0.37351 HPWL: 5224232
+[nPlace] Iter: 310 overflow: 0.336746 HPWL: 5229416
+[nPlace] Iter: 320 overflow: 0.311901 HPWL: 5224961
+[nPlace] Iter: 330 overflow: 0.292966 HPWL: 5263252
+[nPlace] Iter: 340 overflow: 0.274531 HPWL: 5337495
+[nPlace] Iter: 350 overflow: 0.251511 HPWL: 5373658
+[nPlace] Iter: 360 overflow: 0.231725 HPWL: 5397986
+[nPlace] Iter: 370 overflow: 0.206576 HPWL: 5440095
+[nPlace] Iter: 380 overflow: 0.188226 HPWL: 5465182
+[nPlace] Iter: 390 overflow: 0.167201 HPWL: 5499060
+[nPlace] Iter: 400 overflow: 0.1498 HPWL: 5498832
+[nPlace] Iter: 410 overflow: 0.135209 HPWL: 5531062
+[nPlace] Iter: 420 overflow: 0.118746 HPWL: 5583457
+[nPlace] Iter: 430 overflow: 0.111985 HPWL: 5618413
+[nPlace] Iter: 440 overflow: 0.104881 HPWL: 5672490
+[nPlace] Iter: 450 overflow: 0.101068 HPWL: 5719857
 {
   "gp": {
-    "iter": 709
+    "iter": 451
   }
 }No differences found.

@@ -194,7 +194,8 @@ bool update_net_weights(
 
     size_t reweight_net_cnt = 0;
     const double NET_WEIGHT_SCALE = 0.9;
-    for(auto& l_net: ldb.mut_nets()) {
+    for(auto& x: ldb.mut_nets()) {
+        auto& l_net = x.get();
         odb::dbNet* o_net = reinterpret_cast<odb::dbNet*>(l_net.odb_net());
         double weight = 1.0;
         if (l_net.pins().size() > 1) {
@@ -522,19 +523,18 @@ void random_place() noexcept {
     }
 
     const auto& core = ldb->core_region();
-    auto lx = core.lx();
-    auto ly = core.ly();
-    auto ux = core.ux();
-    auto uy = core.uy();
+    auto lx = core.ll().x();
+    auto ly = core.ll().y();
+    auto ux = core.ur().x();
+    auto uy = core.ur().y();
     mt19937_64 rng(0);
     uniform_int_distribution<int64_t> x_rng(lx, ux);
     uniform_int_distribution<int64_t> y_rng(ly, uy);
-    for (auto& cell: ldb->mut_cells()) {
-        if (cell.is_instance() && cell.movable() && !cell.macro()) {
-            int64_t x = x_rng(rng);
-            int64_t y = y_rng(rng);
-            cell.move_to(linden::geom::Point {x, y});
-        }
+    for (auto& c: ldb->mut_moveable_insts()) {
+        auto& cell = c.get();
+        int64_t x = x_rng(rng);
+        int64_t y = y_rng(rng);
+        cell.move_to(linden::geom::Point {x, y});
     }
 
     refresh_locations_from_ldb(*ldb);
