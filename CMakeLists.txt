@@ -175,6 +175,21 @@ target_compile_definitions(ord PRIVATE BUILD_PYTHON)
 target_compile_definitions(ord PRIVATE BUILD_GUI)
 target_compile_definitions(ord PRIVATE ENABLE_CHARTS)
 
+if(NOT BUILD_TIME)
+  string(TIMESTAMP BUILD_TIME "%Y-%m-%d %H:%M:%S")
+  message(STATUS "Build time: ${BUILD_TIME}")
+  target_compile_definitions(ord PRIVATE BUILD_TIME="${BUILD_TIME}")
+  target_compile_definitions(eden PRIVATE BUILD_TIME="${BUILD_TIME}")
+endif()
+
+if (TRIAL_PERIOD_DAYS)
+  target_compile_definitions(ord PRIVATE TRIAL_PERIOD_DAYS="${TRIAL_PERIOD_DAYS}")
+  target_compile_definitions(eden PRIVATE TRIAL_PERIOD_DAYS="${TRIAL_PERIOD_DAYS}")
+  message(STATUS "Trial period check is enabled, trial period days ${TRIAL_PERIOD_DAYS}")
+else()
+  message(STATUS "Trial period check is disabled.")
+endif()
+
 ####################################################################
 
 # Build man pages (Optional)

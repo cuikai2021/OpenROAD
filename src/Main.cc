@@ -122,6 +122,7 @@ static const char* init_filename = ".openroad";
 
 static void showUsage(const char* prog, const char* init_filename);
 static void showSplash();
+static void checkTrialExpired(int trialPeriodDays);
 
 #ifdef ENABLE_PYTHON3
 namespace sta {
@@ -269,6 +270,9 @@ int main(int argc, char* argv[])
     auto* interp = Tcl_CreateInterp();
     Tcl_Init(interp);
     ord::initOpenRoad(interp);
+#ifdef TRIAL_PERIOD_DAYS
+    checkTrialExpired(std::stoi(TRIAL_PERIOD_DAYS));
+#endif
     if (!findCmdLineFlag(cmd_argc, cmd_argv, "-no_splash")) {
       showSplash();
     }
@@ -376,6 +380,9 @@ static int tclAppInit(int& argc,
 #endif
 
     ord::initOpenRoad(interp);
+#ifdef TRIAL_PERIOD_DAYS
+    checkTrialExpired(std::stoi(TRIAL_PERIOD_DAYS));
+#endif
 
     if (!findCmdLineFlag(argc, argv, "-no_splash")) {
       showSplash();
@@ -490,9 +497,7 @@ static void showUsage(const char* prog, const char* init_filename)
 static void showSplash()
 {
   utl::Logger* logger = ord::OpenRoad::openRoad()->getLogger();
-  logger->report("OpenROAD {} {}",
-                 ord::OpenRoad::getVersion(),
-                 ord::OpenRoad::getGitDescribe());
+  logger->report("Eden Build Time {}", ord::OpenRoad::getBuildTime());
   logger->report(
       "Features included (+) or not (-): "
       "{}Charts {}GPU {}GUI {}Python{}",
@@ -511,4 +516,28 @@ static void showSplash()
   logger->report(
       "Components of this program may be licensed under more restrictive "
       "licenses which must be honored.");
+}
+
+static void checkTrialExpired(int trialPeriodDays) {
+  std::tm buildTime = {};
+  std::istringstream ss(ord::OpenRoad::getBuildTime());
+  ss >> std::get_time(&buildTime, "%Y-%m-%d %H:%M:%S");
+  if (ss.fail()) {
+    return;
+  }
+
+  std::time_t buildTimestamp = std::mktime(&buildTime);
+  std::time_t now = std::time(nullptr);
+  double secondsSinceBuild = std::difftime(now, buildTimestamp);
+  int daysSinceBuild = static_cast<int>(secondsSinceBuild / (60 * 60 * 24));
+
+  utl::Logger *logger = ord::OpenRoad::openRoad()->getLogger();
+  if (daysSinceBuild > trialPeriodDays) {
+    logger->warn(utl::ORD, 55, "Trial period expired. Exiting...");
+    exit(1);
+  } else {
+    logger->info(utl::ORD, 56, "Trial period: {} days, Remaining days: {}",
+                 trialPeriodDays, trialPeriodDays - daysSinceBuild);
+  }
+
 }

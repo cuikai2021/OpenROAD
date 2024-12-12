@@ -647,6 +647,11 @@ const char* OpenRoad::getGitDescribe()
   return EDEN_GIT_DESCRIBE;
 }
 
+const char* OpenRoad::getBuildTime()
+{
+  return BUILD_TIME;
+}
+
 bool OpenRoad::getGPUCompileOption()
 {
   return GPU;

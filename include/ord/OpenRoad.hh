@@ -265,6 +265,7 @@ class OpenRoad
 
   static const char* getVersion();
   static const char* getGitDescribe();
+  static const char* getBuildTime();
 
   static bool getGPUCompileOption();
   static bool getPythonCompileOption();
