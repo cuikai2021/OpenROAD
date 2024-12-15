@@ -510,12 +510,6 @@ static void showSplash()
           : fmt::format(" : {}", BUILD_TYPE));
   string sha = ord::OpenRoad::getGitDescribe();
   logger->report("EDEN {} {}", ord::OpenRoad::getVersion(), sha.c_str());
-  logger->report(
-      "This program is licensed under the BSD-3 license. See the LICENSE file "
-      "for details.");
-  logger->report(
-      "Components of this program may be licensed under more restrictive "
-      "licenses which must be honored.");
 }
 
 static void checkTrialExpired(int trialPeriodDays) {
