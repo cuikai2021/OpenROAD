@@ -46,7 +46,6 @@
 #include "db_sta/dbReadVerilog.hh"
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
-
 #include <vector>
 
 ////////////////////////////////////////////////////////////////
@@ -184,7 +183,7 @@ getGlobalRouter()
   return openroad->getGlobalRouter();
 }
 
-tap::Tapcell* 
+tap::Tapcell*
 getTapcell()
 {
   OpenRoad *openroad = getOpenRoad();
@@ -314,19 +313,7 @@ using odb::dbTech;
 
 %inline %{
 
-const char *
-eden_version()
-{
-  return ord::OpenRoad::getVersion();
-}
-
-const char *
-eden_git_describe()
-{
-  return ord::OpenRoad::getGitDescribe();
-}
-
-const bool 
+const bool
 openroad_gpu_compiled()
 {
   return ord::OpenRoad::getGUICompileOption();
@@ -416,7 +403,7 @@ write_abstract_lef_cmd(const char *filename,
 }
 
 
-void 
+void
 write_cdl_cmd(const char *outFilename,
               vector<const char*>* mastersFilenames,
               bool includeFillers)
@@ -573,7 +560,7 @@ db_layer_has_tracks(odb::dbTechLayer* layer, bool hor)
   if (!layer) {
     return false;
   }
-    
+
   dbDatabase *db = OpenRoad::openRoad()->getDb();
   dbBlock *block = db->getChip()->getBlock();
 
@@ -583,9 +570,9 @@ db_layer_has_tracks(odb::dbTechLayer* layer, bool hor)
   }
 
   if (hor) {
-    return trackGrid->getNumGridPatternsY() > 0; 
+    return trackGrid->getNumGridPatternsY() > 0;
   } else {
-    return trackGrid->getNumGridPatternsX() > 0; 
+    return trackGrid->getNumGridPatternsX() > 0;
   }
 }
 

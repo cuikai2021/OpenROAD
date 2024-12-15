@@ -65,6 +65,7 @@ target_link_libraries(rcx_lib
   PUBLIC
     odb
     utl
+    build_info
 )
 
 swig_lib(NAME      rcx

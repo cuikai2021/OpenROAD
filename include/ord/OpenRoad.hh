@@ -263,10 +263,6 @@ class OpenRoad
   void addObserver(OpenRoadObserver* observer);
   void removeObserver(OpenRoadObserver* observer);
 
-  static const char* getVersion();
-  static const char* getGitDescribe();
-  static const char* getBuildTime();
-
   static bool getGPUCompileOption();
   static bool getPythonCompileOption();
   static bool getGUICompileOption();

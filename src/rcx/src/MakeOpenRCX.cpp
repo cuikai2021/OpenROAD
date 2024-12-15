@@ -36,6 +36,7 @@
 #include "ord/OpenRoad.hh"
 #include "rcx/ext.h"
 #include "sta/StaMain.hh"
+#include "build_info.hpp"
 
 namespace sta {
 // Tcl files encoded into strings.
@@ -64,7 +65,7 @@ void initOpenRCX(OpenRoad* openroad)
 {
   openroad->getOpenRCX()->init(openroad->getDb(),
                                openroad->getLogger(),
-                               ord::OpenRoad::getVersion(),
+                               EDEN_COMMIT_ID,
                                [openroad] {
                                  rcx::Rcx_Init(openroad->tclInterp());
                                  sta::evalTclInit(openroad->tclInterp(),

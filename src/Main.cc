@@ -70,6 +70,8 @@
 #include "sta/StaMain.hh"
 #include "sta/StringUtil.hh"
 #include "utl/Logger.h"
+#include "build_info.hpp"
+#include "license.hpp"
 
 using sta::findCmdLineFlag;
 using sta::findCmdLineKey;
@@ -122,7 +124,6 @@ static const char* init_filename = ".openroad";
 
 static void showUsage(const char* prog, const char* init_filename);
 static void showSplash();
-static void checkTrialExpired(int trialPeriodDays);
 
 #ifdef ENABLE_PYTHON3
 namespace sta {
@@ -246,9 +247,7 @@ int main(int argc, char* argv[])
     return 0;
   }
   if (argc == 2 && stringEq(argv[1], "-version")) {
-    printf("%s %s\n",
-           ord::OpenRoad::getVersion(),
-           ord::OpenRoad::getGitDescribe());
+    printf("%s\n", EDEN_COMMIT_ID);
     return 0;
   }
 
@@ -270,12 +269,10 @@ int main(int argc, char* argv[])
     auto* interp = Tcl_CreateInterp();
     Tcl_Init(interp);
     ord::initOpenRoad(interp);
-#ifdef TRIAL_PERIOD_DAYS
-    checkTrialExpired(std::stoi(TRIAL_PERIOD_DAYS));
-#endif
     if (!findCmdLineFlag(cmd_argc, cmd_argv, "-no_splash")) {
       showSplash();
     }
+    eden::check_license();
 
     utl::Logger* logger = ord::OpenRoad::openRoad()->getLogger();
     if (findCmdLineFlag(cmd_argc, cmd_argv, "-gui")) {
@@ -380,13 +377,11 @@ static int tclAppInit(int& argc,
 #endif
 
     ord::initOpenRoad(interp);
-#ifdef TRIAL_PERIOD_DAYS
-    checkTrialExpired(std::stoi(TRIAL_PERIOD_DAYS));
-#endif
 
     if (!findCmdLineFlag(argc, argv, "-no_splash")) {
       showSplash();
     }
+    eden::check_license();
 
     const char* threads = findCmdLineKey(argc, argv, "-threads");
     if (threads) {
@@ -497,7 +492,7 @@ static void showUsage(const char* prog, const char* init_filename)
 static void showSplash()
 {
   utl::Logger* logger = ord::OpenRoad::openRoad()->getLogger();
-  logger->report("Eden Build Time {}", ord::OpenRoad::getBuildTime());
+  logger->report("EDEN {}, built at {}", EDEN_COMMIT_ID, EDEN_BUILD_TIME);
   logger->report(
       "Features included (+) or not (-): "
       "{}Charts {}GPU {}GUI {}Python{}",
@@ -508,30 +503,4 @@ static void showSplash()
       strcasecmp(BUILD_TYPE, "release") == 0
           ? ""
           : fmt::format(" : {}", BUILD_TYPE));
-  string sha = ord::OpenRoad::getGitDescribe();
-  logger->report("EDEN {} {}", ord::OpenRoad::getVersion(), sha.c_str());
-}
-
-static void checkTrialExpired(int trialPeriodDays) {
-  std::tm buildTime = {};
-  std::istringstream ss(ord::OpenRoad::getBuildTime());
-  ss >> std::get_time(&buildTime, "%Y-%m-%d %H:%M:%S");
-  if (ss.fail()) {
-    return;
-  }
-
-  std::time_t buildTimestamp = std::mktime(&buildTime);
-  std::time_t now = std::time(nullptr);
-  double secondsSinceBuild = std::difftime(now, buildTimestamp);
-  int daysSinceBuild = static_cast<int>(secondsSinceBuild / (60 * 60 * 24));
-
-  utl::Logger *logger = ord::OpenRoad::openRoad()->getLogger();
-  if (daysSinceBuild > trialPeriodDays) {
-    logger->warn(utl::ORD, 55, "Trial period expired. Exiting...");
-    exit(1);
-  } else {
-    logger->info(utl::ORD, 56, "Trial period: {} days, Remaining days: {}",
-                 trialPeriodDays, trialPeriodDays - daysSinceBuild);
-  }
-
 }

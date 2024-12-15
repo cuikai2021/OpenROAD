@@ -16,13 +16,9 @@ TAGS
 \#*#
 .~lock.*#
 .DS_Store
-.cache
 Makefile
-__pycache__
 
-include/ord/Version.hh
-
-build*
+/build*
 test/results
 flow
 
@@ -31,17 +27,16 @@ messages.txt
 Messages.md
 MessagesFinal.md
 
-.idea/
-cmake-build-debug/
-debug/
+/.idea/
+/cmake-build-debug/
+/debug/
 
 coverage-output
 
 devops_results
 
 utest/*/test/results
-messages.txt
-.cache
+/.cache/
 __pycache__
 
 /.devcontainer/

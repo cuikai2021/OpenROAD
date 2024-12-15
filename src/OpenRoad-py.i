@@ -49,16 +49,10 @@ using odb::dbBlock;
 using odb::dbTech;
 
 // Defined by OpenRoad.i inlines
-const char *
-eden_version();
-
-const char *
-eden_git_describe();
-
 const bool
 openroad_gpu_compiled();
 
-const bool 
+const bool
 openroad_python_compiled();
 
 const bool
@@ -88,12 +82,6 @@ get_db_block();
 %include "ord/Timing.h"
 
 %newobject Design::getFloorplan();
-
-const char *
-eden_version();
-
-const char *
-eden_git_describe();
 
 odb::dbDatabase *
 get_db();

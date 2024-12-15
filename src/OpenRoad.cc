@@ -39,7 +39,6 @@
 #include <iostream>
 #include <thread>
 
-#include "ord/Version.hh"
 #ifdef ENABLE_PYTHON3
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"
@@ -88,6 +87,7 @@
 #include "lrl/MakeLaurel.hh"
 #include "banyan/MakeBanyan.h"
 #include "linden/make_linden.hpp"
+#include "build_info/make_build_info.hpp"
 
 namespace sta {
 extern const char* openroad_swig_tcl_inits[];
@@ -251,6 +251,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initScanChain(this);
   initLaurel(this);
   linden::init(this);
+  eden::init_build_info(tcl_interp);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");
@@ -635,21 +636,6 @@ void OpenRoad::setThreadCount(const char* threads, bool printInfo)
 int OpenRoad::getThreadCount()
 {
   return threads_;
-}
-
-const char* OpenRoad::getVersion()
-{
-  return EDEN_VERSION;
-}
-
-const char* OpenRoad::getGitDescribe()
-{
-  return EDEN_GIT_DESCRIBE;
-}
-
-const char* OpenRoad::getBuildTime()
-{
-  return BUILD_TIME;
 }
 
 bool OpenRoad::getGPUCompileOption()

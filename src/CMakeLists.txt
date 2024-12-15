@@ -292,6 +292,7 @@ endif()
 ################################################################
 
 # Build flow tools
+add_subdirectory(build_info)
 add_subdirectory(ifp)
 add_subdirectory(pad)
 add_subdirectory(odb)
@@ -376,8 +377,6 @@ set_target_properties(ord PROPERTIES
   # Export symbols for stack trace printing
   ENABLE_EXPORTS ON
 )
-target_compile_features(eden PUBLIC cxx_std_17)
-target_compile_features(ord PUBLIC cxx_std_17)
 
 target_include_directories(eden
   PUBLIC
@@ -435,6 +434,7 @@ target_link_libraries(ord
   Laurel
   Banyan
   linden
+  build_info_swig
 )
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

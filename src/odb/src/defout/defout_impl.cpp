@@ -46,7 +46,6 @@
 #include "odb/db.h"
 #include "odb/dbMap.h"
 #include "odb/dbWireCodec.h"
-#include "ord/Version.hh"
 #include "utl/Logger.h"
 
 namespace odb {
@@ -231,7 +230,7 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
     int y1 = defdist(r.yMin());
     int x2 = defdist(r.xMax());
     int y2 = defdist(r.yMax());
-  
+
     if ((x1 != 0) || (y1 != 0) || (x2 != 0) || (y2 != 0)) {
       fprintf(_out, "DIEAREA ( %d %d ) ( %d %d ) ;\n", x1, y1, x2, y2);
     }
@@ -2382,7 +2381,7 @@ void defout_impl::writeScanChains(dbBlock* block) {
      }
      //stop
      dbITerm* stop  = sc->getStop();
-     if (stop) 
+     if (stop)
        fprintf(_out, "+ STOP %s %s ;\n\n", stop->getInst()->getName().c_str(), stop->getMTerm()->getName().c_str());
      else {
        dbBTerm* bterm = sc->getBTermStop();

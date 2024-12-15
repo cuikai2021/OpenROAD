@@ -76,7 +76,10 @@ option(USE_LINDEN_DEBUG_LIBS "Ready to link debug-level linden libs" OFF)
 
 option(ENABLE_GCOV "Enable support of gcov" OFF)
 option(ENABLE_LIBASAN "Enable address sanitizer" OFF)
-
+option(TRIAL_PERIOD_DAYS "Trial period in days. 0 means unlimited" "0")
+if(${TRIAL_PERIOD_DAYS} STREQUAL OFF)
+  set(TRIAL_PERIOD_DAYS 0)
+endif()
 
 project(OpenROAD VERSION 1
   LANGUAGES CXX
@@ -104,6 +107,19 @@ if(NOT EDEN_VERSION)
 endif()
 
 message(STATUS "Eden version: ${EDEN_VERSION}")
+
+
+if(NOT BUILD_TIME)
+  string(TIMESTAMP BUILD_TIME UTC)
+  string(TIMESTAMP BUILD_TIME_SECS "%s" UTC)
+  message(STATUS "Build time: ${BUILD_TIME} ${BUILD_TIME_SECS}")
+endif()
+
+if (${TRIAL_PERIOD_DAYS} GREATER 0)
+  message(STATUS "Trial period check is enabled, trial period days ${TRIAL_PERIOD_DAYS}")
+else()
+  message(STATUS "Trial period check is disabled.")
+endif()
 
 # Default to bulding optimnized/release executable.
 if(NOT CMAKE_BUILD_TYPE)
@@ -135,12 +151,6 @@ message(STATUS "C++ Standard Required: ${CMAKE_CXX_STANDARD_REQUIRED}")
 message(STATUS "C++ Extensions: ${CMAKE_CXX_EXTENSIONS}")
 
 include(CompileProtobuf)
-
-# configure a header file to pass some of the CMake settings
-configure_file(
-  ${OPENROAD_HOME}/include/ord/Version.hh.cmake
-  ${OPENROAD_HOME}/include/ord/Version.hh
-  )
 
 
 ################################################################
@@ -174,21 +184,6 @@ target_compile_definitions(ord PRIVATE GPU)
 target_compile_definitions(ord PRIVATE BUILD_PYTHON)
 target_compile_definitions(ord PRIVATE BUILD_GUI)
 target_compile_definitions(ord PRIVATE ENABLE_CHARTS)
-
-if(NOT BUILD_TIME)
-  string(TIMESTAMP BUILD_TIME "%Y-%m-%d %H:%M:%S")
-  message(STATUS "Build time: ${BUILD_TIME}")
-  target_compile_definitions(ord PRIVATE BUILD_TIME="${BUILD_TIME}")
-  target_compile_definitions(eden PRIVATE BUILD_TIME="${BUILD_TIME}")
-endif()
-
-if (TRIAL_PERIOD_DAYS)
-  target_compile_definitions(ord PRIVATE TRIAL_PERIOD_DAYS="${TRIAL_PERIOD_DAYS}")
-  target_compile_definitions(eden PRIVATE TRIAL_PERIOD_DAYS="${TRIAL_PERIOD_DAYS}")
-  message(STATUS "Trial period check is enabled, trial period days ${TRIAL_PERIOD_DAYS}")
-else()
-  message(STATUS "Trial period check is disabled.")
-endif()
 
 ####################################################################
 

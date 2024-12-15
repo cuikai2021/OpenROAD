@@ -1,0 +1,14 @@
+#include "build_info.hpp"
+
+#if __cplusplus
+extern "C" {
+#endif
+
+char const * const EDEN_COMMIT_ID = "${EDEN_VERSION}";
+char const * const EDEN_BUILD_TIME = "${BUILD_TIME}";
+uint32_t EDEN_TRIAL_PERIOD_DAYS = ${TRIAL_PERIOD_DAYS};
+int64_t EDEN_BUILD_TIME_SECS = ${BUILD_TIME_SECS};
+
+#if __cplusplus
+} // extern "C"
+#endif
