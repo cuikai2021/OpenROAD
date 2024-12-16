@@ -377,6 +377,8 @@ set_target_properties(ord PROPERTIES
   # Export symbols for stack trace printing
   ENABLE_EXPORTS ON
 )
+target_compile_features(eden PUBLIC cxx_std_17)
+target_compile_features(ord PUBLIC cxx_std_17)
 
 target_include_directories(eden
   PUBLIC

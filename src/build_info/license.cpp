@@ -22,7 +22,7 @@ chrono::system_clock::time_point get_build_time() {
 
 void check_license() {
     if (EDEN_TRIAL_PERIOD_DAYS == 0) {
-        spdlog::warn("Unlimited days for trial.");
+        spdlog::debug("Unlimited days for trial.");
         return;
     }
     auto build_time = get_build_time();
