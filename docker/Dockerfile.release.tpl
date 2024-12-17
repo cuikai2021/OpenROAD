@@ -1,11 +1,15 @@
 ARG EDEN_BUILD_IMAGE
 
 # FROM
-FROM ${EDEN_BUILD_IMAGE}
+FROM ${EDEN_BUILD_IMAGE} AS builder
 
 # COPY
 COPY tools_metadata.yaml /build/tools_metadata.yaml
 
+RUN find /build/bin /build/lib | xargs -I {} strip {} || :
+
+FROM ${EDEN_BUILD_IMAGE} AS release
+COPY --from=builder /build /build
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/build/lib/
 ENV PATH=$PATH:/build/bin/
 
