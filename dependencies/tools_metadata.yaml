@@ -14,8 +14,8 @@
   commit: 86a5ca8
 
 - name: icbrcx
-  repo: docker://registry.cn-shanghai.aliyuncs.com/icb/icbrcx
-  commit: 7303c4b
+  repo: docker://registry.cn-shanghai.aliyuncs.com/icb/eden_release
+  commit: icbrcx241216
 
 - name: banyan-integrate
   repo: file://src/Banyan/banyan-integrate
