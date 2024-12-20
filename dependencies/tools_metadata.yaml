@@ -27,6 +27,8 @@
     cgss2:/build/bin/:755
     bypbdef:/build/bin/:755
     garble:/build/bin/:755
+    reportpb:/build/bin/:755
+    xef2pb:/build/bin/:755
 
 - name: linden-integrate
   repo: file://src/linden/gpl

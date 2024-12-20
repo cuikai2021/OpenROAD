@@ -22,6 +22,8 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/bypbdef,dst=/build/bin/bypbdef \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/minjog,dst=/build/bin/minjog \
   --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/garble,dst=/build/bin/garble \
+  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/xef2pb,dst=/build/bin/xef2pb \
+  --mount type=bind,src=$workdir/src/Banyan/banyan-integrate/reportpb,dst=/build/bin/reportpb \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/lindendp,dst=/build/bin/lindendp \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-incremental-legalizer,dst=/build/bin/linden-incremental-legalizer \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-routability-driven-detailed-placer,dst=/build/bin/linden-routability-driven-detailed-placer \
