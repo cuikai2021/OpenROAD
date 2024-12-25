@@ -470,7 +470,7 @@ void linden_global_place(const Config& cfg) noexcept {
         if (!ret) {
             break;
         }
-        auto overflow = *ret;
+        auto overflow = ret->overflow;
         if (should_finalize(overflow)) {
             break;
         }

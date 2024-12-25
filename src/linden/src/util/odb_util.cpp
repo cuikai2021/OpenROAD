@@ -3,6 +3,7 @@
 #include "linden/geom/bbox.hpp"
 #include "linden/geom/rect.hpp"
 #include "linden/geom/point.hpp"
+#include "linden/geom/density_grids.hpp"
 #include "linden/util/name.hpp"
 #include "rsz/Resizer.hh"
 #include "lrl/CircuitModifier/CircuitModifier.hh"
@@ -13,6 +14,7 @@
 #include "odb/dbTransform.h"
 #include "ord/OpenRoad.hh"
 #include "fassert.hpp"
+#include <absl/container/flat_hash_set.h>
 #include <deque>
 
 using namespace std;
@@ -44,9 +46,7 @@ linden::geom::Rect core_region(odb::dbDatabase& odb) noexcept
 bool is_supported(odb::dbInst& inst) noexcept {
     auto type = inst.getMaster()->getType();
     return type.isCore()
-        || type.isBlock()
-        || type == odb::dbMasterType::RING
-        || inst.getMaster()->isPad();
+        || type.isBlock();
 }
 
 bool is_supported(odb::dbNet& net) noexcept {
@@ -288,30 +288,6 @@ constexpr int64_t max_boundary() {
     }
 }
 
-tuple<size_t, size_t, size_t, size_t> bbox_to_site_range(
-    const linden::geom::Rect& core,
-    const linden::geom::Rect& bbox,
-    int64_t site_width,
-    int64_t site_height)
-{
-    static constexpr int64_t MAX_BOUNDARY = max_boundary();
-    if (auto overlap = core.intersect(bbox); overlap) {
-        if (overlap->area() > 0) {
-            int64_t llr = (overlap->ll().y() - core.ll().y() + 1) / site_height;
-            FASSERT(llr >= 0 && llr <= MAX_BOUNDARY)(llr);
-            int64_t llc = (overlap->ll().x() - core.ll().x() + 1) / site_width;
-            FASSERT(llc >= 0 && llc <= MAX_BOUNDARY)(llc);
-            int64_t urr = (overlap->ur().y() - core.ll().y() - 1) / site_height;
-            FASSERT(urr >= 0 && urr <= MAX_BOUNDARY)(urr);
-            int64_t urc = (overlap->ur().x() - core.ll().x() - 1) / site_width;
-            FASSERT(urc >= 0 && urc <= MAX_BOUNDARY)(urc);
-            return make_tuple(llr, llc, urr, urc);
-        }
-    }
-    // just an empty range
-    return make_tuple(1, 1, 0, 0);
-}
-
 void build_blockages(
     linden::db::Database& ldb,
     odb::dbDatabase& odb,
@@ -319,55 +295,114 @@ void build_blockages(
 {
     // turn blockages and fragmented rows into fixed fillers.
     odb::dbSite* smallest_site = nullptr;
-    int64_t smallest_site_area = numeric_limits<int64_t>::max();
-    for(auto row: odb.getChip()->getBlock()->getRows()) {
-        auto site = row->getSite();
-        int64_t w = site->getWidth();
-        int64_t h = site->getHeight();
-        int64_t a = w * h;
-        if (a < smallest_site_area) {
-            smallest_site_area = a;
-            smallest_site = site;
+    {
+        int64_t smallest_site_area = numeric_limits<int64_t>::max();
+        for(auto row: odb.getChip()->getBlock()->getRows()) {
+            auto site = row->getSite();
+            int64_t w = site->getWidth();
+            int64_t h = site->getHeight();
+            int64_t a = w * h;
+            if (a < smallest_site_area) {
+                smallest_site_area = a;
+                smallest_site = site;
+            }
         }
     }
     FASSERT(smallest_site != nullptr)
         .what("There must be rows.");
-    int64_t site_width = smallest_site->getWidth();
-    FASSERT(site_width > 1)
-        (site_width)
-        .what("Width of site is too small.");
-    int64_t site_height = smallest_site->getHeight();
-    FASSERT(site_height)
-        (site_height)
-        .what("Height of site is too small.");
-    size_t n_rows = core.dy() / site_height;
-    size_t n_cols = core.dx() / site_width;
+    linden::geom::DensityGrids grids(
+        ldb.core_region(),
+        linden::geom::Point(smallest_site->getWidth(), smallest_site->getHeight()));
+    spdlog::debug(
+        "core region: {}, {}x{}",
+        pp::prettyPrint(ldb.core_region()),
+        grids.n_rows(),
+        grids.n_cols());
 
-    vector<vector<float>> arena_emptiness;
-    // initialize and shadow all sites
-    for(size_t i = 0; i < n_rows; ++i) {
-        arena_emptiness.emplace_back(n_cols, 0);
-    }
-    // uncover sites where rows cover
+    // Uncovers sites where rows are located.
+    //
+    // Some regions in the core region are not covered by rows.
+    // And they should be considered as blockages.
     for(auto row: odb.getChip()->getBlock()->getRows()) {
         auto row_bbox = orect_to_lrect(row->getBBox());
-        auto [start_row, start_col, end_row, end_col] =
-            bbox_to_site_range(core, row_bbox, site_width, site_height);
-        for(size_t i = start_row; i <= end_row; ++i) {
-            for(size_t j = start_col; j <= end_col; ++j) {
-                arena_emptiness[i][j] = 100;
+        auto [start_row, start_col, end_row, end_col] = grids.rect_to_indices(row_bbox);
+        for(size_t r = start_row; r < end_row; ++r) {
+            for(size_t c = start_col; c < end_col; ++c) {
+                grids.empty(r, c);
             }
         }
     }
-    for(odb::dbInst* inst: odb.getChip()->getBlock()->getInsts()) {
+
+    // Considers large fixed insts as blockages.
+    //
+    // Fixed physical insts, such as welltaps and endcaps, are ignored
+    // in order not to cut partial blockages into pieces.
+    absl::flat_hash_set<odb::dbMaster*> ignored;
+    absl::flat_hash_set<odb::dbMaster*> not_ignored;
+    auto can_ignore = [&](odb::dbInst* inst) -> bool {
         if(!is_supported(*inst)) {
-            continue;
+            return true;
         }
         if(!inst->isFixed()) {
+            return true;
+        }
+
+        auto master = inst->getMaster();
+        if (ignored.contains(master)) {
+            return true;
+        }
+        if (not_ignored.contains(master)) {
+            return false;
+        }
+        if (master->isEndCap()) {
+            ignored.insert(master);
+            return true;
+        }
+        if (master->isFiller()) {
+            // Fillers can be used as welltaps or endcaps sometimes.
+            ignored.insert(master);
+            return true;
+        }
+        size_t cnt_nonpg_pins = 0;
+        {
+            for(auto iterm: inst->getITerms()) {
+                switch(iterm->getSigType().getValue()) {
+                case odb::dbSigType::POWER: case odb::dbSigType::GROUND: {
+                    break;
+                }
+                default: {
+                    ++cnt_nonpg_pins;
+                }
+                }
+            }
+        }
+        if (cnt_nonpg_pins == 0) {
+            int64_t w = master->getWidth();
+            int64_t h = master->getHeight();
+            auto const& grid_size = grids.grid_size();
+            if (w * h <= grid_size.x() * grid_size.y() * 64) {
+                // guess that welltaps and endcaps are very small.
+                ignored.insert(master);
+                return true;
+            }
+        }
+        not_ignored.insert(master);
+        return false;
+    };
+    for(odb::dbInst* inst: odb.getChip()->getBlock()->getInsts()) {
+        if (can_ignore(inst)) {
             continue;
         }
-        deque<linden::geom::Rect> overlap_obs;
+
         auto master = inst->getMaster();
+        int64_t w = master->getWidth();
+        int64_t h = master->getHeight();
+        auto const& grid_size = grids.grid_size();
+        spdlog::debug("remains: {}, {}x{}",
+            inst->getName(),
+            h / grid_size.y(),
+            w / grid_size.x());
+        deque<linden::geom::Rect> overlap_obs;
         for (auto obs : master->getObstructions()) {
             auto layer = obs->getTechLayer();
             if (layer->getType() == odb::dbTechLayerType::OVERLAP) {
@@ -386,73 +421,47 @@ void build_blockages(
         }
         if (overlap_obs.empty()) {
             auto bbox = inst_located_shape(*inst);
-            auto [start_row, start_col, end_row, end_col] =
-                bbox_to_site_range(core, bbox, site_width, site_height);
-            for(size_t i = start_row; i <= end_row; ++i) {
-                for(size_t j = start_col; j <= end_col; ++j) {
-                    arena_emptiness[i][j] = 0;
+            auto [start_row, start_col, end_row, end_col] = grids.rect_to_indices(bbox);
+            for(size_t r = start_row; r < end_row; ++r) {
+                for(size_t c = start_col; c < end_col; ++c) {
+                    grids.fill(r, c, 1.0);
                 }
             }
         } else {
             for(auto const& rect: overlap_obs) {
-                auto [start_row, start_col, end_row, end_col] =
-                    bbox_to_site_range(core, rect, site_width, site_height);
-                for(size_t i = start_row; i <= end_row; ++i) {
-                    for(size_t j = start_col; j <= end_col; ++j) {
-                        arena_emptiness[i][j] = 0;
+                auto [start_row, start_col, end_row, end_col] = grids.rect_to_indices(rect);
+                for(size_t r = start_row; r < end_row; ++r) {
+                    for(size_t c = start_col; c < end_col; ++c) {
+                        grids.fill(r, c, 1.0);
                     }
                 }
             }
         }
     }
+
     // shadow sites by blockages
     for(odb::dbBlockage* blockage : odb.getChip()->getBlock()->getBlockages()) {
         auto bbox = orect_to_lrect(blockage->getBBox()->getBox());
-        float blk_emptiness = blockage->getMaxDensity();
-        if(blockage->isSoft()) {
+        float density = 1.0 - blockage->getMaxDensity() / 100.0;
+        if (blockage->isSoft()) {
             // global placement should not touch soft blockages.
-            blk_emptiness = 0;
+            density = 1.0;
         }
-        auto [start_row, start_col, end_row, end_col] =
-            bbox_to_site_range(core, bbox, site_width, site_height);
-        for(size_t i = start_row; i <= end_row; ++i) {
-            for(size_t j = start_col; j <= end_col; ++j) {
-                arena_emptiness[i][j] = min(arena_emptiness[i][j], blk_emptiness);
+        auto [start_row, start_col, end_row, end_col] = grids.rect_to_indices(bbox);
+        for(size_t r = start_row; r < end_row; ++r) {
+            for(size_t c = start_col; c < end_col; ++c) {
+                grids.fill(r, c, density);
             }
         }
     }
-    // turn sites to fixed fillers
-    auto add_dummy = [&](
-        size_t r,
-        size_t start_c,
-        size_t end_c,
-        float emptiness)
-    {
-        using linden::geom::Rect;
-        using linden::geom::Point;
-        if(emptiness >= 100) {
-            return;
-        }
-        int64_t lly = core.ll().y() + r * site_height;
-        int64_t ury = lly + site_height;
-        int64_t llx = core.ll().x() + start_c * site_width;
-        int64_t urx = core.ll().x() + end_c * site_width;
-        Rect bbox(Point(llx, lly), Point(urx, ury));
-        auto dummy = linden::db::Cell::create(bbox);
+
+    auto rects = grids.to_rects();
+    spdlog::debug("collected blockages: {}", rects.size());
+    for(auto const& [r, d]: rects) {
+        auto dummy = linden::db::Cell::create(r);
         dummy->mut_fixed() = true;
-        dummy->mut_density() = (100.0 - emptiness) / 100.0;
+        dummy->mut_density() = d;
         ldb.add_cell(*dummy);
-    };
-    for(size_t r = 0; r < n_rows; ++r) {
-        auto const& row = arena_emptiness[r];
-        size_t last_col = 0;
-        for(; last_col < n_cols; ) {
-            size_t c = last_col + 1;
-            float last_emptiness = row[last_col];
-            for(; c < n_cols && row[c] == last_emptiness; ++c);
-            add_dummy(r, last_col, c, last_emptiness);
-            last_col = c;
-        }
     }
 }
 

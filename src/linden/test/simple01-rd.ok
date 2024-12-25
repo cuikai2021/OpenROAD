@@ -222,7 +222,6 @@ linden::gp::Config {
     core_area: 3815504000.0
     nonplace_insts_area: 0.0
 [linden/gpl] use uniform target density: 0.60
-[linden/gpl] lack of place areas for moveable cells: white_space_area=3815504000, place_insts_area=3815504000.000005
 [linden/gpl] filler init:            
   total area of the fillers: -0.0000            
   # of the fillers: 0            
