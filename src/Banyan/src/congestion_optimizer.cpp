@@ -1,4 +1,5 @@
 #include "congestion_optimizer.hpp"
+#include <spdlog/spdlog.h>
 #include "banyan/Banyan.h"
 #include "pblefdef.pb.h"
 #include "ord/OpenRoad.hh"
@@ -6,8 +7,13 @@
 #include "lrl/Laurel.hh"
 #include "toml++/toml.h"
 #include <boost/process.hpp>
+#include <boost/process/system.hpp>
+#include <filesystem>
 #include <sstream>
 #include <iostream>
+#include <string>
+
+IMPORT_STR_FLAG_WITH_DEFAULT(DEBLAIS_ROOT_DIR);
 
 namespace fs = std::filesystem;
 void just_copy_file(const fs::path& src_path, const fs::path& dst_path) {
@@ -29,7 +35,6 @@ void copy_files_recursive(const fs::path& src_dir, const fs::path& dst_dir) {
 
 namespace banyan {
     namespace congestion_optimizer {
-        const std::filesystem::path TEMP_FOLDER = "/tmp/deblais";
         const std::filesystem::path DEBLAIS_ROUTABILITY_DRIVEN_DP_PATH = "/build/bin/deblais_rddp";
         const int DEFAULT_MAX_ITERATION = 15;
         const int DEFAULT_MAX_RUNTIME = 60; // In minutes
@@ -160,16 +165,17 @@ namespace banyan {
             spdlog::info("CongestionOptimizer Config\n  Max_Layer: {}\n  Max_Runtime(minutes): {}\n  Max_Iteration: {}",cfg.max_layer, cfg.max_runtime.count(), cfg.max_iteration);
             auto st = std::chrono::system_clock::now();
             auto time_limit = this -> cfg.max_runtime;
-            auto exec_path = get_routability_driven_dp_exe();
-            std::filesystem::path dp_cfg_path = TEMP_FOLDER / "cfg.toml";
-            std::filesystem::path db_path = TEMP_FOLDER / "out.db";
+            auto rddp_path = get_routability_driven_dp_exe();
+            auto root_dir = this->cfg.root_dir;
+            std::filesystem::path dp_cfg_path = root_dir / "cfg.toml";
+            std::filesystem::path db_path = root_dir / "out.db";
             for (int i= 0; i < cfg.max_iteration; i++) {
                 this -> b -> clearWires(false, false);
                 // this -> b -> route_clock(cfg.max_layer, std::string_view(db_path.c_str())); 
                 this -> b -> repair_congestion(cfg.inner_cfg.congestion_data.c_str(), db_path.c_str(), cfg.max_layer, true);
                 cfg.dump_dp_cfg(dp_cfg_path);
                 auto commands = cfg.rdp_command(dp_cfg_path);
-                boost::process::child c(std::string(exec_path), boost::process::args(cfg.rdp_command(dp_cfg_path)));
+                boost::process::child c(std::string(rddp_path), boost::process::args(cfg.rdp_command(dp_cfg_path)));
                 while (c.running()) {
                     auto now = std::chrono::system_clock::now();
                     auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(now - st);
@@ -200,20 +206,21 @@ namespace banyan {
                 );
                 read_back(cfg.inner_cfg.out_def);
 
-                /*
-                    TODO:
-                    Shall reconsider where to output the processing files when release
-                    (Files: Def files during iterations ...)
-                */
-                {
-                    const std::filesystem::path output_dir("/opt/workdir/out/results/dct_netlist.ctool_place.norstr/deblais");
-                    std::error_code ec;
-                    std::filesystem::create_directories(output_dir, ec);
-                    spdlog::info("Creating directory to save def files {}", ec.message());
-                    std::filesystem::path output_path = output_dir / ("iter_" + std::to_string(i) + ".def");
-                    ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
-                    ord.writeDef(output_path.c_str(), "5.8");
+#ifndef NDEBUG
+                {  // Export a fancy `.geogit` congestionmap
+                    std::filesystem::path pb_path = this->cfg.root_dir / std::filesystem::path("iter_" + std::to_string(i) + ".pb");
+                    std::filesystem::path geogit_path = this->cfg.root_dir / std::filesystem::path("iter_" + std::to_string(i) + "_cmap.geogit");
+                    std::string cmap_visualizer = "/build/bin/cmap_visualizer";
+                    std::vector<std::string> args;
+                    args.emplace_back("--input-file");
+                    args.emplace_back(pb_path.c_str());
+                    args.emplace_back("--output-file");
+                    args.emplace_back(geogit_path.c_str());
+                    auto boost_args = boost::process::args(args);
+                    auto ec = boost::process::system(cmap_visualizer, boost_args);
+                    spdlog::info("cmap_visualizing enabled and finished return code: {}", ec);
                 }
+#endif
                 cfg.to_next_iteration();
             }
         }
@@ -269,26 +276,21 @@ namespace banyan {
             if (best_id == 0) {
                 return;
             }
-            std::filesystem::path path =  TEMP_FOLDER / ("iter_" + std::to_string(best_id) + ".pbdef");
+            std::filesystem::path path =  this->cfg.root_dir / ("iter_" + std::to_string(best_id) + ".pbdef");
             read_back(path);
-
-            // Gonna save all temp files.  Why? Because it's my duty to check if everything all right.
-            fs::path src_dir("/tmp/deblais");
-            fs::path dst_dir("/opt/workdir/out/results/dct_netlist.ctool_place.norstr/deblais/tmp");
-            copy_files_recursive(src_dir, dst_dir);
         }
 
 
-        void DPConfig::to_next_iteration() {
+        void DPConfig::to_next_iteration(const std::filesystem::path& root_dir) {
             int current_iter = get_iter_from_filename(this->out_def);
             int next_iter = current_iter + 1;
-            this->congestion_data = TEMP_FOLDER / ("iter_" + std::to_string(current_iter) + ".pb");
-            this->inflation_data = std::optional<std::filesystem::path>(TEMP_FOLDER / ("iter_" + std::to_string(current_iter) + ".inflation"));
-            this->out_def = TEMP_FOLDER / ("iter_" + std::to_string(next_iter) + ".pbdef");
-            this->out_inflation = TEMP_FOLDER / ("iter_" + std::to_string(next_iter) + ".inflation");
+            this->congestion_data = root_dir / ("iter_" + std::to_string(current_iter) + ".pb");
+            this->inflation_data = std::optional<std::filesystem::path>(root_dir / ("iter_" + std::to_string(current_iter) + ".inflation"));
+            this->out_def = root_dir / ("iter_" + std::to_string(next_iter) + ".pbdef");
+            this->out_inflation = root_dir / ("iter_" + std::to_string(next_iter) + ".inflation");
         }
 
-        Config::Config(DPConfig inner_cfg, std::string_view max_layer){
+        Config::Config(DPConfig inner_cfg, std::string_view max_layer, std::filesystem::path root_dir){
             int max_iteration = DEFAULT_MAX_ITERATION;
             char const* max_iteration_env = std::getenv(ENV_MAX_ITERATION);
             if (max_iteration_env != NULL) {
@@ -300,7 +302,8 @@ namespace banyan {
             if (max_runtime_env != NULL) {
                 max_runtime = std::stoi(max_runtime_env);
             }
-            this -> inner_cfg = inner_cfg;
+            this -> root_dir = std::move(root_dir);
+            this -> inner_cfg = std::move(inner_cfg);
             this -> max_layer = max_layer;
             this -> max_runtime = std::chrono::minutes(max_runtime);
             this -> max_iteration = max_iteration;
@@ -318,7 +321,7 @@ namespace banyan {
         }
 
         void Config::to_next_iteration() {
-            this->inner_cfg.to_next_iteration();
+            this->inner_cfg.to_next_iteration(this->root_dir);
         }
 
         std::ostream& operator<< (std::ostream &out, Config &cfg) {

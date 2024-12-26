@@ -10,7 +10,6 @@ namespace banyan {
     class Banyan;
 
     namespace congestion_optimizer {
-        extern const std::filesystem::path TEMP_FOLDER;
         class Percentiles {
             private:
             std::map<double, double> horizontal;
@@ -30,16 +29,17 @@ namespace banyan {
             std::optional<std::filesystem::path> inflation_data;
             std::filesystem::path out_def;
             std::filesystem::path out_inflation;
-            void to_next_iteration();
+            void to_next_iteration(const std::filesystem::path& root_dir);
         };
 
         class Config {
             public:
-            explicit Config(DPConfig inner_cfg, std::string_view max_layer);
+            explicit Config(DPConfig inner_cfg, std::string_view max_layer, std::filesystem::path root_dir);
 
             DPConfig inner_cfg;
             std::string_view max_layer;
             std::chrono::minutes max_runtime;
+            std::filesystem::path root_dir;
             unsigned int max_iteration;
             void to_next_iteration();
             void dump_dp_cfg(std::filesystem::path& output_path);

@@ -22,6 +22,7 @@
 #include "congestion_optimizer.hpp"
 
 IMPORT_BOOL_FLAG_WITH_DEFAULT(BANYAN_SUPPRESS_EXE_LOG);
+IMPORT_STR_FLAG_WITH_DEFAULT(DEBLAIS_ROOT_DIR);
 
 namespace sta {
 // Tcl files encoded into strings.
@@ -255,9 +256,10 @@ int Banyan::route_clock(std::string_view max_layer, std::string_view outDb) {
 }
 
 int Banyan::optimizeCongestion(std::string_view max_layer) {
-  if (!std::filesystem::exists(banyan::congestion_optimizer::TEMP_FOLDER)) {
-    if (!std::filesystem::create_directories(banyan::congestion_optimizer::TEMP_FOLDER)) {
-      spdlog::error("Unable to create dir {}.", banyan::congestion_optimizer::TEMP_FOLDER);
+  std::filesystem::path root_path = std::filesystem::path(std::string{DEBLAIS_ROOT_DIR()});
+  if (!std::filesystem::exists(root_path)) {
+    if (!std::filesystem::create_directories(root_path)) {
+      spdlog::error("Unable to create dir {}.", root_path);
       return 1;
     }
   }
@@ -272,18 +274,18 @@ int Banyan::optimizeCongestion(std::string_view max_layer) {
   }
 
   // write def files
-  std::filesystem::path def = banyan::congestion_optimizer::TEMP_FOLDER / "iter_0.def";
+  std::filesystem::path def = root_path / "iter_0.def";
   ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
   ord.writeDef(def.c_str(), "5.8");
   
 
   // define write_congestion_data
-  std::filesystem::path outdb = banyan::congestion_optimizer::TEMP_FOLDER / "out.db";
-  std::filesystem::path congestion_data = banyan::congestion_optimizer::TEMP_FOLDER / "iter_0.pb";
+  std::filesystem::path outdb = root_path / "out.db";
+  std::filesystem::path congestion_data = root_path / "iter_0.pb";
 
   // define path of output def 
-  std::filesystem::path out_def = banyan::congestion_optimizer::TEMP_FOLDER / "iter_1.pbdef";
-  std::filesystem::path out_inflation = banyan::congestion_optimizer::TEMP_FOLDER / "iter_1.inflation";
+  std::filesystem::path out_def = root_path / "iter_1.pbdef";
+  std::filesystem::path out_inflation = root_path / "iter_1.inflation";
 
   DPConfig dp_cfg = {
     lefs: lefs, 
@@ -294,7 +296,7 @@ int Banyan::optimizeCongestion(std::string_view max_layer) {
     out_inflation: out_inflation,
   };
 
-  Config cfg = Config(dp_cfg, max_layer);
+  Config cfg = Config(dp_cfg, max_layer, root_path);
   Optimizer optimizer = banyan::congestion_optimizer::Optimizer(cfg, this);
   optimizer.optimize();
   try {

@@ -31,6 +31,8 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/deblais-incrdp,dst=/build/bin/deblais-incrdp \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/pbdef,dst=/build/bin/pbdef \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-add-tie-cell,dst=/build/bin/linden-add-tie-cell \
+  --mount type=bind,src=$workdir/src/linden/gpl/bin/deblais_rddp,dst=/build/bin/deblais_rddp \
+  --mount type=bind,src=$workdir/src/linden/gpl/bin/cmap_visualizer,dst=/build/bin/cmap_visualizer \
   --entrypoint /bin/bash \
   registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20240709T0624Z_afb4115 \
   -c "cd $workdir; $cmd"
