@@ -1,7 +1,6 @@
 #include "ffi.hpp"
 #include "../util/args.hpp"
 #include "linden/gp.hpp"
-#include "fassert.hpp"
 #include <spdlog/spdlog.h>
 #include <string_view>
 #include <optional>

@@ -1,10 +1,11 @@
 #include "linden/gp.hpp"
+
+#include "gp/netweighter.hpp"
+#include "gp/hpwl_analyze.hpp"
 #include "graphics.hpp"
 #include "initial_place/initial_place.hpp"
-#include "../util/ignored_nets.hpp"
 #include "../util/odb_util.hpp"
 #include "../util/relevance_verify.hpp"
-#include "linden/gp.hpp"
 #include "linden/db/db.hpp"
 #include "linden/geom/bbox.hpp"
 #include "linden/gpl/placer.hpp"
@@ -14,19 +15,14 @@
 #include "sc/ScanChain.h"
 #include "rsz/Resizer.hh"
 #include "lrl/CircuitModifier/CircuitModifier.hh"
-#include "lrl/Laurel.hh"
-#include "sta/StaMain.hh"
-#include "sta/Units.hh"
-#include "odb/db.h"
 #include "ord/OpenRoad.hh"
 #include "utl/metrics.hpp"
 #include "banyan_cmap_v2.pb.h"
 #include "fassert.hpp"
 #include "envflag/envflag.hpp"
+
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
-#include <limits>
-#include <tuple>
 #include <cmath>
 #include <optional>
 #include <chrono>
@@ -59,7 +55,7 @@ shared_ptr<Config> Config::get_default() noexcept {
     return cfg;
 }
 
-void Config::prettyPrint(std::string& out) const noexcept {
+void Config::prettyPrint(string& out) const noexcept {
     out.append(string_view("linden::gp::Config {"));
 
     if (density) {
@@ -126,7 +122,7 @@ string_view Config::InitialPlacePolicy::to_str_view() const noexcept {
     return string_view();
 }
 
-void Config::InitialPlacePolicy::prettyPrint(std::string& out) const noexcept {
+void Config::InitialPlacePolicy::prettyPrint(string& out) const noexcept {
     out.append(to_str_view());
 }
 
@@ -154,70 +150,6 @@ Config::InitialPlacePolicy Config::InitialPlacePolicy::from_str(const string_vie
 
 namespace {
 
-bool update_net_weights(
-    const Config& cfg,
-    linden::db::Database& ldb)
-{
-    refresh_locations_from_ldb(ldb);
-    rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
-    rs->findResizeSlacks();
-
-    // get Top 10% worst resize nets
-    sta::NetSeq& worst_slack_nets = rs->resizeWorstSlackNets();
-    if (worst_slack_nets.empty()) {
-        spdlog::warn("[linden/gpl] No net slacks found. Timing-driven mode disabled.");
-        return false;
-    }
-
-    // min/max slack for worst 10% nets
-    sta::Slack slack_min = 0;
-    {
-        auto s = rs->resizeNetSlack(worst_slack_nets.front());
-        FASSERT(s)
-            .what("Worst slack net has no slack.");
-        slack_min = *s;
-    }
-    sta::Slack slack_max = 0;
-    {
-        auto s = rs->resizeNetSlack(worst_slack_nets.back());
-        FASSERT(s)
-            .what("Worst slack net has no slack.");
-        slack_max = *s;
-    }
-
-    spdlog::info("[linden/gpl] worst 10%% slacks {:.3g}, {:.3g}", slack_min, slack_max);
-
-    if (isinf(slack_min)) {
-        spdlog::warn("[linden/gpl] No net slacks found. Timing-driven mode disabled.");
-        return false;
-    }
-
-    size_t reweight_net_cnt = 0;
-    const double NET_WEIGHT_SCALE = 0.9;
-    for(auto& x: ldb.mut_nets()) {
-        auto& l_net = x.get();
-        odb::dbNet* o_net = reinterpret_cast<odb::dbNet*>(l_net.odb_net());
-        double weight = 1.0;
-        if (l_net.pins().size() > 1) {
-            if (auto s = rs->resizeNetSlack(o_net); s) {
-                if (s < slack_max) {
-                    weight = 1 + NET_WEIGHT_SCALE * (slack_max - *s) / (slack_max - slack_min);
-                    ++reweight_net_cnt;
-                    spdlog::debug(
-                        "[linden/gpl] timing: net:{} slack:{} weight:{}",
-                        l_net.name(),
-                        *s,
-                        weight);
-                }
-            }
-        }
-        l_net.mut_weight() = weight;
-    }
-
-    spdlog::info("[linden/gpl] Reweighted {} nets.", reweight_net_cnt);
-    return true;
-}
-
 void scanchain_reorder() {
     auto sc = ::ord::OpenRoad::openRoad()->getScanChain();
     sc->reorder();
@@ -235,7 +167,7 @@ filesystem::path estimate_cmap(const gp::Config& cfg) {
             cmap_file = dir / "banyan_.cmap";
         } else {
             auto tm = chrono::system_clock::now().time_since_epoch();
-            auto tm_ms = chrono::duration_cast<std::chrono::milliseconds>(tm).count();
+            auto tm_ms = chrono::duration_cast<chrono::milliseconds>(tm).count();
             cmap_file = dir / fmt::format("banyan_{}.cmap", tm_ms);
         }
 
@@ -362,6 +294,7 @@ void linden_global_place(const Config& cfg) noexcept {
     if (LINDEN_IN_REGRESSION()) {
         spdlog::set_pattern("%v"); // no timestamp
     }
+
     spdlog::info("{}", pp::prettyPrint(cfg));
 
     shared_ptr<linden::db::Database> ldb = build_linden_db();
@@ -416,7 +349,7 @@ void linden_global_place(const Config& cfg) noexcept {
             ncfg.target_density = 1.0;
             ncfg.use_uniform_density = true;
         }
-        ncfg.target_overflow = cfg.overflow;
+        ncfg.target_overflow = 0.0;
         ncfg.cgr_mode = cfg.continue_mode;
         if (cfg.continuation) {
             ncfg.cgr_params_file = *cfg.continuation;
@@ -426,31 +359,22 @@ void linden_global_place(const Config& cfg) noexcept {
         gpl = linden::gpl::Placer::create(ldb, ncfg);
     }
 
-    deque<float> timing_overflows;
     if (cfg.timing_driven) {
         spdlog::info("[linden/gpl] enable timing-driven");
-        timing_overflows = {79, 64, 49, 29, 21, 15};
-        rsz::Resizer* rs = ::ord::OpenRoad::openRoad()->getResizer();
-        rs->resizeSlackPreamble();
+        ::ord::OpenRoad::openRoad()->getResizer()->resizeSlackPreamble();
     }
 
     optional<RelevanceDetector> relev;
     if (LINDEN_GP_CELL_RELATIVE_POS_CAL()) {
-        relev = std::move(RelevanceDetector(*ldb));
+        relev = move(RelevanceDetector(*ldb));
     }
-    const size_t MAX_ITER = 5000;
-    size_t iter = 0;
 
     int rdp_count_down = 0;
     int64_t rdp_count_down_init = LINDEN_GP_CMAP_PERIOD();
-    auto should_finalize = [&,
-        routability_driven,
+    auto update_cmap = [&,
         rdp_count_down,
         rdp_count_down_init
     ](double overflow) mutable -> bool {
-        if (!routability_driven) {
-            return overflow <= cfg.overflow;
-        }
         if (overflow > cfg.overflow_to_estimate_cmap) {
             return false;
         }
@@ -465,38 +389,82 @@ void linden_global_place(const Config& cfg) noexcept {
         debug_def_if_necessary(cmap_file);
         return !refresh_cmap_to_placer(*gpl, *ldb, cmap_file);
     };
-    for (; iter < MAX_ITER; ++iter) {
-        auto ret = gpl->one_step_move(iter);
-        if (!ret) {
-            break;
-        }
-        auto overflow = ret->overflow;
-        if (should_finalize(overflow)) {
-            break;
-        }
 
-        if (relev && iter % 10 == 0) {
-            auto const& [x_change, y_change] = relev->update(*ldb);
-            spdlog::info(
-                "[nPlace] relative position change = ({:.2f}%, {:.2f}%)",
-                x_change * 100, y_change * 100);
-        }
-        if (graphics) {
-            graphics->one_more_step(iter);
-        }
-        if (!timing_overflows.empty()
-            && overflow * 100 < timing_overflows.front()) {
-            if (!update_net_weights(cfg, *ldb)) {
-                spdlog::info("[linden/gpl] Disable timing-driven because of some faults.");
-                timing_overflows.clear();
-            } else {
-                timing_overflows.pop_front();
+    // Gp Loop
+    size_t gp_iter = 0;
+    auto hpwl_analyze = HpwlAnalyze();
+    constexpr int64_t GPL_MAX_ITER = 3000;
+    deque<double> overflows = {90, 79, 64, 49, 29, 21, 0};
+    auto gp_going = [&](){
+        for (; !overflows.empty() && gp_iter < GPL_MAX_ITER; gp_iter++) {
+            auto ret = gpl->one_step_move(gp_iter);
+            if (!ret) {
+                spdlog::info("[nPlace] No result is presented.");
+                return true;
+            }
+            spdlog::info("[gpl] overflow: {:.5f} hpwl: {}", ret->overflow, ret->hpwl);
+
+            // Routability Driven
+            if (cfg.routability_driven && update_cmap(ret->overflow)) {
+                spdlog::info("[nPlace] cmap forces termination.");
+                return true;
+            }
+
+            // HPWL Analyze
+            hpwl_analyze.push(ret->hpwl, ret->overflow);
+            if (hpwl_analyze.repulsion_dominance()) {
+                spdlog::info("[nPlace] Repulsion is dominant.");
+                return true;
+            }
+            if (hpwl_analyze.heat_death()) {
+                spdlog::info("[nPlace] Heat death!");
+                return true;
+            }
+
+            // RelevanceDetector
+            if (relev && gp_iter % 10 == 0) {
+                auto const& [x_change, y_change] = relev->update(*ldb);
+                spdlog::info("[nPlace] relative position change = ({:.2f}%, {:.2f}%)",x_change * 100, y_change * 100);
+            }
+
+            // Graphics
+            if (graphics) {
+                graphics->one_more_step(gp_iter);
+            }
+
+            // Netweigthing
+            if (cfg.timing_driven && overflows.front() > ret->overflow * 100) {
+                overflows.pop_front();
+                refresh_locations_from_ldb(*ldb);
+
+                if (overflows.empty()) {
+                    spdlog::info("[nPlace] Terminates because overflows are exhausted.");
+                    return true;
+                } else {
+                    spdlog::info("[nPlace] Current level of overflow is {:.2f}", overflows.front());
+                    return false;
+                }
+            }
+            // Stash GPL
+            if (hpwl_analyze.best_gpl_postion()) {
+                refresh_locations_from_ldb(*ldb);
             }
         }
+        return true;
+    };
+
+    for(;;) {
+        auto gp_done = gp_going();
+        if (gp_done) {
+            break;
+        }
+        if (cfg.timing_driven) {
+            update_weights(*ldb);
+        }
     }
+
     gpl->done();
     gpl.reset();
-    refresh_locations_from_ldb(*ldb);
     if (graphics) {
         graphics->finalize();
         graphics.reset();
@@ -507,7 +475,7 @@ void linden_global_place(const Config& cfg) noexcept {
         mcfg = metrics::Config::sink_to_file(*opt);
     }
     metrics::Reporter metrics_reporter(mcfg);
-    metrics_reporter["gp"]["iter"] = iter + 1;
+    metrics_reporter["gp"]["iter"] = gp_iter + 1;
 }
 
 void random_place() noexcept {
