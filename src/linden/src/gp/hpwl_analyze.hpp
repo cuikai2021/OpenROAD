@@ -9,7 +9,7 @@ static constexpr int64_t MOVING_AVG_LEN = 10;
 // F1 Peak equivalent overflow, used to enable rebound detection
 static constexpr double PEEK_OVERFLOW = 0.5;
 // F1 Curve rebound ratio, used to determine repulsion dominance
-static constexpr double REBOUND_RATIO = 1.05;
+static constexpr double REBOUND_RATIO = 1.2;
 
 // F1 Heat Death detection window count
 static constexpr int64_t HEAT_DEATH_NUM = 10;
