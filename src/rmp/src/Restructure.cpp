@@ -79,7 +79,8 @@
 //#define DEBUG_GENERIC_RESTRUCT 1
 //#define REGRESS_RESTRUCT
 //#define DEBUG_CUT_RESYNTH
-//extern "C"              void Abc_TruthNpnRPrint( char * pCanonPermInit, unsigned uCanonPhase, int nVars );
+// extern "C"              void Abc_TruthNpnRPrint( char * pCanonPermInit,
+// unsigned uCanonPhase, int nVars );
 
 using utl::RMP;
 
@@ -119,12 +120,14 @@ void Restructure::reset()
 // Parameters:
 // For cut generation:
 // single_op -> single output or multiple output.
-// unconstrained -> if true then walk back to invariant points during cut generation
-//                  else use wavefront (cartesian product of non trivial fanin gates).
+// unconstrained -> if true then walk back to invariant points during cut
+// generation
+//                  else use wavefront (cartesian product of non trivial fanin
+//                  gates).
 // oracle remap -> if true look up cut match
-// script -> if true use abc script (else do simply amap remapping).  
+// script -> if true use abc script (else do simply amap remapping).
 //
-//  
+//
 
 void Restructure::cutresynthrun(char* target_library,
                                 char* script,
@@ -144,11 +147,11 @@ void Restructure::cutresynthrun(char* target_library,
   sta->searchPreamble();
   logger_->report("Cut based Restructuring.");
 
-  sta::LibertyLibrary* cut_library=nullptr;
-  if (oracle_remap){
-    cut_library = new sta::LibertyLibrary("cut_library","cut_library.lib");
+  sta::LibertyLibrary* cut_library = nullptr;
+  if (oracle_remap) {
+    cut_library = new sta::LibertyLibrary("cut_library", "cut_library.lib");
   }
-  
+
 #ifdef REGRESS_RESTRUCT
   {
     FILE* cond_file = fopen("cmd.txt", "w+");
@@ -167,18 +170,14 @@ void Restructure::cutresynthrun(char* target_library,
 
   Cut* cut_to_remap = nullptr;
 
-  std::vector<Cut*> cut_set;  
-  if (head_pin){
-    generateWaveFrontSingleOpCutSet(network,
-				    head_pin,
-				    cut_set);
-    logger_->report("Generated {} constrained cuts.", cut_set.size());    
-  }  
-  else{
+  std::vector<Cut*> cut_set;
+  if (head_pin) {
+    generateWaveFrontSingleOpCutSet(network, head_pin, cut_set);
+    logger_->report("Generated {} constrained cuts.", cut_set.size());
+  } else {
     generateUnconstrainedCuts(cut_set, single_op);
-    logger_->report("Generated  {} unconstrained cuts.", cut_set.size());    
+    logger_->report("Generated  {} unconstrained cuts.", cut_set.size());
   }
-
 
   //
   // For test just pick one cut: choice one with biggest volume
@@ -196,7 +195,7 @@ void Restructure::cutresynthrun(char* target_library,
 
   // remap the cut set.
   // For now only remap the biggest cut
-  
+
   if (best_cut->volume_.size() > 0) {
     logger_->report(
         "Processing cut {} of volume {} with {} roots and {} leaves.",
@@ -205,18 +204,17 @@ void Restructure::cutresynthrun(char* target_library,
         best_cut->roots_.size(),
         best_cut->leaves_.size());
     cut_to_remap = best_cut;
-    
-    if (verify){
-      cut_to_remap -> Print(stdout,network);
+
+    if (verify) {
+      cut_to_remap->Print(stdout, network);
       char fname[1000];
-      sprintf(fname,"beforemap_cut_%d.v",cut_to_remap -> id_);
-      printf("Input cut to be remapped saved in verification file %s\n",
-             fname);
-      FILE* fp =fopen(fname,"w+");
-      cut_to_remap -> PrintVerilog(fp,network);
+      sprintf(fname, "beforemap_cut_%d.v", cut_to_remap->id_);
+      printf("Input cut to be remapped saved in verification file %s\n", fname);
+      FILE* fp = fopen(fname, "w+");
+      cut_to_remap->PrintVerilog(fp, network);
       fclose(fp);
     }
-			  
+
     //
     // We are going to remap "cut_to_remap"
     //
@@ -224,7 +222,6 @@ void Restructure::cutresynthrun(char* target_library,
     // Explicitly pass them into optimizer
     std::vector<std::pair<const sta::Pin*, TimingRecord*>> timing_requirements;
     annotateCutTiming(cut_to_remap, timing_requirements);
-
 
     // Remap the cut with the physical timing constraints
     // onto the target library.
@@ -234,6 +231,10 @@ void Restructure::cutresynthrun(char* target_library,
       script_name = script;
       script_present = true;
     }
+    if (!block_){
+      block_ = db_ -> getChip() -> getBlock();
+    }
+    
     PhysRemap prm(logger_,
                   network,
                   cut_to_remap,
@@ -243,73 +244,78 @@ void Restructure::cutresynthrun(char* target_library,
                   script_present,
                   script_name,
                   true,
+                  block_,
+                  locell_,
+                  loport_,
+                  hicell_,
+                  hiport_,
                   verify);
     prm.Remap();
   }
 }
 
-static const char *
-unpack_data(const char *c, void *ptr, size_t sz) {
-  unsigned char *u = (unsigned char *) ptr;
-  const unsigned char *eu = u + sz;
+static const char* unpack_data(const char* c, void* ptr, size_t sz)
+{
+  unsigned char* u = (unsigned char*) ptr;
+  const unsigned char* eu = u + sz;
   for (; u != eu; ++u) {
     char d = *(c++);
     unsigned char uu;
     if ((d >= '0') && (d <= '9'))
-      uu = (unsigned char)((d - '0') << 4);
+      uu = (unsigned char) ((d - '0') << 4);
     else if ((d >= 'a') && (d <= 'f'))
-      uu = (unsigned char)((d - ('a'-10)) << 4);
+      uu = (unsigned char) ((d - ('a' - 10)) << 4);
     else
-      return (char *) 0;
+      return (char*) 0;
     d = *(c++);
     if ((d >= '0') && (d <= '9'))
-      uu |= (unsigned char)(d - '0');
+      uu |= (unsigned char) (d - '0');
     else if ((d >= 'a') && (d <= 'f'))
-      uu |= (unsigned char)(d - ('a'-10));
+      uu |= (unsigned char) (d - ('a' - 10));
     else
-      return (char *) 0;
+      return (char*) 0;
     *u = uu;
   }
   return c;
 }
 
-void convertPtrFromString(const char *c, void **ptr) {
+void convertPtrFromString(const char* c, void** ptr)
+{
   assert(*c == '_');
   c++;
-  c = unpack_data(c,ptr,sizeof(void *));
+  c = unpack_data(c, ptr, sizeof(void*));
 }
 
-void Restructure::run(char* liberty_file_name,
-                      float slack_threshold,
-                      unsigned max_depth,
-                      char* workdir_name,
-                      char* abc_logfile,
-                      bool cut_restructure, //if true, use cut restructuring
-                      //cut mapping options
-                      char* head_pin_str, //if set we start resynthesis from here		      
-                      bool unconstrained, //if true, don't use wavefront method for cuts
-                      bool single_op_cut, //if true, only use single output cuts,
-                      bool oracle, //if true use oracle remapping method
-                      char* script,
-                      bool verify) //if set we apply script method.
-  
+void Restructure::run(
+    char* liberty_file_name,
+    float slack_threshold,
+    unsigned max_depth,
+    char* workdir_name,
+    char* abc_logfile,
+    bool cut_restructure,  // if true, use cut restructuring
+    // cut mapping options
+    char* head_pin_str,  // if set we start resynthesis from here
+    bool unconstrained,  // if true, don't use wavefront method for cuts
+    bool single_op_cut,  // if true, only use single output cuts,
+    bool oracle,         // if true use oracle remapping method
+    char* script,
+    bool verify)  // if set we apply script method.
+
 {
   if (cut_restructure == true) {
     sta::Pin* head_pin = nullptr;
-    void* ptr=nullptr;
-    if (head_pin_str == nullptr ||
-        *head_pin_str == '0' ||
-        *head_pin_str == '\0')
+    void* ptr = nullptr;
+    if (head_pin_str == nullptr || *head_pin_str == '0'
+        || *head_pin_str == '\0')
       head_pin = nullptr;
-    else{
+    else {
 #ifdef DEBUG_GENERIC_RESTRUCT
-      printf("Converting head string pointer from %s\n",
-             head_pin_str);
-#endif      
-      convertPtrFromString(head_pin_str,&ptr);
+      printf("Converting head string pointer from %s\n", head_pin_str);
+#endif
+      convertPtrFromString(head_pin_str, &ptr);
     }
-    if (ptr){
-      head_pin = (sta::Pin*)ptr;
+    if (ptr) {
+      head_pin = (sta::Pin*) ptr;
     }
     cutresynthrun(liberty_file_name,
                   script,
@@ -350,7 +356,6 @@ void Restructure::getBlob(unsigned max_depth)
   //  sta::PinSet ends;
   //
   sta::PinSet ends(open_sta_->getDbNetwork());
-
 
   getEndPoints(ends, is_area_mode_, max_depth);
   if (ends.size()) {
@@ -1009,8 +1014,8 @@ bool Restructure::isPrimary(sta::Network* nwk, sta::Vertex* v)
   Walk back through instance input, building cut set.
 */
 void Restructure::generateWaveFrontSingleOpCutSet(sta::Network* nwk,
-						  sta::Instance* root,
-						  std::vector<Cut*>& cut_set)
+                                                  sta::Instance* root,
+                                                  std::vector<Cut*>& cut_set)
 {
   CutGen cut_generator(nwk, nullptr);
   cut_generator.GenerateInstanceWaveFrontCutSet(root, cut_set);
@@ -1018,12 +1023,12 @@ void Restructure::generateWaveFrontSingleOpCutSet(sta::Network* nwk,
 
 // Build cut from output pin
 void Restructure::generateWaveFrontSingleOpCutSet(sta::Network* nwk,
-                                      sta::Pin* root,
-                                      std::vector<Cut*>& cut_set)
+                                                  sta::Pin* root,
+                                                  std::vector<Cut*>& cut_set)
 {
   if (nwk->direction(root)->isOutput()) {
-    sta::Instance* cur_inst = nwk ->instance(root);
-    generateWaveFrontSingleOpCutSet(nwk,cur_inst, cut_set);
+    sta::Instance* cur_inst = nwk->instance(root);
+    generateWaveFrontSingleOpCutSet(nwk, cur_inst, cut_set);
   }
 }
 
@@ -1041,8 +1046,8 @@ void Restructure::generateWaveFrontSingleOpCutSet(sta::Network* nwk,
 */
 
 void Restructure::generateUnconstrainedCut(sta::Pin* head_pin,
-					   bool single_op,
-					   std::vector<Cut*>& cut_set)
+                                           bool single_op,
+                                           std::vector<Cut*>& cut_set)
 {
   sta::Graph* graph = open_sta_->ensureGraph();
   open_sta_->ensureLevelized();
@@ -1050,7 +1055,7 @@ void Restructure::generateUnconstrainedCut(sta::Pin* head_pin,
   int cut_id = 0;
   sta::Sta* sta = sta::Sta::sta();
   sta::Network* nwk = open_sta_->getDbNetwork();
-  
+
   // generate a single output cut from a start pin, head_pin
   if (single_op) {
     // get the driver (note a root is a memory or similar)
@@ -1074,7 +1079,7 @@ void Restructure::generateUnconstrainedCut(sta::Pin* head_pin,
             const sta::Pin* driving_pin = fanin_pin_iter->next();
             if (nwk->direction(driving_pin)->isOutput()) {
               cur_inst = nwk->instance(driving_pin);
-              generateWaveFrontSingleOpCutSet(nwk,cur_inst, cut_set);
+              generateWaveFrontSingleOpCutSet(nwk, cur_inst, cut_set);
               return;
             }
           }
@@ -1084,7 +1089,7 @@ void Restructure::generateUnconstrainedCut(sta::Pin* head_pin,
   } else {
     // generate a multiple output cut
     // sort based on slack time: most negative first.
-    std::set<sta::Vertex*> end_points;    
+    std::set<sta::Vertex*> end_points;
     std::multimap<float, sta::Vertex*> sorted_slack_times;  // slack -> vertex
     std::multimap<sta::Vertex*, float> vertex_slack_times;  // vertex -> slack
     // visitor
@@ -1133,7 +1138,8 @@ void Restructure::generateUnconstrainedCut(sta::Pin* head_pin,
   (This is equivalent to a blob in OpenROAD speak).
 */
 
-void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool single_op)
+void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set,
+                                            bool single_op)
 {
   sta::Graph* graph = open_sta_->ensureGraph();
   open_sta_->ensureLevelized();
@@ -1192,7 +1198,7 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
         sta::PinSet::Iterator drvr_iter(drivers);
         sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
         sta::Instance* cur_inst = nwk->instance(driving_pin);
-        generateWaveFrontSingleOpCutSet(nwk,cur_inst, cut_set);
+        generateWaveFrontSingleOpCutSet(nwk, cur_inst, cut_set);
         return;
       } else {
         sta::Instance* cur_inst = nwk->instance(cur_pin);
@@ -1206,7 +1212,7 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
               const sta::Pin* driving_pin = fanin_pin_iter->next();
               if (nwk->direction(driving_pin)->isOutput()) {
                 cur_inst = nwk->instance(driving_pin);
-                generateWaveFrontSingleOpCutSet(nwk,cur_inst, cut_set);
+                generateWaveFrontSingleOpCutSet(nwk, cur_inst, cut_set);
                 return;
               }
             }
@@ -1227,7 +1233,6 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
       // check if cut degenerate.
       Cut* cut = extractCut(cut_id);
 
-      
       logger_->report(
           "Extracted cut {} with {} roots and {} leaves and Volume {} ",
           cut->id_,
@@ -1245,7 +1250,6 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
       //      printf("**Cut extracted\n");
       //      cut -> Print(stdout,nwk);
 
-      
       // remove visited vertices from stash of sorted & vertex slack times
       for (auto cut_root : cut->roots_) {
         sta::Vertex* root_vertex = graph->vertex(nwk->vertexId(cut_root));
@@ -1259,8 +1263,6 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool sin
     }
   }
 }
-
-
 
 void Restructure::updateVertexList(
     sta::Vertex* root,
@@ -1310,9 +1312,9 @@ void Restructure::walkBackwardsToTimingEndPointsR(sta::Graph* graph,
 {
 #ifdef DEBUG_GENERIC_RESTRUCT
   printf("Walking back to leaf points from pin %s depth %d\n",
-	 nwk -> pathName(start_pin),
-	 depth);
-#endif   
+         nwk->pathName(start_pin),
+         depth);
+#endif
   if (start_pin && pin_visited_.find(start_pin) == pin_visited_.end()) {
     pin_visited_.insert(start_pin);
     sta::Port* start_port = nwk->port(start_pin);
@@ -1325,11 +1327,9 @@ void Restructure::walkBackwardsToTimingEndPointsR(sta::Graph* graph,
         || ((end_points_.find(vertex) != end_points_.end()) && depth != 0)) {
       leaves_[start_pin] = leaves_.size();
 #ifdef DEBUG_GENERIC_RESTRUCT
-      printf("Inserted reg op leaf: %s\n",
-	 nwk -> pathName(start_pin),
-	 depth);
-#endif   
-      
+      printf("Inserted reg op leaf: %s\n", nwk->pathName(start_pin), depth);
+#endif
+
       return;
     }
     // hit an invariant point: the output of a primary port (top level port)
@@ -1337,34 +1337,30 @@ void Restructure::walkBackwardsToTimingEndPointsR(sta::Graph* graph,
              && isPrimary(nwk, vertex) && depth != 0) {
       leaves_[start_pin] = leaves_.size();
 #ifdef DEBUG_GENERIC_RESTRUCT
-      printf("Inserted primary ip leaf: %s\n",
-	 nwk -> pathName(start_pin),
-	 depth);
-#endif   
+      printf("Inserted primary ip leaf: %s\n", nwk->pathName(start_pin), depth);
+#endif
       return;
     }
-    
+
     // a primary output at depth 0 push down into hierarchy
     // (special start case)
-    else if (nwk->direction(start_port) ==
-	     sta::PortDirection::output()
-             && isPrimary(nwk, vertex) && depth == 0 ){
+    else if (nwk->direction(start_port) == sta::PortDirection::output()
+             && isPrimary(nwk, vertex) && depth == 0) {
       sta::Instance* cur_inst = nwk->instance(start_pin);
       sta::Term* below_term = nwk->term(start_pin);
       if (below_term) {
-	sta::Net* below_net = nwk->net(below_term);
-	// get driver
-	sta::NetPinIterator* fanin_pin_iter = nwk->pinIterator(below_net);
-	while (fanin_pin_iter->hasNext()) {
-	  const sta::Pin* driving_pin = fanin_pin_iter->next();
-	  if (nwk->direction(driving_pin) == sta::PortDirection::output()){
-	    walkBackwardsToTimingEndPointsR(graph, nwk,
-                                      const_cast<sta::Pin*>(driving_pin),
-                                      depth + 1);
-	  }
-	}
+        sta::Net* below_net = nwk->net(below_term);
+        // get driver
+        sta::NetPinIterator* fanin_pin_iter = nwk->pinIterator(below_net);
+        while (fanin_pin_iter->hasNext()) {
+          const sta::Pin* driving_pin = fanin_pin_iter->next();
+          if (nwk->direction(driving_pin) == sta::PortDirection::output()) {
+            walkBackwardsToTimingEndPointsR(
+                graph, nwk, const_cast<sta::Pin*>(driving_pin), depth + 1);
+          }
+        }
       }
-      return;      
+      return;
     }
     // an instance input
     else if (nwk->direction(start_port) == sta::PortDirection::input()
@@ -1423,10 +1419,9 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
     sta::Vertex* vertex = graph->vertex(nwk->vertexId(start_pin));
 
 #ifdef DEBUG_GENERIC_RESTRUCT
-    printf("D %d Walking forwards from pin %s\n",
-	   debug,
-	   nwk -> pathName(start_pin));
-#endif    
+    printf(
+        "D %d Walking forwards from pin %s\n", debug, nwk->pathName(start_pin));
+#endif
     // hit an end point. we are done
     if ((end_points_.find(vertex) != end_points_.end()) && depth != 0) {
       // avoid make clock and reset lines points for resynthesis
@@ -1453,10 +1448,9 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
         walkForwardsToTimingEndPointsR(graph, nwk, connected_pin, depth + 1);
       }
     }
-    
+
     // output of an instance
     else if (nwk->direction(start_port) == sta::PortDirection::output()) {
-
       sta::PinConnectedPinIterator* connected_pin_iter
           = nwk->connectedPinIterator(start_pin);
       sta::Instance* cur_inst = nwk->instance(start_pin);
@@ -1482,34 +1476,35 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
         if (nwk->direction(nwk->port(cur_pin))
             == sta::PortDirection::output()) {
           // get the fanout of the pin
-	  printf("**Walking forwards from  output pin %s\n",
-		 nwk -> name(cur_pin));
+          printf("**Walking forwards from  output pin %s\n",
+                 nwk->name(cur_pin));
 
-	  //code to handle terms, to allow hierarchy traversal
+          // code to handle terms, to allow hierarchy traversal
           sta::Net* cur_net = nwk->net(cur_pin);
           if (cur_net) {
-	    //code to handle terms, to allow hierarchy traversal
-	    sta::NetTermIterator* fanout_term_iter = nwk -> termIterator(cur_net);
-	    while (fanout_term_iter -> hasNext()){
-	      const sta::Term* fanout_term = fanout_term_iter -> next();
-	      sta::Pin* fanout_pin = nwk -> pin(fanout_term);
-	      sta::Vertex* vertex = graph->vertex(nwk->vertexId(fanout_pin));
-	      if ((nwk -> direction(fanout_pin)== sta::PortDirection::output()) &&
-		  isPrimary(nwk,vertex)){
-		printf("**Term: Hit primary output %s\n", nwk -> name(fanout_pin));
-		roots_[fanout_pin] = roots_.size();
-	      }
-	    }
-	    
+            // code to handle terms, to allow hierarchy traversal
+            sta::NetTermIterator* fanout_term_iter = nwk->termIterator(cur_net);
+            while (fanout_term_iter->hasNext()) {
+              const sta::Term* fanout_term = fanout_term_iter->next();
+              sta::Pin* fanout_pin = nwk->pin(fanout_term);
+              sta::Vertex* vertex = graph->vertex(nwk->vertexId(fanout_pin));
+              if ((nwk->direction(fanout_pin) == sta::PortDirection::output())
+                  && isPrimary(nwk, vertex)) {
+                printf("**Term: Hit primary output %s\n",
+                       nwk->name(fanout_pin));
+                roots_[fanout_pin] = roots_.size();
+              }
+            }
+
             sta::NetPinIterator* fanout_pin_iter = nwk->pinIterator(cur_net);
             while (fanout_pin_iter->hasNext()) {
               const sta::Pin* fanout_pin = fanout_pin_iter->next();
               if (fanout_pin != cur_pin) {
                 sta::Vertex* vertex = graph->vertex(nwk->vertexId(fanout_pin));
-		if (isPrimary(nwk,vertex))
-		  printf("**Hit primary output pin %s\n",
-			 nwk -> name(fanout_pin));
-		
+                if (isPrimary(nwk, vertex))
+                  printf("**Hit primary output pin %s\n",
+                         nwk->name(fanout_pin));
+
                 if (isPrimary(nwk, vertex) || isRegInput(nwk, vertex)) {
                   if ((strstr(nwk->pathName(fanout_pin), "CK"))
                       || (strstr(nwk->pathName(fanout_pin), "RN"))
@@ -1523,15 +1518,15 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
                       roots_[const_cast<sta::Pin*>(fanout_pin)] = roots_.size();
                   }
                 } else {
-		  sta::Port* next_port = nwk -> port(fanout_pin);
-		  sta::Vertex* next_vertex = graph -> vertex(nwk -> vertexId(fanout_pin));
-		  if (nwk -> direction(fanout_pin) == sta::PortDirection::output() &&
-		      isPrimary(nwk,next_vertex)){
-		    printf("Hit primary output root !\n");
-		    roots_[const_cast<sta::Pin*>(fanout_pin)] = roots_.size();		    
-		  }
-		  else  if (nwk->direction(fanout_pin)
-                      == sta::PortDirection::input()) {
+                  sta::Port* next_port = nwk->port(fanout_pin);
+                  sta::Vertex* next_vertex
+                      = graph->vertex(nwk->vertexId(fanout_pin));
+                  if (nwk->direction(fanout_pin) == sta::PortDirection::output()
+                      && isPrimary(nwk, next_vertex)) {
+                    printf("Hit primary output root !\n");
+                    roots_[const_cast<sta::Pin*>(fanout_pin)] = roots_.size();
+                  } else if (nwk->direction(fanout_pin)
+                             == sta::PortDirection::input()) {
                     walkForwardsToTimingEndPointsR(
                         graph,
                         nwk,
@@ -1591,83 +1586,85 @@ void Cut2Ntk::CleanUpNetNets()
 
 void Cut::Print(FILE* fp, sta::Network* nwk)
 {
-  fprintf(fp,"Cut %d\n", id_);
-  fprintf(fp,"---\n");
-  fprintf(fp,"Roots:\n");
+  fprintf(fp, "Cut %d\n", id_);
+  fprintf(fp, "---\n");
+  fprintf(fp, "Roots:\n");
   for (auto r : roots_)
-    fprintf(fp,"Root %s (%s)\n", nwk->pathName(r), nwk -> direction(r) -> isInput() ? "IP" : "OP");
-  fprintf(fp,"Leaves:\n");
-  for (auto l : leaves_){
-    sta::Net* net = nwk -> net(l);
-    if (net == nullptr){
+    fprintf(fp,
+            "Root %s (%s)\n",
+            nwk->pathName(r),
+            nwk->direction(r)->isInput() ? "IP" : "OP");
+  fprintf(fp, "Leaves:\n");
+  for (auto l : leaves_) {
+    sta::Net* net = nwk->net(l);
+    if (net == nullptr) {
       sta::Pin* unconst_pin = const_cast<sta::Pin*>(l);
       sta::Term* term = reinterpret_cast<sta::Term*>(unconst_pin);
-      net = nwk-> net(term);
+      net = nwk->net(term);
     }
-    fprintf(fp,"Leaf %s (%s) net %s\n",
+    fprintf(fp,
+            "Leaf %s (%s) net %s\n",
             nwk->pathName(l),
-            nwk -> direction(l) -> isInput() ? "IP" : "OP",
-            net ? nwk -> name(net): "null"
-            );
+            nwk->direction(l)->isInput() ? "IP" : "OP",
+            net ? nwk->name(net) : "null");
 
     std::set<const sta::Pin*> visited;
     visited.insert(l);
     sta::PinConnectedPinIterator* connected_pin_iter
-      = nwk->connectedPinIterator(l);
-        while (connected_pin_iter->hasNext()) {
-          sta::Pin* connected_pin
-            = const_cast<sta::Pin*>(connected_pin_iter->next());
-          if (visited.find(connected_pin)==visited.end()){
-            visited.insert(connected_pin);
-            fprintf(fp, " -> %s \n",
-                    nwk -> name(connected_pin));
-          }
-        }
+        = nwk->connectedPinIterator(l);
+    while (connected_pin_iter->hasNext()) {
+      sta::Pin* connected_pin
+          = const_cast<sta::Pin*>(connected_pin_iter->next());
+      if (visited.find(connected_pin) == visited.end()) {
+        visited.insert(connected_pin);
+        fprintf(fp, " -> %s \n", nwk->name(connected_pin));
+      }
+    }
   }
-  
-  fprintf(fp,"Volume:\n");
-  for (auto v : volume_){
-    fprintf(fp,"V: %s (cell; %s)\n", nwk->pathName(v),
-            nwk -> name(nwk -> cell(v)));
-    sta::InstancePinIterator *ip = nwk -> pinIterator(v);
-    while (ip -> hasNext()){
+
+  fprintf(fp, "Volume:\n");
+  for (auto v : volume_) {
+    fprintf(
+        fp, "V: %s (cell; %s)\n", nwk->pathName(v), nwk->name(nwk->cell(v)));
+    sta::InstancePinIterator* ip = nwk->pinIterator(v);
+    while (ip->hasNext()) {
       std::set<const sta::Pin*> visited;
-      const sta::Pin* cur_pin = ip -> next();
-      if (nwk -> direction(cur_pin) -> isInput()){
+      const sta::Pin* cur_pin = ip->next();
+      if (nwk->direction(cur_pin)->isInput()) {
         visited.insert(cur_pin);
-        sta::Net* cur_net = nwk -> net(cur_pin);              
-        sta::PinSet* drivers = nwk-> drivers(cur_net);
-        if (drivers){
+        sta::Net* cur_net = nwk->net(cur_pin);
+        sta::PinSet* drivers = nwk->drivers(cur_net);
+        if (drivers) {
           sta::PinSet::Iterator drvr_iter(drivers);
           sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
-          fprintf(fp,"Ip %s (net %s) <- %s\n",
-                  nwk -> name(cur_pin),
-                  cur_net ? nwk -> name(cur_net): "empty",
-                  nwk -> name(driving_pin));
+          fprintf(fp,
+                  "Ip %s (net %s) <- %s\n",
+                  nwk->name(cur_pin),
+                  cur_net ? nwk->name(cur_net) : "empty",
+                  nwk->name(driving_pin));
         }
-      }
-      else{
-        sta::Net* cur_net = nwk -> net(cur_pin);
+      } else {
+        sta::Net* cur_net = nwk->net(cur_pin);
         sta::PinConnectedPinIterator* connected_pin_iter
-          = nwk->connectedPinIterator(cur_pin);
-        fprintf(fp, "Op %s (net %s) ",nwk -> name(cur_pin),
-                cur_net ? nwk -> name(cur_net): "none"
-                );
+            = nwk->connectedPinIterator(cur_pin);
+        fprintf(fp,
+                "Op %s (net %s) ",
+                nwk->name(cur_pin),
+                cur_net ? nwk->name(cur_net) : "none");
         visited.insert(cur_pin);
         while (connected_pin_iter->hasNext()) {
           sta::Pin* connected_pin
-            = const_cast<sta::Pin*>(connected_pin_iter->next());
-          if (visited.find(connected_pin)==visited.end()){
+              = const_cast<sta::Pin*>(connected_pin_iter->next());
+          if (visited.find(connected_pin) == visited.end()) {
             visited.insert(connected_pin);
-            fprintf(fp, " -> %s ",
-                    nwk -> name(connected_pin));
+            fprintf(fp, " -> %s ", nwk->name(connected_pin));
           }
         }
       }
     }
-    fprintf(fp,"\n");
+    fprintf(fp, "\n");
   }
-  fprintf(fp,"---\n");
+  fprintf(fp, "---\n");
 }
 
 void Cut::PrintVerilog(FILE* fp, sta::Network* nwk)
@@ -1675,124 +1672,107 @@ void Cut::PrintVerilog(FILE* fp, sta::Network* nwk)
   std::set<std::string> internal_wire_names;
   std::set<std::string> ip_names;
   std::set<std::string> op_names;
-  std::map<std::string,std::string> leaf_driver_names;
-  std::map<std::string,std::string> root_driver_names;  
+  std::map<std::string, std::string> leaf_driver_names;
+  std::map<std::string, std::string> root_driver_names;
 
   //  fprintf(fp,"//Verilog model for cut\n");
-  fprintf(fp,"module cut_%d (\n", id_);
+  fprintf(fp, "module cut_%d (\n", id_);
   //  fprintf(fp,"//outputs (roots)\n");
-  for (auto r : roots_){
-    fprintf(fp,"\\%s %s \n",
-            nwk -> name(r),
-            leaves_.size() > 0 ? ",":""
-            );
-    op_names.insert(nwk -> name(r));
+  for (auto r : roots_) {
+    fprintf(fp, "\\%s %s \n", nwk->name(r), leaves_.size() > 0 ? "," : "");
+    op_names.insert(nwk->name(r));
   }
   //  fprintf(fp,"//inputs (leaves)\n");
   int count = 1;
-  for (auto l : leaves_){
-    fprintf(fp,"\\%s %s\n",
-            nwk->name(l), (count < leaves_.size() ) ? ",":"");
-    ip_names.insert(nwk -> name(l));
+  for (auto l : leaves_) {
+    fprintf(fp, "\\%s %s\n", nwk->name(l), (count < leaves_.size()) ? "," : "");
+    ip_names.insert(nwk->name(l));
     count++;
   }
-  fprintf(fp,");\n");
+  fprintf(fp, ");\n");
 
-  for (auto r : roots_){
-    fprintf(fp,"output \\%s ;\n",
-            nwk -> name(r)
-            );
-    op_names.insert(nwk -> name(r));
+  for (auto r : roots_) {
+    fprintf(fp, "output \\%s ;\n", nwk->name(r));
+    op_names.insert(nwk->name(r));
   }
   //  fprintf(fp,"//inputs (leaves)\n");
-  for (auto l : leaves_){
-    fprintf(fp,"input \\%s ;\n",
-            nwk->name(l));
-    ip_names.insert(nwk -> name(l));
-  }  
-  
+  for (auto l : leaves_) {
+    fprintf(fp, "input \\%s ;\n", nwk->name(l));
+    ip_names.insert(nwk->name(l));
+  }
+
   bool is_internal_net = false;
-  for (auto v : volume_){
-    sta::InstancePinIterator *ip = nwk -> pinIterator(v);
-    while (ip -> hasNext()){
+  for (auto v : volume_) {
+    sta::InstancePinIterator* ip = nwk->pinIterator(v);
+    while (ip->hasNext()) {
       std::set<const sta::Pin*> visited;
-      const sta::Pin* cur_pin = ip -> next();
-      sta::Net* cur_net = nwk -> net(cur_pin);
+      const sta::Pin* cur_pin = ip->next();
+      sta::Net* cur_net = nwk->net(cur_pin);
 
       is_internal_net = true;
-      if (cur_net){
-        //get driver
+      if (cur_net) {
+        // get driver
         sta::PinSet* drivers = nwk->drivers(cur_pin);
         sta::PinSet::Iterator drvr_iter(drivers);
-        std::string net_name = nwk -> name(cur_net);
+        std::string net_name = nwk->name(cur_net);
         if (drivers) {
           sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
-          if (ip_names.find(nwk -> name(driving_pin))!=ip_names.end()){
-            leaf_driver_names[net_name]=nwk -> name(driving_pin);
+          if (ip_names.find(nwk->name(driving_pin)) != ip_names.end()) {
+            leaf_driver_names[net_name] = nwk->name(driving_pin);
             is_internal_net = false;
           }
         }
-        if (op_names.find(nwk-> name(cur_pin)) != op_names.end()){
-          root_driver_names[nwk-> name(cur_pin)]=nwk -> name(cur_net);
-          is_internal_net = false;          
+        if (op_names.find(nwk->name(cur_pin)) != op_names.end()) {
+          root_driver_names[nwk->name(cur_pin)] = nwk->name(cur_net);
+          is_internal_net = false;
         }
 
-        if (is_internal_net && (nwk -> direction(cur_pin) -> isOutput())){
-          internal_wire_names.insert(nwk -> name(cur_net));
+        if (is_internal_net && (nwk->direction(cur_pin)->isOutput())) {
+          internal_wire_names.insert(nwk->name(cur_net));
         }
       }
     }
   }
-  
+
   //  fprintf(fp,"//wires from leaf inputs\n");
-  for (auto n: leaf_driver_names){
-    if (n.first == n.second &&
-        ip_names.find(n.first) != ip_names.end())
+  for (auto n : leaf_driver_names) {
+    if (n.first == n.second && ip_names.find(n.first) != ip_names.end())
       continue;
-    
-    fprintf(fp,"wire \\%s ; \n", n.first.c_str());
-    fprintf(fp,"assign \\%s = \\%s ; \n",
-            n.first.c_str(),
-            n.second.c_str());
+
+    fprintf(fp, "wire \\%s ; \n", n.first.c_str());
+    fprintf(fp, "assign \\%s = \\%s ; \n", n.first.c_str(), n.second.c_str());
   }
   //  fprintf(fp,"//wires driving root outputs\n");
-  for (auto n: root_driver_names){
-    fprintf(fp,"wire \\%s ; \n", n.second.c_str());
-    fprintf(fp,"assign \\%s = \\%s ; \n",
-            n.first.c_str(),
-            n.second.c_str());
-  }
-  
-  //  fprintf(fp,"//internal wires from leaf cell outputs\n");
-  for (auto n: internal_wire_names){
-    fprintf(fp,"wire \\%s ;\n",
-            n.c_str());
+  for (auto n : root_driver_names) {
+    fprintf(fp, "wire \\%s ; \n", n.second.c_str());
+    fprintf(fp, "assign \\%s = \\%s ; \n", n.first.c_str(), n.second.c_str());
   }
 
-    
+  //  fprintf(fp,"//internal wires from leaf cell outputs\n");
+  for (auto n : internal_wire_names) {
+    fprintf(fp, "wire \\%s ;\n", n.c_str());
+  }
+
   //  fprintf(fp,"//Volume:\n");
   //  fprintf(fp,"//Note wires are implicit except for port connections\n");
-  for (auto v : volume_){
-    sta::Cell* cur_cell = nwk -> cell(v);
-    fprintf(fp,"%s \\%s (",
-            nwk -> name(cur_cell),
-            nwk -> name(v));
-    sta::InstancePinIterator *ipi = nwk -> pinIterator(v);
-    int pin_count= nwk -> pinCount(v);
-    while (ipi -> hasNext()){
-      const sta::Pin* cur_pin = ipi -> next();
-      sta::Net* cur_net = nwk -> net(cur_pin);              
-      fprintf(fp," .%s( \\%s ) %s ",
-              nwk -> name(nwk -> port(cur_pin)),
-              cur_net ?
-              nwk -> name(cur_net):
-              nwk -> name(cur_pin),
-              pin_count !=1 ? ",":"");
+  for (auto v : volume_) {
+    sta::Cell* cur_cell = nwk->cell(v);
+    fprintf(fp, "%s \\%s (", nwk->name(cur_cell), nwk->name(v));
+    sta::InstancePinIterator* ipi = nwk->pinIterator(v);
+    int pin_count = nwk->pinCount(v);
+    while (ipi->hasNext()) {
+      const sta::Pin* cur_pin = ipi->next();
+      sta::Net* cur_net = nwk->net(cur_pin);
+      fprintf(fp,
+              " .%s( \\%s ) %s ",
+              nwk->name(nwk->port(cur_pin)),
+              cur_net ? nwk->name(cur_net) : nwk->name(cur_pin),
+              pin_count != 1 ? "," : "");
       pin_count--;
     }
-    fprintf(fp,");\n");
+    fprintf(fp, ");\n");
   }
-  fprintf(fp,"endmodule ");
+  fprintf(fp, "endmodule ");
 }
 
 //
@@ -1840,11 +1820,10 @@ bool Cut::Check(sta::Network* nwk)
         ret = false;
       }
 
-
       // Check that every sink is either a root or something in the volume
 
-      //check that every root is driven by something.
-      
+      // check that every root is driven by something.
+
       // Check that every driver is either driven by something in the volume
       // or a leaf
       if (nwk->direction(cur_pin)->isInput()) {
@@ -1863,7 +1842,8 @@ bool Cut::Check(sta::Network* nwk)
             ret = false;
           }
         } else {
-          printf("Warning No driver found for pin %s\n", nwk->pathName(cur_pin));
+          printf("Warning No driver found for pin %s\n",
+                 nwk->pathName(cur_pin));
           ret = false;
         }
       }
@@ -1907,23 +1887,20 @@ void Restructure::AmendCutForEscapeLeaves(sta::Network* nwk)
   }
 }
 
-
-
-//Axiom: we require the cut to pass the cut check
+// Axiom: we require the cut to pass the cut check
 Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
 {
-  
   // Now build the abc view of the cut
   abc_nwk_ = (Abc_NtkAlloc(ABC_NTK_NETLIST, ABC_FUNC_SOP, 1));
   Abc_NtkSetName(abc_nwk_, Extra_UtilStrsav(cut_name_.c_str()));
 
   // create the Primary i/o corresponding to the terminals of the cut
 
-  //First make the primary outputs.
-  //Note we make a net for each primary output.
-  //This will eventually lead to a net -> net connection, but that's ok !
+  // First make the primary outputs.
+  // Note we make a net for each primary output.
+  // This will eventually lead to a net -> net connection, but that's ok !
   //
-  
+
   for (auto po : cut_->roots_) {
     Abc_Obj_t* abc_po = Abc_NtkCreatePo(abc_nwk_);
     po_table_[po] = abc_po;
@@ -1931,13 +1908,13 @@ Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
     Abc_Obj_t* abc_op_net = Abc_NtkCreateNet(abc_nwk_);
     Abc_ObjAssignName(abc_op_net, (char*) (sta_nwk_->pathName(po)), NULL);
     Abc_ObjAddFanin(abc_po, abc_op_net);
-    //Note that if we have something driven within the cut
-    //by a po, then the driving net will be found in this table.
+    // Note that if we have something driven within the cut
+    // by a po, then the driving net will be found in this table.
     net_table_sta2abc_[po] = abc_op_net;
     net_table_abc2sta_[abc_op_net] = po;
   }
 
-  //create the nets for the primary inputs.
+  // create the nets for the primary inputs.
   for (auto pi : cut_->leaves_) {
     Abc_Obj_t* abc_pi = Abc_NtkCreatePi(abc_nwk_);
     Abc_ObjAssignName(abc_pi, (char*) (sta_nwk_->pathName(pi)), NULL);
@@ -1946,10 +1923,10 @@ Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
 
     Abc_ObjAssignName(abc_ip_net, (char*) (sta_nwk_->pathName(pi)), NULL);
     Abc_ObjAddFanin(abc_ip_net, abc_pi);
-    net_table_sta2abc_[pi] = abc_ip_net; //input pin to abc net
+    net_table_sta2abc_[pi] = abc_ip_net;  // input pin to abc net
     net_table_abc2sta_[abc_ip_net] = pi;
   }
-  
+
   // create the instances for each gate in the cut
   // while doing this make the gate input nets and hook them up.
   // Check that we have not already got a net on the driver
@@ -1960,21 +1937,20 @@ Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
     Abc_Obj_t* cur_gate = CreateGate(cur_inst);
   }
 
+  //
+  // Sanity checking..
+  // Go through each gate and make sure its
+  // inputs are driven.
+  // At this point we expect everything to have a driver
+  //
 
-  //
-  //Sanity checking..
-  //Go through each gate and make sure its
-  //inputs are driven.
-  //At this point we expect everything to have a driver
-  //
-  
   for (auto cur_inst : cut_->volume_) {
-    sta::Cell* cell = sta_nwk_ -> cell(cur_inst);
+    sta::Cell* cell = sta_nwk_->cell(cur_inst);
     sta::CellPortIterator* cell_iter = sta_nwk_->portIterator(cell);
-    while (cell_iter -> hasNext()){
-      sta::Port* cell_port = cell_iter -> next();
-      const sta::Pin* cur_pin = sta_nwk_ -> findPin(cur_inst,
-                                                    sta_nwk_-> name(cell_port));
+    while (cell_iter->hasNext()) {
+      sta::Port* cell_port = cell_iter->next();
+      const sta::Pin* cur_pin
+          = sta_nwk_->findPin(cur_inst, sta_nwk_->name(cell_port));
       if (sta_nwk_->direction(cur_pin)->isInput()) {
         const sta::Pin* ip_pin = cur_pin;
         sta::PinSet* drvrs = sta_nwk_->drivers(ip_pin);
@@ -1982,7 +1958,7 @@ Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
           sta::PinSet::Iterator drvr_iter(drvrs);
           const sta::Pin* driving_pin = drvr_iter.next();
           Abc_Obj_t* driver = net_table_sta2abc_[driving_pin];
-          //We rationally expect a driver for every input for every gate.
+          // We rationally expect a driver for every input for every gate.
           if (!driver) {
             logger_->warn(RMP,
                           100,
@@ -2001,7 +1977,7 @@ Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
   // We may have wired up the root when creating the gates
   // in which case the abc object for the root will have
   // a fanin count > 0. And that is ok !
-  //   
+  //
   for (auto root_pin : cut_->roots_) {
     Abc_Obj_t* abc_sink_net = net_table_sta2abc_[root_pin];
     // make sure not already wired up (in case of PI -> PO,
@@ -2013,14 +1989,14 @@ Abc_Ntk_t* Cut2Ntk::BuildSopLogicNetlist()
         const sta::Pin* driving_pin = drvr_iter.next();
         Abc_Obj_t* abc_driver = net_table_sta2abc_[driving_pin];
         assert(abc_driver);
-        //note this can make a net -> net connection
-        //we clean this up later.
+        // note this can make a net -> net connection
+        // we clean this up later.
         Abc_ObjAddFanin(abc_sink_net /* thing driven */,
                         abc_driver /* fanin */);
       }
     }
   }
-  
+
   //
   // remove the net -> net connections
   // These are created from our over zealous net creation scheme
@@ -2046,26 +2022,25 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
   static int debug;
   debug++;
 
-  sta::Cell* cur_cell =  sta_nwk_ -> cell(cur_inst);
-  
-  //port name to abc input net (for this gate),
-  //Port name order invariant.
-  //we keep the nets on the driving pins
-  
-  std::map<std::string,Abc_Obj_t*>  ip_nets;
+  sta::Cell* cur_cell = sta_nwk_->cell(cur_inst);
 
-  //Get the input nets in port order
+  // port name to abc input net (for this gate),
+  // Port name order invariant.
+  // we keep the nets on the driving pins
+
+  std::map<std::string, Abc_Obj_t*> ip_nets;
+
+  // Get the input nets in port order
   sta::CellPortIterator* cell_port_iter = sta_nwk_->portIterator(cur_cell);
   while (cell_port_iter->hasNext()) {
     const sta::Port* cell_port = cell_port_iter->next();
-    const std::string port_name = sta_nwk_ -> name(cell_port);
-    //Note that we fetch the pin for the port
-    //We are keeping the port <-> pin correlation here.
-    //no weird indexing, use name.
-    const sta::Pin* cur_pin = sta_nwk_ -> findPin(cur_inst,
-                                                  sta_nwk_-> name(cell_port)
-                                                  );
-    if (cur_pin){
+    const std::string port_name = sta_nwk_->name(cell_port);
+    // Note that we fetch the pin for the port
+    // We are keeping the port <-> pin correlation here.
+    // no weird indexing, use name.
+    const sta::Pin* cur_pin
+        = sta_nwk_->findPin(cur_inst, sta_nwk_->name(cell_port));
+    if (cur_pin) {
       if (sta_nwk_->direction(cur_pin)->isInput()) {
         // Check, have we already created a net for this pin driver?
         // If so use it, else create a new one
@@ -2073,19 +2048,19 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
         if (drvrs) {
           sta::PinSet::Iterator drvr_iter(drvrs);
           const sta::Pin* driving_pin = drvr_iter.next();
-          //we stash the net on the driving pin
-          //if we have the net use it.
-          if (net_table_sta2abc_.find(driving_pin) != net_table_sta2abc_.end()) {
+          // we stash the net on the driving pin
+          // if we have the net use it.
+          if (net_table_sta2abc_.find(driving_pin)
+              != net_table_sta2abc_.end()) {
             Abc_Obj_t* driver = net_table_sta2abc_[driving_pin];
-            ip_nets[port_name]=driver; //ip nets indexed by port name
+            ip_nets[port_name] = driver;  // ip nets indexed by port name
           } else {
-            //else make it
+            // else make it
             Abc_Obj_t* ip_net = Abc_NtkCreateNet(abc_nwk_);
             Abc_ObjAssignName(
-                              ip_net,
-                              (char*) (sta_nwk_->pathName(cur_pin)), NULL);
-            ip_nets[port_name]=ip_net;
-            //note we keep only driving pin in table
+                ip_net, (char*) (sta_nwk_->pathName(cur_pin)), NULL);
+            ip_nets[port_name] = ip_net;
+            // note we keep only driving pin in table
             net_table_sta2abc_[driving_pin] = ip_net;
             net_table_abc2sta_[ip_net] = driving_pin;
           }
@@ -2093,26 +2068,26 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
       }
     }
   }
-  
-  //now create the gate and hook it up
+
+  // now create the gate and hook it up
   cell_port_iter = sta_nwk_->portIterator(cur_cell);
   while (cell_port_iter->hasNext()) {
     const sta::Port* cell_port = cell_port_iter->next();
-    const sta::Pin* cur_pin = sta_nwk_ -> findPin(cur_inst,
-                                                  sta_nwk_-> name(cell_port));    
+    const sta::Pin* cur_pin
+        = sta_nwk_->findPin(cur_inst, sta_nwk_->name(cell_port));
     if (sta_nwk_->direction(cur_pin)->isOutput()) {
       const sta::Pin* op_pin = cur_pin;
-   
+
       sta::LibertyPort* lp = sta_nwk_->libertyPort(op_pin);
-      std::map<int,std::string> ix2portname;
+      std::map<int, std::string> ix2portname;
       if (lp && lp->function()) {
         // Get the kit representation
         int var_count = 0;
         /*word32*/ unsigned* kit_tables;
-        FuncExpr2Kit(lp->function(), var_count, kit_tables,ix2portname);
-        //for now we can only handle upto 5 vars.
+        FuncExpr2Kit(lp->function(), var_count, kit_tables, ix2portname);
+        // for now we can only handle upto 5 vars.
         assert(var_count <= 5);
-        
+
         unsigned num_bits_to_set = (0x01 << var_count);
         unsigned mask = 0x00;
         for (unsigned j = 0; j < num_bits_to_set; j++)
@@ -2124,7 +2099,7 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
         //               var_count,
         //               kit_result);
         char* fn = Abc_SopCreateFromTruth(
-           static_cast<Mem_Flex_t_*>(abc_nwk_->pManFunc),
+            static_cast<Mem_Flex_t_*>(abc_nwk_->pManFunc),
             var_count,
             &kit_result);
 
@@ -2134,13 +2109,13 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
         // wire up the inputs
         // look up the index of each input by port
         // order.
-        
-        for (int i = 0; i < var_count; i++){
-          //get the port for the variable index
+
+        for (int i = 0; i < var_count; i++) {
+          // get the port for the variable index
           std::string port_name = ix2portname[i];
-          //get the net for the port
+          // get the net for the port
           Abc_Obj_t_* ip_net = ip_nets[port_name];
-          //get the driving pin for the net
+          // get the driving pin for the net
           const sta::Pin* driving_pin = net_table_abc2sta_[ip_net];
           /*
             printf("ip port [%d] %s driving pin %s  abc net %d Var ix %d\n",
@@ -2151,12 +2126,12 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
                  i);
           */
           //
-          //Note the abc truth table order is the variable
-          //index order 0..N-1
+          // Note the abc truth table order is the variable
+          // index order 0..N-1
           //
           Abc_ObjAddFanin(ret, ip_net);
         }
-        
+
         // wire up the output
         if (net_table_sta2abc_.find(op_pin) != net_table_sta2abc_.end()) {
           debug++;
@@ -2165,14 +2140,11 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
         } else {
           // make net and wire it in
           Abc_Obj_t* sop_op_net = Abc_NtkCreateNet(abc_nwk_);
-          //net name is same as output pin
+          // net name is same as output pin
           Abc_ObjAssignName(
-                            sop_op_net,
-                            (char*) (sta_nwk_->pathName(op_pin)),
-                            NULL
-                            );
+              sop_op_net, (char*) (sta_nwk_->pathName(op_pin)), NULL);
           Abc_ObjAddFanin(sop_op_net, ret);
-          //note that again we are stashing the net on the output pin
+          // note that again we are stashing the net on the output pin
           net_table_sta2abc_[op_pin] = sop_op_net;
           net_table_abc2sta_[sop_op_net] = op_pin;
         }
@@ -2180,7 +2152,7 @@ Abc_Obj_t* Cut2Ntk::CreateGate(const sta::Instance* cur_inst)
     }
   }
   return ret;
-  }
+}
 
 void PhysRemap::Remap()
 {
@@ -2191,11 +2163,11 @@ void PhysRemap::Remap()
   }
   // Build the abc network for the cut. This is sta -> abc conversion
   Cut2Ntk c2nwk(logger_, nwk_, cut_, cut_name_);
-  if (!cut_->Check(nwk_)){
+  if (!cut_->Check(nwk_)) {
     logger_->report("Error. Illegal cut");
     return;
   }
-  
+
   Abc_Ntk_t* sop_logic_nwk = c2nwk.BuildSopLogicNetlist();
 
   // Annotate the timing requirements. We have found the blif
@@ -2207,97 +2179,89 @@ void PhysRemap::Remap()
   // else remap the logic after structure hashing and balancing
   Abc_Ntk_t* cut_logic = Abc_NtkToLogic(sop_logic_nwk);
 
-  if (verify_){
-  //dress up the blif for formal
-  Abc_Ntk_t* nwk_logic = Abc_NtkToNetlist(cut_logic);
-  for (int i = 0; i < Abc_NtkPiNum(nwk_logic); i++) {
-    Abc_Obj_t* abc_pi = Abc_NtkPi(nwk_logic,i);
-    Abc_Obj_t* fanout_obj = Abc_ObjFanout0(abc_pi);
-    Nm_ManDeleteIdName(fanout_obj -> pNtk -> pManName,
-                       fanout_obj -> Id);
-    Abc_ObjAssignName(fanout_obj, (char*)
-                      (nwk_->pathName(cut_ -> leaves_[i])), NULL);
-  }
-  for (int i = 0; i < Abc_NtkPoNum(nwk_logic); i++) {
-    Abc_Obj_t* abc_po = Abc_NtkPo(nwk_logic,i);
-    Abc_Obj_t* fanin_obj = Abc_ObjFanin0(abc_po);
-    Nm_ManDeleteIdName(fanin_obj -> pNtk -> pManName,
-                       fanin_obj -> Id);
-    Abc_ObjAssignName(fanin_obj, (char*)
-                      (nwk_->pathName(cut_ -> roots_[i])), NULL);
-  }
-  
-  Abc_NtkSetName(nwk_logic, Extra_UtilStrsav(cut_name_.c_str()));
-  char fname[1000];
-  sprintf(fname,"ip_%d.blif",cut_ -> id_);
-  printf("Writing out cut %s for regression as blif file %s\n", cut_name_.c_str(),fname);
-  std::string op_name = fname;
-  Io_WriteBlif(nwk_logic, const_cast<char*>(op_name.c_str()),1,0,0);
-  }
+  if (verify_) {
+    // dress up the blif for formal
+    Abc_Ntk_t* nwk_logic = Abc_NtkToNetlist(cut_logic);
+    for (int i = 0; i < Abc_NtkPiNum(nwk_logic); i++) {
+      Abc_Obj_t* abc_pi = Abc_NtkPi(nwk_logic, i);
+      Abc_Obj_t* fanout_obj = Abc_ObjFanout0(abc_pi);
+      Nm_ManDeleteIdName(fanout_obj->pNtk->pManName, fanout_obj->Id);
+      Abc_ObjAssignName(
+          fanout_obj, (char*) (nwk_->pathName(cut_->leaves_[i])), NULL);
+    }
+    for (int i = 0; i < Abc_NtkPoNum(nwk_logic); i++) {
+      Abc_Obj_t* abc_po = Abc_NtkPo(nwk_logic, i);
+      Abc_Obj_t* fanin_obj = Abc_ObjFanin0(abc_po);
+      Nm_ManDeleteIdName(fanin_obj->pNtk->pManName, fanin_obj->Id);
+      Abc_ObjAssignName(
+          fanin_obj, (char*) (nwk_->pathName(cut_->roots_[i])), NULL);
+    }
 
-  
+    Abc_NtkSetName(nwk_logic, Extra_UtilStrsav(cut_name_.c_str()));
+    char fname[1000];
+    sprintf(fname, "ip_%d.blif", cut_->id_);
+    printf("Writing out cut %s for regression as blif file %s\n",
+           cut_name_.c_str(),
+           fname);
+    std::string op_name = fname;
+    Io_WriteBlif(nwk_logic, const_cast<char*>(op_name.c_str()), 1, 0, 0);
+  }
 
   if (1) {
     Abc_Ntk_t* pNtk = Abc_NtkStrash(cut_logic, 0, 0, 0);
-    Abc_Ntk_t* pNtk_res = Abc_NtkBalance(pNtk, 0, 0, 1);    
+    Abc_Ntk_t* pNtk_res = Abc_NtkBalance(pNtk, 0, 0, 1);
     Abc_FrameReplaceCurrentNetwork(Abc_FrameGetGlobalFrame(), pNtk_res);
     int status = 1;
     std::string script_to_apply = "map  -M 0 -p \n";
-    status = Cmd_CommandExecute(Abc_FrameGetGlobalFrame(),
-                                script_to_apply.data());
+    status
+        = Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), script_to_apply.data());
     if (status == 0) {
       // get the mapped netlist from the global frame
       // make sure the final result is mapped !
       Abc_Ntk_t* mapped_netlist = Abc_FrameReadNtk(Abc_FrameGetGlobalFrame());
       intermediate_result_ = mapped_netlist;
 
-      if (verify_)
-    {
-      char tgain[100];
-      sprintf(tgain,"tg_%d.txt",cut_ -> id_);
-      FILE* fp = fopen(tgain,"w+");
-      fprintf(fp,"Timing Gain %f\n", TimingGain(fp));
-      fclose(fp);
-      Abc_Ntk_t* m_netlist = Abc_NtkToNetlist(mapped_netlist);            
-      Abc_Ntk_t* result_logic = Abc_NtkToLogic(m_netlist);
-      char fname[1000];
-      sprintf(fname,"op_%d.blif",cut_ -> id_);
-      printf("Writing out mapped cut as blif file %s\n",fname);
+      if (verify_) {
+        char tgain[100];
+        sprintf(tgain, "tg_%d.txt", cut_->id_);
+        FILE* fp = fopen(tgain, "w+");
+        fprintf(fp, "Timing Gain %f\n", TimingGain(fp));
+        fclose(fp);
+        Abc_Ntk_t* m_netlist = Abc_NtkToNetlist(mapped_netlist);
+        Abc_Ntk_t* result_logic = Abc_NtkToLogic(m_netlist);
+        char fname[1000];
+        sprintf(fname, "op_%d.blif", cut_->id_);
+        printf("Writing out mapped cut as blif file %s\n", fname);
 
-      //set up names to match inputs
-      for (int i = 0; i < Abc_NtkPiNum(result_logic); i++) {
-        Abc_Obj_t* abc_pi = Abc_NtkPi(result_logic,i);
-        Nm_ManDeleteIdName(abc_pi -> pNtk -> pManName,
-                           abc_pi -> Id);
-        
-        Abc_ObjAssignName(abc_pi, (char*)
-                          (nwk_->pathName(cut_ -> leaves_[i])), NULL);
-        
-        Abc_Obj_t* fanout_obj = Abc_ObjFanout0(abc_pi);
-        Nm_ManDeleteIdName(fanout_obj -> pNtk -> pManName,
-                           fanout_obj -> Id);
-        Abc_ObjAssignName(fanout_obj, (char*)
-                          (nwk_->pathName(cut_ -> leaves_[i])), NULL);
-      } 
+        // set up names to match inputs
+        for (int i = 0; i < Abc_NtkPiNum(result_logic); i++) {
+          Abc_Obj_t* abc_pi = Abc_NtkPi(result_logic, i);
+          Nm_ManDeleteIdName(abc_pi->pNtk->pManName, abc_pi->Id);
 
-      for (int i = 0; i < Abc_NtkPoNum(result_logic); i++) {
-        Abc_Obj_t* abc_po = Abc_NtkPo(result_logic,i);
-        Nm_ManDeleteIdName(abc_po -> pNtk -> pManName,
-                           abc_po -> Id);
-        
-        Abc_ObjAssignName(abc_po, (char*)
-                          (nwk_->pathName(cut_ -> roots_[i])), NULL);
-        
-        Abc_Obj_t* fanin_obj = Abc_ObjFanin0(abc_po);
-        Nm_ManDeleteIdName(fanin_obj -> pNtk -> pManName,
-                           fanin_obj -> Id);
-        Abc_ObjAssignName(fanin_obj, (char*)
-                          (nwk_->pathName(cut_ -> roots_[i])), NULL);
-      }
+          Abc_ObjAssignName(
+              abc_pi, (char*) (nwk_->pathName(cut_->leaves_[i])), NULL);
+
+          Abc_Obj_t* fanout_obj = Abc_ObjFanout0(abc_pi);
+          Nm_ManDeleteIdName(fanout_obj->pNtk->pManName, fanout_obj->Id);
+          Abc_ObjAssignName(
+              fanout_obj, (char*) (nwk_->pathName(cut_->leaves_[i])), NULL);
+        }
+
+        for (int i = 0; i < Abc_NtkPoNum(result_logic); i++) {
+          Abc_Obj_t* abc_po = Abc_NtkPo(result_logic, i);
+          Nm_ManDeleteIdName(abc_po->pNtk->pManName, abc_po->Id);
+
+          Abc_ObjAssignName(
+              abc_po, (char*) (nwk_->pathName(cut_->roots_[i])), NULL);
+
+          Abc_Obj_t* fanin_obj = Abc_ObjFanin0(abc_po);
+          Nm_ManDeleteIdName(fanin_obj->pNtk->pManName, fanin_obj->Id);
+          Abc_ObjAssignName(
+              fanin_obj, (char*) (nwk_->pathName(cut_->roots_[i])), NULL);
+        }
         Io_Write(result_logic, const_cast<char*>(fname), IO_FILE_BLIF);
-    }
+      }
 
-      
       if (accept_)
         BuildCutRealization(mapped_netlist);
     } else {
@@ -2305,7 +2269,7 @@ void PhysRemap::Remap()
       printf("Error running script %s\n", script_to_apply_.c_str());
 #endif
     }
-  } else /*here */ { 
+  } else /*here */ {
     // default: just low level remapping.
     Abc_Ntk_t* pNtk = Abc_NtkStrash(cut_logic, 0, 0, 0);
     Abc_Ntk_t* pNtk_res = Abc_NtkBalance(pNtk, 0, 0, 1);
@@ -2316,25 +2280,24 @@ void PhysRemap::Remap()
     Pars_local.fFreeInvs = 0;   // favour timing
     Pars_local.fADratio = 9.9;  // favour timing
     Pars_local.fVerbose = 1;
-    Pars_local.fUseMuxes = 1;    
+    Pars_local.fUseMuxes = 1;
     // remap
     Abc_Ntk_t* mapped = Abc_NtkDarAmap(pNtk_res, &Pars_local);
     Abc_Ntk_t* mapped_netlist = Abc_NtkToNetlist(mapped);
     intermediate_result_ = mapped_netlist;
 
-    if (verify_)
-    {
+    if (verify_) {
       char tgain[100];
-      sprintf(tgain,"tg_%d.txt",cut_ -> id_);
-      FILE* fp = fopen(tgain,"w+");
-      fprintf(fp,"Timing Gain %f\n", TimingGain(fp));
+      sprintf(tgain, "tg_%d.txt", cut_->id_);
+      FILE* fp = fopen(tgain, "w+");
+      fprintf(fp, "Timing Gain %f\n", TimingGain(fp));
       fclose(fp);
-      
+
       if (!Abc_NtkHasAig(mapped_netlist) && !Abc_NtkHasMapping(mapped_netlist))
         Abc_NtkToAig(mapped_netlist);
       Abc_Ntk_t* result_logic = Abc_NtkToLogic(mapped_netlist);
       char fname[1000];
-      sprintf(fname,"op_%d.blif",cut_ -> id_);
+      sprintf(fname, "op_%d.blif", cut_->id_);
       Io_Write(result_logic, const_cast<char*>(fname), IO_FILE_BLIF);
     }
 
@@ -2360,8 +2323,7 @@ void PhysRemap::AnnotateTimingRequirementsOntoABCNwk(Abc_Ntk_t* sop_logic_nwk)
   sta::Sta* sta = sta::Sta::sta();
 #ifdef REGRESS_RESTRUCT
   char fname[1000];
-  sprintf(fname,"timing_%d.txt\n",
-          cut_ -> id_);
+  sprintf(fname, "timing_%d.txt\n", cut_->id_);
   FILE* timing_file = fopen(fname, "w+");
 #endif
   for (auto tr : timing_requirements_) {
@@ -2375,14 +2337,13 @@ void PhysRemap::AnnotateTimingRequirementsOntoABCNwk(Abc_Ntk_t* sop_logic_nwk)
       fprintf(timing_file,
               "Ip %d (%s) Arr  r: %s (%f) f: %s (%f) Slack %s (%f) \n",
               pi->Id,
-              nwk_ -> name(cut_ -> leaves_.at(ip_ix)),
+              nwk_->name(cut_->leaves_.at(ip_ix)),
               delayAsString(trec->arrival_rise, sta),
-              trec -> arrival_rise,
+              trec->arrival_rise,
               delayAsString(trec->arrival_fall, sta),
-              trec -> arrival_fall,
+              trec->arrival_fall,
               delayAsString(trec->slack, sta),
-              trec -> slack
-              );
+              trec->slack);
 #endif
       Abc_NtkTimeSetArrival(
           sop_logic_nwk, pi->Id, trec->arrival_rise, trec->arrival_fall);
@@ -2398,14 +2359,13 @@ void PhysRemap::AnnotateTimingRequirementsOntoABCNwk(Abc_Ntk_t* sop_logic_nwk)
         fprintf(timing_file,
                 "Op %d (%s) Rqd  r: %s (%f)  f: %s (%f) Slack %s (%f)\n",
                 po->Id,
-                nwk_ -> name(cut_ -> roots_.at(op_ix)),                
+                nwk_->name(cut_->roots_.at(op_ix)),
                 delayAsString(trec->required_rise, sta),
-                trec -> required_rise,
+                trec->required_rise,
                 delayAsString(trec->required_fall, sta),
-                trec -> required_fall,
+                trec->required_fall,
                 delayAsString(trec->slack, sta),
-                trec -> slack
-                );
+                trec->slack);
 #endif
       }
     }
@@ -2436,12 +2396,13 @@ float PhysRemap::TimingGain(FILE* fp)
     Abc_Time_t_* arrival_time = Abc_NodeReadArrival(po);
     Abc_Time_t_* required_time = Abc_NodeReadRequired(po);
     if (fp)
-    fprintf(fp,"Op %d Arrival R %f  F %f  Required R %f F %f\n",
-           op_ix,
-           arrival_time -> Rise,
-           arrival_time -> Fall,
-           required_time -> Rise,
-           required_time -> Fall);
+      fprintf(fp,
+              "Op %d Arrival R %f  F %f  Required R %f F %f\n",
+              op_ix,
+              arrival_time->Rise,
+              arrival_time->Fall,
+              required_time->Rise,
+              required_time->Fall);
     if (arrival_time && required_time) {
       float rise_gain = required_time->Rise - arrival_time->Rise;
       float fall_gain = required_time->Fall - arrival_time->Fall;
@@ -2451,10 +2412,11 @@ float PhysRemap::TimingGain(FILE* fp)
   }
 
   if (fp)
-  fprintf(fp,"Gain: Min rise gain %f Min Fall gain %f\n",
-         min_rise_gain,
-         min_fall_gain);
-  
+    fprintf(fp,
+            "Gain: Min rise gain %f Min Fall gain %f\n",
+            min_rise_gain,
+            min_fall_gain);
+
   if (min_rise_gain > min_fall_gain)
     return min_rise_gain;
   return min_fall_gain;
@@ -2464,7 +2426,9 @@ void PhysRemap::BuildCutRealization(Abc_Ntk_t* nwk)
 {
   // Build the cut in the network.
   // And delete the original volume.
-  Ntk2Cut n2c(nwk, cut_, nwk_);
+  Ntk2Cut n2c(nwk, cut_, nwk_,block_,
+              locell_, loport_,
+              hicell_, hiport_);
   n2c.BuildNwkElements();
 }
 
@@ -2491,8 +2455,15 @@ LibRead::LibRead(utl::Logger* logger, char* lib_file_name, bool verbose)
 
 // Routines for abc -> sta
 
-Ntk2Cut::Ntk2Cut(Abc_Ntk_t* abc_nwk, Cut* cut, sta::Network* sta_nwk)
-    : mapped_netlist_(abc_nwk), cut_(cut), target_nwk_(sta_nwk)
+Ntk2Cut::Ntk2Cut(Abc_Ntk_t* abc_nwk, Cut* cut, sta::Network* sta_nwk,
+                 odb::dbBlock* block,
+                  std::string& locell,
+                  std::string& loport,
+                  std::string& hicell,
+                  std::string& hiport)
+  : mapped_netlist_(abc_nwk), cut_(cut), target_nwk_(sta_nwk),
+    block_(block),locell_(locell),loport_(loport),hicell_(hicell),
+    hiport_(hiport)
 {
 }
 
@@ -2501,184 +2472,172 @@ Ntk2Cut::Ntk2Cut(Abc_Ntk_t* abc_nwk, Cut* cut, sta::Network* sta_nwk)
 */
 
 //
-//Routines for checking cut building in network
+// Routines for checking cut building in network
 //
 
-void Ntk2Cut::WritePinEnvironment(FILE* fp,
-                                 const sta::Pin* p,
-                                 const char* str){
-
-  fprintf(fp,"%s Pin %s\n",str, target_nwk_-> name(p));
+void Ntk2Cut::WritePinEnvironment(FILE* fp, const sta::Pin* p, const char* str)
+{
+  fprintf(fp, "%s Pin %s\n", str, target_nwk_->name(p));
   std::set<sta::Pin*> visited;
-  sta::Net* cur_net = target_nwk_ -> net(p);
-  if (cur_net == nullptr){
-    fprintf(fp," (Pin %s has no net)\n", target_nwk_-> name(p));
-  }
-  else{
-  fprintf(fp,"Net %s :\n", target_nwk_-> name(cur_net));
-  sta::PinSet* drivers = target_nwk_->drivers(cur_net);
-  if (drivers){
-    sta::PinSet::Iterator drvr_iter(drivers);
-    while (drvr_iter.hasNext()){
-      sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
-      fprintf(fp,"\t <- %s\n",target_nwk_ -> name(driving_pin));
-      visited.insert(driving_pin);
+  sta::Net* cur_net = target_nwk_->net(p);
+  if (cur_net == nullptr) {
+    fprintf(fp, " (Pin %s has no net)\n", target_nwk_->name(p));
+  } else {
+    fprintf(fp, "Net %s :\n", target_nwk_->name(cur_net));
+    sta::PinSet* drivers = target_nwk_->drivers(cur_net);
+    if (drivers) {
+      sta::PinSet::Iterator drvr_iter(drivers);
+      while (drvr_iter.hasNext()) {
+        sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
+        fprintf(fp, "\t <- %s\n", target_nwk_->name(driving_pin));
+        visited.insert(driving_pin);
+      }
     }
-  }
-  sta::PinConnectedPinIterator* connected_pin_iter
-    = target_nwk_->connectedPinIterator(p);
-  while (connected_pin_iter->hasNext()) {
-    sta::Pin* connected_pin
-      = const_cast<sta::Pin*>(connected_pin_iter->next());
-    if (visited.find(connected_pin)== visited.end()){
-      fprintf(fp,"\t -> %s \n", target_nwk_-> name(connected_pin));
+    sta::PinConnectedPinIterator* connected_pin_iter
+        = target_nwk_->connectedPinIterator(p);
+    while (connected_pin_iter->hasNext()) {
+      sta::Pin* connected_pin
+          = const_cast<sta::Pin*>(connected_pin_iter->next());
+      if (visited.find(connected_pin) == visited.end()) {
+        fprintf(fp, "\t -> %s \n", target_nwk_->name(connected_pin));
+      }
     }
-  }
   }
 }
 
-
-void Ntk2Cut::WriteCutEnvironment(char* prefix,FILE* fp){
+void Ntk2Cut::WriteCutEnvironment(char* prefix, FILE* fp)
+{
   fprintf(fp, "++++++++\n");
-  fprintf(fp, "%s Cut %d environment:\n",prefix,cut_ -> id_);  
-  for (auto l: cut_ -> leaves_){
-    WritePinEnvironment(fp,l,"Leaf:");
+  fprintf(fp, "%s Cut %d environment:\n", prefix, cut_->id_);
+  for (auto l : cut_->leaves_) {
+    WritePinEnvironment(fp, l, "Leaf:");
   }
-  for (auto r: cut_ -> roots_){
-    WritePinEnvironment(fp,r,"Root:");
+  for (auto r : cut_->roots_) {
+    WritePinEnvironment(fp, r, "Root:");
   }
   fprintf(fp, "--------\n");
 }
 
-
-void Ntk2Cut::WriteCutInNwk(FILE *fp){
+void Ntk2Cut::WriteCutInNwk(FILE* fp)
+{
   std::set<const sta::Pin*> end_points;
 
-  for (auto l: cut_ -> leaves_){
+  for (auto l : cut_->leaves_) {
     end_points.insert(l);
   }
-  fprintf(fp,"+++++++++++\n");
-  fprintf(fp,"Cut contents nwk\n");
-  for (auto op_pin: cut_ -> roots_){
-    fprintf(fp,"Root: %s\n", target_nwk_ -> name(op_pin));
-    std::set<const sta::Pin*> visited;    
-    WriteCutInNwkR(fp,0,op_pin,end_points,visited);
+  fprintf(fp, "+++++++++++\n");
+  fprintf(fp, "Cut contents nwk\n");
+  for (auto op_pin : cut_->roots_) {
+    fprintf(fp, "Root: %s\n", target_nwk_->name(op_pin));
+    std::set<const sta::Pin*> visited;
+    WriteCutInNwkR(fp, 0, op_pin, end_points, visited);
   }
-  fprintf(fp,"----------\n");
+  fprintf(fp, "----------\n");
 }
 
-void Ntk2Cut::Tabs(FILE* fp,
-                   int depth){
-  for (int i=0; i< depth; i++){
-    fprintf(fp,"\t");
+void Ntk2Cut::Tabs(FILE* fp, int depth)
+{
+  for (int i = 0; i < depth; i++) {
+    fprintf(fp, "\t");
   }
 }
 
-void Ntk2Cut::ReportInstanceIpsOps(int depth,
-                                   FILE* fp,
-                                   sta::Instance* cur_inst
-                                   ){
-    sta::InstancePinIterator *ip = target_nwk_ -> pinIterator(cur_inst);
-    while (ip -> hasNext()){
-      std::set<const sta::Pin*> visited;
-      const sta::Pin* cur_pin = ip -> next();
-      if (target_nwk_ -> direction(cur_pin) -> isInput()){
-        visited.insert(cur_pin);
-        sta::Net* cur_net = target_nwk_ -> net(cur_pin);              
-        sta::PinSet* drivers = target_nwk_-> drivers(cur_net);
-        if (drivers){
-          sta::PinSet::Iterator drvr_iter(drivers);
-          sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
-          Tabs(fp,depth);
-          fprintf(fp,"Ip %s <- %s\n",
-                  target_nwk_ -> name(cur_pin),
-                  target_nwk_ -> name(driving_pin));
-        }
+void Ntk2Cut::ReportInstanceIpsOps(int depth, FILE* fp, sta::Instance* cur_inst)
+{
+  sta::InstancePinIterator* ip = target_nwk_->pinIterator(cur_inst);
+  while (ip->hasNext()) {
+    std::set<const sta::Pin*> visited;
+    const sta::Pin* cur_pin = ip->next();
+    if (target_nwk_->direction(cur_pin)->isInput()) {
+      visited.insert(cur_pin);
+      sta::Net* cur_net = target_nwk_->net(cur_pin);
+      sta::PinSet* drivers = target_nwk_->drivers(cur_net);
+      if (drivers) {
+        sta::PinSet::Iterator drvr_iter(drivers);
+        sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
+        Tabs(fp, depth);
+        fprintf(fp,
+                "Ip %s <- %s\n",
+                target_nwk_->name(cur_pin),
+                target_nwk_->name(driving_pin));
       }
-      else{
-        sta::Net* cur_net = target_nwk_ -> net(cur_pin);
-        sta::PinConnectedPinIterator* connected_pin_iter
+    } else {
+      sta::Net* cur_net = target_nwk_->net(cur_pin);
+      sta::PinConnectedPinIterator* connected_pin_iter
           = target_nwk_->connectedPinIterator(cur_pin);
-        Tabs(fp,depth);
-        fprintf(fp, "Op %s ",target_nwk_ -> name(cur_pin));
-        visited.insert(cur_pin);
-        while (connected_pin_iter->hasNext()) {
-          sta::Pin* connected_pin
+      Tabs(fp, depth);
+      fprintf(fp, "Op %s ", target_nwk_->name(cur_pin));
+      visited.insert(cur_pin);
+      while (connected_pin_iter->hasNext()) {
+        sta::Pin* connected_pin
             = const_cast<sta::Pin*>(connected_pin_iter->next());
-          if (visited.find(connected_pin)==visited.end()){
-            visited.insert(connected_pin);
-            Tabs(fp,depth);
-            fprintf(fp, " -> %s ",
-                    target_nwk_ -> name(connected_pin));
-          }
+        if (visited.find(connected_pin) == visited.end()) {
+          visited.insert(connected_pin);
+          Tabs(fp, depth);
+          fprintf(fp, " -> %s ", target_nwk_->name(connected_pin));
         }
       }
     }
-    fprintf(fp,"\n");
+  }
+  fprintf(fp, "\n");
 }
-
 
 void Ntk2Cut::WriteCutInNwkR(FILE* fp,
                              int depth,
                              const sta::Pin* op_pin,
                              std::set<const sta::Pin*>& end_points,
-                             std::set<const sta::Pin*>& visited){
-
-  if (visited.find(op_pin)== visited.end()){
+                             std::set<const sta::Pin*>& visited)
+{
+  if (visited.find(op_pin) == visited.end()) {
     visited.insert(op_pin);
-    sta::Instance* cur_inst = target_nwk_ -> instance(op_pin);
-    Tabs(fp,depth),    
-    fprintf(fp,"I: %s \n",
-            target_nwk_ -> name(cur_inst));
-    ReportInstanceIpsOps(depth,fp,cur_inst);
-    fprintf(fp,"\n");
-    sta::InstancePinIterator *ip = target_nwk_ -> pinIterator(cur_inst);
-    while (ip -> hasNext()){
-      const sta::Pin* ip_pin = ip -> next();
-      if (target_nwk_ -> direction(ip_pin) -> isInput()){
+    sta::Instance* cur_inst = target_nwk_->instance(op_pin);
+    Tabs(fp, depth), fprintf(fp, "I: %s \n", target_nwk_->name(cur_inst));
+    ReportInstanceIpsOps(depth, fp, cur_inst);
+    fprintf(fp, "\n");
+    sta::InstancePinIterator* ip = target_nwk_->pinIterator(cur_inst);
+    while (ip->hasNext()) {
+      const sta::Pin* ip_pin = ip->next();
+      if (target_nwk_->direction(ip_pin)->isInput()) {
         visited.insert(ip_pin);
-        sta::Net* cur_net = target_nwk_ -> net(ip_pin);
+        sta::Net* cur_net = target_nwk_->net(ip_pin);
         sta::PinSet* drivers = target_nwk_->drivers(cur_net);
-        if (drivers){
+        if (drivers) {
           sta::PinSet::Iterator drvr_iter(drivers);
           sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
-          if (end_points.find(driving_pin)!= end_points.end()){
-            Tabs(fp,depth),            
-            fprintf(fp,"LEAF %s\n",
-                    target_nwk_ -> name(driving_pin));
+          if (end_points.find(driving_pin) != end_points.end()) {
+            Tabs(fp, depth),
+                fprintf(fp, "LEAF %s\n", target_nwk_->name(driving_pin));
+          } else if (target_nwk_->direction(driving_pin)->isOutput()) {
+            WriteCutInNwkR(fp, depth + 1, driving_pin, end_points, visited);
           }
-          else if (target_nwk_ -> direction(driving_pin) -> isOutput()){
-            WriteCutInNwkR(fp,depth+1,driving_pin,end_points,visited);
-          } 
         }
       }
     }
   }
 }
 
-                             
-
-int Ntk2Cut::GetPOIx(abc::Abc_Ntk_t_* nwk, Abc_Obj_t* obj){
+int Ntk2Cut::GetPOIx(abc::Abc_Ntk_t_* nwk, Abc_Obj_t* obj)
+{
   int ret = 0;
   for (int i = 0; i < Abc_NtkPoNum(nwk); i++) {
-    if (obj == Abc_NtkPo(nwk,i))
+    if (obj == Abc_NtkPo(nwk, i))
       return i;
   }
   return -1;
 }
 
-abc::Abc_Obj_t_* Ntk2Cut::DrivesAbcPO(abc::Abc_Obj_t_* abc_node){
+abc::Abc_Obj_t_* Ntk2Cut::DrivesAbcPO(abc::Abc_Obj_t_* abc_node)
+{
   int i;
   Abc_Obj_t* pFanout;
-  Abc_ObjForEachFanout(abc_node,pFanout, i){
-    if (pFanout -> Type == ABC_OBJ_PO){
+  Abc_ObjForEachFanout(abc_node, pFanout, i)
+  {
+    if (pFanout->Type == ABC_OBJ_PO) {
       return pFanout;
     }
   }
   return nullptr;
 }
-
-
 
 void Ntk2Cut::BuildNwkElements()
 {
@@ -2689,26 +2648,26 @@ void Ntk2Cut::BuildNwkElements()
   std::map<const sta::Pin*, sta::Net*> cut_ip_nets;
 
   char cut_environment[1000];
-  sprintf(cut_environment,"cut_%d_env.txt",cut_ -> id_);    
-  FILE* fp=fopen(cut_environment,"w+");
+  sprintf(cut_environment, "cut_%d_env.txt", cut_->id_);
+  FILE* fp = fopen(cut_environment, "w+");
 
 #ifdef DEBUG_RESTRUCT
-  cut_ -> Print(fp,target_nwk_);
-  WriteCutEnvironment("before building from abc",fp);
+  cut_->Print(fp, target_nwk_);
+  WriteCutEnvironment("before building from abc", fp);
 #endif
-  
+
   Abc_Obj_t* pObj = nullptr;
   int i;
   static int net_id = 0;
   static int inst_id = 0;
 
   sta::Instance* parent = target_nwk_->topInstance();
-  
+
   // Create a net for each primary input
   for (i = 0; i < Abc_NtkPiNum(mapped_netlist_); i++) {
     pObj = Abc_NtkPi(mapped_netlist_, i);
     sta::Pin* cut_ip_pin = const_cast<sta::Pin*>(cut_->leaves_[i]);
-    
+
     sta::Net* ip_net = target_nwk_->net(cut_ip_pin);
     if (!ip_net) {
       ip_net = target_nwk_->findNet(target_nwk_->pathName(cut_ip_pin));
@@ -2731,6 +2690,8 @@ void Ntk2Cut::BuildNwkElements()
       Mio_Gate_t* mapped_gate = (Mio_Gate_t*) (pObj->pData);
       std::string op_port_name = mapped_gate->pOutName;
       char* lib_gate_name = Mio_GateReadName(mapped_gate);
+
+      
       std::string inst_name
           = std::string(lib_gate_name) + "_" + std::to_string(inst_id);
       while (target_nwk_->findInstance(inst_name.c_str())) {
@@ -2739,48 +2700,60 @@ void Ntk2Cut::BuildNwkElements()
       }
       sta::LibertyCell* liberty_cell
           = target_nwk_->findLibertyCell(lib_gate_name);
+
+      if   (!liberty_cell) {
+              // check for constant
+        if (!strcmp(lib_gate_name, "_const0_")) {
+          liberty_cell = target_nwk_->findLibertyCell(locell_.c_str());
+          op_port_name = loport_;
+        } else if (!strcmp(lib_gate_name, "_const1_")) {
+          liberty_cell = target_nwk_->findLibertyCell(hicell_.c_str());
+          op_port_name = hiport_;
+        }
+        assert(liberty_cell);
+      }
+      
       sta::Instance* cur_inst
           = ((sta::ConcreteNetwork*) target_nwk_)
                 ->makeInstance(liberty_cell, inst_name.c_str(), parent);
       ((sta::ConcreteNetwork*) target_nwk_)->makePins(cur_inst);
       sta::LibertyPort* liberty_op_port
           = liberty_cell->findLibertyPort(op_port_name.c_str());
-      
+
       inst2abc[cur_inst] = pObj;
       abc2inst[pObj] = cur_inst;
 
-      //check does object drive po,
-      //if so use cut output net and don't make a new net
+      // check does object drive po,
+      // if so use cut output net and don't make a new net
       Abc_Obj_t* abc_po;
       abc_po = DrivesAbcPO(pObj);
-      if (abc_po){
-        int ix = GetPOIx(mapped_netlist_,abc_po);
-        sta::Net* op_net = target_nwk_ -> net(cut_ -> roots_[ix]);
-        ((sta::NetworkEdit*) target_nwk_)->
-          disconnectPin(const_cast<sta::Pin*>(cut_ -> roots_[ix]));
-        cut_ -> roots_[ix]= target_nwk_ -> findPin(cur_inst,liberty_op_port);
+      if (abc_po) {
+        int ix = GetPOIx(mapped_netlist_, abc_po);
+        sta::Net* op_net = target_nwk_->net(cut_->roots_[ix]);
+        ((sta::NetworkEdit*) target_nwk_)
+            ->disconnectPin(const_cast<sta::Pin*>(cut_->roots_[ix]));
+        cut_->roots_[ix] = target_nwk_->findPin(cur_inst, liberty_op_port);
         abc2net[pObj] = op_net;
         net2abc[op_net] = pObj;
         ((sta::ConcreteNetwork*) target_nwk_)
-          ->connect(cur_inst, liberty_op_port, op_net);
+            ->connect(cur_inst, liberty_op_port, op_net);
 #ifdef DEBUG_RESTRUCT
         printf("Recycling root net\n");
-#endif        
-      }
-      else{
+#endif
+      } else {
         std::string op_net_name = inst_name + "_" + std::to_string(net_id);
         net_id++;
         sta::Net* op_net = ((sta::ConcreteNetwork*) target_nwk_)
-          ->makeNet(op_net_name.c_str(), parent);
+                               ->makeNet(op_net_name.c_str(), parent);
         abc2net[pObj] = op_net;
         net2abc[op_net] = pObj;
         ((sta::ConcreteNetwork*) target_nwk_)
-          ->connect(cur_inst, liberty_op_port, op_net);
+            ->connect(cur_inst, liberty_op_port, op_net);
       }
     }
   }
 
-  // Wire up the inputs of the instances  
+  // Wire up the inputs of the instances
   i = 0;
   Abc_NtkForEachNode(mapped_netlist_, pObj, i)
   {
@@ -2797,7 +2770,7 @@ void Ntk2Cut::BuildNwkElements()
       for (int ip_ix = 0; ip_ix < fanin_count; ip_ix++) {
         Abc_Obj_t* driver = Abc_ObjFanin(pObj, ip_ix);
         sta::Net* driving_net = abc2net[driver];
-       
+
         if (!driving_net) {
           printf(
               "Cannot find input %d driver for abc obj %d of type %d which "
@@ -2830,42 +2803,38 @@ void Ntk2Cut::BuildNwkElements()
         ->deleteInstance(const_cast<sta::Instance*>(cur_inst));
   }
 
-#ifdef DEBUG_RESTRUCT  
+#ifdef DEBUG_RESTRUCT
   WriteCutInNwk(fp);
-  WriteCutEnvironment("after",fp);
-#endif  
+  WriteCutEnvironment("after", fp);
+#endif
   fclose(fp);
-} 
- 
+}
 
-void Ntk2Cut:: FuseNets(int root_ix,
-                        sta::Pin* new_driving_pin,
-                        sta::Net* new_driving_net,
-                        sta::Pin* orig_driving_pin,
-                        sta::Net* orig_driving_net){
-  
+void Ntk2Cut::FuseNets(int root_ix,
+                       sta::Pin* new_driving_pin,
+                       sta::Net* new_driving_net,
+                       sta::Pin* orig_driving_pin,
+                       sta::Net* orig_driving_net)
+{
   sta::Port* new_driver_port = target_nwk_->port(new_driving_pin);
   sta::Instance* new_driving_instance = target_nwk_->instance(new_driving_pin);
-  
-  
-  sta::NetPinIterator* npi = target_nwk_ -> pinIterator(orig_driving_net);
-  while (npi -> hasNext()){
-    sta::Pin* sink_pin = const_cast<sta::Pin*>(npi -> next());
-    if (sink_pin != orig_driving_pin){
-      sta::Instance* sink_instance = target_nwk_ -> instance(sink_pin);
-      sta::Port* sink_port = target_nwk_ -> port(sink_pin);
-      ((sta::NetworkEdit*) target_nwk_)->
-        disconnectPin(const_cast<sta::Pin*>(sink_pin));
-      ((sta::NetworkEdit*) target_nwk_)->connect(sink_instance,
-                                                 sink_port,
-                                                 new_driving_net);
+
+  sta::NetPinIterator* npi = target_nwk_->pinIterator(orig_driving_net);
+  while (npi->hasNext()) {
+    sta::Pin* sink_pin = const_cast<sta::Pin*>(npi->next());
+    if (sink_pin != orig_driving_pin) {
+      sta::Instance* sink_instance = target_nwk_->instance(sink_pin);
+      sta::Port* sink_port = target_nwk_->port(sink_pin);
+      ((sta::NetworkEdit*) target_nwk_)
+          ->disconnectPin(const_cast<sta::Pin*>(sink_pin));
+      ((sta::NetworkEdit*) target_nwk_)
+          ->connect(sink_instance, sink_port, new_driving_net);
     }
   }
   ((sta::NetworkEdit*) target_nwk_)->disconnectPin(orig_driving_pin);
   cut_->roots_[root_ix] = new_driving_pin;
 }
 
-          
 void Restructure::annotateCutTiming(
     Cut* cut,
     std::vector<std::pair<const sta::Pin*, TimingRecord*>>& timing_requirements)
@@ -2877,7 +2846,7 @@ void Restructure::annotateCutTiming(
   sta::Required min_required_rise;
   sta::Required min_required_fall;
   sta::Slack s;
-  
+
   // Get the arrival and required times for the exceptions for each vertex.
   sta::Sdc* sdc_nwk = sta->sdc();
   sta::ClockSeq* clock_seq = sdc_nwk->clocks();
@@ -2921,25 +2890,25 @@ void Restructure::annotateCutTiming(
         }
       }
     }
-    
+
     TimingRecord* tr = nullptr;
     if (graph && v) {
       tr = new TimingRecord();
       tr->arrival_rise = atof(delayAsString(max_arrival_rise, sta));
       tr->arrival_fall = atof(delayAsString(max_arrival_fall, sta));
       tr->arrival_fall = atof(delayAsString(max_arrival_fall, sta));
-      tr-> slack = atof(delayAsString(s, sta));
+      tr->slack = atof(delayAsString(s, sta));
       //      printf("Leaf %s\n", network->pathName(v -> pin()));
       /*      printf(" Arrival %s (%f) Fall %s (%f) Slack %s (%f)\n",
-             
+
              delayAsString(max_arrival_rise, sta),
              max_arrival_rise,
-             
+
              delayAsString(max_arrival_fall, sta),
              max_arrival_rise ,
-             
+
              delayAsString(s, sta),
-             s);             
+             s);
       */
     }
     timing_requirements.push_back(
@@ -2950,11 +2919,11 @@ void Restructure::annotateCutTiming(
     printf("Pin %s Setting arrival rise %s (%f)\n",
            network->pathName(leaf_pin),
            delayAsString(tr->arrival_rise, sta),
-           1e9 * tr -> arrival_rise);
+           1e9 * tr->arrival_rise);
     printf("Pin %s Setting arrival fall %s (%f)\n",
            network->pathName(leaf_pin),
            delayAsString(tr->arrival_fall, sta),
-           1e9* tr -> arrival_fall);
+           1e9 * tr->arrival_fall);
 #endif
   }
 
@@ -2998,7 +2967,5 @@ void Restructure::annotateCutTiming(
 #endif
   }
 }
-
-
 
 }  // namespace rmp
