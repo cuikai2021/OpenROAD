@@ -54,7 +54,6 @@ void ScanChain::reorder() {
     assert(!scan_chain->getBTermStart() || scan_chain->getBTermStart()->getIoType() == odb::dbIoType::INPUT); // ?
 
     // reconnect the net with scan instances
-    orders.pop_back(); //the last element is the stop of the chain, don't need to handle reconnect
     connectScanNet(scan_chain, orders);
   }
 }
@@ -193,14 +192,16 @@ void ScanChain::connectScanNet(const odb::dbScanChain *scan_chain,
 
   odb::dbITerm* next_sc_in = nullptr;
   odb::dbNet* connect_net;
-  for (int i = 0; i < orders.size(); ++i) {
+
+  int totalReorderSize = orders.size() - 1;//the last element is the stop of the chain, don't need to handle reconnect
+  for (int i = 0; i < totalReorderSize; ++i) {
     if (i == 0) {
       connect_net = scan_chain->getStart() ? scan_chain->getStart()->getNet() : scan_chain->getBTermStart()->getNet();
     } else {
       connect_net = getOrigComp(orders[i], true, orig_floatings, orig_ordered)->getScanOut()->getNet();
     }
 
-    if (i == orders.size() - 1 && scan_chain->getStop()) {
+    if (i == totalReorderSize - 1 && scan_chain->getStop()) {
       next_sc_in = scan_chain->getStop();
     } else {
       next_sc_in = getOrigComp(orders[i+1], false, orig_floatings, orig_ordered)->getScanIn();
