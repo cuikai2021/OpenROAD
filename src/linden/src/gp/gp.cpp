@@ -392,6 +392,7 @@ void linden_global_place(const Config& cfg) noexcept {
 
     // Gp Loop
     size_t gp_iter = 0;
+    size_t best_iter = 0;
     auto hpwl_analyze = HpwlAnalyze();
     constexpr int64_t GPL_MAX_ITER = 3000;
     deque<double> overflows = {90, 79, 64, 49, 29, 21, 0};
@@ -402,7 +403,7 @@ void linden_global_place(const Config& cfg) noexcept {
                 spdlog::info("[nPlace] No result is presented.");
                 return true;
             }
-            spdlog::info("[gpl] overflow: {:.5f} hpwl: {}", ret->overflow, ret->hpwl);
+            spdlog::debug("[gpl] overflow: {:.5f} hpwl: {}", ret->overflow, ret->hpwl);
 
             // Routability Driven
             if (cfg.routability_driven && update_cmap(ret->overflow)) {
@@ -435,18 +436,20 @@ void linden_global_place(const Config& cfg) noexcept {
             // Netweigthing
             if (cfg.timing_driven && overflows.front() > ret->overflow * 100) {
                 overflows.pop_front();
+                best_iter = gp_iter;
                 refresh_locations_from_ldb(*ldb);
 
                 if (overflows.empty()) {
                     spdlog::info("[nPlace] Terminates because overflows are exhausted.");
                     return true;
                 } else {
-                    spdlog::info("[nPlace] Current level of overflow is {:.2f}", overflows.front());
+                    spdlog::debug("[nPlace] Current level of overflow is {:.2f}", overflows.front());
                     return false;
                 }
             }
             // Stash GPL
             if (hpwl_analyze.best_gpl_postion()) {
+                best_iter = gp_iter;
                 refresh_locations_from_ldb(*ldb);
             }
         }
@@ -475,7 +478,7 @@ void linden_global_place(const Config& cfg) noexcept {
         mcfg = metrics::Config::sink_to_file(*opt);
     }
     metrics::Reporter metrics_reporter(mcfg);
-    metrics_reporter["gp"]["iter"] = gp_iter + 1;
+    metrics_reporter["gp"]["iter"] = best_iter + 1;
 }
 
 void random_place() noexcept {

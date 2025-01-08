@@ -7,18 +7,18 @@
 namespace linden {
 
 HpwlAnalyze::HpwlAnalyze()
-: _gpl_best_postion(std::numeric_limits<double>::infinity()),
-  _min_moving_avg(std::numeric_limits<double>::infinity()),
-  _min_lagged_ratio(std::numeric_limits<double>::infinity()),
-  _count(0)
+:   _gpl_best_postion(std::numeric_limits<double>::infinity()),
+    _min_moving_avg(std::numeric_limits<double>::infinity()),
+    _min_lagged_ratio(std::numeric_limits<double>::infinity()),
+    _count(0)
 {
-    spdlog::info("[iPlace/ha] MOVING_AVG_LEN: {}", HpwlConfig::MOVING_AVG_LEN);
-    spdlog::info("[iPlace/ha] PEEK_OVERFLOW: {:.2f}", HpwlConfig::PEEK_OVERFLOW);
-    spdlog::info("[iPlace/ha] REBOUND_RATIO: {:.2f}", HpwlConfig::REBOUND_RATIO);
-    spdlog::info("[iPlace/ha] HEAT_DEATH_NUM: {}", HpwlConfig::HEAT_DEATH_NUM);
-    spdlog::info("[iPlace/ha] HEAT_DEATH_LEN: {}", HpwlConfig::HEAT_DEATH_LEN);
-    spdlog::info("[iPlace/ha] HEAD_DEATH_RATIO: {:.2f}", HpwlConfig::HEAD_DEATH_RATIO);
-    spdlog::info("[iPlace/ha] LAG_STEP: {}", HpwlConfig::LAG_STEP);
+    spdlog::info("[nPlace/ha] MOVING_AVG_LEN: {}", HpwlConfig::MOVING_AVG_LEN);
+    spdlog::info("[nPlace/ha] PEEK_OVERFLOW: {:.2f}", HpwlConfig::PEEK_OVERFLOW);
+    spdlog::info("[nPlace/ha] REBOUND_RATIO: {:.2f}", HpwlConfig::REBOUND_RATIO);
+    spdlog::info("[nPlace/ha] HEAT_DEATH_NUM: {}", HpwlConfig::HEAT_DEATH_NUM);
+    spdlog::info("[nPlace/ha] HEAT_DEATH_LEN: {}", HpwlConfig::HEAT_DEATH_LEN);
+    spdlog::info("[nPlace/ha] HEAD_DEATH_RATIO: {:.2f}", HpwlConfig::HEAD_DEATH_RATIO);
+    spdlog::info("[nPlace/ha] LAG_STEP: {}", HpwlConfig::LAG_STEP);
 
     // Initialize accumulated F1
     _accumulated_f1.push_back(0);
@@ -49,7 +49,7 @@ bool HpwlAnalyze::repulsion_dominance()
 
     if (_min_moving_avg * HpwlConfig::REBOUND_RATIO < moving_avg) {
         spdlog::info(
-            "[iPlace/ha] Repulsion Dominance:"
+            "[nPlace/ha] Repulsion Dominance:"
             "\n  iter = {}"
             "\n  min_moving_avg_ = {}"
             "\n  moving_avg = {}",
@@ -68,8 +68,8 @@ bool HpwlAnalyze::heat_death()
         return false;
     }
 
-    if (_count % 100 == 0 && 
-        _count > HpwlConfig::HEAT_DEATH_LEN * HpwlConfig::HEAT_DEATH_NUM) 
+    if (_count % 100 == 0 &&
+        _count > HpwlConfig::HEAT_DEATH_LEN * HpwlConfig::HEAT_DEATH_NUM)
     {
         double min_sum = std::numeric_limits<double>::infinity();
         double max_sum = -std::numeric_limits<double>::infinity();
@@ -85,7 +85,7 @@ bool HpwlAnalyze::heat_death()
         const double volatility = (max_sum - min_sum) / min_sum;
         if (volatility < HpwlConfig::HEAD_DEATH_RATIO) {
             spdlog::info(
-                "[iPlace/ha] Heat Death:"
+                "[nPlace/ha] Heat Death:"
                 "\n  iter = {}"
                 "\n  volatility = {}"
                 "\n  max_sum = {}"
