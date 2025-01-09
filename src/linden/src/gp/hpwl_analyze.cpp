@@ -2,7 +2,13 @@
 
 #include <spdlog/spdlog.h>
 
+#include <filesystem>
 #include <limits>
+#include <optional>
+#include <vector>
+
+#include "util/omni.hpp"
+#include "utl/metrics.hpp"
 
 namespace linden {
 
@@ -115,6 +121,31 @@ bool HpwlAnalyze::best_gpl_postion()
     }
 
     return false;
+}
+
+void HpwlAnalyze::save_data()
+{
+    if (!is_on_omni_cloud()) {
+        return;
+    }
+    auto dir = omni_tmp_dir();
+    if (dir == std::nullopt) {
+        return;
+    }
+    auto file = dir.value() / "hpwl_analyze.json";
+
+    auto cfg = metrics::Config::sink_to_file(file.string());
+    auto reporter = metrics::Reporter(cfg);
+
+    for (auto hpwl : _hpwl_vec) {
+        reporter["hpwl"].append() = static_cast<double>(hpwl);
+    }
+    for (auto overflow : _overflow_vec) {
+        reporter["overflow"].append() = overflow;
+    }
+    for (auto f1 : _f1_vec) {
+        reporter["f1"].append() = f1;
+    }
 }
 
 } // namespace linden

@@ -29,6 +29,7 @@ struct HpwlAnalyze
     bool repulsion_dominance();
     bool heat_death();
     bool best_gpl_postion();
+    void save_data();
 
     double _gpl_best_postion;
     double _min_moving_avg;

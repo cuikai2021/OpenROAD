@@ -465,6 +465,7 @@ void linden_global_place(const Config& cfg) noexcept {
             update_weights(*ldb);
         }
     }
+    hpwl_analyze.save_data();
 
     gpl->done();
     gpl.reset();
