@@ -215,6 +215,9 @@ linden::gp::Config {
 [InitialPlace]  Iter: 4 CG residual: 0.00000007 HPWL: 5036666
 [InitialPlace]  Iter: 5 CG residual: 0.00000008 HPWL: 5036282
 [linden/gpl] enable routability-driven with the highest layer: metal10
+[linden/gpl] Number of Cells: 294
+[linden/gpl] Number of Nets: 364
+[linden/gpl] Number of Pins: 1122
 [linden/gpl] statistics.
     movable_std_insts_area: 2279088000.0
     movable_macro_insts_area: 0.0
@@ -227,9 +230,13 @@ linden::gp::Config {
   # of the fillers: 0            
   area of each filler: 7203079.2453            
   shape of each filler: 2572.5283 x 2800.0000
-[linden/gpl] Number of Cells: 294
-[linden/gpl] Number of Nets: 364
-[linden/gpl] Number of Pins: 1122
+[nPlace/ha] MOVING_AVG_LEN: 10
+[nPlace/ha] PEEK_OVERFLOW: 0.50
+[nPlace/ha] REBOUND_RATIO: 1.20
+[nPlace/ha] HEAT_DEATH_NUM: 10
+[nPlace/ha] HEAT_DEATH_LEN: 20
+[nPlace/ha] HEAD_DEATH_RATIO: 0.02
+[nPlace/ha] LAG_STEP: 50
 [nPlace] Iter: 1 overflow: 0.859657 HPWL: 3734182
 [nPlace] Iter: 10 overflow: 0.779206 HPWL: 4240503
 [nPlace] Iter: 20 overflow: 0.776072 HPWL: 4231553
@@ -247,8 +254,8 @@ linden::gp::Config {
 [nPlace] Iter: 140 overflow: 0.757749 HPWL: 4287001
 [nPlace] Iter: 150 overflow: 0.750921 HPWL: 4317274
 [nPlace] Iter: 160 overflow: 0.73893 HPWL: 4361574
-[nPlace] Iter: 170 overflow: 0.722024 HPWL: 4420588
-[nPlace] Iter: 180 overflow: 0.70762 HPWL: 4473634
+[nPlace] Iter: 170 overflow: 0.722025 HPWL: 4420601
+[nPlace] Iter: 180 overflow: 0.697874 HPWL: 4503730
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
 [INFO BY-1010] Banyan exec /build/bin/banyan done, status code 0
 [linden/gpl] TileLxLy=(-8960, -8960)
@@ -256,8 +263,9 @@ linden::gp::Config {
 [linden/gpl] TileCnt=(5, 5)
 [linden/gpl] NumTiles=25
 no overflow in median level
+[nPlace] cmap forces termination.
 {
   "gp": {
-    "iter": 185
+    "iter": 1
   }
 }No differences found.
