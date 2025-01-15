@@ -47,7 +47,7 @@ void HpwlAnalyze::push(int64_t hpwl, double overflow)
 bool HpwlAnalyze::repulsion_dominance()
 {
     // Tip 1: Limit the minimum point value range
-    if (_overflow_vec.empty() || _overflow_vec.back() > HpwlConfig::PEEK_OVERFLOW) {
+    if (_overflow_vec.empty() || _overflow_vec.back() > HpwlConfig::PEEK_OVERFLOW || _count <= HpwlConfig::MOVING_AVG_LEN) {
         return false;
     }
     double moving_avg = _accumulated_f1.back() - _accumulated_f1[_count - 1 - HpwlConfig::MOVING_AVG_LEN];

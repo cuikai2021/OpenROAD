@@ -435,7 +435,9 @@ void linden_global_place(const Config& cfg) noexcept {
 
             // Netweigthing
             if (cfg.timing_driven && overflows.front() > ret->overflow * 100) {
-                overflows.pop_front();
+                while(!overflows.empty() && overflows.front() > ret->overflow * 100) {
+                  overflows.pop_front();
+                }
                 best_iter = gp_iter;
                 refresh_locations_from_ldb(*ldb);
 
