@@ -231,10 +231,10 @@ void Restructure::cutresynthrun(char* target_library,
       script_name = script;
       script_present = true;
     }
-    if (!block_){
-      block_ = db_ -> getChip() -> getBlock();
+    if (!block_) {
+      block_ = db_->getChip()->getBlock();
     }
-    
+
     PhysRemap prm(logger_,
                   network,
                   cut_to_remap,
@@ -2426,9 +2426,8 @@ void PhysRemap::BuildCutRealization(Abc_Ntk_t* nwk)
 {
   // Build the cut in the network.
   // And delete the original volume.
-  Ntk2Cut n2c(nwk, cut_, nwk_,block_,
-              locell_, loport_,
-              hicell_, hiport_);
+  Ntk2Cut n2c(
+      logger_, nwk, cut_, nwk_, block_, locell_, loport_, hicell_, hiport_);
   n2c.BuildNwkElements();
 }
 
@@ -2455,15 +2454,24 @@ LibRead::LibRead(utl::Logger* logger, char* lib_file_name, bool verbose)
 
 // Routines for abc -> sta
 
-Ntk2Cut::Ntk2Cut(Abc_Ntk_t* abc_nwk, Cut* cut, sta::Network* sta_nwk,
+Ntk2Cut::Ntk2Cut(utl::Logger* logger,
+                 Abc_Ntk_t* abc_nwk,
+                 Cut* cut,
+                 sta::Network* sta_nwk,
                  odb::dbBlock* block,
-                  std::string& locell,
-                  std::string& loport,
-                  std::string& hicell,
-                  std::string& hiport)
-  : mapped_netlist_(abc_nwk), cut_(cut), target_nwk_(sta_nwk),
-    block_(block),locell_(locell),loport_(loport),hicell_(hicell),
-    hiport_(hiport)
+                 std::string& locell,
+                 std::string& loport,
+                 std::string& hicell,
+                 std::string& hiport)
+    : logger_(logger),
+      mapped_netlist_(abc_nwk),
+      cut_(cut),
+      target_nwk_(sta_nwk),
+      block_(block),
+      locell_(locell),
+      loport_(loport),
+      hicell_(hicell),
+      hiport_(hiport)
 {
 }
 
@@ -2691,7 +2699,6 @@ void Ntk2Cut::BuildNwkElements()
       std::string op_port_name = mapped_gate->pOutName;
       char* lib_gate_name = Mio_GateReadName(mapped_gate);
 
-      
       std::string inst_name
           = std::string(lib_gate_name) + "_" + std::to_string(inst_id);
       while (target_nwk_->findInstance(inst_name.c_str())) {
@@ -2701,8 +2708,8 @@ void Ntk2Cut::BuildNwkElements()
       sta::LibertyCell* liberty_cell
           = target_nwk_->findLibertyCell(lib_gate_name);
 
-      if   (!liberty_cell) {
-              // check for constant
+      if (!liberty_cell) {
+        // check for constant
         if (!strcmp(lib_gate_name, "_const0_")) {
           liberty_cell = target_nwk_->findLibertyCell(locell_.c_str());
           op_port_name = loport_;
@@ -2710,9 +2717,12 @@ void Ntk2Cut::BuildNwkElements()
           liberty_cell = target_nwk_->findLibertyCell(hicell_.c_str());
           op_port_name = hiport_;
         }
-        assert(liberty_cell);
       }
-      
+      if (!liberty_cell) {
+        logger_->error(
+            RMP, 147, "Unable to find constant cell for {}.", lib_gate_name);
+      }
+
       sta::Instance* cur_inst
           = ((sta::ConcreteNetwork*) target_nwk_)
                 ->makeInstance(liberty_cell, inst_name.c_str(), parent);

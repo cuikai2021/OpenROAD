@@ -106,6 +106,7 @@ struct Cut
                      std::vector<sta::FuncExpr*>& root_fns);
 
   bool LeafPin(const sta::Pin* cur_pin);
+  bool RootPin(const sta::Pin* cur_pin);
 
   sta::FuncExpr* ExpandFunctionExprR(
       sta::Network* nwk,
@@ -139,6 +140,7 @@ class CutGen
   void AmendCutForEscapeRoots(Cut* cur_cut);
 
   void GenerateInstanceWaveFrontCutSet(sta::Instance*, std::vector<Cut*>&);
+
   bool EnumerateExpansions(std::vector<const sta::Pin*>& candidate_wavefront,
                            expansionSet& expansion_set);
   Cut* BuildCutFromExpansionElement(
@@ -146,13 +148,27 @@ class CutGen
       const sta::Pin* root_pin,
       std::vector<const sta::Pin*>& keep,  // set of pins to keep
       std::vector<const sta::Pin*>& expand);
+
+  void ExpandRegularPin(sta::Pin* driving_pin,
+                        std::set<const sta::Pin*>& leaf_driver_pins,
+                        std::set<sta::Instance*>& volume_insts,
+                        std::set<const sta::Pin*>& visited_driver_pins,
+                        Cut* cut);
+
   bool Boundary(const sta::Pin* cur_pin);
+  bool IsBufferInverterInstance(sta::Instance* inst);
+
+  bool AccumulateInverterBuffers(sta::Pin* bufferinverter_op_pin,
+                                 std::set<const sta::Pin*>& leaf_driver_pins,
+                                 std::set<sta::Instance*>& volume_insts,
+                                 std::set<const sta::Pin*>& visited_driver_pins,
+                                 Cut* cut,
+                                 sta::Pin*& driving_pin_out);
+
   bool SelfFeedBack(const sta::Instance*);
-  const sta::Pin* WalkThroughBuffersAndInverters(
-      Cut*,
-      const sta::Pin* op_pin,
-      std::set<const sta::Pin*>& unique_driver_pins,
-      std::set<sta::Instance*>& unique_insts);
+  bool InstanceOpConnectedToCutBoundary(const sta::Instance*, Cut* cur_cut);
+
+  unsigned OpPinCount(const sta::Instance*);
 
  private:
   sta::Network* network_;
@@ -207,7 +223,10 @@ class Cut2Ntk
 class Ntk2Cut
 {
  public:
-  Ntk2Cut(abc::Abc_Ntk_t_*, Cut*, sta::Network*,
+  Ntk2Cut(utl::Logger* logger,
+          abc::Abc_Ntk_t_*,
+          Cut*,
+          sta::Network*,
           odb::dbBlock* block,
           std::string& locell,
           std::string& loport,
@@ -236,6 +255,7 @@ class Ntk2Cut
                       std::set<const sta::Pin*>& visited);
 
  private:
+  utl::Logger* logger_;
   abc::Abc_Ntk_t_* mapped_netlist_;
   Cut* cut_;
   sta::Network* target_nwk_;
@@ -315,7 +335,7 @@ class PhysRemap
   std::string hicell_;
   std::string hiport_;
   bool verify_;
-  
+
   friend class Restructure;
 };
 
@@ -406,9 +426,9 @@ class Restructure
 
   //
   // Generate cuts using timing information. Start from outputs of logic (eg
-  // dinputs). Kind of like blob generation algorithm 1: generate a single output
-  // cut (useful for oracle mapping). single_op=true algorithm 2: generate a
-  // multiple input/multiple output cut (for big restructuring).
+  // dinputs). Kind of like blob generation algorithm 1: generate a single
+  // output cut (useful for oracle mapping). single_op=true algorithm 2:
+  // generate a multiple input/multiple output cut (for big restructuring).
   void generateUnconstrainedCuts(std::vector<Cut*>& cut_set, bool single_op);
 
   void annotateCutTiming(Cut*,
@@ -420,7 +440,7 @@ class Restructure
   std::string& loport() { return loport_; }
   std::string& hicell() { return hicell_; }
   std::string& hiport() { return hiport_; }
-  
+
  private:
   // temporaries for cut building
   std::set<sta::Vertex*> end_points_;  // full set of end points

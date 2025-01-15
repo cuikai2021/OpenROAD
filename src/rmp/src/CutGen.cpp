@@ -84,12 +84,31 @@ using namespace abc;
 
 namespace rmp {
 
+bool IsInverter(unsigned* p, int n_vars);
+bool IsBuffer(unsigned* p, int n_vars);
+
+/*
+Generate the cut set walking back 2 levels of logic.
+Allow walk through inverter/buffer chains.
+
+Core Functions:
+Enumerate Expansions -- simulates cartesian product of cut expansion
+BuildCutFromExpansionElement -- builds a cut for each cartesian product
+AmendCutForEscapeRoots -- patches a cut so any paths which go elsewhere get
+appended as roots.
+
+AccumulateInvertersBuffers -- walks through inverter and buffer chains.
+ExpandRegularPin -- expands wavefront through a gate.
+
+*/
+
 void CutGen::GenerateInstanceWaveFrontCutSet(sta::Instance* cur_inst,
                                              std::vector<Cut*>& inst_cut_set)
 {
   // filter pathological case
   if (SelfFeedBack(cur_inst))
     return;
+
   // build candidate wave front for cut enumeration
   std::vector<const sta::Pin*> candidate_wavefront;
   sta::InstancePinIterator* cpin_iter = network_->pinIterator(cur_inst);
@@ -98,6 +117,7 @@ void CutGen::GenerateInstanceWaveFrontCutSet(sta::Instance* cur_inst,
     const sta::Pin* c_pin = cpin_iter->next();
     if (Boundary(c_pin))
       continue;
+
     if (network_->direction(c_pin)->isInput())
       candidate_wavefront.push_back(c_pin);
     else {
@@ -108,9 +128,14 @@ void CutGen::GenerateInstanceWaveFrontCutSet(sta::Instance* cur_inst,
     }
   }
 
-  // Expand the wave front: Keep set, Expand Set
+  // Generate the various permutations of the expansion set
+  // We partition the set into keep / expand nodes and generate
+  // all combinations. This is like cartesian product cut generation
+  // but going from op to ip.
+
   expansionSet expansion_set;
   EnumerateExpansions(candidate_wavefront, expansion_set);
+
   //
   // Build cut for each expansion
   //
@@ -119,9 +144,11 @@ void CutGen::GenerateInstanceWaveFrontCutSet(sta::Instance* cur_inst,
     std::vector<const sta::Pin*> expand = exp_el.second;
     Cut* cur_cut
         = BuildCutFromExpansionElement(cur_inst, root_pin, keep, expand);
-    // Legalize cuts to handle escape nodes.
-    AmendCutForEscapeRoots(cur_cut);
-    inst_cut_set.push_back(cur_cut);
+    if (cur_cut) {
+      // Legalize cuts to handle escape nodes.
+      AmendCutForEscapeRoots(cur_cut);
+      inst_cut_set.push_back(cur_cut);
+    }
   }
 }
 
@@ -129,12 +156,17 @@ void CutGen::GenerateInstanceWaveFrontCutSet(sta::Instance* cur_inst,
 void CutGen::AmendCutForEscapeRoots(Cut* cur_cut)
 {
   std::set<const sta::Pin*> cut_roots;
+  std::set<const sta::Pin*> cut_leaves;
   std::set<sta::Instance*> cut_volume;
+
   for (auto i : cur_cut->volume_) {
     cut_volume.insert(i);
   }
   for (auto l : cur_cut->roots_) {
     cut_roots.insert(l);
+  }
+  for (auto l : cur_cut->leaves_) {
+    cut_leaves.insert(l);
   }
   for (auto i : cur_cut->volume_) {
     sta::InstancePinIterator* pin_it = network_->pinIterator(i);
@@ -143,6 +175,9 @@ void CutGen::AmendCutForEscapeRoots(Cut* cur_cut)
       if (network_->direction(cur_pin)->isOutput()) {
         if (cut_roots.find(cur_pin) != cut_roots.end())
           continue;
+        if (cut_leaves.find(cur_pin) != cut_leaves.end())
+          continue;
+
         // Check that every volume sink is either driven by something in the
         // volume or a leaf
         sta::PinSet visited_drvrs;
@@ -171,19 +206,22 @@ void CutGen::AmendCutForEscapeRoots(Cut* cur_cut)
 }
 
 Cut* CutGen::BuildCutFromExpansionElement(
-    sta::Instance* cur_inst,
-    const sta::Pin* root_pin,
-    std::vector<const sta::Pin*>& keep,  // set of pins to keep
-    std::vector<const sta::Pin*>& expand)
+    sta::Instance* cur_inst,              // instance driving root pin
+    const sta::Pin* root_pin,             // The current output
+    std::vector<const sta::Pin*>& keep,   // set of pins to keep
+    std::vector<const sta::Pin*>& expand  // pins to expand
+)
 {
-  std::set<const sta::Pin*> unique_driver_pins;
-  std::set<sta::Instance*> unique_insts;
+  std::set<const sta::Pin*> leaf_driver_pins;     // The leaves
+  std::set<const sta::Pin*> visited_driver_pins;  // the driver pins
+  std::set<sta::Instance*> volume_insts;          // The volume, visited
 
   static int id;
   id++;
 
   Cut* ret = new Cut();
   ret->id_ = id;
+
 #ifdef CUTGEN_DEBUG
   printf("Building cut %d from root %s\n", id, network_->pathName(root_pin));
   printf("Keep set:\n");
@@ -197,31 +235,51 @@ Cut* CutGen::BuildCutFromExpansionElement(
 #endif
 
   ret->roots_.push_back(const_cast<sta::Pin*>(root_pin));
+
+  // if root is an output of a regular gate then put in the
+  // volume
+  if (network_->direction(root_pin)->isOutput()) {
+    ret->volume_.push_back(cur_inst);
+    volume_insts.insert(cur_inst);
+    visited_driver_pins.insert(root_pin);
+  }
+
   for (auto k : keep) {
-    // get the drivers..
+    // get the drivers.
+    // Skip any inverters and include in the volume
     sta::PinSet* drvrs = network_->drivers(k);
     if (drvrs) {
       sta::PinSet::Iterator drvr_iter(drvrs);
       if (drvr_iter.hasNext()) {
         const sta::Pin* driving_pin = drvr_iter.next();
-        if (unique_driver_pins.find(driving_pin) == unique_driver_pins.end()) {
+        sta::Pin* driving_pin_out = nullptr;
+        sta::Pin* start_pin = const_cast<sta::Pin*>(driving_pin);
+        while (AccumulateInverterBuffers(start_pin,
+                                         leaf_driver_pins,
+                                         volume_insts,
+                                         visited_driver_pins,
+                                         ret,
+                                         driving_pin_out)) {
+          start_pin = driving_pin_out;
+        }
+
+        if (driving_pin_out) {
+          visited_driver_pins.insert(driving_pin_out);
+          if (leaf_driver_pins.find(driving_pin_out)
+              == leaf_driver_pins.end()) {
 #ifdef CUTGEN_DEBUG
-          printf("Registering driver pin %s\n",
-                 network_->pathName(driving_pin));
+            printf("keep Registering leaf driver pin %s\n",
+                   network_->pathName(driving_pin_out));
 #endif
-          ret->leaves_.push_back(const_cast<sta::Pin*>(driving_pin));
-          unique_driver_pins.insert(driving_pin);
+            ret->leaves_.push_back(const_cast<sta::Pin*>(driving_pin_out));
+            leaf_driver_pins.insert(driving_pin_out);
+          }
         }
       }
     }
   }
 
-  // if root is an output of a regular gate then put in the
-  // volume
-  if (network_->direction(root_pin)->isOutput())
-    ret->volume_.push_back(cur_inst);
-
-  unique_insts.insert(cur_inst);
+  std::vector<const sta::Pin*> driver_pins_to_expand;
 
   for (auto e : expand) {
     sta::PinSet* drvrs = network_->drivers(e);
@@ -229,88 +287,243 @@ Cut* CutGen::BuildCutFromExpansionElement(
       sta::PinSet::Iterator drvr_iter(drvrs);
       if (drvr_iter.hasNext()) {
         const sta::Pin* driving_pin = drvr_iter.next();
-
-        // filter: a boundary (eg memory, or primary i/o)
-        if (Boundary(driving_pin)) {
-          if (unique_driver_pins.find(driving_pin)
-              == unique_driver_pins.end()) {
-            unique_driver_pins.insert(driving_pin);
-            ret->leaves_.push_back(const_cast<sta::Pin*>(driving_pin));
-          }
-          continue;
+        if (leaf_driver_pins.find(driving_pin) == leaf_driver_pins.end()
+            && visited_driver_pins.find(driving_pin)
+                   == visited_driver_pins.end()) {
+          driver_pins_to_expand.push_back(driving_pin);
         }
+      }
+    }
+  }
 
-        if (unique_driver_pins.find(driving_pin) == unique_driver_pins.end()) {
-          unique_driver_pins.insert(driving_pin);
+  for (auto d_pin : driver_pins_to_expand) {
+    sta::Pin* driving_pin = const_cast<sta::Pin*>(d_pin);
+    sta::Instance* candidate_buffer_inverter = network_->instance(d_pin);
+    sta::Pin* fanin_driving_pin = driving_pin;
+    if (IsBufferInverterInstance(candidate_buffer_inverter)) {
 #ifdef CUTGEN_DEBUG
-          printf("Expanding driving pin %s\n", network_->pathName(driving_pin));
+      static int debug;
+      debug++;
+      printf("D %d 1 Walking through inverter %s\n",
+             debug,
+             network_->pathName(candidate_buffer_inverter));
 #endif
+      while (AccumulateInverterBuffers(driving_pin,
+                                       leaf_driver_pins,
+                                       volume_insts,
+                                       visited_driver_pins,
+                                       ret,
+                                       fanin_driving_pin)) {
+        driving_pin = fanin_driving_pin;
+      }
+    }
+    if (fanin_driving_pin) {
+      ExpandRegularPin(const_cast<sta::Pin*>(fanin_driving_pin),
+                       leaf_driver_pins,
+                       volume_insts,
+                       visited_driver_pins,
+                       ret);
+    }
+  }
+  return ret;
+}
 
-          // expand through buffers and inverters
-          driving_pin = WalkThroughBuffersAndInverters(
-              ret, driving_pin, unique_driver_pins, unique_insts);
+/*
+Walk through buffers/inverters and stick them in the volume.
+Returns:
 
-          // filter: a boundary (eg memory, or primary i/o)
-          if (Boundary(driving_pin)) {
+True if ok to iteratively call. driving_pin_out set to next
+pin.
+
+False: if hit a boundary or non inverter/buffer cell
+if driving_pin_out set to nullptr then we have nothing more to do
+(hit a boundary) else we have hit a regular gate and return the
+regular gate output in driving_pin_out.
+*/
+
+bool CutGen::AccumulateInverterBuffers(
+    sta::Pin* bufferinverter_op_pin,
+    std::set<const sta::Pin*>& leaf_driver_pins,
+    std::set<sta::Instance*>& volume_insts,
+    std::set<const sta::Pin*>& visited_driver_pins,
+
+    Cut* cut,
+    sta::Pin*& driving_pin_out)
+{
+  driving_pin_out = nullptr;
+  sta::Instance* bufferinverter_inst
+      = network_->instance(bufferinverter_op_pin);
+
+  // case1: when we have been here before, avoid loops
+  if (visited_driver_pins.find(bufferinverter_op_pin)
+      != visited_driver_pins.end()) {
+    driving_pin_out = nullptr;
+    return false;
+  }
+
+  if (IsBufferInverterInstance(bufferinverter_inst)) {
+    // An object we can walk through (buffer or inverter).
+
+    if (volume_insts.find(bufferinverter_inst) == volume_insts.end()) {
+      // accumulate the inverter buffer into the volume
+      volume_insts.insert(bufferinverter_inst);
+      cut->volume_.push_back(bufferinverter_inst);
+      // only mark as visited once we have processed the pin
+      visited_driver_pins.insert(bufferinverter_op_pin);
+    }
+
+    sta::InstancePinIterator* cpin_iter
+        = network_->pinIterator(bufferinverter_inst);
+    while (cpin_iter->hasNext()) {
+      const sta::Pin* c_pin = cpin_iter->next();
+      if (network_->direction(c_pin)->isInput()) {
+        sta::PinSet* drvrs = network_->drivers(c_pin);
+        sta::PinSet::Iterator drvr_iter(drvrs);
+        if (drvr_iter.hasNext()) {
+          sta::Pin* driving_pin = const_cast<sta::Pin*>(drvr_iter.next());
+          sta::Instance* driving_instance = network_->instance(driving_pin);
+
+          // if we have been here before signal nothing more to do
+          if (visited_driver_pins.find(driving_pin)
+              != visited_driver_pins.end()) {
+            driving_pin_out = nullptr;
+            return false;
+          }
+          // A new boundary, register the leaf
+          else if (Boundary(driving_pin)) {
+            visited_driver_pins.insert(driving_pin);
+            if (leaf_driver_pins.find(driving_pin) == leaf_driver_pins.end()) {
+              leaf_driver_pins.insert(driving_pin);
 #ifdef CUTGEN_DEBUG
-            printf("Hit boundary after going through buffers/inverters\n");
+              printf("(boundary) Registering leaf driver pin %s\n",
+                     network_->pathName(driving_pin));
 #endif
-            unique_driver_pins.insert(driving_pin);
-            if (!ret->LeafPin(driving_pin)) {
-              ret->leaves_.push_back(const_cast<sta::Pin*>(driving_pin));
+              cut->leaves_.push_back(const_cast<sta::Pin*>(driving_pin));
             }
-            continue;
+            driving_pin_out = nullptr;
+            return false;
+          } else {
+            // proceed to continue next gate
+            driving_pin_out = driving_pin;
+            return true;
           }
+        }
+      }
+    }
+  } else {
+    // not an inverter/buffer, stop iterating
+    // pick up from fanin gate
+    driving_pin_out = bufferinverter_op_pin;
+    return false;
+  }
 
-          if (network_->direction(driving_pin)->isOutput()) {
-            sta::LibertyPort* lp = network_->libertyPort(driving_pin);
-            ret->internal_pins_[driving_pin] = lp;
-          }
+  // default.
+  driving_pin_out = nullptr;
+  return false;
+}
 
-          // get the driving instance
-          sta::Instance* driving_inst = network_->instance(driving_pin);
+void CutGen::ExpandRegularPin(sta::Pin* driving_pin,
+                              std::set<const sta::Pin*>& leaf_driver_pins,
+                              std::set<sta::Instance*>& volume_insts,
+                              std::set<const sta::Pin*>& visited_driver_pins,
+                              Cut* cut)
+{
+  if (visited_driver_pins.find(driving_pin) != visited_driver_pins.end()) {
 #ifdef CUTGEN_DEBUG
-          printf("Expanding driving instance %s\n",
-                 network_->pathName(driving_inst));
+    printf("Not expanding visited pin %s\n", network_->name(driving_pin));
+#endif
+    return;
+  }
+
+  // a boundary (eg memory, or primary i/o)
+  // or even something already connected to a leaf.
+  sta::Instance* driving_inst = network_->instance(driving_pin);
+
+  // Case 1 : a boundary
+  if (Boundary(driving_pin)
+      || InstanceOpConnectedToCutBoundary(driving_inst, cut)) {
+#ifdef CUTGEN_DEBUG
+    printf("Expand Regular pin hit boundary %s\n",
+           network_->name(driving_inst));
+#endif
+    if (leaf_driver_pins.find(driving_pin) == leaf_driver_pins.end()) {
+      leaf_driver_pins.insert(driving_pin);
+#ifdef CUTGEN_DEBUG
+      printf("2 (boundary) Registering leaf driver pin %s\n",
+             network_->pathName(driving_pin));
+#endif
+      cut->leaves_.push_back(const_cast<sta::Pin*>(driving_pin));
+      visited_driver_pins.insert(driving_pin);
+    }
+    return;
+  }
+
+  // harmless but should be in unique_inst check
+  if (network_->direction(driving_pin)->isOutput()) {
+    sta::LibertyPort* lp = network_->libertyPort(driving_pin);
+    cut->internal_pins_[driving_pin] = lp;
+  }
+
+  if (volume_insts.find(driving_inst) == volume_insts.end()) {
+    volume_insts.insert(driving_inst);
+    cut->volume_.push_back(driving_inst);
+    visited_driver_pins.insert(driving_pin);
+
+#ifdef CUTGEN_DEBUG
+    printf("Expanding from regular pin. Accumulating inst %s\n",
+           network_->name(driving_inst));
 #endif
 
-          // add to volume, uniquely
-          if (unique_insts.find(driving_inst) == unique_insts.end()) {
-            unique_insts.insert(driving_inst);
-            ret->volume_.push_back(driving_inst);
-            sta::InstancePinIterator* pin_iter
-                = network_->pinIterator(driving_inst);
-            while (pin_iter->hasNext()) {
-              const sta::Pin* dpin = pin_iter->next();
-              if (network_->direction(dpin)->isInput()) {
-#ifdef CUTGEN_DEBUG
-                printf("Expanding through driving instance ip %s\n",
-                       network_->pathName(dpin));
-#endif
-                // get the driver add to cut leaves
-                sta::PinSet* drvrs = network_->drivers(dpin);
-                if (drvrs) {
-                  sta::PinSet::Iterator drvr_iter(drvrs);
-                  if (drvr_iter.hasNext()) {
-                    const sta::Pin* cur_pin = drvr_iter.next();
+    sta::InstancePinIterator* pin_iter = network_->pinIterator(driving_inst);
+    while (pin_iter->hasNext()) {
+      const sta::Pin* dpin = pin_iter->next();
+      if (network_->direction(dpin)->isInput()) {
+        // get the driver add to cut leaves
+        sta::PinSet* drvrs = network_->drivers(dpin);
+        if (drvrs) {
+          sta::PinSet::Iterator drvr_iter(drvrs);
+          if (drvr_iter.hasNext()) {
+            const sta::Pin* cur_pin = drvr_iter.next();
 
-                    // could be a primary input pin or an output pin
-                    if (network_->direction(cur_pin)->isOutput()
-                        || network_->term(cur_pin)) {
+            if (network_->direction(cur_pin)->isOutput()
+                || network_->term(cur_pin)) {
+              if (visited_driver_pins.find(cur_pin)
+                  != visited_driver_pins.end())
+                continue;
+
 #ifdef CUTGEN_DEBUG
-                      printf("Looking at driving pin %s\n",
-                             network_->pathName(cur_pin));
+              printf("Looking at driving pin %s\n",
+                     network_->pathName(cur_pin));
 #endif
-                      if (unique_driver_pins.find(cur_pin)
-                          == unique_driver_pins.end()) {
-                        ret->leaves_.push_back(const_cast<sta::Pin*>(cur_pin));
-                        unique_driver_pins.insert(cur_pin);
+
+              sta::Pin* driving_pin_out = nullptr;
+              sta::Pin* start_pin = const_cast<sta::Pin*>(cur_pin);
+              while (AccumulateInverterBuffers(start_pin,
+                                               leaf_driver_pins,
+                                               volume_insts,
+                                               visited_driver_pins,
+                                               cut,
+                                               driving_pin_out)) {
+                start_pin = driving_pin_out;
+              }
+              if (driving_pin_out) {
+                if (visited_driver_pins.find(driving_pin_out)
+                    == visited_driver_pins.end()) {
+                  visited_driver_pins.insert(driving_pin_out);
+
 #ifdef CUTGEN_DEBUG
-                        printf("Registering unique ip pin %s\n",
-                               network_->pathName(cur_pin));
+                  printf("Candidate leaf pin %s\n",
+                         network_->pathName(driving_pin_out));
 #endif
-                      }
-                    }
+                  if (leaf_driver_pins.find(driving_pin_out)
+                      == leaf_driver_pins.end()) {
+#ifdef CUTGEN_DEBUG
+                    printf("4 (Expand pin) Registering leaf driver pin %s\n",
+                           network_->pathName(driving_pin_out));
+#endif
+                    cut->leaves_.push_back(
+                        const_cast<sta::Pin*>(driving_pin_out));
+                    leaf_driver_pins.insert(driving_pin_out);
                   }
                 }
               }
@@ -320,7 +533,43 @@ Cut* CutGen::BuildCutFromExpansionElement(
       }
     }
   }
-  return ret;
+}
+
+bool CutGen::IsBufferInverterInstance(sta::Instance* inst)
+{
+  sta::InstancePinIterator* cpin_iter = network_->pinIterator(inst);
+  int var_count = 0;
+  int op_count = 0;
+  const sta::Pin* ip_pin;
+  const sta::Pin* op_pin;
+  while (cpin_iter->hasNext()) {
+    const sta::Pin* c_pin = cpin_iter->next();
+    if (network_->direction(c_pin)->isInput()) {
+      var_count++;
+      ip_pin = c_pin;
+    } else {
+      op_count++;
+      op_pin = c_pin;
+    }
+  }
+  (void) ip_pin;
+  if (var_count == 1 && op_count == 1) {
+    sta::LibertyPort* lp = network_->libertyPort(op_pin);
+    if (lp && lp->function()) {
+      unsigned* kit_table = nullptr;
+      std::map<int, std::string> ix2var;
+      FuncExpr2Kit FuncExpr2Kit(lp->function(), var_count, kit_table, ix2var);
+      unsigned num_bits_to_set = (0x01 << var_count);
+      unsigned mask = 0x00;
+      for (unsigned j = 0; j < num_bits_to_set; j++)
+        mask = mask | (0x1 << j);
+      unsigned result = *kit_table & mask;
+      if (IsBuffer(kit_table, var_count) || IsInverter(kit_table, var_count)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 static inline int TruthWordNum(unsigned* p, int nVars)
@@ -351,68 +600,6 @@ bool IsInverter(unsigned* p, int n_vars)
       return false;
   }
   return ret;
-}
-//
-// walk through a driving pin
-//
-const sta::Pin* CutGen::WalkThroughBuffersAndInverters(
-    Cut* cut,
-    const sta::Pin* op_pin,
-    std::set<const sta::Pin*>& unique_driver_pins,
-    std::set<sta::Instance*>& unique_insts)
-{
-  sta::Instance* cur_inst = network_->instance(op_pin);
-  sta::InstancePinIterator* cpin_iter = network_->pinIterator(cur_inst);
-  int var_count = 0;
-  const sta::Pin* ip_pin;
-  while (cpin_iter->hasNext()) {
-    const sta::Pin* c_pin = cpin_iter->next();
-    if (network_->direction(c_pin)->isInput()) {
-      var_count++;
-      ip_pin = c_pin;
-    }
-  }
-  if (var_count == 1) {
-    sta::LibertyPort* lp = network_->libertyPort(op_pin);
-    if (lp && lp->function()) {
-      unsigned* kit_table = nullptr;
-      std::map<int, std::string> ix2var;
-      FuncExpr2Kit FuncExpr2Kit(lp->function(), var_count, kit_table, ix2var);
-      unsigned num_bits_to_set = (0x01 << var_count);
-      unsigned mask = 0x00;
-      for (unsigned j = 0; j < num_bits_to_set; j++)
-        mask = mask | (0x1 << j);
-      unsigned result = *kit_table & mask;
-
-      if (IsBuffer(kit_table, var_count) || IsInverter(kit_table, var_count)) {
-        if (ip_pin) {
-#ifdef CUTGEN_DEBUG
-          printf("Walking through buffer/inverter\n");
-#endif
-          sta::PinSet* drvrs = network_->drivers(ip_pin);
-          sta::PinSet::Iterator drvr_iter(drvrs);
-          if (drvr_iter.hasNext()) {
-            const sta::Pin* driving_pin = drvr_iter.next();
-            // Bug fix: the buffer we walk through must go into the volume
-            if (unique_insts.find(cur_inst) == unique_insts.end()) {
-              cut->volume_.push_back(cur_inst);
-              unique_insts.insert(cur_inst);
-            }
-            if (unique_driver_pins.find(driving_pin)
-                == unique_driver_pins.end()) {
-              unique_driver_pins.insert(driving_pin);
-              cut->internal_pins_[driving_pin] = lp;
-              return WalkThroughBuffersAndInverters(
-                  cut, driving_pin, unique_driver_pins, unique_insts);
-            } else
-              return driving_pin;
-          }
-        }
-      }
-    }
-  }
-  // default do nothing
-  return op_pin;
 }
 
 bool CutGen::EnumerateExpansions(
@@ -599,6 +786,39 @@ bool CutGen::EnumerateExpansions(
   return false;
 }
 
+bool CutGen::InstanceOpConnectedToCutBoundary(const sta::Instance* cur_inst,
+                                              Cut* cur_cut)
+{
+  std::unique_ptr<sta::InstancePinIterator> ipin_iter{
+      network_->pinIterator(cur_inst)};
+  while (ipin_iter->hasNext()) {
+    const sta::Pin* cur_pin = ipin_iter->next();
+    if (network_->direction(cur_pin)->isOutput()) {
+      if (cur_cut->LeafPin(cur_pin)) {
+        return true;
+      }
+      if (cur_cut->RootPin(cur_pin)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+unsigned CutGen::OpPinCount(const sta::Instance* cur_inst)
+{
+  unsigned ret = 0;
+  std::unique_ptr<sta::InstancePinIterator> ipin_iter{
+      network_->pinIterator(cur_inst)};
+  while (ipin_iter->hasNext()) {
+    const sta::Pin* cur_pin = ipin_iter->next();
+    if (network_->direction(cur_pin)->isOutput()) {
+      ret++;
+    }
+  }
+  return ret;
+}
+
 bool CutGen::SelfFeedBack(const sta::Instance* cur_inst)
 {
   std::set<const sta::Pin*> ops;
@@ -629,16 +849,29 @@ bool CutGen::SelfFeedBack(const sta::Instance* cur_inst)
   return false;
 }
 
+//
+// Find out if a pin is a boundary
+// Note there is one other boundary case:
+// when a pin is marked as a leaf of cut.
+//
 bool CutGen::Boundary(const sta::Pin* cur_pin)
 {
   // a terminal
   if (network_->term(cur_pin))
     return true;
-  // a memory
+
   sta::Instance* cur_inst = network_->instance(cur_pin);
+
+  // a multiple output gate
+  if (OpPinCount(cur_inst) > 1) {
+    return true;
+  }
+
+  // a feedback loop
   if (SelfFeedBack(cur_inst)) {
     return true;
   }
+  // a memory
   if (cur_inst) {
     sta::LibertyCell* cell = network_->libertyCell(cur_inst);
     if (cell->isMemory() || cell->hasSequentials())
@@ -876,6 +1109,14 @@ void Cut::BuildFuncExpr(sta::Network* nwk,
 bool Cut::LeafPin(const sta::Pin* cur_pin)
 {
   for (auto i : leaves_)
+    if (i == cur_pin)
+      return true;
+  return false;
+}
+
+bool Cut::RootPin(const sta::Pin* cur_pin)
+{
+  for (auto i : roots_)
     if (i == cur_pin)
       return true;
   return false;
