@@ -181,4 +181,41 @@ int opt_gogogo(deque<string> args) {
         return 50;
     }
 }
+
+int placement_addblock_powerstripe_gogogo(std::deque<std::string> args)
+{   
+    Args args_(args);
+    string layer_name;
+    std::filesystem::path out_def;
+    const string_view LAYER_ARG("--layer");
+    const string_view TO_ARG("--to");
+    for (;;) {
+        auto arg = args_.next();
+        if (!arg) {
+            break;
+        }
+        const auto& s = *arg;
+        if (s == LAYER_ARG) {
+            auto param = args_.next();
+            if (!param) {
+                spdlog::error("--layer needs a layer name");
+                return 50;
+            }
+            layer_name = *param;
+        } else if ( s == TO_ARG) {
+            auto param = args_.next();
+            if (!param) {
+                spdlog::error("--to needs a filepath for output def");
+                return 50;
+            }
+            out_def = std::filesystem::path(*param);
+        } else {
+            spdlog::error("arg: Layer is required");
+            return 50;
+        }
+    }
+    ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
+    return placement_addblock_powerstripe(ord, layer_name, out_def);
+}
+
 } // namespace linden

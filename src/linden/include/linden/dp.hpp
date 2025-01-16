@@ -37,5 +37,6 @@ int basic_dp(::ord::OpenRoad&, const DpConfig&);
 int incr_dp(::ord::OpenRoad&, const DpConfig&);
 int rddp(::ord::OpenRoad&, DpConfig&);
 int opt(::ord::OpenRoad&,const DpConfig&);
+int placement_addblock_powerstripe(::ord::OpenRoad&,const std::string& layer_name, const std::filesystem::path& out_def);
 
 } // namespace linden

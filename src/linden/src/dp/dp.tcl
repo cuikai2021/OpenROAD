@@ -47,3 +47,17 @@ proc linden_optimize { args } {
     }
     linden::lindenopt_gogogo a
 }
+
+
+sta::define_cmd_args "linden_placement_addblock_powerstripe" {
+    [--layer layer-name]
+    [--to out-path ]
+}
+
+proc linden_placement_addblock_powerstripe { args } {
+    linden::StrDeque a
+    foreach x $args {
+        a push_back $x
+    }
+    linden::placement_addblock_powerstripe a
+}

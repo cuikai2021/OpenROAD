@@ -143,6 +143,10 @@ int lindenopt_gogogo(StrDeque& args) {
     return linden::opt_gogogo(std::move(args.elems_));
 }
 
+int placement_addblock_powerstripe(StrDeque& args) {
+    return linden::placement_addblock_powerstripe_gogogo(std::move(args.elems_));
+}
+
 %} // lindendp
 
 
@@ -404,3 +408,11 @@ int add_tie_cell_cmd(StrDeque& args) {
 }
 
 %} // add_tie_cell
+
+%inline %{
+
+int linden_placement_addblock_powerstripe(StrDeque& args) {
+    return linden::placement_addblock_powerstripe_gogogo(std::move(args.elems_));
+}
+
+%} // linden_placement_addblock_powerstripe

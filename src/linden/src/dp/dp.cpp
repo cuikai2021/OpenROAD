@@ -144,6 +144,11 @@ std::filesystem::path get_incr_dp_exe() {
     return dir / exec;
 }
 
+std::filesystem::path get_placement_addblock_powerstripe_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "block-m2-powerstripe";
+}
+
 
 std::filesystem::path get_routability_driven_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
@@ -235,6 +240,28 @@ int exec_opt(
     args.push_back("--cell-only");
     auto exe = std::move(get_opt_exe());
     return exec(cfg, exe, args);
+}
+
+int exec_placement_addblock_powerstripe(
+    const deque<filesystem::path>& lefs,
+    const std::filesystem::path& def,
+    const std::string& layer,
+    const std::filesystem::path& outdef
+)
+{
+    deque<string> args;
+    args.push_back("--lef");
+    for (const auto& lef: lefs) {
+        args.push_back(lef);
+    }
+    args.push_back("--def");
+    args.push_back(def);
+    args.push_back("--to");
+    args.push_back(outdef);
+    args.push_back("--layer");
+    args.push_back(layer);
+    auto exe = std::move(get_placement_addblock_powerstripe_exe());
+    return boost::process::system(string(exe), boost::process::args(args));
 }
 
 filesystem::path write_input_config(
@@ -430,6 +457,18 @@ int incr_dp(::ord::OpenRoad& ord, const DpConfig& cfg) {
     return ret;
 }
 
+int placement_addblock_powerstripe(::ord::OpenRoad& ord, const std::string& layer_name, const std::filesystem::path& out_def) {
+    const LefDefDumper dumper(ord);
+    deque<filesystem::path> lefs;
+    lefs.push_back(dumper.tech_lef);
+    for(auto const& x: dumper.lib_lefs) {
+        lefs.push_back(x);
+    }
+    auto const& def = dumper.def;
+    
+    int ret = exec_placement_addblock_powerstripe(lefs, def,layer_name, out_def);
+    return ret;
+}
 int rddp(::ord::OpenRoad& ord, DpConfig& dpcfg) {
     const int64_t N_TRIES = 3;
     std::vector<pair<std::filesystem::path, int64_t>> tried_results;
