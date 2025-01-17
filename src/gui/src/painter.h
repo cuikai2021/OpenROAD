@@ -33,6 +33,7 @@
 #pragma once
 
 #include <QPainter>
+#include <vector>
 
 #include "gui/gui.h"
 #include "odb/geom.h"
@@ -148,6 +149,10 @@ class GuiPainter : public Painter
     } else {
       painter_->drawRect(QRect(rect.xMin(), rect.yMin(), rect.dx(), rect.dy()));
     }
+  }
+  void drawPolygon(const odb::Polygon& polygon) override
+  {
+    drawPolygon(polygon.getPoints());
   }
   void drawPolygon(const std::vector<odb::Point>& points) override
   {

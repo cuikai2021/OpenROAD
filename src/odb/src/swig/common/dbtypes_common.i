@@ -29,6 +29,10 @@
 
 // (dbGCellGrid|dbTrackGrid)::getGridPattern[XY]
 %apply int& OUTPUT { int& origin_x, int& origin_y, int& line_count, int& step };
+%apply int& OUTPUT { int& origin_x, int& origin_y, int& line_count, int& step, int& first_mask, bool& samemask };
+
+// dbPowerDomain::getArea
+%apply odb::Rect& OUTPUT { odb::Rect& area };
 
 // (dbGCellGrid|dbTrackGrid)::getGrid[XY]
 %typemap(in, numinputs=0) std::vector<int> &OUTPUT  {

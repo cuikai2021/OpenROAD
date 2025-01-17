@@ -14,9 +14,11 @@ entries:
   - file: main/src/utl/README
     title: Man pages
 
-- file: main/src/README
+- file: main/README2
   title: OpenROAD User Guide
   entries:
+  - file: main/src/README
+    title: OpenROAD APIs
   - file: main/src/odb/README
     title: Database
     entries:
@@ -36,6 +38,8 @@ entries:
     title: Floorplan Initialization
   - file: main/src/ppl/README
     title: Pin Placement
+  - file: main/src/dft/README
+    title: Design for Test
   - file: main/src/pad/README
     title: Chip-level Connections
   - file: main/src/mpl/README

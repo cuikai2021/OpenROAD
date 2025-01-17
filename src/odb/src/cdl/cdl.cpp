@@ -45,6 +45,7 @@
 #include <vector>
 
 #include "utl/Logger.h"
+#include "utl/ScopedTemporaryFile.h"
 
 namespace odb {
 
@@ -102,6 +103,11 @@ std::string getNetName(dbBlock* block,
   dbNet* net = iterm->getNet();
   if (net == nullptr) {
     return getUnconnectedNet(block, unconnectedNets);
+  }
+
+  dbBTerm* bterm = net->get1stBTerm();
+  if (bterm) {
+    return bterm->getName();
   }
 
   return net->getName();
@@ -187,7 +193,8 @@ bool cdl::writeCdl(utl::Logger* logger,
     mtermMap.insert(submtermMap.begin(), submtermMap.end());
   }
   int unconnectedNets = 0;
-  FILE* f = fopen(outFileName, "w");
+  utl::FileHandler fileHandler(outFileName);
+  FILE* f = fileHandler.getFile();
 
   if (f == nullptr) {
     logger->error(utl::ODB, 358, "cannot open file {}", outFileName);
@@ -239,7 +246,6 @@ bool cdl::writeCdl(utl::Logger* logger,
 
   writeLine(f, ".ENDS " + block->getName());
 
-  fclose(f);
   return true;
 }
 

@@ -71,12 +71,15 @@ target_link_libraries(rmp
     dbSta
     OpenSTA
     rsz
-    utl
+    utl_lib
     ${ABC_LIBRARY}
  )
 
 add_library(rmp_abc_library 
   abc_library_factory.cpp
+  logic_extractor.cpp
+  logic_cut.cpp
+  delay_optimization_strategy.cpp
 )
 
 target_include_directories(rmp_abc_library
@@ -92,6 +95,7 @@ target_link_libraries(rmp_abc_library
     dbSta_lib
     libabc
     utl_lib
+    ${ABC_LIBRARY}
 )
 
 if (Python3_FOUND AND BUILD_PYTHON)

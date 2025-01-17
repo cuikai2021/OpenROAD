@@ -90,7 +90,6 @@ class IOPin
         const odb::dbPlacementStatus& placement_status)
       : bterm_(bterm),
         pos_(pos),
-        orientation_(Orientation::north),
         direction_(dir),
         lower_bound_(lower_bound),
         upper_bound_(upper_bound),
@@ -103,8 +102,8 @@ class IOPin
   odb::Point getPosition() const { return pos_; }
   void setX(const int x) { pos_.setX(x); }
   void setY(const int y) { pos_.setY(y); }
-  void setPos(const odb::Point& pos) { pos_ = pos; }
-  void setPos(const int x, const int y) { pos_ = odb::Point(x, y); }
+  void setPosition(const odb::Point& pos) { pos_ = pos; }
+  void setPosition(const int x, const int y) { pos_ = odb::Point(x, y); }
   void setLowerBound(const int x, const int y)
   {
     lower_bound_ = odb::Point(x, y);
@@ -114,7 +113,6 @@ class IOPin
     upper_bound_ = odb::Point(x, y);
   };
   std::string getName() const { return bterm_->getName(); }
-  odb::Point getPos() const { return pos_; }
   int getX() const { return pos_.getX(); }
   int getY() const { return pos_.getY(); }
   Direction getDirection() const { return direction_; }
@@ -159,7 +157,7 @@ class IOPin
  private:
   odb::dbBTerm* bterm_;
   odb::Point pos_;
-  Orientation orientation_;
+  Orientation orientation_{Orientation::north};
   Direction direction_;
   odb::Point lower_bound_;
   odb::Point upper_bound_;

@@ -35,21 +35,18 @@
 
 #pragma once
 
-#include <stdio.h>
 #include <unistd.h>
 
+#include <cstdio>
 #include <map>
 #include <set>
 #include <string>
 
+#include "odb/db.h"
+
 namespace ord {
 class OpenRoad;
 }  // namespace ord
-
-namespace odb {
-class dbInst;
-class dbBlock;
-}  // namespace odb
 
 namespace utl {
 class Logger;

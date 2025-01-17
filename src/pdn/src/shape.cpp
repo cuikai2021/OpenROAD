@@ -33,6 +33,7 @@
 #include "shape.h"
 
 #include <boost/polygon/polygon.hpp>
+#include <vector>
 
 #include "grid.h"
 #include "grid_component.h"
@@ -53,6 +54,7 @@ Shape::Shape(odb::dbTechLayer* layer,
       type_(type),
       shape_type_(SHAPE),
       allow_non_preferred_change_(false),
+      is_locked_(false),
       obs_(rect_),
       grid_component_(nullptr)
 {
@@ -67,6 +69,7 @@ Shape::Shape(odb::dbTechLayer* layer,
       type_(odb::dbWireShapeType::NONE),
       shape_type_(shape_type),
       allow_non_preferred_change_(false),
+      is_locked_(false),
       obs_(rect_),
       grid_component_(nullptr)
 {
@@ -363,7 +366,7 @@ void Shape::writeToDb(odb::dbSWire* swire,
              add_pins,
              make_rect_as_pin);
 
-  if (!hasDBConnectivity()) {
+  if (!is_locked_ && !hasDBConnectivity()) {
     getLogger()->warn(
         utl::PDN, 200, "Removing floating shape: {}", getReportText());
     return;
@@ -550,6 +553,9 @@ bool Shape::isRemovable() const
 
 bool Shape::isModifiable() const
 {
+  if (is_locked_) {
+    return false;
+  }
   return shape_type_ == SHAPE;
 }
 

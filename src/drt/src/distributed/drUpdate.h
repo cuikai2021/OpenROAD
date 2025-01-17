@@ -47,7 +47,12 @@ class drUpdate
     UPDATE_SHAPE,
     ADD_SHAPE_NET_ONLY
   };
-  drUpdate(UpdateType type = ADD_SHAPE) : type_(type) {}
+  drUpdate(UpdateType type = ADD_SHAPE,
+           frNet* net = nullptr,
+           int index_in_owner = 0)
+      : net_(net), index_in_owner_(index_in_owner), type_(type)
+  {
+  }
 
   void setNet(frNet* net) { net_ = net; }
   void setIndexInOwner(int value) { index_in_owner_ = value; }
@@ -77,7 +82,7 @@ class drUpdate
   bool bottomConnected_{false};
   bool topConnected_{false};
   bool tapered_{false};
-  frViaDef* viaDef_{nullptr};
+  const frViaDef* viaDef_{nullptr};
   frBlockObjectEnum obj_type_{frcBlock};
   frMarker marker_;
 

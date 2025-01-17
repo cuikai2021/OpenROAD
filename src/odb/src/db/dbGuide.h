@@ -61,7 +61,10 @@ class _dbGuide : public _dbObject
   dbId<_dbNet> net_;
   Rect box_;
   dbId<_dbTechLayer> layer_;
+  dbId<_dbTechLayer> via_layer_;
   dbId<_dbGuide> guide_next_;
+  bool is_congested_;
+  bool is_jumper_;
 };
 dbIStream& operator>>(dbIStream& stream, _dbGuide& obj);
 dbOStream& operator<<(dbOStream& stream, const _dbGuide& obj);

@@ -35,6 +35,7 @@
 #include <QTabWidget>
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include "gui/gui.h"
 #include "layoutViewer.h"
@@ -58,8 +59,11 @@ class LayoutTabs : public QTabWidget
              const HighlightSet& highlighted,
              const std::vector<std::unique_ptr<Ruler>>& rulers,
              Gui* gui,
-             std::function<bool(void)> usingDBU,
-             std::function<bool(void)> showRulerAsEuclidian,
+             std::function<bool()> usingDBU,
+             std::function<bool()> usingPolyDecompView,
+             std::function<bool()> showRulerAsEuclidian,
+             std::function<bool()> default_mouse_wheel_zoom,
+             std::function<int()> arrow_keys_scroll_step,
              QWidget* parent = nullptr);
 
   LayoutViewer* getCurrent() const { return current_viewer_; }
@@ -122,6 +126,7 @@ class LayoutTabs : public QTabWidget
   void exit();
   void commandAboutToExecute();
   void commandFinishedExecuting();
+  void resetCache();
 
   // Method forwarding
   void restoreTclCommands(std::vector<std::string>& cmds);
@@ -138,8 +143,11 @@ class LayoutTabs : public QTabWidget
   const std::vector<std::unique_ptr<Ruler>>& rulers_;
   std::map<odb::dbModule*, LayoutViewer::ModuleSettings> modules_;
   Gui* gui_;
-  std::function<bool(void)> usingDBU_;
-  std::function<bool(void)> showRulerAsEuclidian_;
+  std::function<bool()> usingDBU_;
+  std::function<bool()> usingPolyDecompView_;
+  std::function<bool()> showRulerAsEuclidian_;
+  std::function<bool()> default_mouse_wheel_zoom_;
+  std::function<int()> arrow_keys_scroll_step_;
   utl::Logger* logger_;
   bool command_executing_ = false;
 

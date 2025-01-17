@@ -37,6 +37,7 @@
 
 #include <cmath>
 #include <limits>
+#include <vector>
 
 #include "CtsObserver.h"
 #include "CtsOptions.h"
@@ -369,10 +370,7 @@ class HTreeBuilder : public TreeBuilder
     return width < minLengthSinkRegion_ || height < minLengthSinkRegion_;
   }
 
-  bool isNumberOfSinksTooSmall(unsigned numSinksPerSubRegion) const
-  {
-    return numSinksPerSubRegion < numMaxLeafSinks_;
-  }
+  bool isNumberOfSinksTooSmall(unsigned numSinksPerSubRegion) const;
 
   double weightedDistance(const Point<double>& newLoc,
                           const Point<double>& oldLoc,

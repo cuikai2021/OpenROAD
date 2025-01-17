@@ -39,24 +39,6 @@
 
 namespace odb {
 
-//
-// dbIdValidation methods here
-//
-bool dbIdValidation::isId(const char* inid)
-{
-  if (!inid) {
-    return false;
-  }
-
-  for (; *inid; inid++) {
-    if (isdigit(*inid) == 0) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 std::optional<dbOrientType::Value> dbOrientType::fromString(const char* orient)
 {
   std::optional<dbOrientType::Value> ret;
@@ -224,6 +206,106 @@ bool dbOrientType::isRightAngleRotation() const
   }
   assert(false);
   return false;
+}
+
+dbGDSSTrans::dbGDSSTrans()
+{
+  _flipX = false;
+  _mag = 1.0;
+  _angle = 0.0;
+}
+
+dbGDSSTrans::dbGDSSTrans(bool flipX, double mag, double angle)
+{
+  _flipX = flipX;
+  _mag = mag;
+  _angle = angle;
+}
+
+bool dbGDSSTrans::operator==(const dbGDSSTrans& rhs) const
+{
+  return (_flipX == rhs._flipX) && (_mag == rhs._mag) && (_angle == rhs._angle);
+}
+
+std::string dbGDSSTrans::to_string() const
+{
+  std::string s;
+  if (_flipX) {
+    s += std::string("FLIP_X ");
+  }
+  s += "MAG ";
+  s += std::to_string(_mag);
+  s += " ANGLE ";
+  s += std::to_string(_angle);
+  s += " ";
+  return s;
+}
+
+bool dbGDSSTrans::identity() const
+{
+  return (!_flipX) && (_mag == 1.0) && (_angle == 0.0);
+}
+
+dbGDSTextPres::dbGDSTextPres()
+{
+  _vPres = dbGDSTextPres::VPres::TOP;
+  _hPres = dbGDSTextPres::HPres::LEFT;
+}
+
+dbGDSTextPres::dbGDSTextPres(dbGDSTextPres::VPres vPres,
+                             dbGDSTextPres::HPres hPres)
+{
+  _vPres = vPres;
+  _hPres = hPres;
+}
+
+bool dbGDSTextPres::operator==(const dbGDSTextPres& rhs) const
+{
+  return (_vPres == rhs._vPres) && (_hPres == rhs._hPres);
+}
+
+std::string dbGDSTextPres::to_string() const
+{
+  std::string s;
+  s += "FONT ";
+  s += (_vPres == dbGDSTextPres::VPres::TOP) ? std::string("TOP ")
+                                             : std::string("BOTTOM ");
+  s += (_hPres == dbGDSTextPres::HPres::LEFT) ? std::string("LEFT ")
+                                              : std::string("RIGHT ");
+  return s;
+}
+
+dbIStream& operator>>(dbIStream& stream, dbGDSSTrans& t)
+{
+  stream >> t._flipX;
+  stream >> t._mag;
+  stream >> t._angle;
+  return stream;
+}
+
+dbOStream& operator<<(dbOStream& stream, const dbGDSSTrans t)
+{
+  stream << t._flipX;
+  stream << t._mag;
+  stream << t._angle;
+  return stream;
+}
+
+dbIStream& operator>>(dbIStream& stream, dbGDSTextPres& t)
+{
+  uint8_t vPresTemp, hPresTemp;
+  stream >> vPresTemp;
+  stream >> hPresTemp;
+  t._vPres = static_cast<dbGDSTextPres::VPres>(vPresTemp);
+  t._hPres = static_cast<dbGDSTextPres::HPres>(hPresTemp);
+  return stream;
+}
+
+dbOStream& operator<<(dbOStream& stream, const dbGDSTextPres t)
+{
+  stream << static_cast<uint8_t>(t._vPres);
+  stream << static_cast<uint8_t>(t._hPres);
+  return stream;
 }
 
 dbGroupType::dbGroupType(const char* orient)
@@ -558,12 +640,9 @@ bool dbPlacementStatus::isFixed() const
 
 dbMasterType::dbMasterType(const char* value)
 {
-  _value = NONE;
+  _value = CORE;
 
-  if (strcasecmp(value, "NONE") == 0) {
-    _value = NONE;
-
-  } else if (strcasecmp(value, "COVER") == 0) {
+  if (strcasecmp(value, "COVER") == 0) {
     _value = COVER;
 
   } else if (strcasecmp(value, "COVER BUMP") == 0) {
@@ -689,7 +768,7 @@ dbMasterType::dbMasterType(Value value)
 
 dbMasterType::dbMasterType()
 {
-  _value = NONE;
+  _value = CORE;
 }
 
 dbMasterType::dbMasterType(const dbMasterType& value)
@@ -702,10 +781,6 @@ const char* dbMasterType::getString() const
   const char* value = "";
 
   switch (_value) {
-    case NONE:
-      value = "NONE";
-      break;
-
     case COVER:
       value = "COVER";
       break;
@@ -873,7 +948,6 @@ bool dbMasterType::isBlock() const
     case BLOCK_BLACKBOX:
     case BLOCK_SOFT:
       return true;
-    case NONE:
     case COVER:
     case COVER_BUMP:
     case RING:
@@ -927,7 +1001,6 @@ bool dbMasterType::isCore() const
     case CORE_ANTENNACELL:
     case CORE_WELLTAP:
       return true;
-    case NONE:
     case COVER:
     case COVER_BUMP:
     case RING:
@@ -977,7 +1050,6 @@ bool dbMasterType::isPad() const
     case PAD_SPACER:
     case PAD_AREAIO:
       return true;
-    case NONE:
     case COVER:
     case COVER_BUMP:
     case RING:
@@ -1039,7 +1111,6 @@ bool dbMasterType::isEndCap() const
     case ENDCAP_LEF58_RIGHTTOPCORNER:
     case ENDCAP_LEF58_LEFTTOPCORNER:
       return true;
-    case NONE:
     case COVER:
     case COVER_BUMP:
     case RING:
@@ -1072,7 +1143,6 @@ bool dbMasterType::isCover() const
     case COVER:
     case COVER_BUMP:
       return true;
-    case NONE:
     case RING:
     case BLOCK:
     case BLOCK_BLACKBOX:
@@ -1314,6 +1384,9 @@ dbBoxOwner::dbBoxOwner(const char* value)
   } else if (strcasecmp(value, "REGION") == 0) {
     _value = REGION;
 
+  } else if (strcasecmp(value, "PBOX") == 0) {
+    _value = PBOX;
+
   } else {
     // mismatch with noarg constructor: BLOCK
     _value = UNKNOWN;
@@ -1390,6 +1463,10 @@ const char* dbBoxOwner::getString() const
 
     case REGION:
       value = "REGION";
+      break;
+
+    case PBOX:
+      value = "PBOX";
       break;
   }
 

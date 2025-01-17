@@ -33,19 +33,20 @@
 
 #include "mpl2/rtl_mp.h"
 
+#include <vector>
+
 #include "Mpl2Observer.h"
 #include "hier_rtlmp.h"
 #include "object.h"
-#include "odb/db.h"
 
 namespace mpl2 {
-using odb::dbDatabase;
 using std::string;
-using utl::Logger;
 using utl::MPL;
 
 MacroPlacer2::MacroPlacer2() = default;
 MacroPlacer2::~MacroPlacer2() = default;
+
+class Snapper;
 
 void MacroPlacer2::init(sta::dbNetwork* network,
                         odb::dbDatabase* db,
@@ -53,8 +54,7 @@ void MacroPlacer2::init(sta::dbNetwork* network,
                         utl::Logger* logger,
                         par::PartitionMgr* tritonpart)
 {
-  hier_rtlmp_
-      = std::make_unique<HierRTLMP>(network, db, sta, logger, tritonpart);
+  hier_rtlmp_ = std::make_unique<HierRTLMP>(network, db, logger, tritonpart);
   logger_ = logger;
   db_ = db;
 }
@@ -119,6 +119,10 @@ bool MacroPlacer2::place(const int num_threads,
   hier_rtlmp_->setBusPlanningOn(bus_planning_on);
   hier_rtlmp_->setReportDirectory(report_directory);
   hier_rtlmp_->setNumThreads(num_threads);
+
+  hier_rtlmp_->setGuidanceRegions(guidance_regions_);
+
+  hier_rtlmp_->init();
   hier_rtlmp_->run();
 
   return true;
@@ -127,12 +131,14 @@ bool MacroPlacer2::place(const int num_threads,
 void MacroPlacer2::placeMacro(odb::dbInst* inst,
                               const float& x_origin,
                               const float& y_origin,
-                              const odb::dbOrientType& orientation)
+                              const odb::dbOrientType& orientation,
+                              const bool exact,
+                              const bool allow_overlap)
 {
-  float dbu_per_micron = db_->getTech()->getDbUnitsPerMicron();
+  odb::dbBlock* block = inst->getBlock();
 
-  const int x1 = micronToDbu(x_origin, dbu_per_micron);
-  const int y1 = micronToDbu(y_origin, dbu_per_micron);
+  const int x1 = block->micronsToDbu(x_origin);
+  const int y1 = block->micronsToDbu(y_origin);
   const int x2 = x1 + inst->getBBox()->getDX();
   const int y2 = y1 + inst->getBBox()->getDY();
 
@@ -142,34 +148,51 @@ void MacroPlacer2::placeMacro(odb::dbInst* inst,
   if (!core_area.contains(macro_new_bbox)) {
     logger_->error(MPL,
                    34,
-                   "Specified location results in illegal placement. Cannot "
-                   "place macro outside of the core.");
+                   "Cannot place {} at ({}, {}) ({}, {}), outside of the core "
+                   "({}, {}) ({}, {}).",
+                   inst->getName(),
+                   block->dbuToMicrons(macro_new_bbox.xMin()),
+                   block->dbuToMicrons(macro_new_bbox.yMin()),
+                   block->dbuToMicrons(macro_new_bbox.xMax()),
+                   block->dbuToMicrons(macro_new_bbox.yMax()),
+                   block->dbuToMicrons(core_area.xMin()),
+                   block->dbuToMicrons(core_area.yMin()),
+                   block->dbuToMicrons(core_area.xMax()),
+                   block->dbuToMicrons(core_area.yMax()));
   }
 
-  // As HardMacro is created from inst, the latter must be placed before
-  // we actually snap the macro to align the pins with the grids. Also,
-  // orientation must be set before location so we don't end up flipping
+  // Orientation must be set before location so we don't end up flipping
   // and misplacing the macro.
   inst->setOrient(orientation);
   inst->setLocation(x1, y1);
 
-  if (!orientation.isRightAngleRotation()) {
-    int manufacturing_grid = db_->getTech()->getManufacturingGrid();
+  if (orientation.isRightAngleRotation()) {
+    logger_->warn(MPL,
+                  36,
+                  "Orientation {} specified for macro {} is a right angle "
+                  "rotation. Snapping is not possible.",
+                  orientation.getString(),
+                  inst->getName());
+  } else if (!exact) {
+    Snapper snapper(logger_, inst);
+    snapper.snapMacro();
+  }
 
-    HardMacro macro(inst, dbu_per_micron, manufacturing_grid, 0, 0);
+  if (!allow_overlap) {
+    std::vector<odb::dbInst*> overlapped_macros = findOverlappedMacros(inst);
+    if (!overlapped_macros.empty()) {
+      std::string overlapped_macros_names;
+      for (odb::dbInst* overlapped_macro : overlapped_macros) {
+        overlapped_macros_names
+            += fmt::format(" {}", overlapped_macro->getName());
+      }
 
-    odb::Point snap_origin = macro.computeSnapOrigin(
-        macro_new_bbox, orientation, inst->getBlock());
-
-    // Orientation is already set, so now we set the origin to snap macro.
-    inst->setOrigin(snap_origin.x(), snap_origin.y());
-  } else {
-    logger_->warn(
-        MPL,
-        36,
-        "Orientation {} specified for macro {} is a right angle rotation.",
-        orientation.getString(),
-        inst->getName());
+      logger_->error(MPL,
+                     41,
+                     "Couldn't place {}. Found overlap with other macros:{}.",
+                     inst->getName(),
+                     overlapped_macros_names);
+    }
   }
 
   inst->setPlacementStatus(odb::dbPlacementStatus::LOCKED);
@@ -179,11 +202,64 @@ void MacroPlacer2::placeMacro(odb::dbInst* inst,
                 "Macro {} placed. Bounding box ({:.3f}um, {:.3f}um), "
                 "({:.3f}um, {:.3f}um). Orientation {}",
                 inst->getName(),
-                dbuToMicron(inst->getBBox()->xMin(), dbu_per_micron),
-                dbuToMicron(inst->getBBox()->yMin(), dbu_per_micron),
-                dbuToMicron(inst->getBBox()->xMax(), dbu_per_micron),
-                dbuToMicron(inst->getBBox()->yMax(), dbu_per_micron),
+                block->dbuToMicrons(inst->getBBox()->xMin()),
+                block->dbuToMicrons(inst->getBBox()->yMin()),
+                block->dbuToMicrons(inst->getBBox()->xMax()),
+                block->dbuToMicrons(inst->getBBox()->yMax()),
                 orientation.getString());
+}
+
+std::vector<odb::dbInst*> MacroPlacer2::findOverlappedMacros(odb::dbInst* macro)
+{
+  std::vector<odb::dbInst*> overlapped_macros;
+  odb::dbBlock* block = macro->getBlock();
+  const odb::Rect& source_macro_bbox = macro->getBBox()->getBox();
+
+  for (odb::dbInst* inst : block->getInsts()) {
+    if (!inst->isBlock() || !inst->isPlaced()) {
+      continue;
+    }
+
+    const odb::Rect& target_macro_bbox = inst->getBBox()->getBox();
+    if (source_macro_bbox.overlaps(target_macro_bbox)) {
+      overlapped_macros.push_back(inst);
+    }
+  }
+
+  return overlapped_macros;
+}
+
+void MacroPlacer2::addGuidanceRegion(odb::dbInst* macro, const Rect& region)
+{
+  odb::dbBlock* block = db_->getChip()->getBlock();
+  const odb::Rect& core = block->getCoreArea();
+  const odb::Rect dbu_region(block->micronsToDbu(region.xMin()),
+                             block->micronsToDbu(region.yMin()),
+                             block->micronsToDbu(region.xMax()),
+                             block->micronsToDbu(region.yMax()));
+
+  if (!core.contains(dbu_region)) {
+    logger_->error(MPL,
+                   42,
+                   "Specified guidance region ({}, {}) ({}, {}) for the macro "
+                   "{} is outside of the core ({}, {}) ({}, {}).",
+                   region.xMin(),
+                   region.yMin(),
+                   region.xMax(),
+                   region.yMax(),
+                   macro->getName(),
+                   block->dbuToMicrons(core.xMin()),
+                   block->dbuToMicrons(core.yMin()),
+                   block->dbuToMicrons(core.xMax()),
+                   block->dbuToMicrons(core.yMax()));
+  }
+
+  if (guidance_regions_.find(macro) != guidance_regions_.end()) {
+    logger_->warn(
+        MPL, 44, "Overwriting guidance region for macro {}", macro->getName());
+  }
+
+  guidance_regions_[macro] = region;
 }
 
 void MacroPlacer2::setMacroPlacementFile(const std::string& file_name)
@@ -199,6 +275,25 @@ void MacroPlacer2::setDebug(std::unique_ptr<Mpl2Observer>& graphics)
 void MacroPlacer2::setDebugShowBundledNets(bool show_bundled_nets)
 {
   hier_rtlmp_->setDebugShowBundledNets(show_bundled_nets);
+}
+void MacroPlacer2::setDebugShowClustersIds(bool show_clusters_ids)
+{
+  hier_rtlmp_->setDebugShowClustersIds(show_clusters_ids);
+}
+
+void MacroPlacer2::setDebugSkipSteps(bool skip_steps)
+{
+  hier_rtlmp_->setDebugSkipSteps(skip_steps);
+}
+
+void MacroPlacer2::setDebugOnlyFinalResult(bool only_final_result)
+{
+  hier_rtlmp_->setDebugOnlyFinalResult(only_final_result);
+}
+
+void MacroPlacer2::setDebugTargetClusterId(const int target_cluster_id)
+{
+  hier_rtlmp_->setDebugTargetClusterId(target_cluster_id);
 }
 
 }  // namespace mpl2

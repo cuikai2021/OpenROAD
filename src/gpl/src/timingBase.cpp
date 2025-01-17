@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <vector>
 
 #include "nesterovBase.h"
 #include "placerBase.h"
@@ -142,15 +143,22 @@ void TimingBase::setTimingNetWeightMax(float max)
   net_weight_max_ = max;
 }
 
-bool TimingBase::updateGNetWeights(float overflow)
+bool TimingBase::updateGNetWeights(bool run_journal_restore)
 {
-  rs_->findResizeSlacks();
+  rs_->findResizeSlacks(run_journal_restore);
+
+  if (!run_journal_restore) {
+    nbc_->fixPointers();
+  }
 
   // get worst resize nets
   sta::NetSeq& worst_slack_nets = rs_->resizeWorstSlackNets();
 
   if (worst_slack_nets.empty()) {
-    log_->warn(GPL, 114, "No net slacks found. Timing-driven mode disabled.");
+    log_->warn(
+        GPL,
+        105,
+        "Timing-driven: no net slacks found. Timing-driven mode disabled.");
     return false;
   }
 
@@ -160,10 +168,12 @@ bool TimingBase::updateGNetWeights(float overflow)
       = rs_->resizeNetSlack(worst_slack_nets[worst_slack_nets.size() - 1])
             .value();
 
-  log_->info(GPL, 100, "worst slack {:.3g}", slack_min);
+  log_->info(GPL, 106, "Timing-driven: worst slack {:.3g}", slack_min);
 
   if (sta::fuzzyInf(slack_min)) {
-    log_->warn(GPL, 102, "No slacks found. Timing-driven mode disabled.");
+    log_->warn(GPL,
+               102,
+               "Timing-driven: no slacks found. Timing-driven mode disabled.");
     return false;
   }
 
@@ -201,7 +211,7 @@ bool TimingBase::updateGNetWeights(float overflow)
     }
   }
 
-  log_->info(GPL, 103, "Weighted {} nets.", weighted_net_count);
+  log_->info(GPL, 103, "Timing-driven: weighted {} nets.", weighted_net_count);
   return true;
 }
 

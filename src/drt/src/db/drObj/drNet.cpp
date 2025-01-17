@@ -28,6 +28,8 @@
 
 #include "db/drObj/drNet.h"
 
+#include <vector>
+
 #include "distributed/frArchive.h"
 #include "dr/FlexDR.h"
 #include "serialization.h"
@@ -122,6 +124,20 @@ bool drNet::isClockNet() const
 {
   return fNet_->isClock();
 }
+bool drNet::isFixed() const
+{
+  return fNet_->isFixed();
+}
+
+template <class Archive>
+void drNet::ExtFigUpdate::serialize(Archive& ar, const unsigned int version)
+{
+  (ar) & updated_style;
+  (ar) & is_bottom_connected;
+  (ar) & is_top_connected;
+  (ar) & is_via;
+}
+
 template <class Archive>
 void drNet::serialize(Archive& ar, const unsigned int version)
 {
@@ -147,6 +163,7 @@ void drNet::serialize(Archive& ar, const unsigned int version)
     frBlockObject* obj = (frBlockObject*) fNet_;
     serializeBlockObject(ar, obj);
   }
+  (ar) & ext_figs_updates_;
 }
 
 // Explicit instantiations

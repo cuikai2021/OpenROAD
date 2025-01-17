@@ -40,6 +40,7 @@
 #include <optional>
 #include <vector>
 
+#include "connection.h"
 #include "debug_gui.h"
 #include "ir_network.h"
 #include "node.h"
@@ -87,14 +88,16 @@ class IRSolver
     std::set<ITermNode*, Node::Compare> unconnected_iterms_;
   };
 
-  IRSolver(odb::dbNet* net,
-           bool floorplanning,
-           sta::dbSta* sta,
-           rsz::Resizer* resizer,
-           utl::Logger* logger,
-           const std::map<odb::dbNet*, std::map<sta::Corner*, Voltage>>&
-               user_voltages,
-           const PDNSim::GeneratedSourceSettings& generated_source_settings);
+  IRSolver(
+      odb::dbNet* net,
+      bool floorplanning,
+      sta::dbSta* sta,
+      rsz::Resizer* resizer,
+      utl::Logger* logger,
+      const std::map<odb::dbNet*, std::map<sta::Corner*, Voltage>>&
+          user_voltages,
+      const std::map<odb::dbInst*, std::map<sta::Corner*, Power>>& user_powers,
+      const PDNSim::GeneratedSourceSettings& generated_source_settings);
 
   odb::dbNet* getNet() const { return net_; };
 
@@ -158,9 +161,10 @@ class IRSolver
   std::map<odb::dbInst*, Power> getInstancePower(sta::Corner* corner) const;
   Voltage getPowerNetVoltage(sta::Corner* corner) const;
 
-  std::map<Connection*, Current> generateCurrentMap(sta::Corner* corner) const;
+  Connection::ConnectionMap<Current> generateCurrentMap(
+      sta::Corner* corner) const;
 
-  std::map<Connection*, Connection::Conductance> generateConductanceMap(
+  Connection::ConnectionMap<Connection::Conductance> generateConductanceMap(
       sta::Corner* corner) const;
   Voltage generateSourceNodes(
       GeneratedSourceType source_type,
@@ -188,7 +192,7 @@ class IRSolver
   bool wasNodeVisited(const Node* node) const;
 
   std::map<Node*, Connection::ConnectionSet> getNodeConnectionMap(
-      const std::map<psm::Connection*, Connection::Conductance>& conductance)
+      const Connection::ConnectionMap<Connection::Conductance>& conductance)
       const;
   void buildNodeCurrentMap(sta::Corner* corner,
                            ValueNodeMap<Current>& currents) const;
@@ -201,7 +205,7 @@ class IRSolver
       bool is_ground,
       const std::map<Node*, Connection::ConnectionSet>& node_connections,
       const ValueNodeMap<Current>& currents,
-      const std::map<psm::Connection*, Connection::Conductance>& conductance,
+      const Connection::ConnectionMap<Connection::Conductance>& conductance,
       const std::map<Node*, std::size_t>& node_index,
       Eigen::SparseMatrix<Connection::Conductance>& G,
       Eigen::VectorXd& J) const;
@@ -218,7 +222,7 @@ class IRSolver
   void dumpMatrix(const Eigen::SparseMatrix<Connection::Conductance>& matrix,
                   const std::string& name) const;
   void dumpConductance(
-      const std::map<Connection*, Connection::Conductance>& cond,
+      const Connection::ConnectionMap<Connection::Conductance>& cond,
       const std::string& name) const;
 
   odb::dbNet* net_;
@@ -232,6 +236,7 @@ class IRSolver
   std::unique_ptr<DebugGui> gui_;
 
   const std::map<odb::dbNet*, std::map<sta::Corner*, Voltage>>& user_voltages_;
+  const std::map<odb::dbInst*, std::map<sta::Corner*, Power>>& user_powers_;
   std::map<sta::Corner*, Voltage> solution_voltages_;
 
   const PDNSim::GeneratedSourceSettings& generated_source_settings_;

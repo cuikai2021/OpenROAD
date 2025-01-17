@@ -29,6 +29,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "db/obj/frBlockObject.h"
 #include "db/obj/frNet.h"
@@ -60,7 +61,7 @@ class frTerm : public frBlockObject
     return getAccessPoint(x, y, lNum, pinAccessIdx) != nullptr;
   }
   // fills outShapes with copies of the pinFigs
-  virtual void getShapes(std::vector<frRect>& outShapes) = 0;
+  virtual void getShapes(std::vector<frRect>& outShapes) const = 0;
   const Rect getBBox() const { return bbox_; }
 
  protected:

@@ -35,6 +35,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "AbstractMakeWireParasitics.h"
 #include "FastRoute.h"
 #include "Grid.h"
@@ -65,7 +67,8 @@ class Logger;
 
 namespace rsz {
 class Resizer;
-}
+class SpefWriter;
+}  // namespace rsz
 
 namespace grt {
 
@@ -80,7 +83,8 @@ class MakeWireParasitics : public AbstractMakeWireParasitics
                      GlobalRouter* grouter);
   void estimateParasitcs(odb::dbNet* net,
                          std::vector<Pin>& pins,
-                         GRoute& route);
+                         GRoute& route,
+                         rsz::SpefWriter* spef_writer = nullptr);
   void estimateParasitcs(odb::dbNet* net, GRoute& route) override;
 
   void clearParasitics() override;
@@ -91,7 +95,7 @@ class MakeWireParasitics : public AbstractMakeWireParasitics
   float getNetSlack(odb::dbNet* net) override;
 
  private:
-  typedef std::map<RoutePt, sta::ParasiticNode*> NodeRoutePtMap;
+  using NodeRoutePtMap = std::map<RoutePt, sta::ParasiticNode*>;
 
   sta::Pin* staPin(Pin& pin) const;
   void makeRouteParasitics(odb::dbNet* net,
@@ -108,11 +112,13 @@ class MakeWireParasitics : public AbstractMakeWireParasitics
                                           sta::Parasitic* parasitic,
                                           sta::Net* net) const;
   void makeParasiticsToPins(std::vector<Pin>& pins,
+                            odb::dbNet* net,
                             NodeRoutePtMap& node_map,
                             sta::Corner* corner,
                             sta::ParasiticAnalysisPt* analysis_point,
                             sta::Parasitic* parasitic);
   void makeParasiticsToPin(Pin& pin,
+                           odb::dbNet* net,
                            NodeRoutePtMap& node_map,
                            sta::Corner* corner,
                            sta::ParasiticAnalysisPt* analysis_point,

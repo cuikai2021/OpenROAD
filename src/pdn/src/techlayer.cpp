@@ -33,6 +33,8 @@
 #include "techlayer.h"
 
 #include <limits>
+#include <optional>
+#include <vector>
 
 #include "utl/Logger.h"
 
@@ -82,7 +84,7 @@ int TechLayer::snapToGrid(int pos, int greater_than) const
     return pos;
   }
 
-  int delta_pos = 0;
+  std::optional<int> delta_pos;
   int delta = std::numeric_limits<int>::max();
   for (const int grid_pos : grid_) {
     if (grid_pos < greater_than) {
@@ -99,18 +101,58 @@ int TechLayer::snapToGrid(int pos, int greater_than) const
       break;
     }
   }
-  return delta_pos;
+
+  if (delta_pos.has_value()) {
+    return delta_pos.value();
+  }
+  return pos;
+}
+
+int TechLayer::snapToGridInterval(odb::dbBlock* block, int dist) const
+{
+  odb::dbTechLayerDir dir = layer_->getDirection();
+
+  int origin = 0;
+  int num = 0;
+  int step = 0;
+  for (auto* grid : block->getTrackGrids()) {
+    if (grid->getTechLayer() != layer_) {
+      continue;
+    }
+
+    if (dir == odb::dbTechLayerDir::VERTICAL) {
+      if (grid->getNumGridPatternsX() < 1) {
+        continue;
+      }
+
+      grid->getGridPatternX(0, origin, num, step);
+    } else {
+      if (grid->getNumGridPatternsY() < 1) {
+        continue;
+      }
+
+      grid->getGridPatternY(0, origin, num, step);
+    }
+  }
+
+  if (num == 0 || step == 0) {
+    return dist;
+  }
+
+  const int count = std::max(1, dist / step);
+  return count * step;
 }
 
 int TechLayer::snapToManufacturingGrid(odb::dbTech* tech,
                                        int pos,
-                                       bool round_up)
+                                       bool round_up,
+                                       int grid_multiplier)
 {
   if (!tech->hasManufacturingGrid()) {
     return pos;
   }
 
-  const int grid = tech->getManufacturingGrid();
+  const int grid = grid_multiplier * tech->getManufacturingGrid();
 
   if (pos % grid != 0) {
     int round_pos = pos / grid;
@@ -144,21 +186,25 @@ bool TechLayer::checkIfManufacturingGrid(int value,
 {
   auto* tech = layer_->getTech();
   if (!checkIfManufacturingGrid(tech, value)) {
-    logger->error(utl::PDN,
-                  191,
-                  "{} of {:.4f} does not fit the manufacturing grid of {:.4f}.",
-                  type,
-                  dbuToMicron(value),
-                  dbuToMicron(tech->getManufacturingGrid()));
+    logger->error(
+        utl::PDN,
+        191,
+        "{} of {:.4f} um does not fit the manufacturing grid of {:.4f} um.",
+        type,
+        dbuToMicron(value),
+        dbuToMicron(tech->getManufacturingGrid()));
     return false;
   }
 
   return true;
 }
 
-int TechLayer::snapToManufacturingGrid(int pos, bool round_up) const
+int TechLayer::snapToManufacturingGrid(int pos,
+                                       bool round_up,
+                                       int grid_multiplier) const
 {
-  return snapToManufacturingGrid(layer_->getTech(), pos, round_up);
+  return snapToManufacturingGrid(
+      layer_->getTech(), pos, round_up, grid_multiplier);
 }
 
 std::vector<TechLayer::MinCutRule> TechLayer::getMinCutRules() const

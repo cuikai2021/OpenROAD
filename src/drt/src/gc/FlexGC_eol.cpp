@@ -26,6 +26,7 @@
  */
 
 #include <iostream>
+#include <vector>
 
 #include "frProfileTask.h"
 #include "gc/FlexGC_impl.h"
@@ -700,7 +701,7 @@ void FlexGCWorker::Impl::checkMetalEndOfLine_eol_hasEol_check(
     const gtl::orientation_2d opp_orient{orient.get_perpendicular()};
     checkPrl
         = std::abs(edge->low().get(opp_orient) - ptr->low().get(opp_orient))
-          > eolNonPrlSpacing;
+          >= eolNonPrlSpacing;
     if (checkPrl) {
       const frCoord prl = getPrl(edge, ptr, orient);
       if (prl <= 0 || prl > endPrl) {

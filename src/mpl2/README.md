@@ -73,7 +73,7 @@ rtl_macro_placer
 | `-snap_layer` | Snap macro origins to this routing layer track. The default value is 4, and the allowed values are integers `[1, MAX_LAYER]`). |
 | `-bus_planning` | Flag to enable bus planning. We recommend to enable bus planning for technologies with very limited routing layers such as SKY130 and GF180. As for technologies such as NanGate45 and ASAP7, we recommend to keep it disabled. |
 | `-report_directory` | Save reports to this directory. |
-| `-write_macro_placement` | Generates a file with the placement of the macros placed by HierRTLMP flow in the format of multiple calls for the `place_macro` command. |
+| `-write_macro_placement` | Generates a file with the design's macro placement in the format of calls for the `place_macro` command. |
 
 #### Simulated Annealing Weight parameters
 
@@ -92,13 +92,15 @@ Do note that while action probabilities are normalized to 1.0, the weights are n
 
 ### Place Macro
 
-Command for placement of one specific macro.
+Command for manual placement of a single macro.
 
 ```tcl
 place_macro
     -macro_name macro_name
     -location {x y}
     [-orientation orientation]
+    [-exact]
+    [-allow_overlap]
 ```
 
 #### Options
@@ -108,6 +110,26 @@ place_macro
 | `-macro_name` | The name of a macro of the design. |
 | `-location` | The lower left corner of the macro in microns. |
 | `-orientation` | The orientation according to odb. If nothing is specified, defaults to `R0`.  We only allow `R0`, `MY`, `MX` and `R180`.  |
+| `-exact` | Enforce the exact `-location`. Note that the default behavior of `place_macro` is to snap the macro, that is, tune the entered `-location` so that the signal pins get aligned with the track-grid. |
+| `-allow_overlap` | Allow the macro to be placed even if it overlaps with other macros. Note that the default behavior is to only place the macro if no overlap with other macros is found. |
+
+### Set Macro Guidance Region
+
+Command for setting guidance regions for macros. The guidance region can have any size as long it fits inside the core area, as the placer will try to
+maximize the overlap region between macro and guidance region.
+
+```tcl
+set_macro_guidance_region
+    -macro_name macro_name
+    -region region
+```
+
+#### Options
+
+| Switch Name | Description |
+| ----- | ----- |
+| `-macro_name` | The name of a macro of the design. |
+| `-region` | The lower left corner and upper right corner {lx ly ux uy} of the region in microns. |
 
 ## Example scripts
 

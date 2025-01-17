@@ -37,6 +37,7 @@
 #include <iostream>
 #include <stack>
 #include <utility>
+#include <vector>
 
 #include "utility.h"
 #include "utl/Logger.h"
@@ -77,11 +78,7 @@ bool Detailed::improve(DetailedMgr& mgr)
   boost::tokenizer<boost::char_separator<char>> tokens(params_.script_,
                                                        separators);
   std::vector<std::string> args;
-  for (boost::tokenizer<boost::char_separator<char>>::iterator it
-       = tokens.begin();
-       it != tokens.end();
-       it++) {
-    std::string temp = *it;
+  for (auto temp : tokens) {
     if (temp.back() == ';') {
       while (!temp.empty() && temp.back() == ';') {
         temp.resize(temp.size() - 1);

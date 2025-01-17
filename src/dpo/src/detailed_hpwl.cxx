@@ -38,6 +38,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "detailed_hpwl.h"
 
+#include <vector>
+
 #include "detailed_orient.h"
 
 namespace dpo {
@@ -55,10 +57,6 @@ namespace dpo {
 DetailedHPWL::DetailedHPWL(Network* network)
     : DetailedObjective("hpwl"),
       network_(network),
-      mgrPtr_(nullptr),
-      orientPtr_(nullptr),
-      skipNetsLargerThanThis_(100),
-      traversal_(0),
       edgeMask_(network_->getNumEdges(), traversal_)
 {
 }

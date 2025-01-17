@@ -130,7 +130,7 @@ class TileGrid
 
   const std::vector<Tile*>& tiles() const;
 
-  void initTiles();
+  void initTiles(bool use_rudy);
 
  private:
   // for traversing layer info!
@@ -151,17 +151,17 @@ class TileGrid
 class RouteBaseVars
 {
  public:
+  bool useRudy;
+  float targetRC;
   float inflationRatioCoef;
   float maxInflationRatio;
   float maxDensity;
-  float targetRC;
   float ignoreEdgeRatio;
   float minInflationRatio;
 
   // targetRC metric coefficients.
   float rcK1, rcK2, rcK3, rcK4;
 
-  int maxBloatIter;
   int maxInflationIter;
 
   RouteBaseVars();
@@ -180,10 +180,14 @@ class RouteBase
             utl::Logger* log);
   ~RouteBase();
 
-  // update Route and Est info
-  // from GlobalRouter
-  void updateRoute();
-  void getGlobalRouterResult();
+  // Functions using fastroute on grt are saved as backup.
+  void updateGrtRoute();
+  void getGrtResult();
+  float getGrtRC() const;
+
+  void updateRudyRoute();
+  void getRudyResult();
+  float getRudyRC() const;
 
   // first: is Routability Need
   // second: reverting procedure need in NesterovPlace
@@ -192,12 +196,12 @@ class RouteBase
 
   int64_t inflatedAreaDelta() const;
   int numCall() const;
-  int bloatIterCnt() const;
-  int inflationIterCnt() const;
-
-  float getRC() const;
 
   void revertGCellSizeToMinRc();
+  void pushBackMinRcCellSize(int dx, int dy)
+  {
+    minRcCellSize_.emplace_back(dx, dy);
+  }
 
  private:
   RouteBaseVars rbVars_;
@@ -212,8 +216,6 @@ class RouteBase
 
   int64_t inflatedAreaDelta_ = 0;
 
-  int bloatIterCnt_ = 0;
-  int inflationIterCnt_ = 0;
   int numCall_ = 0;
 
   // if solutions are not improved at all,
@@ -229,7 +231,7 @@ class RouteBase
   void reset();
   void resetRoutabilityResources();
 
-  // update inflationIterCnt_, bloatIterCnt_ and numCall_
+  // update numCall_
   void increaseCounter();
 
   // routability funcs

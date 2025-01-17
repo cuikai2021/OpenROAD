@@ -34,8 +34,17 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <boost/polygon/polygon.hpp>
+#include <map>
+#include <optional>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "odb/db.h"
+#include "odb/dbTypes.h"
+#include "odb/geom.h"
+#include "odb/geom_boost.h"
 
 namespace ord {
 class OpenRoad;
@@ -60,6 +69,7 @@ struct Options
   int dist = -1;    // default = 2um
   int halo_x = -1;  // default = 2um
   int halo_y = -1;  // default = 2um
+  int row_min_width = -1;
   odb::dbMaster* cnrcap_nwin_master = nullptr;
   odb::dbMaster* cnrcap_nwout_master = nullptr;
   odb::dbMaster* tap_nwintie_master = nullptr;
@@ -133,6 +143,7 @@ class Tapcell
     EdgeType type;
     odb::Point pt0;
     odb::Point pt1;
+    bool operator==(const Edge& edge) const;
   };
   enum class CornerType
   {
@@ -162,6 +173,19 @@ class Tapcell
   using Polygon90 = boost::polygon::polygon_90_with_holes_data<int>;
   using CornerMap = std::map<odb::dbRow*, std::set<odb::dbInst*>>;
 
+  struct InstIndexableGetter
+  {
+    using result_type = odb::Rect;
+    odb::Rect operator()(odb::dbInst* inst) const
+    {
+      return inst->getBBox()->getBox();
+    }
+  };
+  using InstTree
+      = boost::geometry::index::rtree<odb::dbInst*,
+                                      boost::geometry::index::quadratic<16>,
+                                      InstIndexableGetter>;
+
   std::vector<odb::dbBox*> findBlockages();
   bool checkSymmetry(odb::dbMaster* master, const odb::dbOrientType& ori);
   odb::dbInst* makeInstance(odb::dbBlock* block,
@@ -189,7 +213,8 @@ class Tapcell
                     int dist,
                     odb::dbRow* row,
                     bool is_edge,
-                    bool disallow_one_site_gaps);
+                    bool disallow_one_site_gaps,
+                    const InstTree& fixed_instances);
 
   int defaultDistance() const;
 
@@ -239,6 +264,7 @@ class Tapcell
   int phy_idx_ = 0;
   std::string tap_prefix_;
   std::string endcap_prefix_;
+  std::vector<Edge> filled_edges_;
 };
 
 }  // namespace tap

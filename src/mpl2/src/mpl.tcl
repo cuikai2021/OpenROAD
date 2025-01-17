@@ -77,9 +77,12 @@ proc rtl_macro_placer { args } {
          -report_directory \
          -write_macro_placement } \
     flags {-bus_planning}
+
+  sta::check_argc_eq0 "rtl_macro_placer" $args
+
   #
   # Check for valid design
-  if {  [ord::get_db_block] == "NULL" } {
+  if { [ord::get_db_block] == "NULL" } {
     utl::error MPL 1 "No block found for Macro Placement."
   }
 
@@ -153,10 +156,10 @@ proc rtl_macro_placer { args } {
   if { [info exists keys(-halo_width)] && [info exists keys(-halo_height)] } {
     set halo_width $keys(-halo_width)
     set halo_height $keys(-halo_height)
-  } elseif {[info exists keys(-halo_width)]} {
+  } elseif { [info exists keys(-halo_width)] } {
     set halo_width $keys(-halo_width)
     set halo_height $keys(-halo_width)
-  } elseif {[info exists keys(-halo_height)]} {
+  } elseif { [info exists keys(-halo_height)] } {
     set halo_width $keys(-halo_height)
     set halo_height $keys(-halo_height)
   }
@@ -222,31 +225,31 @@ proc rtl_macro_placer { args } {
     mpl2::set_macro_placement_file $keys(-write_macro_placement)
   }
 
-  if {![mpl2::rtl_macro_placer_cmd $max_num_macro  \
-                                   $min_num_macro  \
-                                   $max_num_inst   \
-                                   $min_num_inst   \
-                                   $tolerance      \
-                                   $max_num_level  \
-                                   $coarsening_ratio \
-                                   $num_bundled_ios  \
-                                   $large_net_threshold \
-                                   $signature_net_threshold \
-                                   $halo_width \
-                                   $halo_height \
-                                   $fence_lx $fence_ly $fence_ux $fence_uy  \
-                                   $area_weight $outline_weight $wirelength_weight \
-                                   $guidance_weight $fence_weight $boundary_weight \
-                                   $notch_weight $macro_blockage_weight \
-                                   $pin_access_th \
-                                   $target_util \
-                                   $target_dead_space \
-                                   $min_ar \
-                                   $snap_layer \
-                                   [info exists flags(-bus_planning)] \
-                                   $report_directory \
-                                   ]} {
-
+  if {
+    ![mpl2::rtl_macro_placer_cmd $max_num_macro \
+      $min_num_macro \
+      $max_num_inst \
+      $min_num_inst \
+      $tolerance \
+      $max_num_level \
+      $coarsening_ratio \
+      $num_bundled_ios \
+      $large_net_threshold \
+      $signature_net_threshold \
+      $halo_width \
+      $halo_height \
+      $fence_lx $fence_ly $fence_ux $fence_uy \
+      $area_weight $outline_weight $wirelength_weight \
+      $guidance_weight $fence_weight $boundary_weight \
+      $notch_weight $macro_blockage_weight \
+      $pin_access_th \
+      $target_util \
+      $target_dead_space \
+      $min_ar \
+      $snap_layer \
+      [info exists flags(-bus_planning)] \
+      $report_directory]
+  } {
     return false
   }
 
@@ -256,13 +259,16 @@ proc rtl_macro_placer { args } {
 sta::define_cmd_args "place_macro" {-macro_name macro_name \
                                     -location location \
                                     [-orientation orientation] \
+                                    [-exact] \
+                                    [-allow_overlap]
 }
 
 proc place_macro { args } {
   sta::parse_key_args "place_macro" args \
-    keys {-macro_name -location -orientation} flags {}
+    keys {-macro_name -location -orientation} \
+    flags {-exact -allow_overlap}
 
-  if {[info exists keys(-macro_name)]} {
+  if { [info exists keys(-macro_name)] } {
     set macro_name $keys(-macro_name)
   } else {
     utl::error MPL 19 "-macro_name is required."
@@ -270,7 +276,7 @@ proc place_macro { args } {
 
   set macro [mpl2::parse_macro_name "place_macro" $macro_name]
 
-  if {[info exists keys(-location)]} {
+  if { [info exists keys(-location)] } {
     set location $keys(-location)
   } else {
     utl::error MPL 22 "-location is required."
@@ -284,16 +290,58 @@ proc place_macro { args } {
   set y_origin $y_origin
 
   set orientation R0
-  if {[info exists keys(-orientation)]} {
+  if { [info exists keys(-orientation)] } {
     set orientation $keys(-orientation)
   }
 
-  mpl2::place_macro $macro $x_origin $y_origin $orientation
+  set exact [info exists flags(-exact)]
+  set allow_overlap [info exists flags(-allow_overlap)]
+
+  mpl2::place_macro $macro $x_origin $y_origin $orientation $exact $allow_overlap
+}
+
+sta::define_cmd_args "set_macro_guidance_region" { -macro_name macro_name \
+                                                   -region region }
+proc set_macro_guidance_region { args } {
+  sta::parse_key_args "set_macro_guidance_region" args \
+    keys { -macro_name -region } flags {}
+
+  sta::check_argc_eq0 "set_macro_guidance_region" $args
+
+  if { [info exists keys(-macro_name)] } {
+    set macro_name $keys(-macro_name)
+  } else {
+    utl::error MPL 43 "-macro_name is required."
+  }
+
+  set macro [mpl2::parse_macro_name "set_macro_guidance_region" $macro_name]
+
+  if { [info exists keys(-region)] } {
+    set region $keys(-region)
+  } else {
+    utl::error MPL 30 "-region is required."
+  }
+
+  if { [llength $region] != 4 } {
+    utl::error MPL 31 "-region must be a list of 4 values."
+  }
+
+  lassign $region x1 y1 x2 y2
+  set x1 $x1
+  set y1 $y1
+  set x2 $x2
+  set y2 $y2
+  if { $x1 > $x2 } {
+    utl::error MPL 32 "Invalid region: x1 > x2."
+  } elseif { $y1 > $y2 } {
+    utl::error MPL 33 "Invalid region: y1 > y2."
+  }
+
+  mpl2::add_guidance_region $macro $x1 $y1 $x2 $y2
 }
 
 namespace eval mpl2 {
-
-proc parse_macro_name {cmd macro_name} {
+proc parse_macro_name { cmd macro_name } {
   set block [ord::get_db_block]
   set inst [$block findInst "$macro_name"]
 
@@ -308,17 +356,31 @@ proc parse_macro_name {cmd macro_name} {
 
 proc mpl_debug { args } {
   sta::parse_key_args "mpl_debug" args \
-    keys {} \
-    flags {-coarse -fine -show_bundled_nets};# checker off
+    keys { -target_cluster_id target_cluster_id } \
+    flags {-coarse -fine -show_bundled_nets \
+           -show_clusters_ids \
+           -skip_steps -only_final_result} ;# checker off
 
   set coarse [info exists flags(-coarse)]
   set fine [info exists flags(-fine)]
-  if { [expr !$coarse && !$fine] } {
+  if { !$coarse && !$fine } {
     set coarse true
     set fine true
   }
+  set block [ord::get_db_block]
 
-  mpl2::set_debug_cmd $coarse $fine [info exists flags(-show_bundled_nets)]
+  set target_cluster_id -1
+  if { [info exists keys(-target_cluster_id)] } {
+    set target_cluster_id $keys(-target_cluster_id)
+  }
+
+  mpl2::set_debug_cmd $block \
+    $coarse \
+    $fine \
+    [info exists flags(-show_bundled_nets)] \
+    [info exists flags(-show_clusters_ids)] \
+    [info exists flags(-skip_steps)] \
+    [info exists flags(-only_final_result)] \
+    $target_cluster_id
 }
-
 }

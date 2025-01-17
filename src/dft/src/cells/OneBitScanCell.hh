@@ -57,7 +57,11 @@ class OneBitScanCell : public ScanCell
   void connectScanEnable(const ScanDriver& driver) const override;
   void connectScanIn(const ScanDriver& driver) const override;
   void connectScanOut(const ScanLoad& load) const override;
+  ScanLoad getScanIn() const override;
   ScanDriver getScanOut() const override;
+
+  odb::Point getOrigin() const override;
+  bool isPlaced() const override;
 
  private:
   odb::dbITerm* findITerm(sta::LibertyPort* liberty_port) const;

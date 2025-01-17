@@ -40,39 +40,46 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include "TritonPart.h"
 
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
+#include <iterator>
+#include <memory>
 #include <set>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "Coarsener.h"
+#include "Evaluator.h"
+#include "GreedyRefine.h"
 #include "Hypergraph.h"
+#include "ILPRefine.h"
+#include "KWayFMRefine.h"
+#include "KWayPMRefine.h"
 #include "Multilevel.h"
 #include "Partitioner.h"
-#include "Refiner.h"
 #include "Utilities.h"
+#include "db_sta/dbNetwork.hh"
+#include "db_sta/dbSta.hh"
 #include "odb/db.h"
-#include "sta/ArcDelayCalc.hh"
-#include "sta/Bfs.hh"
-#include "sta/Corner.hh"
-#include "sta/DcalcAnalysisPt.hh"
+#include "odb/geom.h"
 #include "sta/ExceptionPath.hh"
-#include "sta/FuncExpr.hh"
 #include "sta/Graph.hh"
-#include "sta/GraphDelayCalc.hh"
 #include "sta/Liberty.hh"
-#include "sta/Network.hh"
+#include "sta/MinMax.hh"
+#include "sta/NetworkClass.hh"
 #include "sta/PathAnalysisPt.hh"
 #include "sta/PathEnd.hh"
 #include "sta/PathExpanded.hh"
 #include "sta/PathRef.hh"
-#include "sta/PatternMatch.hh"
-#include "sta/PortDirection.hh"
 #include "sta/Sdc.hh"
 #include "sta/Search.hh"
-#include "sta/SearchPred.hh"
-#include "sta/Sequential.hh"
+#include "sta/SearchClass.hh"
 #include "sta/Sta.hh"
-#include "sta/Units.hh"
 #include "utl/Logger.h"
 
 using utl::PAR;
@@ -83,7 +90,7 @@ namespace par {
 // Public functions
 // -----------------------------------------------------------------------------------
 
-TritonPart::TritonPart(ord::dbNetwork* network,
+TritonPart::TritonPart(sta::dbNetwork* network,
                        odb::dbDatabase* db,
                        sta::dbSta* sta,
                        utl::Logger* logger)
@@ -1278,7 +1285,7 @@ void TritonPart::ReadNetlist(const std::string& fixed_file,
       // check if the inst is within the fence
       if (box->xMin() >= fence_.lx && box->xMax() <= fence_.ux
           && box->yMin() >= fence_.ly && box->yMax() <= fence_.uy) {
-        const float area = liberty_cell->area();
+        const float area = computeMicronArea(inst);
         std::vector<float> vwts(vertex_dimensions_, area);
         vertex_weights_.emplace_back(vwts);
         if (master->isBlock()) {
@@ -1322,7 +1329,7 @@ void TritonPart::ReadNetlist(const std::string& fixed_file,
       if (master->isPad() || master->isCover()) {
         continue;
       }
-      const float area = liberty_cell->area();
+      const float area = computeMicronArea(inst);
       std::vector<float> vwts(vertex_dimensions_, area);
       vertex_weights_.emplace_back(vwts);
       if (master->isBlock()) {
@@ -1625,7 +1632,7 @@ void TritonPart::BuildTimingPaths()
     expand.path(expand.size() - 1);
     for (size_t i = 0; i < expand.size(); i++) {
       // PathRef is reference to a path vertex
-      sta::PathRef* ref = expand.path(i);
+      const sta::PathRef* ref = expand.path(i);
       sta::Pin* pin = ref->vertex(sta_)->pin();
       // Nets connect pins at a level of the hierarchy
       auto net = network_->net(pin);  // sta::Net*
@@ -2020,8 +2027,10 @@ void TritonPart::MultiLevelPartition()
 
   // Perform the last-minute refinement
   tritonpart_coarsener->SetThrCoarsenHyperedgeSizeSkip(global_net_threshold_);
-  tritonpart_mlevel_partitioner->VcycleRefinement(
-      hypergraph_, upper_block_balance, lower_block_balance, solution_);
+  tritonpart_mlevel_partitioner->VcycleRefinement(original_hypergraph_,
+                                                  upper_block_balance,
+                                                  lower_block_balance,
+                                                  solution_);
 
   // evaluate on the original hypergraph
   // tritonpart_evaluator->CutEvaluator(original_hypergraph_, solution_, true);
@@ -2088,6 +2097,16 @@ void TritonPart::informFiles(const std::string& fixed_file,
   }
 
   logger_->info(PAR, 38, files);
+}
+
+float TritonPart::computeMicronArea(odb::dbInst* inst)
+{
+  const float width = static_cast<float>(
+      block_->dbuToMicrons(inst->getBBox()->getBox().dx()));
+  const float height = static_cast<float>(
+      block_->dbuToMicrons(inst->getBBox()->getBox().dy()));
+
+  return width * height;
 }
 
 }  // namespace par

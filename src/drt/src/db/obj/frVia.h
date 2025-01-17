@@ -42,7 +42,7 @@ class frVia : public frRef
  public:
   // constructors
   frVia() = default;
-  frVia(frViaDef* in) : viaDef_(in) {}
+  frVia(const frViaDef* in) : viaDef_(in) {}
   frVia(const frVia& in)
       : frRef(in),
         origin_(in.origin_),
@@ -50,12 +50,13 @@ class frVia : public frRef
         owner_(in.owner_),
         tapered_(in.tapered_),
         bottomConnected_(in.bottomConnected_),
-        topConnected_(in.topConnected_)
+        topConnected_(in.topConnected_),
+        isLonely_(in.isLonely_)
   {
   }
   frVia(const drVia& in);
   // getters
-  frViaDef* getViaDef() const { return viaDef_; }
+  const frViaDef* getViaDef() const { return viaDef_; }
   Rect getLayer1BBox() const
   {
     Rect box;
@@ -63,7 +64,7 @@ class frVia : public frRef
     for (auto& fig : viaDef_->getLayer1Figs()) {
       box.merge(fig->getBBox());
     }
-    dbTransform(origin_).apply(box);
+    getTransform().apply(box);
     return box;
   }
   Rect getCutBBox() const
@@ -73,7 +74,7 @@ class frVia : public frRef
     for (auto& fig : viaDef_->getCutFigs()) {
       box.merge(fig->getBBox());
     }
-    dbTransform(origin_).apply(box);
+    getTransform().apply(box);
     return box;
   }
   Rect getLayer2BBox() const
@@ -83,11 +84,11 @@ class frVia : public frRef
     for (auto& fig : viaDef_->getLayer2Figs()) {
       box.merge(fig->getBBox());
     }
-    dbTransform(origin_).apply(box);
+    getTransform().apply(box);
     return box;
   }
   // setters
-  void setViaDef(frViaDef* in) { viaDef_ = in; }
+  void setViaDef(const frViaDef* in) { viaDef_ = in; }
   // others
   frBlockObjectEnum typeId() const override { return frcVia; }
 
@@ -104,7 +105,7 @@ class frVia : public frRef
   void setOrient(const dbOrientType& tmpOrient) override { ; }
   Point getOrigin() const override { return origin_; }
   void setOrigin(const Point& tmpPoint) override { origin_ = tmpPoint; }
-  dbTransform getTransform() const override { return origin_; }
+  dbTransform getTransform() const override { return dbTransform(origin_); }
   void setTransform(const dbTransform& xformIn) override {}
 
   /* from frPinFig
@@ -208,9 +209,7 @@ class frVia : public frRef
       }
     }
     Rect box(xl, yl, xh, yh);
-    dbTransform xform;
-    xform.setOffset(origin_);
-    xform.apply(box);
+    getTransform().apply(box);
     return box;
   }
   void move(const dbTransform& xform) override { ; }
@@ -228,16 +227,19 @@ class frVia : public frRef
   void setTopConnected(bool c) { topConnected_ = c; }
   void setIndexInOwner(int idx) { index_in_owner_ = idx; }
   int getIndexInOwner() const { return index_in_owner_; }
+  void setIsLonely(bool in) { isLonely_ = in; }
+  bool isLonely() const { return isLonely_; }
 
  private:
   Point origin_;
-  frViaDef* viaDef_{nullptr};
+  const frViaDef* viaDef_{nullptr};
   frBlockObject* owner_{nullptr};
   frListIter<std::unique_ptr<frVia>> iter_;
   int index_in_owner_{0};
   bool tapered_{false};
   bool bottomConnected_{false};
   bool topConnected_{false};
+  bool isLonely_{false};
 
   template <class Archive>
   void serialize(Archive& ar, unsigned int version);

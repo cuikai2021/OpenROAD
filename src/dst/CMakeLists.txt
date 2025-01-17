@@ -64,7 +64,7 @@ target_include_directories(dst
 target_link_libraries(dst
   PUBLIC
     ord
-    utl
+    utl_lib
     OpenSTA
     ${TCL_LIBRARY}
     ${ZLIB_LIBRARIES}
@@ -79,5 +79,5 @@ messages(
 
 if(NO)
   # disable these tests, because they are hacky and we don't care about them.
-  add_subdirectory(test/cpp)
+  add_subdirectory(test)
 endif()

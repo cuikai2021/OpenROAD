@@ -32,28 +32,42 @@
 
 #include "defout_impl.h"
 
-#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 
 #include <cstdint>
 #include <chrono>
+#include <cstdio>
 #include <limits>
 #include <optional>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "odb/db.h"
 #include "odb/dbMap.h"
 #include "odb/dbWireCodec.h"
 #include "utl/Logger.h"
 
+#include "utl/ScopedTemporaryFile.h"
 namespace odb {
+
+namespace {
+
+std::string getPinName(dbBTerm* bterm)
+{
+  return bterm->getName();
+}
+
+std::string getPinName(dbITerm* iterm)
+{
+  return iterm->getMTerm()->getName();
+}
 
 static const int max_name_length = 256;
 
 template <typename T>
-static std::vector<T*> sortedSet(dbSet<T>& to_sort)
+std::vector<T*> sortedSet(dbSet<T>& to_sort)
 {
   std::vector<T*> sorted(to_sort.begin(), to_sort.end());
   std::sort(sorted.begin(), sorted.end(), [](T* a, T* b) {
@@ -62,7 +76,7 @@ static std::vector<T*> sortedSet(dbSet<T>& to_sort)
   return sorted;
 }
 
-static const char* defOrient(dbOrientType orient)
+const char* defOrient(const dbOrientType& orient)
 {
   switch (orient.getValue()) {
     case dbOrientType::R0:
@@ -93,14 +107,16 @@ static const char* defOrient(dbOrientType orient)
   return "N";
 }
 
-static const char* defSigType(dbSigType type)
+const char* defSigType(const dbSigType& type)
 {
   return type.getString();
 }
-static const char* defIoType(dbIoType type)
+const char* defIoType(const dbIoType& type)
 {
   return type.getString();
 }
+
+}  // namespace
 
 void defout_impl::selectNet(dbNet* net)
 {
@@ -155,7 +171,8 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
 
   _dist_factor
       = (double) block->getDefUnits() / (double) block->getDbUnitsPerMicron();
-  _out = fopen(def_file, "w");
+  utl::FileHandler fileHandler(def_file);
+  _out = fileHandler.getFile();
 
   if (_out == nullptr) {
     _logger->warn(
@@ -254,7 +271,6 @@ bool defout_impl::writeBlock(dbBlock* block, const char* def_file)
   writeScanChains(block);
 
   fprintf(_out, "END DESIGN\n");
-  fclose(_out);
   {
     delete _select_net_map;
   }
@@ -322,25 +338,39 @@ void defout_impl::writeTracks(dbBlock* block)
     }
 
     for (int i = 0; i < grid->getNumGridPatternsX(); ++i) {
-      int orgX, count, step;
-      grid->getGridPatternX(i, orgX, count, step);
+      int orgX, count, step, firstmask;
+      bool samemask;
+      grid->getGridPatternX(i, orgX, count, step, firstmask, samemask);
       fprintf(_out,
-              "TRACKS X %d DO %d STEP %d LAYER %s ;\n",
+              "TRACKS X %d DO %d STEP %d",
               defdist(orgX),
               count,
-              defdist(step),
-              lname.c_str());
+              defdist(step));
+      if (firstmask != 0) {
+        fprintf(_out, " MASK %d", firstmask);
+        if (samemask) {
+          fprintf(_out, " SAMEMASK");
+        }
+      }
+      fprintf(_out, " LAYER %s ;\n", lname.c_str());
     }
 
     for (int i = 0; i < grid->getNumGridPatternsY(); ++i) {
-      int orgY, count, step;
-      grid->getGridPatternY(i, orgY, count, step);
+      int orgY, count, step, firstmask;
+      bool samemask;
+      grid->getGridPatternY(i, orgY, count, step, firstmask, samemask);
       fprintf(_out,
-              "TRACKS Y %d DO %d STEP %d LAYER %s ;\n",
+              "TRACKS Y %d DO %d STEP %d",
               defdist(orgY),
               count,
-              defdist(step),
-              lname.c_str());
+              defdist(step));
+      if (firstmask != 0) {
+        fprintf(_out, " MASK %d", firstmask);
+        if (samemask) {
+          fprintf(_out, " SAMEMASK");
+        }
+      }
+      fprintf(_out, " LAYER %s ;\n", lname.c_str());
     }
   }
 }
@@ -929,6 +959,69 @@ void defout_impl::writeGroups(dbBlock* block)
   fprintf(_out, "END GROUPS\n");
 }
 
+void defout_impl::writeScanChains(dbBlock* block)
+{
+  dbDft* dft = block->getDft();
+  dbSet<dbScanChain> scan_chains = dft->getScanChains();
+  if (scan_chains.empty()) {
+    // If we don't have scan chains we have nothing to print
+    return;
+  }
+  fprintf(_out, "\nSCANCHAINS %d ;\n\n", scan_chains.size());
+
+  for (dbScanChain* scan_chain : dft->getScanChains()) {
+    dbSet<dbScanPartition> scan_partitions = scan_chain->getScanPartitions();
+    int chain_suffix = 0;
+    for (dbScanPartition* scan_partition : scan_partitions) {
+      bool already_printed_floating = false;
+      bool already_printed_ordered = false;
+      const std::string chain_name
+          = scan_partitions.size() == 1
+                ? scan_chain->getName()
+                : fmt::format("{}_{}", scan_chain->getName(), chain_suffix);
+
+      const std::string start_pin_name = std::visit(
+          [](auto&& pin) { return pin->getName(); }, scan_chain->getScanIn());
+      const std::string stop_pin_name = std::visit(
+          [](auto&& pin) { return pin->getName(); }, scan_chain->getScanOut());
+
+      fprintf(_out, "- %s\n", chain_name.c_str());
+      fprintf(_out, "+ START PIN %s\n", start_pin_name.c_str());
+
+      for (dbScanList* scan_list : scan_partition->getScanLists()) {
+        dbSet<dbScanInst> scan_insts = scan_list->getScanInsts();
+        if (scan_insts.size() == 1 && !already_printed_floating) {
+          fprintf(_out, "+ FLOATING\n");
+          already_printed_floating = true;
+          already_printed_ordered = false;
+        } else if (scan_insts.size() > 1 && !already_printed_ordered) {
+          fprintf(_out, "+ ORDERED\n");
+          already_printed_floating = false;
+          already_printed_ordered = true;
+        }
+
+        for (dbScanInst* scan_inst : scan_insts) {
+          dbScanInst::AccessPins access_pins = scan_inst->getAccessPins();
+          const std::string scan_in_name = std::visit(
+              [](auto&& pin) { return getPinName(pin); }, access_pins.scan_in);
+          const std::string scan_out_name = std::visit(
+              [](auto&& pin) { return getPinName(pin); }, access_pins.scan_out);
+          fprintf(_out,
+                  "  %s ( IN %s ) ( OUT %s )\n",
+                  scan_inst->getInst()->getName().c_str(),
+                  scan_in_name.c_str(),
+                  scan_out_name.c_str());
+        }
+      }
+      fprintf(_out, "+ PARTITION %s\n", scan_partition->getName().c_str());
+      fprintf(_out, "+ STOP PIN %s ;\n\n", stop_pin_name.c_str());
+      ++chain_suffix;
+    }
+  }
+
+  fprintf(_out, "END SCANCHAINS\n\n");
+}
+
 void defout_impl::writeBTerm(dbBTerm* bterm)
 {
   dbNet* net = bterm->getNet();
@@ -1053,7 +1146,7 @@ void defout_impl::writeBPin(dbBPin* bpin, int cnt)
     fprintf(_out, "+ PORT");
   }
 
-  bool isFirst = 1;
+  bool isFirst = true;
   int dw, dh, x = 0, y = 0;
   int xMin, yMin, xMax, yMax;
 
@@ -1062,7 +1155,7 @@ void defout_impl::writeBPin(dbBPin* bpin, int cnt)
     dh = defdist(int(box->getDY() / 2));
 
     if (isFirst) {
-      isFirst = 0;
+      isFirst = false;
       x = defdist(box->xMin()) + dw;
       y = defdist(box->yMin()) + dh;
     }
