@@ -4,6 +4,7 @@ set test_dir [file dirname [file normalize [info script]]]
 set result_dir [file join $test_dir "results"]
 
 set ::env(LINDEN_IN_REGRESSION) true
+linden::dp::default-config --suppress-output
 
 proc make_result_file { filename } {
   variable result_dir

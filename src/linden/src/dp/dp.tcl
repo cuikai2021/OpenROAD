@@ -49,15 +49,32 @@ proc linden_optimize { args } {
 }
 
 
-sta::define_cmd_args "linden_placement_addblock_powerstripe" {
-    [--layer layer-name]
-    [--to out-path ]
-}
+namespace eval linden::dp {
 
-proc linden_placement_addblock_powerstripe { args } {
+# `default-config` accepts the following args:
+# * `--filler-list FILLERS`
+#   A list of filler-cell names, separated by white spaces.
+# * `--not-to-stop-when-illegal`
+#   When the design is failed to do legalization, linden DP will not terminate.
+# * `--suppress-output`
+#   Suppresses output of linden DP.
+# * `--routing-top-layer`
+#   Specifies the top layer for routability-driven DP.
+# * `--extra-pg-spacing LAYER SPACING`
+#   Specifies extra SPACING for P/G metal on LAYER.
+#   SPACING is in nm.
+#
+# ps.
+# `sta::define_cmd_args` does not work for commands under namespaces.
+
+
+proc default-config { args } {
     linden::StrDeque a
     foreach x $args {
         a push_back $x
     }
-    linden::placement_addblock_powerstripe a
+    linden::dp_default_config_gogogo a
+}
+
+# end namespace linden::dp
 }

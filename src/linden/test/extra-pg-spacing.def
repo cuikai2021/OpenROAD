@@ -1,0 +1,35 @@
+VERSION 5.8 ;
+DIVIDERCHAR "/" ;
+BUSBITCHARS "[]" ;
+DESIGN extra_pg_spacing ;
+UNITS DISTANCE MICRONS 1000 ;
+DIEAREA ( 0 0 ) ( 3000 3000 ) ;
+ROW ROW_0 core 0 1000 N DO 3 BY 1 STEP 1000 0 ;
+
+VIAS 2 ;
+  - via1
+    + RECT metal1 ( -50 -50 ) ( 50 50 )
+    + RECT cut12 ( -50 -50 ) ( 50 50 )
+    + RECT metal2 ( -50 -50 ) ( 50 50 ) ;
+  - via2
+    + RECT metal2 ( -50 -50 ) ( 50 50 )
+    + RECT cut23 ( -50 -50 ) ( 50 50 )
+    + RECT metal3 ( -50 -50 ) ( 50 50 ) ;
+END VIAS
+
+SPECIALNETS 2 ;
+  - VDD
+    + USE POWER
+    + FIXED metal1 100 ( 0 1000 ) ( 3000 * )
+      NEW metal1 0 ( 1000 1000 ) via1
+      NEW metal2 100 ( 1000 0 ) ( * 3000 ) ;
+  - VSS
+    + USE GROUND
+    + FIXED metal1 100 ( 0 2000 ) ( 3000 * ) ;
+END SPECIALNETS
+
+COMPONENTS 1 ;
+  - cell1 on_right + PLACED ( 1000 1000 ) N ;
+END COMPONENTS
+
+END DESIGN

@@ -1,6 +1,7 @@
 source "helpers.tcl"
 read_lef Nangate45.lef
 read_def gcd_replace.def
+
 set critical_cells {
   _276_
   _277_
@@ -297,9 +298,8 @@ set critical_cells {
   _568_
   _569_
 }
-linden_incremental_legalize \
-    --critical-cells $critical_cells \
-    --suppress-output
+linden_incremental_legalize --critical-cells $critical_cells
+
 set def_file [make_result_file incr-dp.critical-cells.def]
 write_def $def_file
 check_placement

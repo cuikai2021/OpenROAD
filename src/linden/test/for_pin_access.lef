@@ -1,0 +1,154 @@
+VERSION 5.8 ;
+BUSBITCHARS "[]" ;
+DIVIDERCHAR "/" ;
+
+UNITS
+  DATABASE MICRONS 1000 ;
+END UNITS
+
+MANUFACTURINGGRID 0.0050 ;
+
+LAYER poly
+  TYPE MASTERSLICE ;
+END poly
+
+LAYER metal1
+  TYPE ROUTING ;
+  SPACING 0.1 ;
+  WIDTH 0.1 ;
+  DIRECTION HORIZONTAL ;
+END metal1
+
+LAYER cut12
+  TYPE CUT ;
+  SPACING 0.1 ;
+END cut12
+
+LAYER metal2
+  TYPE ROUTING ;
+  SPACING 0.1 ;
+  WIDTH 0.1 ;
+  DIRECTION VERTICAL ;
+END metal2
+
+LAYER cut23
+  TYPE CUT ;
+  SPACING 0.1 ;
+END cut23
+
+LAYER metal3
+  TYPE ROUTING ;
+  SPACING 0.1 ;
+  WIDTH 0.1 ;
+  DIRECTION HORIZONTAL ;
+END metal3
+
+SITE core
+  CLASS CORE ;
+  SIZE 1 BY 1 ;
+END core
+
+MACRO on_left
+  CLASS CORE ;
+  ORIGIN 0 0 ;
+  SIZE 1 BY 1 ;
+  SYMMETRY Y ;
+  SITE core ;
+  PIN left
+    USE SIGNAL ;
+    DIRECTION INPUT ;
+    PORT
+      LAYER metal2 ;
+        RECT 0.06 0.45 0.1 0.55 ;
+    END
+  END left
+END on_left
+
+MACRO on_right
+  CLASS CORE ;
+  ORIGIN 0 0 ;
+  SIZE 1 BY 1 ;
+  SYMMETRY Y ;
+  SITE core ;
+  PIN right
+    USE SIGNAL ;
+    DIRECTION OUTPUT ;
+    PORT
+      LAYER metal2 ;
+        RECT 0.9 0.45 0.94 0.55 ;
+    END
+  END right
+END on_right
+
+MACRO on_both
+  CLASS CORE ;
+  ORIGIN 0 0 ;
+  SIZE 1 BY 1 ;
+  SYMMETRY Y ;
+  SITE core ;
+  PIN left
+    USE SIGNAL ;
+    DIRECTION INPUT ;
+    PORT
+      LAYER metal2 ;
+        RECT 0.06 0.45 0.1 0.55 ;
+    END
+  END left
+  PIN right
+    USE SIGNAL ;
+    DIRECTION OUTPUT ;
+    PORT
+      LAYER metal2 ;
+        RECT 0.9 0.45 0.94 0.55 ;
+    END
+  END right
+END on_both
+
+
+MACRO pin_spacing
+  CLASS CORE ;
+  ORIGIN 0 0 ;
+  SIZE 1 BY 1 ;
+  SYMMETRY Y ;
+  SITE core ;
+  PIN left
+    USE SIGNAL ;
+    DIRECTION INPUT ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.16 0.45 0.24 0.55 ;
+    END
+  END left
+  PIN right
+    USE SIGNAL ;
+    DIRECTION OUTPUT ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.34 0.45 0.42 0.55 ;
+    END
+  END right
+END pin_spacing
+
+MACRO fitting_for_spacing
+  CLASS CORE ;
+  ORIGIN 0 0 ;
+  SIZE 1 BY 1 ;
+  SYMMETRY Y ;
+  SITE core ;
+  PIN as_blockage
+    USE SIGNAL ;
+    DIRECTION INPUT ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.55 0.55 0.65 0.65 ;
+    END
+  END as_blockage
+  PIN to_access
+    USE SIGNAL ;
+    DIRECTION OUTPUT ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.41 0.77 0.46 0.79 ;
+    END
+  END to_access
+END fitting_for_spacing

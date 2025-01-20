@@ -6,6 +6,7 @@ record_tests {
   basic-dp
   incr-dp.critical-cells
   incr-dp.baseline
+  extra-pg-spacing
 
   incr_tdp_data
   incr_tdp_data_disconnect

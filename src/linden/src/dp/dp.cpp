@@ -32,18 +32,109 @@
 
 using namespace std;
 using linden::geom::Dimension;
+
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR);
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_DP_ALGORITHM);
 
-namespace linden {
+namespace linden::dp {
 
-DpConfig::DpConfig()
-:   suppress_output(false),
-    not_stop_when_illegal(false)
+Config::Config()
 {}
 
+void Config::prettyPrint(string& out) const {
+    if (selected_fillers) {
+        out.append("fillers: ");
+        for(auto const& x: *selected_fillers) {
+            out.append(x);
+            out.append(", ");
+        }
+        out.push_back('\n');
+    }
+    if (timing_data) {
+        out.append("timing-data: ");
+        out.append(*timing_data);
+        out.push_back('\n');
+    }
+    if (routing_congestion_data) {
+        out.append("routing-congestion data: ");
+        out.append(*routing_congestion_data);
+        out.push_back('\n');
+    }
+    if (routing_top_layer) {
+        out.append("top layer for routing: ");
+        out.append(*routing_top_layer);
+        out.push_back('\n');
+    }
+    if (critical_cells) {
+        out.append("critical cells: ");
+        for(auto const& x: *critical_cells) {
+            out.append(x);
+            out.append(", ");
+        }
+        out.push_back('\n');
+    }
+    if (baseline_def) {
+        out.append("baseline: ");
+        out.append(*baseline_def);
+        out.push_back('\n');
+    }
+    if (!extra_pg_spacing.empty()) {
+        out.append("extra pg spacing:\n");
+        for(auto const& [layer, spacing]: extra_pg_spacing) {
+            out.append("  ");
+            out.append(layer);
+            out.push_back('=');
+            pp::prettyPrint(out, spacing);
+            out.push_back('\n');
+        }
+    }
+    if (suppress_output) {
+        out.append("suppress output: ");
+        pp::prettyPrint(out, *suppress_output);
+        out.push_back('\n');
+    }
+    if (not_stop_when_illegal) {
+        out.append("not stop when illegal: ");
+        pp::prettyPrint(out, *not_stop_when_illegal);
+        out.push_back('\n');
+    }
+}
+
+shared_ptr<Config> Config::get_default() noexcept {
+    static shared_ptr<Config> _g(new Config());
+    return _g;
+}
+
+namespace {
+
+template<class T>
+void merge(optional<T>& base, const optional<T>& up) {
+    if (up) {
+        base = up;
+    }
+}
+
+} // namespace
+
+Config& Config::operator+=(const Config& ano) {
+    merge(selected_fillers, ano.selected_fillers);
+    merge(timing_data, ano.timing_data);
+    merge(routing_congestion_data, ano.routing_congestion_data);
+    merge(routing_top_layer, ano.routing_top_layer);
+    merge(critical_cells, ano.critical_cells);
+    merge(baseline_def, ano.baseline_def);
+    merge(suppress_output, ano.suppress_output);
+    merge(not_stop_when_illegal, ano.not_stop_when_illegal);
+    if (!ano.extra_pg_spacing.empty()) {
+        for(auto const& [layer, spacing]: ano.extra_pg_spacing) {
+            extra_pg_spacing[layer] = spacing;
+        }
+    }
+    return *this;
+}
+
 int exec(
-    const DpConfig& cfg,
+    const Config& cfg,
     const std::filesystem::path& exe,
     const deque<string>& args)
 {
@@ -77,7 +168,7 @@ int exec(
         return ec;
     case 1:
         spdlog::warn("Cannot legalize completely.");
-        if (cfg.not_stop_when_illegal) {
+        if (cfg.not_stop_when_illegal.value_or(false)) {
             spdlog::info("But not to stop the flow.");
             return ec;
         }
@@ -144,12 +235,6 @@ std::filesystem::path get_incr_dp_exe() {
     return dir / exec;
 }
 
-std::filesystem::path get_placement_addblock_powerstripe_exe() {
-    std::filesystem::path dir(LINDENDP_EXE_DIR());
-    return dir / "block-m2-powerstripe";
-}
-
-
 std::filesystem::path get_routability_driven_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
     return dir / "linden-routability-driven-detailed-placer";
@@ -166,7 +251,7 @@ std::filesystem::path get_opt_exe() {
 }
 
 int exec_basic_dp(
-    const DpConfig& cfg,
+    const Config& cfg,
     const filesystem::path& input_cfg,
     const filesystem::path& outdef)
 {
@@ -181,7 +266,7 @@ int exec_basic_dp(
 }
 
 int exec_incr_dp(
-    const DpConfig& cfg,
+    const Config& cfg,
     const string& input_cfg,
     const string& outdef)
 {
@@ -200,7 +285,7 @@ int exec_incr_dp(
 }
 
 int exec_routability_driven_dp(
-    const DpConfig& cfg,
+    const Config& cfg,
     const string& input_cfg,
     const string& outdef)
 {
@@ -214,7 +299,7 @@ int exec_routability_driven_dp(
 }
 
 int exec_pbdef(
-    const DpConfig& cfg,
+    const Config& cfg,
     const string& from,
     const string& to)
 {
@@ -228,7 +313,7 @@ int exec_pbdef(
 }
 
 int exec_opt(
-    const DpConfig& cfg,
+    const Config& cfg,
     const string& input_cfg,
     const string& outdef)
 {
@@ -242,36 +327,15 @@ int exec_opt(
     return exec(cfg, exe, args);
 }
 
-int exec_placement_addblock_powerstripe(
-    const deque<filesystem::path>& lefs,
-    const std::filesystem::path& def,
-    const std::string& layer,
-    const std::filesystem::path& outdef
-)
-{
-    deque<string> args;
-    args.push_back("--lef");
-    for (const auto& lef: lefs) {
-        args.push_back(lef);
-    }
-    args.push_back("--def");
-    args.push_back(def);
-    args.push_back("--to");
-    args.push_back(outdef);
-    args.push_back("--layer");
-    args.push_back(layer);
-    auto exe = std::move(get_placement_addblock_powerstripe_exe());
-    return boost::process::system(string(exe), boost::process::args(args));
-}
-
 filesystem::path write_input_config(
-    const DpConfig& cfg,
+    const Config& cfg,
     const filesystem::path& basename,
     const deque<filesystem::path>& lefs,
     const filesystem::path& def)
 {
     auto root = toml::table{
-        {"version", "1.2"},
+        {"$schema", "https://icbench.com/schemas/linden/input-cfg/1.3.0"},
+        {"version", "1.3.0"}, // compatible to deblais
     };
     {
         toml::array lefs_;
@@ -307,6 +371,14 @@ filesystem::path write_input_config(
             critical_cells.push_back(c);
         }
         root.emplace("critical-cells", critical_cells);
+    }
+    if(auto const& pgs = cfg.extra_pg_spacing; !pgs.empty()) {
+        toml::table extra_pg_spacing;
+        for(auto const& [layer, spacing]: pgs) {
+            toml::value v(spacing);
+            extra_pg_spacing.insert_or_assign(layer, v);
+        }
+        root.emplace("extra-spacing-for-pg", extra_pg_spacing);
     }
 
     filesystem::path filename = basename;
@@ -415,7 +487,7 @@ int64_t is_congestion_meet_expectation(const banyan::Cmap& cmap)
 }
 } // namespace
 
-int basic_dp(::ord::OpenRoad& ord, const DpConfig& cfg) {
+int basic_dp(::ord::OpenRoad& ord, const Config& cfg) {
     const LefDefDumper dumper(ord);
     if (!cfg.suppress_output) {
         dumper.print_dumped_files(std::cout);
@@ -429,14 +501,15 @@ int basic_dp(::ord::OpenRoad& ord, const DpConfig& cfg) {
     }
     auto const& def = dumper.def;
 
+    bool suppress_output = cfg.suppress_output.value_or(false);
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
-    filesystem::path outdef = output_def_name(basename, cfg.suppress_output);
+    filesystem::path outdef = output_def_name(basename, suppress_output);
     int ret = exec_basic_dp(cfg, input_cfg_fn, outdef);
     read_back(outdef);
     return ret;
 }
 
-int incr_dp(::ord::OpenRoad& ord, const DpConfig& cfg) {
+int incr_dp(::ord::OpenRoad& ord, const Config& cfg) {
     const LefDefDumper dumper(ord);
     if (!cfg.suppress_output) {
         dumper.print_dumped_files(std::cout);
@@ -450,26 +523,15 @@ int incr_dp(::ord::OpenRoad& ord, const DpConfig& cfg) {
     }
     auto const& def = dumper.def;
 
+    bool suppress_output = cfg.suppress_output.value_or(false);
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
-    filesystem::path outdef = output_def_name(basename, cfg.suppress_output);
+    filesystem::path outdef = output_def_name(basename, suppress_output);
     int ret = exec_incr_dp(cfg, input_cfg_fn, outdef);
     read_back(outdef);
     return ret;
 }
 
-int placement_addblock_powerstripe(::ord::OpenRoad& ord, const std::string& layer_name, const std::filesystem::path& out_def) {
-    const LefDefDumper dumper(ord);
-    deque<filesystem::path> lefs;
-    lefs.push_back(dumper.tech_lef);
-    for(auto const& x: dumper.lib_lefs) {
-        lefs.push_back(x);
-    }
-    auto const& def = dumper.def;
-    
-    int ret = exec_placement_addblock_powerstripe(lefs, def,layer_name, out_def);
-    return ret;
-}
-int rddp(::ord::OpenRoad& ord, DpConfig& dpcfg) {
+int rddp(::ord::OpenRoad& ord, Config& dpcfg) {
     const int64_t N_TRIES = 3;
     std::vector<pair<std::filesystem::path, int64_t>> tried_results;
     tried_results.reserve(N_TRIES + 1);
@@ -500,10 +562,11 @@ int rddp(::ord::OpenRoad& ord, DpConfig& dpcfg) {
         tried_results.push_back(make_pair(def, n_overloaded_tiles));
     }
 
+    bool suppress_output = dpcfg.suppress_output.value_or(false);
     for (int64_t tried = 0; tried < N_TRIES; tried++) {
         const auto& basename = gen_base_filename();
         filesystem::path input_cfg_fn = write_input_config(dpcfg, basename, lefs, last_def);
-        const filesystem::path& out_def = output_def_name(basename, dpcfg.suppress_output);
+        const filesystem::path& out_def = output_def_name(basename, suppress_output);
         int64_t ret = exec_routability_driven_dp(dpcfg, input_cfg_fn, out_def);
         if (ret) {
             spdlog::error(
@@ -548,7 +611,7 @@ int rddp(::ord::OpenRoad& ord, DpConfig& dpcfg) {
     return 0;
 }
 
-int opt(::ord::OpenRoad& ord, const DpConfig& cfg) {
+int opt(::ord::OpenRoad& ord, const Config& cfg) {
     const LefDefDumper dumper(ord);
     if (!cfg.suppress_output) {
         dumper.print_dumped_files(std::cout);
@@ -562,12 +625,13 @@ int opt(::ord::OpenRoad& ord, const DpConfig& cfg) {
     }
     auto const& def = dumper.def;
 
+    bool suppress_output = cfg.suppress_output.value_or(false);
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
-    filesystem::path outdef = output_def_name(basename, cfg.suppress_output);
+    filesystem::path outdef = output_def_name(basename, suppress_output);
     int ret = exec_opt(cfg, input_cfg_fn, outdef);
     read_back(outdef);
     return ret;
 }
 
-} // namespace linden
+} // namespace linden::dp
 
