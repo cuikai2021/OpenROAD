@@ -126,7 +126,7 @@ class Logger
   template <typename... Args>
   void report(const std::string& message, const Args&... args)
   {
-    std::string msg = fmt::vformat(FMT_RUNTIME(message + spdlog::details::os::default_eol), fmt::make_format_args(args...));
+    std::string msg = fmt::vformat(FMT_RUNTIME(message), fmt::make_format_args(args...)) + spdlog::details::os::default_eol;
     logger_->log(spdlog::level::level_enum::off, "{}", msg);
   }
 
@@ -147,7 +147,7 @@ class Logger
   {
     // Message counters do NOT apply to debug messages.
     if (logger_->should_log(spdlog::level::level_enum::debug)) {
-      std::string msg = fmt::vformat(FMT_RUNTIME(message + spdlog::details::os::default_eol), fmt::make_format_args(args...));
+      std::string msg = fmt::vformat(FMT_RUNTIME(message), fmt::make_format_args(args...)) + spdlog::details::os::default_eol;
       logger_->log(spdlog::level::level_enum::debug,
                    "[{} {}-{}] {}",
                    level_names[spdlog::level::level_enum::debug],
@@ -288,7 +288,7 @@ class Logger
     auto count = counter++;
     if (count < max_message_print) {
       if (logger_->should_log(level)) {
-        std::string msg = fmt::vformat(FMT_RUNTIME(message + spdlog::details::os::default_eol), fmt::make_format_args(args...));
+        std::string msg = fmt::vformat(FMT_RUNTIME(message), fmt::make_format_args(args...)) + spdlog::details::os::default_eol;
         logger_->log(level,
                      "[{} {}-{:04d}] {}",
                      level_names[level],

@@ -117,7 +117,7 @@ add_library(db
     dbPolygon.cpp
     dbPowerDomain.cpp
     dbPowerSwitch.cpp
-    # dbScanChain.cpp
+    # dbScanChain.cpp # ODB_SCAN_CHAIN_NOT_USE
     # dbScanInst.cpp
     # dbScanList.cpp
     # dbScanPartition.cpp

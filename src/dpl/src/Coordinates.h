@@ -249,3 +249,19 @@ struct hash<dpl::TypedCoordinate<T>>
 };
 
 }  // namespace std
+
+#include <fmt/core.h>
+
+namespace fmt {
+template <typename T>
+struct formatter<dpl::TypedCoordinate<T>> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const dpl::TypedCoordinate<T>& v, FormatContext& ctx) -> decltype(ctx.out()) {
+    std::ostringstream os;
+    os << v;
+    return fmt::format_to(ctx.out(), "{}", os.str());
+  }
+};
+} // namespace fmt

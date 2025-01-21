@@ -159,7 +159,9 @@ class dbNetTrack;
 class dbPolygon;
 class dbPowerDomain;
 class dbPowerSwitch;
-#if 0
+
+#define ODB_SCAN_CHAIN_NOT_USE
+#ifndef ODB_SCAN_CHAIN_NOT_USE
 class dbScanChain;
 class dbScanInst;
 class dbScanList;

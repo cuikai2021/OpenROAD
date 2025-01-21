@@ -291,6 +291,31 @@ else()
 endif()
 
 find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+
+message(STATUS "spdlog version: ${spdlog_VERSION}")
+message(STATUS "fmt version: ${fmt_VERSION}")
+
+message(STATUS "Checking SPDLOG options...")
+if(SPDLOG_USE_STD_FORMAT)
+    message(STATUS "SPDLOG_USE_STD_FORMAT is defined")
+else()
+    message(STATUS "SPDLOG_USE_STD_FORMAT is NOT defined")
+endif()
+
+if(SPDLOG_FMT_EXTERNAL)
+    message(STATUS "SPDLOG_FMT_EXTERNAL is defined")
+else()
+    message(STATUS "SPDLOG_FMT_EXTERNAL is NOT defined")
+endif()
+
+if(SPDLOG_COMPILED_LIB)
+    message(STATUS "SPDLOG_COMPILED_LIB is defined")
+else()
+    message(STATUS "SPDLOG_COMPILED_LIB is NOT defined")
+endif()
+
+
 message(STATUS "spdlog: ${spdlog_VERSION}")
 if (${SPDLOG_FMT_EXTERNAL})
   message(WARNING "spdlog: SPDLOG_FMT_EXTERNAL=${SPDLOG_FMT_EXTERNAL}")
@@ -425,6 +450,8 @@ target_link_libraries(eden
   ${CMAKE_THREAD_LIBS_INIT}
   ${GPERF_LIB}
   backtrace
+  spdlog::spdlog
+  fmt::fmt
 )
 
 target_link_libraries(ord

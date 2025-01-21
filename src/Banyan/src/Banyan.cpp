@@ -426,9 +426,9 @@ void Banyan::loaddef(std::string deffile)
     if (auto wire = net->getWire(); wire != nullptr) {
       std::vector<int> rawdata;
       std::vector<unsigned char> rawOpCodes;
-      wire->getRawWireData(rawdata, rawOpCodes);
+      // wire->getRawWireData(rawdata, rawOpCodes); // CTODO
       auto oriWire = odb::dbWire::create(oriNet);
-      oriWire->setRawWireData(rawdata, rawOpCodes);
+      // oriWire->setRawWireData(rawdata, rawOpCodes); // CTODO
     }
     laurel_->diffNet(oriNet);
   }

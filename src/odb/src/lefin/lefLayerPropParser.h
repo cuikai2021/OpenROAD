@@ -45,7 +45,7 @@ namespace odb {
 class lefTechLayerSpacingNotchLengthParser
 {
  public:
-  static void parse(std::string, dbTechLayer*, lefin*);
+  static void parse(std::string, dbTechLayer*, lefinReader*);
 };
 
 class lefTechLayerSpacingEolParser
@@ -102,7 +102,7 @@ class lefTechLayerSpacingTablePrlParser
 class lefTechLayerSpacingTableJogToJogSpacingParser
 {
 public:
-  static bool parse(std::string, dbTechLayer*, lefin*);
+  static bool parse(std::string, dbTechLayer*, lefinReader*);
 };
 
 class lefTechLayerRightWayOnGridOnlyParser

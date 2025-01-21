@@ -113,6 +113,7 @@ void Dft::scanReplace()
 
 void Dft::insertDft()
 {
+#ifndef ODB_SCAN_CHAIN_NOT_USE
   if (need_to_run_pre_dft_) {
     pre_dft();
   }
@@ -161,6 +162,7 @@ void Dft::insertDft()
                  sc_out_load.value().getValue());
     }
   }
+#endif
 }
 
 DftConfig* Dft::getMutableDftConfig()

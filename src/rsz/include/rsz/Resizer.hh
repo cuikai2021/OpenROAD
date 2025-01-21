@@ -435,7 +435,6 @@ class Resizer : public dbStaState, public dbNetworkObserver
   int metersToDbu(double dist) const;
   void makeEquivCells();
 
-protected:
   void init(bool initArea=true);
   ////////////////////////////////////////////////////////////////
   void initBlock();

@@ -11,6 +11,8 @@ gid=`id -g`
 docker run -it --rm --privileged --network=host \
   --user $uid:$gid \
   --env="DISPLAY" \
+  -e http_proxy=http://192.168.0.111:7891 \
+  -e https_proxy=http://192.168.0.111:7891 \
   --mount type=bind,src=$HOME/.Xauthority,dst=/home/dockeruser/.Xauthority --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix \
   --mount type=bind,src=/run/user/$uid/,dst=/run/user/$uid/ --env SSH_AUTH_SOCK=/run/user/$uid/keyring/ssh \
   --mount type=bind,src=$HOME/.ssh,dst=/root/.ssh \
@@ -35,5 +37,5 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/cmap_visualizer,dst=/build/bin/cmap_visualizer \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/block-m2-powerstripe,dst=/build/bin/block-m2-powerstripe \
   --entrypoint /bin/bash \
-  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20240709T0624Z_afb4115 \
+  eden_dev:cyzh_20 \
   -c "cd $workdir; $cmd"

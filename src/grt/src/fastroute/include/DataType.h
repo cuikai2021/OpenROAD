@@ -254,3 +254,20 @@ struct OrderNetEdge
 using utl::format_as;
 
 }  // namespace grt
+
+
+#include <fmt/core.h>
+
+namespace fmt {
+template <>
+struct formatter<grt::RouteType> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const grt::RouteType& v, FormatContext& ctx) -> decltype(ctx.out()) {
+    std::ostringstream os;
+    os << v;
+    return fmt::format_to(ctx.out(), "{}", os.str());
+  }
+};
+} // namespace fmt

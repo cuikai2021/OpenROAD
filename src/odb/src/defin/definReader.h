@@ -97,6 +97,8 @@ class definReader : public definBase
   void setLibs(std::vector<dbLib*>& lib_names);
 
   virtual bool suppressMessage(const char* msg);
+  virtual bool suppressMessage(const std::string& msg);
+
   void line(int line_num);
 
   void setTech(dbTech* tech);

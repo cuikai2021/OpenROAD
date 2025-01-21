@@ -33,6 +33,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <fmt/core.h>
 #include <libgen.h>
 #include <tcl.h>
 
@@ -386,7 +387,7 @@ std::string findPathToTclreadlineInit(Tcl_Interp* interp)
       namespace eval temp {
         foreach dir $::auto_path {
             set folder [file join $dir]
-            set path [file join $folder "tclreadline)" TCLRL_VERSION_STR
+            set path [file join $folder "tclreadline" TCLRL_VERSION_STR
                           R"(" "tclreadlineInit.tcl"]
             if {[file exists $path]} {
                 return $path
@@ -488,7 +489,7 @@ static int tclAppInit(int& argc,
           // need to delay loading of file until after GUI is completed
           // initialized
           gui::Gui::get()->addRestoreStateCommand(
-              fmt::format(FMT_RUNTIME(restore_state_cmd), init.string()));
+              fmt::vformat(FMT_RUNTIME(restore_state_cmd), fmt::make_format_args(init.string())));
         }
       }
     }

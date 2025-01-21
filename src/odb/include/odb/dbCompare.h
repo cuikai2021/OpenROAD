@@ -762,6 +762,8 @@ struct less<odb::dbScanChain*>
   }
 };
 
+#if 0
+
 template <>
 struct less<odb::dbScanInst*>
 {
@@ -789,6 +791,8 @@ struct less<odb::dbScanPartition*>
     return odb::compare_by_id(lhs, rhs);
   }
 };
+
+#endif
 
 template <>
 struct less<odb::dbScanPin*>

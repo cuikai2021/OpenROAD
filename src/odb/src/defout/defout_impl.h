@@ -118,7 +118,6 @@ class defout_impl
   void writePropValue(dbProperty* prop);
   void writeProperties(dbObject* object);
   void writePinProperties(dbBlock* block);
-  void writeScanChains(dbBlock* block);
   void writeScanChainsComps(const dbSet<dbScanChainComp>& comps, const char* type);
   bool hasProperties(dbObject* object, ObjType type);
 

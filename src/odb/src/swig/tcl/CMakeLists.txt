@@ -18,6 +18,7 @@ target_link_libraries(odbtcl
         utl_lib
         cdl
         odb_swig_common
+        backtrace
         Boost::boost
         ${TCL_LIBRARY}
 )

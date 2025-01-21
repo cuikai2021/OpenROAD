@@ -865,7 +865,7 @@ remove_tie_cell_cmd(const char* tie_lo_cname,
   resizer->removeTieCell(tie_lo_cname, tie_lo_pname, tie_hi_cname, tie_hi_pname);
 }
 
-
+void
 set_parasitics_src(ParasiticsSrc src)
 {
   Resizer *resizer = getResizer();

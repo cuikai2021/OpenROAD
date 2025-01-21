@@ -141,6 +141,7 @@ findScanTerm(definReader* reader, dbBlock* block, const char* pin_name)
   return std::nullopt;
 }
 
+#if 0
 void populateScanInst(definReader* reader,
                       dbBlock* block,
                       DefParser::defiScanchain* scan_chain,
@@ -180,6 +181,7 @@ void populateScanInst(definReader* reader,
   scan_inst->setAccessPins({.scan_in = scan_in, .scan_out = scan_out});
   scan_inst->setBits(calculateBitsForCellInScandef(bits, inst));
 }
+#endif
 
 }  // namespace
 
@@ -1535,7 +1537,7 @@ int definReader::scanchainCallback(DefParser::defrCallbackType_e type,
   }
   // partition
   if (scanchain->hasPartition()) {
-	  scanchainR->setPartitionName(scanchain->partitionName());d
+	  scanchainR->setPartitionName(scanchain->partitionName());
 	  if (scanchain->hasPartitionMaxBits()) {
 	  	scanchainR->setPartitionMaxBits(scanchain->partitionMaxBits());
 	  }
@@ -1558,7 +1560,7 @@ int definReader::scanchainsEndCallback(DefParser::defrCallbackType_e type,
   scanchainR->scanchainsEnd();
   return PARSE_OK;
 }
-
+#if 0
 int definReader::scanchainsCallback(
     DefParser::defrCallbackType_e /* unused: type */,
     DefParser::defiScanchain* scan_chain,
@@ -1659,6 +1661,7 @@ int definReader::scanchainsCallback(
 
   return PARSE_OK;
 }
+#endif
 
 int definReader::slotsCallback(DefParser::defrCallbackType_e /* unused: type */,
                                int /* unused: count */,
@@ -2047,6 +2050,11 @@ bool definReader::suppressMessage(const char* msg)
   return _logger->suppressExactMessage(msg);
 }
 
+bool definReader::suppressMessage(const std::string& msg)
+{
+  return _logger->suppressExactMessage(msg);
+}
+
 void definReader::error(std::string_view msg)
 {
   _logger->warn(utl::ODB, 126, "error: {}", msg);
@@ -2278,7 +2286,10 @@ bool definReader::createBlock(const char* file)
 
   if (_mode == defin::INCREMENTAL || _mode == defin::DEFAULT) {
     defrSetScanchainsStartCbk(scanchainsStartCallback);
+    
+    #if 0
     defrSetScanchainCbk(scanchainsCallback);
+    #endif
   }
 
   bool isZipped = hasSuffix(file, ".gz");

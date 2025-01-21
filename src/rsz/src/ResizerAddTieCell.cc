@@ -87,9 +87,11 @@ ResizerAddTieCell::addTieCell(const char* tie_lo_cname,
 
   auto is_special_pin = [this](const Pin* pin) {
     FASSERT(pin != nullptr);
-    odb::dbITerm *iterm;
-    odb::dbBTerm *bterm;
-    db_network_->staToDb(pin, iterm, bterm);
+    odb::dbITerm *iterm = nullptr;
+    odb::dbBTerm *bterm = nullptr;
+    odb::dbModITerm* moditerm = nullptr;
+    odb::dbModBTerm* modbterm = nullptr;
+    db_network_->staToDb(pin, iterm, bterm, moditerm, modbterm);
     return (iterm != nullptr && iterm->isSpecial())
       ||   (bterm != nullptr && bterm->isSpecial());
   };

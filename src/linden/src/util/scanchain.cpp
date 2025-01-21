@@ -89,11 +89,13 @@ PairedCell::PairedCell(odb::dbInst* odb_inst, sta::LibertyCell* sta_cell)
 }
 
 void PairedCell::init_scan_enable() {
-    sta::TestCell* test_cell = sta().testCell();
-    if(test_cell == nullptr) {
-        return;
-    }
-    sta::LibertyPort* lib_port = test_cell->scanEnable();
+    // sta::TestCell* test_cell = sta().testCell();
+    // if(test_cell == nullptr) {
+    //     return;
+    // }
+
+    // CTODO : 找到scan enable port
+    sta::LibertyPort* lib_port = nullptr;
     if(lib_port == nullptr) {
         spdlog::error(
             "Cell {} has test-cell definition in .lib but no scan-enable pin.",

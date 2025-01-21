@@ -73,11 +73,11 @@ void ScanStitch::Stitch(odb::dbBlock* block,
                         size_t ordinal)
 {
   auto scan_enable_name
-      = fmt::format(FMT_RUNTIME(config_.getEnableNamePattern()), kEnableNumber);
+      = fmt::vformat(FMT_RUNTIME(config_.getEnableNamePattern()), fmt::make_format_args(kEnableNumber));
   auto scan_enable_driver = FindOrCreateScanEnable(block, scan_enable_name);
 
   auto scan_in_name
-      = fmt::format(FMT_RUNTIME(config_.getInNamePattern()), ordinal);
+      = fmt::vformat(FMT_RUNTIME(config_.getInNamePattern()), fmt::make_format_args(ordinal));
   ScanDriver scan_in_driver = FindOrCreateScanIn(block, scan_in_name);
 
   scan_chain.setScanIn(scan_in_driver);
@@ -133,7 +133,7 @@ void ScanStitch::Stitch(odb::dbBlock* block,
 
   // Let's connect the last cell
   auto scan_out_name
-      = fmt::format(FMT_RUNTIME(config_.getOutNamePattern()), ordinal);
+      = fmt::vformat(FMT_RUNTIME(config_.getOutNamePattern()), fmt::make_format_args(ordinal));
   ScanLoad scan_out_load
       = FindOrCreateScanOut(block, last_scan_cell->getScanOut(), scan_out_name);
   last_scan_cell->connectScanOut(scan_out_load);

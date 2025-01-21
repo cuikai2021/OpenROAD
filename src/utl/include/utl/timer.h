@@ -79,3 +79,34 @@ class DebugScopedTimer : public Timer
 std::ostream& operator<<(std::ostream& os, const Timer& t);
 
 }  // namespace utl
+
+#include <fmt/core.h>
+
+namespace fmt {
+template <>
+struct formatter<utl::DebugScopedTimer> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const utl::DebugScopedTimer& v, FormatContext& ctx) -> decltype(ctx.out()) {
+    std::ostringstream os;
+    os << v;
+    return fmt::format_to(ctx.out(), "{}", os.str());
+  }
+};
+} // namespace fmt
+
+namespace fmt {
+template <>
+struct formatter<utl::Timer> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const utl::Timer& v, FormatContext& ctx) -> decltype(ctx.out()) {
+    std::ostringstream os;
+    os << v;
+    return fmt::format_to(ctx.out(), "{}", os.str());
+  }
+};
+} // namespace fmt
+

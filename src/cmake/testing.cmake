@@ -21,7 +21,7 @@ function(or_integration_test_single tool_name test_name test_type check_log chec
 
     string(
       CONCAT ENV
-      "OPENROAD_EXE=$<TARGET_FILE:openroad>;"
+      "OPENROAD_EXE=$<TARGET_FILE:eden>;"
       "TEST_NAME=${test_name};"
       "TEST_EXT=${TEST_EXT};"
       "TEST_TYPE=${test_type};"

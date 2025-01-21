@@ -959,6 +959,7 @@ void defout_impl::writeGroups(dbBlock* block)
   fprintf(_out, "END GROUPS\n");
 }
 
+#if 0
 void defout_impl::writeScanChains(dbBlock* block)
 {
   dbDft* dft = block->getDft();
@@ -1021,6 +1022,7 @@ void defout_impl::writeScanChains(dbBlock* block)
 
   fprintf(_out, "END SCANCHAINS\n\n");
 }
+#endif
 
 void defout_impl::writeBTerm(dbBTerm* bterm)
 {

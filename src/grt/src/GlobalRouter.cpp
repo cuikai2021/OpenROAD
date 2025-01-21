@@ -4045,7 +4045,7 @@ void GlobalRouter::findNetsObstructions(odb::Rect& die_area)
             }
             int l = wireLayer->getRoutingLevel();
 
-            if (min_routing_layer_ <= l && l <= max_routing_layer_) {
+            if (getMinRoutingLayer() <= l && l <= getMaxRoutingLayer()) {
               odb::Point lower_bound
                   = odb::Point(wire_rect.xMin(), wire_rect.yMin());
               odb::Point upper_bound
@@ -4088,7 +4088,7 @@ void GlobalRouter::findNetsObstructions(odb::Rect& die_area)
             }
             int l = wireLayer->getRoutingLevel();
 
-            if (min_routing_layer_ <= l && l <= max_routing_layer_) {
+            if (getMinRoutingLayer() <= l && l <= getMaxRoutingLayer()) {
               odb::Point lower_bound
                   = odb::Point(wire_rect.xMin(), wire_rect.yMin());
               odb::Point upper_bound

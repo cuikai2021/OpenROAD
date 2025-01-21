@@ -4,7 +4,7 @@
 
 #include <utility>
 
-#include "../../rsz/src/RepairDesign.hh"
+#include "../../../rsz/src/RepairDesign.hh"
 #include "linden/db/db.hpp"
 #include "lrl/CircuitModifier/STANetwork.hh"
 #include "lrl/Laurel.hh"
@@ -44,11 +44,11 @@ struct DrvFixerRsz : public rsz::Resizer
         int cap_violations = 0;
         int fanout_violations = 0;
         int length_violations = 0;
-        repair_design_->repairDesign(max_wire_length_, 0.0, 0.0, false, repaired_net_count, slew_violations, cap_violations, fanout_violations, length_violations);
+        repair_design_->repairDesign(max_wire_length_, 0.0, 0.0, 0.0, false, repaired_net_count, slew_violations, cap_violations, fanout_violations, length_violations);
     }
     void revert()
     {
-        rsz::Resizer::journalRestore(resize_count_, inserted_buffer_count_, cloned_gate_count_);
+        rsz::Resizer::journalRestore(resize_count_, inserted_buffer_count_, cloned_gate_count_, swap_pin_count_, removed_buffer_count_);
     }
     sta::Vector<sta::Vertex*> LDV()
     {

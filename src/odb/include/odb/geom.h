@@ -1037,3 +1037,34 @@ using utl::format_as;
 #endif
 
 }  // namespace odb
+
+#include <fmt/format.h>
+
+namespace fmt {
+template <>
+struct formatter<odb::Rect> {
+  constexpr fmt::format_parse_context::iterator parse(fmt::format_parse_context& ctx) {
+    return ctx.begin();
+  }
+  template <typename FormatContext>
+  typename FormatContext::iterator format(const odb::Rect& v, FormatContext& ctx) {
+    std::ostringstream os;
+    
+    return fmt::format_to(ctx.out(), "{}", os.str());
+  }
+};
+
+template <>
+struct formatter<odb::Point> {
+  constexpr fmt::format_parse_context::iterator parse(fmt::format_parse_context& ctx) {
+    return ctx.begin();
+  }
+  template <typename FormatContext>
+  typename FormatContext::iterator format(const odb::Point& v, FormatContext& ctx) {
+    std::ostringstream os;
+    
+    return fmt::format_to(ctx.out(), "{}", os.str());
+  }
+};
+
+} // namespace fmt
