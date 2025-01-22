@@ -284,11 +284,11 @@ void OpenRoad::updateTech(const char* filename)
 {
   auto tech = db_->getTech();
   if (tech == nullptr) {
-    logger_->error(ORD, 60, "Must read technology lef first");
+    logger_->error(ORD, 9960, "Must read technology lef first");
   }
   odb::lefin lef_reader(db_, logger_, false);
   if (!lef_reader.updateTech(tech, filename)) {
-    logger_->error(ORD, 61, "Update technology lef {} fail", filename);
+    logger_->error(ORD, 9961, "Update technology lef {} fail", filename);
   }
 
   for (OpenRoadObserver* observer : observers_) {

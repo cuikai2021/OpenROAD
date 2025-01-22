@@ -167,6 +167,8 @@ proc run_tests {} {
   file delete -force "$app_path.dSYM"
 }
 
+# source [file join $openroad_test_dir "regression_multi_threads.tcl"]
+
 proc run_test { test } {
   global test_langs
 

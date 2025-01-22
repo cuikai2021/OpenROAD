@@ -35,7 +35,8 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/linden-add-tie-cell,dst=/build/bin/linden-add-tie-cell \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/deblais_rddp,dst=/build/bin/deblais_rddp \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/cmap_visualizer,dst=/build/bin/cmap_visualizer \
-  --mount type=bind,src=$workdir/src/linden/gpl/bin/block-m2-powerstripe,dst=/build/bin/block-m2-powerstripe \
   --entrypoint /bin/bash \
-  eden_dev:cyzh_20 \
+  eden_dev:fix_cudd_sudo \
   -c "cd $workdir; $cmd"
+
+  # --mount type=bind,src=$workdir/src/linden/gpl/bin/block-m2-powerstripe,dst=/build/bin/block-m2-powerstripe \

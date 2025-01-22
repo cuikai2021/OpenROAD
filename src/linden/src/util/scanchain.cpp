@@ -8,6 +8,7 @@
 #include "utl/Logger.h"
 #include "fassert.hpp"
 #include <iostream>
+#include <optional>
 
 using namespace std;
 
@@ -88,23 +89,19 @@ PairedCell::PairedCell(odb::dbInst* odb_inst, sta::LibertyCell* sta_cell)
     init_resets();
 }
 
-void PairedCell::init_scan_enable() {
-    // sta::TestCell* test_cell = sta().testCell();
-    // if(test_cell == nullptr) {
-    //     return;
-    // }
-
-    // CTODO : 找到scan enable port
-    sta::LibertyPort* lib_port = nullptr;
-    if(lib_port == nullptr) {
-        spdlog::error(
-            "Cell {} has test-cell definition in .lib but no scan-enable pin.",
-            sta().name());
-        return;
+void PairedCell::init_scan_enable()
+{
+    auto iter = sta().portIterator();
+    while (iter->hasNext()) {
+        sta::LibertyPort* port = reinterpret_cast<sta::LibertyPort*>(iter->next());
+        if (port->scanSignalType() == sta::ScanSignalType::enable
+            || port->scanSignalType() == sta::ScanSignalType::enable_inverted) {
+            odb::dbITerm* db_pin = db().findITerm(port->name());
+            PairedPin se(db_pin, port);
+            scan_enable_ = std::move(se);
+            break;
+        }
     }
-    odb::dbITerm* db_pin = db().findITerm(lib_port->name());
-    PairedPin se(db_pin, lib_port);
-    scan_enable_ = std::move(se);
 }
 
 void PairedCell::init_clocks() {

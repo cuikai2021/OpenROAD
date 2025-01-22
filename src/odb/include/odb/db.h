@@ -4069,6 +4069,19 @@ class dbWire : public dbObject
   ///
   static void destroy(dbWire* wire);
 
+  ////////////////////////////////////// For Banyan ////////////////////////
+  ///
+  /// get raw data of _dbWire
+  ///
+  void getRawWireData(std::vector<int>& data,
+                      std::vector<unsigned char>& op_codes);
+  ////
+  /// set raw data of _dbWire
+  ///
+  void setRawWireData(const std::vector<int>& data,
+                      const std::vector<unsigned char>& op_codes);
+  //////////////////////////////////////////////////////////////////////////                    
+
  private:
   void addOneSeg(unsigned char op,
                  int value,
