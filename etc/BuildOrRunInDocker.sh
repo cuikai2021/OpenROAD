@@ -36,7 +36,5 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/deblais_rddp,dst=/build/bin/deblais_rddp \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/cmap_visualizer,dst=/build/bin/cmap_visualizer \
   --entrypoint /bin/bash \
-  eden_dev:fix_cudd_sudo \
+  registry.cn-shanghai.aliyuncs.com/icbench-dev/eden_release:250124-sync_openroad \
   -c "cd $workdir; $cmd"
-
-  # --mount type=bind,src=$workdir/src/linden/gpl/bin/block-m2-powerstripe,dst=/build/bin/block-m2-powerstripe \

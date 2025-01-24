@@ -56,6 +56,10 @@ namespace stt {
 class SteinerTreeBuilder;
 }
 
+namespace lrl {
+class NetworkSandbox;
+}
+
 namespace rsz {
 
 using std::array;
@@ -446,6 +450,7 @@ class Resizer : public dbStaState, public dbNetworkObserver
   void eliminateDeadLogic(bool clean_nets);
 
  protected:
+  friend class lrl::NetworkSandbox;
   void initDesignArea();
   void ensureLevelDrvrVertices();
   Instance* bufferInput(const Pin* top_pin, LibertyCell* buffer_cell);

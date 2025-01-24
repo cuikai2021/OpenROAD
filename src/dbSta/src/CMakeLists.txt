@@ -118,6 +118,7 @@ target_link_libraries(dbSta
     odb
     gui
     utl_lib
+    fassert
     dbSta_lib
 )
 

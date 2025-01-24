@@ -8,7 +8,7 @@
 #include "sta/Graph.hh"
 #include "sta/Transition.hh"
 #include "utl/metrics.hpp"
-// #include "fassert.hpp"
+#include "fassert.hpp"
 #include <string>
 #include <memory>
 #include <iostream>
@@ -25,7 +25,7 @@ void pin_name(
     const sta::Vertex& vert
 ) {
     auto pin = vert.pin();
-    // FASSERT(pin != nullptr);
+    FASSERT(pin != nullptr);
     const sta::Instance* inst = network.instance(pin);
     if (inst != nullptr && inst != network.topInstance()) {
         rpt["cell"] = network.pathName(inst);
@@ -49,7 +49,7 @@ void report_timing(string output_file, bool suppress_details, bool suppress_path
     }
     metrics::Reporter rpt(metrics_cfg);
     auto corner = sta.cmdCorner();
-    // FASSERT(corner != nullptr);
+    FASSERT(corner != nullptr);
     string corner_name(corner->name());
     auto concerned_minmax = sta::MinMax::max();
     auto& corner_rpt = rpt["corners"].append();
@@ -77,7 +77,7 @@ void report_timing(string output_file, bool suppress_details, bool suppress_path
     }
     if (!suppress_details) {
         sta::Graph* graph = sta.ensureGraph();
-        // FASSERT(graph != nullptr);
+        FASSERT(graph != nullptr);
         vector<sta::Vertex*> verts;
         for(size_t i = 0, sz = graph->vertexCount(); i < sz; ++i) {
             sta::Vertex* vert = graph->vertex(i);
