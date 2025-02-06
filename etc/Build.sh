@@ -19,15 +19,6 @@ EOF
   numThreads=2
 fi
 cmakeOptions=""
-# cmakeOptions+=" -DSPDLOG_FMT_EXTERNAL=OFF"
-# cmakeOptions+=" -DCMAKE_PREFIX_PATH=/usr/local"
-# cmakeOptions+=" -Dortools_ROOT=/opt/or-tools"
-# cmakeOptions+=" -DProtobuf_DIR=/opt/or-tools/lib/cmake/protobuf"
-# cmakeOptions+=" -Dabsl_DIR=/usr/lib/cmake/absl"
-cmakeOptions+=" -DOCTAVE_LIB=/usr/lib/x86_64-linux-gnu/octave/8.4.0/liboctave.so"
-cmakeOptions+=" -DOCTINTERP_LIB=/usr/lib/x86_64-linux-gnu/octave/8.4.0/liboctinterp.so"
-# cmakeOptions+=" -DFMT_ROOT=/usr/local"
-# cmakeOptions+=" -DCMAKE_CXX_FLAGS=-DBOOST_STACKTRACE_USE_BACKTRACE"
 
 cleanBefore=no
 depsPrefixesFile=""

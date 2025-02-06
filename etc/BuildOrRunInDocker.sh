@@ -11,8 +11,6 @@ gid=`id -g`
 docker run -it --rm --privileged --network=host \
   --user $uid:$gid \
   --env="DISPLAY" \
-  -e http_proxy=http://192.168.0.111:7891 \
-  -e https_proxy=http://192.168.0.111:7891 \
   --mount type=bind,src=$HOME/.Xauthority,dst=/home/dockeruser/.Xauthority --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix \
   --mount type=bind,src=/run/user/$uid/,dst=/run/user/$uid/ --env SSH_AUTH_SOCK=/run/user/$uid/keyring/ssh \
   --mount type=bind,src=$HOME/.ssh,dst=/root/.ssh \
@@ -36,5 +34,5 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/deblais_rddp,dst=/build/bin/deblais_rddp \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/cmap_visualizer,dst=/build/bin/cmap_visualizer \
   --entrypoint /bin/bash \
-  registry.cn-shanghai.aliyuncs.com/icbench-dev/eden_release:250124-sync_openroad \
+  registry.cn-shanghai.aliyuncs.com/icbench-dev/eden_build:250205-v1 \
   -c "cd $workdir; $cmd"
