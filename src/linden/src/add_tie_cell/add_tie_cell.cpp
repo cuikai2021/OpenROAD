@@ -69,7 +69,7 @@ void read_back(const std::filesystem::path& outdef)
         const pblefdef::Point& target_pos = place.position();
 
         const odb::Point point(target_pos.x() / pm_per_dbu, target_pos.y() / pm_per_dbu);
-        const odb::dbOrientType orient(pb_to_dbOrientType(place.orient()));
+        const odb::dbOrientType orient(dp::pb_to_dbOrientType(place.orient()));
 
         sta::Instance* inst = nw.findInstance(cell_name.c_str());
         if (inst == nullptr) {
@@ -182,7 +182,7 @@ void read_back(const std::filesystem::path& outdef)
 
 } // namespace
 
-int add_tie_cell(const DpConfig& cfg, std::deque<std::string>& args, const std::string& output)
+int add_tie_cell(const dp::Config& cfg, std::deque<std::string>& args, const std::string& output)
 {
     // exec
     int ec = exec(cfg, get_add_tie_cell_exe(), args);

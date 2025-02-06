@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <map>
+#include <memory>
 
 namespace ord {
 class OpenRoad;
@@ -12,9 +14,9 @@ namespace odb {
   class dbOrientType;
 }
 
-namespace linden {
+namespace linden::dp {
 
-struct DpConfig
+struct Config
 {
     // inputs
     std::optional<std::deque<std::string>> selected_fillers;
@@ -27,16 +29,23 @@ struct DpConfig
     std::optional<std::filesystem::path> baseline_def;
 
     // configurations
-    bool suppress_output;
-    bool not_stop_when_illegal;
+    std::optional<bool> suppress_output;
+    std::optional<bool> not_stop_when_illegal;
+    // layer name -> extra spacing for P/G (in nm)
+    std::map<std::string, double> extra_pg_spacing;
 
-    DpConfig();
+    Config();
+
+    static std::shared_ptr<Config> get_default() noexcept;
+
+    Config& operator+=(const Config&);
+
+    void prettyPrint(std::string&) const;
 };
 
-int basic_dp(::ord::OpenRoad&, const DpConfig&);
-int incr_dp(::ord::OpenRoad&, const DpConfig&);
-int rddp(::ord::OpenRoad&, DpConfig&);
-int opt(::ord::OpenRoad&,const DpConfig&);
-int placement_addblock_powerstripe(::ord::OpenRoad&,const std::string& layer_name, const std::filesystem::path& out_def);
+int basic_dp(::ord::OpenRoad&, const Config&);
+int incr_dp(::ord::OpenRoad&, const Config&);
+int rddp(::ord::OpenRoad&, Config&);
+int opt(::ord::OpenRoad&,const Config&);
 
-} // namespace linden
+} // namespace linden::dp

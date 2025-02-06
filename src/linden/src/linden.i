@@ -128,23 +128,23 @@ void linden_lpbased_postdrv_itdp(const char* pb_path)
 %inline %{
 
 int lindendp_gogogo(StrDeque& args) {
-    return linden::basic_dp_gogogo(std::move(args.elems_));
+    return linden::dp::basic_dp_gogogo(std::move(args.elems_));
 }
 
 int linden_incr_legalize(StrDeque& args) {
-    return linden::incr_dp_gogogo(std::move(args.elems_));
+    return linden::dp::incr_dp_gogogo(std::move(args.elems_));
 }
 
 int routability_driven_legalize(StrDeque& args) {
-    return linden::rddp_gogogo(std::move(args.elems_));
+    return linden::dp::rddp_gogogo(std::move(args.elems_));
 }
 
 int lindenopt_gogogo(StrDeque& args) {
-    return linden::opt_gogogo(std::move(args.elems_));
+    return linden::dp::opt_gogogo(std::move(args.elems_));
 }
 
-int placement_addblock_powerstripe(StrDeque& args) {
-    return linden::placement_addblock_powerstripe_gogogo(std::move(args.elems_));
+int dp_default_config_gogogo(StrDeque& args) {
+    return linden::dp::default_config_gogogo(std::move(args.elems_));
 }
 
 %} // lindendp
@@ -222,7 +222,7 @@ const char* env_tmp_file_root_dir() {
     $1 = new odb::Point(x, y);
 }
 %typemap(out) odb::Point & {
-    delete $1;  
+    delete $1;
 }
 
 // Typemap for linden::PointPlace &
@@ -261,7 +261,7 @@ const char* env_tmp_file_root_dir() {
     $1 = new linden::PointPlace(odb::Point(x, y), orient);
 }
 %typemap(out) linden::PointPlace & {
-    delete $1; 
+    delete $1;
 }
 
 // Typemap for std::string &
@@ -293,12 +293,12 @@ EcoPlacerSwig* make_eco_placer() {
 // Adds a LEF file path to an EcoPlacerSwig instance.
 void eco_placer_add_lef(EcoPlacerSwig* eps, const std::string& lef) {
     eps->_lefs.push_back(lef);
-}   
+}
 
 // Adds a DEF file path to an EcoPlacerSwig instance.
 void eco_placer_add_def(EcoPlacerSwig* eps, const std::string& def) {
     eps->_defs.push_back(def);
-}   
+}
 
 // Initializes the EcoPlacer instance using the previously added LEF and DEF files.
 void eco_placer_init(EcoPlacerSwig* eps) {
@@ -312,16 +312,16 @@ void eco_placer_init_from_odb(EcoPlacerSwig* eps) {
 
 // Finds vacant places within a specified range and returns a list of place descriptions.
 std::vector<const char*> eco_placer_find_vacant_places_i(
-    EcoPlacerSwig* eps, 
-    const std::string& instance, 
-    const odb::Point& p0, 
-    const odb::Point& p1, 
-    int x_delta, 
+    EcoPlacerSwig* eps,
+    const std::string& instance,
+    const odb::Point& p0,
+    const odb::Point& p1,
+    int x_delta,
     int y_delta)
 {
     std::vector<linden::PointPlace> places;
     eps->_ep->find_vacant_places(places, instance, p0, p1, x_delta, y_delta);
-    
+
     std::vector<const char*> string_places;
     string_places.reserve(places.size());
 
@@ -337,20 +337,20 @@ std::vector<const char*> eco_placer_find_vacant_places_i(
 
 // Find the nearest place to given point and return a PlaceIterator
 linden::PlaceIterator* eco_placer_find_nearest_place_i(
-    EcoPlacerSwig* eps, 
-    const std::string& instance, 
-    const odb::Point& point, 
-    const std::string& xmin, 
-    const std::string& ymin, 
-    const std::string& xmax, 
-    const std::string& ymax) 
+    EcoPlacerSwig* eps,
+    const std::string& instance,
+    const odb::Point& point,
+    const std::string& xmin,
+    const std::string& ymin,
+    const std::string& xmax,
+    const std::string& ymax)
 {
     std::optional<int> opt_xmin = (xmin == "null") ? std::nullopt : std::optional<int>(std::stoi(xmin));
     std::optional<int> opt_ymin = (ymin == "null") ? std::nullopt : std::optional<int>(std::stoi(ymin));
     std::optional<int> opt_xmax = (xmax == "null") ? std::nullopt : std::optional<int>(std::stoi(xmax));
     std::optional<int> opt_ymax = (ymax == "null") ? std::nullopt : std::optional<int>(std::stoi(ymax));
     linden::PlaceRange range(opt_xmin, opt_ymin, opt_xmax, opt_ymax);
-    
+
     return new linden::PlaceIterator(*(eps->_ep), instance, point, range);
 }
 
@@ -369,9 +369,9 @@ const char* eco_placer_next_place(linden::PlaceIterator* pi) {
 }
 // Inserts a cell in place, but does not actually insert the cell into the design.
 void eco_placer_insert_cell(
-    EcoPlacerSwig* eps, 
-    const std::string& master, 
-    const std::string& instance, 
+    EcoPlacerSwig* eps,
+    const std::string& master,
+    const std::string& instance,
     const linden::PointPlace& place)
 {
     eps->_ep->insert_cell(master, instance, place);
@@ -409,10 +409,3 @@ int add_tie_cell_cmd(StrDeque& args) {
 
 %} // add_tie_cell
 
-%inline %{
-
-int linden_placement_addblock_powerstripe(StrDeque& args) {
-    return linden::placement_addblock_powerstripe_gogogo(std::move(args.elems_));
-}
-
-%} // linden_placement_addblock_powerstripe

@@ -6,10 +6,11 @@
 #include <spdlog/spdlog.h>
 #include <string_view>
 #include <cstring>
+#include <charconv>
 
 using namespace std;
 
-namespace linden {
+namespace linden::dp {
 
 namespace {
 
@@ -51,7 +52,7 @@ deque<string> split(const string& raw, const string_view& seps) noexcept {
 }
 
 
-optional<DpConfig> parse_from(std::deque<std::string> args) {
+optional<Config> parse_from(std::deque<std::string> args) {
     const string_view FILLER_LIST_ARG("--filler-list");
     const string_view NOT_TO_STOP_WHEN_ILLEGAL("--not-to-stop-when-illegal");
     const string_view BASELINE("--baseline");
@@ -59,8 +60,9 @@ optional<DpConfig> parse_from(std::deque<std::string> args) {
     const string_view TIMING_DATA("--timing-data");
     const string_view SUPPRESS_OUTPUT("--suppress-output");
     const string_view ROUTING_TOP_LAYER("--routing-top-layer");
+    const string_view EXTRA_PG_SPACING("--extra-pg-spacing");
 
-    DpConfig res;
+    Config res;
     optional<string> filler_list = nullopt;
     optional<string> critical_cells = nullopt;
     Args args_(args);
@@ -114,16 +116,44 @@ optional<DpConfig> parse_from(std::deque<std::string> args) {
         } else if (s == SUPPRESS_OUTPUT) {
             // this is a secret arg. it is just for testing so far.
             res.suppress_output = true;
-        } else if ( s == ROUTING_TOP_LAYER ){
+        } else if (s == ROUTING_TOP_LAYER) {
             auto param = args_.next();
             if (!param) {
                 spdlog::error(
-                    "{} requires a top slayer to tell banyan what layers are routable.",
+                    "{} requires a top layer to tell banyan what layers are routable.",
                     ROUTING_TOP_LAYER
                 );
                 return nullopt;
             }
             res.routing_top_layer = *param;
+        } else if (s == EXTRA_PG_SPACING) {
+            auto layer = args_.next();
+            if (!layer) {
+                spdlog::error("{} requires a layer.", EXTRA_PG_SPACING);
+                return nullopt;
+            }
+            auto spacing_s = args_.next();
+            if (!spacing_s) {
+                spdlog::error("{} requires spacing.", EXTRA_PG_SPACING);
+                return nullopt;
+            }
+            double spacing = 0;
+            auto [ptr, ec] = from_chars(
+                spacing_s->data(), spacing_s->data() + spacing_s->size(),
+                spacing);
+            if (ec != std::errc() || ptr < spacing_s->data() + spacing_s->size()) {
+                spdlog::error(
+                    "{} requires a numeric parameter.",
+                    EXTRA_PG_SPACING);
+                return nullopt;
+            }
+            if (spacing < 0) {
+                spdlog::error(
+                    "The spacing in {} must be nonnegative.",
+                    EXTRA_PG_SPACING);
+                return nullopt;
+            }
+            res.extra_pg_spacing[*layer] = spacing;
         } else {
             spdlog::info("ignore arg: {}", s);
         }
@@ -143,79 +173,61 @@ optional<DpConfig> parse_from(std::deque<std::string> args) {
 
 
 int basic_dp_gogogo(deque<string> args) {
-    auto cfg = parse_from(args);
-    if (cfg) {
+    auto local_cfg = parse_from(args);
+    if (local_cfg) {
         ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
-        return basic_dp(ord, *cfg);
+        auto cfg = *Config::get_default();
+        cfg += *local_cfg;
+        return basic_dp(ord, cfg);
     } else {
         return 50;
     }
 }
 
 int incr_dp_gogogo(deque<string> args) {
-    auto cfg = parse_from(args);
-    if (cfg) {
+    auto local_cfg = parse_from(args);
+    if (local_cfg) {
         ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
-        return incr_dp(ord, *cfg);
+        auto cfg = *Config::get_default();
+        cfg += *local_cfg;
+        return incr_dp(ord, cfg);
     } else {
         return 50;
     }
 }
 
 int rddp_gogogo(deque<string> args) {
-    auto dp_cfg = parse_from(args);
-    if (dp_cfg) {
+    auto local_cfg = parse_from(args);
+    if (local_cfg) {
         ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
-        return rddp(ord, *dp_cfg);
+        auto cfg = *Config::get_default();
+        cfg += *local_cfg;
+        return rddp(ord, cfg);
     } else {
         return 50;
     }
 }
 
 int opt_gogogo(deque<string> args) {
-    auto dp_cfg = parse_from(args);
-    if (dp_cfg) {
+    auto local_cfg = parse_from(args);
+    if (local_cfg) {
         ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
-        return opt(ord, *dp_cfg);
+        auto cfg = *Config::get_default();
+        cfg += *local_cfg;
+        return opt(ord, cfg);
     } else {
         return 50;
     }
 }
 
-int placement_addblock_powerstripe_gogogo(std::deque<std::string> args)
-{   
-    Args args_(args);
-    string layer_name;
-    std::filesystem::path out_def;
-    const string_view LAYER_ARG("--layer");
-    const string_view TO_ARG("--to");
-    for (;;) {
-        auto arg = args_.next();
-        if (!arg) {
-            break;
-        }
-        const auto& s = *arg;
-        if (s == LAYER_ARG) {
-            auto param = args_.next();
-            if (!param) {
-                spdlog::error("--layer needs a layer name");
-                return 50;
-            }
-            layer_name = *param;
-        } else if ( s == TO_ARG) {
-            auto param = args_.next();
-            if (!param) {
-                spdlog::error("--to needs a filepath for output def");
-                return 50;
-            }
-            out_def = std::filesystem::path(*param);
-        } else {
-            spdlog::error("arg: Layer is required");
-            return 50;
-        }
+int default_config_gogogo(std::deque<std::string> args) {
+    auto new_cfg = parse_from(args);
+    if (new_cfg) {
+        *Config::get_default() += *new_cfg;
+        return 0;
+    } else {
+        return 50;
     }
-    ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
-    return placement_addblock_powerstripe(ord, layer_name, out_def);
 }
 
-} // namespace linden
+} // namespace linden::dp

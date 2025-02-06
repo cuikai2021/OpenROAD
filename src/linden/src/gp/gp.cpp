@@ -411,6 +411,13 @@ void linden_global_place(const Config& cfg) noexcept {
                 return true;
             }
 
+            // Target overflow
+            if (ret->overflow < cfg.overflow) {
+                spdlog::info("[nPlace] target overflow.");
+                refresh_locations_from_ldb(*ldb);
+                return true;
+            }
+
             // HPWL Analyze
             hpwl_analyze.push(ret->hpwl, ret->overflow);
             if (hpwl_analyze.repulsion_dominance()) {
