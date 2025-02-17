@@ -34,5 +34,5 @@ docker run -it --rm --privileged --network=host \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/deblais_rddp,dst=/build/bin/deblais_rddp \
   --mount type=bind,src=$workdir/src/linden/gpl/bin/cmap_visualizer,dst=/build/bin/cmap_visualizer \
   --entrypoint /bin/bash \
-  registry.cn-shanghai.aliyuncs.com/icbench-dev/eden_dev:250205-v1-gui \
+  registry.cn-shanghai.aliyuncs.com/icb/eden_dev:20250217T0507Z_0ff7023 \
   -c "cd $workdir; $cmd"
