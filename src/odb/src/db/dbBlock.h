@@ -93,6 +93,7 @@ class _dbModInst;
 class _dbModITerm;
 class _dbModBTerm;
 class _dbModNet;
+class _dbBusPort;
 class _dbGroup;
 class _dbAccessPoint;
 class _dbGlobalConnect;
@@ -100,6 +101,7 @@ class _dbGuide;
 class _dbNetTrack;
 class _dbScanChain;
 
+class _dbMarkerCategory;
 class dbJournal;
 
 class dbNetBTermItr;
@@ -167,6 +169,7 @@ class _dbBlock : public _dbObject
   char* _corner_name_list;
   char* _name;
   Rect _die_area;
+  std::vector<Rect> _blocked_regions_for_pins;
   dbId<_dbTech> _tech;
   dbVector<Point> _die_area_polygon;
   dbVector<Rect> _die_area_blk_bboxes;
@@ -189,9 +192,7 @@ class _dbBlock : public _dbObject
   dbHashTable<_dbLogicPort> _logicport_hash;
   dbHashTable<_dbPowerSwitch> _powerswitch_hash;
   dbHashTable<_dbIsolation> _isolation_hash;
-  dbHashTable<_dbModBTerm> _modbterm_hash;
-  dbHashTable<_dbModITerm> _moditerm_hash;
-  dbHashTable<_dbModNet> _modnet_hash;
+  dbHashTable<_dbMarkerCategory> _marker_category_hash;
 
   dbHashTable<_dbLevelShifter> _levelshifter_hash;
   dbHashTable<_dbGroup> _group_hash;
@@ -204,6 +205,10 @@ class _dbBlock : public _dbObject
   dbVector<dbId<_dbTechLayer>> _component_mask_shift;
   uint _currentCcAdjOrder;
   dbId<_dbDft> _dft;
+  int _min_routing_layer;
+  int _max_routing_layer;
+  int _min_layer_for_clock;
+  int _max_layer_for_clock;
 
   // NON-PERSISTANT-STREAMED-MEMBERS
   dbTable<_dbBTerm>* _bterm_tbl;
@@ -242,6 +247,7 @@ class _dbBlock : public _dbObject
   dbTable<_dbNetTrack>* _net_tracks_tbl;
   _dbNameCache* _name_cache;
   dbTable<_dbDft>* _dft_tbl;
+  dbTable<_dbMarkerCategory>* _marker_categories_tbl;
 
   dbPagedVector<float, 4096, 12>* _r_val_tbl;
   dbPagedVector<float, 4096, 12>* _c_val_tbl;
@@ -250,6 +256,7 @@ class _dbBlock : public _dbObject
   dbTable<_dbModBTerm>* _modbterm_tbl;
   dbTable<_dbModITerm>* _moditerm_tbl;
   dbTable<_dbModNet>* _modnet_tbl;
+  dbTable<_dbBusPort>* _busport_tbl;
 
   dbTable<_dbCapNode>* _cap_node_tbl;
   dbTable<_dbRSeg>* _r_seg_tbl;
@@ -290,6 +297,8 @@ class _dbBlock : public _dbObject
   dbBPinItr* _bpin_itr;
   dbPropertyItr* _prop_itr;
   dbBlockSearch* _searchDb;
+
+  std::map<std::string, int> _module_name_id_map;
 
   unsigned char _num_ext_dbs;
 

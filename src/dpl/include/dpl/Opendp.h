@@ -41,8 +41,6 @@
 
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <functional>
 #include <map>
 #include <memory>
@@ -114,6 +112,10 @@ struct DbuRect;
 
 using dbMasterSeq = vector<dbMaster*>;
 
+using IRDropByPoint = std::map<odb::Point, double>;
+struct GapInfo;
+struct DecapCell;
+struct IRDrop;
 ////////////////////////////////////////////////////////////////
 
 class Opendp
@@ -152,9 +154,21 @@ class Opendp
   void checkPlacement(bool verbose,
                       bool disallow_one_site_gaps = false,
                       const string& report_file_name = "");
-  void fillerPlacement(dbMasterSeq* filler_masters, const char* prefix);
+  void fillerPlacement(dbMasterSeq* filler_masters,
+                       const char* prefix,
+                       bool verbose);
   void removeFillers();
   void optimizeMirroring();
+
+  // Place decap cells
+  void addDecapMaster(dbMaster* decap_master, double decap_cap);
+  void insertDecapCells(double target, IRDropByPoint& psm_ir_drops);
+
+  // Get the instance adjacent to the left or right of a given instance
+  dbInst* getAdjacentInstance(dbInst* inst, bool left) const;
+
+  // Find a cluster of instances that are touching each other
+  std::vector<dbInst*> getAdjacentInstancesCluster(dbInst* inst) const;
 
  private:
   using bgPoint
@@ -170,15 +184,18 @@ class Opendp
   using GapFillers = vector<dbMasterSeq>;
 
   using MasterByImplant = std::map<dbTechLayer*, dbMasterSeq>;
+
+  using YCoordToGap = std::map<DbuY, vector<GapInfo*>>;
+
   friend class OpendpTest_IsPlaced_Test;
   friend class Graphics;
   void findDisplacementStats();
   DbuPt pointOffMacro(const Cell& cell);
   void convertDbToCell(dbInst* db_inst, Cell& cell);
   // Return error count.
-  void processViolationsPtree(boost::property_tree::ptree& entry,
-                              const std::vector<Cell*>& failures,
-                              const std::string& violation_type = "") const;
+  void saveViolations(const std::vector<Cell*>& failures,
+                      odb::dbMarkerCategory* category,
+                      const std::string& violation_type = "") const;
   void importDb();
   void importClear();
   Rect getBbox(dbInst* inst);
@@ -278,14 +295,14 @@ class Opendp
       bool verbose,
       const std::function<void(Cell* cell)>& report_failure) const;
   void reportOverlapFailure(Cell* cell) const;
-  void writeJsonReport(const string& filename,
-                       const vector<Cell*>& placed_failures,
-                       const vector<Cell*>& in_rows_failures,
-                       const vector<Cell*>& overlap_failures,
-                       const vector<Cell*>& one_site_gap_failures,
-                       const vector<Cell*>& site_align_failures,
-                       const vector<Cell*>& region_placement_failures,
-                       const vector<Cell*>& placement_failures);
+  void saveFailures(const vector<Cell*>& placed_failures,
+                    const vector<Cell*>& in_rows_failures,
+                    const vector<Cell*>& overlap_failures,
+                    const vector<Cell*>& one_site_gap_failures,
+                    const vector<Cell*>& site_align_failures,
+                    const vector<Cell*>& region_placement_failures,
+                    const vector<Cell*>& placement_failures);
+  void writeJsonReport(const string& filename);
 
   void rectDist(const Cell* cell,
                 const Rect& rect,
@@ -299,7 +316,6 @@ class Opendp
 
   // Lower left corner in core coordinates.
   DbuPt initialLocation(const Cell* cell, bool padded) const;
-  static bool isBlock(const Cell* cell);
   int disp(const Cell* cell) const;
   // Place fillers
   MasterByImplant splitByImplant(dbMasterSeq* filler_masters);
@@ -308,13 +324,29 @@ class Opendp
                           GridX gap,
                           const MasterByImplant& filler_masters_by_implant);
   void placeRowFillers(GridY row,
-                       const char* prefix,
-                       const MasterByImplant& filler_masters,
-                       DbuY row_height,
-                       const GridInfo& grid_info);
+                       const std::string& prefix,
+                       const MasterByImplant& filler_masters);
+  std::pair<odb::dbSite*, odb::dbOrientType> fillSite(Pixel* pixel);
   static bool isFiller(odb::dbInst* db_inst);
   bool isOneSiteCell(odb::dbMaster* db_master) const;
-  const char* gridInstName(GridY row, GridX col, const GridInfo& grid_info);
+  const char* gridInstName(GridY row, GridX col);
+
+  // Place decaps
+  vector<int> findDecapCellIndices(const DbuX& gap_width,
+                                   const double& current,
+                                   const double& target);
+  void insertDecapInPos(dbMaster* master, const DbuX& pos_x, const DbuY& pos_y);
+  void insertDecapInRow(const vector<GapInfo*>& gaps,
+                        DbuY gap_y,
+                        DbuX irdrop_x,
+                        DbuY irdrop_y,
+                        double& total,
+                        const double& target);
+  void findGaps();
+  void findGapsInRow(GridY row, DbuY row_height);
+  void mapToVectorIRDrops(IRDropByPoint& psm_ir_drops,
+                          std::vector<IRDrop>& ir_drops);
+  void prepareDecapAndGaps();
 
   Logger* logger_ = nullptr;
   dbDatabase* db_ = nullptr;
@@ -333,16 +365,21 @@ class Opendp
   bool disallow_one_site_gaps_ = false;
   vector<Cell*> placement_failures_;
 
-  // 3D pixel grid
+  // 2D pixel grid
   std::unique_ptr<Grid> grid_;
   RtreeBox regions_rtree_;
 
   // Filler placement.
   // gap (in sites) -> seq of masters by implant
   map<dbTechLayer*, GapFillers> gap_fillers_;
-  int filler_count_ = 0;
+  map<dbMaster*, int> filler_count_;
   bool have_fillers_ = false;
   bool have_one_site_cells_ = false;
+
+  // Decap placement.
+  vector<DecapCell*> decap_masters_;
+  int decap_count_ = 0;
+  YCoordToGap gaps_;
 
   // Results saved for optional reporting.
   int64_t hpwl_before_ = 0;
@@ -351,6 +388,7 @@ class Opendp
   int64_t displacement_max_ = 0;
 
   std::unique_ptr<DplObserver> debug_observer_;
+  std::unique_ptr<Cell> dummy_cell_;
 
   // Magic numbers
   static constexpr int bin_search_width_ = 10;

@@ -1,3 +1,6 @@
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+
 configure_file(
     ${PROJECT_SOURCE_DIR}/src/build_info/build_info.cpp.in
     ${CMAKE_BINARY_DIR}/src/build_info/build_info.cpp

@@ -1,4 +1,5 @@
 include("openroad")
+find_package(Octave REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 file(GLOB tcls

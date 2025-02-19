@@ -44,7 +44,11 @@ namespace dpo {
 ////////////////////////////////////////////////////////////////////////////////
 // Forward declarations.
 ////////////////////////////////////////////////////////////////////////////////
+class Architecture;
+class DetailedMgr;
 class DetailedObjective;
+class Network;
+class RoutingParams;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Classes.
@@ -93,7 +97,7 @@ class DetailedRandom
   void collectCandidates();
 
   // Standard stuff.
-  DetailedMgr* mgrPtr_;
+  DetailedMgr* mgrPtr_ = nullptr;
 
   Architecture* arch_;
   Network* network_;
@@ -108,7 +112,7 @@ class DetailedRandom
   std::vector<DetailedObjective*> objectives_;
 
   // Parameters controlling the moves.
-  double movesPerCandidate_;
+  double movesPerCandidate_ = 3;
 
   // For costing.
   std::vector<double> initCost_;

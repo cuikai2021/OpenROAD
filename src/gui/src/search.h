@@ -36,6 +36,7 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <mutex>
+#include <vector>
 
 #include "odb/db.h"
 #include "odb/dbBlockCallBackObj.h"
@@ -44,7 +45,6 @@
 
 namespace gui {
 
-namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
 
 // This is a geometric search structure.  It wraps up Boost's
@@ -63,19 +63,19 @@ class Search : public QObject, public odb::dbBlockCallBackObj
   template <typename T>
   class MinHeightPredicate;
 
+  template <typename T>
+  class PolygonIntersectPredicate;
+
  public:
   template <typename T>
   using LayerMap = std::map<odb::dbTechLayer*, T>;
 
-  using Polygon
-      = bg::model::polygon<odb::Point,
-                           false>;  // counterclockwise(clockwise=false)
   template <typename T>
   using RectValue = std::pair<odb::Rect, T>;
   template <typename T>
   using RouteBoxValue = std::tuple<odb::Rect, bool, T>;
   template <typename T>
-  using SNetValue = std::tuple<odb::dbSBox*, Polygon, T>;
+  using SNetValue = std::tuple<odb::dbSBox*, odb::Polygon, T>;
   template <typename T>
   using SNetDBoxValue = std::pair<odb::dbSBox*, T>;
   ;
@@ -149,7 +149,7 @@ class Search : public QObject, public odb::dbBlockCallBackObj
   using BlockageRange = Range<RtreeDBox<odb::dbBlockage*>>;
   using RowRange = Range<RtreeRect<odb::dbRow*>>;
 
-  ~Search();
+  ~Search() override;
 
   // Build the structure for the given block.
   void setTopBlock(odb::dbBlock* block);
@@ -296,6 +296,17 @@ class Search : public QObject, public odb::dbBlockCallBackObj
 
   struct BlockData
   {
+    RtreeDBox<odb::dbInst*> insts_;
+    RtreeDBox<odb::dbBlockage*> blockages_;
+    RtreeRect<odb::dbRow*> rows_;
+
+    std::mutex shapes_init_mutex_;
+    std::mutex fills_init_mutex_;
+    std::mutex insts_init_mutex_;
+    std::mutex blockages_init_mutex_;
+    std::mutex obstructions_init_mutex_;
+    std::mutex rows_init_mutex_;
+
     // The net is used for filter shapes by net type
     LayerMap<RtreeRoutingShapes<odb::dbNet*>> box_shapes_;
     // Special net vias may be large multi-cut vias.  It is more efficient
@@ -303,23 +314,15 @@ class Search : public QObject, public odb::dbBlockCallBackObj
     // particularly true when you have parallel straps like m1 & m2 in asap7.
     LayerMap<RtreeSNetDBoxShapes<odb::dbNet*>> snet_via_shapes_;
     LayerMap<RtreeSNetShapes<odb::dbNet*>> snet_shapes_;
-    std::atomic_bool shapes_init_{false};
-    std::mutex shapes_init_mutex_;
     LayerMap<RtreeFill> fills_;
-    std::atomic_bool fills_init_{false};
-    std::mutex fills_init_mutex_;
-    RtreeDBox<odb::dbInst*> insts_;
-    std::atomic_bool insts_init_{false};
-    std::mutex insts_init_mutex_;
-    RtreeDBox<odb::dbBlockage*> blockages_;
-    std::atomic_bool blockages_init_{false};
-    std::mutex blockages_init_mutex_;
     LayerMap<RtreeDBox<odb::dbObstruction*>> obstructions_;
+
+    std::atomic_bool shapes_init_{false};
+    std::atomic_bool fills_init_{false};
+    std::atomic_bool insts_init_{false};
+    std::atomic_bool blockages_init_{false};
     std::atomic_bool obstructions_init_{false};
-    std::mutex obstructions_init_mutex_;
-    RtreeRect<odb::dbRow*> rows_;
     std::atomic_bool rows_init_{false};
-    std::mutex rows_init_mutex_;
   };
   std::map<odb::dbBlock*, BlockData> child_block_data_;
   BlockData top_block_data_;

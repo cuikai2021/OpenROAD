@@ -31,6 +31,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include "ClockDomain.hh"
 #include "db_sta/dbSta.hh"
 #include "odb/db.h"
 #include "utl/Logger.h"
@@ -84,7 +85,7 @@ class Dft
   //
   // If verbose is true, then we show all the cells that are inside the scan
   // chains
-  void preview_dft(bool verbose);
+  void previewDft(bool verbose);
 
   // Inserts the scan chains into the design. For now this just replace the
   // cells in the design with scan equivalent. This functions mutates the
@@ -92,11 +93,10 @@ class Dft
   //
   // Here we do:
   //  - Scan Replace
-  //  - Scan Architect
   //
-  // TODO (and not implemented yet)
-  // - scan stitching
-  void insert_dft();
+  void scanReplace();
+
+  void insertDft();
 
   // Returns a mutable version of DftConfig
   DftConfig* getMutableDftConfig();
@@ -116,7 +116,7 @@ class Dft
 
   // Common function to perform scan replace and scan architect. Shared between
   // preview_dft and insert_dft
-  std::vector<std::unique_ptr<ScanChain>> replaceAndArchitect();
+  std::vector<std::unique_ptr<ScanChain>> scanArchitect();
 
   // Global state
   odb::dbDatabase* db_;

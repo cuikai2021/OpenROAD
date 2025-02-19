@@ -44,6 +44,7 @@
 #include <QSplitter>
 #include <QTableView>
 #include <memory>
+#include <vector>
 
 #include "gui/gui.h"
 #include "odb/db.h"
@@ -74,7 +75,7 @@ class TimingWidget : public QDockWidget
   };
 
   TimingWidget(QWidget* parent = nullptr);
-  ~TimingWidget();
+  ~TimingWidget() override;
 
   void init(sta::dbSta* sta);
 
@@ -87,9 +88,8 @@ class TimingWidget : public QDockWidget
   TimingControlsDialog* getSettings() { return settings_; }
 
   void updatePaths();
-#ifdef ENABLE_CHARTS
-  void reportSlackHistogramPaths(const std::set<const sta::Pin*>& report_pins);
-#endif
+  void reportSlackHistogramPaths(const std::set<const sta::Pin*>& report_pins,
+                                 const std::string& path_group_name);
 
  signals:
   void highlightTimingPath(TimingPath* timing_path);
@@ -113,6 +113,8 @@ class TimingWidget : public QDockWidget
                                 const QItemSelection& curr_index);
   void selectedCaptureRowChanged(const QItemSelection& prev_index,
                                  const QItemSelection& curr_index);
+
+  void detailRowDoubleClicked(const QModelIndex& index);
 
   void handleDbChange();
   void setBlock(odb::dbBlock* block);
@@ -139,7 +141,8 @@ class TimingWidget : public QDockWidget
   void addCommandsMenuActions();
   void populateAndSortModels(const std::set<const sta::Pin*>& from,
                              const std::vector<std::set<const sta::Pin*>>& thru,
-                             const std::set<const sta::Pin*>& to);
+                             const std::set<const sta::Pin*>& to,
+                             const std::string& path_group_name);
   void setInitialColumnsVisibility(const QVariant& columns_visibility);
   QVariantList getColumnsVisibility() const;
 

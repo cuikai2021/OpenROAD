@@ -36,26 +36,13 @@
 #include <boost/geometry/index/rtree.hpp>
 #include <map>
 #include <memory>
+#include <set>
 #include <vector>
 
+#include "odb/db.h"
 #include "odb/dbTypes.h"
 #include "odb/geom.h"
 #include "odb/geom_boost.h"
-
-namespace odb {
-class dbBlock;
-class dbBox;
-class dbNet;
-class dbTechLayer;
-class dbViaVia;
-class dbTechVia;
-class dbTechViaGenerateRule;
-class dbTechViaLayerRule;
-class dbRow;
-class dbSWire;
-class dbVia;
-class dbViaParams;
-}  // namespace odb
 
 namespace utl {
 class Logger;
@@ -63,7 +50,6 @@ class Logger;
 
 namespace pdn {
 
-namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
 
 class Shape;
@@ -139,6 +125,10 @@ class Shape
 
   ShapeType shapeType() const { return shape_type_; }
   void setShapeType(ShapeType type) { shape_type_ = type; }
+
+  void setLocked() { is_locked_ = true; }
+  void clearLocked() { is_locked_ = false; }
+  bool isLocked() const { return is_locked_; }
 
   int getLength() const { return rect_.maxDXDY(); }
   int getWidth() const { return rect_.minDXDY(); }
@@ -266,6 +256,7 @@ class Shape
   odb::dbWireShapeType type_;
   ShapeType shape_type_;
   bool allow_non_preferred_change_;
+  bool is_locked_;
 
   odb::Rect obs_;
 

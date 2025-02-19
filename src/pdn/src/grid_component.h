@@ -34,24 +34,12 @@
 
 #include <map>
 #include <set>
+#include <vector>
 
+#include "odb/db.h"
 #include "odb/dbTypes.h"
 #include "odb/geom.h"
 #include "shape.h"
-
-namespace odb {
-class dbBlock;
-class dbBox;
-class dbNet;
-class dbTechLayer;
-class dbViaVia;
-class dbTechVia;
-class dbTechViaGenerateRule;
-class dbTechViaLayerRule;
-class dbSWire;
-class dbVia;
-class dbViaParams;
-}  // namespace odb
 
 namespace utl {
 class Logger;
@@ -129,6 +117,8 @@ class GridComponent
   int getNetCount() const;
   void setNets(const std::vector<odb::dbNet*>& nets);
 
+  virtual bool isAutoInserted() const { return false; }
+
  protected:
   void checkLayerWidth(odb::dbTechLayer* layer,
                        int width,
@@ -138,6 +128,8 @@ class GridComponent
                          int spacing,
                          const odb::dbTechLayerDir& direction) const;
   ShapePtr addShape(Shape* shape);
+
+  virtual bool areIntersectionsAllowed() const { return false; }
 
  private:
   Grid* grid_;

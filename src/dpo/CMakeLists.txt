@@ -43,6 +43,7 @@ target_sources(dpo
     src/Optdp.cpp
     src/MakeOptdp.cpp
     src/architecture.cxx
+    src/color.cxx
     src/network.cxx
     src/router.cxx
     src/utility.cxx
@@ -69,7 +70,7 @@ target_link_libraries(dpo
   PRIVATE
     odb
     OpenSTA
-    utl
+    utl_lib
     dpl_lib
     lemon
 )

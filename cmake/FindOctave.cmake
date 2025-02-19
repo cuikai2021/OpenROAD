@@ -2,7 +2,10 @@ find_file(OCTAVE_HEADER octave/octave.h
     PATHS
         /usr/include/octave-5.2.0/ # distributed by Ubuntu 20.04
         /usr/include/octave-6.4.0/ # distributed by Ubuntu 22.04
+        /usr/include/octave-8.4.0/ # distributed by Ubuntu 24.04
+        /usr/include/octave/
 )
+
 string(REGEX MATCH "[0-9]+[.][0-9]+([.][0-9]+)?" OCTAVE_VERSION ${OCTAVE_HEADER})
 message(STATUS "Octave version: ${OCTAVE_VERSION}")
 

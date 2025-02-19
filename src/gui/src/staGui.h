@@ -80,6 +80,7 @@ class TimingPathsModel : public QAbstractTableModel
     Skew,
     LogicDelay,
     LogicDepth,
+    Fanout,
     Start,
     End
   };
@@ -95,6 +96,7 @@ class TimingPathsModel : public QAbstractTableModel
            {Skew, "Skew"},
            {LogicDelay, "Logic Delay"},
            {LogicDepth, "Logic Depth"},
+           {Fanout, "Fanout"},
            {Start, "Start"},
            {End, "End"}};
     return column_names;
@@ -119,7 +121,8 @@ class TimingPathsModel : public QAbstractTableModel
   void resetModel();
   void populateModel(const std::set<const sta::Pin*>& from,
                      const std::vector<std::set<const sta::Pin*>>& thru,
-                     const std::set<const sta::Pin*>& to);
+                     const std::set<const sta::Pin*>& to,
+                     const std::string& path_group_name);
 
  public slots:
   void sort(int col_index, Qt::SortOrder sort_order) override;
@@ -127,7 +130,8 @@ class TimingPathsModel : public QAbstractTableModel
  private:
   bool populatePaths(const std::set<const sta::Pin*>& from,
                      const std::vector<std::set<const sta::Pin*>>& thru,
-                     const std::set<const sta::Pin*>& to);
+                     const std::set<const sta::Pin*>& to,
+                     const std::string& path_group_name);
 
   STAGuiInterface* sta_;
   bool is_setup_;
@@ -206,9 +210,9 @@ class TimingPathDetailModel : public QAbstractTableModel
   TimingNodeList* nodes_;
 
   // Unicode symbols
-  static constexpr char up_down_arrows_[] = "\u21C5";
-  static constexpr char up_arrow_[] = "\u2191";
-  static constexpr char down_arrow_[] = "\u2193";
+  static constexpr char up_down_arrows_[] = "⇅";
+  static constexpr char up_arrow_[] = "↑";
+  static constexpr char down_arrow_[] = "↓";
   static constexpr int clock_summary_row_ = 1;
 };
 
@@ -221,11 +225,8 @@ class TimingPathRenderer : public gui::Renderer
   void highlightNode(const TimingPathNode* node);
   void clearHighlightNodes();
 
-  virtual void drawObjects(gui::Painter& /* painter */) override;
-  virtual const char* getDisplayControlGroupName() override
-  {
-    return "Timing Path";
-  }
+  void drawObjects(gui::Painter& /* painter */) override;
+  const char* getDisplayControlGroupName() override { return "Timing Path"; }
 
   TimingPath* getPathToRender() { return path_; }
 
@@ -276,7 +277,7 @@ class TimingConeRenderer : public gui::Renderer
   void setBTerm(odb::dbBTerm* term, bool fanin, bool fanout);
   void setPin(const sta::Pin* pin, bool fanin, bool fanout);
 
-  virtual void drawObjects(gui::Painter& painter) override;
+  void drawObjects(gui::Painter& painter) override;
 
  private:
   sta::dbSta* sta_;

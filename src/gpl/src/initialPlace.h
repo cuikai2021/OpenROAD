@@ -58,7 +58,6 @@ class InitialPlaceVars
   int maxFanout;
   float netWeightScale;
   bool debug;
-  bool forceCPU;
 
   InitialPlaceVars();
   void reset();
@@ -73,7 +72,7 @@ class InitialPlace
                std::shared_ptr<PlacerBaseCommon> pbc,
                std::vector<std::shared_ptr<PlacerBase>>& pbVec,
                utl::Logger* logger);
-  void doBicgstabPlace();
+  void doBicgstabPlace(int threads);
 
  private:
   InitialPlaceVars ipVars_;

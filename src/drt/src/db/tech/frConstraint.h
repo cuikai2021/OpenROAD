@@ -33,6 +33,7 @@
 #include <map>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "db/tech/frLookupTbl.h"
 #include "frBaseTypes.h"
@@ -427,6 +428,31 @@ class frMinWidthConstraint : public frConstraint
 
  protected:
   frCoord minWidth;
+};
+
+class frOrthSpacingTableConstraint : public frConstraint
+{
+ public:
+  frOrthSpacingTableConstraint(const std::vector<std::pair<int, int>>& spc_tbl)
+      : spc_tbl_(spc_tbl)
+  {
+  }
+
+  const std::vector<std::pair<int, int>>& getSpacingTable() const
+  {
+    return spc_tbl_;
+  }
+  frConstraintTypeEnum typeId() const override
+  {
+    return frConstraintTypeEnum::frcSpacingTableOrth;
+  }
+  void report(utl::Logger* logger) const override
+  {
+    logger->report("SPACINGTABLE ORTHOGONAL");
+  }
+
+ private:
+  std::vector<std::pair<int, int>> spc_tbl_;
 };
 
 class frLef58SpacingEndOfLineWithinEncloseCutConstraint : public frConstraint
@@ -2228,7 +2254,7 @@ class frLef58EnclosureConstraint : public frConstraint
 {
  public:
   frLef58EnclosureConstraint(odb::dbTechLayerCutEnclosureRule* ruleIn)
-      : db_rule_(ruleIn)
+      : db_rule_(ruleIn), cut_class_idx_(-1)
   {
   }
   void setCutClassIdx(int in) { cut_class_idx_ = in; }
@@ -2247,6 +2273,14 @@ class frLef58EnclosureConstraint : public frConstraint
                && sideOverhang >= db_rule_->getFirstOverhang());
   }
   frCoord getWidth() const { return db_rule_->getMinWidth(); }
+  bool isEol() const
+  {
+    return db_rule_->getType() == odb::dbTechLayerCutEnclosureRule::EOL;
+  }
+  bool isEolOnly() const { return db_rule_->isEolOnly(); }
+  frCoord getFirstOverhang() const { return db_rule_->getFirstOverhang(); }
+  frCoord getSecondOverhang() const { return db_rule_->getSecondOverhang(); }
+  frCoord getEolLength() const { return db_rule_->getEolWidth(); }
   void report(utl::Logger* logger) const override
   {
     logger->report("LEF58_ENCLOSURE");
@@ -2259,6 +2293,60 @@ class frLef58EnclosureConstraint : public frConstraint
  private:
   odb::dbTechLayerCutEnclosureRule* db_rule_;
   int cut_class_idx_;
+};
+
+// LEF58_MAXSPACING rule
+class frLef58MaxSpacingConstraint : public frConstraint
+{
+ public:
+  frLef58MaxSpacingConstraint(odb::dbTechLayerMaxSpacingRule* ruleIn)
+      : db_rule_(ruleIn)
+  {
+  }
+  void setCutClassIdx(int in) { cut_class_idx_ = in; }
+  int getCutClassIdx() const { return cut_class_idx_; }
+  frCoord getMaxSpacing() const { return db_rule_->getMaxSpacing(); }
+  std::string getCutClass() const { return db_rule_->getCutClass(); }
+  bool hasCutClass() const { return db_rule_->hasCutClass(); }
+
+  void report(utl::Logger* logger) const override
+  {
+    logger->report("LEF58_MAXSPACING");
+  }
+  // typeId
+  frConstraintTypeEnum typeId() const override
+  {
+    return frConstraintTypeEnum::frcLef58MaxSpacingConstraint;
+  }
+
+ private:
+  odb::dbTechLayerMaxSpacingRule* db_rule_{nullptr};
+  int cut_class_idx_{-1};
+};
+
+class frLef58WidthTableOrthConstraint : public frConstraint
+{
+ public:
+  frLef58WidthTableOrthConstraint(const frCoord horz_spc,
+                                  const frCoord vert_spc)
+      : horz_spc_(horz_spc), vert_spc_(vert_spc)
+  {
+  }
+  frCoord getHorzSpc() const { return horz_spc_; }
+  frCoord getVertSpc() const { return vert_spc_; }
+  void report(utl::Logger* logger) const override
+  {
+    logger->report("LEF58_WIDTHTABLE ORTH");
+  }
+  // typeId
+  frConstraintTypeEnum typeId() const override
+  {
+    return frConstraintTypeEnum::frcLef58WidthTableOrth;
+  }
+
+ private:
+  frCoord horz_spc_;
+  frCoord vert_spc_;
 };
 
 class frNonDefaultRule

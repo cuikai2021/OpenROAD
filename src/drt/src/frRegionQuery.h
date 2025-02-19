@@ -28,6 +28,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "frBaseTypes.h"
 
 namespace odb {
@@ -50,6 +52,8 @@ class frVia;
 class grBlockObject;
 class grShape;
 class grVia;
+class FlexDR;
+struct RouterConfiguration;
 
 class frRegionQuery
 {
@@ -57,7 +61,9 @@ class frRegionQuery
   template <typename T>
   using Objects = std::vector<rq_box_value_t<T*>>;
 
-  frRegionQuery(frDesign* design, Logger* logger);
+  frRegionQuery(frDesign* design,
+                Logger* logger,
+                RouterConfiguration* router_cfg);
   ~frRegionQuery();
   // getters
   frDesign* getDesign() const;
@@ -137,7 +143,11 @@ class frRegionQuery
  private:
   struct Impl;
   std::unique_ptr<Impl> impl_;
+  bool verbose_;
 
   frRegionQuery();
+  std::vector<std::pair<frBlockObject*, Rect>> getVias(frLayerNum layer_num);
+
+  friend class FlexDR;
 };
 }  // namespace drt

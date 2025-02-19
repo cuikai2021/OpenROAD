@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <limits>
+#include <vector>
 
 #include "../gc/FlexGC.h"
 #include "FlexDR.h"
@@ -90,7 +91,7 @@ void GridGraphDescriptor::highlight(std::any object,
                                     gui::Painter& painter) const
 {
   odb::Rect bbox;
-  getBBox(object, bbox);
+  getBBox(std::move(object), bbox);
   auto x = bbox.xMin();
   auto y = bbox.yMin();
   bbox.init(x - 20, y - 20, x + 20, y + 20);
@@ -183,7 +184,9 @@ gui::Descriptor::Properties GridGraphDescriptor::getProperties(
     costs.push_back(
         {name + " edge length", graph->getEdgeLength(x, y, z, dir)});
     costs.push_back(
-        {name + " total cost", graph->getCosts(x, y, z, dir, layer)});
+        {name + " total cost",
+         graph->getCosts(
+             x, y, z, dir, layer, data.graph->getNDR() != nullptr, false)});
   }
   props.insert(props.end(), costs.begin(), costs.end());
   return props;
@@ -753,13 +756,13 @@ void FlexDRGraphics::endNet(drNet* net)
   net_ = nullptr;
 }
 
-void FlexDRGraphics::startIter(int iter)
+void FlexDRGraphics::startIter(int iter, RouterConfiguration* router_cfg)
 {
   current_iter_ = iter;
   if (iter >= settings_->iter) {
-    if (MAX_THREADS > 1) {
+    if (router_cfg->MAX_THREADS > 1) {
       logger_->info(DRT, 207, "Setting MAX_THREADS=1 for use with the DR GUI.");
-      MAX_THREADS = 1;
+      router_cfg->MAX_THREADS = 1;
     }
 
     status("Start iter: " + std::to_string(iter));

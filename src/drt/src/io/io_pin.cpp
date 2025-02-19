@@ -26,21 +26,23 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <vector>
+
 #include "io.h"
 
 namespace drt {
 
 void io::Parser::instAnalysis()
 {
-  if (VERBOSE > 0) {
+  if (router_cfg_->VERBOSE > 0) {
     logger_->info(DRT, 162, "Library cell analysis.");
   }
   trackOffsetMap_.clear();
   prefTrackPatterns_.clear();
-  for (auto& trackPattern : design_->getTopBlock()->getTrackPatterns()) {
+  for (auto& trackPattern : getBlock()->getTrackPatterns()) {
     auto isVerticalTrack
         = trackPattern->isHorizontal();  // yes = vertical track
-    if (design_->getTech()->getLayer(trackPattern->getLayerNum())->getDir()
+    if (getTech()->getLayer(trackPattern->getLayerNum())->getDir()
         == dbTechLayerDir::HORIZONTAL) {
       if (!isVerticalTrack) {
         prefTrackPatterns_.push_back(trackPattern);
@@ -52,10 +54,10 @@ void io::Parser::instAnalysis()
     }
   }
 
-  int numLayers = design_->getTech()->getLayers().size();
+  int numLayers = getTech()->getLayers().size();
   std::map<frMaster*, std::tuple<frLayerNum, frLayerNum>, frBlockObjectComp>
       masterPinLayerRange;
-  for (auto& uMaster : design_->getMasters()) {
+  for (auto& uMaster : getDesign()->getMasters()) {
     auto master = uMaster.get();
     frLayerNum minLayerNum = numLayers;
     frLayerNum maxLayerNum = 0;
@@ -78,13 +80,13 @@ void io::Parser::instAnalysis()
   }
   // std::cout <<"  master pin layer range done" <<std::endl;
 
-  if (VERBOSE > 0) {
+  if (router_cfg_->VERBOSE > 0) {
     logger_->info(DRT, 163, "Instance analysis.");
   }
 
   std::vector<frCoord> offset;
   int cnt = 0;
-  for (auto& inst : design_->getTopBlock()->getInsts()) {
+  for (auto& inst : getBlock()->getInsts()) {
     Point origin = inst->getOrigin();
     auto orient = inst->getOrient();
     auto [minLayerNum, maxLayerNum] = masterPinLayerRange[inst->getMaster()];
@@ -112,7 +114,7 @@ void io::Parser::instAnalysis()
     }
     trackOffsetMap_[inst->getMaster()][orient][offset].insert(inst.get());
     cnt++;
-    if (VERBOSE > 0) {
+    if (router_cfg_->VERBOSE > 0) {
       if (cnt < 1000000) {
         if (cnt % 100000 == 0) {
           logger_->report("  Complete {} instances.", cnt);
@@ -126,13 +128,12 @@ void io::Parser::instAnalysis()
   }
 
   cnt = 0;
-  frString orientName;
   for (auto& [master, orientMap] : trackOffsetMap_) {
     for (auto& [orient, offsetMap] : orientMap) {
       cnt += offsetMap.size();
     }
   }
-  if (VERBOSE > 0) {
+  if (router_cfg_->VERBOSE > 0) {
     logger_->info(DRT, 164, "Number of unique instances = {}.", cnt);
   }
 }

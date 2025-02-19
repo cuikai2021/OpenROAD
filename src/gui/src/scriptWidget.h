@@ -60,7 +60,7 @@ class ScriptWidget : public QDockWidget
 
  public:
   ScriptWidget(QWidget* parent = nullptr);
-  ~ScriptWidget();
+  ~ScriptWidget() override;
 
   void readSettings(QSettings* settings);
   void writeSettings(QSettings* settings);
@@ -70,7 +70,7 @@ class ScriptWidget : public QDockWidget
   void setupTcl(Tcl_Interp* interp,
                 bool interactive,
                 bool do_init_openroad,
-                const std::function<void(void)>& post_or_init);
+                const std::function<void()>& post_or_init);
 
   void setWidgetFont(const QFont& font);
 
@@ -119,6 +119,8 @@ class ScriptWidget : public QDockWidget
   void setPauserToRunning();
   void resetPauser();
 
+  void flushReportBufferToOutput();
+
  protected:
   // required to ensure input command space it set to correct height
   void resizeEvent(QResizeEvent* event) override;
@@ -126,13 +128,15 @@ class ScriptWidget : public QDockWidget
  private:
   void triggerPauseCountDown(int timeout);
 
-  void addReportToOutput(const QString& text);
+  void startReportTimer();
+  void addMsgToReportBuffer(const QString& text);
   void addLogToOutput(const QString& text, const QColor& color);
 
   QPlainTextEdit* output_;
   TclCmdInputWidget* input_;
   QPushButton* pauser_;
   std::unique_ptr<QTimer> pause_timer_;
+  std::unique_ptr<QTimer> report_timer_;
   bool paused_;
   utl::Logger* logger_;
 
@@ -143,9 +147,16 @@ class ScriptWidget : public QDockWidget
   template <typename Mutex>
   class GuiSink;
   std::shared_ptr<spdlog::sinks::sink> sink_;
+  std::mutex reporting_;
+  QString report_buffer_;
 
   // maximum number of character to display in a log line
   const int max_output_line_length_ = 1000;
+
+  // Interval in ms between every flush of the report buffer to
+  // the output. Testing with many lines of log showed that lower
+  // frequencies don't make much more impact.
+  static constexpr int report_display_interval = 50;
 
   const QColor cmd_msg_ = Qt::black;
   const QColor error_msg_ = Qt::red;

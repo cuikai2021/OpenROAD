@@ -81,11 +81,20 @@ if(${TRIAL_PERIOD_DAYS} STREQUAL OFF)
   set(TRIAL_PERIOD_DAYS 0)
 endif()
 
+# Allow enabling address sanitizer
+#  On Ubuntu22.04 you need to use "sudo sysctl vm.mmap_rnd_bits=28" to
+#  resolve a known fatal
+option(TSAN "Enable Thread Sanitizer" OFF)
+
+# Allow enabling address sanitizer
+option(UBSAN "Enable Undefined Behavior Sanitizer" OFF)
+
 project(OpenROAD VERSION 1
   LANGUAGES CXX
 )
 
 set(OPENROAD_HOME ${PROJECT_SOURCE_DIR})
+set(OPENROAD_SHARE ${CMAKE_INSTALL_PREFIX}/share/openroad)
 
 # Default c++ standard used unless otherwise specified in target_compile_features.
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "the C++ standard to use for this project")
@@ -174,28 +183,29 @@ if(ENABLE_TESTS)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(test)
 
 # After all compiled, look for the respective flags
 target_compile_definitions(eden PRIVATE GPU)
 target_compile_definitions(eden PRIVATE BUILD_PYTHON)
 target_compile_definitions(eden PRIVATE BUILD_GUI)
-target_compile_definitions(eden PRIVATE ENABLE_CHARTS)
 target_compile_definitions(ord PRIVATE GPU)
 target_compile_definitions(ord PRIVATE BUILD_PYTHON)
 target_compile_definitions(ord PRIVATE BUILD_GUI)
-target_compile_definitions(ord PRIVATE ENABLE_CHARTS)
 
 ####################################################################
 
 # Build man pages (Optional)
 
-# Use the processor_count command to get the number of cores
-include(ProcessorCount)
-ProcessorCount(PROCESSOR_COUNT)
-message("Number of processor cores: ${PROCESSOR_COUNT}")
-
 option(BUILD_MAN "Enable building man pages" OFF)
 if(BUILD_MAN)
+  message(STATUS "man is enabled")
+
+  # Use the processor_count command to get the number of cores
+  include(ProcessorCount)
+  ProcessorCount(PROCESSOR_COUNT)
+  message(STATUS "Number of processor cores: ${PROCESSOR_COUNT}")
+
   add_custom_target(
     man_page ALL
     COMMAND make clean && make preprocess && make all -j${PROCESSOR_COUNT}
@@ -203,7 +213,6 @@ if(BUILD_MAN)
   )
 
   # Based on ${CMAKE_INSTALL_PREFIX}, we want to go to ${CMAKE_INSTALL_PREFIX}/share/man
-  set(MANPAGE_DIR ${OPENROAD_HOME}/docs/cat)
-  install(DIRECTORY ${MANPAGE_DIR} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/man)
-
+  install(DIRECTORY ${OPENROAD_HOME}/docs/cat DESTINATION ${OPENROAD_SHARE}/man)
+  install(DIRECTORY ${OPENROAD_HOME}/docs/html DESTINATION ${OPENROAD_SHARE}/man)
 endif()

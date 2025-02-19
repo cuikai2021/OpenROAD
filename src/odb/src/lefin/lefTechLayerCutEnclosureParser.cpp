@@ -27,6 +27,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 #include "boostParser.h"
 #include "lefLayerPropParser.h"
@@ -35,7 +36,8 @@
 
 namespace odb {
 
-lefTechLayerCutEnclosureRuleParser::lefTechLayerCutEnclosureRuleParser(lefin* l)
+lefTechLayerCutEnclosureRuleParser::lefTechLayerCutEnclosureRuleParser(
+    lefinReader* l)
 {
   lefin_ = l;
 }
@@ -112,7 +114,7 @@ bool lefTechLayerCutEnclosureRuleParser::parseSubRule(std::string s,
          >> -lit("EOLONLY")[boost::bind(
              &odb::dbTechLayerCutEnclosureRule::setEolOnly, rule, true)]
          >> -lit("SHORTEDGEONEOL")[boost::bind(
-             &odb::dbTechLayerCutEnclosureRule::setShortEdgeOnly, rule, true)]
+             &odb::dbTechLayerCutEnclosureRule::setShortEdgeOnEol, rule, true)]
          >> double_[boost::bind(
              &lefTechLayerCutEnclosureRuleParser::setInt,
              this,

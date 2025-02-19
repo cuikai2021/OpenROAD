@@ -50,6 +50,7 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 #include <QWidgetAction>
+#include <vector>
 
 #include "colorGenerator.h"
 #include "dbDescriptors.h"
@@ -101,7 +102,10 @@ void ClockTreeRenderer::drawObjects(Painter& painter)
       sta::Net* net = network->net(output_pin);
       odb::dbITerm* iterm;
       odb::dbBTerm* bterm;
-      network->staToDb(output_pin, iterm, bterm);
+      odb::dbModBTerm* modbterm;
+      odb::dbModITerm* moditerm;
+
+      network->staToDb(output_pin, iterm, bterm, moditerm, modbterm);
       descriptor->highlight(
           DbNetDescriptor::NetWithSink{network->staToDb(net), iterm}, painter);
     }
@@ -292,7 +296,6 @@ void ClockNetGraphicsViewItem::addLeafPath(const QPointF& start,
 
   const QPointF mid0(start.x() + x_offset, y_trunk);
   const QPointF control0(start.x(), y_trunk);
-  //  path_.lineTo(control0);
 
   const QPointF mid1(end.x() - x_offset, y_trunk);
   const QPointF control1(end.x(), y_trunk);
@@ -365,19 +368,27 @@ QString ClockNodeGraphicsViewItem::getITermName(odb::dbITerm* term)
   return QString::fromStdString(term->getName());
 }
 
+QString ClockNodeGraphicsViewItem::getITermInstName(odb::dbITerm* term)
+{
+  return QString::fromStdString(term->getInst()->getName());
+}
+
 void ClockNodeGraphicsViewItem::setName(odb::dbITerm* term)
 {
   name_ = getITermName(term);
+  inst_name_ = getITermInstName(term);
 }
 
 void ClockNodeGraphicsViewItem::setName(odb::dbBTerm* term)
 {
   name_ = term->getConstName();
+  inst_name_ = name_;
 }
 
 void ClockNodeGraphicsViewItem::setName(odb::dbInst* inst)
 {
   name_ = inst->getConstName();
+  inst_name_ = name_;
 }
 
 void ClockNodeGraphicsViewItem::addDelayFin(QPainterPath& path,
@@ -806,6 +817,63 @@ void ClockTreeView::fit()
   fitInView(scene_->sceneRect(), Qt::KeepAspectRatio);
 }
 
+ClockNodeGraphicsViewItem* ClockTreeView::getItemFromName(
+    const std::string& name)
+{
+  const auto& item_found = items_.find(name);
+  if (item_found == items_.end()) {
+    return nullptr;
+  }
+  return item_found->second;
+}
+
+std::set<ClockNodeGraphicsViewItem*> ClockTreeView::getNodes(
+    const SelectionSet& selections)
+{
+  std::set<ClockNodeGraphicsViewItem*> nodes;
+  for (const auto& selection : selections) {
+    ClockNodeGraphicsViewItem* item = getItemFromName(selection.getName());
+    if (item != nullptr) {
+      nodes.insert(item);
+    }
+  }
+
+  return nodes;
+}
+
+bool ClockTreeView::changeSelection(const SelectionSet& selections)
+{
+  std::set<ClockNodeGraphicsViewItem*> nodes = getNodes(selections);
+  if (!nodes.empty()) {
+    // remove old selection
+    clearSelection();
+
+    // prevent ClockTreeView to draw until unlock
+    lockRender();
+    for (auto node : nodes) {
+      node->setSelected(true);
+    }
+    unlockRender();
+    selectionChanged();
+    return true;
+  }
+  return false;
+}
+
+void ClockTreeView::fitSelection()
+{
+  QList<QGraphicsItem*> items = scene_->selectedItems();
+  if (items.empty()) {
+    return;
+  }
+
+  QRectF selection_area;
+  for (auto item : items) {
+    selection_area = selection_area.united(item->sceneBoundingRect());
+  }
+  fitInView(selection_area, Qt::KeepAspectRatio);
+}
+
 void ClockTreeView::mouseMoveEvent(QMouseEvent* event)
 {
   if (!rubber_band_.isNull()) {
@@ -949,6 +1017,9 @@ void ClockTreeView::wheelEvent(QWheelEvent* event)
 
 void ClockTreeView::selectionChanged()
 {
+  if (lock_render_) {
+    return;
+  }
   renderer_->resetTree();
 
   for (const auto& sel : scene_->selectedItems()) {
@@ -1129,7 +1200,10 @@ ClockNodeGraphicsViewItem* ClockTreeView::addRootToScene(
 {
   odb::dbITerm* iterm;
   odb::dbBTerm* bterm;
-  network->staToDb(output_pin.pin, iterm, bterm);
+  odb::dbModBTerm* modbterm;
+  odb::dbModITerm* moditerm;
+
+  network->staToDb(output_pin.pin, iterm, bterm, moditerm, modbterm);
 
   ClockNodeGraphicsViewItem* node = nullptr;
   if (iterm != nullptr) {
@@ -1138,10 +1212,10 @@ ClockNodeGraphicsViewItem* ClockTreeView::addRootToScene(
     node = new ClockRootNodeGraphicsViewItem(bterm);
   }
 
-  node->setPos(x, convertDelayToY(output_pin.delay));
-  scene_->addItem(node);
+  QString tooltip;
+  tooltip += "Launch: " + convertDelayToString(output_pin.delay);
 
-  node->setExtraToolTip("Launch: " + convertDelayToString(output_pin.delay));
+  addNode(x, node, tooltip, output_pin.delay);
 
   return node;
 }
@@ -1153,7 +1227,10 @@ ClockNodeGraphicsViewItem* ClockTreeView::addLeafToScene(
 {
   odb::dbITerm* iterm;
   odb::dbBTerm* bterm;
-  network->staToDb(input_pin.pin, iterm, bterm);
+  odb::dbModITerm* moditerm;
+  odb::dbModBTerm* modbterm;
+
+  network->staToDb(input_pin.pin, iterm, bterm, moditerm, modbterm);
 
   // distinguish between registers and macros
   ClockLeafNodeGraphicsViewItem* node;
@@ -1167,12 +1244,13 @@ ClockNodeGraphicsViewItem* ClockTreeView::addLeafToScene(
       sta::LibertyPort* libPort
           = libCell->findLibertyPort(mterm->getConstName());
       if (libPort) {
-        sta::RiseFallMinMax insDelays = libPort->clkTreeDelays();
-        if (insDelays.hasValue()) {
-          ins_delay
-              = (insDelays.value(sta::RiseFall::rise(), sta::MinMax::max())
-                 + insDelays.value(sta::RiseFall::fall(), sta::MinMax::max()))
-                / 2.0;
+        const float rise = libPort->clkTreeDelay(
+            0.0, sta::RiseFall::rise(), sta::MinMax::max());
+        const float fall = libPort->clkTreeDelay(
+            0.0, sta::RiseFall::fall(), sta::MinMax::max());
+
+        if (rise != 0 || fall != 0) {
+          ins_delay = (rise + fall) / 2.0;
         }
       }
     }
@@ -1184,10 +1262,10 @@ ClockNodeGraphicsViewItem* ClockTreeView::addLeafToScene(
   }
   node->scaleSize(leaf_scale_);
 
-  node->setPos({x, convertDelayToY(input_pin.delay)});
-  node->setExtraToolTip("Arrival: "
-                        + convertDelayToString(input_pin.delay + ins_delay));
-  scene_->addItem(node);
+  QString tooltip;
+  tooltip += "Arrival: " + convertDelayToString(input_pin.delay + ins_delay);
+
+  addNode(x, node, tooltip, input_pin.delay);
 
   connect(node->getHighlightAction(), &QAction::triggered, [this, iterm]() {
     emit highlightTo(iterm);
@@ -1214,7 +1292,9 @@ ClockNodeGraphicsViewItem* ClockTreeView::addCellToScene(
   auto convert_pin = [&network](const sta::Pin* pin) -> odb::dbITerm* {
     odb::dbITerm* iterm;
     odb::dbBTerm* bterm;
-    network->staToDb(pin, iterm, bterm);
+    odb::dbModITerm* moditerm;
+    odb::dbModBTerm* modbterm;
+    network->staToDb(pin, iterm, bterm, moditerm, modbterm);
     return iterm;
   };
 
@@ -1259,9 +1339,6 @@ ClockNodeGraphicsViewItem* ClockTreeView::addCellToScene(
     node = gate_node;
   }
 
-  node->setPos({x, convertDelayToY(input_pin.delay)});
-  scene_->addItem(node);
-
   QString tooltip;
   tooltip += "Input: " + ClockNodeGraphicsViewItem::getITermName(input_term);
   tooltip += "\n";
@@ -1270,9 +1347,22 @@ ClockNodeGraphicsViewItem* ClockTreeView::addCellToScene(
   tooltip += "Output: " + ClockNodeGraphicsViewItem::getITermName(output_term);
   tooltip += "\n";
   tooltip += "Output launch: " + convertDelayToString(output_pin.delay);
-  node->setExtraToolTip(tooltip);
+
+  addNode(x, node, tooltip, input_pin.delay);
 
   return node;
+}
+
+void ClockTreeView::addNode(qreal x,
+                            ClockNodeGraphicsViewItem* node,
+                            const QString& tooltip,
+                            sta::Delay delay)
+{
+  node->setPos({x, convertDelayToY(delay)});
+  node->setExtraToolTip(tooltip);
+  scene_->addItem(node);
+
+  items_[node->getInstName().toStdString()] = node;
 }
 
 void ClockTreeView::highlightTo(odb::dbITerm* term)
@@ -1461,6 +1551,25 @@ void ClockWidget::postReadLiberty()
   }
 }
 
+void ClockWidget::selectClock(const std::string& clock_name)
+{
+  setVisible(true);
+
+  if (views_.empty()) {
+    populate(nullptr);
+  }
+
+  for (auto& view : views_) {
+    if (view->getClockName() == clock_name) {
+      clocks_tab_->setCurrentWidget(view.get());
+
+      return;
+    }
+  }
+
+  logger_->error(utl::GUI, 74, "Unable to find clock: {}", clock_name);
+}
+
 void ClockWidget::saveImage(const std::string& clock_name,
                             const std::string& path,
                             const std::string& corner,
@@ -1487,35 +1596,28 @@ void ClockWidget::saveImage(const std::string& clock_name,
     populate(sta_corner);
   }
 
-  bool found = false;
-  for (auto& view : views_) {
-    if (view->getClockName() == clock_name) {
-      found = true;
+  selectClock(clock_name);
 
-      ClockTreeView print_view(
-          view->getClockTree(), stagui_.get(), logger_, this);
-      QSize view_size = view->size();
-      if (width_px.has_value()) {
-        view_size.setWidth(width_px.value());
-      }
-      if (height_px.has_value()) {
-        view_size.setHeight(height_px.value());
-      }
-      print_view.scale(1, 1);  // mysteriously necessary sometimes
-      print_view.resize(view_size);
-      // Ensure the new view is sized correctly by Qt by processing the event
-      // so fit will work
-      QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-      print_view.fit();
-      print_view.save(QString::fromStdString(path));
-    }
+  ClockTreeView* view
+      = static_cast<ClockTreeView*>(clocks_tab_->currentWidget());
+
+  ClockTreeView print_view(view->getClockTree(), stagui_.get(), logger_, this);
+  QSize view_size = view->size();
+  if (width_px.has_value()) {
+    view_size.setWidth(width_px.value());
   }
+  if (height_px.has_value()) {
+    view_size.setHeight(height_px.value());
+  }
+  print_view.scale(1, 1);  // mysteriously necessary sometimes
+  print_view.resize(view_size);
+  // Ensure the new view is sized correctly by Qt by processing the event
+  // so fit will work
+  QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+  print_view.fit();
+  print_view.save(QString::fromStdString(path));
 
   setVisible(visible);
-
-  if (!found) {
-    logger_->error(utl::GUI, 74, "Unable to find clock: {}", clock_name);
-  }
 }
 
 void ClockWidget::currentClockChanged(int index)
@@ -1529,6 +1631,51 @@ void ClockWidget::fit()
 {
   if (!views_.empty() && clocks_tab_->currentIndex() < views_.size()) {
     views_[clocks_tab_->currentIndex()]->fit();
+  }
+}
+
+void ClockWidget::findInCts(const Selected& selection)
+{
+  if (!selection) {
+    return;
+  }
+  findInCts(SelectionSet({
+      selection,
+  }));
+}
+
+void ClockWidget::findInCts(const SelectionSet& selections)
+{
+  if (views_.empty()) {
+    return;
+  }
+  if (selections.empty()) {
+    return;
+  }
+
+  std::set<int> changed_views;
+  std::set<int> not_changed_views;
+
+  for (int i = 0; i < views_.size(); i++) {
+    bool selection_changed = views_[i]->changeSelection(selections);
+
+    if (selection_changed) {
+      views_[i]->fitSelection();
+      changed_views.insert(i);
+    } else {
+      not_changed_views.insert(i);
+    }
+  }
+
+  if (!changed_views.empty()) {
+    if (changed_views.find(clocks_tab_->currentIndex())
+        == changed_views.end()) {
+      // change the current view
+      clocks_tab_->setCurrentIndex(*(changed_views.begin()));
+    }
+    for (int i : not_changed_views) {
+      views_[i]->clearSelection();
+    }
   }
 }
 

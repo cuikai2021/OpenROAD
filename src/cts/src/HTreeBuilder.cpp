@@ -40,6 +40,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <vector>
 
 #include "Clustering.h"
 #include "SinkClustering.h"
@@ -957,7 +958,7 @@ void HTreeBuilder::legalizeDummy()
           = (levelIdx == 0)
                 ? topLevelBufferLoc
                 : topologyForEachLevel_[levelIdx - 1].getBranchingPoint(
-                    parentIdx);
+                      parentIdx);
 
       const std::vector<Point<double>>& sinks
           = topology.getBranchSinksLocations(idx);
@@ -1042,7 +1043,7 @@ void HTreeBuilder::legalize()
           = (levelIdx == 0)
                 ? newTopBufferLoc
                 : topologyForEachLevel_[levelIdx - 1].getBranchingPoint(
-                    parentIdx);
+                      parentIdx);
 
       const std::vector<Point<double>>& sinks
           = topology.getBranchSinksLocations(bufferIdx);
@@ -1175,7 +1176,8 @@ void HTreeBuilder::run()
       logger_->info(CTS,
                     32,
                     " Stop criterion found. Max number of sinks is {}.",
-                    numMaxLeafSinks_);
+                    options_->getMaxFanout() ? options_->getMaxFanout()
+                                             : numMaxLeafSinks_);
       break;
     }
   }
@@ -1209,6 +1211,14 @@ void HTreeBuilder::run()
   // clang-format on
 }
 
+bool HTreeBuilder::isNumberOfSinksTooSmall(unsigned numSinksPerSubRegion) const
+{
+  if (options_->getMaxFanout()) {
+    return numSinksPerSubRegion < options_->getMaxFanout();
+  }
+  return numSinksPerSubRegion < numMaxLeafSinks_;
+}
+
 std::string HTreeBuilder::plotHTree()
 {
   auto name = std::string("cts.") + clock_.getName() + ".buffer";
@@ -1229,7 +1239,7 @@ std::string HTreeBuilder::plotHTree()
               = (levelIdx == 0)
                     ? topLevelBufferLoc
                     : topologyForEachLevel_[levelIdx - 1].getBranchingPoint(
-                        parentIdx);
+                          parentIdx);
 
           const std::vector<Point<double>>& sinks
               = topology.getBranchSinksLocations(idx);
@@ -1697,7 +1707,9 @@ void HTreeBuilder::refineBranchingPointsWithClustering(
   means.emplace_back(branchPt2.getX(), branchPt2.getY());
 
   const unsigned cap
-      = (unsigned) (sinks.size() * options_->getClusteringCapacity());
+      = options_->getMaxFanout()
+            ? (unsigned) (sinks.size() * 0.5)
+            : (unsigned) (sinks.size() * options_->getClusteringCapacity());
   clusteringEngine.iterKmeans(
       1, means.size(), cap, 5, options_->getClusteringPower(), means);
 
@@ -1776,6 +1788,11 @@ void HTreeBuilder::createClockSubNets()
   bool isFirstPoint = true;
   topLevelTopology.forEachBranchingPoint([&](unsigned idx,
                                              Point<double> branchPoint) {
+    // If the branch point has no sinks that will be connected to
+    // it don't create a clock sub net for it
+    if (topLevelTopology.getBranchSinksLocations(idx).empty()) {
+      return;
+    }
     Point<double> legalBranchPoint
         = legalizeOneBuffer(branchPoint, options_->getRootBuffer());
     commitMoveLoc(branchPoint, legalBranchPoint);
@@ -1824,6 +1841,11 @@ void HTreeBuilder::createClockSubNets()
     isFirstPoint = true;
     topology.forEachBranchingPoint([&](unsigned idx,
                                        Point<double> branchPoint) {
+      // If the branch point has no sinks that will be connected
+      // to it don't create a clock sub net for it
+      if (topology.getBranchSinksLocations(idx).empty()) {
+        return;
+      }
       unsigned parentIdx = topology.getBranchingPointParentIdx(idx);
       LevelTopology& parentTopology = topologyForEachLevel_[levelIdx - 1];
       Point<double> parentPoint = parentTopology.getBranchingPoint(parentIdx);
@@ -1880,6 +1902,12 @@ void HTreeBuilder::createClockSubNets()
   leafTopology.forEachBranchingPoint(
       [&](unsigned idx, Point<double> branchPoint) {
         ClockSubNet* subNet = leafTopology.getBranchDrivingSubNet(idx);
+        // If no clock sub net was created for a leaf branch point no sinks
+        // connect to it, so just skip.
+        if (subNet == nullptr) {
+          return;
+        }
+
         subNet->setLeafLevel(true);
 
         const std::vector<Point<double>>& sinkLocs
@@ -1927,8 +1955,7 @@ void HTreeBuilder::createSingleBufferClockNet()
 
 void HTreeBuilder::plotSolution()
 {
-  static int cnt = 0;
-  auto name = std::string("plot") + std::to_string(cnt++) + ".py";
+  auto name = std::string("plot_") + clock_.getName() + ".py";
   std::ofstream file(name);
   file << "import numpy as np\n";
   file << "import matplotlib.pyplot as plt\n";
@@ -2002,7 +2029,7 @@ void HTreeBuilder::printHTree()
           = (levelIdx == 0)
                 ? topLevelBufferLoc
                 : topologyForEachLevel_[levelIdx - 1].getBranchingPoint(
-                    parentIdx);
+                      parentIdx);
 
       const std::vector<Point<double>>& sinks
           = topology.getBranchSinksLocations(idx);

@@ -4,11 +4,13 @@
 #include "lefLayerPropParser.h"
 #include "odb/lefin.h"
 
+using namespace odb;
+
 namespace lefTechLayerSpacingNotchLength {
 
 static void memberParser1(void (odb::dbTechLayerSpacingNotchLengthRule::*setter)(int),
                           odb::dbTechLayerSpacingNotchLengthRule* sc,
-                          odb::lefin* l,
+                          odb::lefinReader* l,
 				          double value)
 {
   (sc->*setter)(l->dbdist(value));
@@ -16,7 +18,7 @@ static void memberParser1(void (odb::dbTechLayerSpacingNotchLengthRule::*setter)
 
 static void memberParser2(void (odb::dbTechLayerSpacingNotchLengthRule::*setter)(int, int),
                           odb::dbTechLayerSpacingNotchLengthRule* sc,
-                          odb::lefin* l,
+                          odb::lefinReader* l,
 						  const boost::fusion::vector<double, double> params)
 {
   (sc->*setter)(l->dbdist(at_c<0>(params)), l->dbdist(at_c<1>(params)));
@@ -29,7 +31,7 @@ static void memberParser2(void (odb::dbTechLayerSpacingNotchLengthRule::*setter)
 
 template <typename Iterator>
 bool parse(Iterator first, Iterator last,
-		   odb::dbTechLayer* layer, odb::lefin* l)
+		   odb::dbTechLayer* layer, odb::lefinReader* l)
 {
   typedef odb::dbTechLayerSpacingNotchLengthRule TRule;
   TRule* sc = TRule::create(layer);
@@ -60,7 +62,7 @@ namespace odb {
 
 void lefTechLayerSpacingNotchLengthParser::parse(std::string s,
 		                                         dbTechLayer* layer,
-												 odb::lefin* l)
+												 odb::lefinReader* l)
 {
   std::vector<std::string> rules;
   boost::split(rules, s, boost::is_any_of(";"));

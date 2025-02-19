@@ -31,9 +31,9 @@ clust01
 #clust02
 )
 
-foreach(TEST_NAME IN LISTS TEST_NAMES)
-  or_integration_test("gpl" ${TEST_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/regression)
-endforeach()
+# Skipped
+#gpl_man_tcl_check
+#gpl_readme_msgs_check
 
 add_executable(fft_test fft_test.cc)
 
@@ -43,8 +43,8 @@ target_include_directories(fft_test
 )
 
 target_link_libraries(fft_test
-  gtest
-  gtest_main
+  GTest::gtest
+  GTest::gtest_main
   spdlog::spdlog
 )
 

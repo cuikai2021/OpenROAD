@@ -37,6 +37,7 @@
 
 #include <map>
 #include <set>
+#include <vector>
 
 #include "connect.h"
 #include "domain.h"
@@ -56,14 +57,6 @@
 namespace pdn {
 
 using utl::Logger;
-
-using odb::dbBlock;
-using odb::dbInst;
-using odb::dbMaster;
-using odb::dbMTerm;
-using odb::dbNet;
-
-using utl::PDN;
 
 PdnGen::PdnGen() : db_(nullptr), logger_(nullptr)
 {
@@ -794,18 +787,22 @@ void PdnGen::writeToDb(bool add_pins, const std::string& report_file) const
     }
   }
 
-  if (!report_file.empty()) {
-    std::ofstream file(report_file);
-    if (!file) {
-      logger_->warn(
-          utl::PDN, 228, "Unable to open \"{}\" to write.", report_file);
-      return;
-    }
+  // remove stale results
+  odb::dbMarkerCategory* category = block->findMarkerCategory("PDN");
+  if (category != nullptr) {
+    odb::dbMarkerCategory::destroy(category);
+  }
 
-    for (auto* grid : getGrids()) {
-      for (const auto& connect : grid->getConnect()) {
-        connect->writeFailedVias(file);
-      }
+  for (auto* grid : getGrids()) {
+    for (const auto& connect : grid->getConnect()) {
+      connect->recordFailedVias();
+    }
+  }
+
+  if (!report_file.empty()) {
+    odb::dbMarkerCategory* category = block->findMarkerCategory("PDN");
+    if (category != nullptr) {
+      category->writeTR(report_file);
     }
   }
 }

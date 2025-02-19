@@ -32,9 +32,9 @@
 
 #pragma once
 
-#include <limits.h>
-
+#include <climits>
 #include <cstdio>
+#include <fstream>
 
 #include "utl/Logger.h"
 
@@ -63,6 +63,34 @@ class ScopedTemporaryFile
   Logger* logger_;
   char path_[PATH_MAX] = {0};
   int fd_ = -1;
+  FILE* file_;
+};
+
+class StreamHandler
+{
+ public:
+  // Set binary to true to open in binary mode
+  StreamHandler(const char* filename, bool binary = false);
+  ~StreamHandler();
+  std::ofstream& getStream();
+
+ private:
+  std::string filename_;
+  std::string tmp_filename_;
+  std::ofstream os_;
+};
+
+class FileHandler
+{
+ public:
+  // Set binary to true to open in binary mode
+  FileHandler(const char* filename, bool binary = false);
+  ~FileHandler();
+  FILE* getFile();
+
+ private:
+  std::string filename_;
+  std::string tmp_filename_;
   FILE* file_;
 };
 

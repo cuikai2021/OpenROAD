@@ -110,9 +110,13 @@ After the `global_route` command has been called, the global routing topology
 and layers can be used to estimate parasitics  with the `-global_routing`
 flag.
 
+The optional argument `-spef_file` can be used to write the estimated parasitics using 
+Standard Parasitic Exchange Format.
+
 ```tcl
 estimate_parasitics
     -placement|-global_routing
+    [-spef_file spef_file]
 ```
 
 #### Options
@@ -120,6 +124,7 @@ estimate_parasitics
 | Switch Name | Description |
 | ----- | ----- |
 | `-placement` or `-global_routing` | Either of these flags must be set. Parasitics are estimated based after placement stage versus after global routing stage. |
+| `-spef_file` | Optional. File name to write SPEF files. If more than one corner is available for the design, the files will be written as filename_corner.spef. |
 
 ### Set Don't Use
 
@@ -140,6 +145,22 @@ The `unset_dont_use` command reverses the `set_dont_use` command.
 unset_dont_use lib_cells
 ```
 
+### Reset Don't Use
+
+The `reset_dont_use` restores the default dont use list.
+
+```tcl
+reset_dont_use
+```
+
+### Report Don't Use
+
+The `report_dont_use` reports all the cells that are marked as dont use.
+
+```tcl
+report_dont_use
+```
+
 ### Set Don't Touch
 
 The `set_dont_touch` command prevents the resizer commands from
@@ -155,6 +176,14 @@ The `unset_dont_touch` command reverse the `set_dont_touch` command.
 
 ```tcl
 unset_dont_touch instances_nets
+```
+
+### Report Don't Touch
+
+The `report_dont_touch` reports all the instances and nets that are marked as dont touch.
+
+```tcl
+report_dont_touch
 ```
 
 ### Buffer Ports
@@ -184,10 +213,15 @@ buffer_ports
 
 Use the `remove_buffers` command to remove buffers inserted by synthesis. This
 step is recommended before using `repair_design` so that there is more flexibility
-in buffering nets. 
+in buffering nets.  If buffer instances are specified, only specified buffer instances
+will be removed regardless of dont-touch or fixed cell.  Direct input port to output port
+feedthrough buffers will not be removed.
+If no buffer instances are specified, all buffers will be removed except those that are associated with
+dont-touch, fixed cell or direct input port to output port feedthrough buffering.
 
 ```tcl
 remove_buffers
+    [ instances ]
 ```
 
 ### Balance Row Usage
@@ -214,6 +248,8 @@ repair_design
     [-slew_margin slew_margin]
     [-cap_margin cap_margin]
     [-max_utilization util]
+    [-buffer_gain gain_ratio]
+    [-match_cell_footprint]
     [-verbose]
 ```
 
@@ -225,6 +261,8 @@ repair_design
 | `-slew_margin` | Add a slew margin. The default value is `0`, the allowed values are integers `[0, 100]`. |
 | `-cap_margin` | Add a capactitance margin. The default value is `0`, the allowed values are integers `[0, 100]`. |
 | `-max_utilization` | Defines the percentage of core area used. |
+| `-buffer_gain` | Enables gain-based buffering with the given gain value. |
+| `-match_cell_footprint` | Obey the Liberty cell footprint when swapping gates. |
 | `-verbose` | Enable verbose logging on progress of the repair. |
 
 ### Repair Tie Fanout
@@ -270,10 +308,14 @@ repair_timing
     [-allow_setup_violations]
     [-skip_pin_swap]
     [-skip_gate_cloning]
+    [-skip_buffering]
+    [-skip_buffer_removal]
+    [-skip_last_gasp]
     [-repair_tns tns_end_percent]
     [-max_passes passes]
     [-max_utilization util]
     [-max_buffer_percent buffer_percent]
+    [-match_cell_footprint]
     [-verbose]
 ```
 
@@ -287,11 +329,15 @@ repair_timing
 | `-setup_margin` | Add additional setup slack margin. |
 | `-hold_margin` | Add additional hold slack margin. |
 | `-allow_setup_violations` | While repairing hold violations, buffers are not inserted that will cause setup violations unless `-allow_setup_violations` is specified. |
-| `-skip_pin_swap` | Flag to skip pin swap. The default value is `False`, and the allowed values are bools. |
-| `-skip_gate_cloning` | Flag to skip gate cloning. The default value is `False`, and the allowed values are bools. |
-| `-repair_tns` | Percentage of violating endpoints to repair (0-100). When `tns_end_percent` is zero (the default), only the worst endpoint is repaired. When `tns_end_percent` is 100, all violating endpoints are repaired. |
+| `-skip_pin_swap` | Flag to skip pin swap. The default is to perform pin swap transform during setup fixing. |
+| `-skip_gate_cloning` | Flag to skip gate cloning. The default is to perform gate cloning transform during setup fixing. |
+| `-skip_buffering` | Flag to skip rebuffering and load splitting. The default is to perform rebuffering and load splitting transforms during setup fixing. |
+| `-skip_buffer_removal` | Flag to skip buffer removal.  The default is to perform buffer removal transform during setup fixing. |
+| `-skip_last_gasp` | Flag to skip final ("last gasp") optimizations.  The default is to perform greedy sizing at the end of optimization. |
+| `-repair_tns` | Percentage of violating endpoints to repair (0-100). When `tns_end_percent` is zero, only the worst endpoint is repaired. When `tns_end_percent` is 100 (default), all violating endpoints are repaired. |
 | `-max_utilization` | Defines the percentage of core area used. |
 | `-max_buffer_percent` | Specify a maximum number of buffers to insert to repair hold violations as a percentage of the number of instances in the design. The default value is `20`, and the allowed values are integers `[0, 100]`. |
+| `-match_cell_footprint` | Obey the Liberty cell footprint when swapping gates. |
 | `-verbose` | Enable verbose logging of the repair progress. |
 
 Use`-recover_power` to specify the percent of paths with positive slack which
@@ -340,11 +386,19 @@ report_design_area
 
 ### Report Floating Nets
 
-The `report_floating_nets` command reports nets with only one pin connection.
+The `report_floating_nets` command reports nets with connected loads but no connected drivers.
 
 ```tcl
 report_floating_nets 
     [-verbose]
+```
+
+### Eliminate Dead Logic
+
+The `eliminate_dead_logic` command eliminates dead logic, i.e. it removes standard cell instances which can be removed without affecting the function of the design.
+
+```tcl
+eliminate_dead_logic
 ```
 
 #### Options

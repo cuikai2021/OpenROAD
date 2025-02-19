@@ -32,6 +32,8 @@
 
 #include "dbTech.h"
 
+#include <vector>
+
 #include "dbBox.h"
 #include "dbBoxItr.h"
 #include "dbDatabase.h"
@@ -401,7 +403,7 @@ _dbTech::_dbTech(_dbDatabase* db)
 
   _layer_itr = new dbTechLayerItr(_layer_tbl);
 
-  _box_itr = new dbBoxItr(_box_tbl);
+  _box_itr = new dbBoxItr(_box_tbl, nullptr, false);
 
   _prop_itr = new dbPropertyItr(_prop_tbl);
 }
@@ -459,7 +461,7 @@ _dbTech::_dbTech(_dbDatabase* db, const _dbTech& t)
 
   _layer_itr = new dbTechLayerItr(_layer_tbl);
 
-  _box_itr = new dbBoxItr(_box_tbl);
+  _box_itr = new dbBoxItr(_box_tbl, nullptr, false);
 
   _prop_itr = new dbPropertyItr(_prop_tbl);
 }

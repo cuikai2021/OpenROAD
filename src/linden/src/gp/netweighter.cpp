@@ -4,7 +4,7 @@
 
 #include <utility>
 
-#include "../../rsz/src/RepairDesign.hh"
+#include "../../../rsz/src/RepairDesign.hh"
 #include "linden/db/db.hpp"
 #include "lrl/CircuitModifier/STANetwork.hh"
 #include "lrl/Laurel.hh"
@@ -35,6 +35,7 @@ constexpr double TAIL_RANKING_OFFEST = 0.20;
 
 struct DrvFixerRsz : public rsz::Resizer
 {
+    // Ref: rsz::Resizer::findResizeSlacks
     void fix()
     {
         rsz::Resizer::journalBegin();
@@ -44,16 +45,28 @@ struct DrvFixerRsz : public rsz::Resizer
         int cap_violations = 0;
         int fanout_violations = 0;
         int length_violations = 0;
-        repair_design_->repairDesign(max_wire_length_, 0.0, 0.0, false, repaired_net_count, slew_violations, cap_violations, fanout_violations, length_violations);
+        repair_design_->repairDesign(
+            max_wire_length_,
+            0.0,
+            0.0,
+            0.0,
+            false,
+            repaired_net_count,
+            slew_violations,
+            cap_violations,
+            fanout_violations,
+            length_violations);
     }
     void revert()
     {
-        rsz::Resizer::journalRestore(resize_count_, inserted_buffer_count_, cloned_gate_count_);
+        rsz::Resizer::journalRestore(
+            resize_count_,
+            inserted_buffer_count_,
+            cloned_gate_count_,
+            swap_pin_count_,
+            removed_buffer_count_);
     }
-    sta::Vector<sta::Vertex*> LDV()
-    {
-        return level_drvr_vertices_;
-    }
+    sta::Vector<sta::Vertex*> LDV() { return level_drvr_vertices_; }
 };
 
 } // namespace
@@ -66,7 +79,8 @@ int update_weights(db::Database& ldb) noexcept
     auto nw = gba.network();
 
     sta::Network* network = nw->network();
-    DrvFixerRsz* rsz_fixer = reinterpret_cast<DrvFixerRsz*>(ord::OpenRoad::openRoad()->getResizer());
+    DrvFixerRsz* rsz_fixer =
+        reinterpret_cast<DrvFixerRsz*>(ord::OpenRoad::openRoad()->getResizer());
     ///////////////////////       DRV       ///////////////////////
     rsz_fixer->fix();
 
@@ -76,10 +90,10 @@ int update_weights(db::Database& ldb) noexcept
     for (int i = rsz_fixer->LDV().size() - 1; i >= 0; i--) {
         sta::Vertex* drvr = rsz_fixer->LDV()[i];
         sta::Pin* drvr_pin = drvr->pin();
-        sta::Net* net = network->isTopLevelPort(drvr_pin)
-            ? network->net(network->term(drvr_pin))
-            : network->net(drvr_pin);
-        if (net && !drvr->isConstant() && !nw->getDbNetwork()->isSpecial(net) && !nw->isClock(drvr_pin)) {
+        sta::Net* net = network->isTopLevelPort(drvr_pin) ? network->net(network->term(drvr_pin))
+                                                          : network->net(drvr_pin);
+        if (net && !drvr->isConstant() && !nw->getDbNetwork()->isSpecial(net)
+            && !nw->isClock(drvr_pin)) {
             net_slack.emplace(net, nw->vertexSlack(drvr, sta::MinMax::max()));
             nets.emplace_back(net);
         }
@@ -87,12 +101,9 @@ int update_weights(db::Database& ldb) noexcept
 
     spdlog::debug("[gpl/Netw] nets size : {}", nets.size());
     spdlog::debug("[gpl/Netw] net_slack size: {}", net_slack.size());
-    std::sort(
-        nets.begin(),
-        nets.end(),
-        [&net_slack](const sta::Net* n1, const sta::Net* n2) {
-            return net_slack.at(n1) < net_slack.at(n2);
-        });
+    std::sort(nets.begin(), nets.end(), [&net_slack](const sta::Net* n1, const sta::Net* n2) {
+        return net_slack.at(n1) < net_slack.at(n2);
+    });
     ///////////////////////      Revert     ///////////////////////
     rsz_fixer->revert();
 
@@ -103,16 +114,15 @@ int update_weights(db::Database& ldb) noexcept
     spdlog::info("[gpl/Netw] slack_worst: {:.9f} ns", net_slack.find(nets.front())->second * 1e9);
 
     // head
-    const auto nets_head_iter = nets.begin()
-        + static_cast<size_t>(nets_size * HEAD_NETS_PERCENT);
+    const auto nets_head_iter = nets.begin() + static_cast<size_t>(nets_size * HEAD_NETS_PERCENT);
     const sta::Slack slack_head = net_slack.find(*nets_head_iter)->second;
     const size_t head_nets_size = static_cast<size_t>(nets_head_iter - nets.begin());
     spdlog::debug("[gpl/Netw] head_nets_size = {}", head_nets_size);
     spdlog::debug("[gpl/Netw] slack_head: {:.9f} ns", slack_head * 1e9);
 
     // tail
-    const auto nets_tail_iter = nets.begin()
-        + static_cast<size_t>(nets_size * (1.0 - TAIL_NETS_PERCENT));
+    const auto nets_tail_iter =
+        nets.begin() + static_cast<size_t>(nets_size * (1.0 - TAIL_NETS_PERCENT));
     const sta::Slack slack_tail = net_slack.at(*nets_tail_iter);
     const size_t tail_nets_size = static_cast<size_t>(nets.end() - nets_tail_iter);
     spdlog::debug("[gpl/Netw] tail_nets_size = {}", tail_nets_size);
@@ -135,9 +145,13 @@ int update_weights(db::Database& ldb) noexcept
         auto slack = net_slack.find(net)->second;
 
         if (sta::fuzzyGreaterEqual(slack, slack_tail)) {
-            size_t rank = std::lower_bound(nets_tail_iter, nets.end(), net, [&net_slack](const sta::Net* n1, const sta::Net* n2) {
-                              return net_slack.at(n1) < net_slack.at(n2);
-                          })
+            size_t rank = std::lower_bound(
+                              nets_tail_iter,
+                              nets.end(),
+                              net,
+                              [&net_slack](const sta::Net* n1, const sta::Net* n2) {
+                                  return net_slack.at(n1) < net_slack.at(n2);
+                              })
                 - nets_tail_iter;
             const double ranking = (tail_nets_size - rank) * 1.0 / tail_nets_size;
             weight = ranking * TAIL_RANKING_RATIO + TAIL_RANKING_OFFEST;
@@ -148,9 +162,13 @@ int update_weights(db::Database& ldb) noexcept
             weight = 1.0;
             slack_cent_net_cnt++;
         } else {
-            size_t rank = std::lower_bound(nets.begin(), nets_head_iter, net, [&net_slack](const sta::Net* n1, const sta::Net* n2) {
-                              return net_slack.at(n1) < net_slack.at(n2);
-                          })
+            size_t rank = std::lower_bound(
+                              nets.begin(),
+                              nets_head_iter,
+                              net,
+                              [&net_slack](const sta::Net* n1, const sta::Net* n2) {
+                                  return net_slack.at(n1) < net_slack.at(n2);
+                              })
                 - nets.begin();
             const double ranking = (head_nets_size - rank) * 1.0 / head_nets_size;
             weight = ranking * HEAD_RANKING_RATIO + HEAD_RANKING_OFFEST;
@@ -160,9 +178,13 @@ int update_weights(db::Database& ldb) noexcept
         }
 
         const double nets_ranking = (nets_size
-                                     - (std::lower_bound(nets.begin(), nets.end(), net, [&net_slack](const sta::Net* n1, const sta::Net* n2) {
-                                            return net_slack.at(n1) < net_slack.at(n2);
-                                        })
+                                     - (std::lower_bound(
+                                            nets.begin(),
+                                            nets.end(),
+                                            net,
+                                            [&net_slack](const sta::Net* n1, const sta::Net* n2) {
+                                                return net_slack.at(n1) < net_slack.at(n2);
+                                            })
                                         - nets.begin()))
             * 1.0 / nets_size;
         return weight + (weight * aggressive_ratio * nets_ranking);

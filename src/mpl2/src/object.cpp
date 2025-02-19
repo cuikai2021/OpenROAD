@@ -35,9 +35,8 @@
 
 #include "object.h"
 
-#include <iostream>
+#include <vector>
 
-#include "odb/db.h"
 #include "utl/Logger.h"
 
 namespace mpl2 {
@@ -45,17 +44,6 @@ using utl::MPL;
 
 ///////////////////////////////////////////////////////////////////////
 // Basic utility functions
-
-// conversion between dbu and microns
-float dbuToMicron(int metric, float dbu)
-{
-  return metric / dbu;
-}
-
-int micronToDbu(float metric, float dbu)
-{
-  return std::round(metric * dbu);
-}
 
 std::string toString(const Boundary& pin_access)
 {
@@ -152,6 +140,11 @@ float Metrics::getArea() const
   return std_cell_area_ + macro_area_;
 }
 
+bool Metrics::empty() const
+{
+  return num_macro_ == 0 && num_std_cell_ == 0;
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Cluster Class
 // Constructors and Destructors
@@ -211,6 +204,15 @@ void Cluster::addLeafStdCell(odb::dbInst* leaf_std_cell)
 void Cluster::addLeafMacro(odb::dbInst* leaf_macro)
 {
   leaf_macros_.push_back(leaf_macro);
+}
+
+void Cluster::addLeafInst(odb::dbInst* inst)
+{
+  if (inst->isBlock()) {
+    addLeafMacro(inst);
+  } else {
+    addLeafStdCell(inst);
+  }
 }
 
 void Cluster::specifyHardMacros(std::vector<HardMacro*>& hard_macros)
@@ -351,6 +353,18 @@ bool Cluster::isArrayOfInterconnectedMacros() const
   return is_array_of_interconnected_macros;
 }
 
+bool Cluster::isEmpty() const
+{
+  return getLeafStdCells().empty() && getLeafMacros().empty()
+         && getDbModules().empty();
+}
+
+bool Cluster::correspondsToLogicalModule() const
+{
+  return getLeafStdCells().empty() && getLeafMacros().empty()
+         && (getDbModules().size() == 1);
+}
+
 // Metrics Support and Statistics
 void Cluster::setMetrics(const Metrics& metrics)
 {
@@ -461,30 +475,49 @@ const std::pair<float, float> Cluster::getLocation() const
   return soft_macro_->getLocation();
 }
 
+Rect Cluster::getBBox() const
+{
+  return soft_macro_->getBBox();
+}
+
 // Hierarchy Support
 void Cluster::setParent(Cluster* parent)
 {
   parent_ = parent;
 }
 
-void Cluster::addChild(Cluster* child)
+void Cluster::addChild(std::unique_ptr<Cluster> child)
 {
-  children_.push_back(child);
+  children_.push_back(std::move(child));
 }
 
-void Cluster::removeChild(const Cluster* child)
+std::unique_ptr<Cluster> Cluster::releaseChild(const Cluster* candidate)
 {
-  children_.erase(std::find(children_.begin(), children_.end(), child));
+  auto it = std::find_if(
+      children_.begin(), children_.end(), [candidate](const auto& child) {
+        return child.get() == candidate;
+      });
+
+  if (it != children_.end()) {
+    std::unique_ptr<Cluster> released_child = std::move(*it);
+    children_.erase(it);
+    return released_child;
+  }
+
+  return nullptr;
 }
 
-void Cluster::addChildren(const std::vector<Cluster*>& children)
+void Cluster::addChildren(UniqueClusterVector children)
 {
-  std::copy(children.begin(), children.end(), std::back_inserter(children_));
+  std::move(children.begin(), children.end(), std::back_inserter(children_));
 }
 
-void Cluster::removeChildren()
+UniqueClusterVector Cluster::releaseChildren()
 {
+  UniqueClusterVector released_children = std::move(children_);
   children_.clear();
+
+  return released_children;
 }
 
 Cluster* Cluster::getParent() const
@@ -492,7 +525,7 @@ Cluster* Cluster::getParent() const
   return parent_;
 }
 
-std::vector<Cluster*> Cluster::getChildren() const
+const UniqueClusterVector& Cluster::getChildren() const
 {
   return children_;
 }
@@ -502,34 +535,36 @@ bool Cluster::isLeaf() const
   return children_.empty();
 }
 
-// We only merge clusters with the same parent cluster
-// We only merge clusters with the same parent cluster
-bool Cluster::mergeCluster(Cluster& cluster, bool& delete_flag)
+bool Cluster::attemptMerge(Cluster* incomer, bool& incomer_deleted)
 {
-  if (parent_ != cluster.parent_) {
+  if (parent_ != incomer->parent_) {
     return false;
   }
 
-  parent_->removeChild(&cluster);
-  metrics_.addMetrics(cluster.metrics_);
-  // modify name
-  name_ += "||" + cluster.name_;
-  // if current cluster is a leaf cluster
+  // If the ownership is not passed to the receiver. The incomer
+  // is destroyed.
+  std::unique_ptr<Cluster> released_incomer = parent_->releaseChild(incomer);
+
+  metrics_.addMetrics(incomer->metrics_);
+  name_ += "||" + incomer->name_;
+
   leaf_macros_.insert(leaf_macros_.end(),
-                      cluster.leaf_macros_.begin(),
-                      cluster.leaf_macros_.end());
+                      incomer->leaf_macros_.begin(),
+                      incomer->leaf_macros_.end());
   leaf_std_cells_.insert(leaf_std_cells_.end(),
-                         cluster.leaf_std_cells_.begin(),
-                         cluster.leaf_std_cells_.end());
+                         incomer->leaf_std_cells_.begin(),
+                         incomer->leaf_std_cells_.end());
   db_modules_.insert(db_modules_.end(),
-                     cluster.db_modules_.begin(),
-                     cluster.db_modules_.end());
-  delete_flag = true;
-  // if current cluster is not a leaf cluster
+                     incomer->db_modules_.begin(),
+                     incomer->db_modules_.end());
+  incomer_deleted = true;
+
+  // If the receiver is not a leaf, the incomer becomes another
+  // one of its children.
   if (!children_.empty()) {
-    children_.push_back(&cluster);
-    cluster.setParent(this);
-    delete_flag = false;
+    incomer->setParent(this);
+    children_.push_back(std::move(released_incomer));
+    incomer_deleted = false;
   }
   return true;
 }
@@ -567,6 +602,10 @@ bool Cluster::isSameConnSignature(const Cluster& cluster, float net_threshold)
         && (weight >= net_threshold)) {
       neighbors.push_back(cluster_id);
     }
+  }
+
+  if (neighbors.empty()) {
+    return false;
   }
 
   for (auto& [cluster_id, weight] : cluster.connection_map_) {
@@ -607,15 +646,12 @@ bool Cluster::hasMacroConnectionWith(const Cluster& cluster,
   return false;
 }
 
-//
 // Get closely-connected cluster if such cluster exists
 // For example, if a small cluster A is closely connected to a
 // well-formed cluster B, (there are also other well-formed clusters
 // C, D), A is only connected to B and A has no connection with C, D
-//
-// candidate_clusters are small clusters that need to be merged,
-// any cluster not in candidate_clusters is a well-formed cluster
-//
+// Candidate clusters always need to be merged.
+// A non candidate cluster is a well-formed cluster.
 int Cluster::getCloseCluster(const std::vector<int>& candidate_clusters,
                              float net_threshold)
 {
@@ -720,9 +756,10 @@ void Cluster::printBasicInformation(utl::Logger* logger) const
 }
 
 // Macro Placement Support
-void Cluster::setSoftMacro(SoftMacro* soft_macro)
+void Cluster::setSoftMacro(std::unique_ptr<SoftMacro> soft_macro)
 {
-  soft_macro_.reset(soft_macro);
+  soft_macro_.reset();
+  soft_macro_ = std::move(soft_macro);
 }
 
 SoftMacro* Cluster::getSoftMacro() const
@@ -774,26 +811,20 @@ HardMacro::HardMacro(float width, float height, const std::string& name)
   pin_y_ = height / 2.0;
 }
 
-HardMacro::HardMacro(odb::dbInst* inst,
-                     float dbu,
-                     int manufacturing_grid,
-                     float halo_width,
-                     float halo_height)
+HardMacro::HardMacro(odb::dbInst* inst, float halo_width, float halo_height)
 {
   inst_ = inst;
-  dbu_ = dbu;
+  block_ = inst->getBlock();
+  name_ = inst->getName();
+
   halo_width_ = halo_width;
   halo_height_ = halo_height;
-  manufacturing_grid_ = manufacturing_grid;
 
-  // set name
-  name_ = inst->getName();
   odb::dbMaster* master = inst->getMaster();
-  // set the width and height
-  width_ = dbuToMicron(master->getWidth(), dbu) + 2 * halo_width;
-  height_ = dbuToMicron(master->getHeight(), dbu) + 2 * halo_height;
+  width_ = block_->dbuToMicrons(master->getWidth()) + 2 * halo_width;
+  height_ = block_->dbuToMicrons(master->getHeight()) + 2 * halo_height;
+
   // Set the position of virtual pins
-  // Here we only consider signal pins
   odb::Rect bbox;
   bbox.mergeInit();
   for (odb::dbMTerm* mterm : master->getMTerms()) {
@@ -806,8 +837,10 @@ HardMacro::HardMacro(odb::dbInst* inst,
       }
     }
   }
-  pin_x_ = dbuToMicron((bbox.xMin() + bbox.xMax()) / 2.0, dbu) + halo_width_;
-  pin_y_ = dbuToMicron((bbox.yMin() + bbox.yMax()) / 2.0, dbu) + halo_height_;
+  pin_x_
+      = block_->dbuToMicrons((bbox.xMin() + bbox.xMax()) / 2.0) + halo_width_;
+  pin_y_
+      = block_->dbuToMicrons((bbox.yMin() + bbox.yMax()) / 2.0) + halo_height_;
 }
 
 // overload the comparison operators
@@ -953,201 +986,6 @@ const std::string HardMacro::getMasterName() const
   return inst_->getMaster()->getName();
 }
 
-void HardMacro::updateDb(odb::dbBlock* block)
-{
-  if ((inst_ == nullptr) || (dbu_ <= 0.0)) {
-    return;
-  }
-
-  const odb::Rect bbox(micronToDbu(getRealX(), dbu_),
-                       micronToDbu(getRealY(), dbu_),
-                       micronToDbu(getRealX() + getRealWidth(), dbu_),
-                       micronToDbu(getRealY() + getRealHeight(), dbu_));
-
-  const odb::Point snap_origin = computeSnapOrigin(bbox, orientation_, block);
-
-  inst_->setOrigin(snap_origin.x(), snap_origin.y());
-  inst_->setOrient(orientation_);
-  inst_->setPlacementStatus(odb::dbPlacementStatus::PLACED);
-}
-
-odb::Point HardMacro::computeSnapOrigin(const odb::Rect& macro_box,
-                                        const odb::dbOrientType& orientation,
-                                        odb::dbBlock* block)
-{
-  SnapParameters x, y;
-
-  std::set<odb::dbTechLayer*> snap_layers;
-
-  odb::dbMaster* master = inst_->getMaster();
-  for (odb::dbMTerm* mterm : master->getMTerms()) {
-    if (mterm->getSigType() != odb::dbSigType::SIGNAL) {
-      continue;
-    }
-
-    for (odb::dbMPin* mpin : mterm->getMPins()) {
-      for (odb::dbBox* box : mpin->getGeometry()) {
-        odb::dbTechLayer* layer = box->getTechLayer();
-
-        if (snap_layers.find(layer) != snap_layers.end()) {
-          continue;
-        }
-
-        snap_layers.insert(layer);
-
-        if (layer->getDirection() == odb::dbTechLayerDir::HORIZONTAL) {
-          y = computeSnapParameters(block, layer, box, false);
-        } else {
-          x = computeSnapParameters(block, layer, box, true);
-        }
-      }
-    }
-  }
-
-  // Defaults for R0
-  int origin_x = macro_box.xMin();
-  int origin_y = macro_box.yMin();
-
-  // The distance between the pins and the origin in the master of a macro
-  // instance may not be a multiple of the track-grid, in these cases, we
-  // need to compensate a small offset.
-  const int mterm_offset_x
-      = x.pitch != 0
-            ? x.pin_to_origin - std::floor(x.pin_to_origin / x.pitch) * x.pitch
-            : 0;
-  const int mterm_offset_y
-      = y.pitch != 0
-            ? y.pin_to_origin - std::floor(y.pin_to_origin / y.pitch) * y.pitch
-            : 0;
-
-  int pin_offset_x = x.pin_width / 2 + mterm_offset_x;
-  int pin_offset_y = y.pin_width / 2 + mterm_offset_y;
-
-  if (orientation == odb::dbOrientType::MX) {
-    origin_y = macro_box.yMax();
-    pin_offset_y = -pin_offset_y;
-  } else if (orientation == odb::dbOrientType::MY) {
-    origin_x = macro_box.xMax();
-    pin_offset_x = -pin_offset_x;
-  } else if (orientation == odb::dbOrientType::R180) {
-    origin_x = macro_box.xMax();
-    origin_y = macro_box.yMax();
-    pin_offset_x = -pin_offset_x;
-    pin_offset_y = -pin_offset_y;
-  }
-
-  // Compute trackgrid alignment only if there are pins in the grid's direction.
-  // Note that we first align the macro origin with the track grid and then, we
-  // compensate the necessary offset.
-  if (x.pin_width != 0) {
-    origin_x = std::round(origin_x / x.pitch) * x.pitch + x.offset;
-    origin_x -= pin_offset_x;
-  }
-  if (y.pin_width != 0) {
-    origin_y = std::round(origin_y / y.pitch) * y.pitch + y.offset;
-    origin_y -= pin_offset_y;
-  }
-
-  origin_x = std::round(origin_x / manufacturing_grid_) * manufacturing_grid_;
-  origin_y = std::round(origin_y / manufacturing_grid_) * manufacturing_grid_;
-
-  const odb::Point snap_origin(origin_x, origin_y);
-
-  return snap_origin;
-}
-
-SnapParameters HardMacro::computeSnapParameters(odb::dbBlock* block,
-                                                odb::dbTechLayer* layer,
-                                                odb::dbBox* box,
-                                                bool is_vertical_direction)
-{
-  SnapParameters params;
-
-  odb::dbTrackGrid* track_grid = block->findTrackGrid(layer);
-
-  if (track_grid != nullptr) {
-    std::vector<int> coordinate_grid;
-    getDirectionTrackGrid(track_grid, coordinate_grid, is_vertical_direction);
-
-    params.offset = coordinate_grid[0];
-    params.pitch = coordinate_grid[1] - coordinate_grid[0];
-  } else {
-    params.pitch = getDirectionPitch(layer, is_vertical_direction);
-    params.offset = getDirectionOffset(layer, is_vertical_direction);
-  }
-
-  params.pin_width = getDirectionPinWidth(box, is_vertical_direction);
-  params.pin_to_origin = getPinToOriginDistance(box, is_vertical_direction);
-
-  return params;
-}
-
-int HardMacro::getDirectionPitch(odb::dbTechLayer* layer,
-                                 bool is_vertical_direction)
-{
-  int pitch = 0;
-
-  if (is_vertical_direction) {
-    pitch = layer->getPitchX();
-  } else {
-    pitch = layer->getPitchY();
-  }
-
-  return pitch;
-}
-
-int HardMacro::getDirectionOffset(odb::dbTechLayer* layer,
-                                  bool is_vertical_direction)
-{
-  int offset = 0;
-
-  if (is_vertical_direction) {
-    offset = layer->getOffsetX();
-  } else {
-    offset = layer->getOffsetY();
-  }
-
-  return offset;
-}
-
-int HardMacro::getDirectionPinWidth(odb::dbBox* box, bool is_vertical_direction)
-{
-  int pin_width = 0;
-
-  if (is_vertical_direction) {
-    pin_width = box->getDX();
-  } else {
-    pin_width = box->getDY();
-  }
-
-  return pin_width;
-}
-
-void HardMacro::getDirectionTrackGrid(odb::dbTrackGrid* track_grid,
-                                      std::vector<int>& coordinate_grid,
-                                      bool is_vertical_direction)
-{
-  if (is_vertical_direction) {
-    track_grid->getGridX(coordinate_grid);
-  } else {
-    track_grid->getGridY(coordinate_grid);
-  }
-}
-
-int HardMacro::getPinToOriginDistance(odb::dbBox* box,
-                                      bool is_vertical_direction)
-{
-  int pin_to_origin = 0;
-
-  if (is_vertical_direction) {
-    pin_to_origin = box->getBox().xMin();
-  } else {
-    pin_to_origin = box->getBox().yMin();
-  }
-
-  return pin_to_origin;
-}
-
 ///////////////////////////////////////////////////////////////////////
 // SoftMacro Class
 // Create a SoftMacro with specified size
@@ -1160,23 +998,6 @@ SoftMacro::SoftMacro(float width, float height, const std::string& name)
   height_ = height;
   area_ = width * height;
   cluster_ = nullptr;
-}
-
-// SoftMacro : Fixed Hard Macro (or blockage)
-SoftMacro::SoftMacro(float width,
-                     float height,
-                     const std::string& name,
-                     float lx,
-                     float ly)
-{
-  name_ = name;
-  width_ = width;
-  height_ = height;
-  area_ = width * height;
-  x_ = lx;
-  y_ = ly;
-  cluster_ = nullptr;
-  fixed_ = true;
 }
 
 // Create a SoftMacro representing the IO cluster or fixed terminals
@@ -1423,6 +1244,11 @@ void SoftMacro::setShapes(
 float SoftMacro::getArea() const
 {
   return area_ > 0.01 ? area_ : 0.0;
+}
+
+Rect SoftMacro::getBBox() const
+{
+  return Rect(x_, y_, x_ + width_, y_ + height_);
 }
 
 // Num Macros

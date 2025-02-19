@@ -37,12 +37,12 @@
 
 #include <iostream>
 #include <map>
-#include <memory>
 #include <random>
 #include <set>
 #include <string>
 #include <vector>
 
+#include "odb/db.h"
 #include "odb/dbTypes.h"
 #include "odb/odb.h"
 
@@ -51,7 +51,6 @@ class Rect;
 class Point;
 class dbInst;
 class dbModule;
-class dbBlock;
 class dbDatabase;
 class dbITerm;
 class dbTechLayer;
@@ -67,6 +66,9 @@ namespace mpl2 {
 struct Rect;
 class HardMacro;
 class SoftMacro;
+class Cluster;
+
+using UniqueClusterVector = std::vector<std::unique_ptr<Cluster>>;
 
 // ****************************************************************************
 // This file includes the basic functions and basic classes for the HierRTLMP
@@ -95,12 +97,6 @@ class SoftMacro;
 // (fixed position, preferred locations, and others) are on macros.  This means
 // we do not accept pre-placed std cells as our inputs.
 //*****************************************************************************
-
-// Basic utility functions
-
-// converion between dbu and microns
-float dbuToMicron(int metric, float dbu);
-int micronToDbu(float metric, float dbu);
 
 // Define the position of pin access blockage
 // It can be {bottom, left, top, right} boundary of the cluster
@@ -133,16 +129,6 @@ enum ClusterType
   MixedCluster
 };
 
-// The parameters necessary to compute one coordinate of the new
-// origin for aligning the macros' pins to the track-grid
-struct SnapParameters
-{
-  int offset = 0;
-  int pitch = 0;
-  int pin_width = 0;
-  int pin_to_origin = 0;
-};
-
 // Metrics class for logical modules and clusters
 class Metrics
 {
@@ -161,6 +147,7 @@ class Metrics
   float getStdCellArea() const;
   float getMacroArea() const;
   float getArea() const;
+  bool empty() const;
 
  private:
   // In the hierarchical autoclustering part,
@@ -200,6 +187,7 @@ class Cluster
   void addDbModule(odb::dbModule* db_module);
   void addLeafStdCell(odb::dbInst* leaf_std_cell);
   void addLeafMacro(odb::dbInst* leaf_macro);
+  void addLeafInst(odb::dbInst* inst);
   void specifyHardMacros(std::vector<HardMacro*>& hard_macros);
   const std::vector<odb::dbModule*> getDbModules() const;
   const std::vector<odb::dbInst*> getLeafStdCells() const;
@@ -218,6 +206,8 @@ class Cluster
   bool isIOCluster() const;
   void setAsArrayOfInterconnectedMacros();
   bool isArrayOfInterconnectedMacros() const;
+  bool isEmpty() const;
+  bool correspondsToLogicalModule() const;
 
   // Metrics Support
   void setMetrics(const Metrics& metrics);
@@ -236,20 +226,20 @@ class Cluster
   void setX(float x);
   void setY(float y);
   const std::pair<float, float> getLocation() const;
+  Rect getBBox() const;
 
   // Hierarchy Support
   void setParent(Cluster* parent);
-  void addChild(Cluster* child);
-  void removeChild(const Cluster* child);
-  void addChildren(const std::vector<Cluster*>& children);
-  void removeChildren();
+  void addChild(std::unique_ptr<Cluster> child);
+  std::unique_ptr<Cluster> releaseChild(const Cluster* candidate);
+  void addChildren(UniqueClusterVector children);
+  UniqueClusterVector releaseChildren();
   Cluster* getParent() const;
-  std::vector<Cluster*> getChildren() const;
+  const UniqueClusterVector& getChildren() const;
 
   bool isLeaf() const;  // if the cluster is a leaf cluster
   std::string getIsLeafString() const;
-  bool mergeCluster(Cluster& cluster,
-                    bool& delete_flag);  // return true if succeed
+  bool attemptMerge(Cluster* incomer, bool& incomer_deleted);
 
   // Connection signature support
   void initConnection();
@@ -284,7 +274,7 @@ class Cluster
   void printBasicInformation(utl::Logger* logger) const;
 
   // Macro Placement Support
-  void setSoftMacro(SoftMacro* soft_macro);
+  void setSoftMacro(std::unique_ptr<SoftMacro> soft_macro);
   SoftMacro* getSoftMacro() const;
 
   void setMacroTilings(const std::vector<std::pair<float, float>>& tilings);
@@ -321,8 +311,8 @@ class Cluster
 
   // Each cluster is a node in the physical hierarchy tree
   // Thus we need to define related to parent and children pointers
-  Cluster* parent_ = nullptr;       // parent of current cluster
-  std::vector<Cluster*> children_;  // children of current cluster
+  Cluster* parent_ = nullptr;  // parent of current cluster
+  UniqueClusterVector children_;
 
   // macro tilings for hard macros
   std::vector<std::pair<float, float>> macro_tilings_;  // <width, height>
@@ -346,7 +336,8 @@ class Cluster
 // A hard macro have fixed width and height
 // User can specify a halo width for each macro
 // We specify the position of macros in terms (x, y, width, height)
-// Here (x, y) is the lower left corner of the macro
+// Except for the fake hard macros (pin access blockage or other blockage),
+// each HardMacro cooresponds to one macro
 class HardMacro
 {
  public:
@@ -356,13 +347,9 @@ class HardMacro
 
   // In this case, we model the pin position at the center of the macro
   HardMacro(float width, float height, const std::string& name);
+
   // create a macro from dbInst
-  // dbu is needed to convert the database unit to real size
-  HardMacro(odb::dbInst* inst,
-            float dbu,
-            int manufacturing_grid,
-            float halo_width = 0.0,
-            float halo_height = 0.0);
+  HardMacro(odb::dbInst* inst, float halo_width = 0.0, float halo_height = 0.0);
 
   // overload the comparison operators
   // based on area, width, height order
@@ -409,26 +396,21 @@ class HardMacro
   const std::string getName() const;
   const std::string getMasterName() const;
 
-  void updateDb(odb::dbBlock* block);
-  odb::Point computeSnapOrigin(const odb::Rect& macro_box,
-                               const odb::dbOrientType& orientation,
-                               odb::dbBlock* block);
+  int getXDBU() const { return block_->micronsToDbu(getX()); }
 
-  int getXDBU() const { return micronToDbu(getX(), dbu_); }
+  int getYDBU() const { return block_->micronsToDbu(getY()); }
 
-  int getYDBU() const { return micronToDbu(getY(), dbu_); }
+  int getRealXDBU() const { return block_->micronsToDbu(getRealX()); }
 
-  int getRealXDBU() const { return micronToDbu(getRealX(), dbu_); }
+  int getRealYDBU() const { return block_->micronsToDbu(getRealY()); }
 
-  int getRealYDBU() const { return micronToDbu(getRealY(), dbu_); }
+  int getWidthDBU() const { return block_->micronsToDbu(getWidth()); }
 
-  int getWidthDBU() const { return micronToDbu(getWidth(), dbu_); }
+  int getHeightDBU() const { return block_->micronsToDbu(getHeight()); }
 
-  int getHeightDBU() const { return micronToDbu(getHeight(), dbu_); }
+  int getRealWidthDBU() const { return block_->micronsToDbu(getRealWidth()); }
 
-  int getRealWidthDBU() const { return micronToDbu(getRealWidth(), dbu_); }
-
-  int getRealHeightDBU() const { return micronToDbu(getRealHeight(), dbu_); }
+  int getRealHeightDBU() const { return block_->micronsToDbu(getRealHeight()); }
 
   int getUXDBU() const { return getXDBU() + getWidthDBU(); }
 
@@ -438,23 +420,11 @@ class HardMacro
 
   int getRealUYDBU() const { return getRealYDBU() + getRealHeightDBU(); }
 
-  void setXDBU(int x) { setX(dbuToMicron(x, dbu_)); }
+  void setXDBU(int x) { setX(block_->dbuToMicrons(x)); }
 
-  void setYDBU(int y) { setY(dbuToMicron(y, dbu_)); }
+  void setYDBU(int y) { setY(block_->dbuToMicrons(y)); }
 
  private:
-  SnapParameters computeSnapParameters(odb::dbBlock* block,
-                                       odb::dbTechLayer* layer,
-                                       odb::dbBox* box,
-                                       bool is_vertical_direction);
-  void getDirectionTrackGrid(odb::dbTrackGrid* track_grid,
-                             std::vector<int>& coordinate_grid,
-                             bool is_vertical_direction);
-  int getDirectionPitch(odb::dbTechLayer* layer, bool is_vertical_direction);
-  int getDirectionOffset(odb::dbTechLayer* layer, bool is_vertical_direction);
-  int getDirectionPinWidth(odb::dbBox* box, bool is_vertical_direction);
-  int getPinToOriginDistance(odb::dbBox* box, bool is_vertical_direction);
-
   // We define x_, y_ and orientation_ here
   // to avoid keep updating OpenDB during simulated annealing
   // Also enable the multi-threading
@@ -472,12 +442,8 @@ class HardMacro
   float pin_x_ = 0.0;
   float pin_y_ = 0.0;
 
-  // Interface for OpenDB
-  // Except for the fake hard macros (pin access blockage or other blockage),
-  // each HardMacro cooresponds to one macro
   odb::dbInst* inst_ = nullptr;
-  float dbu_ = 0.0;  // DbuPerMicro
-  int manufacturing_grid_ = 10;
+  odb::dbBlock* block_ = nullptr;
 };
 
 // We have three types of SoftMacros
@@ -509,12 +475,7 @@ class SoftMacro
   // Create a SoftMacro with specified size
   // Create a SoftMacro representing the blockage
   SoftMacro(float width, float height, const std::string& name);
-  // Create a SoftMacro representing fixed hard macro or blockage
-  SoftMacro(float width,
-            float height,
-            const std::string& name,
-            float lx,
-            float ly);
+
   // Create a SoftMacro representing the IO cluster
   SoftMacro(const std::pair<float, float>& pos,
             const std::string& name,
@@ -560,6 +521,7 @@ class SoftMacro
   float getWidth() const { return width_; }
   float getHeight() const { return height_; }
   float getArea() const;
+  Rect getBBox() const;
   // Num Macros
   bool isMacroCluster() const;
   bool isStdCellCluster() const;
@@ -761,9 +723,8 @@ struct Rect
     if (lx < core_lx - 1.0 || ly < core_ly - 1.0 || ux > core_ux + 1.0
         || uy > core_uy + 1.0) {
       std::cout << "Error !!!\n"
-                << "core_lx =  " << core_lx << "  "
-                << "core_ly =  " << core_ly << "  "
-                << "core_ux =  " << core_ux << "  "
+                << "core_lx =  " << core_lx << "  " << "core_ly =  " << core_ly
+                << "  " << "core_ux =  " << core_ux << "  "
                 << "core_uy =  " << core_uy << std::endl;
     }
   }
@@ -811,17 +772,18 @@ struct Rect
     f_y = f_y_;
   }
 
-  bool isValid() const
+  bool isValid() const { return (lx < ux) && (ly < uy); }
+
+  void mergeInit()
   {
-    return (lx > 0.0) && (ly > 0.0) && (ux > 0.0) && (uy > 0.0);
+    lx = std::numeric_limits<float>::max();
+    ly = lx;
+    ux = std::numeric_limits<float>::lowest();
+    uy = ux;
   }
 
   void merge(const Rect& rect)
   {
-    if (!isValid()) {
-      return;
-    }
-
     lx = std::min(lx, rect.lx);
     ly = std::min(ly, rect.ly);
     ux = std::max(ux, rect.ux);

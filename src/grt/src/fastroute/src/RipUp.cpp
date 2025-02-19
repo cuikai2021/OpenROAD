@@ -31,6 +31,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <algorithm>
+#include <vector>
 
 #include "DataType.h"
 #include "FastRoute.h"
@@ -59,50 +60,6 @@ void FastRouteCore::ripupSegL(const Segment* seg)
       v_edges_[i][seg->x1].est_usage -= edgeCost;
     for (int i = seg->x1; i < seg->x2; i++)
       h_edges_[seg->y2][i].est_usage -= edgeCost;
-  }
-}
-
-void FastRouteCore::ripupSegZ(const Segment* seg)
-{
-  const int edgeCost = nets_[seg->netID]->getEdgeCost();
-
-  const int ymin = std::min(seg->y1, seg->y2);
-  const int ymax = std::max(seg->y1, seg->y2);
-
-  if (seg->x1 == seg->x2) {
-    // remove V routing
-    for (int i = ymin; i < ymax; i++)
-      v_edges_[i][seg->x1].est_usage -= edgeCost;
-  } else if (seg->y1 == seg->y2) {
-    // remove H routing
-    for (int i = seg->x1; i < seg->x2; i++)
-      h_edges_[seg->y1][i].est_usage -= edgeCost;
-  } else {
-    // remove Z routing
-    if (seg->HVH) {
-      for (int i = seg->x1; i < seg->Zpoint; i++)
-        h_edges_[seg->y1][i].est_usage -= edgeCost;
-      for (int i = seg->Zpoint; i < seg->x2; i++)
-        h_edges_[seg->y2][i].est_usage -= edgeCost;
-      for (int i = ymin; i < ymax; i++)
-        v_edges_[i][seg->Zpoint].est_usage -= edgeCost;
-    } else {
-      if (seg->y1 < seg->y2) {
-        for (int i = seg->y1; i < seg->Zpoint; i++)
-          v_edges_[i][seg->x1].est_usage -= edgeCost;
-        for (int i = seg->Zpoint; i < seg->y2; i++)
-          v_edges_[i][seg->x2].est_usage -= edgeCost;
-        for (int i = seg->x1; i < seg->x2; i++)
-          h_edges_[seg->Zpoint][i].est_usage -= 1;
-      } else {
-        for (int i = seg->y2; i < seg->Zpoint; i++)
-          v_edges_[i][seg->x2].est_usage -= edgeCost;
-        for (int i = seg->Zpoint; i < seg->y1; i++)
-          v_edges_[i][seg->x1].est_usage -= edgeCost;
-        for (int i = seg->x1; i < seg->x2; i++)
-          h_edges_[seg->Zpoint][i].est_usage -= 1;
-      }
-    }
   }
 }
 
@@ -263,9 +220,12 @@ bool FastRouteCore::newRipupType2(const TreeEdge* treeedge,
       }
     }
     return needRipup;
-  } else {
-    logger_->error(GRT, 226, "Type2 ripup not type L.");
   }
+  logger_->error(GRT,
+                 226,
+                 "Net {} ripup type is {}. Expected LRoute.",
+                 nets_[netID]->getName(),
+                 ripuptype);
 }
 
 bool FastRouteCore::newRipupCheck(const TreeEdge* treeedge,
@@ -329,13 +289,11 @@ bool FastRouteCore::newRipupCheck(const TreeEdge* treeedge,
         }
       }
       return true;
-    } else {
-      return false;
     }
-  } else {
-    printEdge(netID, edgeID);
-    logger_->error(GRT, 500, "Route type is not maze, netID {}.", netID);
+    return false;
   }
+  printEdge(netID, edgeID);
+  logger_->error(GRT, 500, "Route type is not maze, netID {}.", netID);
 }
 
 bool FastRouteCore::newRipup3DType3(const int netID, const int edgeID)
@@ -376,15 +334,14 @@ bool FastRouteCore::newRipup3DType3(const int netID, const int edgeID)
         }
       }
       break;
-    } else {
-      if (bl > treenodes[n1a].heights[i]) {
-        bl = treenodes[n1a].heights[i];
-        bid = treenodes[n1a].eID[i];
-      }
-      if (hl < treenodes[n1a].heights[i]) {
-        hl = treenodes[n1a].heights[i];
-        hid = treenodes[n1a].eID[i];
-      }
+    }
+    if (bl > treenodes[n1a].heights[i]) {
+      bl = treenodes[n1a].heights[i];
+      bid = treenodes[n1a].eID[i];
+    }
+    if (hl < treenodes[n1a].heights[i]) {
+      hl = treenodes[n1a].heights[i];
+      hid = treenodes[n1a].eID[i];
     }
   }
   treenodes[n1a].conCNT--;
@@ -413,15 +370,14 @@ bool FastRouteCore::newRipup3DType3(const int netID, const int edgeID)
         }
       }
       break;
-    } else {
-      if (bl > treenodes[n2a].heights[i]) {
-        bl = treenodes[n2a].heights[i];
-        bid = treenodes[n2a].eID[i];
-      }
-      if (hl < treenodes[n2a].heights[i]) {
-        hl = treenodes[n2a].heights[i];
-        hid = treenodes[n2a].eID[i];
-      }
+    }
+    if (bl > treenodes[n2a].heights[i]) {
+      bl = treenodes[n2a].heights[i];
+      bid = treenodes[n2a].eID[i];
+    }
+    if (hl < treenodes[n2a].heights[i]) {
+      hl = treenodes[n2a].heights[i];
+      hid = treenodes[n2a].eID[i];
     }
   }
   treenodes[n2a].conCNT--;
@@ -478,7 +434,7 @@ void FastRouteCore::releaseNetResources(const int netID)
       for (int i = 0; i < routeLen; i++) {
         if (gridsL[i] != gridsL[i + 1])
           continue;
-        else if (gridsX[i] == gridsX[i + 1]) {  // a vertical edge
+        if (gridsX[i] == gridsX[i + 1]) {  // a vertical edge
           const int ymin = std::min(gridsY[i], gridsY[i + 1]);
           edge = &v_edges_[ymin][gridsX[i]];
           edge_3D = &v_edges_3D_[gridsL[i]][ymin][gridsX[i]];

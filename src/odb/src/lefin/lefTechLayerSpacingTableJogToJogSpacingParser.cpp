@@ -6,11 +6,13 @@
 #include "lefLayerPropParser.h"
 #include "odb/lefin.h"
 
+using namespace odb;
+
 namespace lefTechLayerSpacingTableJogToJogSpacing {
 
 static void memberParser1(void (odb::dbTechLayerSpacingTableJogToJogSpacingRule::*setter)(int),
                           odb::dbTechLayerSpacingTableJogToJogSpacingRule* sc,
-                          odb::lefin* l,
+                          odb::lefinReader* l,
 				          double value)
 {
   (sc->*setter)(l->dbdist(value));
@@ -31,7 +33,7 @@ struct Stack {
 
 #if 1
 static void appendWidth(odb::dbTechLayerSpacingTableJogToJogSpacingRule* sc,
-                        odb::lefin* l,
+                        odb::lefinReader* l,
 						boost::fusion::vector< double, double, double,
 						  boost::optional< boost::fusion::vector<double, double> >,
 						  double, boost::optional< double > >& params)
@@ -65,7 +67,7 @@ static void appendWidth(odb::dbTechLayerSpacingTableJogToJogSpacingRule* sc,
 
 template <typename Iterator>
 bool parse(Iterator first, Iterator last,
-		   odb::dbTechLayer* layer, odb::lefin* l)
+		   odb::dbTechLayer* layer, odb::lefinReader* l)
 {
   typedef odb::dbTechLayerSpacingTableJogToJogSpacingRule TRule;
   TRule* sc = TRule::create(layer);
@@ -98,7 +100,7 @@ namespace odb {
 
 bool lefTechLayerSpacingTableJogToJogSpacingParser::parse(std::string s,
 														  dbTechLayer* layer,
-		                                                  odb::lefin* l)
+		                                                  odb::lefinReader* l)
 {
   return lefTechLayerSpacingTableJogToJogSpacing::parse(s.begin(), s.end(), layer, l);
 }

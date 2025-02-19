@@ -39,9 +39,6 @@
 #include <Eigen/SparseCore>
 #include <memory>
 
-#ifdef ENABLE_GPU
-#include "gpuSolver.h"
-#endif
 #include "graphics.h"
 #include "odb/db.h"
 #include "placerBase.h"
@@ -65,17 +62,6 @@ using utl::GPL;
 
 using SMatrix = Eigen::SparseMatrix<float, Eigen::RowMajor>;
 
-#ifdef ENABLE_GPU
-ResidualError cudaSparseSolve(int iter,
-                              SMatrix& placeInstForceMatrixX,
-                              Eigen::VectorXf& fixedInstForceVecX,
-                              Eigen::VectorXf& instLocVecX,
-                              SMatrix& placeInstForceMatrixY,
-                              Eigen::VectorXf& fixedInstForceVecY,
-                              Eigen::VectorXf& instLocVecY,
-                              utl::Logger* logger);
-#endif
-
 ResidualError cpuSparseSolve(int maxSolverIter,
                              int iter,
                              SMatrix& placeInstForceMatrixX,
@@ -84,5 +70,6 @@ ResidualError cpuSparseSolve(int maxSolverIter,
                              SMatrix& placeInstForceMatrixY,
                              Eigen::VectorXf& fixedInstForceVecY,
                              Eigen::VectorXf& instLocVecY,
-                             utl::Logger* logger);
+                             utl::Logger* logger,
+                             int threads);
 }  // namespace gpl

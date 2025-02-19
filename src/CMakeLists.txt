@@ -184,6 +184,12 @@ include(UseSWIG)
 
 find_package(Boost REQUIRED)
 message(STATUS "boost: ${Boost_VERSION}")
+
+if (ENABLE_TESTS)
+  find_package(GTest REQUIRED)
+  message(STATUS "GTest: ${GTest_VERSION}")
+endif()
+
 find_package(Python3 COMPONENTS Development REQUIRED)
 option(BUILD_PYTHON "Build the Python3 interface" ON)
 
@@ -214,6 +220,11 @@ add_compile_options(
   -ffp-contract=off
   # Apple clang 14.0.0 deprecates sprintf, which generates 900 warnings.
   $<$<CXX_COMPILER_ID:AppleClang>:-Wno-deprecated-declarations>
+  $<$<BOOL:${TSAN}>:-fsanitize=thread>
+  $<$<BOOL:${TSAN}>:-g>
+  $<$<BOOL:${UBSAN}>:-fsanitize=undefined>
+  $<$<BOOL:${UBSAN}>:-g>
+  $<$<BOOL:${UBSAN}>:-fno-omit-frame-pointer>
 )
 
 # ========
@@ -229,6 +240,17 @@ endif()
 if (ENABLE_LIBASAN)
   add_compile_options(-fsanitize=address)
   add_link_options(-fsanitize=address)
+  message(STATUS "Address Sanitizer is enabled")
+endif()
+
+if (TSAN)
+  add_link_options(-fsanitize=thread)
+  message(STATUS "Thread Sanitizer is enabled")
+endif()
+
+if (UBSAN)
+  add_link_options(-fsanitize=undefined)
+  message(STATUS "Undefined Behavior Sanitizer is enabled")
 endif()
 
 if(USE_LINDEN_DEBUG_LIBS)
@@ -269,6 +291,31 @@ else()
 endif()
 
 find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+
+message(STATUS "spdlog version: ${spdlog_VERSION}")
+message(STATUS "fmt version: ${fmt_VERSION}")
+
+message(STATUS "Checking SPDLOG options...")
+if(SPDLOG_USE_STD_FORMAT)
+    message(STATUS "SPDLOG_USE_STD_FORMAT is defined")
+else()
+    message(STATUS "SPDLOG_USE_STD_FORMAT is NOT defined")
+endif()
+
+if(SPDLOG_FMT_EXTERNAL)
+    message(STATUS "SPDLOG_FMT_EXTERNAL is defined")
+else()
+    message(STATUS "SPDLOG_FMT_EXTERNAL is NOT defined")
+endif()
+
+if(SPDLOG_COMPILED_LIB)
+    message(STATUS "SPDLOG_COMPILED_LIB is defined")
+else()
+    message(STATUS "SPDLOG_COMPILED_LIB is NOT defined")
+endif()
+
+
 message(STATUS "spdlog: ${spdlog_VERSION}")
 if (${SPDLOG_FMT_EXTERNAL})
   message(WARNING "spdlog: SPDLOG_FMT_EXTERNAL=${SPDLOG_FMT_EXTERNAL}")
@@ -298,6 +345,11 @@ add_subdirectory(ifp)
 add_subdirectory(pad)
 add_subdirectory(odb)
 if (NOT USE_SYSTEM_OPENSTA)
+  if (TCL_READLINE_LIBRARY AND TCL_READLINE_H)
+    # Pass along tcl readline enablement to OpenSTA build
+    set(USE_TCL_READLINE ON)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+  endif()
   add_subdirectory(sta)
 endif()
 add_subdirectory(dbSta)
@@ -398,6 +450,8 @@ target_link_libraries(eden
   ${CMAKE_THREAD_LIBS_INIT}
   ${GPERF_LIB}
   backtrace
+  spdlog::spdlog
+  fmt::fmt
 )
 
 target_link_libraries(ord
@@ -508,6 +562,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
       odb
       OpenSTA
       Python3::Python
+      ifp
   )
   target_link_libraries(eden
     openroad_swig_py
@@ -551,13 +606,6 @@ messages(
   LOCAL
 )
 
-# pad isn't a proper module with its own CMakeLists.txt so it
-# is handled here (just like the tcl encoding).
-messages(
-  TARGET eden
-  OUTPUT_DIR pad
-)
-
 # Ancient versions of glibc found on CentOS required librt.
 # OSX has an empty version of librt that causes a link error,
 # so this is protected from linking there.
@@ -574,11 +622,6 @@ endif()
 # executable
 install(TARGETS eden DESTINATION bin)
 execute_process( COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${CMAKE_CURRENT_BINARY_DIR}/eden" "${CMAKE_CURRENT_BINARY_DIR}/openroad")
-
-
-if(BUILD_MAN)
-  install(DIRECTORY ${MANPAGE_DIR} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/man)
-endif()
 
 ################################################################
 

@@ -33,6 +33,7 @@
 #include "dbWire.h"
 
 #include <algorithm>
+#include <vector>
 
 #include "dbBlock.h"
 #include "dbNet.h"
@@ -962,11 +963,11 @@ void dbWire::printWire(FILE* fp, int fid, int tid)
   }
 }
 
-uint64 dbWire::getLength()
+uint64_t dbWire::getLength()
 {
   dbWireShapeItr shapes;
   dbShape s;
-  uint64 rtlen = 0;
+  uint64_t rtlen = 0;
   for (shapes.begin(this); shapes.next(s);) {
     if (!s.isVia()) {
       rtlen += s.getLength();
@@ -1015,7 +1016,7 @@ enum Coord
   None = 2
 };
 
-static int nextState[13][3] = {
+static const int nextState[13][3] = {
     /*            X   Y   C */
     /*  0  */ {1, 2, 3},
     /*  1  */ {4, 5, 6},
@@ -1031,7 +1032,7 @@ static int nextState[13][3] = {
     /*  11 */ {13, 11, 11},
     /*  12 */ {10, 11, 12}};
 
-static Coord curCoord[13][3] = {
+static const Coord curCoord[13][3] = {
     /*            X        Y        C */
     /*  0  */ {None, None, None},
     /*  1  */ {XCoord, YCoord, None},
@@ -1047,7 +1048,7 @@ static Coord curCoord[13][3] = {
     /*  11 */ {XCoord, None, None},
     /*  12 */ {XCoord, YCoord, None}};
 
-static Coord prevCoord[13][3] = {
+static const Coord prevCoord[13][3] = {
     /*            X        Y        C */
     /*  0  */ {XCoord, YCoord, None},
     /*  1  */ {None, YCoord, None},
@@ -1085,7 +1086,7 @@ void dbWire::getSegment(int shape_id, dbShape& shape)
   bool has_cur_ext = false;
   bool ignore_ext = false;
 
-decode_loop : {
+decode_loop: {
   ZASSERT(idx >= 0);
   opcode = wire->_opcodes[idx];
 
@@ -1158,7 +1159,7 @@ decode_loop : {
   --idx;
   goto decode_loop;
 
-state_machine_update : {
+state_machine_update: {
   if (state == 0) {
     if (opcode & WOP_DEFAULT_WIDTH) {
       found_width = true;
@@ -1324,7 +1325,7 @@ void dbWire::getSegment(int shape_id, dbTechLayer* layer, dbShape& shape)
   bool has_cur_ext = false;
   bool ignore_ext = false;
 
-decode_loop : {
+decode_loop: {
   ZASSERT(idx >= 0);
   opcode = wire->_opcodes[idx];
 
@@ -1369,7 +1370,7 @@ decode_loop : {
   --idx;
   goto decode_loop;
 
-state_machine_update : {
+state_machine_update: {
   if (state == 0) {
     if (opcode & WOP_DEFAULT_WIDTH) {
       found_width = true;
@@ -1853,6 +1854,8 @@ void dbWire::destroy(dbWire* wire_)
   block->_wire_tbl->destroy(wire);
 }
 
+
+////////////////////////////////////// For Banyan ////////////////////////
 void dbWire::getRawWireData(std::vector<int>& data,
                             std::vector<unsigned char>& op_codes)
 {
@@ -1860,7 +1863,6 @@ void dbWire::getRawWireData(std::vector<int>& data,
   data = wire->_data;
   op_codes = wire->_opcodes;
 }
-
 void dbWire::setRawWireData(const std::vector<int>& data,
                             const std::vector<unsigned char>& op_codes)
 {
@@ -1870,5 +1872,6 @@ void dbWire::setRawWireData(const std::vector<int>& data,
   wire->_opcodes = op_codes;
   net->_flags._wire_ordered = 0;
 }
+//////////////////////////////////////////////////////////////////////////
 
 }  // namespace odb

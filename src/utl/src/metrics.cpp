@@ -1,6 +1,6 @@
 #include "utl/metrics.hpp"
 #include "fassert.hpp"
-#include <spdlog/spdlog.h>
+#include "spdlog/spdlog.h"
 #include <fstream>
 #include <iomanip>
 

@@ -34,6 +34,8 @@
 
 #include <optional>
 
+#include "dbStream.h"
+#include "geom.h"
 #include "odb.h"
 
 namespace odb {
@@ -123,6 +125,59 @@ class dbOrientType
  private:
   Value _value;
 };
+
+class dbGDSSTrans
+{
+ public:
+  bool _flipX;
+  double _mag, _angle;
+
+  dbGDSSTrans();
+
+  dbGDSSTrans(bool flipX, double mag, double angle);
+
+  bool operator==(const dbGDSSTrans& rhs) const;
+
+  std::string to_string() const;
+
+  bool identity() const;
+};
+
+dbIStream& operator>>(dbIStream& stream, dbGDSSTrans& t);
+dbOStream& operator<<(dbOStream& stream, dbGDSSTrans t);
+
+class dbGDSTextPres
+{
+ public:
+  enum VPres
+  {
+    TOP = 0,
+    MIDDLE = 1,
+    BOTTOM = 2
+  };
+  enum HPres
+  {
+    LEFT = 0,
+    CENTER = 1,
+    RIGHT = 2
+  };
+
+  VPres _vPres;
+  HPres _hPres;
+
+  dbGDSTextPres();
+
+  dbGDSTextPres(VPres vPres, HPres hPres);
+
+  bool operator==(const dbGDSTextPres& rhs) const;
+
+  bool identity() const;
+
+  std::string to_string() const;
+};
+
+dbIStream& operator>>(dbIStream& stream, dbGDSTextPres& t);
+dbOStream& operator<<(dbOStream& stream, dbGDSTextPres t);
 
 ///
 /// The dbGroup's basis.
@@ -380,7 +435,6 @@ class dbMasterType
  public:
   enum Value
   {
-    NONE,                           /** */
     COVER,                          /** */
     COVER_BUMP,                     /** */
     RING,                           /** */
@@ -738,7 +792,8 @@ class dbBoxOwner
     MPIN,
     TECH_VIA,
     REGION,
-    BPIN
+    BPIN,
+    PBOX
   };
 
   ///
@@ -1276,13 +1331,13 @@ class dbSourceType
   Value _value;
 };
 
-constexpr uint64 MAX_UINT64 = 0xffffffffffffffffLL;
-constexpr uint64 MIN_UINT64 = 0;
+constexpr uint64_t MAX_UINT64 = 0xffffffffffffffffLL;
+constexpr uint64_t MIN_UINT64 = 0;
 constexpr uint MAX_UINT = 0xffffffff;
 constexpr uint MIN_UINT = 0;
 
-constexpr int64 MAX_INT64 = 0x7fffffffffffffffLL;
-constexpr int64 MIN_INT64 = 0x8000000000000000LL;
+constexpr int64_t MAX_INT64 = 0x7fffffffffffffffLL;
+constexpr int64_t MIN_INT64 = 0x8000000000000000LL;
 constexpr int MAX_INT = 0x7fffffff;
 constexpr int MIN_INT = 0x80000000;
 

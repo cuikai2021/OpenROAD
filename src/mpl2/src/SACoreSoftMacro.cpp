@@ -33,6 +33,8 @@
 
 #include "SACoreSoftMacro.h"
 
+#include <vector>
+
 #include "Mpl2Observer.h"
 #include "utl/Logger.h"
 
@@ -99,6 +101,23 @@ SACoreSoftMacro::SACoreSoftMacro(
   adjust_h_th_ = notch_h_th_;
   adjust_v_th_ = notch_v_th_;
   logger_ = logger;
+}
+
+void SACoreSoftMacro::run()
+{
+  if (graphics_) {
+    graphics_->startSA();
+  }
+
+  fastSA();
+
+  if (centralization_on_) {
+    attemptCentralization(calNormCost());
+  }
+
+  if (graphics_) {
+    graphics_->endSA(calNormCost());
+  }
 }
 
 // acessors functions
@@ -180,7 +199,7 @@ void SACoreSoftMacro::calPenalty()
   calMacroBlockagePenalty();
   calNotchPenalty();
   if (graphics_) {
-    graphics_->setAreaPenalty(getAreaPenalty());
+    graphics_->setAreaPenalty({area_weight_, getAreaPenalty()});
     graphics_->penaltyCalculated(calNormCost());
   }
 }
@@ -280,6 +299,11 @@ void SACoreSoftMacro::initialize()
   std::vector<float> area_penalty_list;
   std::vector<float> width_list;
   std::vector<float> height_list;
+
+  // We don't want to stop in the normalization factor setup
+  Mpl2Observer* save_graphics = graphics_;
+  graphics_ = nullptr;
+
   for (int i = 0; i < num_perturb_per_step_; i++) {
     perturb();
     // store current penalties
@@ -295,6 +319,7 @@ void SACoreSoftMacro::initialize()
     macro_blockage_penalty_list.push_back(macro_blockage_penalty_);
     notch_penalty_list.push_back(notch_penalty_);
   }
+  graphics_ = save_graphics;
 
   norm_area_penalty_ = calAverage(area_penalty_list);
   norm_outline_penalty_ = calAverage(outline_penalty_list);
@@ -410,7 +435,8 @@ void SACoreSoftMacro::calBoundaryPenalty()
   // normalization
   boundary_penalty_ = boundary_penalty_ / tot_num_macros;
   if (graphics_) {
-    graphics_->setBoundaryPenalty(boundary_penalty_);
+    graphics_->setBoundaryPenalty(
+        {boundary_weight_, boundary_penalty_ / norm_boundary_penalty_});
   }
 }
 
@@ -470,7 +496,9 @@ void SACoreSoftMacro::calMacroBlockagePenalty()
   // normalization
   macro_blockage_penalty_ = macro_blockage_penalty_ / tot_num_macros;
   if (graphics_) {
-    graphics_->setMacroBlockagePenalty(macro_blockage_penalty_);
+    graphics_->setMacroBlockagePenalty(
+        {macro_blockage_weight_,
+         macro_blockage_penalty_ / norm_macro_blockage_penalty_});
   }
 }
 
@@ -628,8 +656,8 @@ void SACoreSoftMacro::calNotchPenalty()
         if (grids[j][i] != -1) {
           flag = false;  // we cannot extend the current cluster
           break;
-        }           // end if
-      }             // end y
+        }  // end if
+      }  // end y
       if (!flag) {  // extension done
         break;
       }
@@ -645,8 +673,8 @@ void SACoreSoftMacro::calNotchPenalty()
         if (grids[j][i] != -1) {
           flag = false;  // we cannot extend the current cluster
           break;
-        }           // end if
-      }             // end y
+        }  // end if
+      }  // end y
       if (!flag) {  // extension done
         break;
       }
@@ -662,8 +690,8 @@ void SACoreSoftMacro::calNotchPenalty()
         if (grids[j][i] != -1) {
           flag = false;  // we cannot extend the current cluster
           break;
-        }           // end if
-      }             // end y
+        }  // end if
+      }  // end y
       if (!flag) {  // extension done
         break;
       }
@@ -679,8 +707,8 @@ void SACoreSoftMacro::calNotchPenalty()
         if (grids[j][i] != -1) {
           flag = false;  // we cannot extend the current cluster
           break;
-        }           // end if
-      }             // end y
+        }  // end if
+      }  // end y
       if (!flag) {  // extension done
         break;
       }
@@ -712,7 +740,8 @@ void SACoreSoftMacro::calNotchPenalty()
   notch_penalty_
       = notch_penalty_ / (outline_.getWidth() * outline_.getHeight());
   if (graphics_) {
-    graphics_->setNotchPenalty(notch_penalty_);
+    graphics_->setNotchPenalty(
+        {notch_weight_, notch_penalty_ / norm_notch_penalty_});
   }
 }
 
@@ -992,8 +1021,8 @@ void SACoreSoftMacro::fillDeadSpace()
           if (grids[j][i] != -1) {
             flag = false;  // we cannot extend the current cluster
             break;
-          }           // end if
-        }             // end y
+          }  // end if
+        }  // end y
         if (!flag) {  // extension done
           break;
         }
@@ -1010,8 +1039,8 @@ void SACoreSoftMacro::fillDeadSpace()
           if (grids[j][i] != -1) {
             flag = false;  // we cannot extend the current cluster
             break;
-          }           // end if
-        }             // end y
+          }  // end if
+        }  // end y
         if (!flag) {  // extension done
           break;
         }
@@ -1028,8 +1057,8 @@ void SACoreSoftMacro::fillDeadSpace()
           if (grids[j][i] != -1) {
             flag = false;  // we cannot extend the current cluster
             break;
-          }           // end if
-        }             // end y
+          }  // end if
+        }  // end y
         if (!flag) {  // extension done
           break;
         }
@@ -1046,8 +1075,8 @@ void SACoreSoftMacro::fillDeadSpace()
           if (grids[j][i] != -1) {
             flag = false;  // we cannot extend the current cluster
             break;
-          }           // end if
-        }             // end y
+          }  // end if
+        }  // end y
         if (!flag) {  // extension done
           break;
         }
@@ -1092,6 +1121,56 @@ void SACoreSoftMacro::calSegmentLoc(float seg_start,
 void SACoreSoftMacro::addBlockages(const std::vector<Rect>& blockages)
 {
   blockages_.insert(blockages_.end(), blockages.begin(), blockages.end());
+}
+
+void SACoreSoftMacro::attemptCentralization(const float pre_cost)
+{
+  if (outline_penalty_ > 0) {
+    return;
+  }
+
+  // In order to revert the centralization, we cache the current location
+  // of the clusters to avoid floating-point evilness when creating the
+  // x,y grid to fill the dead space by expanding mixed clusters.
+  std::map<int, std::pair<float, float>> clusters_locations;
+
+  for (int& id : pos_seq_) {
+    clusters_locations[id] = {macros_[id].getX(), macros_[id].getY()};
+  }
+
+  std::pair<float, float> offset((outline_.getWidth() - width_) / 2,
+                                 (outline_.getHeight() - height_) / 2);
+  moveFloorplan(offset);
+
+  // revert centralization
+  if (calNormCost() > pre_cost) {
+    centralization_was_reverted_ = true;
+
+    for (int& id : pos_seq_) {
+      macros_[id].setX(clusters_locations[id].first);
+      macros_[id].setY(clusters_locations[id].second);
+    }
+
+    if (graphics_) {
+      graphics_->saStep(macros_);
+    }
+
+    calPenalty();
+  }
+}
+
+void SACoreSoftMacro::moveFloorplan(const std::pair<float, float>& offset)
+{
+  for (auto& id : pos_seq_) {
+    macros_[id].setX(macros_[id].getX() + offset.first);
+    macros_[id].setY(macros_[id].getY() + offset.second);
+  }
+
+  if (graphics_) {
+    graphics_->saStep(macros_);
+  }
+
+  calPenalty();
 }
 
 }  // namespace mpl2

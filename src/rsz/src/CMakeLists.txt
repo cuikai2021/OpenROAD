@@ -49,10 +49,12 @@ add_library(rsz_lib
     RepairHold.cc
     RepairSetup.cc
     Rebuffer.cc
+    SpefWriter.cc
     SteinerTree.cc
     EstimateWireParasitics.cc
     Resizer.cc
     ResizerAddTieCell.cc
+    OdbCallBack.cc
 )
 
 target_sources(rsz
@@ -91,7 +93,7 @@ target_link_libraries(rsz
     dbSta
     grt
     gui
-    utl
+    utl_lib
 )
 
 messages(

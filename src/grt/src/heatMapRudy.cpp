@@ -32,6 +32,8 @@
 
 #include "heatMapRudy.h"
 
+#include <vector>
+
 #include "odb/db.h"
 
 namespace grt {
@@ -110,6 +112,10 @@ void RUDYDataSource::populateXYGrid()
 bool RUDYDataSource::populateMap()
 {
   if (!getBlock()) {
+    return false;
+  }
+
+  if (rudy_ == nullptr) {
     return false;
   }
 

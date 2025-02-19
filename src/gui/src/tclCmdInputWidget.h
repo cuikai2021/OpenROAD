@@ -44,9 +44,14 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "cmdInputWidget.h"
 #include "tclCmdHighlighter.h"
+
+#if (TCL_MAJOR_VERSION == 8) && (TCL_MINOR_VERSION < 7) && !defined(Tcl_Size)
+#define Tcl_Size int
+#endif
 #include "tclSwig.h"  // generated header
 
 namespace gui {
@@ -56,20 +61,25 @@ class TclCmdInputWidget : public CmdInputWidget
   Q_OBJECT
 
  public:
+  // When exiting we have to return an error to stop script execution.
+  // We don't want to log the error so we use this string as a special
+  // key.  Not elegant but that's TCL.
+  static constexpr const char* exit_string = "_GUI EXITING_";
+
   TclCmdInputWidget(QWidget* parent = nullptr);
-  ~TclCmdInputWidget();
+  ~TclCmdInputWidget() override;
 
   void setTclInterp(Tcl_Interp* interp,
                     bool do_init_openroad,
-                    const std::function<void(void)>& post_or_init);
+                    const std::function<void()>& post_or_init);
 
   void readSettings(QSettings* settings);
   void writeSettings(QSettings* settings);
 
  public slots:
-  virtual void executeCommand(const QString& cmd,
-                              bool echo = true,
-                              bool silent = false) override;
+  void executeCommand(const QString& cmd,
+                      bool echo = true,
+                      bool silent = false) override;
 
  private slots:
   void updateHighlighting();
@@ -82,7 +92,7 @@ class TclCmdInputWidget : public CmdInputWidget
   void keyPressEvent(QKeyEvent* e) override;
   void keyReleaseEvent(QKeyEvent* e) override;
 
-  virtual bool isCommandComplete(const std::string& cmd) const override;
+  bool isCommandComplete(const std::string& cmd) const override;
 
  private:
   void init();

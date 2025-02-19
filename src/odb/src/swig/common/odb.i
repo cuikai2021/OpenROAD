@@ -36,10 +36,7 @@
 #include "dbIterator.h"
 #include "dbTransform.h"
 #include "dbWireGraph.h"
-#include "dbBlockSet.h"
-#include "dbNetSet.h"
 #include "dbMap.h"
-#include "dbCCSegSet.h"
 #include "dbSet.h"
 #include "dbTypes.h"
 #include "geom.h"
@@ -58,7 +55,8 @@ using namespace odb;
 %typemap(in) (uint) = (int);
 %typemap(out) (uint) = (int);
 %typemap(out) (uint64) = (long);
-%apply int* OUTPUT {int* x, int* y};
+%typemap(out) (int64_t) = (long);
+%apply int* OUTPUT {int* x, int* y, int& ext};
 
 %ignore odb::dbTechLayerAntennaRule::pwl_pair;
 %ignore odb::dbTechLayerAntennaRule::getDiffPAR() const;
@@ -76,6 +74,8 @@ using namespace odb;
 %ignore odb::Point::set(Orientation2D orient, int value);
 %ignore odb::Rect::bloat(int margin, Orientation2D orient) const;
 
+%ignore odb::dbGDSStructure::operator[];
+
 %include "dbenums.i"
 %include "parserenums.i"
 %include "dbtypes.i"
@@ -88,15 +88,16 @@ using namespace odb;
 %include "dbhelpers.i"  
 %include "dbdiff.i"
 
+%rename(getPoint_ext) odb::dbWireDecoder::getPoint(int& x, int& y, int& ext) const;
+
 %include "odb/dbViaParams.h"
 %include "odb/dbWireCodec.h"
 %include "odb/dbBlockCallBackObj.h"
 %include "odb/dbIterator.h"
 %include "odb/dbTransform.h"
 %include "odb/dbWireGraph.h"
-%include "odb/dbBlockSet.h"
-%include "odb/dbNetSet.h"
-%include "odb/dbCCSegSet.h"
+%include "odb/dbSet.h"
 %include "odb/wOrder.h"
 
 std::string generateMacroPlacementString(odb::dbBlock* block);
+
