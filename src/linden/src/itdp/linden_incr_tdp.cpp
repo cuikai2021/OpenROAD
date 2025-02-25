@@ -2190,9 +2190,9 @@ void timing_driven_cell_move(
     assumption_checker(linden_db, timing_arcs, ports);
 
     // select movable cells
-    auto movable_cells = move(select_movable_cells(linden_db, timing_arcs, seq_pins));
+    auto movable_cells = select_movable_cells(linden_db, timing_arcs, seq_pins);
     // extend_movable_cells(linden_db, movable_cells);
-    auto movable_nets = move(find_movable_nets(linden_db, movable_cells, seq_pins));
+    auto movable_nets = find_movable_nets(linden_db, movable_cells, seq_pins);
 
     spdlog::info(dot_2lines);
     spdlog::info("Original Circuit: ");

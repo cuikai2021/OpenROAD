@@ -82,10 +82,10 @@ void GraphicsInner::draw_insts(gui::Painter& painter) const
             stdcells.emplace_back(cell);
         }
     }
-    draw_fixed(painter, std::move(db_->fixed_insts()));
+    draw_fixed(painter, db_->fixed_insts());
     draw_stdcells(painter, std::move(stdcells));
     draw_macros(painter, std::move(macros));
-    draw_fillers(painter, std::move(db_->fillers()));
+    draw_fillers(painter, db_->fillers());
 }
 
 void GraphicsInner::draw_fixed(

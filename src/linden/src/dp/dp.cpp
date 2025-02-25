@@ -280,7 +280,7 @@ int exec_incr_dp(
         args.push_back("--baseline");
         args.push_back(*cfg.baseline_def);
     }
-    auto exe = std::move(get_incr_dp_exe());
+    auto exe = get_incr_dp_exe();
     return exec(cfg, exe, args);
 }
 
@@ -294,7 +294,7 @@ int exec_routability_driven_dp(
     args.push_back(input_cfg);
     args.push_back("--to");
     args.push_back(outdef);
-    auto exe = std::move(get_routability_driven_dp_exe());
+    auto exe = get_routability_driven_dp_exe();
     return exec(cfg, exe, args);
 }
 
@@ -308,7 +308,7 @@ int exec_pbdef(
     args.push_back(from);
     args.push_back("--to");
     args.push_back(to);
-    auto exe = std::move(get_pbdef_exe());
+    auto exe = get_pbdef_exe();
     return exec(cfg, exe, args);
 }
 
@@ -323,7 +323,7 @@ int exec_opt(
     args.push_back("--to");
     args.push_back(outdef);
     args.push_back("--cell-only");
-    auto exe = std::move(get_opt_exe());
+    auto exe = get_opt_exe();
     return exec(cfg, exe, args);
 }
 
