@@ -562,12 +562,19 @@ void ICeWall::placePad(odb::dbMaster* master,
     return;
   }
 
+  if (row->getDirection() == odb::dbRowDir::HORIZONTAL) {
+    location += block->getDieArea().yMin();
+  } else {
+    location += block->getDieArea().xMin();
+  }
+
   odb::dbInst* inst = block->findInst(name.c_str());
   if (inst == nullptr) {
     if (master == nullptr) {
       logger_->error(
           utl::PAD, 18, "Unable to create instance {} without master", name);
     }
+    logger_->info(utl::PAD, 8, "Create instance {} with {}", name, master->getName());
     inst = odb::dbInst::create(block, master, name.c_str());
   }
 
