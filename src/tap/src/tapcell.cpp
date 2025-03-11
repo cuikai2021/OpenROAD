@@ -162,12 +162,7 @@ int Tapcell::placeTapcells(odb::dbMaster* tapcell_master,
     edge_rows.insert(rows.begin(), rows.end());
   }
 
-  std::vector<odb::dbInst*> fixed_insts;
-  for (auto* inst : db_->getChip()->getBlock()->getInsts()) {
-    if (inst->isFixed()) {
-      fixed_insts.push_back(inst);
-    }
-  }
+  auto fixed_insts = getFixedInsts();
   InstTree instancetree(fixed_insts.begin(), fixed_insts.end());
 
   int inst = 0;
@@ -1012,19 +1007,6 @@ Tapcell::CornerMap Tapcell::placeEndcapCorner(const Tapcell::Corner& corner,
       break;
   }
 
-  debugPrint(
-      logger_,
-      utl::TAP,
-      "Endcap",
-      2,
-      "Generating corner cell {} at ({}, {}) with master {} in row {} with {}",
-      toString(corner.type),
-      corner.pt.getX(),
-      corner.pt.getY(),
-      master != nullptr ? master->getName() : "none",
-      row->getName(),
-      row_orient.getString());
-
   if (master == nullptr) {
     return {};
   }
@@ -1079,6 +1061,31 @@ Tapcell::CornerMap Tapcell::placeEndcapCorner(const Tapcell::Corner& corner,
     return {};
   }
 
+  CornerMap map;
+
+  // Check corner if exists fixed inst
+  odb::Rect corner_box(ll.getX(),
+                       ll.getY(),
+                       ll.getX() + master->getWidth(),
+                       ll.getY() + master->getHeight());
+  for (auto* inst : getFixedInsts()) {
+    const odb::Rect inst_box = inst->getBBox()->getBox();
+    if (corner_box.overlaps(inst_box)) {
+      logger_->info(utl::TAP,
+                    5001,
+                    "Skipping Corner {} at ({}, {}) for endcap placement: "
+                    "occupied by fixed instance {}.",
+                    toString(corner.type),
+                    corner_box.xMin(),
+                    corner_box.yMin(),
+                    inst->getName());
+      // Note: In order to see that the corner already has inst when inserting
+      // endcap at the edge later.
+      map[row].insert(inst);
+      return map;
+    }
+  }
+
   auto inst = makeInstance(db_->getChip()->getBlock(),
                            master,
                            orient,
@@ -1089,8 +1096,20 @@ Tapcell::CornerMap Tapcell::placeEndcapCorner(const Tapcell::Corner& corner,
                                        row->getName(),
                                        toString(corner.type)));
 
-  CornerMap map;
   map[row].insert(inst);
+
+  debugPrint(
+      logger_,
+      utl::TAP,
+      "Endcap",
+      2,
+      "Generating corner cell {} at ({}, {}) with master {} in row {} with {}",
+      toString(corner.type),
+      corner.pt.getX(),
+      corner.pt.getY(),
+      master != nullptr ? master->getName() : "none",
+      row->getName(),
+      row_orient.getString());
 
   return map;
 }
@@ -1201,10 +1220,12 @@ int Tapcell::placeEndcapEdgeHorizontal(const Tapcell::Edge& edge,
   ll.setX(e0.getX());
 
   auto pick_next_master
-      = [&e1, &masters](const odb::Point& ll) -> odb::dbMaster* {
-    int remaining = e1.getX() - ll.getX();
+      = [&masters, row, this](const odb::Point& l,
+                              const odb::Point& r) -> odb::dbMaster* {
+    int remaining = r.getX() - l.getX();
     for (auto* master : masters) {
-      if (remaining % master->getWidth() == 0) {
+      if ((remaining % master->getWidth() == 0)
+          && checkSymmetry(master, row->getOrient())) {
         return master;
       }
     }
@@ -1212,19 +1233,66 @@ int Tapcell::placeEndcapEdgeHorizontal(const Tapcell::Edge& edge,
     return masters[masters.size() - 1];
   };
 
+  // Get fixed instances from the current row.
+  std::set<odb::dbInst*> row_fixed_insts;
+  for (auto* inst : getFixedInsts()) {
+    const odb::Rect inst_box = inst->getBBox()->getBox();
+    if (inst_box.yMin() == ll.y()
+        && (inst_box.yMax() == ll.y() + site->getHeight())) {
+      row_fixed_insts.insert(inst);
+    }
+  }
+
   while (ll.getX() < e1.getX()) {
-    auto* master = pick_next_master(ll);
+    auto* master = pick_next_master(ll, e1);
 
     debugPrint(logger_,
                utl::TAP,
                "Endcap",
                3,
-               "From {} -> {}: picked {}",
+               "From ll({}) -> end({}): picked {}",
                ll.getX(),
                e1.getX(),
                master->getName());
 
-    if (!checkSymmetry(master, row->getOrient())) {
+    // Check if the current position is occupied by a fixed instance
+    bool occupied = false;
+    const odb::Rect endcap_box(ll.getX(),
+                               ll.getY(),
+                               ll.getX() + master->getWidth(),
+                               ll.getY() + master->getHeight());
+    for (auto* inst : row_fixed_insts) {
+      const odb::Rect inst_box = inst->getBBox()->getBox();
+      if (endcap_box.overlaps(inst_box)) {
+        occupied = true;
+        if (inst_box.xMin() == ll.getX()) {
+          debugPrint(logger_,
+                     utl::TAP,
+                     "Endcap",
+                     3,
+                     "Skip {} at {}, next location is {}",
+                     inst->getName(),
+                     ll.getX(),
+                     ll.getX() + inst_box.dx());
+          ll.addX(inst_box.dx());
+        } else {
+          master = pick_next_master(ll, inst_box.ll());
+          debugPrint(logger_,
+                     utl::TAP,
+                     "Endcap",
+                     3,
+                     "From ll({}) -> {}({}): picked {}",
+                     ll.getX(),
+                     inst->getName(),
+                     inst_box.xMin(),
+                     master->getName());
+          occupied = false;
+        }
+        break;
+      }
+    }
+
+    if (occupied) {
       continue;
     }
 
@@ -1517,6 +1585,17 @@ bool Tapcell::Edge::operator==(const Edge& edge) const
   return type == edge.type
          && ((pt0 == edge.pt0 && pt1 == edge.pt1)
              || (pt0 == edge.pt1 && pt1 == edge.pt0));
+}
+
+std::set<odb::dbInst*> Tapcell::getFixedInsts()
+{
+  std::set<odb::dbInst*> fixed_insts;
+  for (auto* inst : db_->getChip()->getBlock()->getInsts()) {
+    if (inst->isFixed()) {
+      fixed_insts.insert(inst);
+    }
+  }
+  return fixed_insts;
 }
 
 }  // namespace tap

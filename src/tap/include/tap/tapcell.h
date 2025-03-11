@@ -128,6 +128,7 @@ class Tapcell
 
   void placeEndcaps(const EndcapCellOptions& options);
   void placeTapcells(const Options& options);
+  std::set<odb::dbInst*> getFixedInsts();
 
  private:
   enum class EdgeType
