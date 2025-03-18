@@ -799,7 +799,7 @@ void dbTechLayerSpacingRule::writeLef(lefout& writer) const
     }
   } else if (getLengthThreshold(length_or_influence)) {
     fmt::print(writer.out(),
-               "_dbTechLayerSpacingRule::LENGTHTHRESHOLD {:g} ",
+               "LENGTHTHRESHOLD {:g} ",
                writer.lefdist(length_or_influence));
     if (getLengthThresholdRange(rmin, rmax)) {
       fmt::print(writer.out(),
