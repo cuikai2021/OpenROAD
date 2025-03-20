@@ -1,5 +1,6 @@
 #include <assert.h>
 #include "ChristofidesSpanningGraph.h"
+#include "CompleteGraphStrategy.h"
 
 namespace sc {
 
@@ -52,7 +53,7 @@ int ChristofidesTsp::run()
   }
 
   sc::Graph graph = sc::Graph(points);
-  graph.construct(new sc::ZhouSpanningGraphStrategy);
+  graph.construct(new sc::CompleteGraphStrategy);
   lemon::SmartGraph sgr;
   lemon::SmartGraph::EdgeMap<int> scost(sgr);
   for (int i = 0; i != int(odd_nodes.size()); ++i) {

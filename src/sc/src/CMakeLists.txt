@@ -10,6 +10,7 @@ target_sources(sc
   PRIVATE
     Graph.cpp
     ZhouSpanningGraphStrategy.cpp
+    CompleteGraphStrategy.cpp
     DisjointSet.cpp
     Kruskal.cpp
     ScanChain.cpp

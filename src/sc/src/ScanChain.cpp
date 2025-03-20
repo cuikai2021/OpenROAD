@@ -1,8 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include "sc/ScanChain.h"
-#include "ZhouSpanningGraphStrategy.h"
-#include "Kruskal.h"
+
+#include <CompleteGraphStrategy.h>
+
 #include "Graph.h"
 #include "odb/db.h"
 #include "utl/Logger.h"
@@ -134,7 +135,7 @@ std::vector<Graph::NodeId> ScanChain::reorderScanChain(const odb::dbScanChain *s
                                                        const std::vector<Point> &points) {
 
   sc::Graph graph = sc::Graph(points);
-  graph.construct(new sc::ZhouSpanningGraphStrategy);
+  graph.construct(new sc::CompleteGraphStrategy);
 
   lemon::ListGraph gr;
   lemon::ListGraph::EdgeMap<int> cost(gr);
@@ -318,6 +319,11 @@ bool ScanChain::traceScanChain(const odb::dbScanChain *scan_chain, double& dista
       logger_->info(SC, 4, "Total wire length of scan chain {} is {}.", scan_chain->getName(), distance);
       logger_->info(SC, 5, "Successfully traced scan chain {}, total {} scan bits.", scan_chain->getName(), inst_count);
       return true;
+    }
+
+    if (out == nullptr) {
+      logger_->warn(SC, 11, "scan {} invalid on net {}.", scan_chain->getName(), net->getName());
+      return false;
     }
   }
 
