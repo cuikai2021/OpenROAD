@@ -279,9 +279,9 @@ linden::gp::Config {
 [nPlace] Iter: 200 overflow: 0.737527 HPWL: 4071551
 [nPlace] Iter: 210 overflow: 0.704091 HPWL: 4191702
 [nPlace] Iter: 220 overflow: 0.675471 HPWL: 4246398
-[nPlace] Iter: 230 overflow: 0.643179 HPWL: 4370512
+[nPlace] Iter: 230 overflow: 0.642898 HPWL: 4369914
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.421306406 ns
+[gpl/Netw] slack_worst: 1.421303519 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
@@ -289,59 +289,57 @@ linden::gp::Config {
 [gpl/Netw] slack_head_net_cnt: 35
 [gpl/Netw] slack_cent_net_cnt: 195
 [gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 240 overflow: 0.6088 HPWL: 4556281
-[nPlace] Iter: 250 overflow: 0.577962 HPWL: 4727257
-[nPlace] Iter: 260 overflow: 0.54429 HPWL: 4906905
-[nPlace] Iter: 270 overflow: 0.510155 HPWL: 5037940
+[nPlace] Iter: 240 overflow: 0.601655 HPWL: 4587412
+[nPlace] Iter: 250 overflow: 0.575214 HPWL: 4757660
+[nPlace] Iter: 260 overflow: 0.544114 HPWL: 4954033
+[nPlace] Iter: 270 overflow: 0.51328 HPWL: 5038014
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.418739792 ns
+[gpl/Netw] slack_worst: 1.418737683 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
 [gpl/Netw] slack_not_found_net_cnt: 0
-[gpl/Netw] slack_head_net_cnt: 34
+[gpl/Netw] slack_head_net_cnt: 35
 [gpl/Netw] slack_cent_net_cnt: 195
-[gpl/Netw] slack_tail_net_cnt: 92
-[nPlace] Iter: 280 overflow: 0.474491 HPWL: 5140596
-[nPlace] Iter: 290 overflow: 0.445593 HPWL: 5233606
-[nPlace] Iter: 300 overflow: 0.405641 HPWL: 5325516
-[nPlace] Iter: 310 overflow: 0.380248 HPWL: 5371155
-[nPlace] Iter: 320 overflow: 0.343211 HPWL: 5385056
-[nPlace] Iter: 330 overflow: 0.318891 HPWL: 5415826
-[nPlace] Iter: 340 overflow: 0.288087 HPWL: 5453007
+[gpl/Netw] slack_tail_net_cnt: 91
+[nPlace] Iter: 280 overflow: 0.470661 HPWL: 5155054
+[nPlace] Iter: 290 overflow: 0.449432 HPWL: 5179494
+[nPlace] Iter: 300 overflow: 0.403263 HPWL: 5302331
+[nPlace] Iter: 310 overflow: 0.385589 HPWL: 5386854
+[nPlace] Iter: 320 overflow: 0.33765 HPWL: 5341730
+[nPlace] Iter: 330 overflow: 0.313423 HPWL: 5429432
+[nPlace] Iter: 340 overflow: 0.304246 HPWL: 5405341
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.415560336 ns
+[gpl/Netw] slack_worst: 1.415515705 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
 [gpl/Netw] slack_not_found_net_cnt: 0
-[gpl/Netw] slack_head_net_cnt: 29
-[gpl/Netw] slack_cent_net_cnt: 201
+[gpl/Netw] slack_head_net_cnt: 27
+[gpl/Netw] slack_cent_net_cnt: 203
 [gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 340 overflow: 0.287967 HPWL: 5459405
-[nPlace] Iter: 350 overflow: 0.259008 HPWL: 5518659
-[nPlace] Iter: 360 overflow: 0.239452 HPWL: 5507655
-[nPlace] Iter: 370 overflow: 0.212725 HPWL: 5537715
+[nPlace] Iter: 350 overflow: 0.26481 HPWL: 5467073
+[nPlace] Iter: 360 overflow: 0.235836 HPWL: 5519028
+[nPlace] Iter: 370 overflow: 0.217068 HPWL: 5553120
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.414343420 ns
+[gpl/Netw] slack_worst: 1.415102480 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
 [gpl/Netw] slack_not_found_net_cnt: 0
-[gpl/Netw] slack_head_net_cnt: 28
-[gpl/Netw] slack_cent_net_cnt: 202
+[gpl/Netw] slack_head_net_cnt: 35
+[gpl/Netw] slack_cent_net_cnt: 195
 [gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 380 overflow: 0.193243 HPWL: 5629156
-[nPlace] Iter: 390 overflow: 0.171482 HPWL: 5641963
-[nPlace] Iter: 400 overflow: 0.149208 HPWL: 5693126
-[nPlace] Iter: 410 overflow: 0.140492 HPWL: 5741646
-[nPlace] Iter: 420 overflow: 0.131936 HPWL: 5781943
-[nPlace] Iter: 430 overflow: 0.118658 HPWL: 5859135
-[nPlace] Iter: 440 overflow: 0.101982 HPWL: 5941512
+[nPlace] Iter: 380 overflow: 0.195802 HPWL: 5654606
+[nPlace] Iter: 390 overflow: 0.172008 HPWL: 5686676
+[nPlace] Iter: 400 overflow: 0.155767 HPWL: 5729711
+[nPlace] Iter: 410 overflow: 0.142289 HPWL: 5781809
+[nPlace] Iter: 420 overflow: 0.124511 HPWL: 5808171
+[nPlace] Iter: 430 overflow: 0.11545 HPWL: 5872454
 [nPlace] target overflow.
 {
   "gp": {
-    "iter": 404
+    "iter": 424
   }
 }worst slack 1.37
 No differences found.
