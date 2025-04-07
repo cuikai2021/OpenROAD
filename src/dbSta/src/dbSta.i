@@ -188,7 +188,7 @@ void
 write_verilog_cmd(const char *filename,
 		  bool sort,
 		  bool include_pwr_gnd,
-		  bool exclude_not_in_lib,
+		  bool exclude_physical_cells,
 		  CellSeq *remove_cells)
 {
   // This does NOT want the SDC (cmd) network because it wants
@@ -196,7 +196,7 @@ write_verilog_cmd(const char *filename,
   ord::OpenRoad *openroad = ord::getOpenRoad();  
   sta::dbSta *sta = openroad->getSta();
   Network *network = sta->network();
-  sta::writeVerilog(filename, sort, include_pwr_gnd, exclude_not_in_lib, remove_cells, network);
+  sta::writeVerilog(filename, sort, include_pwr_gnd, exclude_physical_cells, remove_cells, network);
   delete remove_cells;
 }
 
