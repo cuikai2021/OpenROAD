@@ -994,7 +994,7 @@ void extSpef::writeCouplingCaps(const std::vector<dbCCSeg*>& vec_cc,
 {
   char msg1[2048];
   for (dbCCSeg* cc : vec_cc) {
-    writeCNodeNumber();
+    // writeCNodeNumber();
 
     dbCapNode* scnode = cc->getSourceCapNode();
     dbCapNode* tcnode = cc->getTargetCapNode();
@@ -1019,6 +1019,8 @@ void extSpef::writeCouplingCaps(const std::vector<dbCCSeg*>& vec_cc,
       _bufString = nullptr;
       continue;
     }
+    writeCNodeNumber();
+
     writeCapNode(cc->getSourceCapNode(), netId);
     writeCapNode(cc->getTargetCapNode(), netId);
 

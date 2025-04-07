@@ -502,6 +502,7 @@ uint Ath__wire::getPitch()
 {
   return this->_track->getGrid()->_pitch;
 }
+// TODO: figure out why delete some codes in this function.
 uint Ath__grid::placeWire_v2(Ath__searchBox* bb)
 {
   uint d = !_dir;
@@ -523,12 +524,13 @@ uint Ath__grid::placeWire_v2(Ath__searchBox* bb)
 #else
 
   // ---------------------------------------------------
-  // DELETE --- v2= true  bool NO_SUB_TRACKS= getGridTable()->_no_sub_tracks; //
-  // old flow=false
+  // DELETE --- v2= true  
+  bool NO_SUB_TRACKS= getGridTable()->_no_sub_tracks; // old flow=false
   uint trackNum1 = getMinMaxTrackNum(bb->loXY(_dir));
-  // uint trackNum2 = trackNum1;
-  // DELETE if NO_SUB_TRACKS=true (!NO_SUB_TRACKS)
-  //  trackNum2 = getMinMaxTrackNum(bb->hiXY(_dir));
+  uint trackNum2 = trackNum1;
+  // DELETE 
+  if (!NO_SUB_TRACKS)
+   trackNum2 = getMinMaxTrackNum(bb->hiXY(_dir));
 
 #endif
 
@@ -537,16 +539,16 @@ uint Ath__grid::placeWire_v2(Ath__searchBox* bb)
   Ath__wire* w
       = makeWire(_dir, ll, ur, bb->getOwnerId(), bb->getOtherId(), wireType);
   Ath__track* track = getTrackPtr(trackNum1, _markerCnt);
-  /* DELETE
+  ///* DELETE
     int TTTsubt = NO_SUB_TRACKS ? 0 : 1;
     if (TTTsubt>0)
       track = getTrackPtr(trackNum1, _markerCnt, w->_base);
     else
       track = getTrackPtr(trackNum1, _markerCnt);
-  */
+  //*/
   // track->place2(w, m1, m2);
   track->place(w, m1);
-  /* DELETE
+  ///* DELETE
   uint wCnt = 1;
   for (uint ii = trackNum1 + 1; ii <= trackNum2; ii++) {
     Ath__wire* w1 = makeWire(w, wireType);
@@ -557,7 +559,7 @@ uint Ath__grid::placeWire_v2(Ath__searchBox* bb)
     track->place(w1, m1);
     wCnt++;
   }
-*/
+//*/
   return trackNum1;
 }
 extDistRC* extMeasureRC::getDiagUnderCC(extMetRCTable* rcModel,

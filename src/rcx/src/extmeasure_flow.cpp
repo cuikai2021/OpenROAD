@@ -778,178 +778,149 @@ void extMeasureRC::BubbleSort(Ath__array1D<extSegment*>* segTable)
       break;
   }
 }
-void extMeasureRC::OverSubRC_dist_new(dbRSeg* rseg1,
-                                      dbRSeg* rseg2,
-                                      int ouCovered,
-                                      int diagCovered,
-                                      int srcCovered)
+
+void extMeasureRC::OverSubRC_dist_new(dbRSeg *rseg1, dbRSeg *rseg2, int ouCovered, int diagCovered, int srcCovered)
 {
-  int lenOverSub = _len - ouCovered;
-  if (!(lenOverSub > 0))
-    return;
+    int lenOverSub = _len - ouCovered;
+    if (!(lenOverSub > 0))
+        return;
 
-  bool over1 = false;
-  bool openEnded = false;
-  // note: _dist>0
-  if (_diagResDist < 0)
-    openEnded = true;
-  else
-    over1 = true;
+    bool rvia1 = rseg1 != NULL && isVia(rseg1->getId());
+    bool rvia2 = rseg2 != NULL && isVia(rseg2->getId());
 
-  over1 = over1 && ((_dist != _diagResDist) && (_diagResDist == 200));
-  _underMet = 0;
-  for (uint jj = 0; jj < _metRCTable.getCnt(); jj++) {
-    extMetRCTable* rcModel = _metRCTable.get(jj);
-    double fr = 0;
-    double cc = 0;
-    double tot = 0;
-    /*
-        if (isolated) {
-          extDistRC* rc_last = rcModel->getOverFringeRC_last(_met, _width);
-          if (rc_last == NULL)
-            continue;
-          fr = 2 * rc_last->_fringe * lenOverSub;
-          tot = _extMain->updateTotalCap(rseg1, fr, jj);
+    bool over1 = false;
+    bool openEnded = false;
+    // note: _dist>0
+    if (_diagResDist < 0)
+        openEnded = true;
+    else
+        over1 = true;
+
+    over1 = over1 && ((_dist != _diagResDist) && (_diagResDist == 200));
+    _underMet = 0;
+    for (uint jj = 0; jj < _metRCTable.getCnt(); jj++)
+    {
+        extMetRCTable *rcModel = _metRCTable.get(jj);
+        double fr = 0;
+        double cc = 0;
+        double tot = 0;
+        /*
+            if (isolated) {
+              extDistRC* rc_last = rcModel->getOverFringeRC_last(_met, _width);
+              if (rc_last == NULL)
+                continue;
+              fr = 2 * rc_last->_fringe * lenOverSub;
+              tot = _extMain->updateTotalCap(rseg1, fr, jj);
+            }
+            else */
+        if (openEnded)
+        {
+            float openFr = getOverRC_Open(rcModel, _width, _met, 0, _dist, _diagResDist);
+            fr = _tmpRC->_fringe * lenOverSub;
+            if (rseg1 != NULL)
+            {
+                tot = _extMain->updateTotalCap(rseg1, fr, jj);
+                if (IsDebugNet())
+                {
+                    DebugUpdateValue(stdout, "OverSubRC_dist_new-Openend", "FR", rseg1->getId(), fr, tot);
+                    DebugUpdateValue(_debugFP, "OverSubRC_dist_new-Openend", "FR", rseg1->getId(), fr, tot);
+                }
+            }
+            // if (!_sameNetFlag && !_useWeighted)
+            //    _extMain->updateTotalCap(rseg2, fr/2, jj);
+
+            cc = _tmpRC->_coupling * lenOverSub;
+            updateCoupCap(rseg1, rseg2, jj, cc, "OverSubRC_dist_new-openEnded");
+            tot += cc;
         }
-        else */
-    if (openEnded) {
-      getOverRC_Open(rcModel, _width, _met, 0, _dist, _diagResDist);
-      fr = _tmpRC->_fringe * lenOverSub;
-      if (rseg1 != NULL) {
-        tot = _extMain->updateTotalCap(rseg1, fr, jj);
-        if (IsDebugNet()) {
-          DebugUpdateValue(stdout,
-                           "OverSubRC_dist_new-Openend",
-                           "FR",
-                           rseg1->getId(),
-                           fr,
-                           tot);
-          DebugUpdateValue(_debugFP,
-                           "OverSubRC_dist_new-Openend",
-                           "FR",
-                           rseg1->getId(),
-                           fr,
-                           tot);
-        }
-      }
-      // if (!_sameNetFlag && !_useWeighted)
-      //    _extMain->updateTotalCap(rseg2, fr/2, jj);
+        // else if ((_dist!=_diagResDist) && (_diagResDist==200)){
+        else if (over1)
+        {
+            extDistRC *rc0 = rcModel->_capOver[_met]->getRC(0, _width, _diagResDist);
+            extDistRC *rc = rcModel->_capOver_open[_met][1]->getRC(0, _width, _dist);
+            extDistRC *rc1 = rcModel->_capOver[_met]->getRC(0, _width, _dist);
+            float fr0 = 2 * rc->_fringe * lenOverSub;
 
-      cc = _tmpRC->_coupling * lenOverSub;
-      updateCoupCap(rseg1, rseg2, jj, cc, "OverSubRC_dist_new-openEnded");
-      tot += cc;
+            // fr= (2*rc->_fringe - rc0->_fringe) * lenOverSub;
+            float delta_fr = (2 * rc->_fringe - (rc0->_fringe + rc1->_fringe)) * lenOverSub;
+            float fr1 = rc1->_fringe * lenOverSub;
+
+            float cc = rc->_coupling * lenOverSub;
+            float cc0 = rc0->_coupling * lenOverSub;
+            float cc1 = rc1->_coupling * lenOverSub;
+            float delta_cc = (2 * rc->_coupling - (rc0->_coupling + rc1->_coupling)) * lenOverSub;
+            cc += delta_cc;
+
+            float FR = getOver_over1(rcModel, _width, _met, 0, _diagResDist, _dist, lenOverSub);
+
+            float FR0 = _tmpRC->_fringeW * lenOverSub;
+            float FR1 = _tmpRC->_fringe * lenOverSub;
+            float CC = _tmpRC->_coupling * lenOverSub;
+
+            // if (FR0!=fr0 || FR1!=fr1) {
+            //  fprintf(stdout, "ERROR getOver_over1\n");
+            // }
+
+            tot = _extMain->updateTotalCap(rseg1, FR0, jj);
+            if (IsDebugNet())
+            {
+                DebugUpdateValue(stdout, "OverSubRC_dist_new-Over1", "FR", rseg1->getId(), FR0, tot);
+                DebugUpdateValue(_debugFP, "OverSubRC_dist_new-Over1", "FR", rseg1->getId(), FR0, tot);
+            }
+            if (!_sameNetFlag)
+            {
+                double tot1 = _extMain->updateTotalCap(rseg2, FR1, jj);
+                if (IsDebugNet())
+                {
+                    DebugUpdateValue(stdout, "OverSubRC_dist_new-Over1", "FR", rseg2->getId(), FR1, tot1);
+                    DebugUpdateValue(_debugFP, "OverSubRC_dist_new-Over1", "FR", rseg2->getId(), FR1, tot1);
+                }
+            }
+
+            updateCoupCap(rseg1, rseg2, jj, CC, "OverSubRC_dist_new-Over1");
+            tot += cc;
+        }
+        else
+        {
+            extDistRC *rc = getOverRC(rcModel);
+            fr = rc->_fringe * lenOverSub;
+            tot = _extMain->updateTotalCap(rseg1, fr, jj);
+            if (IsDebugNet() && rseg1 != NULL)
+            {
+                DebugUpdateValue(stdout, "OverSubRC_dist_new-else", "FR", rseg1->getId(), fr, tot);
+                DebugUpdateValue(_debugFP, "OverSubRC_dist_new-else", "FR", rseg1->getId(), fr, tot);
+            }
+            if (!_sameNetFlag)
+            {
+                _extMain->updateTotalCap(rseg2, fr, jj);
+                if (IsDebugNet())
+                {
+                    DebugUpdateValue(stdout, "OverSubRC_dist_new-else", "FR", rseg2->getId(), fr, tot);
+                    DebugUpdateValue(_debugFP, "OverSubRC_dist_new-else", "FR", rseg2->getId(), fr, tot);
+                }
+            }
+            cc = rc->_coupling * lenOverSub;
+            updateCoupCap(rseg1, rseg2, jj, cc, "OverSubRC_dist_new-else");
+            tot += cc;
+
+            bool useWeighFr = true;
+            if (useWeighFr && rseg1 != NULL)
+            {
+                float frw = getOverR_weightedFringe(rcModel, _width, _met, 0, _dist, _diagResDist);
+                float total_weighted_fringe = frw * lenOverSub;
+                double tot2 = _extMain->updateTotalCap(rseg1, total_weighted_fringe, jj);
+                tot += tot2;
+                if (IsDebugNet())
+                {
+                    DebugUpdateValue(stdout, "OverSubRC_dist_new-else-weight", "FR", rseg1->getId(), total_weighted_fringe, tot2);
+                    DebugUpdateValue(_debugFP, "OverSubRC_dist_new-else-weight", "FR", rseg1->getId(), total_weighted_fringe, tot2);
+                }
+            }
+        }
+          const char *msg = "OverSubRC_dist (With Neighbor)";
     }
-    // else if ((_dist!=_diagResDist) && (_diagResDist==200)){
-    else if (over1) {
-      extDistRC* rc0 = rcModel->_capOver[_met]->getRC(0, _width, _diagResDist);
-      extDistRC* rc = rcModel->_capOver_open[_met][1]->getRC(0, _width, _dist);
-      extDistRC* rc1 = rcModel->_capOver[_met]->getRC(0, _width, _dist);
-
-      // float delta_fr = (2 * rc->_fringe - (rc0->_fringe + rc1->_fringe)) *
-      // lenOverSub; float fr1 = rc1->_fringe * lenOverSub;
-
-      // float cc = rc->_coupling * lenOverSub;
-      // float cc0 = rc0->_coupling * lenOverSub;
-      // float cc1 = rc1->_coupling * lenOverSub;
-      float delta_cc = (2 * rc->_coupling - (rc0->_coupling + rc1->_coupling))
-                       * lenOverSub;
-      cc += delta_cc;
-
-      // float FR = getOver_over1(rcModel, _width, _met, 0, _diagResDist, _dist,
-      // lenOverSub);
-
-      float FR0 = _tmpRC->_fringeW * lenOverSub;
-      float FR1 = _tmpRC->_fringe * lenOverSub;
-      float CC = _tmpRC->_coupling * lenOverSub;
-
-      // if (FR0!=fr0 || FR1!=fr1) {
-      //  fprintf(stdout, "ERROR getOver_over1\n");
-      // }
-
-      tot = _extMain->updateTotalCap(rseg1, FR0, jj);
-      if (IsDebugNet()) {
-        DebugUpdateValue(
-            stdout, "OverSubRC_dist_new-Over1", "FR", rseg1->getId(), FR0, tot);
-        DebugUpdateValue(_debugFP,
-                         "OverSubRC_dist_new-Over1",
-                         "FR",
-                         rseg1->getId(),
-                         FR0,
-                         tot);
-      }
-      if (!_sameNetFlag) {
-        double tot1 = _extMain->updateTotalCap(rseg2, FR1, jj);
-        if (IsDebugNet()) {
-          DebugUpdateValue(stdout,
-                           "OverSubRC_dist_new-Over1",
-                           "FR",
-                           rseg2->getId(),
-                           FR1,
-                           tot1);
-          DebugUpdateValue(_debugFP,
-                           "OverSubRC_dist_new-Over1",
-                           "FR",
-                           rseg2->getId(),
-                           FR1,
-                           tot1);
-        }
-      }
-
-      updateCoupCap(rseg1, rseg2, jj, CC, "OverSubRC_dist_new-Over1");
-      tot += cc;
-    } else {
-      extDistRC* rc = getOverRC(rcModel);
-      fr = rc->_fringe * lenOverSub;
-      tot = _extMain->updateTotalCap(rseg1, fr, jj);
-      if (IsDebugNet() && rseg1 != NULL) {
-        DebugUpdateValue(
-            stdout, "OverSubRC_dist_new-else", "FR", rseg1->getId(), fr, tot);
-        DebugUpdateValue(
-            _debugFP, "OverSubRC_dist_new-else", "FR", rseg1->getId(), fr, tot);
-      }
-      if (!_sameNetFlag) {
-        _extMain->updateTotalCap(rseg2, fr, jj);
-        if (IsDebugNet()) {
-          DebugUpdateValue(
-              stdout, "OverSubRC_dist_new-else", "FR", rseg2->getId(), fr, tot);
-          DebugUpdateValue(_debugFP,
-                           "OverSubRC_dist_new-else",
-                           "FR",
-                           rseg2->getId(),
-                           fr,
-                           tot);
-        }
-      }
-      cc = rc->_coupling * lenOverSub;
-      updateCoupCap(rseg1, rseg2, jj, cc, "OverSubRC_dist_new-else");
-      tot += cc;
-
-      bool useWeighFr = true;
-      if (useWeighFr && rseg1 != NULL) {
-        float frw = getOverR_weightedFringe(
-            rcModel, _width, _met, 0, _dist, _diagResDist);
-        float total_weighted_fringe = frw * lenOverSub;
-        double tot2
-            = _extMain->updateTotalCap(rseg1, total_weighted_fringe, jj);
-        tot += tot2;
-        if (IsDebugNet()) {
-          DebugUpdateValue(stdout,
-                           "OverSubRC_dist_new-else-weight",
-                           "FR",
-                           rseg1->getId(),
-                           total_weighted_fringe,
-                           tot2);
-          DebugUpdateValue(_debugFP,
-                           "OverSubRC_dist_new-else-weight",
-                           "FR",
-                           rseg1->getId(),
-                           total_weighted_fringe,
-                           tot2);
-        }
-      }
-    }
-  }
 }
+
 int extMeasureRC::computeAndStoreRC_new(dbRSeg* rseg1,
                                         dbRSeg* rseg2,
                                         int srcCovered)

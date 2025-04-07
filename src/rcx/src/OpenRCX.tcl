@@ -177,6 +177,7 @@ proc extract_parasitics { args } {
 }
 
 sta::define_cmd_args "write_spef" {
+  [-corner corner]
   [-net_id net_id]
   [-nets nets]
   [-coordinates]
@@ -184,7 +185,7 @@ sta::define_cmd_args "write_spef" {
 
 proc write_spef { args } {
   sta::parse_key_args "write_spef" args \
-    keys { -net_id -nets } \
+    keys { -corner -net_id -nets } \
     flags { -coordinates }
   sta::check_argc_eq1 "write_spef" $args
 
@@ -194,6 +195,10 @@ proc write_spef { args } {
   if { [info exists keys(-nets)] } {
     set nets $keys(-nets)
   }
+  set corner -1 
+  if { [info exists keys(-corner)] } {
+    set corner [file nativename $keys(-corner)]
+  }
 
   set net_id 0
   if { [info exists keys(-net_id)] } {
@@ -202,7 +207,7 @@ proc write_spef { args } {
 
   set coordinates [info exists flags(-coordinates)]
 
-  rcx::write_spef $spef_file $nets $net_id $coordinates
+  rcx::write_spef $spef_file $corner $nets $net_id $coordinates
 }
 
 sta::define_cmd_args "adjust_rc" {

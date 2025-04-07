@@ -413,6 +413,8 @@ uint extRCModel::linesDiagUnderBench(extMainOptions* opt)
     opt->_ur[0] = std::max(opt->_ur[0], measure._ur[0]);
     opt->_ur[1] = std::max(opt->_ur[1], measure._ur[1]);
   }
+  // dkf 12312023 -- to create separation for VIA patterns
+  opt->_ur[0] += patternSep;
 
   logger_->info(RCX,
                 58,
@@ -545,12 +547,10 @@ uint extMain::benchWires(extMainOptions* opt)
     m->linesUnderBench(opt);
     m->linesDiagUnderBench(opt);
 
-    /* TODO for v1 vs. v12 patterns
+    // TODO for v1 vs. v12 patterns
     int LL[2]= {opt->_ur[0], 0};
     int UR[2]= {opt->_ur[0], 0};
-     m->ViaRulePat(opt, opt->_len, LL, UR, false, false, opt->_overDist); //
-    over
-    */
+    m->ViaRulePat(opt, opt->_len, LL, UR, false, false, opt->_overDist); //over
 
   } else {
     if (opt->_over) {

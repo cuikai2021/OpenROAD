@@ -630,23 +630,7 @@ class extMeasureRC : public extMeasure
                          int dist,
                          int len,
                          const char* msg);
-  // dkf 09292023
-  void DebugUpdateValue(FILE* fp,
-                        const char* msg,
-                        const char* cap_type,
-                        int rsegId,
-                        double v,
-                        double updated_v);
-  void DebugPrintNetids(FILE* fp,
-                        const char* msg,
-                        int rsegId,
-                        const char* eol = "\n");
-  void DebugUpdateCC(FILE* fp,
-                     const char* msg,
-                     int rsegId,
-                     int rseg2,
-                     double v,
-                     double tot);
+
   bool DebugCoords(FILE* fp, int rsegId, int ll[2], int ur[2], const char* msg);
   const char* GetSrcWord(int rsegId);
   void ResetRCs();
@@ -1091,6 +1075,11 @@ class extMeasureRC : public extMeasure
   bool printProgress(uint totalWiresExtracted,
                      uint totWireCnt,
                      float& previous_percent_extracted);
+
+  extDistRC* addRC(extDistRC* rcUnit, uint len, uint jj, double frw);
+  virtual extDistRC* computeUnderRC(uint len);
+  virtual extDistRC* computeOverUnderRC(uint len);
+  virtual extDistRC* computeOverRC(uint len);
 };
 
 }  // namespace rcx

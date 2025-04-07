@@ -184,6 +184,7 @@ uint extSpef::getBTermId(const char* name)
     return 1;
   }
 
+  name = removeBackSlash(name);
   dbBTerm* bterm = _block->findBTerm(name);
   if (!bterm) {
     logger_->error(RCX, 259, "Can't find bterm {} in db.", name);
@@ -729,6 +730,20 @@ void extSpef::setSpefFlag(const bool v)
   }
 }
 
+const char * extSpef::removeBackSlash(const char *name)
+{
+  Ath__parser parser(this->logger_);
+  int wCnt = parser.mkWords(name, "\\");
+  if (wCnt <= 1)
+      return name;
+
+  std::string str1 = parser.get(0);
+  for (uint ii = 1; ii < wCnt; ii++)
+      str1.append(parser.get(ii));
+
+  return strdup(str1.c_str());
+}
+
 dbNet* extSpef::getDbNet(uint* id, const uint spefId)
 {
   *id = 0;
@@ -737,7 +752,7 @@ dbNet* extSpef::getDbNet(uint* id, const uint spefId)
   }
 
   const char hierD = _block->getHierarchyDelimeter();
-  const char* netName = _spefName;
+  const char* netName = removeBackSlash(_spefName);
   const char* nName;
   if (!_mMap && _divider[0] != hierD) {
     uint ii = 0;
@@ -758,7 +773,7 @@ dbNet* extSpef::getDbNet(uint* id, const uint spefId)
   net = _block->findNet(nName);
   if (!_mMap || net) {
     if (!net) {
-      logger_->warn(RCX, 77, "Spef net {} not found in db.", netName);
+      logger_->error(RCX, 77, "Spef net {} not found in db.", netName);
       _unmatchedSpefNet++;
     } else {
       *id = net->getId();

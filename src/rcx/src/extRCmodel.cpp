@@ -2277,6 +2277,7 @@ uint extRCModel::addCapOver(uint met,
 extMeasure::extMeasure(utl::Logger* logger)
     : _create_net_util(logger), logger_(logger)
 {
+  _dist = 0;
   _met = -1;
   _underMet = -1;
   _overMet = -1;

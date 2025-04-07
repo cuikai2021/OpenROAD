@@ -71,6 +71,7 @@ void extract(const char* ext_model_file,
         );
 void
 write_spef(const char* file,
+           int corner,
            const char* nets,
            int net_id,
            bool coordinates);

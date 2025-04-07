@@ -251,17 +251,24 @@ void extMain::setExtractionOptions_v2(ExtractOptions options)
   _metal_flag_22 = 0;
   // fprintf(stdout, "RC Flow Version %5.3f enabled\n", _version);
   // notice(0, "RC Flow Version %5.3f enabled\n", _version);
-  if (abs(options._version - 2.2) < 0.001) {
+  if (fabs(options._version - 2.2) < 0.001) {
     _metal_flag_22 = 2;
     fprintf(stdout,
             "Version %5.3f enabled new RC calc flow for lower 2 metals\n",
             options._version);
   }
-  if (abs(options._version - 2.3) < 0.001) {
+  if (fabs(options._version - 2.3) < 0.001) {
     _metal_flag_22 = 3;
     fprintf(stdout,
-            "Version %5.3f enabled new RC calc flow for lower 2 metals\n",
+            "Version %5.3f enabled new RC calc flow for lower 3 metals\n",
             options._version);
+  }
+  if (options._version - 2.3 > 0.001) {
+    _metal_flag_22 = round((options._version - 2.0) / 0.1);
+    fprintf(stdout,
+            "Version %5.3f enabled new RC calc flow for lower %d metals\n",
+            options._version,
+            _metal_flag_22);
   }
   _v2 = options._v2;
   if (options._v2 >= 2.2)

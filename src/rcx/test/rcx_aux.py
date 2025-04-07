@@ -53,9 +53,10 @@ def extract_parasitics(
     design.getOpenRCX().extract(opts)
 
 
-def write_spef(design, *, filename="", nets="", net_id=0, coordinates=False):
+def write_spef(design, *, filename="", corner=-1, nets="", net_id=0, coordinates=False):
     opts = rcx.SpefOptions()
     opts.file = filename
+    opts.corner = corner
     opts.nets = nets
     opts.net_id = net_id
     if coordinates:

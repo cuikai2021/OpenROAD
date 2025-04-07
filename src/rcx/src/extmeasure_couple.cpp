@@ -1462,10 +1462,13 @@ void extMeasureRC::OpenEnded1(extSegment* cc,
         // coupling cap object dbCCSeg
         ccCap = makeCcap(rseg, rseg2, cc);
       }
+      if (rseg2 != nullptr) {
+        cc /= 2;
+      }
       if (ccCap != nullptr)
-        addCCcap(ccCap, cc / 2, ii);
+        addCCcap(ccCap, cc, ii);
       else
-        addFringe(rseg, rseg2, cc / 2, ii);
+        addFringe(rseg, rseg2, cc, ii);
 
     } else {
       updateCoupCap(rseg, rseg2, ii, cc);
@@ -1521,15 +1524,21 @@ void extMeasureRC::OverUnder(extSegment* cc,
         ccCap_up = makeCcap(rseg, rseg_up, cc_up);
         ccCap_down = makeCcap(rseg, rseg_down, cc_down);
       }
+      if (rseg_up != nullptr) {
+        cc_up /= 2;
+      }
+      if (rseg_down != nullptr) {
+        cc_down /= 2;
+      }
       if (ccCap_up != nullptr)
-        addCCcap(ccCap_up, cc_up / 2, ii);
+        addCCcap(ccCap_up, cc_up, ii);
       else
-        addFringe(rseg, rseg_up, cc_up / 2, ii);
+        addFringe(rseg, rseg_up, cc_up, ii);
 
       if (ccCap_down != nullptr)
-        addCCcap(ccCap_down, cc_down / 2, ii);
+        addCCcap(ccCap_down, cc_down, ii);
       else
-        addFringe(rseg, rseg_down, cc_down / 2, ii);
+        addFringe(rseg, rseg_down, cc_down, ii);
     } else {
       updateCoupCap(rseg, rseg_up, ii, cc_up);
       updateCoupCap(rseg, rseg_down, ii, cc_down);
@@ -1600,15 +1609,21 @@ void extMeasureRC::Model1(extSegment* cc,
         ccCap_up = makeCcap(rseg1, rseg_up, cc_up);
         ccCap_down = makeCcap(rseg1, rseg_down, cc_down);
       }
+      if (rseg_up != nullptr) {
+        cc_up /= 2;
+      }
+      if (rseg_down != nullptr) {
+        cc_down /= 2;
+      }
       if (ccCap_up != nullptr)
-        addCCcap(ccCap_up, cc_up / 2, ii);
+        addCCcap(ccCap_up, cc_up, ii);
       else
-        addFringe(rseg1, rseg_up, cc_up / 2, ii);
+        addFringe(rseg1, rseg_up, cc_up, ii);
 
       if (ccCap_down != nullptr)
-        addCCcap(ccCap_down, cc_down / 2, ii);
+        addCCcap(ccCap_down, cc_down, ii);
       else
-        addFringe(rseg1, rseg_down, cc_down / 2, ii);
+        addFringe(rseg1, rseg_down, cc_down, ii);
     } else {
       updateCoupCap(rseg1, rseg_up, ii, cc_up);
       updateCoupCap(rseg1, rseg_down, ii, cc_down);

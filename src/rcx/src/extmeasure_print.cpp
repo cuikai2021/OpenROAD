@@ -602,7 +602,7 @@ void extMeasureRC::printDebugRC_diag(FILE* fp,
   printDebugRC(fp, rc, msg);
   fprintf(fp, "\n");
 }
-void extMeasureRC::DebugPrintNetids(FILE* fp,
+void extMeasure::DebugPrintNetids(FILE* fp,
                                     const char* msg,
                                     int rsegId,
                                     const char* eol)
@@ -628,7 +628,7 @@ void extMeasureRC::DebugPrintNetids(FILE* fp,
           net->getConstName(),
           eol);
 }
-void extMeasureRC::DebugUpdateValue(FILE* fp,
+void extMeasure::DebugUpdateValue(FILE* fp,
                                     const char* msg,
                                     const char* cap_type,
                                     int rsegId,
@@ -642,7 +642,7 @@ void extMeasureRC::DebugUpdateValue(FILE* fp,
   DebugPrintNetids(fp, "", rsegId);
   fprintf(fp, "\n");
 }
-void extMeasureRC::DebugUpdateCC(FILE* fp,
+void extMeasure::DebugUpdateCC(FILE* fp,
                                  const char* msg,
                                  int rseg1,
                                  int rseg2,

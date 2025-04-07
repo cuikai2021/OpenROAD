@@ -425,7 +425,7 @@ uint extMeasure::initWS_box(extMainOptions* opt, uint gridCnt)
   _pitch = layer->getPitch();
   _minSpace = _pitch - _minWidth;
   _dir = layer->getDirection() == dbTechLayerDir::HORIZONTAL ? 1 : 0;
-
+  gridCnt = 40;
   uint patternSep = gridCnt * (_minWidth + _minSpace);
 
   _ll[0] = opt->_ur[0] + patternSep;
@@ -2066,9 +2066,21 @@ void extMeasure::createCap(int rsegId1, uint rsegId2, double* capTable)
   for (uint model = 0; model < modelCnt; model++) {
     if (ccCap != nullptr) {
       addCCcap(ccCap, capTable[model], model);
+      if (IsDebugNet())
+      {
+        double tot= ccCap->getCapacitance();
+        DebugUpdateCC(stdout, "diag-createCap", rsegId1, rsegId2, capTable[model], tot);
+        DebugUpdateCC(_debugFP, "diag-createCap", rsegId1, rsegId2, capTable[model], tot);
+      }
     } else {
       _rc[model]->_diag += capTable[model];
       addFringe(nullptr, rseg2, capTable[model], model);
+      if (IsDebugNet())
+      {
+        double tot = rseg2->getCapacitance();
+        DebugUpdateValue(stdout, "diag-createCap", "FR", rsegId2, capTable[model], tot);
+        DebugUpdateValue(_debugFP, "diag-createCap", "FR", rsegId2, capTable[model], tot);
+      }
       // FIXME IMPORTANT-TEST-FIRST addFringe(rseg1, rseg2, capTable[model],
       // model);
     }

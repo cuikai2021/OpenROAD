@@ -127,6 +127,7 @@ class extSpef
   void printAppearance(const int* appcnt, int tapp);
 
  private:
+  const char * removeBackSlash(const char *name);
   void setLogger(Logger* logger);
   bool matchNetGndCap(odb::dbNet* net,
                       uint dbCorner,

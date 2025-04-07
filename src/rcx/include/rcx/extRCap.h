@@ -1042,7 +1042,7 @@ class extMeasure
                   uint planeIndex,
                   uint trackn,
                   Ath__array1D<SEQ*>* residueSeq);
-  void DebugRes_calc(FILE* fp,
+  virtual void DebugRes_calc(FILE* fp,
                      const char* msg,
                      int rsegId1,
                      const char* msg_len,
@@ -1053,7 +1053,7 @@ class extMeasure
                      double tot,
                      double R,
                      double unit,
-                     double prev);
+                     double prev) {}
 
   extDistRC* findRes(int dist1, int dist2, bool compute);
   bool DebugDiagCoords(int met,
@@ -1236,8 +1236,8 @@ class extMeasure
   void calcOU(uint len);
   void calcRC(odb::dbRSeg* rseg1, odb::dbRSeg* rseg2, uint totLenCovered);
   int getMaxDist(int tgtMet, uint modelIndex);
-  void calcRes(int rsegId1, uint len, int dist1, int dist2, int tgtMet);
-  void calcRes0(double* deltaRes,
+  virtual void calcRes(int rsegId1, uint len, int dist1, int dist2, int tgtMet);
+  virtual void calcRes0(double* deltaRes,
                 uint tgtMet,
                 uint len,
                 int dist1 = 0,
@@ -1299,9 +1299,9 @@ class extMeasure
                              uint diagWidth,
                              uint diagDist,
                              uint overMet);
-  extDistRC* computeOverUnderRC(uint len);
-  extDistRC* computeOverRC(uint len);
-  extDistRC* computeUnderRC(uint len);
+  virtual extDistRC* computeOverUnderRC(uint len);
+  virtual extDistRC* computeOverRC(uint len);
+  virtual extDistRC* computeUnderRC(uint len);
   extDistRC* getOverUnderFringeRC(extMetRCTable* rcModel);
   extDistRC* getOverUnderRC(extMetRCTable* rcModel);
   extDistRC* getOverRC(extMetRCTable* rcModel);
@@ -1398,6 +1398,26 @@ class extMeasure
 
   void allocOUpool();
   int get_nm(double n) { return 1000 * (n / _dbunit); };
+
+
+  // dkf 09292023
+  void DebugUpdateValue(FILE* fp,
+                        const char* msg,
+                        const char* cap_type,
+                        int rsegId,
+                        double v,
+                        double updated_v);
+  void DebugPrintNetids(FILE* fp,
+                        const char* msg,
+                        int rsegId,
+                        const char* eol = "\n");
+  void DebugUpdateCC(FILE* fp,
+                    const char* msg,
+                    int rsegId,
+                    int rseg2,
+                    double v,
+                    double tot);
+  
 
   bool _skip_delims;
   bool _no_debug;
@@ -2782,6 +2802,7 @@ class extMain
   bool _keepExtModel;
 
   friend class extMeasure;
+  friend class extMeasureRC;
 
   FILE* _blkInfoVDD = nullptr;
   FILE* _viaInfoVDD = nullptr;

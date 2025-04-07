@@ -49,7 +49,6 @@ add_library(rcx_lib
   extstats.cpp
   extprocess.cpp
   netRC.cpp
-  extmeasure_res.cpp
   name.cpp
   grids.cpp
   gs.cpp
@@ -59,26 +58,27 @@ add_library(rcx_lib
   extRCmodel_solver.cpp
   extSolverGen.cpp
   extModelGen.cpp
-extFlow_v2.cpp
-extmeasure_diag.cpp
-extSegment.cpp
-findsegments.cpp
-extmeasure_couple.cpp
-extmeasure_dist.cpp
-extmeasure_flow.cpp
-extmeasure_print.cpp
-extmeasure_calc.cpp
-extmeasure_rc_flow.cpp
-extRCmodel_process.cpp
-extRCmodel_solver.cpp
-extDefPatterns.cpp
-extDefPatternsVia.cpp
-extPatterns.cpp
-extRulesVia.cpp
-extmeasure_print.cpp
+  extFlow_v2.cpp
+  extmeasure_diag.cpp
+  extSegment.cpp
+  findsegments.cpp
+  extmeasure_couple.cpp
+  extmeasure_dist.cpp
+  extmeasure_flow.cpp
+  extmeasure_print.cpp
+  extmeasure_calc.cpp
+  extmeasure_rc_flow.cpp
+  extRCmodel_process.cpp
+  extRCmodel_solver.cpp
+  extmeasure_rc.cpp
+  extDefPatterns.cpp
+  extDefPatternsVia.cpp
+  extPatterns.cpp
+  extRulesVia.cpp
+  extmeasure_print.cpp
   extmeasure_res_v2.cpp
-			extmain_v2.cpp
-extmeasure_diag_opt.cpp
+  extmain_v2.cpp
+  extmeasure_diag_opt.cpp
 )
 
 target_include_directories(rcx_lib

@@ -109,6 +109,7 @@ extract(const char* ext_model_file,
 
 void
 write_spef(const char* file,
+           int corner,
            const char* nets,
            int net_id,
            bool coordinates)
@@ -118,7 +119,7 @@ write_spef(const char* file,
   SpefOptions opts;
 
   opts.file = file;
-  // opts.corner= corner;
+  opts.corner= corner;
   opts.nets = nets;
   opts.net_id = net_id;
   opts.coordinates= coordinates;

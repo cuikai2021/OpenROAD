@@ -336,6 +336,8 @@ int Ath__wire::getRsegId()
 {
   int wBoxId = _boxId;
   if (!(_otherId > 0)) {
+    // TODO check other call for this func
+    return 0;
     return wBoxId;
   }
 
