@@ -137,9 +137,12 @@ int update_weights(db::Database& ldb) noexcept
 
     spdlog::debug("[gpl/Netw] nets size : {}", nets.size());
     spdlog::debug("[gpl/Netw] net_slack size: {}", net_slack.size());
-    std::sort(nets.begin(), nets.end(), [&net_slack](const sta::Net* n1, const sta::Net* n2) {
-        return net_slack.at(n1) < net_slack.at(n2);
-    });
+
+    auto sort_key = [&net_slack, &nw](const sta::Net* n) {
+        return std::make_tuple(net_slack.at(n), nw.name(n));
+    };
+    std::ranges::sort(nets, std::ranges::less{}, sort_key);
+
     ///////////////////////      Revert     ///////////////////////
     drv_fixer->revert();
     delete drv_fixer;
@@ -186,8 +189,8 @@ int update_weights(db::Database& ldb) noexcept
                               nets_tail_iter,
                               nets.end(),
                               net,
-                              [&net_slack](const sta::Net* n1, const sta::Net* n2) {
-                                  return net_slack.at(n1) < net_slack.at(n2);
+                              [&](const sta::Net* n1, const sta::Net* n2) {
+                                  return sort_key(n1) < sort_key(n2);
                               })
                 - nets_tail_iter;
             const double ranking = (tail_nets_size - rank) * 1.0 / tail_nets_size;
@@ -203,8 +206,8 @@ int update_weights(db::Database& ldb) noexcept
                               nets.begin(),
                               nets_head_iter,
                               net,
-                              [&net_slack](const sta::Net* n1, const sta::Net* n2) {
-                                  return net_slack.at(n1) < net_slack.at(n2);
+                              [&](const sta::Net* n1, const sta::Net* n2) {
+                                  return sort_key(n1) < sort_key(n2);
                               })
                 - nets.begin();
             const double ranking = (head_nets_size - rank) * 1.0 / head_nets_size;
@@ -219,8 +222,8 @@ int update_weights(db::Database& ldb) noexcept
                                             nets.begin(),
                                             nets.end(),
                                             net,
-                                            [&net_slack](const sta::Net* n1, const sta::Net* n2) {
-                                                return net_slack.at(n1) < net_slack.at(n2);
+                                            [&](const sta::Net* n1, const sta::Net* n2) {
+                                                return sort_key(n1) < sort_key(n2);
                                             })
                                         - nets.begin()))
             * 1.0 / nets_size;
