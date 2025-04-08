@@ -141,7 +141,16 @@ static void connectedPins(const Net* net,
   while (pin_iter->hasNext()) {
     const Pin* pin = pin_iter->next();
     Point loc = db_network->location(pin);
-    pins.push_back({pin, loc});
+    /*
+      For top level port under hierachical mode, this iterator will give some strange things.
+      It will give 3 different views of a single pin: dbModITerm/dbModBTerm/dbBTerm
+      And, dbModITerm and dbModBTerm ones are marked as not placed, which leads to unfinished
+      steiner tree under this occasion.
+      Here, to avoid change any low level adapter in db, temporaryly fix it here and maybe 
+      update it later.
+    */
+    auto type = ((odb::dbObject*)(pin))->getObjectType();
+    if(type != odb::dbObjectType::dbModBTermObj && type != odb::dbObjectType::dbModITermObj ) pins.push_back({pin, loc});
   }
   delete pin_iter;
 }

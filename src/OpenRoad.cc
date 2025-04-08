@@ -335,6 +335,7 @@ void OpenRoad::readDef(const char* filename,
                        bool continue_on_errors,
                        bool floorplan_init,
                        bool incremental,
+                       bool merge,
                        bool child)
 {
   if (!floorplan_init && !incremental && !child && db_->getChip()
@@ -347,6 +348,8 @@ void OpenRoad::readDef(const char* filename,
     mode = odb::defin::FLOORPLAN;
   } else if (incremental) {
     mode = odb::defin::INCREMENTAL;
+  } else if (merge) {
+    mode = odb::defin::MERGE;
   }
   odb::defin def_reader(db_, logger_, mode);
   std::vector<odb::dbLib*> search_libs;

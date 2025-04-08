@@ -232,6 +232,7 @@ class OpenRoad
                bool continue_on_errors,
                bool floorplan_init,
                bool incremental,
+               bool merge,
                bool child);
 
   void writeLef(const char* filename);

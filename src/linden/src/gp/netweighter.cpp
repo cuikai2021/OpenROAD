@@ -33,10 +33,8 @@ constexpr double TAIL_NETS_PERCENT = 0.35;
 constexpr double TAIL_RANKING_RATIO = 0.40;
 constexpr double TAIL_RANKING_OFFEST = 0.20;
 
-struct DrvFixerRsz : public rsz::Resizer
-{
-    // Ref: rsz::Resizer::findResizeSlacks
-    void fix()
+struct DrvFixerRszImpl : public rsz::Resizer {
+    void fix() 
     {
         rsz::Resizer::journalBegin();
         rsz::Resizer::estimateWireParasitics();
@@ -57,7 +55,7 @@ struct DrvFixerRsz : public rsz::Resizer
             fanout_violations,
             length_violations);
     }
-    void revert()
+    void revert() 
     {
         rsz::Resizer::journalRestore(
             resize_count_,
@@ -67,6 +65,38 @@ struct DrvFixerRsz : public rsz::Resizer
             removed_buffer_count_);
     }
     sta::Vector<sta::Vertex*> LDV() { return level_drvr_vertices_; }
+    void ensureLDV() { ensureLevelDrvrVertices(); }
+ };
+
+struct DrvFixerBase {
+  virtual void fix() = 0;
+  virtual void revert() = 0;
+  virtual ~DrvFixerBase() {}
+  virtual sta::Vector<sta::Vertex*> LDV() = 0;
+};
+
+struct DrvFixerNone : public DrvFixerBase {
+    DrvFixerNone(rsz::Resizer* rsz) : impl_(reinterpret_cast<DrvFixerRszImpl*>(rsz)) {}
+    ~DrvFixerNone() {}
+    void fix()    override {}
+    void revert() override {}
+    sta::Vector<sta::Vertex*> LDV() override { 
+        impl_->ensureLDV();
+        return impl_->LDV();
+    }
+
+  protected:
+    DrvFixerRszImpl* impl_;
+};
+
+struct DrvFixerRsz : public DrvFixerBase {
+    DrvFixerRsz(rsz::Resizer* rsz) : impl_(reinterpret_cast<DrvFixerRszImpl*>(rsz)) {}
+    ~DrvFixerRsz() {}
+    void fix()    override { impl_->fix(); }
+    void revert() override { impl_->revert(); }
+    sta::Vector<sta::Vertex*> LDV() override { return impl_->LDV(); }
+  protected:
+    DrvFixerRszImpl* impl_;
 };
 
 } // namespace
@@ -79,16 +109,22 @@ int update_weights(db::Database& ldb) noexcept
     auto nw = gba.network();
 
     sta::Network* network = nw->network();
-    DrvFixerRsz* rsz_fixer =
-        reinterpret_cast<DrvFixerRsz*>(ord::OpenRoad::openRoad()->getResizer());
+    auto rsz = ord::OpenRoad::openRoad()->getResizer();
+    DrvFixerBase* drv_fixer;
+    if (nw->getDbNetwork()->hasHierarchy()) {
+        spdlog::debug("[gpl/Netw] Resizer hierarchy drv fixer not support yet.");
+        drv_fixer = new DrvFixerNone(rsz);
+    } else {
+        drv_fixer = new DrvFixerRsz(rsz);
+    }
     ///////////////////////       DRV       ///////////////////////
-    rsz_fixer->fix();
+    drv_fixer->fix();
 
     ///////////////////////      Timing     ////////////////////////
     std::map<const sta::Net*, Slack> net_slack;
     std::vector<const sta::Net*> nets;
-    for (int i = rsz_fixer->LDV().size() - 1; i >= 0; i--) {
-        sta::Vertex* drvr = rsz_fixer->LDV()[i];
+    for (int i = drv_fixer->LDV().size() - 1; i >= 0; i--) {
+        sta::Vertex* drvr = drv_fixer->LDV()[i];
         sta::Pin* drvr_pin = drvr->pin();
         sta::Net* net = network->isTopLevelPort(drvr_pin) ? network->net(network->term(drvr_pin))
                                                           : network->net(drvr_pin);
@@ -105,7 +141,8 @@ int update_weights(db::Database& ldb) noexcept
         return net_slack.at(n1) < net_slack.at(n2);
     });
     ///////////////////////      Revert     ///////////////////////
-    rsz_fixer->revert();
+    drv_fixer->revert();
+    delete drv_fixer;
 
     ///////////////////////      LindenDB    ////////////////////////
     // all

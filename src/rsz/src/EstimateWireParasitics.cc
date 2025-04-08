@@ -420,13 +420,27 @@ void Resizer::estimateWireParasitics(SpefWriter* spef_writer)
     sta_->ensureClkNetwork();
     // Make separate parasitics for each corner, same for min/max.
     sta_->setParasiticAnalysisPts(true);
-
+    /*
+      See dnNetwork::netIterator.
+      Under hierachical mod, it's impossible to get all net via 
+      a "top_instance_ pointer" which is in fact a fake pointer
+      "0x1", now that we have to calculate all net's parasitics,
+      just use db_block_'s root interface is okay.
+    */
+#if 0
     NetIterator* net_iter = network_->netIterator(network_->topInstance());
     while (net_iter->hasNext()) {
       Net* net = net_iter->next();
       estimateWireParasitic(net, spef_writer);
     }
     delete net_iter;
+#else 
+    auto nets = sta_->getDbNetwork()->block()->getNets();
+    for (auto dbn : nets) {
+      Net* net = sta_->getDbNetwork()->dbToSta(dbn);
+      estimateWireParasitic(net, spef_writer);
+    }
+#endif
 
     parasitics_src_ = ParasiticsSrc::placement;
     parasitics_invalid_.clear();

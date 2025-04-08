@@ -163,14 +163,33 @@ void definComponent::begin(const char* iname, const char* mname)
     _errors++;
     return;
   }
+  /*
+    This logic is a little complex and wiered, if needed, 
+    we can expand these codes to make it longer but easier
+    to understand.
+  */
+
   if (_mode != defin::DEFAULT) {
     _cur_inst = _block->findInst(iname);
-    if (_cur_inst == nullptr) {
-      _errors++;
-      return;
+    if (_mode == defin::FLOORPLAN || _mode == defin::INCREMENTAL) {
+      if (_cur_inst == nullptr) {
+        _errors++;
+        return;
+      }
+      _update_cnt++;
     }
-    _update_cnt++;
-  } else {
+    if(_mode == defin::MERGE) {
+      if (_cur_inst) {
+        _update_cnt++;
+      }
+    }
+  }
+
+  /*
+    Case 1 : Merge with non-existed instance.
+    Case 2 : Default
+  */
+  if (_cur_inst == nullptr) {
     _cur_inst = dbInst::create(_block, master, iname);
     if (_cur_inst != nullptr) {
       _inst_cnt++;

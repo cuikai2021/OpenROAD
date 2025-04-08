@@ -129,6 +129,9 @@ void read_back(const std::filesystem::path& outdef)
             const sta::Pin* sta_pin = nw.findPin(pin_name);
             FASSERT(sta_pin != nullptr)
             (pin_name).what("Cannot found sta pin");
+            if (nw.isConnectedHier(sta_pin) || nw.isConnectedFlat(sta_pin)) {
+              cm.disconnPin(sta_pin);
+            }
             cm.connectPin(sta_pin, sta_net);
         }
 
@@ -158,6 +161,9 @@ void read_back(const std::filesystem::path& outdef)
                 const sta::Pin* sta_pin = nw.findPin(pin_name);
                 FASSERT(sta_pin != nullptr)
                 (pin_name).what("Cannot found sta pin");
+                if (nw.isConnectedHier(sta_pin) || nw.isConnectedFlat(sta_pin)) {
+                  cm.disconnPin(sta_pin);
+                }
                 cm.connectPin(sta_pin, sta_net);
             }
         }

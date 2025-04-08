@@ -473,7 +473,7 @@ int definReader::designCallback(
           chip, block_name.c_str(), reader->_tech, reader->hier_delimeter_);
     }
   }
-  if (reader->_mode == defin::DEFAULT) {
+  if (reader->_mode == defin::DEFAULT || reader->_mode == defin::MERGE) {
     reader->_block->setBusDelimeters(reader->left_bus_delimeter_,
                                      reader->right_bus_delimeter_);
   }
@@ -581,7 +581,7 @@ int definReader::componentsCallback(
   CHECKBLOCK
   definComponent* componentR = reader->_componentR;
   std::string id = comp->id();
-  if (reader->_mode != defin::DEFAULT) {
+  if (reader->_mode != defin::DEFAULT && reader->_mode != defin::MERGE) {
     if (reader->_block->findInst(id.c_str()) == nullptr) {
       // Try escaping the hierarchy and see if that matches
       boost::replace_all(id, "/", "\\/");
@@ -666,7 +666,7 @@ int definReader::dieAreaCallback(
   CHECKBLOCK
   const DefParser::defiPoints points = box->getPoint();
 
-  if (reader->_mode == defin::DEFAULT || reader->_mode == defin::FLOORPLAN) {
+  if (reader->_mode == defin::DEFAULT || reader->_mode == defin::MERGE || reader->_mode == defin::FLOORPLAN) {
     std::vector<Point> P;
     reader->translate(points, P);
 
@@ -1112,7 +1112,7 @@ int definReader::pinCallback(DefParser::defrCallbackType_e /* unused: type */,
   definReader* reader = (definReader*) data;
   CHECKBLOCK
   definPin* pinR = reader->_pinR;
-  if (reader->_mode != defin::DEFAULT
+  if ((reader->_mode != defin::DEFAULT && reader->_mode != defin::MERGE)
       && reader->_block->findBTerm(pin->pinName()) == nullptr) {
     std::string modeStr
         = reader->_mode == defin::FLOORPLAN ? "FLOORPLAN" : "INCREMENTAL";
@@ -2249,7 +2249,7 @@ bool definReader::createBlock(const char* file)
   defrSetScanchainCbk(scanchainCallback);
   defrSetScanchainsEndCbk(scanchainsEndCallback);
 
-  if (_mode == defin::DEFAULT || _mode == defin::FLOORPLAN) {
+  if (_mode == defin::DEFAULT || _mode == defin::MERGE || _mode == defin::FLOORPLAN) {
     defrSetDieAreaCbk(dieAreaCallback);
     defrSetTrackCbk(trackCallback);
     defrSetRowCbk(rowCallback);
@@ -2262,7 +2262,7 @@ bool definReader::createBlock(const char* file)
     DefParser::defrSetAddPathToNet();
   }
 
-  if (_mode == defin::DEFAULT) {
+  if (_mode == defin::DEFAULT || _mode == defin::MERGE || _mode == defin::FLOORPLAN) {
     defrSetPropCbk(propCallback);
     defrSetPropDefEndCbk(propEndCallback);
     defrSetPropDefStartCbk(propStartCallback);
@@ -2284,7 +2284,7 @@ bool definReader::createBlock(const char* file)
     defrSetTechnologyCbk(technologyCallback);
   }
 
-  if (_mode == defin::INCREMENTAL || _mode == defin::DEFAULT) {
+  if (_mode == defin::INCREMENTAL || _mode == defin::DEFAULT || _mode == defin::MERGE) {
     defrSetScanchainsStartCbk(scanchainsStartCallback);
     
     #if 0

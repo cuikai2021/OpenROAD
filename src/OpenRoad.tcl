@@ -82,13 +82,14 @@ proc read_lef { args } {
 sta::define_cmd_args "read_def" {[-floorplan_initialize|-incremental|-child]\
                                    [-continue_on_errors]\
                                    [-tech name] \
+                                   [-merge] \
                                    filename}
 
 proc read_def { args } {
   laurel_record_command read_def {*}$args
   sta::parse_key_args "read_def" args keys {-tech} \
     flags {-floorplan_initialize -incremental \
-           -order_wires -continue_on_errors -child}
+           -order_wires -continue_on_errors -child -merge}
   sta::check_argc_eq1 "read_def" $args
   set filename [file nativename [lindex $args 0]]
   if { ![file exists $filename] } {
@@ -110,12 +111,13 @@ proc read_def { args } {
   set floorplan_init [info exists flags(-floorplan_initialize)]
   set incremental [info exists flags(-incremental)]
   set child [info exists flags(-child)]
+  set merge [info exists flags(-merge)]
   if { $floorplan_init + $incremental + $child > 1 } {
     utl::error ORD 16 "Options -incremental, -floorplan_initialization,\
       and -child are mutually exclusive."
   }
   ord::read_def_cmd $filename $tech_name $continue_on_errors $floorplan_init \
-    $incremental $child
+    $incremental $merge $child
 }
 
 sta::define_cmd_args "write_def" {[-version version] filename}

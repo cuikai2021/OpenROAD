@@ -62,7 +62,8 @@ class defin
     DEFAULT,     // creates db from scratch (from def)
     FLOORPLAN,   // update existing COMPONENTS PINS DIEAREA TRACKS ROWS NETS
                  // SNETS
-    INCREMENTAL  // update existing COMPONENTS PINS
+    INCREMENTAL, // update existing COMPONENTS PINS
+    MERGE,       // update all possible information in def 
   };
   defin(dbDatabase* db, utl::Logger* logger, MODE mode = DEFAULT);
   ~defin();

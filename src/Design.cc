@@ -97,6 +97,7 @@ void Design::readDef(const std::string& file_name,
                          continue_on_errors,
                          floorplan_init,
                          incremental,
+                         false,
                          child);
 }
 

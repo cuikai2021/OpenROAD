@@ -418,6 +418,7 @@ void dbModBTerm::disconnect()
     return;
   }
   _dbModNet* mod_net = block->_modnet_tbl->getPtr(_modbterm->_modnet);
+  _modbterm->_modnet = 0;
 
   if (_modbterm->_prev_net_modbterm == 0) {
     // degenerate case, head element, need to update net starting point

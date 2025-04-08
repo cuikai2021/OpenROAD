@@ -354,6 +354,7 @@ read_def_cmd(const char *filename,
              bool continue_on_errors,
              bool floorplan_init,
              bool incremental,
+             bool merge,
              bool child)
 {
   OpenRoad *ord = getOpenRoad();
@@ -369,7 +370,7 @@ read_def_cmd(const char *filename,
     logger->error(utl::ORD, 52, "Technology {} not found", tech_name);
   }
   ord->readDef(filename, tech, continue_on_errors,
-               floorplan_init, incremental, child);
+               floorplan_init, incremental, merge, child);
 }
 
 void

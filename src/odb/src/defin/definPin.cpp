@@ -97,6 +97,11 @@ void definPin::pinBegin(const char* name, const char* net_name)
       _cur_bterm = _block->findBTerm(name);
       if (_cur_bterm != nullptr) {
         _update_cnt++;
+      } else {
+        if (_mode == defin::MERGE) {
+          _cur_bterm = dbBTerm::create(net, name);
+          _bterm_cnt++;
+        }
       }
     } else {
       _cur_bterm = dbBTerm::create(net, name);
