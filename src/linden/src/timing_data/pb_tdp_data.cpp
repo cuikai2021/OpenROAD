@@ -64,7 +64,15 @@ public:
   inline Vertex* to(Edge* e) const { return e->to(graph()); }
 
   inline const char* name(Vertex* v) const { return v->name(network()); }
-  inline const char* instName(Vertex* v) const { return network()->name(inst(v)); }
+    /*
+    dbNetwork's adapter "name" is a little dangerous under hierarchy.
+    Under hierarchy mode, "name" will only give the last sec of full name, 
+    so we can't get the concrete name of this instance. It may not be wrong
+    under hierarchy context. But we must give it's full name for further search.
+
+    ** Notice ** : other name function may meet same error.
+  */
+  inline const char* instName(Vertex* v) const { return network()->pathName(inst(v)); }
   inline const char* fromName(Edge* e) const { return name(from(e)); }
   inline const char* toName(Edge* e) const { return name(to(e)); }
   inline const char* fromName(TimingArc* arc) const { return arc->from()->name(); }
