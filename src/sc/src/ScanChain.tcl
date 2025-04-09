@@ -4,7 +4,12 @@ proc scan_chain_reorder { args } {
   sta::parse_key_args "scan_chain_reorder" args \
     keys {} \
     flags {}
-
+  # Laurel is "later" than sc, so bind this editer when running.
+  if {[llength [info commands lrl::register_sc_editer]] > 0} {
+    lrl::register_sc_editer
+  } else {
+    puts "\[Info\] laurel editer not found, use default editer."
+  }
   sc::reorder_cmd
 }
 

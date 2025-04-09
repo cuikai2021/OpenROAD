@@ -14,6 +14,7 @@ target_sources(sc
     DisjointSet.cpp
     Kruskal.cpp
     ScanChain.cpp
+    ScanChainEditer.cpp
     MakeScanChain.cpp
     ChristofidesSpanningGraph.cpp
 )

@@ -6,6 +6,7 @@
 
 #include "Graph.h"
 #include "odb/db.h"
+#include "sc/ScanChainEditer.h"
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
 #include <lemon/christofides_tsp.h>
@@ -174,6 +175,8 @@ odb::dbScanChainComp* getOrigComp(size_t id, bool is_next, std::vector<odb::dbSc
 
 void ScanChain::connectScanNet(const odb::dbScanChain *scan_chain,
                                const std::vector<Graph::NodeId> &orders) {
+  auto editer = sc_editer::editer();
+
   std::vector<odb::dbScanChainComp *> orig_floatings;
   std::vector<std::pair<odb::dbScanChainComp *, odb::dbScanChainComp *>> orig_ordered;
   auto floating_comps = scan_chain->getFloating();
@@ -209,8 +212,9 @@ void ScanChain::connectScanNet(const odb::dbScanChain *scan_chain,
     }
 
     if (next_sc_in) {
-      next_sc_in->disconnect();
-      next_sc_in->connect(connect_net);
+      editer->disconnect(next_sc_in);
+      // Waring : under hierarchical mode, this may create a new net and connect all pin on new net.
+      editer->connect(next_sc_in, connect_net);
     }
   }
 }
