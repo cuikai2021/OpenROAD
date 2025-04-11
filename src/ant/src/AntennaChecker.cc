@@ -651,7 +651,7 @@ bool AntennaChecker::checkCAR(odb::dbNet* db_net,
   bool violation = false;
 
   // check CAR or diff_CAR
-  if (CAR_ratio != 0) {
+  if (CAR_ratio != 0 && info.iterm_diff_area == 0 ) {
     violation = info.CAR > CAR_ratio;
     if (report) {
       std::string car_report = fmt::format(
@@ -663,10 +663,9 @@ bool AntennaChecker::checkCAR(odb::dbNet* db_net,
           violation ? "(VIOLATED)" : "");
       net_report.report += car_report + "\n";
     }
-  } else {
-    if (diff_CAR_PWL_ratio != 0) {
-      violation = info.diff_CAR > diff_CAR_PWL_ratio;
-    }
+  }
+  if (diff_CAR_PWL_ratio != 0 && info.iterm_diff_area != 0 ){
+    violation = info.diff_CAR > diff_CAR_PWL_ratio;
     if (report) {
       std::string diff_car_report = fmt::format(
           "      Cumulative area ratio: {:7.2f}\n      Required ratio: "
