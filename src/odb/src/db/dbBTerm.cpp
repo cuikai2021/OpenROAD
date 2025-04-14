@@ -73,7 +73,6 @@ _dbBTerm::_dbBTerm(_dbDatabase*)
   _flags._spare_bits = 0;
   _ext_id = 0;
   _name = nullptr;
-  _sta_vertex_id = 0;
   _constraint_region.mergeInit();
 }
 
@@ -90,7 +89,6 @@ _dbBTerm::_dbBTerm(_dbDatabase*, const _dbBTerm& b)
       _bpins(b._bpins),
       _ground_pin(b._ground_pin),
       _supply_pin(b._supply_pin),
-      _sta_vertex_id(0),
       _constraint_region(b._constraint_region)
 {
   if (b._name) {
@@ -996,16 +994,16 @@ dbBTerm* dbBTerm::getBTerm(dbBlock* block_, uint oid)
   return (dbBTerm*) block->_bterm_tbl->getPtr(oid);
 }
 
-uint32_t dbBTerm::staVertexId()
+uint32_t dbBTerm::staVertexId(uint32_t graph_id)
 {
   _dbBTerm* iterm = (_dbBTerm*) this;
-  return iterm->_sta_vertex_id;
+  return iterm->_sta_vertex_id[graph_id];
 }
 
-void dbBTerm::staSetVertexId(uint32_t id)
+void dbBTerm::staSetVertexId(uint32_t graph_id, uint32_t id)
 {
   _dbBTerm* iterm = (_dbBTerm*) this;
-  iterm->_sta_vertex_id = id;
+  iterm->_sta_vertex_id[graph_id] = id;
 }
 
 void dbBTerm::setConstraintRegion(const Rect& constraint_region)

@@ -115,7 +115,7 @@ Resizer *
 getResizer()
 {
   OpenRoad *openroad = getOpenRoad();
-  return openroad->getResizer();
+  return openroad->getLrlCmdResizer();
 }
 
 rmp::Restructure *

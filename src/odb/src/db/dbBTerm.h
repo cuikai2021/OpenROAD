@@ -91,7 +91,7 @@ class _dbBTerm : public _dbObject
   dbId<_dbBPin> _bpins;          // Up hierarchy: TWG
   dbId<_dbBTerm> _ground_pin;
   dbId<_dbBTerm> _supply_pin;
-  std::uint32_t _sta_vertex_id;  // not saved
+  std::unordered_map<uint32_t, uint32_t> _sta_vertex_id;  // not saved
   Rect _constraint_region;
 
   _dbBTerm(_dbDatabase*);

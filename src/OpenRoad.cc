@@ -40,6 +40,7 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include "lrl/Laurel.hh"
 
 #ifdef ENABLE_PYTHON3
 #define PY_SSIZE_T_CLEAN
@@ -129,6 +130,7 @@ OpenRoad::~OpenRoad()
   // Temporarily removed until a crash can be resolved
   // deleteDbSta(sta_);
   // sta::deleteAllMemory();
+  deleteLrlMultiViewManager(laurel_);
   deleteIoplacer(ioPlacer_);
   deleteResizer(resizer_);
   deleteOpendp(opendp_);
@@ -176,6 +178,12 @@ void OpenRoad::setOpenRoad(OpenRoad* app, bool reinit_ok)
     exit(1);
   }
   app_ = app;
+}
+
+rsz::Resizer* OpenRoad::getLrlCmdResizer() {
+  if (laurel_)
+    return laurel_->getResizer();
+  return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////

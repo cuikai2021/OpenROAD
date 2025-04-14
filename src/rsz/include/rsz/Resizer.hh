@@ -58,6 +58,7 @@ class SteinerTreeBuilder;
 
 namespace lrl {
 class NetworkSandbox;
+class ResizerCloner;
 }
 
 namespace rsz {
@@ -451,6 +452,7 @@ class Resizer : public dbStaState, public dbNetworkObserver
 
  protected:
   friend class lrl::NetworkSandbox;
+  friend class lrl::ResizerCloner;
   void initDesignArea();
   void ensureLevelDrvrVertices();
   Instance* bufferInput(const Pin* top_pin, LibertyCell* buffer_cell);

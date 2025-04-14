@@ -213,6 +213,7 @@ class OpenRoad
   sc::ScanChain *getScanChain() { return scan_chain_; }
   lrl::Laurel *getLaurel() { return laurel_; }
   banyan::Banyan *getBanyan() { return banyan_; }
+  rsz::Resizer* getLrlCmdResizer();
 
   // Return the bounding box of the db rows.
   odb::Rect getCore();

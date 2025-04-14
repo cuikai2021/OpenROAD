@@ -142,7 +142,8 @@ class dbSta : public Sta, public ord::OpenRoadObserver
 
   void initVars(Tcl_Interp* tcl_interp,
                 odb::dbDatabase* db,
-                utl::Logger* logger);
+                utl::Logger* logger,
+                bool is_original = true);
 
   void setPathRenderer(std::unique_ptr<AbstractPathRenderer> path_renderer);
   void setPowerDensityDataSource(std::unique_ptr<AbstractPowerDensityDataSource>

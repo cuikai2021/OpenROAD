@@ -134,7 +134,7 @@ std::vector<sta::Pin*> LogicExtractorFactory::GetPrimaryOutputs(
       const sta::Pin* connected_pin = pin_iterator->next();
       // Pin is not in our cutset, and therefore is a primary output.
       if (cut_set_vertices.find(connected_pin) == cut_set_vertices.end()) {
-        sta::VertexId vertex_id = network->vertexId(connected_pin);
+        sta::VertexId vertex_id = network->vertexId(network->graph()->id() , connected_pin);
         sta::Vertex* vertex = network->graph()->vertex(vertex_id);
         primary_outputs.push_back(vertex->pin());
       }

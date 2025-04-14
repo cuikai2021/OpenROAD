@@ -884,16 +884,16 @@ bool dbITerm::getAvgXY(int* x, int* y)
   return true;
 }
 
-uint32_t dbITerm::staVertexId()
+uint32_t dbITerm::staVertexId(uint32_t graph_id)
 {
   _dbITerm* iterm = (_dbITerm*) this;
-  return iterm->_sta_vertex_id;
+  return iterm->_sta_vertex_id[graph_id];
 }
 
-void dbITerm::staSetVertexId(uint32_t id)
+void dbITerm::staSetVertexId(uint32_t graph_id, uint32_t id)
 {
   _dbITerm* iterm = (_dbITerm*) this;
-  iterm->_sta_vertex_id = id;
+  iterm->_sta_vertex_id[graph_id] = id;
 }
 
 void dbITerm::setAccessPoint(dbMPin* pin, dbAccessPoint* ap)

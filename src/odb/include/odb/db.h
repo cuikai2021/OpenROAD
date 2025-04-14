@@ -2014,8 +2014,8 @@ class dbBTerm : public dbObject
   ///
   static dbBTerm* getBTerm(dbBlock* block, uint oid);
 
-  uint32_t staVertexId();
-  void staSetVertexId(uint32_t id);
+  uint32_t staVertexId(uint32_t graph_id);
+  void staSetVertexId(uint32_t graph_id, uint32_t id);
 
   ///
   /// Set the region where the BTerm is constrained
@@ -3750,8 +3750,8 @@ class dbITerm : public dbObject
   ///
   static dbITerm* getITerm(dbBlock* block, uint oid);
 
-  uint32_t staVertexId();
-  void staSetVertexId(uint32_t id);
+  uint32_t staVertexId(uint32_t graph_id);
+  void staSetVertexId(uint32_t graph_id, uint32_t id);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

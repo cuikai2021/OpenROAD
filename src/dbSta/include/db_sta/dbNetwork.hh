@@ -93,7 +93,7 @@ class dbNetwork : public ConcreteNetwork
   dbNetwork();
   ~dbNetwork() override;
 
-  void init(dbDatabase* db, Logger* logger);
+  void init(dbDatabase* db, Logger* logger, bool is_original = true);
   void setBlock(dbBlock* block);
   void clear() override;
   CellPortIterator* portIterator(const Cell* cell) const override;
@@ -256,8 +256,8 @@ class dbNetwork : public ConcreteNetwork
 
   Term* term(const Pin* pin) const override;
   PortDirection* direction(const Pin* pin) const override;
-  VertexId vertexId(const Pin* pin) const override;
-  void setVertexId(Pin* pin, VertexId id) override;
+  VertexId vertexId(GraphId graph_id, const Pin* pin) const override;
+  void setVertexId(GraphId graph_id, Pin* pin, VertexId id) override;
 
   ////////////////////////////////////////////////////////////////
   // Terminal functions
@@ -360,6 +360,10 @@ class dbNetwork : public ConcreteNetwork
   using NetworkReader::makeCell;
   using NetworkReader::makeLibrary;
 
+  using ConcreteNetwork::addLibrary;
+  std::set<const Cell*> const& getConcreteCells() { return concrete_cells_; } 
+  std::set<const Port*> const& getConcretePorts() { return concrete_ports_; }
+  
  protected:
   void readDbNetlistAfter();
   void makeTopCell();

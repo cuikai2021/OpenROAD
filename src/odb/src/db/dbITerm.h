@@ -40,7 +40,9 @@
 #include "odb/db.h"
 #include "odb/dbId.h"
 #include "odb/odb.h"
-
+namespace sta {
+class Graph;
+};
 namespace odb {
 
 class _dbNet;
@@ -84,7 +86,7 @@ class _dbITerm : public _dbObject
   dbId<_dbITerm> _prev_net_iterm;
   dbId<_dbITerm> _next_modnet_iterm;
   dbId<_dbITerm> _prev_modnet_iterm;
-  uint32_t _sta_vertex_id;  // not saved
+  std::unordered_map<uint32_t, uint32_t> _sta_vertex_id;  // not saved
   std::map<dbId<_dbMPin>, dbId<_dbAccessPoint>> aps_;
 
   _dbITerm(_dbDatabase*);
@@ -110,7 +112,6 @@ inline _dbITerm::_dbITerm(_dbDatabase*)
   _flags._special = 0;
   _flags._connected = 0;
   _ext_id = 0;
-  _sta_vertex_id = 0;
 }
 
 inline _dbITerm::_dbITerm(_dbDatabase*, const _dbITerm& i)
@@ -121,8 +122,7 @@ inline _dbITerm::_dbITerm(_dbDatabase*, const _dbITerm& i)
       _next_net_iterm(i._next_net_iterm),
       _prev_net_iterm(i._prev_net_iterm),
       _next_modnet_iterm(i._next_modnet_iterm),
-      _prev_modnet_iterm(i._prev_modnet_iterm),
-      _sta_vertex_id(0)
+      _prev_modnet_iterm(i._prev_modnet_iterm)
 {
 }
 

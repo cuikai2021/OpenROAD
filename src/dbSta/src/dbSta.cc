@@ -184,7 +184,8 @@ dbSta::~dbSta() = default;
 
 void dbSta::initVars(Tcl_Interp* tcl_interp,
                      odb::dbDatabase* db,
-                     utl::Logger* logger)
+                     utl::Logger* logger,
+                     bool is_default)
 {
   db_ = db;
   logger_ = logger;
@@ -193,7 +194,7 @@ void dbSta::initVars(Tcl_Interp* tcl_interp,
     setTclInterp(tcl_interp);
   }
   db_report_->setLogger(logger);
-  db_network_->init(db, logger);
+  db_network_->init(db, logger, is_default);
   db_cbk_ = std::make_unique<dbStaCbk>(this, logger);
   buffer_use_analyser_ = std::make_unique<BufferUseAnalyser>();
 }
@@ -233,6 +234,7 @@ std::unique_ptr<dbSta> dbSta::makeBlockSta(odb::dbBlock* block)
   // This line is removed because it has already been called in clone->initVars
   // clone->makeComponents();
   clone->initVars(tclInterp(), db_, logger_);
+  clone->view_ = this->view();
   clone->getDbNetwork()->setBlock(block);
   clone->getDbNetwork()->setDefaultLibertyLibrary(
       network_->defaultLibertyLibrary());
@@ -914,7 +916,7 @@ void dbStaCbk::inDbBTermSetSigType(dbBTerm* bterm, const dbSigType& sig_type)
   sta_->networkChanged();
   // The above is insufficient, see OpenROAD#6089, clear the vertex id as a
   // workaround.
-  bterm->staSetVertexId(object_id_null);
+  if (sta_->graph()) bterm->staSetVertexId(sta_->graph()->id(), object_id_null);
 }
 
 ////////////////////////////////////////////////////////////////

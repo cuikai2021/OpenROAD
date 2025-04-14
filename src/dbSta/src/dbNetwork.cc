@@ -84,6 +84,7 @@ Recommended conclusion: use map for concrete cells. They are invariant.
 #include "sta/Liberty.hh"
 #include "sta/PatternMatch.hh"
 #include "sta/PortDirection.hh"
+#include "sta/Graph.hh"
 #include "utl/Logger.h"
 
 namespace sta {
@@ -581,10 +582,11 @@ dbNetwork::dbNetwork() : top_instance_(reinterpret_cast<Instance*>(1))
 
 dbNetwork::~dbNetwork() = default;
 
-void dbNetwork::init(dbDatabase* db, Logger* logger)
+void dbNetwork::init(dbDatabase* db, Logger* logger, bool is_original)
 {
   db_ = db;
   logger_ = logger;
+  is_original_ = is_original;
 }
 
 void dbNetwork::setBlock(dbBlock* block)
@@ -1396,7 +1398,7 @@ PortDirection* dbNetwork::direction(const Pin* pin) const
   return PortDirection::unknown();
 }
 
-VertexId dbNetwork::vertexId(const Pin* pin) const
+VertexId dbNetwork::vertexId(GraphId graph_id, const Pin* pin) const
 {
   dbITerm* iterm = nullptr;
   dbBTerm* bterm = nullptr;
@@ -1404,15 +1406,15 @@ VertexId dbNetwork::vertexId(const Pin* pin) const
   dbModBTerm* mbterm = nullptr;
   staToDb(pin, iterm, bterm, miterm, mbterm);
   if (iterm) {
-    return iterm->staVertexId();
+    return iterm->staVertexId(graph_id);
   }
   if (bterm) {
-    return bterm->staVertexId();
+    return bterm->staVertexId(graph_id);
   }
   return object_id_null;
 }
 
-void dbNetwork::setVertexId(Pin* pin, VertexId id)
+void dbNetwork::setVertexId(GraphId graph_id, Pin* pin, VertexId id)
 {
   dbITerm* iterm = nullptr;
   dbBTerm* bterm = nullptr;
@@ -1421,9 +1423,9 @@ void dbNetwork::setVertexId(Pin* pin, VertexId id)
   staToDb(pin, iterm, bterm, moditerm, modbterm);
   // timing arcs only set on leaf level iterm/bterm.
   if (iterm) {
-    iterm->staSetVertexId(id);
+    iterm->staSetVertexId(graph_id ,id);
   } else if (bterm) {
-    bterm->staSetVertexId(id);
+    bterm->staSetVertexId(graph_id, id);
   }
 }
 

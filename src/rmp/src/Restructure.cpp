@@ -1255,7 +1255,7 @@ void Restructure::generateUnconstrainedCuts(std::vector<Cut*>& cut_set,
 
       // remove visited vertices from stash of sorted & vertex slack times
       for (auto cut_root : cut->roots_) {
-        sta::Vertex* root_vertex = graph->vertex(nwk->vertexId(cut_root));
+        sta::Vertex* root_vertex = graph->vertex(nwk->vertexId(graph->id(), cut_root));
         updateVertexList(root_vertex, sorted_slack_times, vertex_slack_times);
       }
       cut_id++;
@@ -1321,7 +1321,7 @@ void Restructure::walkBackwardsToTimingEndPointsR(sta::Graph* graph,
   if (start_pin && pin_visited_.find(start_pin) == pin_visited_.end()) {
     pin_visited_.insert(start_pin);
     sta::Port* start_port = nwk->port(start_pin);
-    sta::Vertex* vertex = graph->vertex(nwk->vertexId(start_pin));
+    sta::Vertex* vertex = graph->vertex(nwk->vertexId(graph->id(), start_pin));
     sta::Instance* cur_inst = nwk->instance(start_pin);
 
     // hit an invariant end point
@@ -1419,7 +1419,7 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
     pin_visited_.insert(start_pin);
 
     sta::Port* start_port = nwk->port(start_pin);
-    sta::Vertex* vertex = graph->vertex(nwk->vertexId(start_pin));
+    sta::Vertex* vertex = graph->vertex(nwk->vertexId(graph->id() , start_pin));
 
 #ifdef DEBUG_GENERIC_RESTRUCT
     printf(
@@ -1490,7 +1490,7 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
             while (fanout_term_iter->hasNext()) {
               const sta::Term* fanout_term = fanout_term_iter->next();
               sta::Pin* fanout_pin = nwk->pin(fanout_term);
-              sta::Vertex* vertex = graph->vertex(nwk->vertexId(fanout_pin));
+              sta::Vertex* vertex = graph->vertex(nwk->vertexId(graph->id(), fanout_pin));
               if ((nwk->direction(fanout_pin) == sta::PortDirection::output())
                   && isPrimary(nwk, vertex)) {
                 printf("**Term: Hit primary output %s\n",
@@ -1503,7 +1503,7 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
             while (fanout_pin_iter->hasNext()) {
               const sta::Pin* fanout_pin = fanout_pin_iter->next();
               if (fanout_pin != cur_pin) {
-                sta::Vertex* vertex = graph->vertex(nwk->vertexId(fanout_pin));
+                sta::Vertex* vertex = graph->vertex(nwk->vertexId(graph->id(), fanout_pin));
                 if (isPrimary(nwk, vertex))
                   printf("**Hit primary output pin %s\n",
                          nwk->name(fanout_pin));
@@ -1523,7 +1523,7 @@ void Restructure::walkForwardsToTimingEndPointsR(sta::Graph* graph,
                 } else {
                   sta::Port* next_port = nwk->port(fanout_pin);
                   sta::Vertex* next_vertex
-                      = graph->vertex(nwk->vertexId(fanout_pin));
+                      = graph->vertex(nwk->vertexId(graph->id(), fanout_pin));
                   if (nwk->direction(fanout_pin) == sta::PortDirection::output()
                       && isPrimary(nwk, next_vertex)) {
                     printf("Hit primary output root !\n");
@@ -2872,7 +2872,7 @@ void Restructure::annotateCutTiming(
   // cut inputs: allow for delayed arrival time
   //
   for (auto leaf_pin : cut->leaves_) {
-    sta::VertexId v_id = network->vertexId(leaf_pin);
+    sta::VertexId v_id = network->vertexId(graph->id(), leaf_pin);
     sta::Vertex* v = graph->vertex(v_id);
     tr = nullptr;
     if (v) {
@@ -2942,7 +2942,7 @@ void Restructure::annotateCutTiming(
 
   // cut outputs: set required time
   for (auto root_pin : cut->roots_) {
-    sta::VertexId v_id = network->vertexId(root_pin);
+    sta::VertexId v_id = network->vertexId(graph->id(), root_pin);
     sta::Vertex* v = graph->vertex(v_id);
     bool got_required = false;
 
