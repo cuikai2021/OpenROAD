@@ -20,6 +20,11 @@ class dbITerm;
 }  // namespace odb
 
 namespace sc {
+
+namespace sc_editer {
+class ScanChainEditerCallBackBase;
+}
+
 class ScanChain {
  public:
   ScanChain() = default;
@@ -29,6 +34,7 @@ class ScanChain {
   utl::Logger* logger_;
   odb::dbDatabase* db_;
   odb::dbBlock* block_ = nullptr;
+  sc_editer::ScanChainEditerCallBackBase* editer_callback;
 
   void init(ord::OpenRoad* openroad);
   void reorder();

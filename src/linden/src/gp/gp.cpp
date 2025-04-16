@@ -13,6 +13,7 @@
 #include "linden/rdp/congestion_estimation.hpp"
 #include "banyan/Banyan.h"
 #include "sc/ScanChain.h"
+#include "sc/ScanChainEditer.h"
 #include "rsz/Resizer.hh"
 #include "lrl/CircuitModifier/CircuitModifier.hh"
 #include "ord/OpenRoad.hh"
@@ -150,9 +151,65 @@ Config::InitialPlacePolicy Config::InitialPlacePolicy::from_str(const string_vie
 
 namespace {
 
-void scanchain_reorder() {
+class ScanChainEditerLdnDBCallBack : public sc::sc_editer::ScanChainEditerCallBackBase
+{
+public:
+    explicit ScanChainEditerLdnDBCallBack(linden::db::Database& ldb) : ldb_(ldb) {}
+    void disconnectAfter(odb::dbITerm* p, odb::dbNet* n) override
+    {
+        // Database doesn't supply odb2pin func, fetch it from instance.
+        auto ldb_pin = getLDBPin(p);
+        if (ldb_pin) {
+            ldb_.disconnect(ldb_pin->get());
+        }
+    }
+    void connectAfter(odb::dbITerm* p, odb::dbNet* n) override
+    {
+        auto ldb_pin = getLDBPin(p);
+        auto ldb_net = ldb_.odb2net(n);
+        if (ldb_pin) {
+            ldb_.connect(ldb_net->get(), ldb_pin->get());
+        }
+    }
+    void createNetAfter(odb::dbNet* n) override
+    {
+        auto lnet = linden::db::Net::create(n, n->getName());
+        ldb_.add_net(*lnet);
+    }
+    void removeNetBefore(odb::dbNet* n) override
+    {
+        auto lnet = ldb_.odb2net(n);
+        if (!lnet) {
+            return;
+        }
+        ldb_.remove_net(lnet->get());
+    }
+private:
+    std::optional<db::PinRef> getLDBPin(odb::dbITerm* iterm)
+    {
+        auto db_inst = iterm->getInst();
+        auto ldb_inst = ldb_.odb2cell(db_inst);
+        if (!ldb_inst) {
+            return std::nullopt;
+        }
+        auto pin_vec = ldb_inst->get().pins();
+        for (auto ldb_pin : pin_vec) {
+            if (ldb_pin.get().odb_term() == ((void*) iterm)) {
+                return ldb_pin;
+            }
+        }
+        return nullopt;
+    }
+    linden::db::Database& ldb_;
+};
+
+void scanchain_reorder(linden::db::Database& ldb) {
+    lrl::Laurel::registerSCEditer();
+    ScanChainEditerLdnDBCallBack linden_db_sc_reorder_callback(ldb);
+    sc::sc_editer::registerCallBack(&linden_db_sc_reorder_callback);
     auto sc = ::ord::OpenRoad::openRoad()->getScanChain();
     sc->reorder();
+    sc::sc_editer::unregisterCallBack(&linden_db_sc_reorder_callback);
 }
 
 filesystem::path estimate_cmap(const gp::Config& cfg) {
@@ -384,7 +441,7 @@ void linden_global_place(const Config& cfg) noexcept {
         }
         rdp_count_down = rdp_count_down_init;
         refresh_locations_from_ldb(*ldb);
-        scanchain_reorder();
+        scanchain_reorder(*ldb);
         auto cmap_file = estimate_cmap(cfg);
         debug_def_if_necessary(cmap_file);
         return !refresh_cmap_to_placer(*gpl, *ldb, cmap_file);
