@@ -22,6 +22,7 @@
 #include "sta/NetworkClass.hh"
 
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR);
+IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_DP_ALGORITHM);
 
 namespace linden {
 
@@ -191,7 +192,7 @@ void read_back(const std::filesystem::path& outdef)
 int add_tie_cell(const dp::Config& cfg, std::deque<std::string>& args, const std::string& output)
 {
     // exec
-    int ec = exec(cfg, get_add_tie_cell_exe(), args);
+    int ec = exec(cfg, get_add_tie_cell_exe(), args, LINDEN_DP_ALGORITHM());
 
     read_back(output);
 

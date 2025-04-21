@@ -136,7 +136,8 @@ Config& Config::operator+=(const Config& ano) {
 int exec(
     const Config& cfg,
     const std::filesystem::path& exe,
-    const deque<string>& args)
+    const deque<string>& args,
+    const string_view& algorithm)
 {
     if (!std::filesystem::exists(exe)) {
         spdlog::error("Cannot find {}", exe);
@@ -152,7 +153,7 @@ int exec(
     int ec = 0;
     auto env = boost::this_process::environment();
     boost::process::environment env1 = env;
-    env1.set("LINDEN_DP_ALGORITHM", string(LINDEN_DP_ALGORITHM()));
+    env1.set("LINDEN_DP_ALGORITHM", string(algorithm));
     if (!cfg.suppress_output) {
         ec = boost::process::system(string(exe), boost::process::args(args), env1);
     } else {
@@ -213,6 +214,16 @@ filesystem::path output_def_name(
 
 namespace {
 
+std::filesystem::path get_linden_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "lindendp";
+}
+
+std::filesystem::path get_linden_incr_dp_exe() {
+    std::filesystem::path dir(LINDENDP_EXE_DIR());
+    return dir / "linden-incremental-legalizer";
+}
+
 std::filesystem::path get_basic_dp_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
     string exec;
@@ -248,83 +259,6 @@ std::filesystem::path get_pbdef_exe() {
 std::filesystem::path get_opt_exe() {
     std::filesystem::path dir(LINDENDP_EXE_DIR());
     return dir / "lindenopt";
-}
-
-int exec_basic_dp(
-    const Config& cfg,
-    const filesystem::path& input_cfg,
-    const filesystem::path& outdef)
-{
-    deque<string> args;
-    args.push_back("--input-config");
-    args.push_back(input_cfg);
-    args.push_back("--to");
-    args.push_back(outdef);
-    args.push_back("--cell-only");
-    auto exe = get_basic_dp_exe();
-    return exec(cfg, exe, args);
-}
-
-int exec_incr_dp(
-    const Config& cfg,
-    const string& input_cfg,
-    const string& outdef)
-{
-    deque<string> args;
-    args.push_back("--input-config");
-    args.push_back(input_cfg);
-    args.push_back("--to");
-    args.push_back(outdef);
-    args.push_back("--cell-only");
-    if (cfg.baseline_def) {
-        args.push_back("--baseline");
-        args.push_back(*cfg.baseline_def);
-    }
-    auto exe = get_incr_dp_exe();
-    return exec(cfg, exe, args);
-}
-
-int exec_routability_driven_dp(
-    const Config& cfg,
-    const string& input_cfg,
-    const string& outdef)
-{
-    deque<string> args;
-    args.push_back("--input-config");
-    args.push_back(input_cfg);
-    args.push_back("--to");
-    args.push_back(outdef);
-    auto exe = get_routability_driven_dp_exe();
-    return exec(cfg, exe, args);
-}
-
-int exec_pbdef(
-    const Config& cfg,
-    const string& from,
-    const string& to)
-{
-    deque<string> args;
-    args.push_back("--from");
-    args.push_back(from);
-    args.push_back("--to");
-    args.push_back(to);
-    auto exe = get_pbdef_exe();
-    return exec(cfg, exe, args);
-}
-
-int exec_opt(
-    const Config& cfg,
-    const string& input_cfg,
-    const string& outdef)
-{
-    deque<string> args;
-    args.push_back("--input-config");
-    args.push_back(input_cfg);
-    args.push_back("--to");
-    args.push_back(outdef);
-    args.push_back("--cell-only");
-    auto exe = get_opt_exe();
-    return exec(cfg, exe, args);
 }
 
 filesystem::path write_input_config(
@@ -392,6 +326,137 @@ filesystem::path write_input_config(
         cout << "input-cfg: " << filename << endl;
     }
     return filename;
+}
+
+int exec_basic_dp(
+    const Config& cfg,
+    const filesystem::path& input_cfg,
+    const filesystem::path& outdef,
+    const filesystem::path& basename,
+    const deque<filesystem::path>& lefs
+) {
+    if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
+        deque<string> args;
+        args.push_back("--input-config");
+        args.push_back(input_cfg);
+        args.push_back("--to");
+        args.push_back(outdef);
+        auto exe = get_basic_dp_exe();
+        int ret = exec(cfg, exe, args, LINDEN_DP_ALGORITHM());
+        if (ret) {
+            return ret;
+        }
+        std::filesystem::path pa_incfg = write_input_config(cfg, basename, lefs, outdef);
+        args.clear();
+        args.push_back("--input-config");
+        args.push_back(pa_incfg);
+        args.push_back("--to");
+        args.push_back(outdef);
+        args.push_back("--cell-only");
+        return exec(cfg, get_linden_dp_exe(), args, "klotski"sv);
+    } else {
+        deque<string> args;
+        args.push_back("--input-config");
+        args.push_back(input_cfg);
+        args.push_back("--to");
+        args.push_back(outdef);
+        args.push_back("--cell-only");
+        auto exe = get_basic_dp_exe();
+        return exec(cfg, exe, args, LINDEN_DP_ALGORITHM());
+    }
+}
+
+int exec_incr_dp(
+    const Config& cfg,
+    const string& input_cfg,
+    const string& outdef,
+    const filesystem::path& basename,
+    const deque<filesystem::path>& lefs)
+{
+    if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
+        deque<string> args;
+        args.push_back("--input-config");
+        args.push_back(input_cfg);
+        args.push_back("--to");
+        args.push_back(outdef);
+        if (cfg.baseline_def) {
+            args.push_back("--baseline");
+            args.push_back(*cfg.baseline_def);
+        }
+        auto exe = get_incr_dp_exe();
+        int ret = exec(cfg, exe, args, LINDEN_DP_ALGORITHM());
+        if (ret) {
+            return ret;
+        }
+        std::filesystem::path pa_incfg = write_input_config(cfg, basename, lefs, outdef);
+        args.clear();
+        args.push_back("--input-config");
+        args.push_back(pa_incfg);
+        args.push_back("--to");
+        args.push_back(outdef);
+        args.push_back("--cell-only");
+        if (cfg.baseline_def) {
+            args.push_back("--baseline");
+            args.push_back(*cfg.baseline_def);
+        }
+        return exec(cfg, get_linden_incr_dp_exe(), args, "klotski"sv);
+    } else {
+        deque<string> args;
+        args.push_back("--input-config");
+        args.push_back(input_cfg);
+        args.push_back("--to");
+        args.push_back(outdef);
+        args.push_back("--cell-only");
+        if (cfg.baseline_def) {
+            args.push_back("--baseline");
+            args.push_back(*cfg.baseline_def);
+        }
+        auto exe = get_incr_dp_exe();
+        return exec(cfg, exe, args, LINDEN_DP_ALGORITHM());
+    }
+}
+
+int exec_routability_driven_dp(
+    const Config& cfg,
+    const string& input_cfg,
+    const string& outdef)
+{
+    deque<string> args;
+    args.push_back("--input-config");
+    args.push_back(input_cfg);
+    args.push_back("--to");
+    args.push_back(outdef);
+    auto exe = get_routability_driven_dp_exe();
+    return exec(cfg, exe, args, LINDEN_DP_ALGORITHM());
+}
+
+int exec_pbdef(
+    const Config& cfg,
+    const string& from,
+    const string& to)
+{
+    deque<string> args;
+    args.push_back("--from");
+    args.push_back(from);
+    args.push_back("--to");
+    args.push_back(to);
+    auto exe = get_pbdef_exe();
+    return exec(cfg, exe, args, LINDEN_DP_ALGORITHM());
+}
+
+int exec_opt(
+    const Config& cfg,
+    const string& input_cfg,
+    const string& outdef)
+{
+    deque<string> args;
+    args.push_back("--input-config");
+    args.push_back(input_cfg);
+    args.push_back("--to");
+    args.push_back(outdef);
+    args.push_back("--cell-only");
+    auto exe = get_opt_exe();
+    return exec(cfg, exe, args, LINDEN_DP_ALGORITHM());
 }
 
 void read_back(const filesystem::path& outdef)
@@ -504,7 +569,7 @@ int basic_dp(::ord::OpenRoad& ord, const Config& cfg) {
     bool suppress_output = cfg.suppress_output.value_or(false);
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
     filesystem::path outdef = output_def_name(basename, suppress_output);
-    int ret = exec_basic_dp(cfg, input_cfg_fn, outdef);
+    int ret = exec_basic_dp(cfg, input_cfg_fn, outdef, basename, lefs);
     read_back(outdef);
     return ret;
 }
@@ -526,7 +591,7 @@ int incr_dp(::ord::OpenRoad& ord, const Config& cfg) {
     bool suppress_output = cfg.suppress_output.value_or(false);
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
     filesystem::path outdef = output_def_name(basename, suppress_output);
-    int ret = exec_incr_dp(cfg, input_cfg_fn, outdef);
+    int ret = exec_incr_dp(cfg, input_cfg_fn, outdef, basename, lefs);
     read_back(outdef);
     return ret;
 }
