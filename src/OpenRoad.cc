@@ -180,9 +180,10 @@ void OpenRoad::setOpenRoad(OpenRoad* app, bool reinit_ok)
   app_ = app;
 }
 
-rsz::Resizer* OpenRoad::getResizer() {
-  if (laurel_) return laurel_->getResizer();
-  return resizer_;
+rsz::Resizer* OpenRoad::getLrlCmdResizer() {
+  if (laurel_)
+    return laurel_->getResizer();
+  return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////

@@ -187,7 +187,7 @@ class OpenRoad
   odb::dbDatabase* getDb() { return db_; }
   sta::dbSta* getSta() { return sta_; }
   sta::dbNetwork* getDbNetwork();
-  rsz::Resizer* getResizer();
+  rsz::Resizer* getResizer() { return resizer_; }
   rmp::Restructure* getRestructure() { return restructure_; }
   cts::TritonCTS* getTritonCts() { return tritonCts_; }
   dbVerilogNetwork* getVerilogNetwork() { return verilog_network_; }
@@ -213,8 +213,7 @@ class OpenRoad
   sc::ScanChain *getScanChain() { return scan_chain_; }
   lrl::Laurel *getLaurel() { return laurel_; }
   banyan::Banyan *getBanyan() { return banyan_; }
-  rsz::Resizer* getOriginalResizer() { return resizer_; };
-  rsz::Resizer* getLrlCmdResizer() { return getResizer(); };
+  rsz::Resizer* getLrlCmdResizer();
 
   // Return the bounding box of the db rows.
   odb::Rect getCore();

@@ -71,6 +71,36 @@ have_routes()
   return getGlobalRouter()->haveRoutes();
 }
 
+void
+set_gcell_tracks_i(int tracks)
+{
+  getGlobalRouter()->setGCellTracks(tracks);
+}
+
+void
+set_layer_for_guide_dimension_i(int layer_id)
+{
+  getGlobalRouter()->setLayerForGuideDimension(layer_id);
+}
+
+void
+rpt_gcell_useage_i()
+{
+  getGlobalRouter()->rptGcellUseage();
+}
+
+void
+add_rc_debug_net_i(const char* net_name)
+{
+  getGlobalRouter()->addRCDebugNet(net_name);
+}
+
+void
+read_rcx_model_i(const char* file_name, const char* corner_name)
+{
+  getGlobalRouter()->readRcxModel(file_name, corner_name);
+}
+
 bool
 have_detailed_routes()
 {

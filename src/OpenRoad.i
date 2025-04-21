@@ -589,6 +589,12 @@ get_sta()
   return sta::Sta::sta();
 }
 
+sta::Sta *
+get_origin_sta()
+{
+  return getOpenRoad()->getSta();
+}
+
 // For some bizzare reason this fails without the namespace qualifier for Sta.
 void
 set_cmd_sta(sta::Sta *sta)

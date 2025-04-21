@@ -51,6 +51,7 @@ add_library(grt_lib
     src/Grid.cpp
     src/Net.cpp
     src/Pin.cpp
+    src/rctable/RCTable.cpp
     src/MakeWireParasitics.cpp
     src/RepairAntennas.cpp
     src/Rudy.cpp

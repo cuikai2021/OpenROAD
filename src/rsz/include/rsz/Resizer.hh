@@ -256,8 +256,10 @@ class Resizer : public dbStaState, public dbNetworkObserver
   double wireClkVCapacitance(const Corner* corner) const;
   void estimateParasitics(ParasiticsSrc src);
   void estimateParasitics(ParasiticsSrc src,
-                          std::map<Corner*, std::ostream*>& spef_streams_);
+                          std::map<Corner*, std::ostream*>& spef_streams_,
+                          std::string_view segs_file="");
   void estimateWireParasitics(SpefWriter* spef_writer = nullptr);
+  void estimateNullRouteWireParasitics(SpefWriter* spef_writer = nullptr);
   void estimateWireParasitic(const Net* net, SpefWriter* spef_writer = nullptr);
   void estimateWireParasitic(const Pin* drvr_pin,
                              const Net* net,
@@ -449,6 +451,10 @@ class Resizer : public dbStaState, public dbNetworkObserver
   void invalidateParasitics(const Pin* pin, const Net* net);
   void eraseParasitics(const Net* net);
   void eliminateDeadLogic(bool clean_nets);
+
+  using ParasiticCopyCallBack = std::function<void(Parasitics *, Parasitic *, const Net *, const Corner *, const sta::MinMaxAll *)>;
+  void registerParasiticCopyCallBack(const ParasiticCopyCallBack& cb) { parasiticCopyCallBacks.push_back(cb); }
+  const std::vector<ParasiticCopyCallBack>& getParasiticCopyCallBacks() { return parasiticCopyCallBacks; }
 
  protected:
   friend class lrl::NetworkSandbox;
@@ -807,8 +813,11 @@ class Resizer : public dbStaState, public dbNetworkObserver
 
   std::unique_ptr<OdbCallBack> db_cbk_;
   bool is_callback_registered_ = false;
+  bool gr_est_local_net = true;
   bool isCallBackRegistered() { return is_callback_registered_; }
   void setCallBackRegistered(bool val) { is_callback_registered_ = val; }
+
+  std::vector<ParasiticCopyCallBack> parasiticCopyCallBacks;
 
   friend class BufferedNet;
   friend class GateCloner;

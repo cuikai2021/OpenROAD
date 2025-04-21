@@ -45,6 +45,10 @@ proc set_layer_rc { args } {
     keys {-layer -via -capacitance -resistance -corner} \
     flags {}
 
+  set ord_sta [ord::get_origin_sta]
+  set now_sta [ord::get_sta]
+  ord::set_cmd_sta $ord_sta
+
   if { [info exists keys(-layer)] && [info exists keys(-via)] } {
     utl::error "ORD" 201 "Use -layer or -via but not both."
   }
@@ -122,6 +126,8 @@ proc set_layer_rc { args } {
   } else {
     utl::error "ORD" 209 "missing -layer or -via argument."
   }
+  multiview::pass_RC_to_all_views_cmd
+  ord::set_cmd_sta $now_sta
 }
 
 sta::define_cmd_args "set_wire_rc" {[-clock] [-signal] [-data]\
@@ -141,6 +147,10 @@ proc set_wire_rc { args } {
     keys {-layer -layers -resistance -capacitance -corner \
           -h_resistance -h_capacitance -v_resistance -v_capacitance} \
     flags {-clock -signal -data}
+
+  set ord_sta [ord::get_origin_sta]
+  set now_sta [ord::get_sta]
+  ord::set_cmd_sta $ord_sta
 
   set corner [sta::parse_corner_or_all keys]
 
@@ -312,14 +322,19 @@ proc set_wire_rc { args } {
       rsz::set_v_wire_clk_rc_cmd $corner $v_wire_res $v_wire_cap
     }
   }
+  
+  multiview::pass_RC_to_all_views_cmd
+  ord::set_cmd_sta $now_sta
 }
 
+# warning : -banyan_global_routing will clear all wires
 sta::define_cmd_args "estimate_parasitics" { -placement|-global_routing \
+                                             -banyan_global_routing \
                                             [-spef_file filename]}
 
 proc estimate_parasitics { args } {
   sta::parse_key_args "estimate_parasitics" args \
-    keys {-spef_file} flags {-placement -global_routing}
+    keys {-spef_file} flags {-placement -global_routing -banyan_global_routing}
 
   set filename ""
   if { [info exists keys(-spef_file)] } {
@@ -328,15 +343,30 @@ proc estimate_parasitics { args } {
 
   if { [info exists flags(-placement)] } {
     if { [rsz::check_corner_wire_cap] } {
-      rsz::estimate_parasitics_cmd "placement" $filename
+      rsz::estimate_parasitics_cmd "placement" $filename ""
     }
   } elseif { [info exists flags(-global_routing)] } {
     if { [grt::have_routes] } {
       # should check for layer rc
-      rsz::estimate_parasitics_cmd "global_routing" $filename
+      rsz::estimate_parasitics_cmd "global_routing" $filename ""
     } else {
       utl::error RSZ 5 "Run global_route before estimating parasitics for global routing."
     }
+  } elseif { [info exists flags(-banyan_global_routing)] } {
+    # hack support for banyan global_route
+    grt::set_gcell_tracks 16
+    grt::set_layer_for_guide_dimension 1
+    set by_gr_seg /tmp/banyan_seg.segs
+    set block [ord::get_db_block]
+    set top_routing_layer_id [$block getMaxRoutingLayer]
+    set tech [ord::get_db_tech]
+    set top_routing_layer [$tech findRoutingLayer $top_routing_layer_id]
+    set top_routing_layer_name [$top_routing_layer getName]
+
+    banyan_clear_wires
+    banyan global_route --max_layer $top_routing_layer_name --no_pa --est_rc --guide_file $by_gr_seg
+
+    rsz::estimate_parasitics_cmd "global_routing" $filename $by_gr_seg
   } else {
     utl::error RSZ 3 "missing -placement or -global_routing flag."
   }

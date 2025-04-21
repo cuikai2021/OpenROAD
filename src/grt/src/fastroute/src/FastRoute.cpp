@@ -867,6 +867,55 @@ void FastRouteCore::getBlockage(odb::dbTechLayer* layer,
   }
 }
 
+void FastRouteCore::RptUsageAndCap()
+{
+  if (h_edges_3D_.num_elements() == 0) {  // no information
+    return;
+  }
+  printf("start report usage and cap\n");
+  for (int i = 0; i < y_grid_; i++) {
+    for (int j = 0; j < x_grid_ - 1; j++) {
+      const int xreal = tile_size_ * (j + 0.5) + x_corner_;
+      const int yreal = tile_size_ * (i + 0.5) + y_corner_;
+      const int usage = h_edges_[i][j].usage;
+      const int capacity = h_edges_[i][j].cap;
+      const int red = h_edges_[i][j].red;
+      printf("h xy %d %d useage cap red %d %d %d\n", xreal, yreal, usage, capacity, red);
+
+      for (int l = 0; l < num_layers_; l++) 
+      {
+        const int xreal = tile_size_ * (j + 0.5) + x_corner_;
+        const int yreal = tile_size_ * (i + 0.5) + y_corner_;
+        const int usage = h_edges_3D_[l][i][j].usage;
+        const int capacity = h_edges_3D_[l][i][j].cap;
+        const int red = h_edges_3D_[l][i][j].red;
+        printf("h layer %d xy %d %d useage cap %d %d %d\n", l, xreal, yreal, usage, capacity, red);
+      }
+    }
+  }
+
+  for (int i = 0; i < y_grid_ - 1; i++) {
+    for (int j = 0; j < x_grid_; j++) {
+      const int xreal = tile_size_ * (j + 0.5) + x_corner_;
+      const int yreal = tile_size_ * (i + 0.5) + y_corner_;
+      const int usage = v_edges_[i][j].usage;
+      const int capacity = v_edges_[i][j].cap;
+      const int red = v_edges_[i][j].red;
+      printf("v xy %d %d useage cap %d %d %d\n", xreal, yreal, usage, capacity, red);
+      for (int l = 0; l < num_layers_; l++) 
+      {
+        const int xreal = tile_size_ * (j + 0.5) + x_corner_;
+        const int yreal = tile_size_ * (i + 0.5) + y_corner_;
+        const int usage = v_edges_3D_[l][i][j].usage;
+        const int capacity = v_edges_3D_[l][i][j].cap;
+        const int red = v_edges_3D_[l][i][j].red;
+        printf("v layer %d xy %d %d useage cap %d %d %d\n", l, xreal, yreal, usage, capacity, red);
+      }
+    }
+  }
+  printf("end report usage and cap\n");
+}
+
 void FastRouteCore::updateDbCongestion(int min_routing_layer,
                                        int max_routing_layer)
 {

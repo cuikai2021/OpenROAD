@@ -114,7 +114,9 @@ void MakeWireParasitics::estimateParasitcs(odb::dbNet* net,
     if (spef_writer) {
       spef_writer->writeNet(corner, sta_net, parasitic);
     }
-
+    for (auto&& parasiticsCopyCallBack : resizer_->getParasiticCopyCallBacks()) {
+      parasiticsCopyCallBack(parasitics_, parasitic, sta_net, corner, sta::MinMaxAll::all());
+    }
     arc_delay_calc_->reduceParasitic(
         parasitic, sta_net, corner, sta::MinMaxAll::all());
   }
@@ -152,6 +154,9 @@ void MakeWireParasitics::estimateParasitcs(odb::dbNet* net, GRoute& route)
         net, route, sta_net, corner, analysis_point, parasitic, node_map);
     makePartialParasiticsToPins(
         grt_net->getPins(), node_map, corner, analysis_point, parasitic, net);
+    for (auto&& parasiticsCopyCallBack : resizer_->getParasiticCopyCallBacks()) {
+      parasiticsCopyCallBack(parasitics_, parasitic, sta_net, corner, sta::MinMaxAll::all());
+    }
     arc_delay_calc_->reduceParasitic(
         parasitic, sta_net, corner, sta::MinMaxAll::all());
   }
@@ -236,7 +241,8 @@ void MakeWireParasitics::makeRouteParasitics(
                  segment.final_layer,
                  units->resistanceUnit()->asString(res));
     } else if (segment.init_layer == segment.final_layer) {
-      layerRC(wire_length_dbu, segment.init_layer, corner, res, cap);
+      total_est_length_ += block_->dbuToMicrons(wire_length_dbu);
+      layerRC(segment, wire_length_dbu, segment.init_layer, corner, res, cap);
       debugPrint(logger_,
                  GRT,
                  "est_rc",
@@ -306,12 +312,18 @@ void MakeWireParasitics::makeParasiticsToPin(
     via_res = getCutLayerRes(cut_layer, corner);
   }
 
+  findPinParasiticsNode(pin, layer, grid_pt, grid_node, node_map);
+
   if (grid_node) {
-    // Make wire from pin to gcell center on pin layer.
-    int wire_length_dbu
-        = abs(pt.getX() - grid_pt.getX()) + abs(pt.getY() - grid_pt.getY());
+    auto pin_to_grid_pt = MakePinToGridPTSeg(pin, layer, pt, grid_pt, node_map);
+    int wire_length_dbu = pin_to_grid_pt.length();
     float res, cap;
-    layerRC(wire_length_dbu, layer, corner, res, cap);
+    total_est_length_ += block_->dbuToMicrons(wire_length_dbu);
+    if (wire_length_dbu != 0) {
+      layerRC(pin_to_grid_pt, wire_length_dbu, layer, corner, res, cap);
+    } else {
+      res = cap = 0.0;
+    }
     sta::Units* units = sta_->units();
     debugPrint(
         logger_,
@@ -408,12 +420,18 @@ void MakeWireParasitics::makePartialParasiticsToPin(
     via_res = getCutLayerRes(cut_layer, corner);
   }
 
+  findPinParasiticsNode(pin, layer, grid_pt, grid_node, node_map);
+
   if (grid_node) {
-    // Make wire from pin to gcell center on pin layer.
-    int wire_length_dbu
-        = abs(pt.getX() - grid_pt.getX()) + abs(pt.getY() - grid_pt.getY());
+    auto pin_to_grid_pt = MakePinToGridPTSeg(pin, layer, pt, grid_pt, node_map);
+    int wire_length_dbu = pin_to_grid_pt.length();
     float res, cap;
-    layerRC(wire_length_dbu, layer, corner, res, cap);
+    total_est_length_ += block_->dbuToMicrons(wire_length_dbu);
+    if (wire_length_dbu != 0) {
+      layerRC(pin_to_grid_pt, wire_length_dbu, layer, corner, res, cap);
+    } else {
+      res = cap = 0.0;
+    }
     sta::Units* units = sta_->units();
     debugPrint(
         logger_,
@@ -455,13 +473,21 @@ void MakeWireParasitics::makePartialParasiticsToPin(
   }
 }
 
-void MakeWireParasitics::layerRC(int wire_length_dbu,
+void MakeWireParasitics::layerRC(GSegment seg,
+                                 int wire_length_dbu,
                                  int layer_id,
                                  sta::Corner* corner,
                                  // Return values.
                                  float& res,
                                  float& cap) const
 {
+  // use grouter rc first
+  if (grouter_->canCalSegRC(corner)) {
+    auto rc = grouter_->getSegRC(seg, corner, wire_length_dbu);
+    res = rc.first * 2;
+    cap = rc.second * 2;
+    return;
+  }
   odb::dbTechLayer* layer = tech_->findRoutingLayer(layer_id);
   double r_per_meter = 0.0;    // ohm/meter
   double cap_per_meter = 0.0;  // F/meter
@@ -575,6 +601,148 @@ float MakeWireParasitics::getCutLayerRes(odb::dbTechLayer* cut_layer,
     res = cut_layer->getResistance();  // assumes single cut
   }
   return res / num_cuts;
+}
+
+
+////////////////////////////////////////////////////////////////
+void MakeWireParasitics::findPinParasiticsNode(Pin& pin,
+                                               int& layer,
+                                               odb::Point& grid_pt,
+                                               sta::ParasiticNode*& grid_node,
+                                               NodeRoutePtMap& node_map)
+{
+  RoutePt grid_route;
+  grid_node = nullptr;
+  // find by boxes of pin's point located gcell 
+  if (grid_node == nullptr) {
+    int min_dist = std::numeric_limits<int>().max();
+    sta::ParasiticNode* res = nullptr;
+    int layer_res = layer;
+    for (auto&& [la, boxes] : pin.getBoxes()) {
+      for (auto&& box : boxes) {
+        for (auto&& p : box.getPoints()) {
+          auto tmp_grid_pt = grouter_->getPositionOnGrid(p);
+          grid_route = RoutePt(tmp_grid_pt.getX(), tmp_grid_pt.getY(), la);
+          sta::ParasiticNode* tmp_grid = node_map[grid_route];
+          if (tmp_grid != nullptr) {
+            auto dist = odb::manhattanDistance(box, odb::Point(tmp_grid_pt.x(), tmp_grid_pt.y()));
+            if (dist < min_dist) {
+              min_dist = dist;
+              res = tmp_grid;
+              layer_res = la;
+              grid_pt = tmp_grid_pt;
+            }
+          }
+        }
+      }
+    }
+    grid_node = res;
+    layer = layer_res;
+  }
+
+  // find by dist
+  if (grid_node == nullptr) {
+    int min_dist = std::numeric_limits<int>().max();
+    sta::ParasiticNode* res = nullptr;
+    int layer_res = layer;
+    for (auto&& [la, boxes] : pin.getBoxes()) {
+      for (auto &&[route_pt, node] : node_map) {
+        if (route_pt.layer() == la) {
+          if (node == nullptr) {
+            continue;
+          }
+          for (auto&& box : boxes) {
+            auto dist = odb::manhattanDistance(box, odb::Point(route_pt.x(), route_pt.y()));
+            if (dist < min_dist) {
+              min_dist = dist;
+              res = node;
+              layer_res = la;
+              grid_pt = odb::Point(route_pt.x(), route_pt.y());
+            }
+          }
+        }
+      }
+    }
+    grid_node = res;
+    layer = layer_res;
+  }
+}
+
+GSegment MakeWireParasitics::MakePinToGridPTSeg(const Pin& pin,
+                                                int layer,
+                                                odb::Point pt,
+                                                odb::Point grid_pt,
+                                                NodeRoutePtMap& node_map) {
+  bool grid_in_box = false;
+
+  for (auto& box : pin.getBoxes().at(layer)) {
+    if (box.intersects(grid_pt)) {
+      grid_in_box = true;
+      break;
+    }
+  }
+  if (!grid_in_box) {
+    // now banyan guide always not in box, so don't log it.
+    // logger_->info(GRT, 5001, "grid_pt {} {} {} not in box", grid_pt.x(), grid_pt.y(), layer);
+  } else {
+    pt = grid_pt;
+  }
+  // Make wire from pin to grid_pt on pin layer.
+  odb::Rect pin_to_grid_pt(pt, grid_pt);
+  // TODO : fix me, not use maxDXDY
+  int wire_length_dbu = pin_to_grid_pt.maxDXDY();
+  if (wire_length_dbu != 0) {
+    // find the nearest point to gsegments
+    std::vector<odb::Point> edges = {};
+    edges.push_back(odb::Point(grid_pt.getX(), grid_pt.getY()));
+    auto insertGEdge = [&](int x, int y) {
+      if (node_map.contains(RoutePt(x, y, layer))) {
+        edges.push_back(odb::Point(x, y));
+        edges.push_back(odb::Point(grid_pt.x(), grid_pt.y()));
+      }
+    };
+    insertGEdge(grid_pt.getX() + grouter_->getGridTileSize(), grid_pt.getY());
+    insertGEdge(grid_pt.getX() - grouter_->getGridTileSize(), grid_pt.getY());
+    insertGEdge(grid_pt.getX(), grid_pt.getY() + grouter_->getGridTileSize());
+    insertGEdge(grid_pt.getX(), grid_pt.getY() - grouter_->getGridTileSize());
+
+    auto nearest_point_on_segment = [](const odb::Point& p, const odb::Point& a, const odb::Point& b) {
+      if (a.x() == b.x()) {
+          const int y_min = std::min(a.y(), b.y());
+          const int y_max = std::max(a.y(), b.y());
+          const int clamped_y = std::clamp(p.y(), y_min, y_max);
+          return odb::Point(a.x(), clamped_y);
+      } else {
+          const int x_min = std::min(a.x(), b.x());
+          const int x_max = std::max(a.x(), b.x());
+          const int clamped_x = std::clamp(p.x(), x_min, x_max);
+          return odb::Point(clamped_x, a.y());
+      }
+    };
+
+    odb::Point nearest;
+    int min_dist = std::numeric_limits<int>::max();
+    for (std::size_t i = 0; i < edges.size() - 1; i++) {
+      odb::Point candidate = nearest_point_on_segment(pt, edges[i], edges[i+1]);
+      auto dist = odb::Point::manhattanDistance(pt, candidate);
+      if (dist < min_dist) {
+        min_dist = dist;
+        nearest = candidate;
+      }
+    }
+
+    // use maxDXDY so should make this rect to max length segment
+    if (min_dist != std::numeric_limits<int>::max()) {
+      pin_to_grid_pt = odb::Rect(pt.getX(), pt.getY(), nearest.x(), nearest.y());
+      wire_length_dbu = pin_to_grid_pt.maxDXDY();
+    }
+    if (pin_to_grid_pt.dx() == wire_length_dbu) {
+      pin_to_grid_pt.set_ylo(pin_to_grid_pt.yMax());
+    } else {
+      pin_to_grid_pt.set_xlo(pin_to_grid_pt.xMax());
+    }
+  }
+  return GSegment(pin_to_grid_pt.xMin(), pin_to_grid_pt.yMin(), layer, pin_to_grid_pt.xMax(), pin_to_grid_pt.yMax(), layer);
 }
 
 }  // namespace grt

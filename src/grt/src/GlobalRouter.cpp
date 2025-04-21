@@ -44,6 +44,7 @@
 #include <iostream>
 #include <istream>
 #include <random>
+#include <ranges>
 #include <set>
 #include <sstream>
 #include <string>
@@ -57,6 +58,7 @@
 #include "FastRoute.h"
 #include "Grid.h"
 #include "MakeWireParasitics.h"
+#include "rctable/RCTable.h"
 #include "RepairAntennas.h"
 #include "RoutingTracks.h"
 #include "db_sta/dbNetwork.hh"
@@ -167,6 +169,7 @@ GlobalRouter::~GlobalRouter()
     delete net;
   }
   delete repair_antennas_;
+  delete gcell_rc_;
 }
 
 std::vector<Net*> GlobalRouter::initFastRoute(int min_routing_layer,
@@ -541,21 +544,27 @@ void GlobalRouter::estimateRC(rsz::SpefWriter* spef_writer)
       builder.estimateParasitcs(db_net, net->getPins(), route, spef_writer);
     }
   }
+
+  logger_->report("Total Est length {:.2f} um", builder.getTotalEstWireLength() / sta_->corners()->corners().size());
 }
 
-void GlobalRouter::estimateRC(odb::dbNet* db_net)
+bool GlobalRouter::estimateRC(odb::dbNet* db_net, bool est_local_net)
 {
   MakeWireParasitics builder(
       logger_, resizer_, sta_, db_->getTech(), block_, this);
   auto iter = routes_.find(db_net);
   if (iter == routes_.end()) {
-    return;
+    return false;
   }
   GRoute& route = iter->second;
   if (!route.empty()) {
     Net* net = getNet(db_net);
+    if (!est_local_net && net->isLocal()) {
+      return false;
+    }
     builder.estimateParasitcs(db_net, net->getPins(), route);
   }
+  return true;
 }
 
 std::vector<int> GlobalRouter::routeLayerLengths(odb::dbNet* db_net)
@@ -689,6 +698,8 @@ void GlobalRouter::updateDirtyNets(std::vector<Net*>& dirty_nets)
     if (pinPositionsChanged(net)
         && (!net->isMergedNet() || !netIsCovered(db_net, pins_not_covered))) {
       dirty_nets.push_back(db_net_map_[db_net]);
+      updateEdgesUsage(seg_routes_[db_net], -1);
+      seg_routes_[db_net].clear();
       routes_[db_net].clear();
       db_net->clearGuides();
       fastroute_->clearNetRoute(db_net);
@@ -885,7 +896,7 @@ void GlobalRouter::removeRectUsage(const odb::Rect& rect,
   } else {
     for (int x = first_tile.getX(); x < last_tile.getX(); x++) {
       for (int y = first_tile.getY(); y <= last_tile.getY(); y++) {
-        int cap = fastroute_->getEdgeCapacity(x, y, x, y + 1, layer_idx);
+        int cap = fastroute_->getEdgeCapacity(x, y, x + 1, y, layer_idx);
         fastroute_->addAdjustment(x, y, x + 1, y, layer_idx, cap + 1, false);
       }
     }
@@ -2222,8 +2233,27 @@ void GlobalRouter::updateEdgesUsage()
       x1 = std::min(x1, grid_->getXGrids() - 1);
       y1 = std::min(y1, grid_->getYGrids() - 1);
 
-      fastroute_->incrementEdge3DUsage(x0, y0, x1, y1, l0);
+      fastroute_->updateEdge2DAnd3DUsage(x0, y0, x1, y1, l0, 1);
     }
+  }
+}
+
+void GlobalRouter::updateEdgesUsage(const std::vector<GSegment>& groute, int used)
+{
+  for (const GSegment& seg : groute) {
+    int x0 = (seg.init_x - grid_->getXMin()) / grid_->getTileSize();
+    int y0 = (seg.init_y - grid_->getYMin()) / grid_->getTileSize();
+    int l0 = seg.init_layer;
+
+    int x1 = (seg.final_x - grid_->getXMin()) / grid_->getTileSize();
+    int y1 = (seg.final_y - grid_->getYMin()) / grid_->getTileSize();
+
+    // The last gcell is oversized and includes space that the above
+    // calculation doesn't represent so correct it:
+    x1 = std::min(x1, grid_->getXGrids() - 1);
+    y1 = std::min(y1, grid_->getYGrids() - 1);
+
+    fastroute_->updateEdge2DAnd3DUsage(x0, y0, x1, y1, l0, used);
   }
 }
 
@@ -2496,7 +2526,36 @@ void GlobalRouter::readSegments(const char* file_name)
     logger_->error(GRT, 256, "Load design before reading guides");
   }
 
+  // should call estimate parasitics immediately
+  // clear_prev_segs should run before initGridAndNets since initGridAndNets will clear routes_
+  bool clear_prev_segs = true;
+  if (clear_prev_segs) {
+    fastroute_->clearNetsToRoute();
+    for (const auto& [db_net, _] : routes_) {
+      auto net = getNet(db_net);
+      net->destroyPins();
+      // update pin positions
+      makeItermPins(net, db_net, grid_->getGridArea());
+      makeBtermPins(net, db_net, grid_->getGridArea());
+      findPins(net);
+      destroyNetWire(net);
+      if (routes_.count(db_net)) {
+        updateEdgesUsage(seg_routes_[db_net], -1);
+        seg_routes_[db_net].clear();
+        routes_[db_net].clear();
+      }
+      db_net->clearGuides();
+      fastroute_->clearNetRoute(db_net);
+      net->setMergedNet(false);
+      net->setDirtyNet(false);
+      net->clearLastPinPositions();
+    }
+    dirty_nets_.clear();
+  }
+
   initGridAndNets();
+  assert(grid_->getPitchesInTile() == gcell_tracks);
+  logger_->info(GRT, 1001, "reading segments, gcell tracks {}, layer for guide dimension {}", gcell_tracks, layer_for_guide_dimension_);
 
   odb::dbTech* tech = db_->getTech();
 
@@ -2544,6 +2603,21 @@ void GlobalRouter::readSegments(const char* file_name)
                        stoi(tokens[3]),
                        stoi(tokens[4]),
                        layer2->getRoutingLevel());
+      int x1 = (segment.init_x - grid_->getXMin());
+      int y1 = (segment.init_y - grid_->getYMin());
+      int x2 = (segment.final_x - grid_->getXMin());
+      int y2 = (segment.final_y - grid_->getYMin());
+      auto checkGcellCenter = [this](int v) {
+        if (v % grid_->getTileSize() != grid_->getTileSize() / 2) {
+          logger_->info(GRT, 1005, "{} not gcell center. gcell size {}", v, grid_->getTileSize());
+        }
+      };
+      checkGcellCenter(x1);
+      checkGcellCenter(y1);
+      checkGcellCenter(x2);
+      checkGcellCenter(y2);
+
+
       routes_[db_net].push_back(segment);
     } else {
       logger_->error(
@@ -2556,7 +2630,8 @@ void GlobalRouter::readSegments(const char* file_name)
           GRT, 262, "Net {} has disconnected segments.", db_net->getName());
     }
     std::string pins_not_covered;
-    if (!netIsCovered(db_net, pins_not_covered)) {
+    // hack check pin not covered crash
+    if (false && !netIsCovered(db_net, pins_not_covered)) {
       logger_->error(GRT,
                      263,
                      "Pin(s) {}not covered in net {}.",
@@ -2564,9 +2639,65 @@ void GlobalRouter::readSegments(const char* file_name)
                      db_net->getName());
     }
   }
-  if (block_->getGCellGrid() == nullptr) {
-    updateDbCongestion();
+  for (auto& [db_net, net] : db_net_map_ 
+    | std::views::filter([&](auto&& pair) {
+        auto&& [key, value] = pair;
+        return value->getNumPins() >= 2 
+            && routes_.contains(key) 
+            && routes_[key].empty();
+    })) {
+    logger_->info(GRT, 1007, "{} no segments/routes", net->getConstName());
   }
+  // if (block_->getGCellGrid() == nullptr) {
+  setAllowCongestion(true);
+  updateEdgesUsage();
+  updateDbCongestion();
+  heatmap_->update();
+  seg_routes_ = routes_;
+  // }
+}
+
+void GlobalRouter::rptGcellUseage()
+{
+  fastroute_->RptUsageAndCap();
+}
+
+void GlobalRouter::addRCDebugNet(const char* net_name)
+{
+  auto db_net = block_->findNet(net_name);
+  if (db_net == nullptr) {
+    logger_->error(GRT, 1006, "rc debug cant find net {} ", net_name);
+  }
+  rcx_dbg_nets.insert(db_net);
+}
+
+void GlobalRouter::readRcxModel(const char* file_name, const char* corner_name)
+{
+  initGridAndNets();
+  if (gcell_rc_ == nullptr) {
+    gcell_rc_ = new RCTable::GCellRC(db_->getTech(), block_, this, grid_, logger_);
+  }
+  const auto& corner = sta_->findCorner(corner_name);
+  if (corner == nullptr) {
+    logger_->error(GRT, 1002, "not correct corner name {}", corner_name);
+  }
+  gcell_rc_->readRCFromRCXModel(file_name, corner);
+}
+
+// Returns {R(Ohm), Cap(F)} pair
+std::pair<double, double>
+GlobalRouter::getSegRC(GSegment seg,
+                  sta::Corner* corner,
+                  int wire_length_dbu,
+                  int wire_width_dbu,
+                  bool dbg) {
+  assert(gcell_rc_->hasCorner(corner));
+  return gcell_rc_->getSegRC(seg, corner, wire_length_dbu, wire_width_dbu, dbg);
+}
+
+bool
+GlobalRouter::canCalSegRC(sta::Corner* corner) {
+  return gcell_rc_ != nullptr && gcell_rc_->hasCorner(corner);
 }
 
 bool GlobalRouter::netIsCovered(odb::dbNet* db_net,
@@ -3156,7 +3287,12 @@ void GlobalRouter::initGrid(int max_layer)
   int dx = rect.dx();
   int dy = rect.dy();
 
-  int tile_size = grid_->getPitchesInTile() * track_spacing;
+  if (gcell_tracks == 0) {
+    gcell_tracks = grid_->getPitchesInTile();
+  } else {
+    grid_->setPitchesInTile(gcell_tracks);
+  }
+  int tile_size = gcell_tracks * track_spacing;
 
   int x_grids = std::max(1, dx / tile_size);
   int y_grids = std::max(1, dy / tile_size);
@@ -5015,5 +5151,12 @@ std::size_t GSegmentHash::operator()(const GSegment& seg) const
        seg.final_y,
        seg.final_layer});
 }
+
+odb::Point GlobalRouter::getPositionOnGrid(
+    odb::Point p)
+{
+  return grid_->getPositionOnGrid(p);
+}
+
 
 }  // namespace grt

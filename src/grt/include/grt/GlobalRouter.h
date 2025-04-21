@@ -141,6 +141,10 @@ using Guides = std::vector<std::pair<int, odb::Rect>>;
 using LayerId = int;
 using TileSet = std::set<std::pair<int, int>>;
 
+namespace RCTable {
+class GCellRC;
+}
+
 class GlobalRouter : public ant::GlobalRouteSource
 {
  public:
@@ -203,7 +207,7 @@ class GlobalRouter : public ant::GlobalRouteSource
   std::vector<Net*> initFastRoute(int min_routing_layer, int max_routing_layer);
   void initFastRouteIncr(std::vector<Net*>& nets);
   void estimateRC(rsz::SpefWriter* spef_writer = nullptr);
-  void estimateRC(odb::dbNet* db_net);
+  bool estimateRC(odb::dbNet* db_net, bool est_local_net=true);
   // Return GRT layer lengths in dbu's for db_net's route indexed by routing
   // layer.
   std::vector<int> routeLayerLengths(odb::dbNet* db_net);
@@ -303,7 +307,6 @@ class GlobalRouter : public ant::GlobalRouteSource
   void reportNetDetailedRouteWL(odb::dbWire* wire, std::ofstream& out);
   void createWLReportFile(const char* file_name, bool verbose);
   std::vector<PinGridLocation> getPinGridPositions(odb::dbNet* db_net);
-
   bool findPinAccessPointPositions(
       const Pin& pin,
       std::vector<std::pair<odb::Point, odb::Point>>& ap_positions);
@@ -322,7 +325,28 @@ class GlobalRouter : public ant::GlobalRouteSource
   odb::dbDatabase* db() const { return db_; }
   FastRouteCore* fastroute() const { return fastroute_; }
   Rudy* getRudy();
-
+  void rptGcellUseage();
+  void addRCDebugNet(const char*);
+  void readRcxModel(const char*, const char*);
+  std::pair<double, double> getSegRC(GSegment seg,
+                                     sta::Corner* corner,
+                                     int wire_length_dbu,
+                                     int wire_width_dbu=0,
+                                     bool dbg=false);
+  bool canCalSegRC(sta::Corner* corner);
+  odb::Point getPositionOnGrid(odb::Point);
+  void setGCellTracks(int tracks) {
+    if (routing_layers_.empty()) {
+      gcell_tracks = tracks;
+      initGridAndNets();
+    } else {
+      if (tracks != gcell_tracks) {
+        logger_->error(utl::GRT, 1000, "plz do nothing before setGCellTracks, for not clean openroad code yet. [prev {} want set to {}]", gcell_tracks, tracks);
+      }
+    }
+  }
+  int getGCellTracks() { return gcell_tracks; }
+  void setLayerForGuideDimension(int layer_id) { layer_for_guide_dimension_ = layer_id; }
  private:
   // Net functions
   Net* addNet(odb::dbNet* db_net);
@@ -404,6 +428,7 @@ class GlobalRouter : public ant::GlobalRouteSource
   void reportResources();
   void reportCongestion();
   void updateEdgesUsage();
+  void updateEdgesUsage(const std::vector<GSegment>& groute, int used=1);
   void updateDbCongestionFromGuides();
   void computeGCellGridPatternFromGuides(
       std::unordered_map<odb::dbNet*, Guides>& guides);
@@ -478,6 +503,8 @@ class GlobalRouter : public ant::GlobalRouteSource
   odb::Point grid_origin_;
   std::unique_ptr<AbstractGrouteRenderer> groute_renderer_;
   NetRouteMap routes_;
+  // used to support segments cap uesage since openroad dont do so
+  NetRouteMap seg_routes_;
 
   std::map<odb::dbNet*, Net*> db_net_map_;
   Grid* grid_;
@@ -530,6 +557,11 @@ class GlobalRouter : public ant::GlobalRouteSource
 
   // incremental grt
   GRouteDbCbk* grouter_cbk_;
+
+  RCTable::GCellRC* gcell_rc_{nullptr};
+  // set 0 for not change openroad behaviours
+  int gcell_tracks=0;
+  std::set<odb::dbNet*> rcx_dbg_nets;
 
   friend class IncrementalGRoute;
   friend class GRouteDbCbk;

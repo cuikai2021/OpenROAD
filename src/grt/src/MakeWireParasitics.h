@@ -94,6 +94,8 @@ class MakeWireParasitics : public AbstractMakeWireParasitics
   // Return the Slack of a given net
   float getNetSlack(odb::dbNet* net) override;
 
+  double getTotalEstWireLength() { return total_est_length_; }
+
  private:
   using NodeRoutePtMap = std::map<RoutePt, sta::ParasiticNode*>;
 
@@ -135,7 +137,8 @@ class MakeWireParasitics : public AbstractMakeWireParasitics
                                   sta::ParasiticAnalysisPt* analysis_point,
                                   sta::Parasitic* parasitic,
                                   odb::dbNet* net);
-  void layerRC(int wire_length_dbu,
+  void layerRC(GSegment seg,
+               int wire_length_dbu,
                int layer,
                sta::Corner* corner,
                // Return values.
@@ -145,6 +148,17 @@ class MakeWireParasitics : public AbstractMakeWireParasitics
                        sta::Corner* corner,
                        int num_cuts = 1) const;
   double dbuToMeters(int dbu) const;
+
+  void findPinParasiticsNode(Pin& pin,
+                             int& layer,
+                             odb::Point& grid_pt,
+                             sta::ParasiticNode*& grid_node,
+                             NodeRoutePtMap& node_map);
+  GSegment MakePinToGridPTSeg(const Pin& pin,
+                              int layer,
+                              odb::Point pt,
+                              odb::Point grid_pt,
+                              NodeRoutePtMap& node_map);
 
   // Variables common to all nets.
   GlobalRouter* grouter_;
@@ -158,6 +172,7 @@ class MakeWireParasitics : public AbstractMakeWireParasitics
   sta::ArcDelayCalc* arc_delay_calc_;
   sta::MinMax* min_max_;
   size_t resistor_id_;
+  double total_est_length_=0.0;
 };
 
 }  // namespace grt

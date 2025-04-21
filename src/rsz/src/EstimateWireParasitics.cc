@@ -278,20 +278,31 @@ void Resizer::estimateParasitics(ParasiticsSrc src)
   estimateParasitics(src, spef_streams);
 }
 
+double estimateLength = 0.0;
 void Resizer::estimateParasitics(ParasiticsSrc src,
-                                 std::map<Corner*, std::ostream*>& spef_streams)
+                                 std::map<Corner*, std::ostream*>& spef_streams,
+                                 std::string_view segs_file)
 {
+  if (!segs_file.empty()) {
+    global_router_->readSegments(segs_file.data());
+    gr_est_local_net = false;
+  }
   std::unique_ptr<SpefWriter> spef_writer;
   if (!spef_streams.empty()) {
     spef_writer = std::make_unique<SpefWriter>(logger_, sta_, spef_streams);
   }
 
+  estimateLength = 0.0;
   switch (src) {
     case ParasiticsSrc::placement:
       estimateWireParasitics(spef_writer.get());
       break;
     case ParasiticsSrc::global_routing:
       global_router_->estimateRC(spef_writer.get());
+      // for not change golden result
+      if (!gr_est_local_net) {
+        estimateNullRouteWireParasitics(spef_writer.get());
+      }
       parasitics_src_ = ParasiticsSrc::global_routing;
       break;
     case ParasiticsSrc::detailed_routing:
@@ -301,6 +312,8 @@ void Resizer::estimateParasitics(ParasiticsSrc src,
     case ParasiticsSrc::none:
       break;
   }
+
+  // logger_->info(RSZ, 1000, "Total Est length {:.2f} um by STT", estimateLength / sta_->corners()->corners().size());
 }
 
 bool Resizer::haveEstimatedParasitics() const
@@ -354,12 +367,19 @@ void Resizer::updateParasitics(bool save_guides)
       break;
     case ParasiticsSrc::global_routing:
     case ParasiticsSrc::detailed_routing: {
+      // improve uses mode
+      if (parasitics_invalid_.empty()) {
+        break;
+      }
       // TODO: update detailed route for modified nets
       incr_groute_->updateRoutes(save_guides);
       for (const Net* net : parasitics_invalid_) {
-        global_router_->estimateRC(db_network_->staToDb(net));
+        if (!global_router_->estimateRC(db_network_->staToDb(net), gr_est_local_net) && !gr_est_local_net) {
+          estimateWireParasitic(net);
+        }
       }
       parasitics_invalid_.clear();
+      parasitics_src_ = ParasiticsSrc::global_routing;
       break;
     }
     case ParasiticsSrc::none:
@@ -398,8 +418,11 @@ void Resizer::ensureWireParasitic(const Pin* drvr_pin, const Net* net)
         break;
       case ParasiticsSrc::global_routing: {
         incr_groute_->updateRoutes();
-        global_router_->estimateRC(db_network_->staToDb(net));
+        if (!global_router_->estimateRC(db_network_->staToDb(net), gr_est_local_net) && !gr_est_local_net) {
+          estimateWireParasitic(net);
+        }
         parasitics_invalid_.erase(net);
+        parasitics_src_ = ParasiticsSrc::global_routing;
         break;
       }
       case ParasiticsSrc::detailed_routing:
@@ -412,6 +435,30 @@ void Resizer::ensureWireParasitic(const Pin* drvr_pin, const Net* net)
 }
 
 ////////////////////////////////////////////////////////////////
+
+void Resizer::estimateNullRouteWireParasitics(SpefWriter* spef_writer)
+{
+  initBlock();
+  if (!wire_signal_cap_.empty()) {
+    sta_->ensureClkNetwork();
+    // Make separate parasitics for each corner, same for min/max.
+    sta_->setParasiticAnalysisPts(true);
+
+    NetIterator* net_iter = network_->netIterator(network_->topInstance());
+    while (net_iter->hasNext()) {
+      Net* net = net_iter->next();
+      auto db_net = db_network_->staToDb(net);
+      if (global_router_->getRoutes().contains(db_net)) {
+        continue;
+      }
+      estimateWireParasitic(net, spef_writer);
+    }
+    delete net_iter;
+
+    parasitics_src_ = ParasiticsSrc::global_routing;
+    parasitics_invalid_.clear();
+  }
+}
 
 void Resizer::estimateWireParasitics(SpefWriter* spef_writer)
 {
@@ -503,6 +550,9 @@ void Resizer::makePadParasitic(const Net* net, SpefWriter* spef_writer)
     if (spef_writer) {
       spef_writer->writeNet(corner, net, parasitic);
     }
+    for (auto&& parasiticsCopyCallBack : parasiticCopyCallBacks) {
+      parasiticsCopyCallBack(parasitics_, parasitic, net, corner, sta::MinMaxAll::all());
+    }
     arc_delay_calc_->reduceParasitic(
         parasitic, net, corner, sta::MinMaxAll::all());
   }
@@ -568,6 +618,7 @@ void Resizer::estimateWireParasiticSteiner(const Pin* drvr_pin,
           parasitics_->makeResistor(parasitic, resistor_id++, 1.0e-3, n1, n2);
         } else {
           double length = dbuToMeters(wire_length_dbu);
+          estimateLength += wire_length_dbu / (dbu_ * 1.0);
           double cap = length * wire_cap;
           double res = length * wire_res;
           // Make pi model for the wire.
@@ -591,6 +642,9 @@ void Resizer::estimateWireParasiticSteiner(const Pin* drvr_pin,
       }
       if (spef_writer) {
         spef_writer->writeNet(corner, net, parasitic);
+      }
+      for (auto&& parasiticsCopyCallBack : parasiticCopyCallBacks) {
+        parasiticsCopyCallBack(parasitics_, parasitic, net, corner, sta::MinMaxAll::all());
       }
       arc_delay_calc_->reduceParasitic(
           parasitic, net, corner, sta::MinMaxAll::all());

@@ -562,5 +562,53 @@ proc have_detailed_route { block } {
   return 0
 }
 
+proc add_rc_debug_net { net_name } {
+  grt::add_rc_debug_net_i $net_name
+  return 0
+}
+
+proc set_gcell_tracks { siz } {
+  grt::set_gcell_tracks_i $siz
+  return 0
+}
+
+proc set_layer_for_guide_dimension { layer_id } {
+  grt::set_layer_for_guide_dimension_i $layer_id
+  return 0
+}
+
+proc rpt_gcell_useage { } {
+  grt::rpt_gcell_useage_i
+  return 0
+}
+
+sta::define_cmd_args "read_rcx_model" { [-file file] \
+                                        [-corner corner]
+}
+proc read_rcx_model { args } {
+  # hack support for banyan global_route
+  set_gcell_tracks 16
+  set_layer_for_guide_dimension 1
+  sta::parse_key_args "read_rcx_model" args \
+  keys {-file -corner} \
+
+  set file ""
+  if { [info exists keys(-file)] } {
+    set file $keys(-file)
+  } else {
+      utl::error GRT 1100 "-file required"
+  }
+
+  set corner ""
+  if { [info exists keys(-corner)] } {
+    set corner $keys(-corner)
+  } else {
+      utl::error GRT 1101 "-corner required"
+  }
+
+  grt::read_rcx_model_i $file $corner
+  return 0
+}
+
 # grt namespace end
 }

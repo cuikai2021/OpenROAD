@@ -121,6 +121,8 @@ class FastRouteCore
                 stt::SteinerTreeBuilder* stt_builder);
   ~FastRouteCore();
 
+  void RptUsageAndCap();
+
   void clear();
   void saveCongestion(int iter = -1);
   void setGridsAndLayers(int x, int y, int nLayers);

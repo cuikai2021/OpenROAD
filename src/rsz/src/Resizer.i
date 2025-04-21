@@ -49,6 +49,8 @@
 
 namespace ord {
 // Defined in OpenRoad.i
+ord::OpenRoad *
+getOpenRoad();
 rsz::Resizer *
 getResizer();
 utl::Logger* 
@@ -71,7 +73,7 @@ using TmpNetSeq = NetSeq ;
 using TmpPinSet = PinSet;
 
 } // namespace
-
+using ord::getOpenRoad;
 using ord::getResizer;
 using ord::ensureLinked;
 
@@ -240,7 +242,7 @@ set_layer_rc_cmd(odb::dbTechLayer *layer,
                  float res,
                  float cap)
 {
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   resizer->setLayerRC(layer, corner, res, cap);
 }
 
@@ -248,7 +250,7 @@ double
 layer_resistance(odb::dbTechLayer *layer,
                  const Corner *corner)
 {
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   double res, cap;
   resizer->layerRC(layer, corner, res, cap);
   return res;
@@ -258,7 +260,7 @@ double
 layer_capacitance(odb::dbTechLayer *layer,
                   const Corner *corner)
 {
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   double res, cap;
   resizer->layerRC(layer, corner, res, cap);
   return cap;
@@ -270,7 +272,7 @@ set_h_wire_signal_rc_cmd(const Corner *corner,
                          float cap)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   resizer->setHWireSignalRC(corner, res, cap);
 }
 
@@ -280,7 +282,7 @@ set_v_wire_signal_rc_cmd(const Corner *corner,
                          float cap)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   resizer->setVWireSignalRC(corner, res, cap);
 }
 
@@ -290,7 +292,7 @@ set_h_wire_clk_rc_cmd(const Corner *corner,
                       float cap)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   resizer->setHWireClkRC(corner, res, cap);
 }
 
@@ -300,7 +302,7 @@ set_v_wire_clk_rc_cmd(const Corner *corner,
                       float cap)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   resizer->setVWireClkRC(corner, res, cap);
 }
 
@@ -309,7 +311,7 @@ double
 wire_signal_resistance(const Corner *corner)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   return resizer->wireSignalResistance(corner);
 }
 
@@ -317,7 +319,7 @@ double
 wire_clk_resistance(const Corner *corner)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   return resizer->wireClkResistance(corner);
 }
 
@@ -326,7 +328,7 @@ double
 wire_signal_capacitance(const Corner *corner)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   return resizer->wireSignalCapacitance(corner);
 }
 
@@ -334,15 +336,15 @@ double
 wire_clk_capacitance(const Corner *corner)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   return resizer->wireClkCapacitance(corner);
 }
 
 void 
-estimate_parasitics_cmd(ParasiticsSrc src, const char* path)
+estimate_parasitics_cmd(ParasiticsSrc src, const char* path, const char* segs_path)
 {
   ensureLinked();
-  Resizer* resizer = getResizer();
+  Resizer* resizer = getOpenRoad()->getResizer();
   std::map<Corner*, std::ostream*> spef_files;
   if (path != nullptr && std::strlen(path) > 0) {
     std::string file_path(path);
@@ -374,7 +376,7 @@ estimate_parasitics_cmd(ParasiticsSrc src, const char* path)
     }
   }
 
-  resizer->estimateParasitics(src, spef_files);
+  resizer->estimateParasitics(src, spef_files, segs_path);
 
   for (auto [_, file] : spef_files) {
     file->flush();
@@ -388,14 +390,14 @@ void
 estimate_parasitic_net(const Net *net)
 {
   ensureLinked();
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   resizer->estimateWireParasitic(net);
 }
 
 bool
 have_estimated_parasitics()
 {
-  Resizer *resizer = getResizer();
+  Resizer *resizer = getOpenRoad()->getResizer();
   return resizer->haveEstimatedParasitics();
 }
 
