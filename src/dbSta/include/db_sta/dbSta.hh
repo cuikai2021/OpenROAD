@@ -56,6 +56,7 @@ class dbSta;
 class dbNetwork;
 class dbStaReport;
 class dbStaCbk;
+class SandboxdbStaCbk;
 class AbstractPathRenderer;
 class AbstractPowerDensityDataSource;
 class PatternMatch;
@@ -143,7 +144,8 @@ class dbSta : public Sta, public ord::OpenRoadObserver
   void initVars(Tcl_Interp* tcl_interp,
                 odb::dbDatabase* db,
                 utl::Logger* logger,
-                bool is_original = true);
+                bool is_original = true,
+                bool is_sandbox = false);
 
   void setPathRenderer(std::unique_ptr<AbstractPathRenderer> path_renderer);
   void setPowerDensityDataSource(std::unique_ptr<AbstractPowerDensityDataSource>
@@ -151,7 +153,7 @@ class dbSta : public Sta, public ord::OpenRoadObserver
 
   // Creates a dbSta instance for the given dbBlock using the same context as
   // this dbSta instance (e.g. TCL interpreter, units, etc.)
-  std::unique_ptr<dbSta> makeBlockSta(odb::dbBlock* block);
+  std::unique_ptr<dbSta> makeBlockSta(odb::dbBlock* block, bool is_sandbox = false);
 
   dbDatabase* db() { return db_; }
   dbNetwork* getDbNetwork() { return db_network_; }
@@ -200,6 +202,7 @@ class dbSta : public Sta, public ord::OpenRoadObserver
 
   using Sta::netSlack;
   using Sta::replaceCell;
+  void registerBlockCbk(odb::dbBlock* blk);
 
  private:
   void makeReport() override;

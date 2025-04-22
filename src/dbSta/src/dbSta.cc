@@ -162,6 +162,13 @@ class dbStaCbk : public dbBlockCallBackObj
   Logger* logger_;
 };
 
+class SandboxdbStaCbk : public dbStaCbk 
+{
+ public:
+  SandboxdbStaCbk(dbSta* sta, Logger* logger): dbStaCbk(sta, logger) {}
+  void inDbBTermSetSigType(dbBTerm* bterm, const dbSigType& sig_type) override {};
+};
+
 ////////////////////////////////////////////////////////////////
 
 void dbStaState::init(dbSta* sta)
@@ -185,7 +192,8 @@ dbSta::~dbSta() = default;
 void dbSta::initVars(Tcl_Interp* tcl_interp,
                      odb::dbDatabase* db,
                      utl::Logger* logger,
-                     bool is_default)
+                     bool is_original,
+                     bool is_sandbox)
 {
   db_ = db;
   logger_ = logger;
@@ -194,8 +202,9 @@ void dbSta::initVars(Tcl_Interp* tcl_interp,
     setTclInterp(tcl_interp);
   }
   db_report_->setLogger(logger);
-  db_network_->init(db, logger, is_default);
-  db_cbk_ = std::make_unique<dbStaCbk>(this, logger);
+  db_network_->init(db, logger, is_original);
+  if (is_sandbox) db_cbk_ = std::make_unique<SandboxdbStaCbk>(this, logger);
+  else db_cbk_ = std::make_unique<dbStaCbk>(this, logger);
   buffer_use_analyser_ = std::make_unique<BufferUseAnalyser>();
 }
 
@@ -228,12 +237,12 @@ void dbSta::setPowerDensityDataSource(
   power_density_data_source_ = std::move(power_density_data_source);
 }
 
-std::unique_ptr<dbSta> dbSta::makeBlockSta(odb::dbBlock* block)
+std::unique_ptr<dbSta> dbSta::makeBlockSta(odb::dbBlock* block, bool is_sandbox)
 {
   auto clone = std::make_unique<dbSta>();
   // This line is removed because it has already been called in clone->initVars
   // clone->makeComponents();
-  clone->initVars(tclInterp(), db_, logger_);
+  clone->initVars(tclInterp(), db_, logger_, false, is_sandbox);
   clone->view_ = this->view();
   clone->getDbNetwork()->setBlock(block);
   clone->getDbNetwork()->setDefaultLibertyLibrary(
@@ -597,6 +606,11 @@ BufferUse dbSta::getBufferUse(sta::LibertyCell* buffer)
   return buffer_use_analyser_->getBufferUse(buffer);
 }
 
+void dbSta::registerBlockCbk(odb::dbBlock* blk) 
+{
+  db_cbk_->addOwner(blk);
+  db_cbk_->setNetwork(db_network_);
+}
 ////////////////////////////////////////////////////////////////
 
 // Network edit functions.
