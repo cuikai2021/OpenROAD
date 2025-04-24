@@ -35,7 +35,7 @@ void copy_files_recursive(const fs::path& src_dir, const fs::path& dst_dir) {
 
 namespace banyan {
     namespace congestion_optimizer {
-        const std::filesystem::path DEBLAIS_ROUTABILITY_DRIVEN_DP_PATH = "/build/bin/deblais_rddp";
+        const std::filesystem::path DEBLAIS_ROUTABILITY_DRIVEN_DP_PATH = "/build/bin/deblais-rddp";
         const int DEFAULT_MAX_ITERATION = 15;
         const int DEFAULT_MAX_RUNTIME = 60; // In minutes
         const char* ENV_MAX_ITERATION = "BANYAN_CONGESTIONOPT_MAX_ITERATION";
