@@ -2313,7 +2313,7 @@ Pin* dbNetwork::connect(Instance* inst, Port* port, Net* net)
 void dbNetwork::connectPinAfter(Pin* pin)
 {
   if (isDriver(pin)) {
-    Net* net = this->net(pin);
+    Net* net = dbToSta(this->flatNet(pin));
     PinSet* drvrs = net_drvr_pin_map_.findKey(net);
     if (drvrs) {
       drvrs->insert(pin);
@@ -2369,15 +2369,59 @@ void dbNetwork::disconnectPin(Pin* pin)
   }
 }
 
+static void clearCacheHierarchy(const Pin* p, 
+                                dbNetwork* ntwk,
+                                NetDrvrPinsMap* map)
+{
+  std::set<Net*> nets;
+  auto iter = ntwk->connectedPinIterator(p);
+  while (iter->hasNext()) {
+    dbNet* dbn = nullptr;
+    dbModNet* modn = nullptr;
+    ntwk->net(iter->next(), dbn, modn);
+    if (dbn) {
+      nets.insert(ntwk->dbToSta(dbn));
+    }
+    if (modn) {
+      nets.insert(ntwk->dbToSta(modn));
+    }
+  }
+  delete iter;
+  for (auto net : nets) {
+    if (ntwk->flatNet(net)) {
+      PinSet* drvrs = map->findKey(net);
+      if (drvrs) {
+        drvrs->erase(p);
+      }
+    } else {
+      PinSet* drvrs = map->findKey(net);
+      if (drvrs) {
+        delete drvrs;
+        map->erase(net);
+      }
+    }
+  }
+}
+
+static void clearCacheFlatten(const Pin* p,
+                              dbNetwork* ntwk,
+                              NetDrvrPinsMap* map)
+{
+  Net* net = ntwk->net(p);
+  if (net) {
+    PinSet* drvrs = map->findKey(net);
+    if (drvrs)
+      drvrs->erase(p);
+  }
+}
+
 void dbNetwork::disconnectPinBefore(const Pin* pin)
 {
-  Net* net = this->net(pin);
-  // Incrementally update drivers.
-  if (net && isDriver(pin)) {
-    PinSet* drvrs = net_drvr_pin_map_.findKey(net);
-    if (drvrs) {
-      drvrs->erase(pin);
-    }
+  if (!isDriver(pin)) return;
+  if (hasHierarchy()) {
+    clearCacheHierarchy(pin, this, &net_drvr_pin_map_);
+  } else {
+    clearCacheFlatten(pin, this, &net_drvr_pin_map_);
   }
 }
 

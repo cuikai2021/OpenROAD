@@ -114,8 +114,8 @@ void MakeWireParasitics::estimateParasitcs(odb::dbNet* net,
     if (spef_writer) {
       spef_writer->writeNet(corner, sta_net, parasitic);
     }
-    for (auto&& parasiticsCopyCallBack : resizer_->getParasiticCopyCallBacks()) {
-      parasiticsCopyCallBack(parasitics_, parasitic, sta_net, corner, sta::MinMaxAll::all());
+    for (auto&& pa_cbk : resizer_->getParasiticCopyCallBacks()) {
+      pa_cbk.copy(parasitics_, parasitic, sta_net, corner, sta::MinMaxAll::all());
     }
     arc_delay_calc_->reduceParasitic(
         parasitic, sta_net, corner, sta::MinMaxAll::all());
@@ -154,8 +154,8 @@ void MakeWireParasitics::estimateParasitcs(odb::dbNet* net, GRoute& route)
         net, route, sta_net, corner, analysis_point, parasitic, node_map);
     makePartialParasiticsToPins(
         grt_net->getPins(), node_map, corner, analysis_point, parasitic, net);
-    for (auto&& parasiticsCopyCallBack : resizer_->getParasiticCopyCallBacks()) {
-      parasiticsCopyCallBack(parasitics_, parasitic, sta_net, corner, sta::MinMaxAll::all());
+    for (auto&& pa_cbk : resizer_->getParasiticCopyCallBacks()) {
+      pa_cbk.copy(parasitics_, parasitic, sta_net, corner, sta::MinMaxAll::all());
     }
     arc_delay_calc_->reduceParasitic(
         parasitic, sta_net, corner, sta::MinMaxAll::all());

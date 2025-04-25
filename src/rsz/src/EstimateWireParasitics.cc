@@ -474,6 +474,7 @@ void Resizer::estimateWireParasitics(SpefWriter* spef_writer)
       "0x1", now that we have to calculate all net's parasitics,
       just use db_block_'s root interface is okay.
     */
+    for (auto cbk: parasitic_call_backs) { cbk.init(); }
 #if 0
     NetIterator* net_iter = network_->netIterator(network_->topInstance());
     while (net_iter->hasNext()) {
@@ -550,8 +551,8 @@ void Resizer::makePadParasitic(const Net* net, SpefWriter* spef_writer)
     if (spef_writer) {
       spef_writer->writeNet(corner, net, parasitic);
     }
-    for (auto&& parasiticsCopyCallBack : parasiticCopyCallBacks) {
-      parasiticsCopyCallBack(parasitics_, parasitic, net, corner, sta::MinMaxAll::all());
+    for (auto&& pa_cbk : parasitic_call_backs) {
+      pa_cbk.copy(parasitics_, parasitic, net, corner, sta::MinMaxAll::all());
     }
     arc_delay_calc_->reduceParasitic(
         parasitic, net, corner, sta::MinMaxAll::all());
@@ -643,8 +644,8 @@ void Resizer::estimateWireParasiticSteiner(const Pin* drvr_pin,
       if (spef_writer) {
         spef_writer->writeNet(corner, net, parasitic);
       }
-      for (auto&& parasiticsCopyCallBack : parasiticCopyCallBacks) {
-        parasiticsCopyCallBack(parasitics_, parasitic, net, corner, sta::MinMaxAll::all());
+      for (auto&& pa_cbk : parasitic_call_backs) {
+        pa_cbk.copy(parasitics_, parasitic, net, corner, sta::MinMaxAll::all());
       }
       arc_delay_calc_->reduceParasitic(
           parasitic, net, corner, sta::MinMaxAll::all());
