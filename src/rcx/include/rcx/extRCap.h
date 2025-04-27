@@ -517,7 +517,8 @@ class extRCModel
                     bool under,
                     bool overUnder,
                     bool diag,
-                    double dbFactor);
+                    double dbFactor,
+                    uint define_ext_model_index=0);
   bool createModelProcessTable(uint rulesFileModelCnt, uint cornerCnt);
   // --------------------------------------------------------------- v2 CLEANUP
   // ----------
@@ -2889,6 +2890,8 @@ class extMain
   uint _rcLayerCnt;
   uint _rcCornerCnt;
 
+  bool _one_model_file_one_corner = false;
+
  public:
   bool _lef_res;
   std::string _tmpLenStats;
@@ -2908,6 +2911,13 @@ class extMain
                          int origin[2],
                          dbCreateNetUtil* db_net_util);  // 061123
   // ---------------------------------------------------------
+  void setOneModelFileOneCorner() {
+    if (!_one_model_file_one_corner) {
+      logger_->info(utl::RCX, 5000, "Set one corner one model file mode, since now pls only use \"define_process_corner\" cmd pass model file");
+      _one_model_file_one_corner = true;
+    }
+  }
+  bool getOneModelFileOneCorner() { return _one_model_file_one_corner; }
 };
 
 }  // namespace rcx

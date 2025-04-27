@@ -819,6 +819,26 @@ std::list<std::string> extModelGen::GetCornerNames(const char* filename,
   return corner_list;
 }
 
+uint extModelGen::GetLayerCnt(const char* filename, Logger* logger)
+{
+  uint layerCnt = 0;
+  std::list<std::string> corner_list;
+  Ath__parser parser(logger);
+  parser.addSeparator("\r");
+  parser.openFile((char*) filename);
+
+  while (parser.parseNextLine() > 0) {
+    if (parser.isKeyword(0, "LayerCount")) {
+      layerCnt = parser.getInt(1) + 1;
+      break;
+    }
+  }
+  if (layerCnt == 0) {
+    logger->error(utl::RCX, 5004, "No LayerCount in {}", filename);
+  }
+  return layerCnt;
+}
+
 /*
 AFILE extModelGen::InitWriteRules_old(AFILE *fp, bool binary, uint modelIndex)
 {

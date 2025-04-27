@@ -490,7 +490,7 @@ Ath__wire* extMeasureRC::GetNextWire(Ath__grid* netGrid,
     return NULL;
 
   Ath__wire* first_wire = NULL;
-  if (tr < firstWireTable->getSize())
+  if (tr < firstWireTable->getCnt())
     first_wire = firstWireTable->geti(tr);
   if (first_wire == NULL)
     first_wire = next_track->getNextWire(NULL);

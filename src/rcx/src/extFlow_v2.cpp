@@ -1050,7 +1050,8 @@ bool extRCModel::readRules_v2(char* name,
                               bool under,
                               bool overUnder,
                               bool diag,
-                              double dbFactor)
+                              double dbFactor,
+                              uint define_ext_model_index)
 {
   // clean v2 flow
 
@@ -1067,6 +1068,8 @@ bool extRCModel::readRules_v2(char* name,
   bool overunder1 = false;
 
   bool via_res = false;
+
+  bool use_define_ext_model_index = this->_extMain->getOneModelFileOneCorner();
 
   spotModelsInRules(name,
                     bin,
@@ -1115,13 +1118,20 @@ bool extRCModel::readRules_v2(char* name,
     if (parser.isKeyword(0, "DensityRate")) {
       uint rulesFileModelCnt = parser.getInt(1);
       // _modelTable holds process corners
-      createModelTable(rulesFileModelCnt, _layerCnt);
+      if (use_define_ext_model_index) {
+        if (rulesFileModelCnt != 1) {
+          logger_->error(utl::RCX, 5001, 
+            "One corner one model file mode, but {} corners appear in {}", rulesFileModelCnt, name);
+        }
+      } else {
+        createModelTable(rulesFileModelCnt, _layerCnt);
+      }
       continue;
     }
     // Density Model is equivalent to Process Corner
     if (parser.isKeyword(0, "DensityModel")) {
       uint m = parser.getInt(1);
-      uint modelIndex = m;
+      uint modelIndex = use_define_ext_model_index ? define_ext_model_index : m;
       bool skipModel = false;
       bool res_skipModel = false;
 

@@ -53,6 +53,7 @@ class extModelGen : public extRCModel
   static std::list<std::string> GetCornerNames(const char* filename,
                                                double& version,
                                                Logger* logger);
+  static uint GetLayerCnt(const char* filename, Logger* logger);
 
   // ----------------------------------- DKF 09212024
   // ---------------------------------------

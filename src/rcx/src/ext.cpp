@@ -190,6 +190,7 @@ void Ext::bench_verilog(const std::string& file)
 void Ext::define_process_corner(int ext_model_index, const std::string& name)
 {
   _ext->setBlockFromChip();
+  _ext->setOneModelFileOneCorner();
   char* cornerName = _ext->addRCCorner(name.c_str(), ext_model_index);
 
   if (cornerName != nullptr) {
@@ -492,6 +493,9 @@ bool Ext::gen_rcx_model(const std::string& spef_file_list,
 }
 bool Ext::define_rcx_corners(const std::string& corner_list)
 {
+  if (_ext->getOneModelFileOneCorner()) {
+    logger_->error(RCX, 5003, "Not use \"define_process_corner\" with \"define_rcx_corners\" same time");
+  }
   if (corner_list.empty())
     logger_->error(
         RCX, 146, "\nCorner List option -corner_list  is required\n");

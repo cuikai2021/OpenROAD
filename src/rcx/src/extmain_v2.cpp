@@ -306,12 +306,41 @@ bool extMain::SetCornersAndReadModels_v2(const char* rulesFileName)
   _modelMap.resetCnt(0);
   _metRCTable.resetCnt(0);
 
-  if (rulesFileName != nullptr) {  // read rules
+  if (rulesFileName != nullptr || _one_model_file_one_corner) {  // read rules
 
     extRCModel* m = createCornerMap(rulesFileName);
 
-    if (!ReadModels_v2(rulesFileName, m, 0, NULL))
-      return false;
+    std::vector<std::pair<const char*, uint> > model_files_idxs;
+    if (_one_model_file_one_corner) {
+      assert(_processCornerTable != nullptr && _processCornerTable->notEmpty());
+      extCorner* first_s = _processCornerTable->get(0);
+      uint max_idx = first_s->_model,
+        layer_cnt = extModelGen::GetLayerCnt(first_s->_name, logger_);
+      for (uint ii = 0; ii < _processCornerTable->getCnt(); ii++) {
+        extCorner* s = _processCornerTable->get(ii);
+        model_files_idxs.emplace_back(s->_name, s->_model);
+        if (s->_model > max_idx) {
+          max_idx = s->_model;
+        }
+        uint now_layer_cnt = extModelGen::GetLayerCnt(_processCornerTable->get(ii)->_name, logger_);
+        if (now_layer_cnt != layer_cnt) {
+          logger_->error(RCX, 5002, "Layer cnt {} of {} diff with cnt {} of {}",
+            now_layer_cnt, s->_name, layer_cnt, first_s->_name);
+        }
+      }
+      m->createModelTable(max_idx + 1, layer_cnt);
+      if (rulesFileName != nullptr && strlen(rulesFileName) != 0) {
+        logger_->error(RCX, 5005, "When use \"define_process_corner\", model file {} should not pass by other cmds", rulesFileName);
+      }
+    } else {
+      model_files_idxs.emplace_back(rulesFileName, 0);
+    }
+    for (auto&& file_idx : model_files_idxs) {
+      auto&& [file, idx] = file_idx;
+      if (!ReadModels_v2(file, m, idx, NULL))
+        return false;  
+    }
+
   }
   _currentModel = getRCmodel(0);
   for (uint ii = 0; (_couplingFlag > 0) && ii < _modelMap.getCnt(); ii++) {
@@ -352,7 +381,7 @@ bool extMain::ReadModels_v2(const char* rulesFileName,
   double dbFactor = getDbFactor_v2();
 
   if (!(m->readRules_v2(
-          (char*) rulesFileName, false, true, true, true, true, dbFactor))) {
+          (char*) rulesFileName, false, true, true, true, true, dbFactor, extDbCnt))) {
     delete m;
     return false;
   }
@@ -996,6 +1025,7 @@ extRCModel* extMain::createCornerMap(const char* rulesFileName)
       extCornerDbCnt++;
     }
   }
+  m->setExtMain(this);
   return m;
 }
 uint extMain::getResCapTable_lefRC_v2()
