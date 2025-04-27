@@ -148,6 +148,18 @@ dbSite* definComponent::getSite(const char* name)
   return nullptr;
 }
 
+bool isLogicMaster(dbMaster* master) {
+  if (master->isPad() || master->isSequential() || master->isBlock()) {
+    return true;
+  }
+  auto mterms = master->getMTerms();
+  // Temp
+  if (mterms.size() <= 2) {
+    return false;
+  }
+  return true;
+}
+
 void definComponent::begin(const char* iname, const char* mname)
 {
   assert(_cur_inst == nullptr);
@@ -181,6 +193,9 @@ void definComponent::begin(const char* iname, const char* mname)
     if(_mode == defin::MERGE) {
       if (_cur_inst) {
         _update_cnt++;
+      } else {
+        if (isLogicMaster(master))
+          _logger->warn(utl::ODB, 239, "warning: create instance {} {} {}", iname, master->getConstName(), master->getType().getString());
       }
     }
   }
