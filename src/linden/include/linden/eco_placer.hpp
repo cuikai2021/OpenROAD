@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "odb/dbTypes.h"
@@ -44,6 +46,17 @@ struct PlaceRange
     : x_min(x_min), y_min(y_min), x_max(x_max), y_max(y_max) {}
 };
 
+struct CellPlaced
+{
+    PointPlace point_place;
+    std::string instance;
+
+    CellPlaced(PointPlace p, std::string inst) noexcept
+    : point_place(std::move(p)), instance(std::move(inst))
+    {
+    }
+};
+
 class PlaceIterator;
 
 class EcoPlacer
@@ -81,6 +94,14 @@ public:
         int y_delta) const;
 
     /**
+     * Get Cell Placed Info
+     *
+     * @param master Name of the cell to get.
+     * @return std::optional<CellPlaced> containing the cell placement details if found; std::nullopt otherwise.
+     */
+    std::optional<CellPlaced> get_cell(const std::string_view& master) const;
+
+    /**
      * Insert a cell.
      * Inserts a unit at a specified location.
      * @param master Name of the cell to be inserted.
@@ -110,7 +131,7 @@ public:
      * Constructor.
      * Initializes a PlaceIterator object, which iterates over the potential placement locations
      * for a specified instance within a defined search area.
-     * 
+     *
      * @param ep Reference to the EcoPlacer object, which manages placement operations.
      * @param instance Instance name of the unit to be placed.
      * @param point The most ideal location for placing instance.
@@ -121,12 +142,12 @@ public:
         const EcoPlacer& ep,
         const std::string_view& instance,
         const odb::Point& point,
-        const PlaceRange& range = PlaceRange()) ;
+        const PlaceRange& range = PlaceRange());
     ~PlaceIterator() noexcept;
 
     /**
      * Get the next available placement location.
-     * 
+     *
      * @return An optional PointPlace object representing the next legal placement location.
      *         If there are no more locations to iterate over, returns std::nullopt.
      */

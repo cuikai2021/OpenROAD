@@ -1,6 +1,7 @@
 #include "linden/eco_placer.hpp"
 
 #include <optional>
+#include <utility>
 
 #include "../util/lefdef_dumper.hpp"
 #include "fassert.hpp"
@@ -56,7 +57,7 @@ PointPlace convert_to_point_place(const ::linden::ffi::PointPlace& p)
     return result;
 }
 
-::linden::ffi::PlaceRange  convert_to_ffi_place_range(const PlaceRange& range)
+::linden::ffi::PlaceRange convert_to_ffi_place_range(const PlaceRange& range)
 {
     return ::linden::ffi::PlaceRange{
         convert_to_option_i64(range.x_min),
@@ -211,6 +212,18 @@ void EcoPlacer::find_vacant_places(
     for (const auto& vacant_place : vacant_places) {
         places.emplace_back(convert_to_point_place(vacant_place));
     }
+}
+
+std::optional<CellPlaced> EcoPlacer::get_cell(const std::string_view& master) const 
+{
+    auto res = _gs->get_cell(::rust::Str{master.data(), master.size()});
+    if (res.is_none) {
+        return std::nullopt;
+    }
+    return CellPlaced {
+        convert_to_point_place(res.some.pp),
+        std::string(res.some.model),
+    };
 }
 
 void EcoPlacer::insert_cell(

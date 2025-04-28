@@ -7,13 +7,13 @@
 [INFO ODB-0134] Finished DEF file: gcd_replace.def
 ECO Placer initialized.
 Initialization from odb complete.
-Place 0: 137820 148400 R0
-Place 1: 138200 148400 R0
-Place 2: 141240 145600 MX
-Place 3: 138580 148400 R0
+Place 0: 137820 148400 MY
+Place 1: 137820 148400 R0
+Place 2: 138200 148400 MY
+Place 3: 138200 148400 R0
 
-Place 0: 131360 131600 R0
-Place 1: 130980 131600 R0
-Place 2: 130600 131600 R0
-Place 3: 130220 131600 R0
-Place 4: null
+Place 0: 131360 131600 MY
+Place 1: 131360 131600 R0
+Place 2: 130980 131600 MY
+Place 3: 130980 131600 R0
+Place 4: 130600 131600 MY
