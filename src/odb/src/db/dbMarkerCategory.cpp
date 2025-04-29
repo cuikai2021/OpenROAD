@@ -602,7 +602,7 @@ dbMarkerCategory* dbMarkerCategory::fromTR(dbBlock* block,
   const std::regex bbox_layer("\\s*bbox = (.*) on Layer (.*)");
   const std::regex bbox_corners(
       "\\s*\\(\\s*(.*),\\s*(.*)\\s*\\)\\s*-\\s*\\(\\s*(.*),\\s*(.*)\\s*\\)");
-
+  #define MarkIsOpen(t) (t == "OPEN") 
   int line_number = 0;
   dbTech* tech = block->getTech();
   while (!report.eof()) {
@@ -654,9 +654,9 @@ dbMarkerCategory* dbMarkerCategory::fromTR(dbBlock* block,
       line_number++;
       std::getline(report, line);
     }
-
+  
     // bounding box and layer
-    if (!std::regex_match(line, base_match, bbox_layer)) {
+    if  ( !MarkIsOpen(type) && !std::regex_match(line, base_match, bbox_layer)) {
       logger->error(utl::ODB,
                     291,
                     "Unable to parse line as violation location (line: {}): {}",
@@ -666,7 +666,7 @@ dbMarkerCategory* dbMarkerCategory::fromTR(dbBlock* block,
 
     std::string bbox = base_match[1].str();
     odb::dbTechLayer* layer = tech->findLayer(base_match[2].str().c_str());
-    if (layer == nullptr && base_match[2].str() != "-") {
+    if (!MarkIsOpen(type) && layer == nullptr && base_match[2].str() != "-") {
       logger->warn(utl::ODB,
                    224,
                    "Unable to find tech layer (line: {}): {}",
@@ -675,35 +675,37 @@ dbMarkerCategory* dbMarkerCategory::fromTR(dbBlock* block,
     }
 
     odb::Rect rect;
-    if (std::regex_match(bbox, base_match, bbox_corners)) {
-      try {
-        rect.set_xlo(std::stod(base_match[1].str())
-                     * block->getDbUnitsPerMicron());
-        rect.set_ylo(std::stod(base_match[2].str())
-                     * block->getDbUnitsPerMicron());
-        rect.set_xhi(std::stod(base_match[3].str())
-                     * block->getDbUnitsPerMicron());
-        rect.set_yhi(std::stod(base_match[4].str())
-                     * block->getDbUnitsPerMicron());
-      } catch (std::invalid_argument&) {
+    if (!MarkIsOpen(type) ) {
+      if (std::regex_match(bbox, base_match, bbox_corners)) {
+        try {
+          rect.set_xlo(std::stod(base_match[1].str())
+                      * block->getDbUnitsPerMicron());
+          rect.set_ylo(std::stod(base_match[2].str())
+                      * block->getDbUnitsPerMicron());
+          rect.set_xhi(std::stod(base_match[3].str())
+                      * block->getDbUnitsPerMicron());
+          rect.set_yhi(std::stod(base_match[4].str())
+                      * block->getDbUnitsPerMicron());
+        } catch (std::invalid_argument&) {
+          logger->error(utl::ODB,
+                        225,
+                        "Unable to parse bounding box (line: {}): {}",
+                        line_number,
+                        bbox);
+        } catch (std::out_of_range&) {
+          logger->error(utl::ODB,
+                        226,
+                        "Unable to parse bounding box (line: {}): {}",
+                        line_number,
+                        bbox);
+        }
+      } else {
         logger->error(utl::ODB,
-                      225,
-                      "Unable to parse bounding box (line: {}): {}",
-                      line_number,
-                      bbox);
-      } catch (std::out_of_range&) {
-        logger->error(utl::ODB,
-                      226,
+                      227,
                       "Unable to parse bounding box (line: {}): {}",
                       line_number,
                       bbox);
       }
-    } else {
-      logger->error(utl::ODB,
-                    227,
-                    "Unable to parse bounding box (line: {}): {}",
-                    line_number,
-                    bbox);
     }
 
     std::stringstream srcs_stream(sources);
@@ -717,11 +719,13 @@ dbMarkerCategory* dbMarkerCategory::fromTR(dbBlock* block,
     if (marker == nullptr) {
       continue;
     }
-
-    marker->setTechLayer(layer);
+    if (!MarkIsOpen(type) ){
+      marker->setTechLayer(layer);
+    }
     marker->setLineNumber(violation_line_number);
-    marker->addShape(rect);
-
+    if (!MarkIsOpen(type) ){
+      marker->addShape(rect);
+    }
     // split sources list
     while (getline(srcs_stream, single_source, ' ')) {
       if (single_source.empty()) {
@@ -737,6 +741,9 @@ dbMarkerCategory* dbMarkerCategory::fromTR(dbBlock* block,
         dbNet* net = block->findNet(item_name.c_str());
         if (net != nullptr) {
           marker->addSource(net);
+          if(MarkIsOpen(type) ) {
+            marker->addShape(net->getTermBBox());
+          }
           src_found = true;
         } else {
           logger->warn(utl::ODB,
@@ -798,7 +805,7 @@ dbMarkerCategory* dbMarkerCategory::fromTR(dbBlock* block,
 
     comment += comment_information;
     marker->setComment(comment);
-  }
+  } 
 
   return marker_category;
 }
