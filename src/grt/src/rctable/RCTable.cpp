@@ -76,11 +76,11 @@ GCellRC::getSegRC(GSegment seg,
     for (int layer_idx = s; layer_idx < grouter_->getMaxRoutingLayer(); layer_idx += 2) {
       densities[layer_idx] = 1.0 * (edges_3D[layer_idx][yy][xx].usage + edges_3D[layer_idx][yy][xx].red)
                               / (edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red);
-      if (edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red != grouter_->getGCellTracks()
-        && !(yy == grid_->getYGrids() - 1 || xx == grid_->getXGrids() - 1)) {
-        logger_->info(utl::GRT, 1054, "bad edges {} {} {} {}", edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red, edges_3D[layer_idx][yy][xx].red, edges_3D[layer_idx][yy][xx].usage, edges_3D[layer_idx][yy][xx].cap);
-        logger_->info(utl::GRT, 1055, "bad edges {} {} {} {}", xx, yy, grid_->getXGrids(), grid_->getYGrids());
-      }
+      // if (edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red != grouter_->getGCellTracks()
+      //   && !(yy == grid_->getYGrids() - 1 || xx == grid_->getXGrids() - 1)) {
+      //   logger_->info(utl::GRT, 1054, "bad edges {} {} {} {}", edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red, edges_3D[layer_idx][yy][xx].red, edges_3D[layer_idx][yy][xx].usage, edges_3D[layer_idx][yy][xx].cap);
+      //   logger_->info(utl::GRT, 1055, "bad edges {} {} {} {}", xx, yy, grid_->getXGrids(), grid_->getYGrids());
+      // }
     }
     s = (layer_idx + 1) % 2;
     for (int layer_idx = s; layer_idx < grouter_->getMaxRoutingLayer(); layer_idx += 2) {
@@ -88,11 +88,11 @@ GCellRC::getSegRC(GSegment seg,
       
       densities[layer_idx] = 1.0 * (edges_3D[layer_idx][yy][xx].usage + edges_3D[layer_idx][yy][xx].red)
                               / (edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red);
-      if (edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red != grouter_->getGCellTracks()
-        && !(yy == grid_->getYGrids() - 1 || xx == grid_->getXGrids() - 1)) {
-        logger_->info(utl::GRT, 1056, "bad edges {} {} {} {}", edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red, edges_3D[layer_idx][yy][xx].red, edges_3D[layer_idx][yy][xx].usage, edges_3D[layer_idx][yy][xx].cap);
-        logger_->info(utl::GRT, 1057, "bad edges {} {} {} {}", xx, yy, grid_->getXGrids(), grid_->getYGrids());
-      }
+      // if (edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red != grouter_->getGCellTracks()
+      //   && !(yy == grid_->getYGrids() - 1 || xx == grid_->getXGrids() - 1)) {
+      //   logger_->info(utl::GRT, 1056, "bad edges {} {} {} {}", edges_3D[layer_idx][yy][xx].cap + edges_3D[layer_idx][yy][xx].red, edges_3D[layer_idx][yy][xx].red, edges_3D[layer_idx][yy][xx].usage, edges_3D[layer_idx][yy][xx].cap);
+      //   logger_->info(utl::GRT, 1057, "bad edges {} {} {} {}", xx, yy, grid_->getXGrids(), grid_->getYGrids());
+      // }
     }
     // TODO : check power density
     for (int layer_idx = grouter_->getMaxRoutingLayer() + 2; layer_idx < tech_->getRoutingLayerCount(); layer_idx++) {
@@ -155,85 +155,101 @@ GCellRC::getSegRC(GSegment seg,
   return {res, cap};
 }
 
+bool getWordsFromFile(std::ifstream& file, std::vector<std::string>& res) {
+  std::string line;
+  res.resize(0);
+  while (res.size() == 0 && std::getline(file, line)) {
+    std::stringstream ss(line);
+    std::string s;
+    while(ss >> s) {
+      res.push_back(s);
+    }
+  }
+  return !res.empty();
+}
+
+std::string
+RCTable::parseOverUnderRule(std::string s) {
+  const std::array<std::string, 5> rules = {"OVER", "UNDER", "OVERUNDER", "DIAGUNDER", "RESOVER"};
+  for (const auto& rule : rules) {
+    if (s == rule || s == rule + "0" || s == rule + "1") {
+      return s;
+    }
+  }
+  return "";
+}
+
 void 
 RCTable::readRCFromRCXModel(const char* file_name) {
+  // we use over/under/over_under not 0/1 as rc value
+  auto is_over_under_not01 = [](std::string_view s) -> bool {
+    return s == "OVER" || s == "UNDER" || s == "OVERUNDER";
+  };
+  
   std::ifstream file(file_name);
   if (file) {
     std::string line;
     std::vector<std::string> words;
 
-    bool parse_head = true;
     bool parse_cap = false;
 
+    int tables_count = 0;
     int layer_id = 0;
 
-    while (std::getline(file, line)) {
-      std::stringstream ss(line);
-      std::string s;
-      while(ss >> s) {
-        words.push_back(s);
+    while (getWordsFromFile(file, words)) {
+      if (words.size() == 0) {
+        continue;
       }
 
-      if (parse_head) {
-        switch (words.size()) {
-          case 3:
-            if (words[0] == "Metal") {
-              if (words[2] == "OVER" || words[2] == "UNDER" || words[2] == "OVERUNDER") {
-                parse_cap = true;
-              } else {
-                parse_cap = false;
-              }
-            }
-            break;
-          case 4:
-            if (words[0] == "Metal") {
-              layer_id = std::stoi(words[1]);
-              if (words[2] == "RESOVER" && words[3] == "0") {
-                parseRes(file, layer_id);
-              }
-              // use over lower metal as golden
-              if (parse_cap
-                  && (words[2] == "OVER" || words[2] == "UNDER")) {
-                auto over = std::stoi(words[3]);
-                auto under = std::stoi(words[3]);
-                if (words[2] == "OVER") {
-                  under = tech_->getRoutingLayerCount() + 1;
-                } else {
-                  over = 0;
-                }
-                parseCap(file, layer_id, over, under);
-              }
-            }
-            break;
-          case 6:
-            if (words[0] == "Metal") {
-              if (parse_cap
-                  && words[2] == "OVER" && words[4] == "UNDER") {
-                auto over = std::stoi(words[3]),
-                  under = std::stoi(words[5]);
-                parseCap(file, layer_id, over, under);
-              }
-            }
-            break;
+      if (words[0] == "DensityRate") {
+        if (std::stoi(words[1]) != 1) {
+          logger_->error(utl::GRT, 1058, "read_rcx_model only support one corner model file.");
         }
+      } if (words[0] == "LayerCount") {
+        // TODO
+        // assert(layer_cnt == tech_->getRoutingLayerCount());
+      } else if (words[0] == "Metal" && words.size() == 3) {
+        auto over_under_rule = parseOverUnderRule(words[2]);
+        if (over_under_rule.empty()) {
+          logger_->error(utl::GRT, 1059, "Bad over under format of line {} {} {}.", 
+          words[0], words[1], words[2]);
+        }
+        if (is_over_under_not01(over_under_rule)) {
+          layer_id = std::stoi(words[1]);
+          auto get_tables_count = [&file, this]() -> int {
+            std::vector<std::string> next_words;
+            if (getWordsFromFile(file, next_words) && next_words.size() > 3 &&
+              next_words[0] == "WIDTH" && next_words[1] == "Table") {
+              return std::stoi(next_words[2]);
+            }
+            logger_->error(utl::GRT, 1060, "Bad format of width table count.");
+            return 0;
+          };
+          
+          tables_count = get_tables_count();
+          parse_cap = true;
+        } else {
+          parse_cap = false;
+        }
+      } else if (parse_cap && words[0] == "Metal" && 
+        ((words.size() == 6 && is_over_under_not01(words[2]) && is_over_under_not01(words[4])) || 
+          (words.size() == 4 && is_over_under_not01(words[2])))) {
+        auto over = 0;
+        auto under = tech_->getRoutingLayerCount() + 1;
+        if (words[2] == "UNDER") {
+          under = std::stoi(words[3]);
+        } else if (words[2] == "OVER") {
+          over = std::stoi(words[3]);
+        }
+        if (words.size() == 6) {
+          under = std::stoi(words[5]);
+        }
+        parseCap(file, layer_id, over, under, tables_count);
       }
-      words.resize(0);
     }
   } else {
     logger_->error(utl::GRT, 1050, "read_rcx_model can't open file {}", file_name);
   }
-}
-
-bool getWordsFromFile(std::ifstream& file, std::vector<std::string>& res) {
-  res.resize(0);
-  std::string line;
-  bool ok = !std::getline(file, line).eof();
-  std::stringstream ss(line);
-  std::string s;
-  while(ss >> s) {
-    res.push_back(s);
-  }
-  return ok;
 }
 
 void
@@ -250,22 +266,29 @@ RCTable::parseRes(std::ifstream& file, LayerId layer_id) {
 }
 
 void
-RCTable::parseCap(std::ifstream& file, LayerId layer_id, LayerId over_id, LayerId under_id) {
+RCTable::parseCap(std::ifstream& file, LayerId layer_id, LayerId over_id, LayerId under_id, int tables_count) {
   std::vector<std::string> words;
   Width width = -1;
-  while (getWordsFromFile(file, words)) {
+  while (tables_count && getWordsFromFile(file, words)) {
     if (words.size() > 0) {
       if (words[0] == "END") {
-        return;
+        tables_count--;
+        width = -1;
+        continue;
       }
       if (words[0] == "DIST") {
         width = std::atof(words[4].c_str()) * 1e3;
       } else {
+        assert(width != -1);
         Spacing sp = std::atof(words[0].c_str()) * 1e3;
         RCValue rc;
         rc.coupling_cap = std::atof(words[1].c_str());
         rc.gnd_cap = std::atof(words[2].c_str());
         rc.res = std::atof(words[3].c_str());
+        // if (table_[LaOU{layer_id, over_id, under_id}][width].contains(sp)) {
+        //   logger_->error(utl::GRT, 1061, "multi rc {} {} {} in la {} over {} under {} width {} sp {}",
+        //     rc.coupling_cap, rc.gnd_cap, rc.res, layer_id, over_id, under_id, width, sp);
+        // }
         table_[LaOU{layer_id, over_id, under_id}][width][sp] = rc;
       }
     }

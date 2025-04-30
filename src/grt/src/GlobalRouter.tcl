@@ -587,8 +587,8 @@ sta::define_cmd_args "read_rcx_model" { [-file file] \
 }
 proc read_rcx_model { args } {
   # hack support for banyan global_route
-  set_gcell_tracks 16
   set_layer_for_guide_dimension 1
+  set_gcell_tracks 16
   sta::parse_key_args "read_rcx_model" args \
   keys {-file -corner} \
 

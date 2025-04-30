@@ -74,7 +74,8 @@ using LaOUWiSpRCTable = std::map<LaOU, WidthSpRCTable>;
     }
   void readRCFromRCXModel(const char* file_name);
   void parseRes(std::ifstream&, LayerId);
-  void parseCap(std::ifstream&, LayerId, LayerId, LayerId);
+  void parseCap(std::ifstream&, LayerId, LayerId, LayerId, int);
+  std::string parseOverUnderRule(std::string s);
 
   RCValue getWireUnitRC(LayerId idx_of_layer, Spacing sp, Width width, std::vector<double> densities, bool dbg=false);
   // not support now

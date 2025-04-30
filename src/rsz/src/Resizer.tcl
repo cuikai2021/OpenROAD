@@ -354,8 +354,8 @@ proc estimate_parasitics { args } {
     }
   } elseif { [info exists flags(-banyan_global_routing)] } {
     # hack support for banyan global_route
-    grt::set_gcell_tracks 16
     grt::set_layer_for_guide_dimension 1
+    grt::set_gcell_tracks 16
     set by_gr_seg /tmp/banyan_seg.segs
     set block [ord::get_db_block]
     set top_routing_layer_id [$block getMaxRoutingLayer]
