@@ -1609,6 +1609,10 @@ uint extMain::addObsShapesOnPlanes(dbInst* inst,
 
     uint level = s.getTechLayer()->getRoutingLevel();
 
+    if (level == 0) { 
+      continue;
+    }
+
     if (!rotatedFlag)
       _geomSeq->box(s.xMin(), s.yMin(), s.xMax(), s.yMax(), level);
     else
