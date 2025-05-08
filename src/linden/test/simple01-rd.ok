@@ -256,12 +256,14 @@ linden::gp::Config {
 [nPlace] Iter: 160 overflow: 0.73893 HPWL: 4361574
 [nPlace] Iter: 170 overflow: 0.722025 HPWL: 4420601
 [nPlace] Iter: 180 overflow: 0.697874 HPWL: 4503730
+[ laurel/info ] Use Laurel Modifier
 [linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
 [INFO BY-1010] Banyan exec /build/bin/banyan done, status code 0
 [linden/gpl] TileLxLy=(-8960, -8960)
 [linden/gpl] TileSize=(17920, 17920), TileArea=321126400
 [linden/gpl] TileCnt=(5, 5)
 [linden/gpl] NumTiles=25
+[linden/env] LINDEN_RDP_CMAP_OVERFLOW_THRESHOLD: 0.94
 no overflow in median level
 [nPlace] cmap forces termination.
 {

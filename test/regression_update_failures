@@ -46,6 +46,7 @@ array set all_test_dirs {
   gui "src/gui/test"
   lrl "src/Laurel/test"
   bya "src/Banyan/test"
+  linden "src/linden/test"
 }
 
 proc read_failures_item { failures_file } {

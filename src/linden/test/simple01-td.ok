@@ -247,27 +247,27 @@ linden::gp::Config {
 [gpl/Netw] slack_head_net_cnt: 35
 [gpl/Netw] slack_cent_net_cnt: 195
 [gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 1 overflow: 0.849142 HPWL: 3620362
-[nPlace] Iter: 10 overflow: 0.877809 HPWL: 3586514
-[nPlace] Iter: 20 overflow: 0.869207 HPWL: 3613621
-[nPlace] Iter: 30 overflow: 0.869778 HPWL: 3608561
-[nPlace] Iter: 40 overflow: 0.871095 HPWL: 3603486
-[nPlace] Iter: 50 overflow: 0.870824 HPWL: 3602124
-[nPlace] Iter: 60 overflow: 0.870175 HPWL: 3603377
-[nPlace] Iter: 70 overflow: 0.869641 HPWL: 3603583
-[nPlace] Iter: 80 overflow: 0.86944 HPWL: 3604248
-[nPlace] Iter: 90 overflow: 0.869235 HPWL: 3605709
-[nPlace] Iter: 100 overflow: 0.869047 HPWL: 3608003
-[nPlace] Iter: 110 overflow: 0.868353 HPWL: 3611831
-[nPlace] Iter: 120 overflow: 0.866757 HPWL: 3618505
-[nPlace] Iter: 130 overflow: 0.8634 HPWL: 3629935
-[nPlace] Iter: 140 overflow: 0.856901 HPWL: 3648392
-[nPlace] Iter: 150 overflow: 0.847583 HPWL: 3677555
-[nPlace] Iter: 160 overflow: 0.836691 HPWL: 3724326
-[nPlace] Iter: 170 overflow: 0.823038 HPWL: 3797777
-[nPlace] Iter: 180 overflow: 0.800723 HPWL: 3891065
+[nPlace] Iter: 1 overflow: 0.849144 HPWL: 3620365
+[nPlace] Iter: 10 overflow: 0.884568 HPWL: 3561354
+[nPlace] Iter: 20 overflow: 0.878044 HPWL: 3585166
+[nPlace] Iter: 30 overflow: 0.876944 HPWL: 3579940
+[nPlace] Iter: 40 overflow: 0.875844 HPWL: 3575207
+[nPlace] Iter: 50 overflow: 0.876417 HPWL: 3575028
+[nPlace] Iter: 60 overflow: 0.876235 HPWL: 3576112
+[nPlace] Iter: 70 overflow: 0.876678 HPWL: 3576076
+[nPlace] Iter: 80 overflow: 0.876224 HPWL: 3576908
+[nPlace] Iter: 90 overflow: 0.875238 HPWL: 3578595
+[nPlace] Iter: 100 overflow: 0.874495 HPWL: 3580933
+[nPlace] Iter: 110 overflow: 0.873271 HPWL: 3584865
+[nPlace] Iter: 120 overflow: 0.871281 HPWL: 3591793
+[nPlace] Iter: 130 overflow: 0.86831 HPWL: 3603400
+[nPlace] Iter: 140 overflow: 0.864415 HPWL: 3623362
+[nPlace] Iter: 150 overflow: 0.855698 HPWL: 3656319
+[nPlace] Iter: 160 overflow: 0.84176 HPWL: 3707209
+[nPlace] Iter: 170 overflow: 0.828994 HPWL: 3782483
+[nPlace] Iter: 180 overflow: 0.803 HPWL: 3876157
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.422377993 ns
+[gpl/Netw] slack_worst: 1.422316043 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
@@ -275,13 +275,13 @@ linden::gp::Config {
 [gpl/Netw] slack_head_net_cnt: 35
 [gpl/Netw] slack_cent_net_cnt: 195
 [gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 190 overflow: 0.767668 HPWL: 3968681
-[nPlace] Iter: 200 overflow: 0.737527 HPWL: 4071551
-[nPlace] Iter: 210 overflow: 0.704091 HPWL: 4191702
-[nPlace] Iter: 220 overflow: 0.675471 HPWL: 4246398
-[nPlace] Iter: 230 overflow: 0.642898 HPWL: 4369914
+[nPlace] Iter: 190 overflow: 0.771401 HPWL: 3962106
+[nPlace] Iter: 200 overflow: 0.741242 HPWL: 4075254
+[nPlace] Iter: 210 overflow: 0.706513 HPWL: 4186514
+[nPlace] Iter: 220 overflow: 0.679726 HPWL: 4237546
+[nPlace] Iter: 230 overflow: 0.646604 HPWL: 4352099
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.421303519 ns
+[gpl/Netw] slack_worst: 1.420742746 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
@@ -289,12 +289,12 @@ linden::gp::Config {
 [gpl/Netw] slack_head_net_cnt: 35
 [gpl/Netw] slack_cent_net_cnt: 195
 [gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 240 overflow: 0.601655 HPWL: 4587412
-[nPlace] Iter: 250 overflow: 0.575214 HPWL: 4757660
-[nPlace] Iter: 260 overflow: 0.544114 HPWL: 4954033
-[nPlace] Iter: 270 overflow: 0.51328 HPWL: 5038014
+[nPlace] Iter: 240 overflow: 0.611235 HPWL: 4490709
+[nPlace] Iter: 250 overflow: 0.579568 HPWL: 4621876
+[nPlace] Iter: 260 overflow: 0.538968 HPWL: 4862966
+[nPlace] Iter: 270 overflow: 0.508182 HPWL: 4934433
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.418737683 ns
+[gpl/Netw] slack_worst: 1.418569928 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
@@ -302,44 +302,45 @@ linden::gp::Config {
 [gpl/Netw] slack_head_net_cnt: 35
 [gpl/Netw] slack_cent_net_cnt: 195
 [gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 280 overflow: 0.470661 HPWL: 5155054
-[nPlace] Iter: 290 overflow: 0.449432 HPWL: 5179494
-[nPlace] Iter: 300 overflow: 0.403263 HPWL: 5302331
-[nPlace] Iter: 310 overflow: 0.385589 HPWL: 5386854
-[nPlace] Iter: 320 overflow: 0.33765 HPWL: 5341730
-[nPlace] Iter: 330 overflow: 0.313423 HPWL: 5429432
-[nPlace] Iter: 340 overflow: 0.304246 HPWL: 5405341
+[nPlace] Iter: 280 overflow: 0.471531 HPWL: 5068718
+[nPlace] Iter: 290 overflow: 0.440888 HPWL: 5153423
+[nPlace] Iter: 300 overflow: 0.412986 HPWL: 5138949
+[nPlace] Iter: 310 overflow: 0.365655 HPWL: 5267819
+[nPlace] Iter: 320 overflow: 0.33708 HPWL: 5242908
+[nPlace] Iter: 330 overflow: 0.304353 HPWL: 5264705
+[nPlace] Iter: 340 overflow: 0.289436 HPWL: 5377719
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.415515705 ns
+[gpl/Netw] slack_worst: 1.413234418 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
 [gpl/Netw] slack_not_found_net_cnt: 0
-[gpl/Netw] slack_head_net_cnt: 27
-[gpl/Netw] slack_cent_net_cnt: 203
-[gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 350 overflow: 0.26481 HPWL: 5467073
-[nPlace] Iter: 360 overflow: 0.235836 HPWL: 5519028
-[nPlace] Iter: 370 overflow: 0.217068 HPWL: 5553120
+[gpl/Netw] slack_head_net_cnt: 29
+[gpl/Netw] slack_cent_net_cnt: 200
+[gpl/Netw] slack_tail_net_cnt: 92
+[nPlace] Iter: 340 overflow: 0.284938 HPWL: 5391793
+[nPlace] Iter: 350 overflow: 0.257548 HPWL: 5350468
+[nPlace] Iter: 360 overflow: 0.236954 HPWL: 5434289
+[nPlace] Iter: 370 overflow: 0.220239 HPWL: 5459461
 [gpl/Netw] nets_size : 355
-[gpl/Netw] slack_worst: 1.415102480 ns
+[gpl/Netw] slack_worst: 1.412785666 ns
 [gpl/Netw] LDB Nets: 356
 [gpl/Netw] clock_net_cnt: 1
 [gpl/Netw] one_pin_net_cnt: 34
 [gpl/Netw] slack_not_found_net_cnt: 0
-[gpl/Netw] slack_head_net_cnt: 35
-[gpl/Netw] slack_cent_net_cnt: 195
+[gpl/Netw] slack_head_net_cnt: 29
+[gpl/Netw] slack_cent_net_cnt: 201
 [gpl/Netw] slack_tail_net_cnt: 91
-[nPlace] Iter: 380 overflow: 0.195802 HPWL: 5654606
-[nPlace] Iter: 390 overflow: 0.172008 HPWL: 5686676
-[nPlace] Iter: 400 overflow: 0.155767 HPWL: 5729711
-[nPlace] Iter: 410 overflow: 0.142289 HPWL: 5781809
-[nPlace] Iter: 420 overflow: 0.124511 HPWL: 5808171
-[nPlace] Iter: 430 overflow: 0.11545 HPWL: 5872454
+[nPlace] Iter: 380 overflow: 0.190618 HPWL: 5505836
+[nPlace] Iter: 390 overflow: 0.159119 HPWL: 5501007
+[nPlace] Iter: 400 overflow: 0.153924 HPWL: 5569326
+[nPlace] Iter: 410 overflow: 0.12875 HPWL: 5623806
+[nPlace] Iter: 420 overflow: 0.118939 HPWL: 5659958
+[nPlace] Iter: 430 overflow: 0.115765 HPWL: 5729627
 [nPlace] target overflow.
 {
   "gp": {
     "iter": 424
   }
-}worst slack 1.37
+}worst slack 1.38
 No differences found.
