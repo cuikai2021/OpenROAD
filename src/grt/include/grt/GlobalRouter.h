@@ -164,7 +164,7 @@ class GlobalRouter : public ant::GlobalRouteSource
                 routing_congestion_data_source_rudy);
 
   void clear();
-
+  void updateHeatmap();
   void setAdjustment(float adjustment);
   void setMinRoutingLayer(int min_layer);
   void setMaxRoutingLayer(int max_layer);

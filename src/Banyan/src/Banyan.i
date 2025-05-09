@@ -62,4 +62,9 @@ void optimizeCongestion(std::string max_layer)
 
 }
 
+void loadRoutingCongestion(std::string path)
+{
+   ord::OpenRoad::openRoad()->getBanyan()->loadRoutingCongestion(path);
+}
+
 %} // inline

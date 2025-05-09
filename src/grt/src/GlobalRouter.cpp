@@ -161,6 +161,11 @@ void GlobalRouter::clear()
   initialized_ = false;
 }
 
+void GlobalRouter::updateHeatmap()
+{
+  heatmap_->update();
+}
+
 GlobalRouter::~GlobalRouter()
 {
   delete fastroute_;

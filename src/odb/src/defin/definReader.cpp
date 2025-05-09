@@ -2344,7 +2344,9 @@ bool definReader::replaceWires(const char* file)
   DefParser::defrReset();
 
   DefParser::defrInitSession();
-
+  
+  defrSetUnitsCbk(unitsCallback);
+  defrSetGcellGridCbk(gcellGridCallback);
   defrSetNetCbk(netCallback);
   defrSetSNetCbk(specialNetCallback);
 

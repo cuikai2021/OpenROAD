@@ -59,6 +59,7 @@ class Banyan : public ord::OpenRoadObserver
                      const char* corner_name);
   banyan_def::DesignExchangeFormat def2pbdef(std::string deffile, bool orderWires);                 
   std::string pbdef2def(const banyan_def::DesignExchangeFormat& pbdef);
+  void loadRoutingCongestion(std::string gr);
   void loaddb(std::string dbfile);
   void loaddef(std::string deffile);
   // From ord::OpenRoad::Observer

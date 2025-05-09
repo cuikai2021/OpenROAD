@@ -20,6 +20,7 @@
 #include "utl/Logger.h"
 #include "envflag/envflag.hpp"
 #include "congestion_optimizer.hpp"
+#include "grt/GlobalRouter.h"
 
 IMPORT_BOOL_FLAG_WITH_DEFAULT(BANYAN_SUPPRESS_EXE_LOG);
 IMPORT_STR_FLAG_WITH_DEFAULT(DEBLAIS_ROOT_DIR);
@@ -415,24 +416,50 @@ void Banyan::loaddb(std::string dbflie)
 
 void Banyan::loaddef(std::string deffile)
 {
-  auto newODB = createODB(deffile);
-  for (auto net : newODB->getChip()->getBlock()->getNets()) {
-    auto oriNet = db_->getChip()->getBlock()->findNet(net->getConstName());
-    assert(oriNet != nullptr);
-    laurel_->cacheNet(oriNet);
-    if (auto oriWire = oriNet->getWire(); oriWire != nullptr) {
-      odb::dbWire::destroy(oriWire);
-    }
-    if (auto wire = net->getWire(); wire != nullptr) {
-      std::vector<int> rawdata;
-      std::vector<unsigned char> rawOpCodes;
-      wire->getRawWireData(rawdata, rawOpCodes);
-      auto oriWire = odb::dbWire::create(oriNet);
-      oriWire->setRawWireData(rawdata, rawOpCodes);
-    }
-    laurel_->diffNet(oriNet);
-  }
-  odb::dbDatabase::destroy(newODB);
+  auto* blk = db_->getChip()->getBlock();
+  odb::defin(db_, logger_).replaceWires(blk, deffile.c_str());
+}
+
+void Banyan::loadRoutingCongestion(std::string path) 
+{
+	std::ifstream report(path);
+	if (!report.is_open()) {
+		logger_->error(utl::BY, 7, "Can't Open RoutingCongestion File: {}", path);
+	}
+	const std::regex gcell_info("Layer:(.*?) Panel:(.*?) cell:(.*?) capacity:(.*?) usage:(.*?)");
+	int line_number =0;
+	auto grid = db_->getChip()->getBlock()->getGCellGrid();
+  grid->resetCongestionMap();
+	while (!report.eof()){
+		std::string line;
+		std::smatch base_match;
+		line_number++;
+		std::getline(report,line);
+		if(line.empty()) {
+			continue;
+		}
+		if(std::regex_match(line,base_match,gcell_info)) {
+			auto tech = db_->getTech();
+			auto layer = tech->findLayer(base_match[1].str().c_str());
+			if (layer == nullptr) {
+				logger_->error(utl::BY,9,"not found Layer {}",base_match[1]);
+			}
+			auto panel = atoi(base_match[2].str().c_str());
+			auto cell = atoi(base_match[3].str().c_str());
+			auto cap = atof(base_match[4].str().c_str());
+			auto usage = atof(base_match[5].str().c_str());
+			if(layer->getDirection() == odb::dbTechLayerDir::VERTICAL) {
+				grid->setCapacity(layer,panel,cell,uint8_t(cap));
+				grid->setUsage(layer,panel,cell,uint8_t(usage));		
+			}else{
+				grid->setCapacity(layer,cell,panel,uint8_t(cap));
+				grid->setUsage(layer,cell,panel,uint8_t(usage));		
+			}
+		}else{
+			logger_->error(utl::BY,8,"Unable to parse line as (line: {}): {}",line_number,line);
+		}
+	}
+  ord::OpenRoad::openRoad()->getGlobalRouter()->updateHeatmap();
 }
 
 }  // namespace banyan
