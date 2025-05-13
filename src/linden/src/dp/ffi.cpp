@@ -61,6 +61,7 @@ optional<Config> parse_from(std::deque<std::string> args) {
     const string_view SUPPRESS_OUTPUT("--suppress-output");
     const string_view ROUTING_TOP_LAYER("--routing-top-layer");
     const string_view EXTRA_PG_SPACING("--extra-pg-spacing");
+    const string_view DISABLE_UPDATING_PARASITICS_AFTER_LEGALIZING("--disable-updating-parasitics-after-legalizing");
 
     Config res;
     optional<string> filler_list = nullopt;
@@ -154,6 +155,8 @@ optional<Config> parse_from(std::deque<std::string> args) {
                 return nullopt;
             }
             res.extra_pg_spacing[*layer] = spacing;
+        } else if (s == DISABLE_UPDATING_PARASITICS_AFTER_LEGALIZING) {
+            res.disable_updating_parasitics = true;
         } else {
             spdlog::info("ignore arg: {}", s);
         }

@@ -2,6 +2,7 @@ sta::define_cmd_args "linden_detailed_placement" {
     [--timing-data timing.pb]
     [--filler-list filler-masters]
     [--not-to-stop-when-illegal]
+    [--disable-updating-parasitics-after-legalizing]
 }
 
 proc linden_detailed_placement { args } {
@@ -18,6 +19,7 @@ sta::define_cmd_args "linden_incremental_legalize" {
     [--timing-data timing.pb]
     [--filler-list filler-masters]
     [--not-to-stop-when-illegal]
+    [--disable-updating-parasitics-after-legalizing]
 }
 
 proc linden_incremental_legalize { args } {

@@ -125,6 +125,7 @@ Config& Config::operator+=(const Config& ano) {
     merge(baseline_def, ano.baseline_def);
     merge(suppress_output, ano.suppress_output);
     merge(not_stop_when_illegal, ano.not_stop_when_illegal);
+    merge(disable_updating_parasitics, ano.disable_updating_parasitics);
     if (!ano.extra_pg_spacing.empty()) {
         for(auto const& [layer, spacing]: ano.extra_pg_spacing) {
             extra_pg_spacing[layer] = spacing;
@@ -458,8 +459,7 @@ int exec_opt(
     auto exe = get_opt_exe();
     return exec(cfg, exe, args, LINDEN_DP_ALGORITHM());
 }
-
-void read_back(const filesystem::path& outdef)
+void read_back(const filesystem::path& outdef, const bool disable_updating_parasitics)
 {
     pblefdef::DesignExchangeFormat def;
     {
@@ -496,8 +496,10 @@ void read_back(const filesystem::path& outdef)
 
         cm.moveInst(sta_inst, target_pt, target_orient.getValue());
     }
-    rsz::Resizer& resizer = *ord.getResizer();
-    resizer.estimateParasitics(rsz::ParasiticsSrc::placement);
+    if (!disable_updating_parasitics) {
+        rsz::Resizer& resizer = *ord.getResizer();
+        resizer.estimateParasitics(rsz::ParasiticsSrc::placement);
+    }
 }
 
 std::filesystem::path generate_routability_data_file(const string_view& routing_top_layer) {
@@ -570,7 +572,10 @@ int basic_dp(::ord::OpenRoad& ord, const Config& cfg) {
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
     filesystem::path outdef = output_def_name(basename, suppress_output);
     int ret = exec_basic_dp(cfg, input_cfg_fn, outdef, basename, lefs);
-    read_back(outdef);
+    {
+        bool disable_updating_parasitics = cfg.disable_updating_parasitics.value_or(false);
+        read_back(outdef, disable_updating_parasitics);
+    }
     return ret;
 }
 
@@ -592,7 +597,10 @@ int incr_dp(::ord::OpenRoad& ord, const Config& cfg) {
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
     filesystem::path outdef = output_def_name(basename, suppress_output);
     int ret = exec_incr_dp(cfg, input_cfg_fn, outdef, basename, lefs);
-    read_back(outdef);
+    {
+        bool disable_updating_parasitics = cfg.disable_updating_parasitics.value_or(false);
+        read_back(outdef, disable_updating_parasitics);
+    }
     return ret;
 }
 
@@ -641,7 +649,7 @@ int rddp(::ord::OpenRoad& ord, Config& dpcfg) {
             );
             return ret;
         }
-        read_back(out_def);
+        read_back(out_def, false);
 
         dpcfg.routing_congestion_data = generate_routability_data_file(*dpcfg.routing_top_layer);
         auto cmap = parse_cmap(*dpcfg.routing_congestion_data);
@@ -671,7 +679,7 @@ int rddp(::ord::OpenRoad& ord, Config& dpcfg) {
     // This behaviour is by design because RDDP consider cell halos slightly different with what the LEF/DEF standard defines.
     // Suppose that a tapcell appears in the halo of a cell. Standard may consider it as a violation but RDDP thinks it is okay.
     // So we discard halos added by RDDP, in order to make placement checkers happy.
-    read_back(*best_try);
+    read_back(*best_try, false);
     spdlog::info("Pick the best solution among {} tries. def_path: {}", tried_results.size(), *best_try);
     return 0;
 }
@@ -694,7 +702,7 @@ int opt(::ord::OpenRoad& ord, const Config& cfg) {
     filesystem::path input_cfg_fn = write_input_config(cfg, basename, lefs, def);
     filesystem::path outdef = output_def_name(basename, suppress_output);
     int ret = exec_opt(cfg, input_cfg_fn, outdef);
-    read_back(outdef);
+    read_back(outdef, false);
     return ret;
 }
 

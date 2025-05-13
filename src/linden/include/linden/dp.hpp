@@ -33,6 +33,10 @@ struct Config
     std::optional<bool> not_stop_when_illegal;
     // layer name -> extra spacing for P/G (in nm)
     std::map<std::string, double> extra_pg_spacing;
+    
+    // sometimes, it is better not to update parasitics after legalizing
+    // too see more details: https://z36j6ypbg0.feishu.cn/docx/Ncb9dyRl8o9cIaxpeSWcGYorn3g
+    std::optional<bool> disable_updating_parasitics;
 
     Config();
 
