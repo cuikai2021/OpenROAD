@@ -793,11 +793,13 @@ proc add_tie_cell { args } {
 sta::define_cmd_args "remove_tie_cell" {-tie_low_cell  tie_low_cell_name\
                                         -tie_low_pin   tie_low_cell_output_pin_name\
                                         -tie_high_cell tie_high_cell_name\
-                                        -tie_high_pin  tie_high_cell_output_pin_name}
+                                        -tie_high_pin  tie_high_cell_output_pin_name\
+                                        [-lrl]}
 
 proc remove_tie_cell { args } {
   sta::parse_key_args "remove_tie_cell" args \
-    keys {-tie_low_cell -tie_low_pin -tie_high_cell -tie_high_pin}
+    keys {-tie_low_cell -tie_low_pin -tie_high_cell -tie_high_pin} \
+    flags {-lrl}
 
   if { [info exists keys(-tie_low_cell)] } {
     set tie_low_cell $keys(-tie_low_cell)
@@ -819,7 +821,12 @@ proc remove_tie_cell { args } {
   } else {
     utl::error RSZ 211 "Missing mandatory parameter -tie_high_pin"
   }
-  rsz::remove_tie_cell_cmd $tie_low_cell $tie_low_pin $tie_high_cell $tie_high_pin
+  if { [info exists flags(-lrl)] } {
+    lrl::set_tie_cell $tie_high_cell $tie_low_cell $tie_high_pin $tie_low_pin
+    laurel_opt -remove_tie_cell
+  } else {
+    rsz::remove_tie_cell_cmd $tie_low_cell $tie_low_pin $tie_high_cell $tie_high_pin
+  }
 }
 
 sta::define_cmd_args "eliminate_dead_logic" {}
