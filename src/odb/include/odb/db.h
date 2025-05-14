@@ -1424,7 +1424,7 @@ class dbBlock : public dbObject
   const std::vector<uint>& getDieAreaRoutingBlockageIds();
   void createDieAreaBlockages();
   void deleteDieAreaBlockages();
-
+  void deletePlacementBlockages();
   ///
   /// Get the core area. This computes the bbox of the rows
   /// and is O(#rows) in runtime.

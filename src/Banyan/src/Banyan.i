@@ -60,6 +60,9 @@ void optimizeCongestion(std::string max_layer)
     ord::OpenRoad::openRoad()->getBanyan()->optimizeCongestion(max_layer);
 }
 
+void aad_placement_blockage()
+{
+    ord::OpenRoad::openRoad()->getBanyan()->add_placement_blockage();
 }
 
 void loadRoutingCongestion(std::string path)
@@ -67,4 +70,9 @@ void loadRoutingCongestion(std::string path)
    ord::OpenRoad::openRoad()->getBanyan()->loadRoutingCongestion(path);
 }
 
+}
+void remove_placement_blockage()
+{
+    ord::OpenRoad::openRoad()->getBanyan()->remove_placement_blockage();
+}
 %} // inline

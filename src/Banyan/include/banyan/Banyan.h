@@ -76,7 +76,8 @@ class Banyan : public ord::OpenRoadObserver
       other_tech_lef_file_names_.emplace_back(filename);
     }
   }
-
+  int add_placement_blockage();
+  void remove_placement_blockage();
  protected:
   odb::dbDatabase* db_;
   stt::SteinerTreeBuilder* stt_builder_;

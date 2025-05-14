@@ -2289,6 +2289,13 @@ void dbBlock::deleteDieAreaBlockages()
   block->_diearea_rt_blockages.clear();
 }
 
+void dbBlock::deletePlacementBlockages()
+{
+  _dbBlock* block = (_dbBlock*) this;
+  block->_blockage_tbl->clear();
+  block->_diearea_pl_blockages.clear();
+}
+
 void dbBlock::createDieAreaBlockages()
 {
   _dbBlock* block = (_dbBlock*) this;

@@ -72,7 +72,7 @@ void Banyan::init(Tcl_Interp* tcl_interp,
 }
 const char BANYAN_EXE_DEFAULT[] = "/build/bin/banyan";
 const char BANYAN_PBDEF_DEFAULT[] = "/build/bin/bypbdef";
-
+const char BANYAN_AUTO_APB[] = "/build/bin/auto_apb";
 std::string getExe(const char* exeName)
 {
   if (!std::filesystem::exists(exeName)) {
@@ -243,6 +243,31 @@ int Banyan::repair_congestion(std::string_view cmapPb, std::string_view outDb, s
   args.emplace_back(cmapPb);
   return main(args, false);
 }
+
+int Banyan::add_placement_blockage() {
+  std::vector<std::string> args;
+
+  args.push_back("--techlef");
+  args.push_back(tech_lef_file_name_);
+  auto defFilepath = genTempFilePath(logger_, ".def");
+  ord::OpenRoad::openRoad()->writeDef(defFilepath.c_str(), "5.8");
+  args.push_back("--def");
+  args.push_back(defFilepath);
+  auto outDefFilepath = genTempFilePath(logger_, ".def");
+  args.push_back("--out");
+  args.push_back(outDefFilepath);
+  defer _(nullptr, [&](...) {
+      logger_->info(utl::BY, 1, "Writing banyan result {} to eden ...", outDefFilepath);
+      loaddef(outDefFilepath);
+  });
+  return exec(logger_, args,BANYAN_AUTO_APB);
+}
+
+void Banyan::remove_placement_blockage() {
+  auto block = this->db_->getChip()->getBlock();
+  block->deletePlacementBlockages();
+}
+
 
 int Banyan::route_clock(std::string_view max_layer, std::string_view outDb) {
   std::vector<std::string> args;

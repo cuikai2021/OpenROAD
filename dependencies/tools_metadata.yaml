@@ -29,6 +29,7 @@
     garble:/build/bin/:755
     reportpb:/build/bin/:755
     xef2pb:/build/bin/:755
+    auto_apb:/build/bin/:755
 
 - name: linden-integrate
   repo: file://src/linden/gpl
