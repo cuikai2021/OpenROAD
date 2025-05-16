@@ -71,5 +71,7 @@ void wiresToPolygonSetMap(
 void avoidPinIntersection(
     odb::dbNet* db_net,
     std::map<odb::dbTechLayer*, PolygonSet>& set_by_layer);
+void viasToPolygonSetMap(odb::dbWire* wires,
+                          std::map<odb::dbTechLayer*, PolygonSet>& set_by_layer);
 
 }  // namespace ant
