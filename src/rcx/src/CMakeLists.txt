@@ -90,6 +90,7 @@ target_include_directories(rcx_lib
 target_link_libraries(rcx_lib
   PUBLIC
     odb
+    OpenSTA
     utl_lib
     build_info
 )
@@ -179,6 +180,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
   target_link_libraries(rcx_py
     PUBLIC
       rcx_lib
+      OpenSTA
   )
 
 endif()

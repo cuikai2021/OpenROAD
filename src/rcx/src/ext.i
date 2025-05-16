@@ -58,10 +58,10 @@ using rcx::Ext;
 %inline %{
 
 void
-define_process_corner(int ext_model_index, const char* file)
+define_process_corner(int ext_model_index, const char* file, const char* corner)
 {
   Ext* ext = getOpenRCX();
-  ext->define_process_corner(ext_model_index, file);
+  ext->define_process_corner(ext_model_index, file, corner);
 }
 
 void
@@ -78,7 +78,8 @@ extract(const char* ext_model_file,
         bool skip_over_cell,
         float version,
         int corner,
-        int dbg
+        int dbg,
+        bool update
         )
 {
   Ext* ext = getOpenRCX();
@@ -97,6 +98,7 @@ extract(const char* ext_model_file,
   opts.debug_net = debug_net_id;
   opts.no_merge_via_res = no_merge_via_res;
   opts.over_cell = !skip_over_cell;
+  opts._update = update;
 
   if (version>=2.0)
     opts._v2= true;

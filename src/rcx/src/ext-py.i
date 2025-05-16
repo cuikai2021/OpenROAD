@@ -52,7 +52,7 @@ using rcx::Ext;
 // Just reuse the api defined in ext.i
 %inline %{
 
-void define_process_corner(int ext_model_index, const char* file);
+void define_process_corner(int ext_model_index, const char* file, const char* corner);
 
 void extract(const char* ext_model_file,
         int corner_cnt,
@@ -67,7 +67,8 @@ void extract(const char* ext_model_file,
         bool skip_over_cell,
         float version,
         int corner,
-        int dbg
+        int dbg,
+        bool update
         );
 void
 write_spef(const char* file,

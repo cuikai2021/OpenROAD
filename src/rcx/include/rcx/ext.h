@@ -39,6 +39,7 @@
 #include "extRCap.h"
 #include "ext_options.h"
 #include "rcx/extModelGen.h"
+#include "sta/Corner.hh"
 
 namespace utl {
 class Logger;
@@ -105,7 +106,7 @@ class Ext
                        int corner);
   void extract(ExtractOptions options);
 
-  void define_process_corner(int ext_model_index, const std::string& name);
+  void define_process_corner(int ext_model_index, const std::string& name, const char* corner);
   void define_derived_corner(const std::string& name,
                              const std::string& process_corner_name,
                              float res_factor,

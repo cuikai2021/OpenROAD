@@ -34,12 +34,12 @@
 ###############################################################################
 
 sta::define_cmd_args "define_process_corner" {
-    [-ext_model_index index] filename
+    [-ext_model_index index -corner corner] filename
 }
 
 proc define_process_corner { args } {
   sta::parse_key_args "define_process_corner" args \
-    keys {-ext_model_index} flags {}
+    keys {-ext_model_index -corner} flags {}
   sta::check_argc_eq1 "define_process_corner" $args
 
   set ext_model_index 0
@@ -47,9 +47,14 @@ proc define_process_corner { args } {
     set ext_model_index $keys(-ext_model_index)
   }
 
+  set corner ""
+  if { [info exists keys(-corner)] } {
+    set corner $keys(-corner)
+  }
+
   set filename [file nativename [lindex $args 0]]
 
-  rcx::define_process_corner $ext_model_index $filename
+  rcx::define_process_corner $ext_model_index $filename $corner
 }
 
 sta::define_cmd_args "define_rcx_corners" {
@@ -97,6 +102,7 @@ sta::define_cmd_args "extract_parasitics" {
     [-no_merge_via_res]
     [-skip_over_cell ]
     [-version]
+    [-update]
 }
 proc extract_parasitics { args } {
   sta::parse_key_args "extract_parasitics" args \
@@ -111,7 +117,7 @@ proc extract_parasitics { args } {
            -context_depth
            -version } \
     flags { -lef_res -lef_rc
-            -no_merge_via_res -skip_over_cell }
+            -no_merge_via_res -skip_over_cell -update }
 
   set ext_model_file ""
   if { [info exists keys(-ext_model_file)] } {
@@ -145,6 +151,7 @@ proc extract_parasitics { args } {
   set lef_res [info exists flags(-lef_res)]
   set no_merge_via_res [info exists flags(-no_merge_via_res)]
   set skip_over_cell [info exists flags(-skip_over_cell)]
+  set update [info exists flags(-update)]
 
   set cc_model 10
   if { [info exists keys(-cc_model)] } {
@@ -173,7 +180,7 @@ proc extract_parasitics { args } {
   rcx::extract $ext_model_file $corner_cnt $max_res \
     $coupling_threshold $cc_model \
     $depth $debug_net_id $lef_res $no_merge_via_res \
-    $lef_rc $skip_over_cell $version $corner $dbg
+    $lef_rc $skip_over_cell $version $corner $dbg $update
 }
 
 sta::define_cmd_args "write_spef" {

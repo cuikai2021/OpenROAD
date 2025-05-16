@@ -1151,6 +1151,7 @@ int extMain::setMinTypMax(bool min,
 
 extCorner::extCorner()
 {
+  _corner = nullptr;
   _name = nullptr;
   _model = 0;
   _dbIndex = -1;
@@ -1284,7 +1285,7 @@ void extMain::makeCornerMapFromExtControl()
   }
 }
 
-char* extMain::addRCCorner(const char* name, int model, int userDefined)
+char* extMain::addRCCorner(const char* name, int model, int userDefined, const sta::Corner* corner)
 {
   _remote = 0;
   if (model >= 100) {
@@ -1297,6 +1298,15 @@ char* extMain::addRCCorner(const char* name, int model, int userDefined)
 
   for (uint ii = 0; ii < _processCornerTable->getCnt(); ii++) {
     extCorner* s = _processCornerTable->get(ii);
+    if (s->_corner) {
+      if (corner == nullptr) {
+        logger_->error(RCX, 5007, "Once use -corner option, should pass -corner for all defines");
+      } else if (corner == s->_corner) {
+        logger_->info(RCX, 5008, "Corner {} has been defined, skipping A process corner {} for Extraction RC Model {} definition",
+          corner->name(), name, model);
+        return nullptr;
+      }
+    }
     if (s->_model == model) {
       logger_->info(
           RCX,
@@ -1309,6 +1319,7 @@ char* extMain::addRCCorner(const char* name, int model, int userDefined)
     }
   }
   extCorner* t = new extCorner();
+  t->_corner = corner;
   t->_model = model;
   t->_dbIndex = _cornerCnt++;
   _processCornerTable->add(t);

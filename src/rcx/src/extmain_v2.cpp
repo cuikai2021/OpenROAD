@@ -37,7 +37,10 @@
 #include "rcx/extRCap.h"
 #include "rcx/extSpef.h"
 #include "rcx/ext_options.h"
+#include "ord/OpenRoad.hh"
 #include "utl/Logger.h"
+
+#include "tcl.h"
 
 namespace rcx {
 
@@ -1070,6 +1073,42 @@ uint extMain::getResCapTable_lefRC_v2()
   }
   cnt++;
   return cnt;
+}
+
+void extMain::updateStaParasitics()
+{
+  for (uint ii = 0; ii < _processCornerTable->getCnt(); ii++) {
+    extCorner* s = _processCornerTable->get(ii);
+    if (s->_corner == nullptr) {
+      logger_->error(RCX, 5009, "Should define corner before update");
+    }
+  }
+  auto openroad = ord::OpenRoad::openRoad();
+  for (uint ii = 0; ii < _processCornerTable->getCnt(); ii++) {
+    extCorner* s = _processCornerTable->get(ii);
+    Tcl_Eval(openroad->tclInterp(),
+      fmt::format("write_spef -corner {} /tmp/{}.spef", s->_model, s->_corner->name()).c_str());
+    Tcl_Eval(openroad->tclInterp(),
+      fmt::format("read_spef -corner {} -reduce /tmp/{}.spef", s->_corner->name(), s->_corner->name()).c_str());
+  }
+  loadDef();
+}
+
+void extMain::saveDef()
+{
+  auto openroad = ord::OpenRoad::openRoad();
+  Tcl_Eval(openroad->tclInterp(),
+"write_def /tmp/pre_rcx_save.def");
+  Tcl_Eval(openroad->tclInterp(), 
+  "banyan obj_dump --all-geom --log_level debug --output-uncs /tmp/obj_debug.def");
+}
+
+void extMain::loadDef()
+{
+  auto openroad = ord::OpenRoad::openRoad();
+  Tcl_Eval(openroad->tclInterp(),
+"banyan_load_def /tmp/pre_rcx_save.def");
+
 }
 
 }  // namespace rcx

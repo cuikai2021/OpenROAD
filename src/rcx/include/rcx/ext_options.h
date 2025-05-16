@@ -88,6 +88,7 @@ struct ExtractOptions
   bool lef_res = false;
   bool rlog = false;
   bool _v2 = false;
+  bool _update = false;
   float _version = 2.2;
   int _wire_extracted_progress_count = 50000;
 

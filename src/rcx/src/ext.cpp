@@ -36,7 +36,9 @@
 #include "odb/wOrder.h"
 #include "rcx/extMeasureRC.h"
 #include "rcx/extPattern.h"
+#include "sta/Sta.hh"
 #include "utl/Logger.h"
+#include "ord/OpenRoad.hh"
 
 namespace rcx {
 
@@ -187,11 +189,18 @@ void Ext::bench_verilog(const std::string& file)
   _ext->benchVerilog(fp);
 }
 
-void Ext::define_process_corner(int ext_model_index, const std::string& name)
+void Ext::define_process_corner(int ext_model_index, const std::string& name, const char* corner)
 {
+  const sta::Corner* staCorner = nullptr;
+  if (strlen(corner)) {
+    staCorner = sta::Sta::sta()->findCorner(corner);
+    if (staCorner == nullptr) {
+      logger_->error(RCX, 5006, "{} is not the name of process corner.", corner);
+    }
+  }
   _ext->setBlockFromChip();
   _ext->setOneModelFileOneCorner();
-  char* cornerName = _ext->addRCCorner(name.c_str(), ext_model_index);
+  char* cornerName = _ext->addRCCorner(name.c_str(), ext_model_index, 1, staCorner);
 
   if (cornerName != nullptr) {
     logger_->info(RCX, 29, "Defined extraction corner {}", cornerName);
@@ -239,6 +248,9 @@ void Ext::get_ext_db_corner(int& index, const std::string& name)
 
 void Ext::extract(ExtractOptions options)
 {
+  if (options._update) {
+    _ext->saveDef();
+  }
   _ext->setBlockFromChip();
   odb::dbBlock* block = _ext->getBlock();
 
@@ -265,6 +277,9 @@ void Ext::extract(ExtractOptions options)
                           options.coupling_threshold,
                           options.context_depth,
                           options.ext_model_file);
+  if (options._update) {
+    _ext->updateStaParasitics();
+  }
 }
 
 void Ext::adjust_rc(float res_factor, float cc_factor, float gndc_factor)

@@ -5,8 +5,8 @@ import rcx
 # Ensure keywords only and provide defaults when appropriate
 
 
-def define_process_corner(design, *, ext_model_index=0, filename=""):
-    design.getOpenRCX().define_process_corner(ext_model_index, filename)
+def define_process_corner(design, *, ext_model_index=0, filename="", corner=""):
+    design.getOpenRCX().define_process_corner(ext_model_index, filename, corner)
 
 
 def extract_parasitics(
@@ -25,7 +25,8 @@ def extract_parasitics(
     lef_rc=False,
     skip_over_cell=False,
     version=1.0,
-    dbg=0
+    dbg=0,
+    update=False
 ):
 
     opts = rcx.ExtractOptions()
@@ -43,6 +44,7 @@ def extract_parasitics(
     opts.debug_net = debug_net_id
     opts.no_merge_via_res = no_merge_via_res
     opts.over_cell = not skip_over_cell
+    opts._update = update
 
     if version >= 2.0:
         opts._v2 = true

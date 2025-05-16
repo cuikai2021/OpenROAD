@@ -49,6 +49,7 @@
 #include "rcx/extSolverGen.h"
 #include "rcx/ext_options.h"
 #include "rcx/gseq.h"
+#include "sta/Corner.hh"
 #include "util.h"
 
 namespace utl {
@@ -1636,6 +1637,7 @@ class extCorner
  public:
   extCorner();
 
+  const sta::Corner* _corner;
   char* _name;
   int _model;
   int _dbIndex;
@@ -2258,7 +2260,7 @@ class extMain
 
   void addDummyCorners(uint cornerCnt);
   static void addDummyCorners(odb::dbBlock* block, uint cnt, Logger* logger);
-  char* addRCCorner(const char* name, int model, int userDefined = 1);
+  char* addRCCorner(const char* name, int model, int userDefined = 1, const sta::Corner* corner=nullptr);
   char* addRCCornerScaled(const char* name,
                           uint model,
                           float resFactor,
@@ -2661,6 +2663,10 @@ class extMain
   void setMaxRC(uint ii, uint jj, extDistRC* rc);
 
   Logger* getLogger() { return logger_; }
+
+  void updateStaParasitics();
+  void saveDef();
+  void loadDef();
 
  private:
   Logger* logger_;
