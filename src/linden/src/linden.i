@@ -10,6 +10,7 @@
 #include "./remove_fillers/ffi.hpp"
 #include "./timing_data/ffi.hpp"
 #include "../include/linden/eco_placer.hpp"
+#include "./checker/ffi.hpp"
 #include "odb/dbTypes.h"
 #include "odb/geom.h"
 #include <memory>
@@ -408,4 +409,12 @@ int add_tie_cell_cmd(StrDeque& args) {
 }
 
 %} // add_tie_cell
+
+%inline %{
+
+int check_placement_gogogo() {
+    return linden::check_placement_gogogo();
+}
+
+%} // checker
 

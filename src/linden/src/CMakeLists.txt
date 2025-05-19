@@ -32,6 +32,7 @@ file(GLOB cpps
     util/*.cpp
     eco_placer/*.cpp
     add_tie_cell/*.cpp
+    checker/*.cpp
 )
 target_sources(linden
 PRIVATE

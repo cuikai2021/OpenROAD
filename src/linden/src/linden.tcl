@@ -86,3 +86,7 @@ proc linden_add_tiecell { args } {
     }
     linden::add_tie_cell_cmd a
 }
+
+proc linden_check_placement {} {
+    linden::check_placement_gogogo
+}
