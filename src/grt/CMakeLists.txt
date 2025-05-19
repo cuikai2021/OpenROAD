@@ -82,6 +82,7 @@ target_include_directories(grt
 )
 
 target_link_libraries(grt_lib
+    sc
     utl_lib
     FastRoute4.1
     ant_lib

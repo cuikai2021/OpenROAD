@@ -266,6 +266,12 @@ proc repair_antennas { args } {
     utl::error GRT 104 "No design block found."
   }
 
+  if {[llength [info commands lrl::register_sc_editer]] > 0} {
+    lrl::register_sc_editer
+  } else {
+    puts "\[Info\] laurel editer not found, use default editer."
+  }
+
   if { [grt::have_routes] || [grt::have_detailed_routes] } {
     if { [llength $args] == 0 } {
       # repairAntennas locates diode

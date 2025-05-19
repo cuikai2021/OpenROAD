@@ -49,6 +49,7 @@
 #include "Pin.h"
 #include "grt/GlobalRouter.h"
 #include "utl/Logger.h"
+#include "sc/ScanChainEditer.h"
 
 namespace grt {
 
@@ -513,6 +514,7 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm)
                         fixed_insts,
                         violation_layer);
             inserted_diodes = true;
+            db_net = gate->getNet();
           }
         }
       } else
@@ -520,8 +522,8 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm)
     }
     if (inserted_diodes) {
       // Diode insertion deletes the jumpers in guides
-      db_net->setJumpers(false);
-      grouter_->addDirtyNet(db_net);
+      // db_net->setJumpers(false);
+      // grouter_->addDirtyNet(db_net);
     }
   }
   if (repair_failures) {
@@ -558,6 +560,7 @@ void RepairAntennas::insertDiode(odb::dbNet* net,
                                  r_tree& fixed_insts,
                                  odb::dbTechLayer* violation_layer)
 {
+  auto editer = sc::sc_editer::editer();
   odb::dbMaster* diode_master = diode_mterm->getMaster();
   std::string diode_inst_name
       = "ANTENNA_" + std::to_string(unique_diode_index_++);
@@ -589,7 +592,10 @@ void RepairAntennas::insertDiode(odb::dbNet* net,
 
   odb::dbITerm* diode_iterm
       = diode_inst->findITerm(diode_mterm->getConstName());
-  diode_iterm->connect(net);
+  
+  //
+  // diode_iterm->connect(net);
+  editer->connect(diode_iterm, net);
   diode_insts_.push_back(diode_inst);
 
   // Add diode to the R-tree of fixed instances
