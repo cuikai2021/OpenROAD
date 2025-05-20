@@ -412,8 +412,8 @@ int add_tie_cell_cmd(StrDeque& args) {
 
 %inline %{
 
-int check_placement_gogogo() {
-    return linden::check_placement_gogogo();
+int check_placement_gogogo(StrDeque& args) {
+    return linden::check_placement_gogogo(std::move(args.elems_));
 }
 
 %} // checker

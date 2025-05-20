@@ -63,7 +63,7 @@ namespace linden {
         }
         
 
-        int check_placement(::ord::OpenRoad& ord, bool suppress_output) {
+        int check_placement(::ord::OpenRoad& ord, bool suppress_output, std::optional<std::string> mode) {
             const LefDefDumper dumper(ord);
             if (suppress_output) {
                 dumper.print_dumped_files(std::cout);
@@ -76,6 +76,10 @@ namespace linden {
             args.emplace_back("--def");
             auto const& def = dumper.def;
             args.push_back(def);
+            if (mode.has_value()) {
+                args.emplace_back("--mode");
+                args.push_back(*mode);
+            }
             return exec(suppress_output, args);
         }
     } //namespace checker

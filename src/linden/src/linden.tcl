@@ -87,6 +87,13 @@ proc linden_add_tiecell { args } {
     linden::add_tie_cell_cmd a
 }
 
-proc linden_check_placement {} {
-    linden::check_placement_gogogo
+sta::define_cmd_args "linden_check_placement" {
+    [--mode mode]
+}
+proc linden_check_placement { args } {
+    linden::StrDeque a
+    foreach x $args {
+        a push_back $x
+    }
+    linden::check_placement_gogogo a
 }
