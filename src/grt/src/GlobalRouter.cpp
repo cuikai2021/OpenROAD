@@ -540,6 +540,10 @@ void GlobalRouter::estimateRC(rsz::SpefWriter* spef_writer)
   // Make separate parasitics for each corner.
   sta_->setParasiticAnalysisPts(true);
 
+  for (auto&& pa_cbk : resizer_->getParasiticCopyCallBacks()) {
+    pa_cbk.init();
+  }
+
   MakeWireParasitics builder(
       logger_, resizer_, sta_, db_->getTech(), block_, this);
 

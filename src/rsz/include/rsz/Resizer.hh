@@ -451,17 +451,8 @@ class Resizer : public dbStaState, public dbNetworkObserver
   void invalidateParasitics(const Pin* pin, const Net* net);
   void eraseParasitics(const Net* net);
   void eliminateDeadLogic(bool clean_nets);
-  struct ParasiticPerViewCallBack {
-    using ParasiticCopyCallBack = std::function<void(Parasitics *, Parasitic *, const Net *, const Corner *, const sta::MinMaxAll *)>;
-    void copy(Parasitics* pas, Parasitic* pa, const Net* net, const Corner* cor, const sta::MinMaxAll* m) const { copy_cbk(pas, pa, net, cor, m); }
-    void init() { per_view_sta->ensureClkNetwork(); per_view_sta->setParasiticAnalysisPts(true); } 
-    ParasiticPerViewCallBack(ParasiticCopyCallBack const& cbk, sta::dbSta* sta): copy_cbk(cbk), per_view_sta(sta) {}
-  protected:
-    ParasiticCopyCallBack copy_cbk;
-    sta::dbSta* per_view_sta; 
-  };
-  void registerParasiticCopyCallBack(const ParasiticPerViewCallBack::ParasiticCopyCallBack& cb, sta::dbSta* sta) { parasitic_call_backs.emplace_back(cb, sta); }
-  const std::vector<ParasiticPerViewCallBack>& getParasiticCopyCallBacks() { return parasitic_call_backs; }
+  
+  const std::vector<sta::Sta::ParasiticPerViewCallBack>& getParasiticCopyCallBacks() { return sta_->getParasiticCopyCallBacks(); }
 
  protected:
   friend class lrl::NetworkSandbox;
@@ -823,8 +814,6 @@ class Resizer : public dbStaState, public dbNetworkObserver
   bool gr_est_local_net = true;
   bool isCallBackRegistered() { return is_callback_registered_; }
   void setCallBackRegistered(bool val) { is_callback_registered_ = val; }
-
-  std::vector<ParasiticPerViewCallBack> parasitic_call_backs;
 
   friend class BufferedNet;
   friend class GateCloner;

@@ -298,12 +298,12 @@ void Resizer::estimateParasitics(ParasiticsSrc src,
       estimateWireParasitics(spef_writer.get());
       break;
     case ParasiticsSrc::global_routing:
+      parasitics_src_ = ParasiticsSrc::global_routing;
       global_router_->estimateRC(spef_writer.get());
       // for not change golden result
       if (!gr_est_local_net) {
         estimateNullRouteWireParasitics(spef_writer.get());
       }
-      parasitics_src_ = ParasiticsSrc::global_routing;
       break;
     case ParasiticsSrc::detailed_routing:
       // TODO: call rcx to extract parasitics and load them to STA
@@ -464,6 +464,9 @@ void Resizer::estimateWireParasitics(SpefWriter* spef_writer)
 {
   initBlock();
   if (!wire_signal_cap_.empty()) {
+    // src should be setted before callback
+    parasitics_src_ = ParasiticsSrc::placement;
+
     sta_->ensureClkNetwork();
     // Make separate parasitics for each corner, same for min/max.
     sta_->setParasiticAnalysisPts(true);
@@ -474,7 +477,7 @@ void Resizer::estimateWireParasitics(SpefWriter* spef_writer)
       "0x1", now that we have to calculate all net's parasitics,
       just use db_block_'s root interface is okay.
     */
-    for (auto cbk: parasitic_call_backs) { cbk.init(); }
+    for (auto&& cbk: getParasiticCopyCallBacks()) { cbk.init(); }
 #if 0
     NetIterator* net_iter = network_->netIterator(network_->topInstance());
     while (net_iter->hasNext()) {
@@ -490,7 +493,6 @@ void Resizer::estimateWireParasitics(SpefWriter* spef_writer)
     }
 #endif
 
-    parasitics_src_ = ParasiticsSrc::placement;
     parasitics_invalid_.clear();
   }
 }
@@ -551,7 +553,7 @@ void Resizer::makePadParasitic(const Net* net, SpefWriter* spef_writer)
     if (spef_writer) {
       spef_writer->writeNet(corner, net, parasitic);
     }
-    for (auto&& pa_cbk : parasitic_call_backs) {
+    for (auto&& pa_cbk : getParasiticCopyCallBacks()) {
       pa_cbk.copy(parasitics_, parasitic, net, corner, sta::MinMaxAll::all());
     }
     arc_delay_calc_->reduceParasitic(
@@ -644,7 +646,7 @@ void Resizer::estimateWireParasiticSteiner(const Pin* drvr_pin,
       if (spef_writer) {
         spef_writer->writeNet(corner, net, parasitic);
       }
-      for (auto&& pa_cbk : parasitic_call_backs) {
+      for (auto&& pa_cbk : getParasiticCopyCallBacks()) {
         pa_cbk.copy(parasitics_, parasitic, net, corner, sta::MinMaxAll::all());
       }
       arc_delay_calc_->reduceParasitic(
