@@ -170,6 +170,7 @@ class Grid
   void markHopeless(dbBlock* block,
                     int max_displacement_x,
                     int max_displacement_y);
+  void markInvalidRegion(const Rect &region);
   void markBlocked(dbBlock* block);
   void visitDbRows(dbBlock* block,
                    const std::function<void(odb::dbRow*)>& func) const;

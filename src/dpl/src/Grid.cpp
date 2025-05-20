@@ -157,16 +157,8 @@ void Grid::markHopeless(dbBlock* block,
   }
 }
 
-void Grid::markBlocked(dbBlock* block)
-{
-  const Rect core = getCore();
-  for (odb::dbBlockage* blockage : block->getBlockages()) {
-    if (blockage->isSoft()) {
-      continue;
-    }
-    Rect bbox = blockage->getBBox()->getBox();
-    bbox.moveDelta(-core.xMin(), -core.yMin());
-    GridRect grid_rect = gridCovering(bbox);
+void Grid::markInvalidRegion(const Rect &region) {
+    GridRect grid_rect = gridCovering(region);
 
     // Clip to the core area
     GridRect core{.xlo = GridX{0},
@@ -181,6 +173,32 @@ void Grid::markBlocked(dbBlock* block)
         pixel1.is_valid = false;
       }
     }
+}
+
+void Grid::markBlocked(dbBlock* block)
+{
+  const Rect core = getCore();
+  for (odb::dbBlockage* blockage : block->getBlockages()) {
+    if (blockage->isSoft()) {
+      continue;
+    }
+    Rect bbox = blockage->getBBox()->getBox();
+    bbox.moveDelta(-core.xMin(), -core.yMin());
+    markInvalidRegion(bbox);
+  }
+
+  for (odb::dbInst* inst : block->getInsts()) {
+    if (inst->getHalo() == nullptr) {
+      continue;
+    }
+    Rect bbox = inst->getBBox()->getBox();
+    Rect halo = inst->getHalo()->getBox();
+    bbox.reset(bbox.xMin() - halo.xMin(),
+               bbox.yMin() - halo.yMin(),
+               bbox.xMax() + halo.xMax(),
+               bbox.yMax() + halo.yMax());
+    bbox.moveDelta(-core.xMin(), -core.yMin());
+    markInvalidRegion(bbox);
   }
 }
 
