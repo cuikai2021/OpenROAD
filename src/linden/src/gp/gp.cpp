@@ -240,7 +240,6 @@ void estimate_cmap(
     spdlog::info("[linden/gpl] Dump a banyan cmap file: {}", cmap_file);
     banyan.repair_congestion(
         cmap_file.string(),
-        cmap_file.string() + ".cgr.db",
         *cfg.highest_layer_to_route,
         true,
         std::nullopt,

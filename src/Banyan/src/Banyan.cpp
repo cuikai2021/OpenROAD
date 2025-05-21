@@ -224,7 +224,6 @@ int Banyan::cmap(std::string_view cmapPb, std::string_view max_layer)
 }
 
 int Banyan::repair_congestion(std::string_view cmapPb,
-                              std::string_view outDb,
                               std::string_view max_layer,
                               bool nopa,
                               std::optional<size_t> mm_iter,
@@ -243,9 +242,6 @@ int Banyan::repair_congestion(std::string_view cmapPb,
 
   args.emplace_back("--log_level");
   args.emplace_back("info");
-
-  args.emplace_back("--db");
-  args.emplace_back(outDb);
 
   args.emplace_back("--out_protobuf");
   args.emplace_back(cmapPb);

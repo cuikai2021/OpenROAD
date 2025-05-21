@@ -55,7 +55,6 @@ class Banyan : public ord::OpenRoadObserver
   int cmap(std::string_view cmapPb, std::string_view max_layer);
   int route_clock(std::string_view max_layer, std::string_view outDb);
   int repair_congestion(std::string_view cmapPb,
-                        std::string_view outDb,
                         std::string_view max_layer,
                         bool nopa,
                         std::optional<size_t> mm_iter,
