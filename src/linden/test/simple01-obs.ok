@@ -65,6 +65,7 @@ linden::gp::Config {
 [nPlace] Iter: 80 overflow: 0.778807 HPWL: 4222257
 [nPlace] Iter: 90 overflow: 0.77863 HPWL: 4223912
 [nPlace] Iter: 100 overflow: 0.778011 HPWL: 4226764
+[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_100.pb
 [nPlace] Iter: 110 overflow: 0.776819 HPWL: 4231443
 [nPlace] Iter: 120 overflow: 0.775391 HPWL: 4238913
 [nPlace] Iter: 130 overflow: 0.772606 HPWL: 4250769
@@ -75,26 +76,47 @@ linden::gp::Config {
 [nPlace] Iter: 180 overflow: 0.716144 HPWL: 4472924
 [nPlace] Iter: 190 overflow: 0.696808 HPWL: 4536915
 [nPlace] Iter: 200 overflow: 0.663824 HPWL: 4619505
+[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_200.pb
 [nPlace] Iter: 210 overflow: 0.632501 HPWL: 4730956
 [nPlace] Iter: 220 overflow: 0.608894 HPWL: 4829093
 [nPlace] Iter: 230 overflow: 0.573002 HPWL: 4968924
 [nPlace] Iter: 240 overflow: 0.539963 HPWL: 5067841
 [nPlace] Iter: 250 overflow: 0.512538 HPWL: 5129614
 [nPlace] Iter: 260 overflow: 0.480533 HPWL: 5141969
+[nPlace] best gpl postion: overflow: 0.4805327160335177, hpwl: 5141969
+[nPlace] best gpl postion: overflow: 0.4677048124002885, hpwl: 5119433
 [nPlace] Iter: 270 overflow: 0.438367 HPWL: 5118409
+[nPlace] best gpl postion: overflow: 0.43836678587548983, hpwl: 5118409
+[nPlace] best gpl postion: overflow: 0.4301099946149464, hpwl: 5143410
 [nPlace] Iter: 280 overflow: 0.415404 HPWL: 5195075
+[nPlace] best gpl postion: overflow: 0.41540371785009983, hpwl: 5195075
+[nPlace] best gpl postion: overflow: 0.403596890381844, hpwl: 5230031
 [nPlace] Iter: 290 overflow: 0.386044 HPWL: 5245954
+[nPlace] best gpl postion: overflow: 0.38604440807484186, hpwl: 5245954
+[nPlace] best gpl postion: overflow: 0.36743902459168615, hpwl: 5227502
 [nPlace] Iter: 300 overflow: 0.350434 HPWL: 5241665
+[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_300.pb
+[nPlace] best gpl postion: overflow: 0.350434360718463, hpwl: 5241665
+[nPlace] best gpl postion: overflow: 0.3395012459061784, hpwl: 5234201
 [nPlace] Iter: 310 overflow: 0.323315 HPWL: 5243726
+[nPlace] best gpl postion: overflow: 0.3233151291131026, hpwl: 5243726
 [nPlace] Iter: 320 overflow: 0.296383 HPWL: 5284871
+[nPlace] best gpl postion: overflow: 0.2815704179752727, hpwl: 5309192
 [nPlace] Iter: 330 overflow: 0.279835 HPWL: 5318009
+[nPlace] best gpl postion: overflow: 0.26111733573596985, hpwl: 5351257
 [nPlace] Iter: 340 overflow: 0.246972 HPWL: 5347041
+[nPlace] best gpl postion: overflow: 0.24697221221270824, hpwl: 5347041
+[nPlace] best gpl postion: overflow: 0.2305516219776403, hpwl: 5341904
 [nPlace] Iter: 350 overflow: 0.222946 HPWL: 5347334
 [nPlace] Iter: 360 overflow: 0.200751 HPWL: 5392119
+[nPlace] best gpl postion: overflow: 0.20075130280960013, hpwl: 5392119
+[nPlace] best gpl postion: overflow: 0.19353394137155597, hpwl: 5421791
 [nPlace] Iter: 370 overflow: 0.191861 HPWL: 5439174
 [nPlace] Iter: 380 overflow: 0.175751 HPWL: 5500023
 [nPlace] Iter: 390 overflow: 0.150868 HPWL: 5533453
+[nPlace] best gpl postion: overflow: 0.15086768265359898, hpwl: 5533453
 [nPlace] Iter: 400 overflow: 0.144989 HPWL: 5563513
+[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_400.pb
 [nPlace] Iter: 410 overflow: 0.13155 HPWL: 5606601
 [nPlace] Iter: 420 overflow: 0.124335 HPWL: 5624098
 [nPlace] Iter: 430 overflow: 0.115595 HPWL: 5664370
@@ -105,10 +127,11 @@ linden::gp::Config {
 [nPlace] Iter: 480 overflow: 0.10378 HPWL: 5850760
 [nPlace] Iter: 490 overflow: 0.103735 HPWL: 5871174
 [nPlace] Iter: 500 overflow: 0.102939 HPWL: 5892848
+[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_500.pb
 [nPlace] Iter: 510 overflow: 0.101836 HPWL: 5934319
 [nPlace] target overflow.
 {
   "gp": {
-    "iter": 390
+    "iter": 520
   }
 }No differences found.

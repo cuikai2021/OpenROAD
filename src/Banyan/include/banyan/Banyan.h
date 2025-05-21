@@ -48,9 +48,14 @@ class Banyan : public ord::OpenRoadObserver
             lrl::Laurel* laurel);
 
   int main(std::vector<std::string> args, bool updateDB);
-  int cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_layer);
+  int cmap(std::string_view cmapPb, std::string_view max_layer);
   int route_clock(std::string_view max_layer, std::string_view outDb);
-  int repair_congestion(std::string_view cmapPb, std::string_view outDb, std::string_view max_layer, bool nopa);
+  int repair_congestion(std::string_view cmapPb,
+                        std::string_view outDb,
+                        std::string_view max_layer,
+                        bool nopa,
+                        std::optional<size_t> mm_iter,
+                        std::optional<size_t> gcell_size);
   int optimizeCongestion(std::string_view max_layer);
   void clearWires(bool excludeClock, bool excludeSignal);
   void regression_RC(const char* spef,

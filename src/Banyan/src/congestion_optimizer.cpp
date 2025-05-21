@@ -9,6 +9,7 @@
 #include <boost/process.hpp>
 #include <boost/process/system.hpp>
 #include <filesystem>
+#include <optional>
 #include <sstream>
 #include <iostream>
 #include <string>
@@ -172,7 +173,7 @@ namespace banyan {
             for (int i= 0; i < cfg.max_iteration; i++) {
                 this -> b -> clearWires(false, false);
                 // this -> b -> route_clock(cfg.max_layer, std::string_view(db_path.c_str())); 
-                this -> b -> repair_congestion(cfg.inner_cfg.congestion_data.c_str(), db_path.c_str(), cfg.max_layer, true);
+                this -> b -> repair_congestion(cfg.inner_cfg.congestion_data.c_str(), db_path.c_str(), cfg.max_layer, true, std::nullopt, std::nullopt);
                 cfg.dump_dp_cfg(dp_cfg_path);
                 auto commands = cfg.rdp_command(dp_cfg_path);
                 boost::process::child c(std::string(rddp_path), boost::process::args(cfg.rdp_command(dp_cfg_path)));

@@ -1,6 +1,7 @@
 #include "banyan/Banyan.h"
 
 #include <chrono>
+#include <optional>
 #include <sstream>
 #include <spdlog/spdlog.h>
 #include <boost/program_options.hpp>
@@ -201,7 +202,7 @@ int Banyan::main(std::vector<std::string> args, bool updateDB)
   return exec(logger_, args,BANYAN_EXE_DEFAULT);
 }
 
-int Banyan::cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_layer)
+int Banyan::cmap(std::string_view cmapPb, std::string_view max_layer)
 {
   std::vector<std::string> args;
   args.push_back("report_routability");
@@ -210,37 +211,54 @@ int Banyan::cmap(std::string_view cmapPb, bool cgr_mode, std::string_view max_la
     args.push_back("--max_layer");
     args.emplace_back(max_layer);
   }
+  args.push_back("--disable_mcf_upt");
+  args.push_back("--baby_pa");
 
   args.push_back("--log_level");
   args.push_back("info");
   args.push_back("--gmap_out_protobuf");
   args.emplace_back(cmapPb);
-  if (!cgr_mode) {
-    args.push_back("--disable_mcf_upt");
-    args.push_back("--baby_pa");
-  }
 
   return main(args, false);
 }
 
-int Banyan::repair_congestion(std::string_view cmapPb, std::string_view outDb, std::string_view max_layer, bool nopa)
+int Banyan::repair_congestion(std::string_view cmapPb,
+                              std::string_view outDb,
+                              std::string_view max_layer,
+                              bool nopa,
+                              std::optional<size_t> mm_iter,
+                              std::optional<size_t> gcell_size)
 {
   std::vector<std::string> args;
-  args.push_back("repair_congestion");
-  args.push_back("--enable_dynamic_local");
+  args.emplace_back("repair_congestion");
+  args.emplace_back("--enable_dynamic_local");
   if (nopa) {
-    args.push_back("--no_pa");
+    args.emplace_back("--no_pa");
   }
   if (!max_layer.empty()) {
-    args.push_back("--max_layer");
+    args.emplace_back("--max_layer");
     args.emplace_back(max_layer);
   }
-  args.push_back("--log_level");
-  args.push_back("info");
-  args.push_back("--db");
+
+  args.emplace_back("--log_level");
+  args.emplace_back("info");
+
+  args.emplace_back("--db");
   args.emplace_back(outDb);
-  args.push_back("--out_protobuf");
+
+  args.emplace_back("--out_protobuf");
   args.emplace_back(cmapPb);
+
+  if (mm_iter.has_value()) {
+    args.emplace_back("--mm_iter");
+    args.emplace_back(fmt::format("{}", *mm_iter));
+  }
+
+  if (gcell_size.has_value()) {
+    args.emplace_back("--gcell_size");
+    args.emplace_back(fmt::format("{}", *gcell_size));
+  }
+
   return main(args, false);
 }
 

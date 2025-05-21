@@ -248,6 +248,7 @@ linden::gp::Config {
 [nPlace] Iter: 80 overflow: 0.775812 HPWL: 4235550
 [nPlace] Iter: 90 overflow: 0.775475 HPWL: 4237467
 [nPlace] Iter: 100 overflow: 0.774427 HPWL: 4240744
+[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_100.pb
 [nPlace] Iter: 110 overflow: 0.772972 HPWL: 4246034
 [nPlace] Iter: 120 overflow: 0.770942 HPWL: 4254274
 [nPlace] Iter: 130 overflow: 0.766648 HPWL: 4267366
@@ -256,8 +257,10 @@ linden::gp::Config {
 [nPlace] Iter: 160 overflow: 0.73893 HPWL: 4361574
 [nPlace] Iter: 170 overflow: 0.722025 HPWL: 4420601
 [nPlace] Iter: 180 overflow: 0.697874 HPWL: 4503730
+[nPlace] Begin Routability Driven.
 [ laurel/info ] Use Laurel Modifier
-[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_.cmap"
+[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_182.pb
+[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_182.cmap"
 [INFO BY-1010] Banyan exec /build/bin/banyan done, status code 0
 [linden/gpl] TileLxLy=(-8960, -8960)
 [linden/gpl] TileSize=(17920, 17920), TileArea=321126400
@@ -265,9 +268,35 @@ linden::gp::Config {
 [linden/gpl] NumTiles=25
 [linden/env] LINDEN_RDP_CMAP_OVERFLOW_THRESHOLD: 0.94
 no overflow in median level
-[nPlace] cmap forces termination.
+[linden/gpl] TotalRouteOverflow: (0, 0)
+[linden/gpl] OverflowTileCnt: (0, 0)
+[linden/gpl] 0.5%RC: (0, 0)
+[linden/gpl] 1.0%RC: (0, 0)
+[linden/gpl] 2.0%RC: (0, 0)
+[linden/gpl] 5.0%RC: (0, 0)
+[linden/gpl] 0.5rcK: 1
+[linden/gpl] 1.0rcK: 1
+[linden/gpl] 2.0rcK: 1
+[linden/gpl] 5.0rcK: 1
+[linden/gpl] FinalRC: 0
+[linden/gpl/rdp] rc = 0, H d/s = 0.14803589234833803, V d/s = 0.13164156242828326
+linden/gpl NumTiles: 25
+[linden/gpl/rdp] InflatedAreaDelta: 0
+[linden/gpl/rdp] TargetDensity: 0.5973229224762967
+[linden/gpl/rdp] WhiteSpaceArea: 3815504000
+[linden/gpl/rdp] MovableInstsArea: 3815504000.000005
+[linden/gpl/rdp] MovableStdInstsArea: 3815504000.000005
+[linden/gpl/rdp] TotalFillerArea: 0
+[linden/gpl/rdp] TotalGCellsArea: 3815504000.000005
+[linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
+[linden/gpl/rdp] NewMovableInstsArea: 3815504000.0000024
+[linden/gpl/rdp] NewMovableStdInstsArea: 3815504000.0000024
+[linden/gpl/rdp] NewTotalFillerArea: 0
+[nPlace] take snapshot RC(0).
+[NPlace] take snapshot coordi
+[nPlace] RDGP Got TargetRC.
 {
   "gp": {
-    "iter": 1
+    "iter": 183
   }
 }No differences found.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -20,6 +21,12 @@ static constexpr double HEAD_DEATH_RATIO = 0.02;
 // F1 Temporary storage
 static constexpr int64_t LAG_STEP = 50;
 
+static constexpr std::size_t MMITER_MIN = 1;
+static constexpr std::size_t MMITER_MAX = 16;
+
+static constexpr std::size_t GCELLS_SIZE_MIN = 32;
+static constexpr std::size_t GCELLS_SIZE_MAX = 128;
+
 } // namespace HpwlConfig
 
 struct HpwlAnalyze
@@ -32,6 +39,13 @@ struct HpwlAnalyze
     bool best_gpl_postion();
     void save_data();
 
+    void push_rc(double rc, size_t iter);
+    size_t get_mm_iter();
+    size_t get_gcells_size();
+    bool rdgp_blew();
+    bool rdgp_shot();
+    bool rdgp_done();
+
     double _gpl_best_postion;
     double _min_moving_avg;
     double _min_lagged_ratio;
@@ -40,6 +54,11 @@ struct HpwlAnalyze
     std::vector<double> _overflow_vec;
     std::vector<double> _f1_vec;
     std::vector<double> _accumulated_f1;
+
+    double _min_rc;
+    size_t _min_rc_iter;
+    int64_t _min_rc_continue_cnt;
+    std::vector<double> _rc_vec;
 };
 
 } // namespace linden

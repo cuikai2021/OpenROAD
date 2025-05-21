@@ -4,7 +4,6 @@ find_package(Eigen3 REQUIRED)
 
 file(GLOB tcls
     *.tcl
-    cgr/*.tcl
     dp/*.tcl
     gp/*.tcl
     itdp/*.tcl
@@ -20,7 +19,6 @@ swig_lib(NAME      linden
 
 file(GLOB cpps
     *.cpp
-    cgr/*.cpp
     dp/*.cpp
     gp/*.cpp
     initial_place/*.cpp

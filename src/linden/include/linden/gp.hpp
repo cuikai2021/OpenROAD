@@ -118,6 +118,7 @@ struct Config {
 
     // The overflow threshold to start estimating congestion map.
     float overflow_to_estimate_cmap;
+    std::optional<std::filesystem::path> ldb_path;
 
     // Name of the highest layer for (baby) banyan to estimate routability.
     std::optional<std::string> highest_layer_to_route;

@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <filesystem>
 #include <limits>
 #include <optional>
@@ -16,7 +17,9 @@ HpwlAnalyze::HpwlAnalyze()
 :   _gpl_best_postion(std::numeric_limits<double>::infinity()),
     _min_moving_avg(std::numeric_limits<double>::infinity()),
     _min_lagged_ratio(std::numeric_limits<double>::infinity()),
-    _count(0)
+    _count(0),
+    _min_rc(std::numeric_limits<double>::infinity()),
+    _min_rc_continue_cnt(0)
 {
     spdlog::info("[nPlace/ha] MOVING_AVG_LEN: {}", HpwlConfig::MOVING_AVG_LEN);
     spdlog::info("[nPlace/ha] PEEK_OVERFLOW: {:.2f}", HpwlConfig::PEEK_OVERFLOW);
@@ -74,9 +77,7 @@ bool HpwlAnalyze::heat_death()
         return false;
     }
 
-    if (_count % 100 == 0 &&
-        _count > HpwlConfig::HEAT_DEATH_LEN * HpwlConfig::HEAT_DEATH_NUM)
-    {
+    if (_count % 100 == 0 && _count > HpwlConfig::HEAT_DEATH_LEN * HpwlConfig::HEAT_DEATH_NUM) {
         double min_sum = std::numeric_limits<double>::infinity();
         double max_sum = -std::numeric_limits<double>::infinity();
 
@@ -146,6 +147,49 @@ void HpwlAnalyze::save_data()
     for (auto f1 : _f1_vec) {
         reporter["f1"].append() = f1;
     }
+}
+
+void HpwlAnalyze::push_rc(double rc, size_t iter)
+{
+    if (rc < _min_rc) {
+        _min_rc = rc;
+        _min_rc_iter = iter;
+        _min_rc_continue_cnt = 0;
+    } else {
+        _min_rc_continue_cnt++;
+    }
+
+    _rc_vec.push_back(rc);
+}
+
+size_t HpwlAnalyze::get_mm_iter()
+{
+    return 8;
+}
+
+size_t HpwlAnalyze::get_gcells_size()
+{
+    return 64;
+}
+
+bool HpwlAnalyze::rdgp_blew()
+{
+    const auto cur_rc = _rc_vec.back();
+    if (cur_rc > _min_rc * 2 || _min_rc_continue_cnt > 10) {
+        return true;
+    }
+
+    return false;
+}
+
+bool HpwlAnalyze::rdgp_shot()
+{
+    return _rc_vec.back() == _min_rc;
+}
+
+bool HpwlAnalyze::rdgp_done()
+{
+    return _rc_vec.back() < 0.05;
 }
 
 } // namespace linden

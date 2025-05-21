@@ -21,6 +21,7 @@ optional<Config> parse_from(deque<string> args) noexcept {
     const string_view CONTINUE("-continue");
     const string_view ROUTABILITY_DRIVEN("-routability_driven");
     const string_view OVERFLOW_TO_EST_CMAP("-overflow_to_estimate_cmap");
+    const string_view LDB("-ldb");
 
     Config res(*Config::get_default());
     Args args_(std::move(args));
@@ -117,6 +118,14 @@ optional<Config> parse_from(deque<string> args) noexcept {
                 return nullopt;
             }
             res.overflow_to_estimate_cmap = x;
+        } else if (s == LDB) {
+            auto param = args_.next();
+            if (!param) {
+                spdlog::error("{} requires a path parameter.",LDB);
+                return std::nullopt;
+            }
+            std::filesystem::path p = *param;
+            res.ldb_path = std::move(p);
         } else {
             spdlog::info("ignore arg: {}", s);
         }

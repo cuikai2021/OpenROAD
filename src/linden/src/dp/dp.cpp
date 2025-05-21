@@ -506,7 +506,7 @@ std::filesystem::path generate_routability_data_file(const string_view& routing_
     banyan::Banyan& banyan = *::ord::OpenRoad::openRoad() -> getBanyan();
     auto cmap_filepath = gen_base_filename() / fmt::format(".cmap");
     banyan.clearWires(false, false);
-    banyan.cmap(cmap_filepath.string(), false, routing_top_layer);
+    banyan.cmap(cmap_filepath.string(), routing_top_layer);
     return cmap_filepath;
 }
 

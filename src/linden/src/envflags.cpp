@@ -14,15 +14,6 @@ DEFINE_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT,
     "net weight for those connecting to reset pins.",
     1)
 
-DEFINE_BOOL_FLAG_WITH_DEFAULT(LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN,
-    "debug flag for dumping def file for debugging baby-banyan in CGR run",
-    false
-)
-
-DEFINE_STR_FLAG(LINDEN_CGR_CMAP_DEBUGGING_FILE,
-    "debug: loading cmap from disk without running baby-banyan"
-)
-
 DEFINE_STR_FLAG(LINDEN_INITIAL_PLACEMENT_RESULT_IN_DEF_FILE,
     "debug: save linden's initial placement result in def. empty means no dump"
 )
@@ -75,4 +66,10 @@ DEFINE_I64_FLAG_WITH_DEFAULT(LINDEN_GP_CMAP_PERIOD,
     "The routability-driven GP will estimate congestion maps periodically. "
     "This flag controls the period (in iterations).",
     10
+);
+
+DEFINE_I64_FLAG_WITH_DEFAULT(LINDEN_GP_CMAP_ITERATION,
+    "The routability-driven GP will estimate congestion maps periodically. "
+    "This flag controls the period .",
+    100
 );

@@ -25,17 +25,18 @@
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 #include <cmath>
+#include <cstddef>
+#include <format>
 #include <optional>
-#include <chrono>
 #include <random>
+#include <utility>
 
 IMPORT_STR_FLAG(LINDEN_GP_METRICS_FILE);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION);
 IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_GP_CELL_RELATIVE_POS_CAL);
 IMPORT_I64_FLAG_WITH_DEFAULT(LINDEN_GP_CMAP_PERIOD);
+IMPORT_I64_FLAG_WITH_DEFAULT(LINDEN_GP_CMAP_ITERATION);
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_TMP_FILE_ROOT_DIR);
-IMPORT_STR_FLAG(LINDEN_CGR_CMAP_DEBUGGING_FILE);
-IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN);
 
 using namespace std;
 
@@ -88,6 +89,11 @@ void Config::prettyPrint(string& out) const noexcept {
     if (highest_layer_to_route) {
         out.append(string_view("\n  max-layer: "));
         out.append(*highest_layer_to_route);
+    }
+
+    if (ldb_path) {
+        out.append(string_view("\n  ldb-path: "));
+        out.append(ldb_path->string());
     }
 
     out.append(string_view("\n}"));
@@ -212,48 +218,37 @@ void scanchain_reorder(linden::db::Database& ldb) {
     sc::sc_editer::unregisterCallBack(&linden_db_sc_reorder_callback);
 }
 
-filesystem::path estimate_cmap(const gp::Config& cfg) {
-    if (auto v = LINDEN_CGR_CMAP_DEBUGGING_FILE(); v) {
-        filesystem::path cmap_file(*v);
-        return cmap_file;
-    } else {
-        FASSERT(cfg.highest_layer_to_route);
-        filesystem::path dir(LINDEN_TMP_FILE_ROOT_DIR());
-        filesystem::path cmap_file;
-        if (LINDEN_IN_REGRESSION()) {
-            cmap_file = dir / "banyan_.cmap";
-        } else {
-            auto tm = chrono::system_clock::now().time_since_epoch();
-            auto tm_ms = chrono::duration_cast<chrono::milliseconds>(tm).count();
-            cmap_file = dir / fmt::format("banyan_{}.cmap", tm_ms);
-        }
+std::pair<filesystem::path, filesystem::path> get_tmp_path(std::size_t iter) {
+    filesystem::path dir(LINDEN_TMP_FILE_ROOT_DIR());
+    filesystem::path cmap_file;
+    filesystem::path ldb_file;
 
-        spdlog::info("[linden/gpl] Dump a banyan cmap file: {}", cmap_file);
-        auto& banyan = *::ord::OpenRoad::openRoad()->getBanyan();
-        banyan.repair_congestion(
-            cmap_file.string(),
-            cmap_file.string() + ".cgr.db",
-            *cfg.highest_layer_to_route,
-            true
-        );
-
-        return cmap_file;
-    }
+    cmap_file = dir / fmt::format("banyan_{}.cmap", iter);
+    ldb_file = dir / fmt::format("ldb_{}.pb", iter);
+    
+    return std::make_pair(cmap_file, ldb_file);
 }
 
-void debug_def_if_necessary(const filesystem::path& cmap_file) {
-    if (LINDEN_CGR_DUMP_DEF_BEFORE_CALL_BABY_BANYAN()) {
-        filesystem::path debug_def_file = cmap_file;
-        debug_def_file.replace_extension(".def");
-        spdlog::info("Dump a DEF for debugging: {}", debug_def_file);
-
-        ::ord::OpenRoad::openRoad()->writeDef(debug_def_file.c_str(), "5.8");
-    }
+void estimate_cmap(
+    filesystem::path cmap_file,
+    const gp::Config& cfg,
+    size_t mm_iter,
+    size_t gcell_size)
+{
+    FASSERT(cfg.highest_layer_to_route);
+    auto& banyan = *::ord::OpenRoad::openRoad()->getBanyan();
+    spdlog::info("[linden/gpl] Dump a banyan cmap file: {}", cmap_file);
+    banyan.repair_congestion(
+        cmap_file.string(),
+        cmap_file.string() + ".cgr.db",
+        *cfg.highest_layer_to_route,
+        true,
+        std::nullopt,
+        std::nullopt);
 }
 
-bool refresh_cmap_to_placer(
+double refresh_cmap_to_placer(
     linden::gpl::Placer& placer,
-    const linden::db::Database& ldb,
     const filesystem::path& cmap_file)
 {
     linden::rdp::CongestionMap cmap;
@@ -267,7 +262,7 @@ bool refresh_cmap_to_placer(
         spdlog::error("Fail to parse banyan cmap file: {}", cmap_file);
         throw runtime_error("fail to parse banyan cmap file");
     }
-    linden::geom::Point ll;
+    
     int64_t side_length = banyan_cmap.sqr();
     int64_t n_rows = banyan_cmap.vnodes() + 1;
     FASSERT(n_rows >= 2)
@@ -275,22 +270,23 @@ bool refresh_cmap_to_placer(
     int64_t n_cols = banyan_cmap.hnodes() + 1;
     FASSERT(n_cols >= 2)
         (banyan_cmap.hnodes());
-    {
-        auto const& core = ldb.core_region();
-        linden::geom::Point offset(
-            banyan_cmap.hoffset() - side_length / 2,
-            banyan_cmap.voffset() - side_length / 2);
-        ll = core.ll() + offset;
-        linden::geom::Point ur = ll + linden::geom::Point(
-            side_length * n_cols,
-            side_length * n_rows);
-        linden::geom::Rect real_region(ll, ur);
-        cmap.setChipCoreRegion(real_region);
-    }
+    linden::geom::Point ll(
+        banyan_cmap.hoffset() - side_length / 2,
+        banyan_cmap.voffset() - side_length / 2);
+    linden::geom::Point ur = ll + linden::geom::Point(
+        side_length * n_cols,
+        side_length * n_rows);
+    linden::geom::Rect real_region(ll, ur);
+    cmap.setChipCoreRegion(real_region);
     cmap.initGrids(n_cols, n_rows);
 
     using linden::geom::dimension::X;
     int64_t n_hedges_per_row = n_cols - 2;
+
+    double h_sum_demand = 0;
+    double h_sum_supply = 0;
+    double v_sum_demand = 0;
+    double v_sum_supply = 0;
     for (auto i = 0; i < banyan_cmap.hedges_size(); ++i) {
         auto const& edge = banyan_cmap.hedges(i);
         if (edge.active()) {
@@ -309,6 +305,8 @@ bool refresh_cmap_to_placer(
             cmap.updateDemand(X, w_idx, h_idx, edge.demand() / 2);
             cmap.updateSupply(X, w_idx, h_idx + 1, edge.supply() / 2);
             cmap.updateDemand(X, w_idx, h_idx + 1, edge.demand() / 2);
+            h_sum_demand += edge.demand();
+            h_sum_supply += edge.supply();
         }
     }
 
@@ -332,17 +330,20 @@ bool refresh_cmap_to_placer(
             cmap.updateDemand(Y, w_idx, h_idx, edge.demand() / 2);
             cmap.updateSupply(Y, w_idx + 1, h_idx, edge.supply() / 2);
             cmap.updateDemand(Y, w_idx + 1, h_idx, edge.demand() / 2);
+            v_sum_demand += edge.demand();
+            v_sum_supply += edge.supply();
         }
     }
-    // FIXME: update it after expander's PR is merged
-    //        and use_expander should always be FALSE in cgr mode
     const bool use_expander = false;
     if (!cmap.updateOverflows(use_expander)) {
         spdlog::info("no overflow in median level");
-        return false;
     }
+    const double rc = cmap.getCurRouteCongestionValue();
+    spdlog::info("[linden/gpl/rdp] rc = {}, H d/s = {}, V d/s = {}", rc, h_sum_demand / h_sum_supply, v_sum_demand / v_sum_supply);
 
-    return placer.load_cmap(cmap);
+    placer.load_cmap(cmap);
+
+    return rc;
 }
 
 } // namespace
@@ -407,10 +408,6 @@ void linden_global_place(const Config& cfg) noexcept {
             ncfg.use_uniform_density = true;
         }
         ncfg.target_overflow = 0.0;
-        ncfg.cgr_mode = cfg.continue_mode;
-        if (cfg.continuation) {
-            ncfg.cgr_params_file = *cfg.continuation;
-        }
         ncfg.routability_driven = routability_driven;
         ncfg.use_expander_inflation = false;
         gpl = linden::gpl::Placer::create(ldb, ncfg);
@@ -426,62 +423,105 @@ void linden_global_place(const Config& cfg) noexcept {
         relev = move(RelevanceDetector(*ldb));
     }
 
-    int rdp_count_down = 0;
-    int64_t rdp_count_down_init = LINDEN_GP_CMAP_PERIOD();
-    auto update_cmap = [&,
-        rdp_count_down,
-        rdp_count_down_init
-    ](double overflow) mutable -> bool {
-        if (overflow > cfg.overflow_to_estimate_cmap) {
-            return false;
-        }
-        if (rdp_count_down > 0) {
-            --rdp_count_down;
-            return false;
-        }
-        rdp_count_down = rdp_count_down_init;
-        refresh_locations_from_ldb(*ldb);
-        scanchain_reorder(*ldb);
-        auto cmap_file = estimate_cmap(cfg);
-        debug_def_if_necessary(cmap_file);
-        return !refresh_cmap_to_placer(*gpl, *ldb, cmap_file);
-    };
-
     // Gp Loop
-    size_t gp_iter = 0;
+    size_t gp_iter = 1;
+    if (cfg.ldb_path) {
+        // gpl->one_step_move(gp_iter);
+        gpl->read_db(cfg.ldb_path.value());
+        refresh_locations_from_ldb(*ldb);
+        if (graphics) {
+            graphics->one_more_step(gp_iter);
+        }
+    }
+
     size_t best_iter = 0;
-    auto hpwl_analyze = HpwlAnalyze();
+    auto ha = HpwlAnalyze();
+    bool start_rdgp = false;
     constexpr int64_t GPL_MAX_ITER = 3000;
     deque<double> overflows = {90, 79, 64, 49, 29, 21, 0};
     auto gp_going = [&](){
+        const int rdp_count_down_init = LINDEN_GP_CMAP_PERIOD();
+        int rdp_count_down = 0;
         for (; !overflows.empty() && gp_iter < GPL_MAX_ITER; gp_iter++) {
             auto ret = gpl->one_step_move(gp_iter);
-            if (!ret) {
-                spdlog::info("[nPlace] No result is presented.");
-                return true;
+            spdlog::debug("[gpl] overflow: {:.5f} hpwl: {}", ret.overflow, ret.hpwl);
+            if (gp_iter == 1 || gp_iter % 10 == 0) {
+                spdlog::info("[nPlace] Iter: {} overflow: {:g} HPWL: {}", gp_iter, ret.overflow, ret.hpwl);
             }
-            spdlog::debug("[gpl] overflow: {:.5f} hpwl: {}", ret->overflow, ret->hpwl);
 
             // Routability Driven
-            if (cfg.routability_driven && update_cmap(ret->overflow)) {
-                spdlog::info("[nPlace] cmap forces termination.");
-                return true;
+            if (cfg.routability_driven && ret.overflow < cfg.overflow_to_estimate_cmap && !start_rdgp) {
+                spdlog::info("[nPlace] Begin Routability Driven.");
+                start_rdgp = true;
+            }
+
+            if (gp_iter % 100 == 0) {
+                auto [cmap_file, ldb_file] = get_tmp_path(gp_iter);
+                gpl->write_db(ldb_file);
+            }
+
+            if (cfg.routability_driven && start_rdgp) {
+                if (rdp_count_down == 0) {
+                    // Refresh DataBase
+                    best_iter = gp_iter;
+                    refresh_locations_from_ldb(*ldb);
+                    scanchain_reorder(*ldb);
+                    auto [cmap_file, ldb_file] = get_tmp_path(gp_iter);
+
+                    // Stash DataBase
+                    gpl->write_db(ldb_file);
+
+                    // Get Cmap
+                    estimate_cmap(cmap_file, cfg, ha.get_mm_iter(), ha.get_gcells_size());
+                    const double rc = refresh_cmap_to_placer(*gpl, cmap_file);
+                    
+                    // Check Status
+                    ha.push_rc(rc, gp_iter);
+                    if (ha.rdgp_shot()) {
+                        spdlog::info("[nPlace] take snapshot RC({}).", rc);
+                        gpl->take_snapshot();
+                    }
+                    if (ha.rdgp_blew()) {
+                        spdlog::info("[nPlace] restore snapshot minRC({}, {}).", ha._min_rc, ha._min_rc_iter);
+                        gpl->restore_snapshot();
+                        best_iter = ha._min_rc_iter;
+                        refresh_locations_from_ldb(*ldb);
+                        return true;
+                    }
+                    if (ha.rdgp_done()) {
+                        spdlog::info("[nPlace] RDGP Got TargetRC.");
+                        refresh_locations_from_ldb(*ldb);
+                        return true;
+                    }
+                    if (ha._rc_vec.size() >= LINDEN_GP_CMAP_ITERATION()) {
+                        spdlog::info("[nPlace] RDGP Got Max iterations({}).", LINDEN_GP_CMAP_ITERATION());
+                        spdlog::info("[nPlace] restore snapshot minRC({}, {}).", ha._min_rc, ha._min_rc_iter);
+                        gpl->restore_snapshot();
+                        best_iter = ha._min_rc_iter;
+                        refresh_locations_from_ldb(*ldb);
+                        return true;
+                    }
+
+                    rdp_count_down = rdp_count_down_init;
+                }
+                rdp_count_down --;
             }
 
             // Target overflow
-            if (ret->overflow < cfg.overflow) {
+            if (ret.overflow < cfg.overflow && !start_rdgp) {
                 spdlog::info("[nPlace] target overflow.");
+                best_iter = gp_iter;
                 refresh_locations_from_ldb(*ldb);
                 return true;
             }
 
             // HPWL Analyze
-            hpwl_analyze.push(ret->hpwl, ret->overflow);
-            if (hpwl_analyze.repulsion_dominance()) {
+            ha.push(ret.hpwl, ret.overflow);
+            if (ha.repulsion_dominance() && !cfg.routability_driven) {
                 spdlog::info("[nPlace] Repulsion is dominant.");
                 return true;
             }
-            if (hpwl_analyze.heat_death()) {
+            if (ha.heat_death()) {
                 spdlog::info("[nPlace] Heat death!");
                 return true;
             }
@@ -498,8 +538,8 @@ void linden_global_place(const Config& cfg) noexcept {
             }
 
             // Netweigthing
-            if (cfg.timing_driven && overflows.front() > ret->overflow * 100) {
-                while(!overflows.empty() && overflows.front() > ret->overflow * 100) {
+            if (cfg.timing_driven && overflows.front() > ret.overflow * 100) {
+                while(!overflows.empty() && overflows.front() > ret.overflow * 100) {
                   overflows.pop_front();
                 }
                 best_iter = gp_iter;
@@ -513,8 +553,10 @@ void linden_global_place(const Config& cfg) noexcept {
                     return false;
                 }
             }
+
             // Stash GPL
-            if (hpwl_analyze.best_gpl_postion()) {
+            if (ha.best_gpl_postion() && !routability_driven) {
+                spdlog::info("[nPlace] best gpl postion: overflow: {}, hpwl: {}",ret.overflow, ret.hpwl);
                 best_iter = gp_iter;
                 refresh_locations_from_ldb(*ldb);
             }
@@ -531,7 +573,7 @@ void linden_global_place(const Config& cfg) noexcept {
             update_weights(*ldb);
         }
     }
-    hpwl_analyze.save_data();
+    ha.save_data();
 
     gpl->done();
     gpl.reset();
