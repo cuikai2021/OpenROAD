@@ -71,8 +71,25 @@ void loadRoutingCongestion(std::string path)
 }
 
 }
+
 void remove_placement_blockage()
 {
     ord::OpenRoad::openRoad()->getBanyan()->remove_placement_blockage();
 }
+
+void newIncrementalRoute(std::string max_layer, std::string work_dir, std::string init_db)
+{
+    ord::OpenRoad::openRoad()->getBanyan()->newIncrementalRoute(max_layer, work_dir, init_db);
+}
+
+int incrementalRoute()
+{
+    return ord::OpenRoad::openRoad()->getBanyan()->incrementalRoute();
+}
+
+void deleteIncrementalRoute()
+{
+    ord::OpenRoad::openRoad()->getBanyan()->deleteIncrementalRoute();
+}
+
 %} // inline

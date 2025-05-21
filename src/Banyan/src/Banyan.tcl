@@ -51,3 +51,33 @@ sta::define_cmd_args "banyan_optimize_congestion" { max_layer }
 proc banyan_optimize_congestion { max_layer } {
   banyan::optimizeCongestion $max_layer
 }
+
+sta::define_cmd_args "banyan_incremental_route_begin" { [-max_layer layer] [-work_dir out_path] [-init_db db] }
+proc banyan_incremental_route_begin { args } {
+  sta::parse_key_args "banyan_incremental_route_begin" args keys {-max_layer -work_dir -init_db} flags {}
+  set out_path "/tmp/incr_route/"
+  if { [info exists keys(-work_dir)] } {
+    set out_path $keys(-work_dir)
+  }
+  file mkdir $out_path
+  set layer ""
+  if { [info exists keys(-max_layer)] } {
+    set layer $keys(-max_layer)
+  } else {
+    utl::error BY 1000 "must give a max_layer"
+  }
+  set db ""
+  if { [info exists keys(-init_db)] } {
+    set db $keys(-init_db)
+  }
+
+  banyan::newIncrementalRoute $layer $out_path $db
+}
+
+proc banyan_incremental_route {} {
+  return [banyan::incrementalRoute]
+}
+
+proc banyan_incremental_route_end {} {
+  banyan::deleteIncrementalRoute
+}

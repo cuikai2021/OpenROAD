@@ -32,6 +32,10 @@ class SteinerTreeBuilder;
 }
 
 namespace banyan {
+class BanyanIncrRoute;
+}
+
+namespace banyan {
 using byvia = std::tuple<int, int, std::string>;
 constexpr int DEFAULT_WIRE_EXT = -1;
 
@@ -83,6 +87,10 @@ class Banyan : public ord::OpenRoadObserver
   }
   int add_placement_blockage();
   void remove_placement_blockage();
+  void newIncrementalRoute(std::string max_layer, std::string work_dir, std::string init_db);
+  int incrementalRoute();
+  void deleteIncrementalRoute();
+
  protected:
   odb::dbDatabase* db_;
   stt::SteinerTreeBuilder* stt_builder_;
@@ -91,10 +99,10 @@ class Banyan : public ord::OpenRoadObserver
   std::string tech_lef_file_name_;
   std::vector<std::string> other_lef_file_names_;
   std::vector<std::string> other_tech_lef_file_names_;
-
  private:
   odb::dbDatabase* createODB(std::string_view deffile);
 
+  BanyanIncrRoute* incr_route;
 };  // class Banyan
 
 }  // namespace banyan

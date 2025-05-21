@@ -9,6 +9,7 @@
 #include <string>
 
 #include "banyan_db.pb.h"
+#include "BanyanIncrRoute.hpp"
 #include "odb/db.h"
 #include "odb/defin.h"
 #include "odb/defout.h"
@@ -505,4 +506,22 @@ void Banyan::loadRoutingCongestion(std::string path)
   ord::OpenRoad::openRoad()->getGlobalRouter()->updateHeatmap();
 }
 
+void Banyan::newIncrementalRoute(std::string max_layer, std::string work_dir, std::string init_db)
+{
+  incr_route = new BanyanIncrRoute(this, max_layer, work_dir, init_db);
+}
+
+int Banyan::incrementalRoute()
+{
+  if (incr_route == nullptr) {
+    logger_->error(utl::BY, 13, "plz call 'incrementalRouteBegin' cmd first");
+  }
+  return incr_route->incrementalRoute();
+}
+
+void Banyan::deleteIncrementalRoute()
+{
+  delete incr_route;
+  incr_route = nullptr;
+}
 }  // namespace banyan
