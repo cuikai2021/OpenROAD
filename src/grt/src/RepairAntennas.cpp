@@ -454,7 +454,7 @@ void RepairAntennas::destroyNetWires(
   }
 }
 
-void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm)
+void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm, std::map<odb::dbNet*, odb::dbNet*>* changes)
 {
   int site_width = -1;
   r_tree fixed_insts;
@@ -513,6 +513,7 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm)
                         site_width,
                         fixed_insts,
                         violation_layer);
+            if (changes) (*changes)[db_net] = gate->getNet();
             inserted_diodes = true;
             db_net = gate->getNet();
           }

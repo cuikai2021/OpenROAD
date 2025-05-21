@@ -227,7 +227,8 @@ class GlobalRouter : public ant::GlobalRouteSource
   int repairAntennas(odb::dbMTerm* diode_mterm,
                      int iterations,
                      float ratio_margin,
-                     int num_threads = 1);
+                     int num_threads = 1,
+                     std::map<odb::dbNet*, odb::dbNet*>* changes = nullptr);
   void updateResources(const int& init_x,
                        const int& init_y,
                        const int& final_x,

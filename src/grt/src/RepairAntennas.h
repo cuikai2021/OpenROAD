@@ -136,7 +136,7 @@ class RepairAntennas
   void checkNetViolations(odb::dbNet* db_net,
                           odb::dbMTerm* diode_mterm,
                           float ratio_margin);
-  void repairAntennas(odb::dbMTerm* diode_mterm);
+  void repairAntennas(odb::dbMTerm* diode_mterm, std::map<odb::dbNet*, odb::dbNet*>* changes);
   void addJumperAndVias(GRoute& route,
                         const int& init_x,
                         const int& init_y,
