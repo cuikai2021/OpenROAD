@@ -84,11 +84,14 @@ class Banyan : public ord::OpenRoadObserver
       other_tech_lef_file_names_.emplace_back(filename);
     }
   }
-  int add_placement_blockage();
+  int add_placement_blockage(std::vector<std::string> args);
   void remove_placement_blockage();
+  
   void newIncrementalRoute(std::string max_layer, std::string work_dir, std::string init_db);
   int incrementalRoute();
   void deleteIncrementalRoute();
+
+  int repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std::string min_layer,std::string  max_layer,const int max_iter = 1);
 
  protected:
   odb::dbDatabase* db_;

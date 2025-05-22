@@ -50,7 +50,8 @@
 #include "grt/GlobalRouter.h"
 #include "utl/Logger.h"
 #include "sc/ScanChainEditer.h"
-
+#include "odb/dbBlockSet.h"
+#include "Polygon.hh"
 namespace grt {
 
 using utl::GRT;
@@ -486,7 +487,7 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm, std::map<odb::dbN
     setInstsPlacementStatus(insts_to_restore);
   }
   setDiodesAndGatesPlacementStatus(odb::dbPlacementStatus::FIRM);
-  getFixedInstances(fixed_insts);
+  getFixedInstances(fixed_insts, diode_mterm->getBBox());
 
   bool repair_failures = false;
   for (auto const& net_violations : antenna_violations_) {
@@ -577,8 +578,12 @@ void RepairAntennas::insertDiode(odb::dbNet* net,
 
   legally_placed = legally_placed && diodeInRow(inst_rect);
 
-  if (!legally_placed)
+  if (!legally_placed){
     illegal_diode_placement_count_++;
+    odb::dbInst::destroy(diode_inst);
+    logger_->warn(utl::BY,201,"Net:" + net->getName() + "fixed Antennas Insert DiodeInstance Failed");
+    return ;
+  }
 
   // allow detailed placement to move diodes with geometry out of the core area,
   // or near macro pins (can be placed out of row), or illegal placed diodes
@@ -596,9 +601,9 @@ void RepairAntennas::insertDiode(odb::dbNet* net,
   
   //
   // diode_iterm->connect(net);
+  logger_->info(utl::BY,202,"Net:" + net->getName() + "Insert Diode Instance {} Location:({}, {})",diode_inst_name,diode_inst->getLocation().getX(),diode_inst->getLocation().getY());
   editer->connect(diode_iterm, net);
   diode_insts_.push_back(diode_inst);
-
   // Add diode to the R-tree of fixed instances
   int fixed_inst_id = fixed_insts.size();
   box b(point(inst_rect.xMin(), inst_rect.yMin()),
@@ -608,7 +613,7 @@ void RepairAntennas::insertDiode(odb::dbNet* net,
   fixed_inst_id++;
 }
 
-void RepairAntennas::getFixedInstances(r_tree& fixed_insts)
+void RepairAntennas::getFixedInstances(r_tree& fixed_insts, odb::Rect diode_box)
 {
   int fixed_inst_id = 0;
   for (odb::dbInst* inst : block_->getInsts()) {
@@ -623,6 +628,98 @@ void RepairAntennas::getFixedInstances(r_tree& fixed_insts)
       fixed_inst_id++;
     }
   }
+  // placement blockage
+  for(auto plb:block_->getBlockages()) {
+    auto blockage = plb->getBBox();
+    
+    box b(point(blockage->xMin(), blockage->yMin()),
+            point(blockage->xMax(), blockage->yMax()));
+    value v(b,fixed_inst_id);
+    fixed_insts.insert(v);
+    fixed_inst_id++;
+  }
+  // M2 Routing Blockage
+  auto m2 = block_->getTech()->findRoutingLayer(2);
+
+  for(auto obs:block_->getObstructions()) {
+    auto bbox =obs->getBBox();
+    if(bbox->getBox().dx() <= diode_box.dx() ||
+     bbox->getBox().dx() <=   diode_box.dy() || 
+     bbox->getBox().dy() <=   diode_box.dx() ||
+     bbox->getBox().dy() <=   diode_box.dy()) {
+      continue ;
+    }
+    auto layer = bbox->getTechLayer();
+    auto max_sp = layer->getSpacing(bbox->getWidth(),bbox->getLength());
+    box b(point(bbox->xMin()-max_sp, bbox->yMin()-max_sp),
+          point(bbox->xMax()+max_sp, bbox->yMax()+max_sp));
+    if(layer->getRoutingLevel() == 2) {
+      fixed_insts.insert(value(b,fixed_inst_id));
+      fixed_inst_id++;
+    }
+  }
+
+  // M2 Power
+	boost::polygon::polygon_90_set_data<int> ps;
+	for(auto net:block_->getNets()) {
+		if( !net->isSpecial()) {
+			continue;
+		}
+		auto wires = net->getSWires();
+		odb::dbShape shape; 
+		odb::dbWireShapeItr shapes_it;
+		std::vector<odb::dbShape> via_boxes;
+		for (auto swire:wires) {
+			if (swire->getWireType() != odb::dbWireType::ROUTED) {
+				continue;
+			}
+			for(auto wire:swire->getWires()) {
+				auto layer = wire->getTechLayer();
+				auto wire_rect = wire->getBox();
+				if(wire->isVia()){
+					// Get three polygon upper_cut - via - lower_cut
+					wire->getViaBoxes(via_boxes);
+					for (const odb::dbShape& box : via_boxes) {
+						layer = box.getTechLayer();
+						if (layer->getRoutingLevel() == 2) {
+						odb::Rect via_rect = box.getBox();
+						auto via_pol = rectToPolygon(via_rect);
+						ps.insert(via_pol);
+						}
+				}
+				} else {
+					if(layer->getRoutingLevel() != 2) {
+						continue;
+					}
+					// polygon set is used to join polygon on same layer with intersection
+					Polygon wire_pol = rectToPolygon(wire_rect);
+					ps.insert(wire_pol);
+				}
+			}
+		}
+	}
+  std::vector<boost::polygon::rectangle_data<int>> rects;
+  boost::polygon::get_max_rectangles(rects,ps);
+  for (auto rect:rects) {
+    auto hivl =  rect.get(boost::polygon::HORIZONTAL);
+    auto vivl = rect.get(boost::polygon::VERTICAL);
+    auto hdet = hivl.high() - hivl.low();
+    auto vdet = vivl.high() - vivl.low();
+  if(hdet <= diode_box.dx() ||
+     hdet <=  diode_box.dy() || 
+     vdet <= diode_box.dx() ||
+     vdet <=  diode_box.dy()) {
+      continue ;
+    }
+    auto width = hdet < vdet?hdet:vdet;
+    auto length = vdet < hdet?hdet:vdet;
+    auto sp = m2->getSpacing(width,length);
+    box b(point(hivl.low() - sp,vivl.low() - sp),
+      point(hivl.high() +sp,vivl.high() + sp));
+    fixed_insts.insert(value(b,fixed_inst_id));
+    fixed_inst_id++;
+  }
+
 }
 
 void RepairAntennas::setDiodesAndGatesPlacementStatus(
@@ -666,7 +763,7 @@ bool RepairAntennas::setDiodeLoc(odb::dbInst* diode_inst,
                                  const bool place_vertically,
                                  r_tree& fixed_insts)
 {
-  const int max_legalize_itr = 50;
+  const int max_legalize_itr = 100;
   bool place_at_left = true;
   bool place_at_top = false;
   int left_offset = 0, right_offset = 0;

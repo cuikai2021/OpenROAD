@@ -60,9 +60,9 @@ void optimizeCongestion(std::string max_layer)
     ord::OpenRoad::openRoad()->getBanyan()->optimizeCongestion(max_layer);
 }
 
-void aad_placement_blockage()
+void add_placement_blockage(std::vector<std::string> args)
 {
-    ord::OpenRoad::openRoad()->getBanyan()->add_placement_blockage();
+    ord::OpenRoad::openRoad()->getBanyan()->add_placement_blockage(args);
 }
 
 void loadRoutingCongestion(std::string path)
@@ -92,4 +92,8 @@ void deleteIncrementalRoute()
     ord::OpenRoad::openRoad()->getBanyan()->deleteIncrementalRoute();
 }
 
+int repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std::string min_layer,std::string  max_layer,const int max_iter ) 
+{
+   return ord::OpenRoad::openRoad()->getBanyan()->repair_antennas(diode_mterm,history_db,min_layer,max_layer,max_iter);
+}
 %} // inline

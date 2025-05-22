@@ -81,3 +81,67 @@ proc banyan_incremental_route {} {
 proc banyan_incremental_route_end {} {
   banyan::deleteIncrementalRoute
 }
+
+proc banyan_add_placement_blockage { args } {
+  banyan::add_placement_blockage $args
+}
+
+sta::define_cmd_args "banyan_repair_antennas" { diode_cell \
+                                         [-history history] \
+                                         [-min_layer min_layer] \
+                                         [-max_layer max_layer] \
+                                         [-max_iter max_iter]}
+
+proc banyan_repair_antennas { args } {
+  sta::parse_key_args "banyan_repair_antennas" args \
+    keys {-history -min_layer -max_layer -max_iter} flags {}
+  
+  if {[llength [info commands lrl::register_sc_editer]] > 0} {
+    lrl::register_sc_editer
+  } else {
+    puts "\[Info\] laurel editer not found, use default editer."
+  }
+  
+  set diode_mterm "NULL"
+  if { [llength $args] == 0 } {
+      # repairAntennas locates diode
+      set diode_mterm "NULL"
+  } elseif { [llength $args] == 1 } {
+    set db [ord::get_db]
+    set diode_cell [lindex $args 0]
+
+    set diode_master [$db findMaster $diode_cell]
+    if { $diode_master == "NULL" } {
+      utl::error BY 69 "Diode cell $diode_cell not found."
+    }
+
+    set diode_mterms [$diode_master getMTerms]
+    set non_pg_count 0
+    foreach mterm $diode_mterms {
+      if { [$mterm getSigType] != "POWER" && [$mterm getSigType] != "GROUND" } {
+        set diode_mterm $mterm
+        incr non_pg_count
+      }
+    }
+
+    if { $non_pg_count > 1 } {
+      utl::error BY 73 "Diode cell has more than one non power/ground port."
+    }
+  } else {
+    utl::error BY 245 "Too arguments to banyan_repair_antennas."
+  }
+  set history "NULL"
+  if { [info exists keys(-history)] } {
+    set history $keys(-history)
+  } else {
+    utl::info BY 200 "banyan_repair_antennas need history db"
+  }
+  set min_layer $keys(-min_layer)
+  set max_layer $keys(-max_layer)
+  set max_iter 1
+  if { [info exists keys(-max_iter)] } {
+    set max_iter $keys(-max_iter)
+    sta::check_positive_integer "-max_iter" $max_iter
+  }
+  return [banyan::repair_antennas $diode_mterm $history $min_layer $max_layer $max_iter]
+}

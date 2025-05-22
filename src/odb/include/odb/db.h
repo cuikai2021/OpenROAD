@@ -1425,6 +1425,8 @@ class dbBlock : public dbObject
   void createDieAreaBlockages();
   void deleteDieAreaBlockages();
   void deletePlacementBlockages();
+  void deleteBlockages(bool remove_die_area = false);
+
   ///
   /// Get the core area. This computes the bbox of the rows
   /// and is O(#rows) in runtime.

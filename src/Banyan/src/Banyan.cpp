@@ -259,11 +259,17 @@ int Banyan::repair_congestion(std::string_view cmapPb,
   return main(args, false);
 }
 
-int Banyan::add_placement_blockage() {
-  std::vector<std::string> args;
-
-  args.push_back("--techlef");
-  args.push_back(tech_lef_file_name_);
+int Banyan::add_placement_blockage(std::vector<std::string> args) {
+  args.emplace_back("--techlef");
+  args.emplace_back(tech_lef_file_name_);
+  for (const auto& lef : other_lef_file_names_) {
+    args.emplace_back("--lef");
+    args.emplace_back(lef);
+  }
+  for (const auto& lef : other_tech_lef_file_names_) {
+    args.emplace_back("--lef");
+    args.emplace_back(lef);
+  }
   auto defFilepath = genTempFilePath(logger_, ".def");
   ord::OpenRoad::openRoad()->writeDef(defFilepath.c_str(), "5.8");
   args.push_back("--def");
@@ -457,6 +463,8 @@ void Banyan::loaddb(std::string dbflie)
 void Banyan::loaddef(std::string deffile)
 {
   auto* blk = db_->getChip()->getBlock();
+  blk->deleteBlockages();
+  blk->getGCellGrid()->resetGrid();
   odb::defin(db_, logger_).replaceWires(blk, deffile.c_str());
 }
 
@@ -500,6 +508,56 @@ void Banyan::loadRoutingCongestion(std::string path)
 		}
 	}
   ord::OpenRoad::openRoad()->getGlobalRouter()->updateHeatmap();
+}
+int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std::string min_layer,std::string  max_layer,const int max_iter ) {
+  auto gr = ord::OpenRoad::openRoad()->getGlobalRouter();
+  auto ant_checker = ord::OpenRoad::openRoad()->getAntennaChecker();
+  auto num_threads = ord::OpenRoad::openRoad()->getThreadCount();
+  auto ant_rpt = genTempFilePath(logger_, ".arpt");
+  auto save_db = history_db;
+  ant_checker->setReportFileName(ant_rpt.c_str());
+  auto count = ant_checker->checkAntennas(nullptr,num_threads,false);
+  if (count == 0 ){
+    return count;
+  }
+  for(auto iter =0 ;iter < max_iter ;iter ++) {
+    logger_->info(utl::BY,9,"Run repair_antennas pre:{}",count);
+    history_db = save_db;
+    save_db = genTempFilePath(logger_, ".pb");
+    gr->repairAntennas(diode_mterm,1,0,num_threads);
+    // Banyan Incr Route
+    std::vector<std::string> incr_route_args = {
+      "incr_route",
+      "--log_level","debug",
+      "--max_layer",max_layer,
+      "--history",history_db,
+      "--fix_ant",ant_rpt,
+      "--save_db", save_db,
+    };
+    this->main(incr_route_args,true);
+    count = ant_checker->checkAntennas(nullptr,num_threads,false);
+    if (count > 0 && iter != max_iter-1) {
+      continue ;
+    }
+    // Banyan Route ECO
+    std::vector<std::string> eco_args = {
+      "route_eco",
+      "--log_level","debug",
+      "--connect_min_layer",min_layer,
+      "--max_layer",max_layer,
+      "--fix_drc",
+      "--save_db", save_db,
+    };
+    this->main(eco_args,true);
+    ant_rpt = genTempFilePath(logger_, ".arpt");
+    ant_checker->setReportFileName(ant_rpt.c_str());
+    count = ant_checker->checkAntennas(nullptr,num_threads);
+    logger_->info(utl::BY,10,"Run repair_antennas after:{}",count);
+    if(count == 0) {
+      break ;
+    }
+  }
+  return count;
 }
 
 void Banyan::newIncrementalRoute(std::string max_layer, std::string work_dir, std::string init_db)
