@@ -21,7 +21,8 @@ void ScanChain::init(ord::OpenRoad *openroad) {
   open_road_ = openroad;
   logger_ = open_road_->getLogger();
   db_ = open_road_->getDb();
-  editer_callback = new sc_editer::ScanChainEditerNotifyNetSwitchCallBack(logger_);
+  editer_callback = nullptr;
+  // editer_callback = new sc_editer::ScanChainEditerNotifyNetSwitchCallBack(logger_);
   sc_editer::registerCallBack(editer_callback);
 }
 
