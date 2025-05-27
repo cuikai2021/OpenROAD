@@ -541,9 +541,9 @@ int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std
     }
     // Banyan Route ECO
     std::vector<std::string> eco_args = {
-      "route_eco",
+      "refine_route",
       "--log_level","debug",
-      "--connect_min_layer",min_layer,
+      "--min_layer",min_layer,
       "--max_layer",max_layer,
       "--fix_drc",
       "--save_db", save_db,

@@ -37,10 +37,10 @@ BanyanIncrRoute::incrementalRoute(bool do_route_eco)
     assert(min_layer != nullptr);
     BanyanMain(
       {
-      "route_eco",
+      "refine_route",
       "--fix_drc",
       "--max_layer", max_layer,
-      "--connect_min_layer", min_layer->getName(),
+      "--min_layer", min_layer->getName(),
       "--save_db", last_history_db_path,
       }, 
       true);
