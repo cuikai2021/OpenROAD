@@ -3,7 +3,7 @@
   build: |-
     cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
       -DEDEN_VERSION=$REPO_COMMIT \
-      -DTRIAL_PERIOD_DAYS=90 \
+      -DTRIAL_PERIOD_DAYS=30 \
       -B build . && \
     cmake --build build -j 8
   file: |-
