@@ -4,6 +4,8 @@
 #include "ord/OpenRoad.hh"
 #include "fassert.hpp"
 #include <spdlog/spdlog.h>
+#include <iostream>
+#include <ostream>
 #include <string_view>
 #include <cstring>
 #include <charconv>
@@ -62,7 +64,8 @@ optional<Config> parse_from(std::deque<std::string> args) {
     const string_view ROUTING_TOP_LAYER("--routing-top-layer");
     const string_view EXTRA_PG_SPACING("--extra-pg-spacing");
     const string_view DISABLE_UPDATING_PARASITICS_AFTER_LEGALIZING("--disable-updating-parasitics-after-legalizing");
-
+    const string_view MIN_LAYER("--min-layer");
+    const string_view MAX_LAYER("--max-layer");
     Config res;
     optional<string> filler_list = nullopt;
     optional<string> critical_cells = nullopt;
@@ -157,6 +160,24 @@ optional<Config> parse_from(std::deque<std::string> args) {
             res.extra_pg_spacing[*layer] = spacing;
         } else if (s == DISABLE_UPDATING_PARASITICS_AFTER_LEGALIZING) {
             res.disable_updating_parasitics = true;
+        } else if (s == MIN_LAYER) {
+            auto param = args_.next();
+            if (!param) {
+                spdlog::error(
+                    "{} requires a timing-data file as its parameter.",
+                    MIN_LAYER);
+                return nullopt;
+            }
+            res.min_layer = *param;
+        } else if (s == MAX_LAYER) {
+            auto param = args_.next();
+            if (!param) {
+                spdlog::error(
+                    "{} requires a timing-data file as its parameter.",
+                    MAX_LAYER);
+                return nullopt;
+            }
+            res.max_layer = *param;
         } else {
             spdlog::info("ignore arg: {}", s);
         }

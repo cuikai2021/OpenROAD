@@ -20,6 +20,8 @@ sta::define_cmd_args "linden_incremental_legalize" {
     [--filler-list filler-masters]
     [--not-to-stop-when-illegal]
     [--disable-updating-parasitics-after-legalizing]
+    [--min-layer]
+    [--max-layer]
 }
 
 proc linden_incremental_legalize { args } {

@@ -126,6 +126,8 @@ Config& Config::operator+=(const Config& ano) {
     merge(suppress_output, ano.suppress_output);
     merge(not_stop_when_illegal, ano.not_stop_when_illegal);
     merge(disable_updating_parasitics, ano.disable_updating_parasitics);
+    merge(min_layer, ano.min_layer);
+    merge(max_layer, ano.max_layer);
     if (!ano.extra_pg_spacing.empty()) {
         for(auto const& [layer, spacing]: ano.extra_pg_spacing) {
             extra_pg_spacing[layer] = spacing;
@@ -372,7 +374,8 @@ int exec_incr_dp(
     const string& input_cfg,
     const string& outdef,
     const filesystem::path& basename,
-    const deque<filesystem::path>& lefs)
+    const deque<filesystem::path>& lefs
+)
 {
     if (LINDEN_DP_ALGORITHM() == "deblais"sv) {
         deque<string> args;
@@ -399,6 +402,25 @@ int exec_incr_dp(
         if (cfg.baseline_def) {
             args.push_back("--baseline");
             args.push_back(*cfg.baseline_def);
+        }
+        if (cfg.min_layer.has_value() && cfg.max_layer.has_value()) {
+            args.emplace_back("--tech-lef");
+            auto banyan = ord::OpenRoad::openRoad()->getBanyan();
+            auto techlef = banyan->getTechlef();
+            auto techlefs = banyan->getOtherTechlefs();
+            for (const auto &techlef: techlefs) {
+                args.emplace_back(techlef);
+            }
+            args.emplace_back(techlef);
+            auto cell_lefs = banyan->getLiblefs();
+            args.emplace_back("--cell-lef");
+            for (const auto &x: cell_lefs) {
+                args.emplace_back(x);
+            }
+            args.emplace_back("--min-layer");
+            args.emplace_back(cfg.min_layer->c_str());
+            args.emplace_back("--max-layer");
+            args.emplace_back(cfg.max_layer->c_str());
         }
         return exec(cfg, get_linden_incr_dp_exe(), args, "klotski"sv);
     } else {
@@ -591,6 +613,7 @@ int incr_dp(::ord::OpenRoad& ord, const Config& cfg) {
     for(auto const& x: dumper.lib_lefs) {
         lefs.push_back(x);
     }
+
     auto const& def = dumper.def;
 
     bool suppress_output = cfg.suppress_output.value_or(false);

@@ -38,6 +38,10 @@ struct Config
     // too see more details: https://z36j6ypbg0.feishu.cn/docx/Ncb9dyRl8o9cIaxpeSWcGYorn3g
     std::optional<bool> disable_updating_parasitics;
 
+    // banyan need this to check pin-access
+    std::optional<std::string> min_layer;
+    std::optional<std::string> max_layer;
+
     Config();
 
     static std::shared_ptr<Config> get_default() noexcept;

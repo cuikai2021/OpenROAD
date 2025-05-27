@@ -578,4 +578,24 @@ void Banyan::deleteIncrementalRoute()
   delete incr_route;
   incr_route = nullptr;
 }
+std::vector<std::string_view> getStringViews(const std::vector<std::string>& names) {
+    std::vector<std::string_view> res;
+    res.reserve(names.size());
+    for (const auto& name : names) {
+      res.emplace_back(name);
+    }
+    return res;
+}
+std::string_view Banyan::getTechlef() {
+    return std::string_view(this->tech_lef_file_name_);
+}
+
+std::vector<std::string_view> Banyan::getOtherTechlefs() {
+    return getStringViews(this->other_tech_lef_file_names_);
+}
+
+std::vector<std::string_view> Banyan::getLiblefs() {
+    return getStringViews(this->other_lef_file_names_);
+}
+
 }  // namespace banyan

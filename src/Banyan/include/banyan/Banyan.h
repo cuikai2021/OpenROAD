@@ -93,6 +93,10 @@ class Banyan : public ord::OpenRoadObserver
 
   int repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std::string min_layer,std::string  max_layer,const int max_iter = 1);
 
+  std::string_view getTechlef();
+  std::vector<std::string_view> getOtherTechlefs();
+  std::vector<std::string_view> getLiblefs();
+
  protected:
   odb::dbDatabase* db_;
   stt::SteinerTreeBuilder* stt_builder_;
