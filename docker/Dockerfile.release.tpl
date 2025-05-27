@@ -12,6 +12,7 @@ FROM ${EDEN_BUILD_IMAGE} AS release
 COPY --from=builder /build /build
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/build/lib/
 ENV PATH=$PATH:/build/bin/
+ENV GOTRACEBACK=none
 
 RUN apt-get update && \
     apt-get install -y time libffi8 /build/deb/*.deb && \
