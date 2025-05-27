@@ -83,7 +83,14 @@ void wiresToPolygonSetMap(odb::dbWire* wires,
     odb::Rect wire_rect = shape.getBox();
 
     if (shape.isVia()) {
-      continue;
+      // Get three polygon upper_cut - via - lower_cut
+      odb::dbShape::getViaBoxes(shape, via_boxes);
+      for (const odb::dbShape& box : via_boxes) {
+        layer = box.getTechLayer();
+        odb::Rect via_rect = box.getBox();
+        Polygon via_pol = rectToPolygon(via_rect);
+        set_by_layer[layer] += via_pol;
+      }
     } else {
       layer = shape.getTechLayer();
       // polygon set is used to join polygon on same layer with intersection
@@ -118,7 +125,8 @@ void viasToPolygonSetMap(odb::dbWire* wires,
     } 
   }
 }
-void avoidPinIntersection(odb::dbNet* db_net,
+
+void pinToPolygonSetMap(odb::dbNet* db_net,
                           std::map<odb::dbTechLayer*, PolygonSet>& set_by_layer)
 {
   // iterate all instance pin
@@ -138,7 +146,7 @@ void avoidPinIntersection(odb::dbNet* db_net,
         // convert rect -> polygon
         Polygon pin_pol = rectToPolygon(pin_rect);
         // Remove the area with intersection of the polygon set
-        set_by_layer[tech_layer] -= pin_pol;
+        set_by_layer[tech_layer] += pin_pol;
       }
     }
   }
