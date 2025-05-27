@@ -6,10 +6,10 @@ DEFINE_F64_FLAG_WITH_DEFAULT(LINDEN_IGNORED_NETS_MAX_FANOUT,
 
 DEFINE_F64_FLAG_WITH_DEFAULT(LINDEN_SCAN_ENABLE_WEIGHT,
     "net weight for those connecting to scan enables.",
-    0)
+    1)
 DEFINE_F64_FLAG_WITH_DEFAULT(LINDEN_CLOCK_WEIGHT,
     "net weight for those connecting to clock pins.",
-    0)
+    1)
 DEFINE_F64_FLAG_WITH_DEFAULT(LINDEN_RESET_WEIGHT,
     "net weight for those connecting to reset pins.",
     1)
@@ -65,7 +65,7 @@ DEFINE_STR_FLAG(LINDEN_IP_DEBUG_DIR,
 DEFINE_I64_FLAG_WITH_DEFAULT(LINDEN_GP_CMAP_PERIOD,
     "The routability-driven GP will estimate congestion maps periodically. "
     "This flag controls the period (in iterations).",
-    10
+    2
 );
 
 DEFINE_I64_FLAG_WITH_DEFAULT(LINDEN_GP_CMAP_ITERATION,

@@ -237,36 +237,37 @@ linden::gp::Config {
 [nPlace/ha] HEAT_DEATH_LEN: 20
 [nPlace/ha] HEAD_DEATH_RATIO: 0.02
 [nPlace/ha] LAG_STEP: 50
-[nPlace] Iter: 1 overflow: 0.859657 HPWL: 3734182
-[nPlace] Iter: 10 overflow: 0.779206 HPWL: 4240503
-[nPlace] Iter: 20 overflow: 0.776072 HPWL: 4231553
-[nPlace] Iter: 30 overflow: 0.775859 HPWL: 4232585
-[nPlace] Iter: 40 overflow: 0.776531 HPWL: 4233159
-[nPlace] Iter: 50 overflow: 0.777072 HPWL: 4232667
-[nPlace] Iter: 60 overflow: 0.776567 HPWL: 4233507
-[nPlace] Iter: 70 overflow: 0.776163 HPWL: 4234469
-[nPlace] Iter: 80 overflow: 0.775812 HPWL: 4235550
-[nPlace] Iter: 90 overflow: 0.775475 HPWL: 4237467
-[nPlace] Iter: 100 overflow: 0.774427 HPWL: 4240744
+[nPlace] Iter: 1 overflow: 0.859648 HPWL: 3734287
+[nPlace] Iter: 10 overflow: 0.783382 HPWL: 4229953
+[nPlace] Iter: 20 overflow: 0.782534 HPWL: 4217724
+[nPlace] Iter: 30 overflow: 0.780583 HPWL: 4219908
+[nPlace] Iter: 40 overflow: 0.781576 HPWL: 4220139
+[nPlace] Iter: 50 overflow: 0.781749 HPWL: 4219687
+[nPlace] Iter: 60 overflow: 0.781512 HPWL: 4220566
+[nPlace] Iter: 70 overflow: 0.781209 HPWL: 4221383
+[nPlace] Iter: 80 overflow: 0.780957 HPWL: 4222478
+[nPlace] Iter: 90 overflow: 0.780567 HPWL: 4224272
+[nPlace] Iter: 100 overflow: 0.779685 HPWL: 4227378
 [NPlace] Successfully wrote PlaceDB to file /tmp/ldb_100.pb
-[nPlace] Iter: 110 overflow: 0.772972 HPWL: 4246034
-[nPlace] Iter: 120 overflow: 0.770942 HPWL: 4254274
-[nPlace] Iter: 130 overflow: 0.766648 HPWL: 4267366
-[nPlace] Iter: 140 overflow: 0.757749 HPWL: 4287001
-[nPlace] Iter: 150 overflow: 0.750921 HPWL: 4317274
-[nPlace] Iter: 160 overflow: 0.73893 HPWL: 4361574
-[nPlace] Iter: 170 overflow: 0.722025 HPWL: 4420601
-[nPlace] Iter: 180 overflow: 0.697874 HPWL: 4503730
+[nPlace] Iter: 110 overflow: 0.778156 HPWL: 4232412
+[nPlace] Iter: 120 overflow: 0.775667 HPWL: 4240302
+[nPlace] Iter: 130 overflow: 0.77167 HPWL: 4252682
+[nPlace] Iter: 140 overflow: 0.766289 HPWL: 4272137
+[nPlace] Iter: 150 overflow: 0.757439 HPWL: 4300310
+[nPlace] Iter: 160 overflow: 0.747251 HPWL: 4340394
+[nPlace] Iter: 170 overflow: 0.729425 HPWL: 4396927
+[nPlace] Iter: 180 overflow: 0.706801 HPWL: 4475423
+[nPlace] Iter: 190 overflow: 0.690476 HPWL: 4528602
 [nPlace] Begin Routability Driven.
 [ laurel/info ] Use Laurel Modifier
-[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_182.pb
-[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_182.cmap"
+[NPlace] Successfully wrote PlaceDB to file /tmp/ldb_191.pb
+[linden/gpl] Dump a banyan cmap file: "/tmp/banyan_191.cmap"
 [INFO BY-1010] Banyan exec /build/bin/banyan done, status code 0
 [linden/gpl] TileLxLy=(-8960, -8960)
 [linden/gpl] TileSize=(17920, 17920), TileArea=321126400
 [linden/gpl] TileCnt=(5, 5)
 [linden/gpl] NumTiles=25
-[linden/env] LINDEN_RDP_CMAP_OVERFLOW_THRESHOLD: 0.94
+[linden/env] LINDEN_RDP_CMAP_OVERFLOW_THRESHOLD: 0.92
 no overflow in median level
 [linden/gpl] TotalRouteOverflow: (0, 0)
 [linden/gpl] OverflowTileCnt: (0, 0)
@@ -279,7 +280,7 @@ no overflow in median level
 [linden/gpl] 2.0rcK: 1
 [linden/gpl] 5.0rcK: 1
 [linden/gpl] FinalRC: 0
-[linden/gpl/rdp] rc = 0, H d/s = 0.14803589234833803, V d/s = 0.13164156242828326
+[linden/gpl/rdp] rc = 0, H d/s = 0.14511739538058074, V d/s = 0.1317075387190434
 linden/gpl NumTiles: 25
 [linden/gpl/rdp] InflatedAreaDelta: 0
 [linden/gpl/rdp] TargetDensity: 0.5973229224762967
@@ -289,14 +290,14 @@ linden/gpl NumTiles: 25
 [linden/gpl/rdp] TotalFillerArea: 0
 [linden/gpl/rdp] TotalGCellsArea: 3815504000.000005
 [linden/gpl/rdp] NewWhiteSpaceArea: 3815504000
-[linden/gpl/rdp] NewMovableInstsArea: 3815504000.0000024
-[linden/gpl/rdp] NewMovableStdInstsArea: 3815504000.0000024
+[linden/gpl/rdp] NewMovableInstsArea: 3815504000.0000033
+[linden/gpl/rdp] NewMovableStdInstsArea: 3815504000.0000033
 [linden/gpl/rdp] NewTotalFillerArea: 0
 [nPlace] take snapshot RC(0).
 [NPlace] take snapshot coordi
 [nPlace] RDGP Got TargetRC.
 {
   "gp": {
-    "iter": 183
+    "iter": 192
   }
 }No differences found.

@@ -487,7 +487,10 @@ odb::dbOrientType from_linden_orient(linden::db::Orient lori) noexcept {
 } // namespace
 
 shared_ptr<linden::db::Database> build_linden_db() noexcept {
+    ord::OpenRoad::openRoad()->getSta()->ensureClkNetwork();
+
     odb::dbDatabase& db = *ord::OpenRoad::openRoad()->getDb();
+    
     auto core = core_region(db);
     auto die = die_region(db);
     linden::db::Database::Config lcfg = {
