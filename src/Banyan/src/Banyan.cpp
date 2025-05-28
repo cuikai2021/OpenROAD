@@ -545,7 +545,7 @@ int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std
       "--log_level","debug",
       "--min_layer",min_layer,
       "--max_layer",max_layer,
-      "--fix_drc",
+      "--same_net_fixer",
       "--save_db", save_db,
     };
     this->main(eco_args,true);
