@@ -87,10 +87,10 @@ proc banyan_add_placement_blockage { args } {
 }
 
 sta::define_cmd_args "banyan_repair_antennas" { diode_cell \
-                                         [-history history] \
                                          [-min_layer min_layer] \
                                          [-max_layer max_layer] \
-                                         [-max_iter max_iter]}
+                                         [-max_iter max_iter] \
+                                         [-max_fanout max_fanout]}
 
 proc banyan_repair_antennas { args } {
   sta::parse_key_args "banyan_repair_antennas" args \
@@ -130,12 +130,6 @@ proc banyan_repair_antennas { args } {
   } else {
     utl::error BY 245 "Too arguments to banyan_repair_antennas."
   }
-  set history "NULL"
-  if { [info exists keys(-history)] } {
-    set history $keys(-history)
-  } else {
-    utl::info BY 200 "banyan_repair_antennas need history db"
-  }
   set min_layer $keys(-min_layer)
   set max_layer $keys(-max_layer)
   set max_iter 1
@@ -143,5 +137,10 @@ proc banyan_repair_antennas { args } {
     set max_iter $keys(-max_iter)
     sta::check_positive_integer "-max_iter" $max_iter
   }
-  return [banyan::repair_antennas $diode_mterm $history $min_layer $max_layer $max_iter]
+  set max_fanout 150
+  if { [info exists keys(-max_fanout)] } {
+    set max_fanout $keys(-max_fanout)
+    sta::check_positive_integer "-max_fanout" $max_fanout
+  }
+  return [banyan::repair_antennas $diode_mterm $min_layer $max_layer $max_iter $max_fanout]
 }

@@ -92,8 +92,8 @@ void deleteIncrementalRoute()
     ord::OpenRoad::openRoad()->getBanyan()->deleteIncrementalRoute();
 }
 
-int repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std::string min_layer,std::string  max_layer,const int max_iter ) 
+int repair_antennas(odb::dbMTerm* diode_mterm,std::string min_layer,std::string  max_layer,const int max_iter,const int max_fanout ) 
 {
-   return ord::OpenRoad::openRoad()->getBanyan()->repair_antennas(diode_mterm,history_db,min_layer,max_layer,max_iter);
+   return ord::OpenRoad::openRoad()->getBanyan()->repair_antennas(diode_mterm,min_layer,max_layer,max_iter,max_fanout);
 }
 %} // inline

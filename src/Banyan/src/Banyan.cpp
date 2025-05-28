@@ -105,6 +105,32 @@ std::string genTempFilePath(utl::Logger* logger, std::string fileExt)
   return ss.str();
 }
 
+std::string genTempDir(utl::Logger* logger)
+{
+  if (!std::filesystem::exists(BANYAN_TMP_FOLDER)) {
+    if (!std::filesystem::create_directories(BANYAN_TMP_FOLDER)) {
+      logger->error(utl::BY, 1, "create {} dir fail", BANYAN_TMP_FOLDER);
+    }
+  }
+
+  const auto now = std::chrono::system_clock::now();
+
+  std::stringstream ss;
+
+  ss << BANYAN_TMP_FOLDER
+     << std::chrono::duration_cast<std::chrono::microseconds>(
+            now.time_since_epoch())
+            .count()
+    <<"/";
+  auto dir = ss.str();
+  if (!std::filesystem::exists(dir)) {
+    if (!std::filesystem::create_directories(dir)) {
+      logger->error(utl::BY, 1, "create {} dir fail", dir);
+    }
+  }
+  return dir;
+}
+
 int exec(utl::Logger* logger, const std::vector<std::string>& args, const char* exeName)
 {
   std::string exe = getExe(exeName);
@@ -509,22 +535,46 @@ void Banyan::loadRoutingCongestion(std::string path)
 	}
   ord::OpenRoad::openRoad()->getGlobalRouter()->updateHeatmap();
 }
-int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std::string min_layer,std::string  max_layer,const int max_iter ) {
+
+int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string min_layer,std::string  max_layer,const int max_iter,const int max_fanout ) {
   auto gr = ord::OpenRoad::openRoad()->getGlobalRouter();
   auto ant_checker = ord::OpenRoad::openRoad()->getAntennaChecker();
   auto num_threads = ord::OpenRoad::openRoad()->getThreadCount();
-  auto ant_rpt = genTempFilePath(logger_, ".arpt");
-  auto save_db = history_db;
+  auto tmp_dir = genTempDir(logger_);
+  auto ant_rpt =  tmp_dir + "repair_antennas.arpt";
   ant_checker->setReportFileName(ant_rpt.c_str());
   auto count = ant_checker->checkAntennas(nullptr,num_threads,false);
+
   if (count == 0 ){
     return count;
   }
+  auto save_db = tmp_dir + "jump_layer.pb";
+  std::vector<std::string> incr_route_args = {
+    "fix_antenna",
+    "--log_level","debug",
+    "--max_layer",max_layer,
+    "--fix_ant",ant_rpt,
+    "--save_db", save_db,
+  };
+  this->main(incr_route_args,true);
+  auto last_insert_diode = 0;
+  auto last_total_insert_diode = 0;
+  auto history_db = save_db;
+  ant_rpt = tmp_dir + "jump_layer.arpt";
+  ant_checker->setReportFileName(ant_rpt.c_str());
+  count = ant_checker->checkAntennas(nullptr,num_threads,false);
   for(auto iter =0 ;iter < max_iter ;iter ++) {
     logger_->info(utl::BY,9,"Run repair_antennas pre:{}",count);
     history_db = save_db;
-    save_db = genTempFilePath(logger_, ".pb");
-    gr->repairAntennas(diode_mterm,1,0,num_threads);
+    save_db = fmt::format("{}incr_route_{}.pb",tmp_dir,iter);
+    auto total_insert_diode = gr->repairAntennas(diode_mterm,1,0,num_threads,max_fanout);
+    auto insert_diode = total_insert_diode - last_total_insert_diode;
+    if (!insert_diode && !last_insert_diode) {
+      count = ant_checker->checkAntennas(nullptr,num_threads,false);
+      break;
+    }
+    last_insert_diode = insert_diode;
+    last_total_insert_diode = total_insert_diode;
     // Banyan Incr Route
     std::vector<std::string> incr_route_args = {
       "incr_route",
@@ -535,11 +585,14 @@ int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std
       "--save_db", save_db,
     };
     this->main(incr_route_args,true);
+    ant_rpt = fmt::format("{}incr_route_{}.arpt",tmp_dir,iter);
+    ant_checker->setReportFileName(ant_rpt.c_str());
     count = ant_checker->checkAntennas(nullptr,num_threads,false);
-    if (count > 0 && iter != max_iter-1) {
+    if (insert_diode > 0 && count > 0 && iter != max_iter-1  ) {
       continue ;
     }
     // Banyan Route ECO
+    save_db = fmt::format("{}refine_route_{}.pb",tmp_dir,iter);
     std::vector<std::string> eco_args = {
       "refine_route",
       "--log_level","debug",
@@ -549,7 +602,7 @@ int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string history_db,std
       "--save_db", save_db,
     };
     this->main(eco_args,true);
-    ant_rpt = genTempFilePath(logger_, ".arpt");
+    ant_rpt =     ant_rpt = fmt::format("{}refine_route_{}.arpt",tmp_dir,iter);
     ant_checker->setReportFileName(ant_rpt.c_str());
     count = ant_checker->checkAntennas(nullptr,num_threads);
     logger_->info(utl::BY,10,"Run repair_antennas after:{}",count);

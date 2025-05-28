@@ -397,6 +397,7 @@ int GlobalRouter::repairAntennas(odb::dbMTerm* diode_mterm,
                                  int iterations,
                                  float ratio_margin,
                                  const int num_threads,
+                                 const int max_fanout,
                                  std::map<odb::dbNet*, odb::dbNet*>* changes)
 {
   if (!initialized_ || haveDetailedRoutes()) {
@@ -469,7 +470,7 @@ int GlobalRouter::repairAntennas(odb::dbMTerm* diode_mterm,
     }
     if (violations) {
       // IncrementalGRoute incr_groute(this, block_);
-      repair_antennas_->repairAntennas(diode_mterm, changes);
+      repair_antennas_->repairAntennas(diode_mterm,max_fanout, changes);
       total_diodes_count_ += repair_antennas_->getDiodesCount();
       logger_->info(
           GRT, 15, "Inserted {} diodes.", repair_antennas_->getDiodesCount());

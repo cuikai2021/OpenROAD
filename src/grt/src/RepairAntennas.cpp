@@ -454,8 +454,21 @@ void RepairAntennas::destroyNetWires(
     }
   }
 }
-
-void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm, std::map<odb::dbNet*, odb::dbNet*>* changes)
+uint getNetFanout(odb::dbNet*net) {
+  uint count = 0;
+  for(auto item:net->getITerms()) {
+    if(item->isInputSignal()) {
+      count++;
+    }
+  }
+  for(auto item:net->getBTerms()) {
+    if(item->getIoType() ==odb::dbIoType::INPUT) {
+      count++;
+    }
+  }
+  return count;
+}
+void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm,const int max_fanout, std::map<odb::dbNet*, odb::dbNet*>* changes)
 {
   int site_width = -1;
   r_tree fixed_insts;
@@ -492,6 +505,7 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm, std::map<odb::dbN
   bool repair_failures = false;
   for (auto const& net_violations : antenna_violations_) {
     odb::dbNet* db_net = net_violations.first;
+    auto fan_out = getNetFanout(db_net);
     auto violations = net_violations.second;
 
     bool inserted_diodes = false;
@@ -503,8 +517,11 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm, std::map<odb::dbN
                  "antenna {} insert {} diodes",
                  db_net->getConstName(),
                  violation.diode_count_per_gate * violation.gates.size());
-      if (violation.diode_count_per_gate > 0) {
+      if (violation.diode_count_per_gate > 0  && fan_out < max_fanout) {
         for (odb::dbITerm* gate : violation.gates) {
+          if(fan_out >= max_fanout) {
+              break ;
+          }
           for (int j = 0; j < violation.diode_count_per_gate; j++) {
             odb::dbTechLayer* violation_layer
                 = tech->findRoutingLayer(violation.routing_level);
@@ -516,6 +533,7 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm, std::map<odb::dbN
                         violation_layer);
             if (changes) (*changes)[db_net] = gate->getNet();
             inserted_diodes = true;
+            fan_out++;
             db_net = gate->getNet();
           }
         }
@@ -581,7 +599,8 @@ void RepairAntennas::insertDiode(odb::dbNet* net,
   if (!legally_placed){
     illegal_diode_placement_count_++;
     odb::dbInst::destroy(diode_inst);
-    logger_->warn(utl::BY,201,"Net:" + net->getName() + "fixed Antennas Insert DiodeInstance Failed");
+    logger_->warn(utl::BY,201,"Net: " + net->getName() + "fixed Antennas Insert Diode Failed");
+    unique_diode_index_--;
     return ;
   }
 
@@ -601,7 +620,7 @@ void RepairAntennas::insertDiode(odb::dbNet* net,
   
   //
   // diode_iterm->connect(net);
-  logger_->info(utl::BY,202,"Net:" + net->getName() + "Insert Diode Instance {} Location:({}, {})",diode_inst_name,diode_inst->getLocation().getX(),diode_inst->getLocation().getY());
+  logger_->info(utl::BY,202,"Net: " + net->getName() + "Insert Diode {} Location: ({}, {})",diode_inst_name,diode_inst->getLocation().getX(),diode_inst->getLocation().getY());
   editer->connect(diode_iterm, net);
   diode_insts_.push_back(diode_inst);
   // Add diode to the R-tree of fixed instances
@@ -631,7 +650,7 @@ void RepairAntennas::getFixedInstances(r_tree& fixed_insts, odb::Rect diode_box)
   // placement blockage
   for(auto plb:block_->getBlockages()) {
     auto blockage = plb->getBBox();
-    
+
     box b(point(blockage->xMin(), blockage->yMin()),
             point(blockage->xMax(), blockage->yMax()));
     value v(b,fixed_inst_id);
@@ -643,23 +662,22 @@ void RepairAntennas::getFixedInstances(r_tree& fixed_insts, odb::Rect diode_box)
 
   for(auto obs:block_->getObstructions()) {
     auto bbox =obs->getBBox();
+    auto layer = bbox->getTechLayer();
+    auto max_sp = layer->getSpacing(bbox->getWidth(),bbox->getLength());
+    if(layer->getRoutingLevel() != 2) { 
+      continue;
+    }
     if(bbox->getBox().dx() <= diode_box.dx() ||
      bbox->getBox().dx() <=   diode_box.dy() || 
      bbox->getBox().dy() <=   diode_box.dx() ||
      bbox->getBox().dy() <=   diode_box.dy()) {
       continue ;
     }
-    auto layer = bbox->getTechLayer();
-    auto max_sp = layer->getSpacing(bbox->getWidth(),bbox->getLength());
     box b(point(bbox->xMin()-max_sp, bbox->yMin()-max_sp),
           point(bbox->xMax()+max_sp, bbox->yMax()+max_sp));
-    if(layer->getRoutingLevel() == 2) {
-      fixed_insts.insert(value(b,fixed_inst_id));
-      fixed_inst_id++;
-    }
+    fixed_insts.insert(value(b,fixed_inst_id));
+    fixed_inst_id++;   
   }
-
-  // M2 Power
 	boost::polygon::polygon_90_set_data<int> ps;
 	for(auto net:block_->getNets()) {
 		if( !net->isSpecial()) {
@@ -697,29 +715,29 @@ void RepairAntennas::getFixedInstances(r_tree& fixed_insts, odb::Rect diode_box)
 				}
 			}
 		}
-	}
-  std::vector<boost::polygon::rectangle_data<int>> rects;
-  boost::polygon::get_max_rectangles(rects,ps);
-  for (auto rect:rects) {
-    auto hivl =  rect.get(boost::polygon::HORIZONTAL);
-    auto vivl = rect.get(boost::polygon::VERTICAL);
-    auto hdet = hivl.high() - hivl.low();
-    auto vdet = vivl.high() - vivl.low();
-  if(hdet <= diode_box.dx() ||
-     hdet <=  diode_box.dy() || 
-     vdet <= diode_box.dx() ||
-     vdet <=  diode_box.dy()) {
-      continue ;
+	
+    std::vector<boost::polygon::rectangle_data<int>> rects;
+    boost::polygon::get_max_rectangles(rects,ps);
+    for (auto rect:rects) {
+      auto hivl =  rect.get(boost::polygon::HORIZONTAL);
+      auto vivl = rect.get(boost::polygon::VERTICAL);
+      auto hdet = hivl.high() - hivl.low();
+      auto vdet = vivl.high() - vivl.low();
+    if(hdet <= diode_box.dx() ||
+      hdet <=  diode_box.dy() || 
+      vdet <= diode_box.dx() ||
+      vdet <=  diode_box.dy()) {
+        continue ;
+      }
+      auto width = hdet < vdet?hdet:vdet;
+      auto length = vdet < hdet?hdet:vdet;
+      auto sp = m2->getSpacing(width,length);
+      box b(point(hivl.low() - sp,vivl.low() - sp),
+        point(hivl.high() +sp,vivl.high() + sp));
+      fixed_insts.insert(value(b,fixed_inst_id));
+      fixed_inst_id++;
     }
-    auto width = hdet < vdet?hdet:vdet;
-    auto length = vdet < hdet?hdet:vdet;
-    auto sp = m2->getSpacing(width,length);
-    box b(point(hivl.low() - sp,vivl.low() - sp),
-      point(hivl.high() +sp,vivl.high() + sp));
-    fixed_insts.insert(value(b,fixed_inst_id));
-    fixed_inst_id++;
   }
-
 }
 
 void RepairAntennas::setDiodesAndGatesPlacementStatus(
