@@ -6,6 +6,7 @@
 #include "./initial_place/ffi.hpp"
 #include "./itdp/ffi.hpp"
 #include "./mp/ffi.hpp"
+#include "./eco_placer/ffi.hpp"
 #include "./remove_fillers/ffi.hpp"
 #include "./timing_data/ffi.hpp"
 #include "../include/linden/eco_placer.hpp"
@@ -244,6 +245,7 @@ const char* env_tmp_file_root_dir() {
 }
 
 %inline %{
+
 // Defines a module independent of the OBD to handle operations related to eco_placer.
 class EcoPlacerSwig {
 public:
@@ -366,6 +368,12 @@ const char* point_place_by_idx(std::vector<const char*> places, int idx) {
 // Returns the size of the list of location information strings.
 int vec_point_place_size(std::vector<const char*> places) {
     return places.size();
+}
+
+// legalize a instance
+void legalize_instance(const std::string& instance)
+{
+    linden::legalize_instance_gogogo(instance);
 }
 
 %} // eco_placer

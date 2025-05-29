@@ -55,11 +55,22 @@ path write_def(::ord::OpenRoad& openroad, const path& basename)
 
 path gen_base_filename()
 {
-    auto tm = chrono::system_clock::now().time_since_epoch();
-    auto tm_ms = chrono::duration_cast<chrono::milliseconds>(tm).count();
-    ostringstream oss;
-    oss << LINDEN_TMP_FILE_ROOT_DIR() << "/lindendp_" << tm_ms;
-    return oss.str();
+    auto tm = std::chrono::system_clock::now().time_since_epoch();
+    auto tm_ms = std::chrono::duration_cast<std::chrono::milliseconds>(tm).count();
+    path root = LINDEN_TMP_FILE_ROOT_DIR();
+    if (!exists(root)) {
+        std::error_code ec;
+        bool ok = create_directories(root, ec);
+        if (!ok && ec) {
+            std::cerr << "[ERROR] Failed to create directory: " << root << "\n";
+            std::cerr << "        Reason: " << ec.message() << "\n";
+            throw std::runtime_error("Cannot create temporary output directory.");
+        }
+    }
+    std::ostringstream oss;
+    oss << "lindendp_" << tm_ms;
+    path result = root / oss.str();
+    return result;
 }
 
 LefDefDumper::LefDefDumper(::ord::OpenRoad& ord)

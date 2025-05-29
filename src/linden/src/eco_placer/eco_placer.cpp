@@ -1,7 +1,6 @@
 #include "linden/eco_placer.hpp"
 
 #include <optional>
-#include <utility>
 
 #include "../util/lefdef_dumper.hpp"
 #include "fassert.hpp"

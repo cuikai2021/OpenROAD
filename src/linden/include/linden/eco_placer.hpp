@@ -72,9 +72,9 @@ public:
      * @param lefs Paths to LEF files
      * @param defs Paths to DEF files
      */
-    EcoPlacer(const std::vector<std::filesystem::path>& lefs, const std::vector<std::filesystem::path>& defs) noexcept;
-    EcoPlacer(const std::vector<std::string>& lefs, const std::vector<std::string>& defs) noexcept;
-    EcoPlacer() noexcept;
+    explicit EcoPlacer(const std::vector<std::filesystem::path>& lefs, const std::vector<std::filesystem::path>& defs) noexcept;
+    explicit EcoPlacer(const std::vector<std::string>& lefs, const std::vector<std::string>& defs) noexcept;
+    explicit EcoPlacer() noexcept;
     ~EcoPlacer() noexcept;
 
     /**

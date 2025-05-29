@@ -16,6 +16,7 @@ record_tests {
   eco_placer_from_lefdef
   eco_placer_from_odb
   eco_placer_near_place
+  legalize_instance
 
   add_tie_cell
   add_tie_cell_tlp
