@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sta/DcalcAnalysisPt.hh"
 #include "sta/Liberty.hh"
 #include "utl/Logger.h"
+#include "sta/Units.hh"
 
 using odb::dbBlock;
 using odb::dbSigType;
@@ -349,6 +350,41 @@ void PDNSim::insertDecapCells(double target, const char* net_name)
 
   // call DPL to insert decap cells
   opendp_->insertDecapCells(target, ir_drops);
+}
+
+PDNSim::LocationCapacitanceMap PDNSim::parseLocationCaps(const char* targets) {
+  std::string to_fix_str = targets;
+  LocationCapacitanceMap location_caps;
+  to_fix_str.erase(std::remove_if(to_fix_str.begin(), to_fix_str.end(), [] (char c) { return std::isspace(c);}), to_fix_str.end());
+  std::istringstream iss(to_fix_str);
+  bool parsed_failed = false;
+  while (!iss.eof()) {
+    char comma, right_paren, left_paren;
+    int x, y;
+    double cap;
+
+    iss >> left_paren;
+    if (left_paren != '(' || iss.eof()) { parsed_failed = true; break; }
+    iss >> x;
+    if (iss.eof())  { parsed_failed = true; break; }
+    iss >> comma;
+    if (comma != ',' || iss.eof())  { parsed_failed = true; break; }
+    iss >> y;
+    if (iss.eof())  { parsed_failed = true; break; }
+    iss >> right_paren;
+    if (right_paren != ')' || iss.eof())  { parsed_failed = true; break; }
+    iss >> cap;
+    cap = sta_->units()->capacitanceUnit()->userToSta(cap);
+    location_caps.emplace(odb::Point{x, y}, cap);
+  }
+  if (parsed_failed) 
+    logger_->error(utl::PSM, 95, "insert_decap Convert '-targets' failed please follow format : \"{} (x0, y0) target_cap0 (x1, y1) target_cap1 {}\".", '{', '}');
+  return location_caps;
+}
+
+void PDNSim::insertDecapCellsWithTargets(const char* targets, const char* net_name) {
+  // odb::dbNet* db_net = findPowerNet(net_name);
+  opendp_->insertDecapCells(parseLocationCaps(targets));
 }
 
 }  // namespace psm

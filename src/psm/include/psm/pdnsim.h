@@ -145,6 +145,7 @@ class PDNSim : public odb::dbBlockCallBackObj
   // Functions of decap cells
   void addDecapMaster(dbMaster* decap_master, double decap_cap);
   void insertDecapCells(double target, const char* net_name);
+  void insertDecapCellsWithTargets(const char* targets, const char* net_name);
 
  private:
   // Functions of decap cells
@@ -168,7 +169,8 @@ class PDNSim : public odb::dbBlockCallBackObj
   std::map<odb::dbNet*, std::unique_ptr<IRSolver>> solvers_;
   std::map<odb::dbNet*, std::map<sta::Corner*, double>> user_voltages_;
   std::map<odb::dbInst*, std::map<sta::Corner*, float>> user_powers_;
-
+  using LocationCapacitanceMap = dpl::LocationCapacitanceMap;
+  LocationCapacitanceMap parseLocationCaps(const char* targets);
   sta::Corner* last_corner_ = nullptr;
 };
 }  // namespace psm

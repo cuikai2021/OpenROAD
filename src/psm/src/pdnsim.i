@@ -98,6 +98,14 @@ insert_decap_cmd(const float target, const char* net_name)
   pdnsim->insertDecapCells(target, net_name);
 }
 
+void
+insert_decap_cmd(const char* target, const char* net_name)
+{
+  PDNSim* pdnsim = getPDNSim();
+  pdnsim->insertDecapCellsWithTargets(target, net_name);
+}
+
+
 bool
 check_connectivity_cmd(odb::dbNet* net, bool floorplanning, const char* error_file)
 {

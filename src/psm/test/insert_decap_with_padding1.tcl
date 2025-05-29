@@ -13,7 +13,7 @@ analyze_power_grid -net {VDD}
 # Set padding before insert decap cells
 set_placement_padding -global -left 1 -right 1
 
-insert_decap -target_cap 1000.5 -cells {"sky130_fd_sc_hd__decap_3" 0.93 "sky130_fd_sc_hd__decap_4" 0.124 "sky130_fd_sc_hd__decap_6" 0.186 "sky130_fd_sc_hd__decap_8" 0.248 "sky130_fd_sc_hd__decap_12" 0.362}
+insert_decap -net VDD -targets { ( 6440, 29920 ) 1.5 ( 32200, 59920 ) 10 (58420, 2720) 2 } -cells {"sky130_fd_sc_hd__decap_3" 0.93 "sky130_fd_sc_hd__decap_4" 0.124 "sky130_fd_sc_hd__decap_6" 0.186 "sky130_fd_sc_hd__decap_8" 0.248 "sky130_fd_sc_hd__decap_12" 0.362}
 
 # Reset padding to check placement
 set_placement_padding -global -left 0 -right 0
@@ -22,4 +22,5 @@ check_placement
 
 set def_file [make_result_file insert_decap_with_padding1.def]
 write_def $def_file
+
 diff_file $def_file insert_decap_with_padding1.defok

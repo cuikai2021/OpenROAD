@@ -190,6 +190,51 @@ void Opendp::insertDecapCells(const double target, IRDropByPoint& psm_ir_drops)
                 total_cap);
 }
 
+void Opendp::insertDecapCells(LocationCapacitanceMap const& locations) {
+  // init dpl variables
+  if (cells_.empty()) {
+    importDb();
+  }
+
+  decap_count_ = 0;
+  initGrid();
+  setGridCells();
+
+  // If fillers are placed
+  if (have_fillers_) {
+    logger_->error(DPL, 57, "Run remove_fillers before inserting decap cells");
+  }
+
+  // Sort Decap cells and Gaps
+  prepareDecapAndGaps();
+
+  for (auto [loc, target] : locations) {
+    auto cur_cnt = decap_count_;
+    double total_cap = 0.0;
+    // Find gaps in same row
+    auto it_gapY = gaps_.find(DbuY(loc.getY()));
+    auto dub_y = DbuY(loc.getY());
+    auto dub_x = DbuX(loc.getX());
+    if (it_gapY != gaps_.end()) {
+      // Find and insert decap in this row
+      insertDecapInRow(it_gapY->second, it_gapY->first, dub_x, dub_y, total_cap, target);
+    }
+
+    // if row is not first, then get lower row
+    auto pre_it_gapY = it_gapY;
+    if (pre_it_gapY != gaps_.begin()) {
+      pre_it_gapY--;
+      // verify if row + height >= ypoint
+      if (pre_it_gapY->first + (*(pre_it_gapY->second).begin())->height <= dub_y) {
+        insertDecapInRow(pre_it_gapY->second, pre_it_gapY->first, dub_x, dub_y, total_cap, target);
+      }
+    }
+    auto aft_cnt = decap_count_;
+    logger_->info(DPL, 58, "Placed {} decap cells near ({} ,{}), Total capacitance: {:6.6e} f;  Target capcitance {:6.6e} f", 
+                  aft_cnt - cur_cnt, loc.x(), loc.y(), total_cap, target);
+  }
+}
+
 void Opendp::insertDecapInRow(const vector<GapInfo*>& gaps,
                               const DbuY gap_y,
                               const DbuX irdrop_x,

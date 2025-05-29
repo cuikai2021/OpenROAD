@@ -116,6 +116,7 @@ using IRDropByPoint = std::map<odb::Point, double>;
 struct GapInfo;
 struct DecapCell;
 struct IRDrop;
+using LocationCapacitanceMap = std::map<odb::Point, double>;
 ////////////////////////////////////////////////////////////////
 
 class Opendp
@@ -163,6 +164,7 @@ class Opendp
   // Place decap cells
   void addDecapMaster(dbMaster* decap_master, double decap_cap);
   void insertDecapCells(double target, IRDropByPoint& psm_ir_drops);
+  void insertDecapCells(LocationCapacitanceMap const& locations);
 
   // Get the instance adjacent to the left or right of a given instance
   dbInst* getAdjacentInstance(dbInst* inst, bool left) const;
