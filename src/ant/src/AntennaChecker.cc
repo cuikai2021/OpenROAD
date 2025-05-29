@@ -599,7 +599,7 @@ bool AntennaChecker::checkPSR(odb::dbNet* db_net,
   diff_PSR_PWL_ratio *= (1.0 - ratio_margin / 100.0);
 
   // check PSR or diff_PSR
-  if (PSR_ratio != 0 && (diff_PSR_PWL_ratio ==0 || info.diff_PSR == 0)) {
+  if (PSR_ratio != 0 && (diff_PSR_PWL_ratio ==0 || info.iterm_diff_area == 0)) {
     violation = info.PSR > PSR_ratio;
     info.excess_ratio_PSR
         = std::max(info.excess_ratio_PSR, info.PSR / PSR_ratio);
@@ -699,7 +699,7 @@ bool AntennaChecker::checkCSR(odb::dbNet* db_net,
   bool violation = false;
 
   // check CSR or diff_CSR
-  if (CSR_ratio != 0 && (diff_CSR_PWL_ratio == 0 || info.diff_CSR == 0)) {
+  if (CSR_ratio != 0 && (diff_CSR_PWL_ratio == 0 || info.iterm_diff_area == 0)) {
     violation = info.CSR > CSR_ratio;
     if (report) {
       std::string csr_report = fmt::format(
