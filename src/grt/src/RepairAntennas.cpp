@@ -52,6 +52,9 @@
 #include "sc/ScanChainEditer.h"
 #include "odb/dbBlockSet.h"
 #include "Polygon.hh"
+#include "sta/Sta.hh"
+#include "sta/Network.hh"
+
 namespace grt {
 
 using utl::GRT;
@@ -468,11 +471,30 @@ uint getNetFanout(odb::dbNet*net) {
   }
   return count;
 }
+
+struct FanoutChecker {
+  FanoutChecker() : fanout(0), limit(0), bias(0), sta_((sta::Sta::sta())) { update(); }
+  void update() { sta_->checkFanoutLimitPreamble(); }
+  bool operator()(odb::dbNet* dnet) {
+    auto net = reinterpret_cast<sta::Net*>(dnet);
+    const sta::Pin* drvr_pin = *(sta_->network()->drivers(net)->begin());
+    return violate(drvr_pin);
+  }
+  bool violate(const sta::Pin* p) { sta_->checkFanout(p, sta::MinMax::max(), fanout, limit, bias); return bias < 0; }
+
+  float fanout;
+  float limit;
+  float bias;
+private:
+  sta::Sta* sta_;
+};
+
 void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm,const int max_fanout, std::map<odb::dbNet*, odb::dbNet*>* changes)
 {
   int site_width = -1;
   r_tree fixed_insts;
   odb::dbTech* tech = db_->getTech();
+  FanoutChecker checker;
 
   illegal_diode_placement_count_ = 0;
   diode_insts_.clear();
@@ -507,7 +529,11 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm,const int max_fano
     odb::dbNet* db_net = net_violations.first;
     auto fan_out = getNetFanout(db_net);
     auto violations = net_violations.second;
-
+    bool check_result = checker(db_net); // has_violation
+    if(check_result) {
+      continue;
+    }
+    float bias = checker.bias; // limit - fanout
     bool inserted_diodes = false;
     for (ant::Violation& violation : violations) {
       debugPrint(logger_,
@@ -519,7 +545,7 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm,const int max_fano
                  violation.diode_count_per_gate * violation.gates.size());
       if (violation.diode_count_per_gate > 0  && fan_out < max_fanout) {
         for (odb::dbITerm* gate : violation.gates) {
-          if(fan_out >= max_fanout) {
+          if(bias < 1.0) {
               break ;
           }
           for (int j = 0; j < violation.diode_count_per_gate; j++) {
@@ -533,13 +559,15 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm,const int max_fano
                         violation_layer);
             if (changes) (*changes)[db_net] = gate->getNet();
             inserted_diodes = true;
-            fan_out++;
+            bias--;
             db_net = gate->getNet();
+            if(bias < 1.0) break;
           }
         }
       } else
         repair_failures = true;
     }
+    checker(db_net); // has_violation
     if (inserted_diodes) {
       // Diode insertion deletes the jumpers in guides
       // db_net->setJumpers(false);
@@ -599,7 +627,7 @@ void RepairAntennas::insertDiode(odb::dbNet* net,
   if (!legally_placed){
     illegal_diode_placement_count_++;
     odb::dbInst::destroy(diode_inst);
-    logger_->warn(utl::BY,201,"Net: " + net->getName() + "fixed Antennas Insert Diode Failed");
+    logger_->info(utl::BY,201,"Net: " + net->getName() + "fixed Antennas Insert Diode Failed");
     unique_diode_index_--;
     return ;
   }
