@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "db.h"
+#include "odb/db.h"
 #include "odb/dbTypes.h"
 #include "odb/geom.h"
 
