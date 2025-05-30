@@ -1,5 +1,6 @@
 #include "banyan/Banyan.h"
 
+#include <algorithm>
 #include <chrono>
 #include <optional>
 #include <sstream>
@@ -7,9 +8,19 @@
 #include <boost/program_options.hpp>
 #include <filesystem>
 #include <string>
+#include <string_view>
+#include <unordered_set>
+#include <vector>
 
 #include "banyan_db.pb.h"
 #include "BanyanIncrRoute.hpp"
+#include "odb/dbTypes.h"
+#include "fassert.hpp"
+#include "odb/geom.h"
+#include "../../../../linden/include/linden/eco_placer.hpp"
+#include "lrl/CircuitModifier/ModifierTimeline.hh"
+#include "lrl/CircuitModifier/STANetwork.hh"
+#include "lrl/Sta.hh"
 #include "odb/db.h"
 #include "odb/defin.h"
 #include "odb/defout.h"
@@ -17,6 +28,9 @@
 #include "odb/lefout.h"
 #include "odb/wOrder.h"
 #include "ord/OpenRoad.hh"
+#include "ord/Timing.h"
+#include "rsz/Resizer.hh"
+#include "sta/Liberty.hh"
 #include "sta/StaMain.hh"
 #include "lrl/Laurel.hh"
 #include "utl/Logger.h"
@@ -490,7 +504,9 @@ void Banyan::loaddef(std::string deffile)
 {
   auto* blk = db_->getChip()->getBlock();
   blk->deleteBlockages();
-  blk->getGCellGrid()->resetGrid();
+  if (blk->getGCellGrid() != nullptr) {
+    blk->getGCellGrid()->resetGrid();
+  }
   odb::defin(db_, logger_).replaceWires(blk, deffile.c_str());
 }
 
@@ -536,7 +552,117 @@ void Banyan::loadRoutingCongestion(std::string path)
   ord::OpenRoad::openRoad()->getGlobalRouter()->updateHeatmap();
 }
 
-int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string min_layer,std::string  max_layer,const int max_iter,const int max_fanout ) {
+bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::shared_ptr<lrl::AutoRecordModifier>& modifier, const linden::EcoPlacer& eco_placer, utl::Logger* logger) {
+  FASSERT(network.dbType(iterm) == odb::dbITermObj);
+  using lrl::Pin;
+  using lrl::Net;
+  auto dbnw = network->getDbNetwork();
+  Pin* p = network.dbConvert<Pin>(iterm);
+  struct GETBUFFER : public rsz::Resizer {
+    using rsz::Resizer::findBuffers;
+    using rsz::Resizer::buffer_cells_;
+    using rsz::Resizer::bufferDriveResistance;
+  };
+  GETBUFFER* geter = (GETBUFFER*)(network.resizer());
+  geter->findBuffers();
+  std::sort(geter->buffer_cells_.begin(), geter->buffer_cells_.end(), [geter](sta::LibertyCell* l, sta::LibertyCell* r) {
+    if (l->area() != r->area()) {
+      return l->area() < r->area();
+    }
+    return geter->bufferDriveResistance(l) < geter->bufferDriveResistance(r);
+  });
+  sta::LibertyCell* buffer = geter->buffer_cells_[0];
+  Net* n = network.net(p);
+  Pin* driver;
+  auto piter = network.connectedPinIterator(n);
+  while (piter->hasNext()) {
+    auto next = piter->next();
+    if (network->network()->isDriver(next)) {
+      driver = next;
+      break;
+    }
+  }
+  delete piter;
+  if (driver == nullptr) {
+    logger->info(utl::BY, 15, "Cannot find driver on net {}", network.name(n));
+    return false;
+  }
+  auto driver_loc = network.location(driver);
+  // TODO: Insert buffers based on antenna rule calculations rather than brute-force placement on the farthest pin.
+  Pin* farthest;
+  auto dist = odb::Point::manhattanDistance(driver_loc, driver_loc);
+  piter = network.connectedPinIterator(n);
+  while (piter->hasNext()) {
+    auto next = piter->next();
+    if (next != driver) {
+      auto pin_loc = network.location(next);
+      if (farthest == nullptr || odb::Point::manhattanDistance(driver_loc, pin_loc) > dist) {
+        farthest = next;
+        dist = odb::Point::manhattanDistance(driver_loc, pin_loc);
+      }
+    }
+  }
+  delete piter;
+  auto farthest_loc = network.location(farthest);
+  
+  bool is_driver = dbnw->isDriver(p);
+  if (is_driver) {
+    logger->info(utl::BY, 16, "Antenna-violated pin {} is the driver of net {}, cannot insert buffer on it.", network.name(p),network.name(n));
+    return false;
+  }
+  odb::Point center(
+    (driver_loc.x()+farthest_loc.x())/2,
+    (driver_loc.y()+farthest_loc.y())/2);
+  auto place_iter = linden::PlaceIterator(eco_placer, buffer->name(), center);
+  auto valid_loc = place_iter.next();
+  if (!valid_loc.has_value()) {
+    return false;
+  }
+  modifier->insertRepeator(buffer, valid_loc.value().point, n, {farthest});
+  return true;
+}
+
+void Banyan::incrRoute(
+    const std::string& max_layer,
+    const std::string& ant_rpt,
+    const std::string& save_db,
+    const std::string& history_db)
+{
+  // Banyan Incr Route
+  std::vector<std::string> incr_route_args = {
+      "incr_route",
+      "--log_level", "debug",
+      "--max_layer", max_layer,
+      "--history", history_db,
+      "--fix_ant", ant_rpt,
+      "--save_db", save_db,
+  };
+  this->main(incr_route_args, true);
+}
+
+void Banyan::refineRoute(
+    const std::string& min_layer,
+    const std::string& max_layer,
+    const std::string& tmp_dir,
+    const std::string& save_db)
+{
+  // Banyan Refine Route
+  std::vector<std::string> eco_args = {
+      "refine_route",
+      "--log_level", "debug",
+      "--min_layer", min_layer,
+      "--max_layer", max_layer,
+      "--same_net_fixer",
+      "--save_db", save_db,
+  };
+  this->main(eco_args, true);
+}
+int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,
+                            std::string min_layer,
+                            std::string max_layer,
+                            const int max_iter,
+                            const int max_fanout)
+{
   auto gr = ord::OpenRoad::openRoad()->getGlobalRouter();
   auto ant_checker = ord::OpenRoad::openRoad()->getAntennaChecker();
   auto num_threads = ord::OpenRoad::openRoad()->getThreadCount();
@@ -549,21 +675,25 @@ int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string min_layer,std:
     return count;
   }
   auto save_db = tmp_dir + "jump_layer.pb";
-  std::vector<std::string> incr_route_args = {
+  std::vector<std::string> fix_antenna_args = {
     "fix_antenna",
     "--log_level","debug",
     "--max_layer",max_layer,
     "--fix_ant",ant_rpt,
     "--save_db", save_db,
   };
-  this->main(incr_route_args,true);
+  this->main(fix_antenna_args,true);
+  ant_rpt = tmp_dir + "jump_layer_before_refine.arpt";
+  ant_checker->setReportFileName(ant_rpt.c_str());
+  count = ant_checker->checkAntennas(nullptr,num_threads,false);
+  refineRoute(min_layer, max_layer, tmp_dir, save_db);
   auto last_insert_diode = 0;
   auto last_total_insert_diode = 0;
   auto history_db = save_db;
   ant_rpt = tmp_dir + "jump_layer.arpt";
   ant_checker->setReportFileName(ant_rpt.c_str());
   count = ant_checker->checkAntennas(nullptr,num_threads,false);
-  for(auto iter =0 ;iter < max_iter ;iter ++) {
+  for(auto iter = 0;iter < max_iter; iter++) {
     logger_->info(utl::BY,9,"Run repair_antennas pre:{}",count);
     history_db = save_db;
     save_db = fmt::format("{}incr_route_{}.pb",tmp_dir,iter);
@@ -575,39 +705,65 @@ int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,std::string min_layer,std:
     }
     last_insert_diode = insert_diode;
     last_total_insert_diode = total_insert_diode;
-    // Banyan Incr Route
-    std::vector<std::string> incr_route_args = {
-      "incr_route",
-      "--log_level","debug",
-      "--max_layer",max_layer,
-      "--history",history_db,
-      "--fix_ant",ant_rpt,
-      "--save_db", save_db,
-    };
-    this->main(incr_route_args,true);
+    incrRoute(max_layer, ant_rpt, save_db, history_db);
     ant_rpt = fmt::format("{}incr_route_{}.arpt",tmp_dir,iter);
     ant_checker->setReportFileName(ant_rpt.c_str());
     count = ant_checker->checkAntennas(nullptr,num_threads,false);
     if (insert_diode > 0 && count > 0 && iter != max_iter-1  ) {
       continue ;
     }
-    // Banyan Route ECO
-    save_db = fmt::format("{}refine_route_{}.pb",tmp_dir,iter);
-    std::vector<std::string> eco_args = {
-      "refine_route",
-      "--log_level","debug",
-      "--min_layer",min_layer,
-      "--max_layer",max_layer,
-      "--same_net_fixer",
-      "--save_db", save_db,
-    };
-    this->main(eco_args,true);
-    ant_rpt =     ant_rpt = fmt::format("{}refine_route_{}.arpt",tmp_dir,iter);
+    save_db = fmt::format("{}refine_route_{}.pb", tmp_dir, iter);
+    refineRoute(min_layer, max_layer, tmp_dir, save_db);
+    ant_rpt = fmt::format("{}refine_route_{}.arpt",tmp_dir,iter);
     ant_checker->setReportFileName(ant_rpt.c_str());
     count = ant_checker->checkAntennas(nullptr,num_threads);
     logger_->info(utl::BY,10,"Run repair_antennas after:{}",count);
     if(count == 0) {
       break ;
+    }
+  }
+
+  if (count > 0) { // try insert buffers
+    for (auto iter = 0; count > 0 && iter < max_iter; iter++) {
+      logger_->info(utl::BY,11,"Remaining antenna violation count {}, trying insert buffer near pins", count);
+      lrl::History lrl_history;
+      lrl::STANetwork lrlnw(ord::OpenRoad::openRoad());
+      auto modifier = lrl_history.modifier(lrlnw);
+      auto net_vios = ant_checker->getAllAntennaViolations(nullptr, 0);
+      std::unordered_set<odb::dbITerm*> pins;
+      for (auto& net_vio : net_vios) {
+        auto& vios = net_vio.second;
+        for (auto& vio : vios) {
+          for (auto& gate : vio.gates) {
+            pins.insert(gate);
+            auto pin_type = lrlnw.dbType(gate);
+            FASSERT(pin_type == odb::dbITermObj);
+          }
+        }
+      }
+      linden::EcoPlacer eco_placer;
+      for (auto& gate : pins) {
+        if (!sepratePin(gate, lrlnw, modifier, eco_placer, logger_)) {
+          logger_->info(utl::BY,12,"Can't insert buffer for pin {}",gate->getName());
+        } else {
+          logger_->info(utl::BY,13,"Insert buffer for pin {}",gate->getName());
+        }
+      }
+      incrRoute(max_layer, ant_rpt, save_db, history_db);
+      ant_rpt = fmt::format("{}incr_route_after_insert_buffer_{}.arpt",tmp_dir, iter);
+      ant_checker->setReportFileName(ant_rpt.c_str());
+      count = ant_checker->checkAntennas(nullptr,num_threads,false);
+      save_db = fmt::format("{}refine_route_after_insert_buffer_{}.pb", tmp_dir, iter);
+      if (count == 0 || iter == max_iter-1) {
+        refineRoute(min_layer, max_layer, tmp_dir, save_db);
+        ant_rpt = fmt::format("{}refine_route_after_insert_buffer_{}.arpt",tmp_dir, iter);
+        ant_checker->setReportFileName(ant_rpt.c_str());
+        count = ant_checker->checkAntennas(nullptr,num_threads);
+        logger_->info(utl::BY,14,"Run repair_antennas after:{}",count);
+      }
+      if (count == 0) {
+        break;
+      }
     }
   }
   return count;

@@ -140,6 +140,7 @@ using GraphNodes = std::vector<std::unique_ptr<GraphNode>>;
 using LayerToGraphNodes = std::map<odb::dbTechLayer*, GraphNodes>;
 using GateToLayerToNodeInfo = std::map<odb::dbITerm*, LayerToNodeInfo>;
 using Violations = std::vector<Violation>;
+using AntennaViolations = std::map<odb::dbNet*, std::vector<Violation>>;
 using GateToViolationLayers
     = std::map<odb::dbITerm*, std::set<odb::dbTechLayer*>>;
 
@@ -161,6 +162,8 @@ class AntennaChecker
   Violations getAntennaViolations(odb::dbNet* net,
                                   odb::dbMTerm* diode_mterm,
                                   float ratio_margin);
+  AntennaViolations getAllAntennaViolations(odb::dbMTerm* diode_mterm,
+                                            float ratio_margin);
   void initAntennaRules();
   void setReportFileName(const char* file_name);
 

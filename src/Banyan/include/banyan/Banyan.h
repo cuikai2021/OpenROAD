@@ -91,7 +91,19 @@ class Banyan : public ord::OpenRoadObserver
   int incrementalRoute();
   void deleteIncrementalRoute();
 
-  int repair_antennas(odb::dbMTerm* diode_mterm,std::string min_layer,std::string  max_layer,const int max_iter = 1,const int max_fanout = 150);
+  void incrRoute(const std::string& max_layer,
+                 const std::string& ant_rpt,
+                 const std::string& save_db,
+                 const std::string& history_db);
+  void refineRoute(const std::string& min_layer,
+                   const std::string& max_layer,
+                   const std::string& tmp_dir,
+                   const std::string& save_db);
+  int repair_antennas(odb::dbMTerm* diode_mterm,
+                      std::string min_layer,
+                      std::string max_layer,
+                      const int max_iter = 1,
+                      const int max_fanout = 150);
 
   std::string_view getTechlef();
   std::vector<std::string_view> getOtherTechlefs();

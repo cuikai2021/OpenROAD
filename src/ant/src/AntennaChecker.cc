@@ -1061,6 +1061,17 @@ Violations AntennaChecker::getAntennaViolations(odb::dbNet* net,
   return antenna_violations;
 }
 
+AntennaViolations AntennaChecker::getAllAntennaViolations(odb::dbMTerm* diode_mterm,
+                                                float ratio_margin)
+{
+  AntennaViolations antenna_violations;
+  for (odb::dbNet* db_net : block_->getNets()) {
+    antenna_violations[db_net] = getAntennaViolations(db_net, diode_mterm, ratio_margin);
+  }
+
+  return antenna_violations;
+}
+
 int AntennaChecker::checkAntennas(odb::dbNet* net,
                                   const int num_threads,
                                   bool verbose)
