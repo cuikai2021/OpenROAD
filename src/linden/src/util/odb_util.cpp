@@ -44,6 +44,10 @@ linden::geom::Rect core_region(odb::dbDatabase& odb) noexcept
 }
 
 bool is_supported(odb::dbInst& inst) noexcept {
+    if (inst.getGroup() != nullptr) {
+        return true;
+    }
+    
     auto type = inst.getMaster()->getType();
     return type.isCore()
         || type.isBlock();

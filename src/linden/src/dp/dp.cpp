@@ -608,6 +608,8 @@ int basic_dp(::ord::OpenRoad& ord, const Config& cfg) {
 }
 
 int incr_dp(::ord::OpenRoad& ord, const Config& cfg) {
+    legalize_spare_cell(ord);
+
     const LefDefDumper dumper(ord);
     if (!cfg.suppress_output) {
         dumper.print_dumped_files(std::cout);
@@ -634,6 +636,8 @@ int incr_dp(::ord::OpenRoad& ord, const Config& cfg) {
 }
 
 int rddp(::ord::OpenRoad& ord, Config& dpcfg) {
+    legalize_spare_cell(ord);
+    
     const int64_t N_TRIES = 3;
     std::vector<pair<std::filesystem::path, int64_t>> tried_results;
     tried_results.reserve(N_TRIES + 1);
