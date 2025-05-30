@@ -275,6 +275,77 @@ proc insert_tiecells { args } {
   ifp::insert_tiecells_cmd $mterm $prefix
 }
 
+sta::define_cmd_args "insert_spare_cells" {[-prefix prefix ]\
+                                        [-num_cells {} ]\
+                                        [-region_size {x y} ]\
+                                        [-area {lx ly ux uy} ]}
+
+proc insert_spare_cells { args } {
+  sta::parse_key_args "insert_spare_cells" args \
+    keys {-prefix -num_cells -region_size -area} \
+    flags {}
+
+  sta::check_argc_eq0 "insert_spare_cells" $args
+
+  set prefix "SPARE_"
+  if { [info exists keys(-prefix)] } {
+    set prefix $keys(-prefix)
+  }
+  set cell_names {}
+  set cell_nums {}
+  if { [info exists keys(-num_cells)] } {
+    set num_cells $keys(-num_cells)
+    if { [expr [llength $num_cells] % 2] == 0 } {
+      set idx 0
+      foreach cell_or_num $num_cells {
+        if { [expr $idx % 2] == 1 } {
+          sta::check_positive_integer "-num_cells second" $cell_or_num
+          lappend cell_nums $cell_or_num
+        } else {
+          lappend cell_names $cell_or_num
+        }
+        incr idx
+      }
+    } else {
+      utl::error "IFP" 1000 "num_cells is a list {cell_name cell_num ...}"
+    }
+  } else {
+    utl::error "IFP" 1001 "no -num_cells {cell_name cell_num ...}"
+  }
+  
+  set region_x 0
+  set region_y 0
+  if { [info exists keys(-region_size)] } {
+    set region_size $keys(-region_size)
+    if { [llength $region_size] == 2 } {
+      lassign $region_size region_x region_y
+      sta::check_positive_float "-region_size" $region_x
+      sta::check_positive_float "-region_size" $region_y
+      set region_x [ord::microns_to_dbu $region_x]
+      set region_y [ord::microns_to_dbu $region_y]
+    } else {
+      utl::error "IFP" 1002 "region_size is {x(micron) y(micron)}"
+    }
+  } else {
+    utl::error "IFP" 1003 "no -region_size {x(micron) y(micron)}"
+  }
+
+  set area {}
+  if { [info exists keys(-area)] } {
+    set area_coor $keys(-area)
+    if { [llength $area_coor] == 4 } {
+      foreach coor $area_coor {
+        sta::check_positive_float "-area_coor" $coor
+        lappend area [ord::microns_to_dbu $coor]
+      }
+    } else {
+      utl::error "IFP" 1004 "area is {x(micron) y(micron) x1(micron) y1(micron)}"
+    }
+  }
+
+  ifp::insert_spare_cells $prefix $cell_names $cell_nums $region_x $region_y $area
+}
+
 namespace eval ifp {
 proc microns_to_mfg_grid { microns } {
   set tech [ord::get_db_tech]

@@ -110,6 +110,13 @@ class InitFloorplan
 
   odb::dbSite* findSite(const char* site_name);
 
+  void insertSpareCells(const char* prefix,
+                        const std::vector<std::string>& cell_names,
+                        const std::vector<int>& cell_nums,
+                        int region_x,
+                        int region_y,
+                        const std::vector<int>& area);
+
  private:
   using SitesByName = std::map<std::string, odb::dbSite*>;
 

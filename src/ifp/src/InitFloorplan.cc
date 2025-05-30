@@ -38,6 +38,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <ranges>
 #include <set>
 #include <vector>
 
@@ -840,6 +841,101 @@ void InitFloorplan::makeTracksNonUniform(odb::dbTechLayer* layer,
   }
   origin_y += first_last_pitch - y_pitch;
   makeTracks(layer, x_offset, x_pitch, origin_y, cell_row_height);
+}
+
+void InitFloorplan::insertSpareCells(const char* prefix,
+                                     const std::vector<std::string>& cell_names,
+                                     const std::vector<int>& cell_nums,
+                                     int region_x_step,
+                                     int region_y_step,
+                                     const std::vector<int>& area_coor)
+{
+  auto db = block_->getDataBase();
+  
+  std::vector<dbMaster*> lib_cells;
+  lib_cells.reserve(cell_names.size());
+  for (const auto& name : cell_names) {
+    auto lib_cell = db->findMaster(name.c_str());
+    if (lib_cell == nullptr) {
+      logger_->error(IFP, 1005, "cant find {} cell", name);
+    }
+    lib_cells.push_back(lib_cell);
+  }
+  assert(lib_cells.size() == cell_nums.size());
+
+
+  Rect area = block_->getCoreArea();
+  if (area_coor.size() != 0) {
+    auto input_area = Rect(area_coor[0], area_coor[1], area_coor[2], area_coor[3]);
+    if (!area.contains(input_area)) {
+      logger_->warn(IFP, 1006, "input area {} {} {} {} is out of core area {} {} {} {}", 
+        area_coor[0], area_coor[1], area_coor[2], area_coor[3], area.xMin(), area.yMin(), area.xMax(), area.yMax());
+    }
+    area = input_area;
+  } else {
+    logger_->info(IFP, 1007, "not set area, use core_area {} {} {} {} as default", area.xMin(), area.yMin(), area.xMax(), area.yMax());
+  }
+
+  auto check_exist = [*this](const auto* check, const char* k, const char* v) {
+    if (check != nullptr) {
+      logger_->error(IFP, 1008, "{} \"{}\" already exists", k, v);
+    }
+  };
+
+  int cnt = 0;
+  Rect region_area(area.xMin(), area.yMin(), area.xMin() + region_x_step, area.yMin() + region_y_step);
+  for (int idx = 0; true; region_area.moveDelta(region_x_step, 0), idx++) {
+    if (!area.contains(region_area)) {
+      region_area.moveDelta(0, region_y_step);
+      region_area.set_xlo(area.xMin());
+      region_area.set_xhi(area.xMin() + region_x_step);
+      if (!area.contains(region_area)) {
+        break;
+      }
+    }
+    std::string _group_name = std::string(prefix) + std::to_string(idx);
+    const char* group_name = _group_name.c_str();
+    auto cur_group = block_->findGroup(group_name);
+    check_exist(cur_group, "Group", group_name);
+    cur_group = dbGroup::create(block_, group_name);
+    
+    // use same name with group
+    auto cur_region = block_->findRegion(group_name);
+    check_exist(cur_region, "Region", group_name);
+    cur_region = dbRegion::create(block_, group_name);
+
+    cur_region->addGroup(cur_group);
+
+
+    dbBox::create(cur_region, region_area.xMin(), region_area.yMin(), region_area.xMax(), region_area.yMax());
+    
+    std::string _net_name = std::string(group_name) + "_nt";
+    const char* net_name = _net_name.c_str();
+    auto cur_net = block_->findNet(net_name);
+    check_exist(cur_net, "Net", net_name);
+    cur_net = odb::dbNet::create(block_, net_name);
+
+    for (int cell_idx = 0; cell_idx < cell_names.size(); cell_idx++) {
+      for (int cell_num_idx = 0; cell_num_idx < cell_nums[cell_idx]; cell_num_idx++) {
+        std::string _inst_name = std::string(group_name) + "_" + cell_names[cell_idx] + "_gate_" + std::to_string(cell_num_idx);
+        const char* inst_name = _inst_name.c_str();
+        auto cur_inst = block_->findInst(inst_name);
+        check_exist(cur_inst, "Inst", inst_name);
+        cur_inst = dbInst::create(block_, lib_cells[cell_idx], inst_name);
+        cur_group->addInst(cur_inst);
+        
+        for (auto iterm : cur_inst->getITerms()) {
+          if (iterm->getIoType() == odb::dbIoType::INPUT) {
+            iterm->connect(cur_net);
+          }
+        }
+      }
+    }
+    cur_net->setSigType(odb::dbSigType::GROUND);
+    cnt++;
+  }
+  logger_->info(IFP, 1009, "create {} groups/regions", cnt);
+  return;
 }
 
 }  // namespace ifp

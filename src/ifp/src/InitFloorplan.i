@@ -85,6 +85,27 @@ static utl::Logger* getLogger() {
   }
 }
 
+%template(vector_xy) std::vector<int>;
+
+%typemap(in) std::vector<std::string> {
+  std::vector<std::string> args;
+  int var_size;
+  Tcl_Obj** vars_objs;
+  if (Tcl_ListObjGetElements(interp, $input, &var_size, &vars_objs) == TCL_OK) {
+    for (int i = 0; i < var_size; i++) {
+      std::string var = Tcl_GetString(vars_objs[i]);
+      args.push_back(var);
+    }
+  }
+  $1 = args;
+}
+
+%typemap(in) std::string {
+  char *cstr = Tcl_GetStringFromObj($input, 0);
+  std::string str = cstr;
+  $1 = str;
+}
+
 %inline %{
 
 namespace ifp {
@@ -166,6 +187,17 @@ odb::dbSite* find_site(ord::Design* design,
     getLogger()->error(utl::IFP, 18, "Unable to find site: {}", site_name);
   }
   return site;
+}
+
+void insert_spare_cells(ord::Design* design,
+                        const char* prefix,
+                        std::vector<std::string> cell_names,
+                        const std::vector<int>& cell_nums,
+                        int region_x,
+                        int region_y,
+                        const std::vector<int>& area)
+{
+  design->getFloorplan().insertSpareCells(prefix, cell_names, cell_nums, region_x, region_y, area);
 }
 
 } // namespace
