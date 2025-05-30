@@ -819,7 +819,7 @@ class Gui
 
   static Gui* singleton_;
 
-  std::string main_window_title_ = "OpenROAD";
+  std::string main_window_title_ = "Eden";
 };
 
 // The main entry point

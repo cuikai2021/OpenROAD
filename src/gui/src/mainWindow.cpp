@@ -390,7 +390,7 @@ MainWindow::MainWindow(bool load_settings, QWidget* parent)
 
   if (load_settings) {
     // Restore the settings (if none this is a no-op)
-    QSettings settings("OpenRoad Project", "openroad");
+    QSettings settings("Eden Project", "Eden");
     settings.beginGroup("main");
     restoreGeometry(settings.value("geometry").toByteArray());
     restoreState(settings.value("state").toByteArray());
@@ -419,7 +419,7 @@ MainWindow::MainWindow(bool load_settings, QWidget* parent)
 
   // load resources and set window icon
   loadQTResources();
-  setWindowIcon(QIcon(":/icon.png"));
+  // setWindowIcon(QIcon(":/icon.png"));
 
   Descriptor::Property::convert_dbu
       = [this](int value, bool add_units) -> std::string {
@@ -629,8 +629,8 @@ void MainWindow::createActions()
   timing_debug_ = new QAction("Timing...", this);
   timing_debug_->setShortcut(QString("Ctrl+T"));
 
-  help_ = new QAction("Help", this);
-  help_->setShortcut(QString("Ctrl+H"));
+  // help_ = new QAction("Help", this);
+  // help_->setShortcut(QString("Ctrl+H"));
 
   build_ruler_ = new QAction("Ruler", this);
   build_ruler_->setShortcut(QString("k"));
@@ -685,7 +685,7 @@ void MainWindow::createActions()
   connect(inspect_, &QAction::triggered, inspector_, &Inspector::show);
   connect(
       timing_debug_, &QAction::triggered, timing_widget_, &TimingWidget::show);
-  connect(help_, &QAction::triggered, this, &MainWindow::showHelp);
+  // connect(help_, &QAction::triggered, this, &MainWindow::showHelp);
 
   connect(build_ruler_,
           &QAction::triggered,
@@ -801,7 +801,7 @@ void MainWindow::createMenus()
   windows_menu_->addAction(clock_viewer_->toggleViewAction());
   windows_menu_->addAction(hierarchy_widget_->toggleViewAction());
   windows_menu_->addAction(charts_widget_->toggleViewAction());
-  windows_menu_->addAction(help_widget_->toggleViewAction());
+  // windows_menu_->addAction(help_widget_->toggleViewAction());
 
   auto option_menu = menuBar()->addMenu("&Options");
   option_menu->addAction(hide_option_);
@@ -812,7 +812,7 @@ void MainWindow::createMenus()
   option_menu->addAction(font_);
   option_menu->addAction(show_poly_decomp_view_);
 
-  menuBar()->addAction(help_);
+  // menuBar()->addAction(help_);
 }
 
 void MainWindow::createToolbars()
@@ -1330,7 +1330,7 @@ void MainWindow::showGotoDialog()
 
 void MainWindow::showHelp()
 {
-  const QUrl help_url("https://openroad.readthedocs.io/en/latest/");
+  const QUrl help_url("");
   if (!QDesktopServices::openUrl(help_url)) {
     // failed to open
     logger_->warn(utl::GUI,
@@ -1463,7 +1463,7 @@ void MainWindow::selectHighlightConnectedBufferTrees(bool select_flag,
 
 void MainWindow::saveSettings()
 {
-  QSettings settings("OpenRoad Project", "openroad");
+  QSettings settings("Eden Project", "Eden");
   settings.beginGroup("main");
   settings.setValue("geometry", saveGeometry());
   settings.setValue("state", saveState());

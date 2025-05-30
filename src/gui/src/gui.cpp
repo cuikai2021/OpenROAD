@@ -791,7 +791,7 @@ void Gui::selectClockviewerClock(const std::string& clock_name)
 
 static QWidget* findWidget(const std::string& name)
 {
-  if (name == "main_window" || name == "OpenROAD") {
+  if (name == "main_window" || name == "Eden") {
     return main_window;
   }
 
