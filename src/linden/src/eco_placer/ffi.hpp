@@ -3,6 +3,6 @@
 
 namespace linden {
 
-void legalize_instance_gogogo(const std::string& instance);
+void legalize_instance_gogogo(const std::string& master);
 
 } // namespace linden

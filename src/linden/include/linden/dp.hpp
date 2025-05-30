@@ -55,5 +55,7 @@ int basic_dp(::ord::OpenRoad&, const Config&);
 int incr_dp(::ord::OpenRoad&, const Config&);
 int rddp(::ord::OpenRoad&, Config&);
 int opt(::ord::OpenRoad&,const Config&);
+int legalize_spare_cell(::ord::OpenRoad&);
+int check_spare_cell(::ord::OpenRoad&);
 
 } // namespace linden::dp

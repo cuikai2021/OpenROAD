@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "db.h"
 #include "odb/dbTypes.h"
 #include "odb/geom.h"
 
@@ -44,6 +45,8 @@ struct PlaceRange
     PlaceRange() noexcept = default;
     PlaceRange(std::optional<int> x_min, std::optional<int> y_min, std::optional<int> x_max, std::optional<int> y_max)
     : x_min(x_min), y_min(y_min), x_max(x_max), y_max(y_max) {}
+    PlaceRange(const odb::Rect& rect)
+    : x_min(rect.xMin()), y_min(rect.yMin()), x_max(rect.xMax()), y_max(rect.yMax()) {}
 };
 
 struct CellPlaced
@@ -119,6 +122,10 @@ public:
      * @param master Name of the cell to be removed.
      */
     void remove_cell(const std::string_view& master);
+
+    // some interface
+    std::optional<PointPlace> find_place(std::string_view instance, const odb::Rect& rect);
+    std::optional<PointPlace> find_place(std::string_view instance, const odb::dbSet<odb::dbBox>& boxes);
 };
 
 class PlaceIterator

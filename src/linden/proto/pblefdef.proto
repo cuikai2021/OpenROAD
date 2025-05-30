@@ -42,13 +42,13 @@ message LibraryExchangeFormat {
     repeated Site sites = 10;
 
     message Layer {
+        reserved 3;
+
         bytes name = 1;
 
         oneof optional_mask {
             int64 mask = 2;
         }
-
-        repeated Property properties = 3;
 
         enum Measure {
             PEAK = 0;
@@ -144,6 +144,11 @@ message LibraryExchangeFormat {
                 }
             }
             DcCurrentDensity dc_current_density = 6;
+
+            message Lef58Spacing {
+                int64 cut_spacing = 1; // in pm
+            }
+            repeated Lef58Spacing lef58_spacing = 7;
         }
         message Routing {
             enum Direction {
@@ -256,8 +261,103 @@ message LibraryExchangeFormat {
                 }
             }
             DcCurrentDensity dc_current_density = 16;
+
+            message SpacingRule {
+                int64 min_spacing = 1; // in pm
+
+                message SecondRange {
+                    int64 min_width = 1; // in pm
+                    int64 max_width = 2; // in pm
+                }
+                message Range {
+                    int64 min_width = 1; // in pm
+                    int64 max_width = 2; // in pm
+
+                    message UseLengthThreshold {
+                    }
+                    message Influence {
+                        int64 length = 1; // in pm
+                        SecondRange second_range = 2;
+                    }
+
+                    oneof subfilter {
+                        UseLengthThreshold use_length_threshold = 3;
+                        Influence influence = 4;
+                        SecondRange second_range = 5;
+                    }
+                }
+                message LengthThreshold {
+                    int64 max_length = 1; // in pm
+                    SecondRange second_range = 2;
+                }
+                message EndOfLine {
+                    int64 eol_width = 1; // in pm
+                    int64 eol_within = 2; // in pm
+
+                    message ParallelEdge {
+                        int64 space = 1; // in pm
+                        int64 within = 2; // in pm
+                        bool two_edge = 3;
+                    }
+                    ParallelEdge parallel_edge = 3;
+                }
+                message SameNet {
+                    bool pg_only = 1;
+                }
+                message NotchLength {
+                    int64 min_length = 1; // in pm
+                }
+                message EndOfNotchWidth {
+                    int64 end_of_notch_width = 1; // in pm
+                    int64 min_notch_spacing = 2; // in pm
+                    int64 min_notch_length = 3; // in pm
+                }
+
+                oneof condition {
+                    Range range = 2;
+                    LengthThreshold length_threshold = 3;
+                    EndOfLine end_of_line = 4;
+                    SameNet same_net = 5;
+                    NotchLength notch_length = 6;
+                    EndOfNotchWidth end_of_notch_width = 7;
+                }
+            }
+            repeated SpacingRule spacing_rules = 17;
+
+            message ParallelRunLengthSpacingTable {
+                repeated int64 length_rulers = 1; // in pm
+                repeated int64 width_rulers = 2; // in pm
+                repeated int64 spacings = 3; // in pm
+            }
+            message TwoWidthsSpacingTable {
+                message WidthRuler {
+                    int64 width = 1; // in pm
+                    oneof optional_parallel_run_length {
+                        int64 parallel_run_length = 2; // in pm
+                    }
+                }
+                repeated WidthRuler width_rulers = 1;
+                repeated int64 spacings = 2; // in pm
+            }
+            oneof optional_spacing_table {
+                ParallelRunLengthSpacingTable prl = 18;
+                TwoWidthsSpacingTable two_widths = 19;
+            }
         }
-        message Implant {}
+        message Implant {
+            oneof optional_width {
+                int64 min_width = 1; // in pm
+            }
+
+            message Spacing {
+                int64 min_spacing = 1; // in pm
+
+                oneof optional_second_layer {
+                    bytes second_layer = 2;
+                }
+            }
+            repeated Spacing spacing = 2;
+        }
         oneof layer_instance {
             MasterSlice master_slice = 4;
             Overlap overlap = 5;
@@ -370,6 +470,15 @@ message LibraryExchangeFormat {
                 }
             }
             repeated Port ports = 4;
+
+            enum Shape {
+                ABUTMENT = 0;
+                RING = 1;
+                FEEDTHRU = 2;
+            }
+            oneof optional_shape {
+                Shape shape = 5;
+            }
         }
         repeated Pin pins = 13;
 
@@ -379,6 +488,40 @@ message LibraryExchangeFormat {
         Obs obs = 14;
     } // Macro
     repeated Macro macros = 12;
+
+    message ViaRuleGenerate {
+        bytes name = 1;
+        bool default = 2;
+
+        message RouteableLayerViaRule {
+            bytes layer_name = 1;
+            int64 overhang1 = 2; // in picometres
+            int64 overhang2 = 3; // in picometres
+
+            message WidthRange {
+                int64 min_width = 1; // in picometres
+                int64 max_width = 2; // in picometres
+            }
+            WidthRange width_range = 4;
+        }
+
+        RouteableLayerViaRule lower_routeable = 3;
+        RouteableLayerViaRule upper_routeable = 4;
+
+        message CutLayerViaRule {
+            bytes layer_name = 1;
+            Rect shape = 2;
+            Point spacing = 3;
+
+            oneof optional_resistance {
+                double resistance_per_cut = 4;
+            }
+        }
+        CutLayerViaRule cut = 5;
+    }
+    repeated ViaRuleGenerate via_rule_generates = 13;
+
+    repeated Via vias = 14;
 }
 
 message DesignExchangeFormat {
@@ -436,6 +579,30 @@ message DesignExchangeFormat {
             int64 bottom = 5; // in pm
         }
         Halo halo = 5;
+        repeated Property properties = 6;
+
+        oneof optional_weight {
+            int64 weight = 7;
+        }
+
+        message RouteHalo {
+            int64 halo_dist = 1; // in pm
+            bytes min_layer = 2;
+            bytes max_layer = 3;
+        }
+        RouteHalo route_halo = 8;
+
+        oneof optional_eeq {
+            bytes eeq = 9;
+        }
+
+        oneof optional_mask_shift {
+            uint64 mask_shift = 10;
+        }
+
+        oneof optional_region {
+            bytes region = 11;
+        }
     }
     repeated Component components = 8;
 
@@ -464,6 +631,12 @@ message DesignExchangeFormat {
             repeated PolygonPort polygons = 2;
 
             DesignExchangeFormat.Place place = 3;
+
+            message ViaPort {
+                bytes name = 1;
+                Point place = 2;
+            }
+            repeated ViaPort vias = 4;
         }
         repeated Port ports = 5;
 
@@ -472,7 +645,7 @@ message DesignExchangeFormat {
     repeated Pin pins = 9;
 
     message Net {
-        bytes name = 1;
+        bytes name = 1; // if it's a mustjoin net, the name is no more than a placeholder.
 
         message PinRef {
             message CellPinRef {
@@ -483,6 +656,8 @@ message DesignExchangeFormat {
                 bytes io = 1;
                 CellPinRef cell = 2;
             }
+
+            bool synthesized = 3;
         }
         repeated PinRef pins = 2;
 
@@ -506,6 +681,120 @@ message DesignExchangeFormat {
         }
 
         repeated Property properties = 6;
+
+        enum Pattern {
+            BALANCED = 0;
+            STEINER = 1;
+            TRUNK = 2;
+            WIRED_LOGIC = 3;
+        }
+        oneof optional_pattern {
+            Pattern pattern = 7;
+        }
+
+        message Wiring {
+            enum Type {
+                COVER = 0;
+                FIXED = 1;
+                ROUTED = 2;
+                NO_SHIELD = 3;
+                TAPER = 4;
+            }
+            Type type = 1;
+
+            message Segment {
+                bytes layer = 1;
+
+                message Taper {
+                }
+                message TaperRule {
+                    bytes rule_name = 1;
+                }
+                oneof optional_taper {
+                    Taper taper = 2;
+                    TaperRule taper_rule = 3;
+                }
+
+                oneof optional_style {
+                    uint64 style = 4;
+                }
+
+                message RoutePoint {
+                    message ViaCorner {
+                        bytes via_name = 1;
+                        oneof optional_mask {
+                            uint32 mask = 2;
+                        }
+                        oneof optional_orient {
+                            Orient orient = 3;
+                        }
+                    }
+                    message RectCorner {
+                        oneof optional_mask {
+                            uint32 mask = 1;
+                        }
+                        Rect relative_rect = 2;
+                    }
+                    message VirtualCorner {
+                        Point point = 1;
+                    }
+                    oneof required_corner {
+                        DesignExchangeFormat.SpecialNet.Wiring.Segmented.Segment.RoutePoint.MetalCorner metal = 1;
+                        ViaCorner via = 2;
+                        RectCorner rect = 3;
+                        VirtualCorner virtual = 4;
+                    }
+                }
+                repeated RoutePoint points = 5;
+            }
+            repeated Segment segments = 2;
+        }
+        repeated Wiring wiring = 8;
+
+        message MustJoin {
+            bytes component = 1;
+            bytes pin = 2;
+        }
+        MustJoin must_join = 9;
+
+        message ShieldNet {
+            bytes net_name = 1;
+        }
+        repeated ShieldNet shield_nets = 10;
+
+        message Vpin {
+            bytes name = 1;
+            Point point0 = 2;
+            Point point1 = 3;
+
+            oneof optional_layer {
+                bytes layer = 4;
+            }
+
+            DesignExchangeFormat.Place optional_place = 5;
+        }
+        repeated Vpin vpins = 11;
+
+        uint32 xtalk = 12;
+
+        message NonDefaultRule {
+            bytes rule_name = 1;
+        }
+        NonDefaultRule ndr = 13;
+
+        bool fixed_bump = 14;
+
+        oneof optional_frequency {
+            double frequency = 15;
+        }
+
+        oneof optional_original {
+            bytes original = 16;
+        }
+
+        oneof optional_estcap {
+            double estcap = 17;
+        }
     }
     repeated Net nets = 10;
 
@@ -526,6 +815,43 @@ message DesignExchangeFormat {
             }
         }
         repeated Placement placement = 1;
+
+        message Route {
+            bytes layer = 1;
+
+            message Slots {}
+            message Fills {}
+            oneof slotsOrFillls {
+                Slots slots = 2;
+                Fills fills = 3;
+            }
+
+            bool push_down = 4;
+            bool except_pg_net = 5;
+
+            oneof optional_component {
+                bytes component = 6;
+            }
+
+            message Spacing {
+                int64 min_spacing = 1; // in pm
+            }
+            message DesignRuleWidth {
+                int64 effective_width = 1; // in pm
+            }
+            oneof spacingOrDesignRuleWidth {
+                Spacing spacing = 7;
+                DesignRuleWidth design_rule_width = 8;
+            }
+
+            oneof optional_mask {
+                uint64 mask = 9;
+            }
+
+            repeated Rect rects = 10;
+            repeated Polygon polygons = 11;
+        }
+        repeated Route route = 2;
     }
     Blockages blockages = 11;
 
@@ -600,6 +926,189 @@ message DesignExchangeFormat {
     }
 
     repeated GCellGrid gcell_grids = 14;
+
+    message SpecialNet {
+        bytes name = 1;
+        repeated DesignExchangeFormat.Net.PinRef pins = 2;
+
+        oneof optional_voltage {
+            int64 voltage = 3; // in units of 0.001 V
+        }
+        oneof optional_source {
+            DesignExchangeFormat.Net.Source source = 4;
+        }
+        bool fixed_bump = 5;
+
+        oneof optional_original {
+            bytes original = 6;
+        }
+
+        oneof optional_use {
+            Use usage = 7;
+        }
+
+        oneof optional_pattern {
+            DesignExchangeFormat.Net.Pattern pattern = 8;
+        }
+
+        oneof optional_estimated_capacitance {
+            double estimated_capacitance = 9;
+        }
+
+        oneof optional_weight {
+            int64 weight = 10;
+        }
+
+        message Wiring {
+            message Cover {
+            }
+            message Fixed {
+            }
+            message Routed {
+            }
+            message Shield {
+                bytes shield_net_name = 1;
+            }
+
+            enum Shape {
+                RING = 0;
+                PAD_RING = 1;
+                BLOCK_RING = 2;
+                STRIPE = 3;
+                FOLLOW_PIN = 4;
+                IO_WIRE = 5;
+                CORE_WIRE = 6;
+                BLOCK_WIRE = 7;
+                BLOCKAGE_WIRE = 8;
+                FILL_WIRE = 9;
+                FILL_WIRE_OPC = 10;
+                DRC_FILL = 11;
+            }
+
+            message RawDraw {
+                oneof optional_type {
+                    Cover cover = 1;
+                    Fixed fixed = 2;
+                    Routed routed = 3;
+                    Shield shield = 4;
+                }
+
+                oneof optional_shape {
+                    Shape shape = 5;
+                }
+
+                oneof optional_mask {
+                    uint64 mask = 6;
+                }
+
+                message RectDraw {
+                    bytes layer = 1;
+                    Rect shape = 2;
+                }
+                message PolygonDraw {
+                    bytes layer = 1;
+                    Polygon shape = 2;
+                }
+                message ViaDraw {
+                    bytes via = 1;
+
+                    oneof optional_orient {
+                        Orient orient = 2;
+                    }
+
+                    repeated Point points = 3;
+                }
+                oneof required_draw {
+                    RectDraw rect = 7;
+                    PolygonDraw polygon = 8;
+                    ViaDraw via = 9;
+                }
+            }
+            message Segmented {
+                oneof required_type {
+                    Cover cover = 1;
+                    Fixed fixed = 2;
+                    Routed routed = 3;
+                    Shield shield = 4;
+                }
+
+                message Segment {
+                    bytes layer_name = 1;
+                    int64 route_width = 2; // in pm
+
+                    oneof optional_shape {
+                        Shape shape = 3;
+                    }
+
+                    oneof optional_style {
+                        int64 style = 4;
+                    }
+
+                    message RoutePoint {
+                        message MetalCorner {
+                            Point point = 1; // required
+                            oneof optional_ext_value {
+                                int64 ext_value = 2; // in pm
+                            }
+                            oneof optional_mask {
+                                int64 mask = 3;
+                            }
+                        }
+                        message ViaCorner {
+                            bytes via_name = 1;
+                            oneof optional_mask {
+                                uint32 mask = 2;
+                            }
+                            oneof optional_orient {
+                                Orient orient = 3;
+                            }
+
+                            message Array {
+                                int64 n_rows = 1;
+                                int64 n_cols = 2;
+                                Point step = 3;
+                            }
+                            oneof optional_array {
+                                Array array = 4;
+                            }
+                        }
+                        oneof metal_or_via {
+                            MetalCorner metal = 1;
+                            ViaCorner via = 2;
+                        }
+                    }
+                    repeated RoutePoint points = 5;
+                }
+                repeated Segment segments = 5;
+            }
+            oneof required_wire {
+                RawDraw raw_draw = 1;
+                Segmented segmented = 2;
+            }
+        }
+        repeated Wiring wiring = 11;
+
+        repeated Property properties = 12;
+    }
+    repeated SpecialNet special_nets = 15;
+
+    repeated Via vias = 16;
+
+    message Region {
+        bytes name = 1;
+        Rect shape = 2;
+    }
+    repeated Region regions = 17;
+
+    message Group {
+        bytes name = 1;
+        repeated bytes component_names = 2;
+        oneof optional_region_name {
+            bytes region_name = 3;
+        }
+        repeated Property properties = 4;
+    }
+    repeated Group groups = 18;
 }
 
 message Version {
@@ -776,4 +1285,55 @@ message Polygon {
 message Property {
     bytes name = 1;
     bytes value = 2;
+}
+
+message Via {
+    bytes name = 1;
+    bool default = 2;
+
+    message Fixed {
+        oneof optional_resistance {
+            double resistance = 1;
+        }
+
+        message ViaShape {
+            bytes layer_name = 1;
+            oneof optional_mask {
+                int64 mask = 2;
+            }
+            oneof rect_or_polygon {
+                Rect rect = 3;
+                Polygon polygon = 4;
+            }
+        }
+        repeated ViaShape shapes = 2;
+    }
+    message Generated {
+        bytes via_rule_name = 1;
+        Size cut_size = 2;
+        bytes lower_metal_layer = 3;
+        bytes cut_layer = 4;
+        bytes upper_metal_layer = 5;
+        Point cut_spacing = 6;
+        Point lower_enclosure = 7;
+        Point upper_enclosure = 8;
+
+        message RowCol {
+            int64 n_rows = 1;
+            int64 n_cols = 2;
+        }
+        RowCol row_col = 9;
+
+        Point origin = 10;
+
+        message Offset {
+            Point lower = 1;
+            Point upper = 2;
+        }
+        Offset offset = 11;
+    }
+    oneof fixed_or_generated {
+        Fixed fixed = 3;
+        Generated generated = 4;
+    }
 }

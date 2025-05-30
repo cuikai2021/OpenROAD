@@ -254,4 +254,14 @@ int default_config_gogogo(std::deque<std::string> args) {
     }
 }
 
+int legalize_spare_cell_gogogo() {
+    ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
+    return legalize_spare_cell(ord);
+}
+
+int check_spare_cell_gogogo() {
+    ord::OpenRoad& ord = *ord::OpenRoad::openRoad();
+    return check_spare_cell(ord);
+}
+
 } // namespace linden::dp

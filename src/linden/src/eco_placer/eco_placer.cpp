@@ -1,9 +1,12 @@
 #include "linden/eco_placer.hpp"
 
+#include <cstddef>
 #include <optional>
 
 #include "../util/lefdef_dumper.hpp"
+#include "db.h"
 #include "fassert.hpp"
+#include "geom.h"
 #include "linden/dp/lib.rs.h"
 #include "ord/OpenRoad.hh"
 
@@ -213,13 +216,13 @@ void EcoPlacer::find_vacant_places(
     }
 }
 
-std::optional<CellPlaced> EcoPlacer::get_cell(const std::string_view& master) const 
+std::optional<CellPlaced> EcoPlacer::get_cell(const std::string_view& master) const
 {
     auto res = _gs->get_cell(::rust::Str{master.data(), master.size()});
     if (res.is_none) {
         return std::nullopt;
     }
-    return CellPlaced {
+    return CellPlaced{
         convert_to_point_place(res.some.pp),
         std::string(res.some.model),
     };
@@ -239,6 +242,25 @@ void EcoPlacer::insert_cell(
 void EcoPlacer::remove_cell(const std::string_view& master)
 {
     _gs->remove_cell(::rust::Str{master.data(), master.size()});
+}
+
+std::optional<PointPlace> EcoPlacer::find_place(std::string_view instance, const odb::Rect& rect)
+{
+    odb::Point point = rect.center();
+    PlaceRange range(rect);
+    PlaceIterator pi(*this, instance, point, range);
+    return pi.next();
+}
+
+std::optional<PointPlace> EcoPlacer::find_place(std::string_view instance, const odb::dbSet<odb::dbBox>& boxes)
+{
+    for (auto box : boxes) {
+        auto res = find_place(instance, box->getBox());
+        if (res) {
+            return res;
+        }
+    }
+    return std::nullopt;
 }
 
 PlaceIterator::PlaceIterator(

@@ -148,6 +148,14 @@ int dp_default_config_gogogo(StrDeque& args) {
     return linden::dp::default_config_gogogo(std::move(args.elems_));
 }
 
+int legalize_spare_cell() {
+    return linden::dp::legalize_spare_cell_gogogo();
+}
+
+int check_spare_cell() {
+    return linden::dp::check_spare_cell_gogogo();
+}
+
 %} // lindendp
 
 
@@ -371,9 +379,9 @@ int vec_point_place_size(std::vector<const char*> places) {
 }
 
 // legalize a instance
-void legalize_instance(const std::string& instance)
+void legalize_instance(const std::string& master)
 {
-    linden::legalize_instance_gogogo(instance);
+    linden::legalize_instance_gogogo(master);
 }
 
 %} // eco_placer

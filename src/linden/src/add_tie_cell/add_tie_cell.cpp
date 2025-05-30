@@ -80,6 +80,21 @@ void read_back(const std::filesystem::path& outdef)
         cm.moveInst(inst, point, orient.getValue());
     }
 
+    for (const auto& group : def.groups()) {
+        const std::string& group_name = group.name();
+        odb::dbGroup* odb_group = block.findGroup(group_name.c_str());
+
+        for(const std::string& cell : group.component_names()) {
+            odb::dbInst* odb_inst = block.findInst(cell.c_str());
+            odb::dbGroup* inst_group = odb_inst->getGroup();
+            if (inst_group == nullptr) {
+                odb_group->addInst(odb_inst);
+            } else {
+                FASSERT(inst_group == odb_group)(inst_group->getName())(odb_group->getName());
+            }
+        }
+    }
+
     auto getStaPin = [](const ::pblefdef::DesignExchangeFormat_Net_PinRef& pin) -> std::string {
         if (pin.has_cell()) {
             return fmt::format("{}/{}", pin.cell().cell_name(), pin.cell().pin_name());

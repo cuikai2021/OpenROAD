@@ -1,6 +1,9 @@
 #include "linden/dp.hpp"
 #include "../util/lefdef_dumper.hpp"
+#include "dbTypes.h"
 #include "dp.hpp"
+#include "geom.h"
+#include "linden/eco_placer.hpp"
 #include "rsz/Resizer.hh"
 #include "lrl/CircuitModifier/CircuitModifier.hh"
 #include "lrl/Laurel.hh"
@@ -35,6 +38,7 @@ using linden::geom::Dimension;
 
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDENDP_EXE_DIR);
 IMPORT_STR_FLAG_WITH_DEFAULT(LINDEN_DP_ALGORITHM);
+IMPORT_BOOL_FLAG_WITH_DEFAULT(LINDEN_IN_REGRESSION);
 
 namespace linden::dp {
 
@@ -577,6 +581,8 @@ int64_t is_congestion_meet_expectation(const banyan::Cmap& cmap)
 } // namespace
 
 int basic_dp(::ord::OpenRoad& ord, const Config& cfg) {
+    legalize_spare_cell(ord);
+    
     const LefDefDumper dumper(ord);
     if (!cfg.suppress_output) {
         dumper.print_dumped_files(std::cout);
@@ -727,6 +733,123 @@ int opt(::ord::OpenRoad& ord, const Config& cfg) {
     int ret = exec_opt(cfg, input_cfg_fn, outdef);
     read_back(outdef, false);
     return ret;
+}
+
+static odb::Rect row_field(::ord::OpenRoad& ord) {
+    std::optional<odb::Rect> res;
+    for(auto row : ord.getDb()->getChip()->getBlock()->getRows()) { 
+        odb::Rect rect = row->getBBox();
+        if (res) {
+            res->merge(rect);
+        } else {
+            res = rect;
+        }
+    }
+
+    return res.value();
+}
+
+int legalize_spare_cell(::ord::OpenRoad& ord)
+{
+    if (LINDEN_IN_REGRESSION()) {
+        spdlog::set_pattern("%v");
+    }
+
+    odb::dbBlock* block = ord.getDb()->getChip()->getBlock();
+    lrl::NetworkModifier& cm = lrl::Laurel::getPlacementNetworkModifier();
+    lrl::STANetwork nw = cm.network;
+
+    int move_spare_cell_count = 0;
+    auto row = row_field(ord);
+    for (odb::dbGroup* group : block->getGroups()) {
+        odb::dbRegion* region = group->getRegion();
+        odb::dbSet<odb::dbBox> boxes = region->getBoundaries();
+        FASSERT(boxes.size() >= 1);
+
+        spdlog::debug("region: {}, {}", region->getName(), group->getInsts().size());
+        for (odb::dbInst* inst : group->getInsts()) {
+            auto sta_inst = nw.inst(inst);
+            spdlog::debug("  cell: {} {}", nw.name(sta_inst), inst->getPlacementStatus());
+
+            if (inst->getPlacementStatus() == odb::dbPlacementStatus::NONE
+                || inst->getPlacementStatus() == odb::dbPlacementStatus::UNPLACED) {
+                move_spare_cell_count++;
+                inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+                cm.moveInst(sta_inst, row.ll(), odb::dbOrientType::DEFAULT);
+            }
+        }
+    }
+
+    if (!move_spare_cell_count) {
+        return 0;
+    }
+
+    spdlog::info("[linden/dp] Spare Cell count: {}", move_spare_cell_count);
+    spdlog::info("[linden/dp] Group Count: {}", block->getGroups().size());
+
+    EcoPlacer ep;
+    for (odb::dbGroup* group : block->getGroups()) {
+        odb::dbRegion* region = group->getRegion();
+        odb::dbSet<odb::dbBox> boxes = region->getBoundaries();
+        spdlog::debug("Eco region: {}, {}", region->getName(), group->getInsts().size());
+
+        for (odb::dbInst* inst : group->getInsts()) {
+            auto sta_inst = nw.inst(inst);
+            auto master = nw.name(sta_inst);
+            const char* libcell = nw.name(nw.cell(sta_inst));
+            auto ret = ep.find_place(libcell, boxes);
+
+            // ep.remove_cell(master);
+            inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+            if (ret) {
+                cm.moveInst(sta_inst, ret->point, ret->orient);
+                ep.insert_cell(master, libcell, ret.value());
+            } else {
+                FASSERT(boxes.size() >= 1);
+                auto first = *boxes.begin();
+                cm.moveInst(sta_inst, first->getBox().center(), odb::dbOrientType::DEFAULT);
+            }
+        }
+    }
+
+    return 0;
+}
+
+int check_spare_cell(::ord::OpenRoad& ord)
+{
+    if (LINDEN_IN_REGRESSION()) {
+        spdlog::set_pattern("%v");
+    }
+
+    odb::dbBlock* block = ord.getDb()->getChip()->getBlock();
+
+    int out_region_cell = 0;
+    for (odb::dbGroup* group : block->getGroups()) {
+        odb::dbRegion* region = group->getRegion();
+        odb::dbSet<odb::dbBox> boxes = region->getBoundaries();
+
+        for (odb::dbInst* inst : group->getInsts()) {
+            odb::Rect rect = inst->getBBox()->getBox();
+            bool inAnyBox = false;
+
+            for (auto box : boxes) {
+                if (box->getBox().contains(rect)) {
+                    inAnyBox = true;
+                    break;
+                }
+            }
+            if (!inAnyBox) {
+                out_region_cell ++;
+            }
+        }
+    }
+
+    if (out_region_cell) {
+        spdlog::info("{} Cells are not fully contained in regions.", out_region_cell);
+        return 1;    
+    }
+    spdlog::info("All spare cells are fully contained in their corresponding regions.");
+    return 0;
 }
 
 } // namespace linden::dp
