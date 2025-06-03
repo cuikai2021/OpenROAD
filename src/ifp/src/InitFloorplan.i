@@ -195,9 +195,11 @@ void insert_spare_cells(ord::Design* design,
                         const std::vector<int>& cell_nums,
                         int region_x,
                         int region_y,
+                        int region_x_cnt,
+                        int region_y_cnt,
                         const std::vector<int>& area)
 {
-  design->getFloorplan().insertSpareCells(prefix, cell_names, cell_nums, region_x, region_y, area);
+  design->getFloorplan().insertSpareCells(prefix, cell_names, cell_nums, region_x, region_y, region_x_cnt, region_y_cnt, area);
 }
 
 } // namespace

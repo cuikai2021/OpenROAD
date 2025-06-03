@@ -848,6 +848,8 @@ void InitFloorplan::insertSpareCells(const char* prefix,
                                      const std::vector<int>& cell_nums,
                                      int region_x_step,
                                      int region_y_step,
+                                     int region_x_cnt,
+                                     int region_y_cnt,
                                      const std::vector<int>& area_coor)
 {
   auto db = block_->getDataBase();
@@ -876,65 +878,87 @@ void InitFloorplan::insertSpareCells(const char* prefix,
     logger_->info(IFP, 1007, "not set area, use core_area {} {} {} {} as default", area.xMin(), area.yMin(), area.xMax(), area.yMax());
   }
 
+  auto cal_step_cnt = [*this](int& step, int& cnt, const int xy_limit, const char* x_or_y) -> bool {
+    if (step <= 0 && cnt <= 0) {
+      logger_->error(IFP, 1011, "{} use zero value for region size and count at same time", x_or_y);
+    }
+    if (step > 0 && cnt > 0) {
+      if (cnt > xy_limit / step) {
+        logger_->info(IFP, 1012, "modify {} cnt from {} to {} since out of area", x_or_y, cnt, xy_limit / step);
+        cnt = xy_limit / step;
+        return true;
+      }
+      return false;
+    }
+    if (step > 0) {
+      cnt = xy_limit / step;
+    } else {
+      step = xy_limit / cnt;
+    }
+    return true;
+  };
+  bool step_cnt_change = false;
+  step_cnt_change = cal_step_cnt(region_x_step, region_x_cnt, area.dx(), "region x") || step_cnt_change;
+  step_cnt_change = cal_step_cnt(region_y_step, region_y_cnt, area.dy(), "region y") || step_cnt_change;
+  if (step_cnt_change) {
+    logger_->info(IFP, 1013, "use region size ({}, {}) of region count ({}, {})", region_x_step, region_y_step, region_x_cnt, region_y_cnt);
+  }
+
   auto check_exist = [*this](const auto* check, const char* k, const char* v) {
     if (check != nullptr) {
       logger_->error(IFP, 1008, "{} \"{}\" already exists", k, v);
     }
   };
 
-  int cnt = 0;
-  Rect region_area(area.xMin(), area.yMin(), area.xMin() + region_x_step, area.yMin() + region_y_step);
-  for (int idx = 0; true; region_area.moveDelta(region_x_step, 0), idx++) {
-    if (!area.contains(region_area)) {
-      region_area.moveDelta(0, region_y_step);
-      region_area.set_xlo(area.xMin());
-      region_area.set_xhi(area.xMin() + region_x_step);
-      if (!area.contains(region_area)) {
-        break;
-      }
-    }
-    std::string _group_name = std::string(prefix) + std::to_string(idx);
-    const char* group_name = _group_name.c_str();
-    auto cur_group = block_->findGroup(group_name);
-    check_exist(cur_group, "Group", group_name);
-    cur_group = dbGroup::create(block_, group_name);
-    
-    // use same name with group
-    auto cur_region = block_->findRegion(group_name);
-    check_exist(cur_region, "Region", group_name);
-    cur_region = dbRegion::create(block_, group_name);
+  int idx = 0;
+  for (int y = 0; y < region_y_cnt; y++) {
+    for (int x = 0; x < region_x_cnt; x++) {
+      Rect region_area(area.xMin() + x*region_x_step, area.yMin() + y*region_y_step,
+        area.xMin() + (x+1)*region_x_step, area.yMin() + (y+1)*region_y_step);
+      assert(area.contains(region_area));
+      std::string _group_name = std::string(prefix) + std::to_string(idx);
+      const char* group_name = _group_name.c_str();
+      auto cur_group = block_->findGroup(group_name);
+      check_exist(cur_group, "Group", group_name);
+      cur_group = dbGroup::create(block_, group_name);
+      
+      // use same name with group
+      auto cur_region = block_->findRegion(group_name);
+      check_exist(cur_region, "Region", group_name);
+      cur_region = dbRegion::create(block_, group_name);
 
-    cur_region->addGroup(cur_group);
+      cur_region->addGroup(cur_group);
 
 
-    dbBox::create(cur_region, region_area.xMin(), region_area.yMin(), region_area.xMax(), region_area.yMax());
-    
-    std::string _net_name = std::string(group_name) + "_nt";
-    const char* net_name = _net_name.c_str();
-    auto cur_net = block_->findNet(net_name);
-    check_exist(cur_net, "Net", net_name);
-    cur_net = odb::dbNet::create(block_, net_name);
+      dbBox::create(cur_region, region_area.xMin(), region_area.yMin(), region_area.xMax(), region_area.yMax());
+      
+      std::string _net_name = std::string(group_name) + "_nt";
+      const char* net_name = _net_name.c_str();
+      auto cur_net = block_->findNet(net_name);
+      check_exist(cur_net, "Net", net_name);
+      cur_net = odb::dbNet::create(block_, net_name);
 
-    for (int cell_idx = 0; cell_idx < cell_names.size(); cell_idx++) {
-      for (int cell_num_idx = 0; cell_num_idx < cell_nums[cell_idx]; cell_num_idx++) {
-        std::string _inst_name = std::string(group_name) + "_" + cell_names[cell_idx] + "_gate_" + std::to_string(cell_num_idx);
-        const char* inst_name = _inst_name.c_str();
-        auto cur_inst = block_->findInst(inst_name);
-        check_exist(cur_inst, "Inst", inst_name);
-        cur_inst = dbInst::create(block_, lib_cells[cell_idx], inst_name);
-        cur_group->addInst(cur_inst);
-        
-        for (auto iterm : cur_inst->getITerms()) {
-          if (iterm->getIoType() == odb::dbIoType::INPUT) {
-            iterm->connect(cur_net);
+      for (int cell_idx = 0; cell_idx < cell_names.size(); cell_idx++) {
+        for (int cell_num_idx = 0; cell_num_idx < cell_nums[cell_idx]; cell_num_idx++) {
+          std::string _inst_name = std::string(group_name) + "_" + cell_names[cell_idx] + "_gate_" + std::to_string(cell_num_idx);
+          const char* inst_name = _inst_name.c_str();
+          auto cur_inst = block_->findInst(inst_name);
+          check_exist(cur_inst, "Inst", inst_name);
+          cur_inst = dbInst::create(block_, lib_cells[cell_idx], inst_name);
+          cur_group->addInst(cur_inst);
+          
+          for (auto iterm : cur_inst->getITerms()) {
+            if (iterm->getIoType() == odb::dbIoType::INPUT) {
+              iterm->connect(cur_net);
+            }
           }
         }
       }
+      cur_net->setSigType(odb::dbSigType::GROUND);
+      idx++;
     }
-    cur_net->setSigType(odb::dbSigType::GROUND);
-    cnt++;
   }
-  logger_->info(IFP, 1009, "create {} groups/regions", cnt);
+  logger_->info(IFP, 1009, "create {} groups/regions", idx);
   return;
 }
 

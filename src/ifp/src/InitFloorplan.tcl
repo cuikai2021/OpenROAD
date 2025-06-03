@@ -278,11 +278,12 @@ proc insert_tiecells { args } {
 sta::define_cmd_args "insert_spare_cells" {[-prefix prefix ]\
                                         [-num_cells {} ]\
                                         [-region_size {x y} ]\
+                                        [-region_count {x_cnt y_cnt} ]\
                                         [-area {lx ly ux uy} ]}
 
 proc insert_spare_cells { args } {
   sta::parse_key_args "insert_spare_cells" args \
-    keys {-prefix -num_cells -region_size -area} \
+    keys {-prefix -num_cells -region_size -region_count -area} \
     flags {}
 
   sta::check_argc_eq0 "insert_spare_cells" $args
@@ -313,10 +314,13 @@ proc insert_spare_cells { args } {
     utl::error "IFP" 1001 "no -num_cells {cell_name cell_num ...}"
   }
   
-  set region_x 0
-  set region_y 0
+  set region_arg 0
+  
+  set region_x -1
+  set region_y -1
   if { [info exists keys(-region_size)] } {
     set region_size $keys(-region_size)
+    incr region_arg
     if { [llength $region_size] == 2 } {
       lassign $region_size region_x region_y
       sta::check_positive_float "-region_size" $region_x
@@ -326,8 +330,24 @@ proc insert_spare_cells { args } {
     } else {
       utl::error "IFP" 1002 "region_size is {x(micron) y(micron)}"
     }
-  } else {
-    utl::error "IFP" 1003 "no -region_size {x(micron) y(micron)}"
+  }
+
+  set region_x_cnt -1
+  set region_y_cnt -1
+  if { [info exists keys(-region_count)] } {
+    incr region_arg
+    set region_count $keys(-region_count)
+    if { [llength $region_count] == 2 } {
+    lassign $region_count region_x_cnt region_y_cnt
+    sta::check_positive_integer "-region_count" $region_x_cnt
+    sta::check_positive_integer "-region_count" $region_y_cnt
+    } else {
+      utl::error "IFP" 1010 "region_count is {x_cnt y_cnt}"
+    }
+  }
+
+  if { $region_arg == 0 } {
+    utl::error "IFP" 1003 "no -region_size {x(micron) y(micron)} or -region_count {x_cnt y_cnt}"
   }
 
   set area {}
@@ -343,7 +363,7 @@ proc insert_spare_cells { args } {
     }
   }
 
-  ifp::insert_spare_cells $prefix $cell_names $cell_nums $region_x $region_y $area
+  ifp::insert_spare_cells $prefix $cell_names $cell_nums $region_x $region_y $region_x_cnt $region_y_cnt $area
 }
 
 namespace eval ifp {

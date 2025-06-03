@@ -115,6 +115,8 @@ class InitFloorplan
                         const std::vector<int>& cell_nums,
                         int region_x,
                         int region_y,
+                        int region_x_cnt,
+                        int region_y_cnt,
                         const std::vector<int>& area);
 
  private:
