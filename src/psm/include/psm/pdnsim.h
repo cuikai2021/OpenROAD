@@ -145,7 +145,7 @@ class PDNSim : public odb::dbBlockCallBackObj
   // Functions of decap cells
   void addDecapMaster(dbMaster* decap_master, double decap_cap);
   void insertDecapCells(double target, const char* net_name);
-  void insertDecapCellsWithTargets(const char* targets, const char* net_name);
+  void insertDecapCellsWithTargets(const char* targets, const char* net_name, size_t x_step, size_t y_step);
 
  private:
   // Functions of decap cells

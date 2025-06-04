@@ -190,7 +190,7 @@ void Opendp::insertDecapCells(const double target, IRDropByPoint& psm_ir_drops)
                 total_cap);
 }
 
-void Opendp::insertDecapCells(LocationCapacitanceMap const& locations) {
+void Opendp::insertDecapCells(LocationCapacitanceMap const& locations, size_t x_step, size_t y_step) {
   // init dpl variables
   if (cells_.empty()) {
     importDb();
@@ -212,25 +212,31 @@ void Opendp::insertDecapCells(LocationCapacitanceMap const& locations) {
     auto cur_cnt = decap_count_;
     double total_cap = 0.0;
     // Find gaps in same row
-    auto it_gapY = gaps_.find(DbuY(loc.getY()));
     auto dub_y = DbuY(loc.getY());
     auto dub_x = DbuX(loc.getX());
+    auto it_gapY = gaps_.lower_bound(dub_y);
     if (it_gapY != gaps_.end()) {
-      // Find and insert decap in this row
-      insertDecapInRow(it_gapY->second, it_gapY->first, dub_x, dub_y, total_cap, target);
+      insertDecapInRow(it_gapY->second, it_gapY->first, dub_x, dub_y, total_cap, target, x_step);
     }
+    
+    auto inc_it_gapY = it_gapY;
+    auto dec_it_gapY = it_gapY;
 
-    // if row is not first, then get lower row
-    auto pre_it_gapY = it_gapY;
-    if (pre_it_gapY != gaps_.begin()) {
-      pre_it_gapY--;
-      // verify if row + height >= ypoint
-      if (pre_it_gapY->first + (*(pre_it_gapY->second).begin())->height <= dub_y) {
-        insertDecapInRow(pre_it_gapY->second, pre_it_gapY->first, dub_x, dub_y, total_cap, target);
+    for (int i = 0; i < y_step; i++) {
+      if (inc_it_gapY != gaps_.end()) {
+        inc_it_gapY++;
+        if (inc_it_gapY != gaps_.end()) { 
+          insertDecapInRow(inc_it_gapY->second, inc_it_gapY->first, dub_x, dub_y, total_cap, target, x_step);
+        }
+      }
+      if (dec_it_gapY != gaps_.begin()) {
+        dec_it_gapY--;
+        insertDecapInRow(dec_it_gapY->second, dec_it_gapY->first, dub_x, dub_y, total_cap, target, x_step);
       }
     }
+
     auto aft_cnt = decap_count_;
-    logger_->info(DPL, 58, "Placed {} decap cells near ({} ,{}), Total capacitance: {:6.6e} f;  Target capcitance {:6.6e} f", 
+    logger_->info(DPL, 58, "Placed {} decap cells near ({}, {}), Total capacitance: {:6.6e} f;  Target capcitance {:6.6e} f", 
                   aft_cnt - cur_cnt, loc.x(), loc.y(), total_cap, target);
   }
 }
@@ -240,18 +246,18 @@ void Opendp::insertDecapInRow(const vector<GapInfo*>& gaps,
                               const DbuX irdrop_x,
                               const DbuY irdrop_y,
                               double& total,
-                              const double& target)
+                              const double& target,
+                              size_t const& x_step)
 {
   // Find gap in same row and x near the ir drop
   auto find_gap = std::lower_bound(
-      gaps.begin(),
-      gaps.end(),
-      irdrop_x,
-      [](const GapInfo* elem, const DbuX& value) { return elem->x < value; });
-  // if this row has free gap with x <= xpoint <= x + width
-  if (find_gap != gaps.end()
-      && ((*find_gap)->x + (*find_gap)->width) >= irdrop_x
-      && !(*find_gap)->is_filled) {
+    gaps.begin(),
+    gaps.end(),
+    irdrop_x,
+    [](const GapInfo* elem, const DbuX& value) { return elem->x < value; });
+
+  auto tryInsertDecapInGap = [this, &total, &target, &gap_y, &gaps] (auto find_gap) {
+    if (find_gap == gaps.end() || (*find_gap)->is_filled) return;
     auto ids = findDecapCellIndices((*find_gap)->width, total, target);
     if (!ids.empty()) {
       gaps_[gap_y][find_gap - gaps.begin()]->is_filled = true;
@@ -264,6 +270,21 @@ void Opendp::insertDecapInRow(const vector<GapInfo*>& gaps,
       gap_x += decap_masters_[it_decap]->master->getWidth();
       total += decap_masters_[it_decap]->capacitance;
       decap_count_++;
+    }
+  };
+
+  tryInsertDecapInGap(find_gap);
+
+  auto inc_gap = find_gap;
+  auto dec_gap = find_gap;
+  for (int i = 0; i < x_step; i++) {
+    if (inc_gap < gaps.end()) {
+      inc_gap++;
+      tryInsertDecapInGap(inc_gap);
+    }
+    if (dec_gap != gaps.begin()) {
+      dec_gap--;
+      tryInsertDecapInGap(dec_gap);
     }
   }
 }

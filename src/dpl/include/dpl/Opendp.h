@@ -164,7 +164,7 @@ class Opendp
   // Place decap cells
   void addDecapMaster(dbMaster* decap_master, double decap_cap);
   void insertDecapCells(double target, IRDropByPoint& psm_ir_drops);
-  void insertDecapCells(LocationCapacitanceMap const& locations);
+  void insertDecapCells(LocationCapacitanceMap const& location, size_t x_step, size_t y_step);
 
   // Get the instance adjacent to the left or right of a given instance
   dbInst* getAdjacentInstance(dbInst* inst, bool left) const;
@@ -343,7 +343,8 @@ class Opendp
                         DbuX irdrop_x,
                         DbuY irdrop_y,
                         double& total,
-                        const double& target);
+                        const double& target,
+                        size_t const& x_step  = 1);
   void findGaps();
   void findGapsInRow(GridY row, DbuY row_height);
   void mapToVectorIRDrops(IRDropByPoint& psm_ir_drops,

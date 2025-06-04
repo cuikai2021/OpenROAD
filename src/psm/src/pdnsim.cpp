@@ -353,6 +353,9 @@ void PDNSim::insertDecapCells(double target, const char* net_name)
 }
 
 PDNSim::LocationCapacitanceMap PDNSim::parseLocationCaps(const char* targets) {
+  auto micronToDBU = [&](double x) {
+    return x * sta_->db()->getTech()->getDbUnitsPerMicron();
+  };
   std::string to_fix_str = targets;
   LocationCapacitanceMap location_caps;
   to_fix_str.erase(std::remove_if(to_fix_str.begin(), to_fix_str.end(), [] (char c) { return std::isspace(c);}), to_fix_str.end());
@@ -360,7 +363,7 @@ PDNSim::LocationCapacitanceMap PDNSim::parseLocationCaps(const char* targets) {
   bool parsed_failed = false;
   while (!iss.eof()) {
     char comma, right_paren, left_paren;
-    int x, y;
+    double x, y;
     double cap;
 
     iss >> left_paren;
@@ -375,16 +378,16 @@ PDNSim::LocationCapacitanceMap PDNSim::parseLocationCaps(const char* targets) {
     if (right_paren != ')' || iss.eof())  { parsed_failed = true; break; }
     iss >> cap;
     cap = sta_->units()->capacitanceUnit()->userToSta(cap);
-    location_caps.emplace(odb::Point{x, y}, cap);
+    location_caps.emplace(odb::Point{static_cast<int>(micronToDBU(x)), static_cast<int>(micronToDBU(y))}, cap);
   }
   if (parsed_failed) 
     logger_->error(utl::PSM, 95, "insert_decap Convert '-targets' failed please follow format : \"{} (x0, y0) target_cap0 (x1, y1) target_cap1 {}\".", '{', '}');
   return location_caps;
 }
 
-void PDNSim::insertDecapCellsWithTargets(const char* targets, const char* net_name) {
+void PDNSim::insertDecapCellsWithTargets(const char* targets, const char* net_name, size_t x_step, size_t y_step) {
   // odb::dbNet* db_net = findPowerNet(net_name);
-  opendp_->insertDecapCells(parseLocationCaps(targets));
+  opendp_->insertDecapCells(parseLocationCaps(targets), x_step, y_step);
 }
 
 }  // namespace psm

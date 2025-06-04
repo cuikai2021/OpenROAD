@@ -179,10 +179,12 @@ if 0 {
 sta::define_cmd_args "insert_decap" { -targets location_cap_pairs\
                                       -cells cell_info\
                                       [-net net_name]\
+                                      [-h x_step]\
+                                      [-v y_step]\
                                     }
 proc insert_decap { args } {
   sta::parse_key_args "insert_decap" args \
-    keys {-targets -cells -net} flags {}
+    keys {-targets -cells -net -h -v} flags {}
 
   # Check even size
   set cells_and_decap $keys(-cells)
@@ -224,8 +226,17 @@ proc insert_decap { args } {
     set targets $keys(-targets)
   }
 
+  set x_step 1
+  if { [info exist keys(-h)] } {
+    set x_step $keys(-h)
+  }
+  set y_step 1
+  if { [info exist keys(-v)] } {
+    set y_step $keys(-v)
+  }
+
   # Insert decap cells
-  psm::insert_decap_cmd $targets $net_name
+  psm::insert_decap_cmd $targets $net_name $x_step $y_step
 }
 
 

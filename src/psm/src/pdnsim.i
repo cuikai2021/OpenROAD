@@ -99,10 +99,10 @@ insert_decap_cmd(const float target, const char* net_name)
 }
 
 void
-insert_decap_cmd(const char* target, const char* net_name)
+insert_decap_cmd(const char* target, const char* net_name, size_t x_step,size_t y_step)
 {
   PDNSim* pdnsim = getPDNSim();
-  pdnsim->insertDecapCellsWithTargets(target, net_name);
+  pdnsim->insertDecapCellsWithTargets(target, net_name, x_step, y_step);
 }
 
 
