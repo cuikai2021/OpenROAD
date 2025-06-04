@@ -47,9 +47,11 @@ proc banyan_load_def { deffile } {
   banyan::loadDef $deffile
 }
 
-sta::define_cmd_args "banyan_optimize_congestion" { max_layer }
-proc banyan_optimize_congestion { max_layer } {
+sta::define_cmd_args "banyan_optimize_congestion" { min_layer max_layer }
+proc banyan_optimize_congestion { min_layer max_layer } {
   banyan::optimizeCongestion $max_layer
+  write_def /tmp/after_rddp.def
+  linden_incremental_legalize --min-layer $min_layer --max-layer $max_layer --baseline /tmp/after_rddp.def
 }
 
 sta::define_cmd_args "banyan_incremental_route_begin" { [-max_layer layer] [-work_dir out_path] [-init_db db] }
