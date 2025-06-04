@@ -552,11 +552,10 @@ void Banyan::loadRoutingCongestion(std::string path)
   ord::OpenRoad::openRoad()->getGlobalRouter()->updateHeatmap();
 }
 
-bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::shared_ptr<lrl::AutoRecordModifier>& modifier, const linden::EcoPlacer& eco_placer, utl::Logger* logger) {
+bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::shared_ptr<lrl::AutoRecordModifier>& modifier, utl::Logger* logger) {
   FASSERT(network.dbType(iterm) == odb::dbITermObj);
   using lrl::Pin;
   using lrl::Net;
-  auto dbnw = network->getDbNetwork();
   Pin* p = network.dbConvert<Pin>(iterm);
   struct GETBUFFER : public rsz::Resizer {
     using rsz::Resizer::findBuffers;
@@ -573,53 +572,58 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
   });
   sta::LibertyCell* buffer = geter->buffer_cells_[0];
   Net* n = network.net(p);
-  Pin* driver;
+  
+  std::vector<Pin*> pins;
+  Pin* driver = nullptr;
   auto piter = network.connectedPinIterator(n);
   while (piter->hasNext()) {
-    auto next = piter->next();
-    if (network->network()->isDriver(next)) {
-      driver = next;
-      break;
+    auto pin = piter->next();
+    pins.push_back(pin);
+    if (network->network()->isDriver(pin)) {
+      driver = pin;
     }
   }
   delete piter;
+
   if (driver == nullptr) {
     logger->info(utl::BY, 15, "Cannot find driver on net {}", network.name(n));
     return false;
   }
   auto driver_loc = network.location(driver);
   // TODO: Insert buffers based on antenna rule calculations rather than brute-force placement on the farthest pin.
-  Pin* farthest;
-  auto dist = odb::Point::manhattanDistance(driver_loc, driver_loc);
-  piter = network.connectedPinIterator(n);
-  while (piter->hasNext()) {
-    auto next = piter->next();
-    if (next != driver) {
-      auto pin_loc = network.location(next);
-      if (farthest == nullptr || odb::Point::manhattanDistance(driver_loc, pin_loc) > dist) {
-        farthest = next;
-        dist = odb::Point::manhattanDistance(driver_loc, pin_loc);
+  int64_t farthest_dist = odb::Point::manhattanDistance(driver_loc, driver_loc);
+  for (auto& pin : pins) {
+    if (pin != driver) {
+      auto pin_loc = network.location(pin);
+      auto pin_dist = odb::Point::manhattanDistance(driver_loc, pin_loc);
+      if (pin_dist > farthest_dist) {
+        farthest_dist = pin_dist;
       }
     }
   }
-  delete piter;
-  auto farthest_loc = network.location(farthest);
-  
-  bool is_driver = dbnw->isDriver(p);
-  if (is_driver) {
-    logger->info(utl::BY, 16, "Antenna-violated pin {} is the driver of net {}, cannot insert buffer on it.", network.name(p),network.name(n));
-    return false;
+  auto threshold = farthest_dist / 2;
+  bool inserted = false;
+  for (auto& pin : pins) {
+    if (pin != driver) {
+      auto pin_loc = network.location(pin);
+      auto pin_dist = odb::Point::manhattanDistance(driver_loc, pin_loc);
+      if (pin_dist >= threshold) {
+        odb::Point center(
+          (driver_loc.x()+pin_loc.x())/2,
+          (driver_loc.y()+pin_loc.y())/2);
+        // TODO: Reuse one EcoPlacer instance with modification tracking to avoid repeated reconstruction.
+        linden::EcoPlacer eco_placer;
+        auto place_iter = linden::PlaceIterator(eco_placer, buffer->name(), center);
+        auto valid_loc = place_iter.next();
+        if (!valid_loc.has_value()) {
+          continue;
+        }
+        modifier->insertRepeator(buffer, valid_loc.value().point, n, {pin}, valid_loc.value().orient.getValue());
+        inserted = true;
+      }
+    }
   }
-  odb::Point center(
-    (driver_loc.x()+farthest_loc.x())/2,
-    (driver_loc.y()+farthest_loc.y())/2);
-  auto place_iter = linden::PlaceIterator(eco_placer, buffer->name(), center);
-  auto valid_loc = place_iter.next();
-  if (!valid_loc.has_value()) {
-    return false;
-  }
-  modifier->insertRepeator(buffer, valid_loc.value().point, n, {farthest}, valid_loc.value().orient.getValue());
-  return true;
+  return inserted;
 }
 
 void Banyan::incrRoute(
@@ -741,9 +745,8 @@ int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,
           }
         }
       }
-      linden::EcoPlacer eco_placer;
       for (auto& gate : pins) {
-        if (!sepratePin(gate, lrlnw, modifier, eco_placer, logger_)) {
+        if (!sepratePin(gate, lrlnw, modifier, logger_)) {
           logger_->info(utl::BY,12,"Can't insert buffer for pin {}",gate->getName());
         } else {
           logger_->info(utl::BY,13,"Insert buffer for pin {}",gate->getName());
