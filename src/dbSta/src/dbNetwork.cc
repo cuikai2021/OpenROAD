@@ -3268,6 +3268,7 @@ void PinModuleConnection::operator()(const Pin* pin)
   }
 }
 
+#if 0
 bool dbNetwork::ConnectionToModuleExists(dbITerm* source_pin,
                                          dbModule* dest_module,
                                          dbModBTerm*& dest_modbterm,
@@ -3285,7 +3286,67 @@ bool dbNetwork::ConnectionToModuleExists(dbITerm* source_pin,
   }
   return false;
 }
+#else
 
+bool dbNetwork::ConnectionToModuleExists(dbITerm* source_pin,
+                                         dbModule* dest_module,
+                                         dbModBTerm*& dest_modbterm,
+                                         dbModITerm*& dest_moditerm)
+{
+  // Assert that we are always under legal struct, which means, 
+  // we can always assume equivlent between flat and hier.
+  // auto db_net = source_pin->getNet();
+  auto mod_net = source_pin->getModNet();
+
+  // Begin search
+  NetSet searched_net(network_);
+  PinModuleConnection visitor(this, dbToSta(source_pin), dest_module);
+
+  std::function<void(dbModNet*, PinVisitor&, NetSet&)>
+    search_modules = [this, &search_modules](dbModNet* mod_net, PinVisitor& visitor, NetSet& searched) {
+    if (mod_net == nullptr) {
+      return ;
+    }
+    if (searched.hasKey(dbToSta(mod_net))) {
+      return ;
+    }
+    searched.insert(dbToSta(mod_net));
+    auto mod_iterms = mod_net->getModITerms();
+    auto mod_bterms = mod_net->getModBTerms();
+    for (auto miterm : mod_iterms) {
+      // visit and search down
+      visitor(dbToSta(miterm));
+      auto child_mbterm = miterm->getChildModBTerm();
+      if (child_mbterm && child_mbterm->getModNet()) {
+        search_modules(child_mbterm->getModNet(), visitor, searched);
+      }
+    }
+    for (auto mbterm : mod_bterms) {
+      // visit and search up
+      visitor(dbToStaPin(mbterm));
+      auto parent_miterm = mbterm->getParentModITerm();
+      if (parent_miterm && parent_miterm->getModNet()) {
+        search_modules(parent_miterm->getModNet(), visitor, searched);
+      }
+    }
+  };
+
+  search_modules(mod_net, visitor, searched_net);
+
+
+  // network_->visitConnectedPins(dbToSta(source_pin), visitor);
+  
+  if (visitor.dest_modbterm_ != nullptr) {
+    dest_modbterm = visitor.dest_modbterm_;
+    return true;
+  }
+  if (visitor.dest_moditerm_ != nullptr) {
+    dest_moditerm = visitor.dest_moditerm_;
+    return true;
+  }
+  return false;
+}
+#endif
 /*
 Connect any two leaf instance pins anywhere in hierarchy
 adding pins/nets/ports on the hierarchical objects
