@@ -618,7 +618,7 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
   if (!valid_loc.has_value()) {
     return false;
   }
-  modifier->insertRepeator(buffer, valid_loc.value().point, n, {farthest});
+  modifier->insertRepeator(buffer, valid_loc.value().point, n, {farthest}, valid_loc.value().orient.getValue());
   return true;
 }
 
