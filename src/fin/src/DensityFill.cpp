@@ -82,6 +82,19 @@ static Polygon90 makeRect(int x_lo, int y_lo, int x_hi, int y_hi)
   return poly;
 }
 
+// Make a boost polygon representing a polygon
+static Polygon90 makePolygon90(const std::vector<Point>& odb_pts)
+{
+  using Pt = Polygon90::point_type;
+  std::vector<Pt> pts(odb_pts.size());
+  for (int i = 0; i < odb_pts.size(); i++) {
+    pts[i] = Pt(odb_pts[i].getX(), odb_pts[i].getY());
+  }
+  Polygon90 poly;
+  poly.set(pts.begin(), pts.end());
+  return poly;
+}
+
 static double getValue(pt::ptree& tree)
 {
   return boost::lexical_cast<double>(tree.data());
@@ -303,6 +316,26 @@ static Polygon90Set orNonFills(dbBlock* block, dbTechLayer* layer)
     }
   }
 
+  // Get shapes from iopins
+  for (auto bterm : block->getBTerms()) {
+    for (auto bpin : bterm->getBPins()) {
+      for (auto box : bpin->getBoxes()) {
+        if (box->getTechLayer() == layer) {
+          non_fill.insert(makeRect(box->xMin(), box->yMin(), box->xMax(), box->yMax()));
+        }
+      }
+    }
+  }
+
+  // Get shapes from BLOCKAGES, share same spacing with wire & inst metal
+  for (auto fill_block : block->getObstructions()) {
+    auto bbox = fill_block->getBBox();
+    if (bbox->getTechLayer() == layer) {
+      auto box = bbox->getBox();
+      non_fill.insert(makeRect(box.xMin(), box.yMin(), box.xMax(), box.yMax()));
+    }
+  }
+
   return non_fill;
 }
 
@@ -452,10 +485,21 @@ void DensityFill::fillLayer(dbBlock* block,
 
   Polygon90Set non_fill = orNonFills(block, layer);
 
-  auto fill_bounds = makeRect(fill_bounds_rect.xMin(),
+  Polygon90Set fill_bounds;
+  fill_bounds.insert(makeRect(fill_bounds_rect.xMin(),
                               fill_bounds_rect.yMin(),
                               fill_bounds_rect.xMax(),
-                              fill_bounds_rect.yMax());
+                              fill_bounds_rect.yMax()));
+
+  auto die_rect = block->getDieArea();
+  auto die_polygon_pts = block->getPolygonDieArea();
+  auto die_polygon = die_polygon_pts.empty() ?
+                              makeRect(die_rect.xMin(),
+                              die_rect.yMin(),
+                              die_rect.xMax(),
+                              die_rect.yMax()) :
+                              makePolygon90(die_polygon_pts);
+  fill_bounds = die_polygon & fill_bounds;
 
   const DensityFillLayerConfig& cfg = layers_[layer];
 
