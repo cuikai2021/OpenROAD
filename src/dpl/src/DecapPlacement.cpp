@@ -193,9 +193,13 @@ void Opendp::insertDecapCells(const double target, IRDropByPoint& psm_ir_drops)
 
 void Opendp::insertDecapCells(LocationCapacitanceMap const& locations, size_t x_step, size_t y_step) {
   // init dpl variables
+#if 0
   if (cells_.empty()) {
     importDb();
   }
+#else
+  importDb();
+#endif
 
   decap_count_ = 0;
   initGrid();
@@ -207,6 +211,7 @@ void Opendp::insertDecapCells(LocationCapacitanceMap const& locations, size_t x_
   }
 
   // Sort Decap cells and Gaps
+  gaps_.clear();
   prepareDecapAndGaps();
 
   for (auto [loc, target] : locations) {
@@ -298,7 +303,7 @@ void Opendp::insertDecapInPos(dbMaster* master,
   lrl::timeline::History history;
   lrl::STANetwork network(ord::OpenRoad::openRoad());
   auto modi = history.modifier(network);
-  string inst_name = "DECAP_" + to_string(decap_count_);
+  string inst_name = "DECAP";
   auto db_network = network->getDbNetwork();
   auto master_name = master->getName();
   auto lib_cell = db_network->findLibertyCell(master_name.c_str());
