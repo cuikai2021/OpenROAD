@@ -11,9 +11,20 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/util/message_differencer.h>
 
+#include <boost/geometry.hpp>
+#include <boost/geometry/index/rtree.hpp>
+#include <boost/iterator/function_output_iterator.hpp>
+
 #include "banyan_db.pb.h"
+#include "odb/dbTypes.h"
+#include "odb/geom.h"
 #include "ord/OpenRoad.hh"
 #include "odb/db.h"
+
+
+namespace bg = boost::geometry;
+namespace bgi = boost::geometry::index;
+
 
 namespace odb {
 class dbDatabase;
@@ -36,6 +47,14 @@ class BanyanIncrRoute;
 }
 
 namespace banyan {
+
+using coord_type = int;
+using coord_sys_type = bg::cs::cartesian;
+using point = bg::model::point<coord_type, 2, coord_sys_type>;
+using box = bg::model::box<point>;
+using value = std::pair<box, int>;
+using r_tree = bgi::rtree<value, bgi::quadratic<8, 4>>;
+
 using byvia = std::tuple<int, int, std::string>;
 constexpr int DEFAULT_WIRE_EXT = -1;
 

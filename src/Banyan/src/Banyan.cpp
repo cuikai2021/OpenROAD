@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <optional>
 #include <sstream>
 #include <spdlog/spdlog.h>
@@ -10,10 +11,13 @@
 #include <string>
 #include <string_view>
 #include <unordered_set>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "banyan_db.pb.h"
 #include "BanyanIncrRoute.hpp"
+#include "odb/dbShape.h"
 #include "odb/dbTypes.h"
 #include "fassert.hpp"
 #include "odb/geom.h"
@@ -31,12 +35,15 @@
 #include "ord/Timing.h"
 #include "rsz/Resizer.hh"
 #include "sta/Liberty.hh"
+#include "sta/NetworkClass.hh"
 #include "sta/StaMain.hh"
 #include "lrl/Laurel.hh"
 #include "utl/Logger.h"
 #include "envflag/envflag.hpp"
 #include "congestion_optimizer.hpp"
 #include "grt/GlobalRouter.h"
+#include "Polygon.hh"
+
 
 IMPORT_BOOL_FLAG_WITH_DEFAULT(BANYAN_SUPPRESS_EXE_LOG);
 IMPORT_STR_FLAG_WITH_DEFAULT(DEBLAIS_ROOT_DIR);
@@ -510,6 +517,131 @@ void Banyan::loaddef(std::string deffile)
   odb::defin(db_, logger_).replaceWires(blk, deffile.c_str());
 }
 
+boostPolygon rectToPolygon(const odb::Rect& rect)
+{
+  std::vector<boostPoint> points{{gtl::construct<boostPoint>(rect.xMin(), rect.yMin()),
+                             gtl::construct<boostPoint>(rect.xMin(), rect.yMax()),
+                             gtl::construct<boostPoint>(rect.xMax(), rect.yMax()),
+                             gtl::construct<boostPoint>(rect.xMax(), rect.yMin())}};
+  boostPolygon pol;
+  gtl::set_points(pol, points.begin(), points.end());
+  return pol;
+}
+
+void load_fixed_instance(r_tree& fixed_insts,odb::dbBlock* block_, odb::Rect diode_box) {
+  int fixed_inst_id = 0;
+  for (odb::dbInst* inst : block_->getInsts()) {
+    odb::dbPlacementStatus status = inst->getPlacementStatus();
+    if (status == odb::dbPlacementStatus::FIRM
+        || status == odb::dbPlacementStatus::LOCKED) {
+      odb::dbBox* instBox = inst->getBBox();
+      box b(point(instBox->xMin(), instBox->yMin()),
+            point(instBox->xMax(), instBox->yMax()));
+      value v(b, fixed_inst_id);
+      fixed_insts.insert(v);
+      fixed_inst_id++;
+    }
+  }
+  // placement blockage
+  for(auto plb:block_->getBlockages()) {
+    auto blockage = plb->getBBox();
+
+    box b(point(blockage->xMin(), blockage->yMin()),
+            point(blockage->xMax(), blockage->yMax()));
+    value v(b,fixed_inst_id);
+    fixed_insts.insert(v);
+    fixed_inst_id++;
+  }
+  // M2 Routing Blockage
+  auto m2 = block_->getTech()->findRoutingLayer(2);
+
+  for(auto obs:block_->getObstructions()) {
+    auto bbox =obs->getBBox();
+    auto layer = bbox->getTechLayer();
+    auto max_sp = layer->getSpacing(bbox->getWidth(),bbox->getLength());
+    if(layer->getRoutingLevel() != 2) { 
+      continue;
+    }
+    if(bbox->getBox().dx() <= diode_box.dx() ||
+     bbox->getBox().dx() <=   diode_box.dy() || 
+     bbox->getBox().dy() <=   diode_box.dx() ||
+     bbox->getBox().dy() <=   diode_box.dy()) {
+      continue ;
+    }
+    box b(point(bbox->xMin()-max_sp, bbox->yMin()-max_sp),
+          point(bbox->xMax()+max_sp, bbox->yMax()+max_sp));
+    fixed_insts.insert(value(b,fixed_inst_id));
+    fixed_inst_id++;   
+  }
+	boost::polygon::polygon_90_set_data<int> ps;
+	for(auto net:block_->getNets()) {
+		if( !net->isSpecial()) {
+			continue;
+		}
+		auto wires = net->getSWires();
+		odb::dbShape shape; 
+		odb::dbWireShapeItr shapes_it;
+		std::vector<odb::dbShape> via_boxes;
+		for (auto swire:wires) {
+			if (swire->getWireType() != odb::dbWireType::ROUTED) {
+				continue;
+			}
+			for(auto wire:swire->getWires()) {
+				auto layer = wire->getTechLayer();
+				auto wire_rect = wire->getBox();
+				if(wire->isVia()){
+					// Get three polygon upper_cut - via - lower_cut
+					wire->getViaBoxes(via_boxes);
+					for (const odb::dbShape& box : via_boxes) {
+						layer = box.getTechLayer();
+						if (layer->getRoutingLevel() == 2) {
+						odb::Rect via_rect = box.getBox();
+						auto via_pol = rectToPolygon(via_rect);
+						ps.insert(via_pol);
+						}
+				}
+				} else {
+					if(layer->getRoutingLevel() != 2) {
+						continue;
+					}
+					// polygon set is used to join polygon on same layer with intersection
+					boostPolygon wire_pol = rectToPolygon(wire_rect);
+					ps.insert(wire_pol);
+				}
+			}
+		}
+	
+    std::vector<boost::polygon::rectangle_data<int>> rects;
+    boost::polygon::get_max_rectangles(rects,ps);
+    for (auto rect:rects) {
+      auto hivl =  rect.get(boost::polygon::HORIZONTAL);
+      auto vivl = rect.get(boost::polygon::VERTICAL);
+      auto hdet = hivl.high() - hivl.low();
+      auto vdet = vivl.high() - vivl.low();
+    if(hdet <= diode_box.dx() ||
+      hdet <=  diode_box.dy() || 
+      vdet <= diode_box.dx() ||
+      vdet <=  diode_box.dy()) {
+        continue ;
+      }
+      auto width = hdet < vdet?hdet:vdet;
+      auto length = vdet < hdet?hdet:vdet;
+      auto sp = m2->getSpacing(width,length);
+      box b(point(hivl.low() - sp,vivl.low() - sp),
+        point(hivl.high() +sp,vivl.high() + sp));
+      fixed_insts.insert(value(b,fixed_inst_id));
+      fixed_inst_id++;
+    }
+  }
+}
+bool has_over_lap(odb::dbBlock* block_,odb::Rect rect,r_tree& fixed_insts) {
+  const odb::Rect& core_area = block_->getCoreArea();
+  box box(point(rect.xMin(),rect.yMin()),point(rect.xMax(),rect.yMax()));
+  std::vector<value> overlap_insts;
+  fixed_insts.query(bgi::intersects(box), std::back_inserter(overlap_insts));
+  return !overlap_insts.empty() || !core_area.contains(rect);
+}
+
 void Banyan::loadRoutingCongestion(std::string path) 
 {
 	std::ifstream report(path);
@@ -553,6 +685,14 @@ void Banyan::loadRoutingCongestion(std::string path)
 }
 
 bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::shared_ptr<lrl::AutoRecordModifier>& modifier, utl::Logger* logger) {
+  struct cap_location{
+    sta::LibertyCell* cell;
+    std::string name;
+    odb::Rect box;
+    odb::Point loc;
+    odb::dbOrientType orient;
+  };
+
   FASSERT(network.dbType(iterm) == odb::dbITermObj);
   using lrl::Pin;
   using lrl::Net;
@@ -589,9 +729,18 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
     logger->info(utl::BY, 15, "Cannot find driver on net {}", network.name(n));
     return false;
   }
+  std::string loads_str;
+  for (auto& pin : pins) {
+    if (pin != driver) {
+      loads_str += network.name(pin);
+      loads_str += " ";
+    }
+  }
+  logger->info(utl::BY,13,"Trying to fix antenna on net {}\n\tdriver: {}\n\tloads: {}", network.name(n), network.name(driver), loads_str);
   auto driver_loc = network.location(driver);
   // TODO: Insert buffers based on antenna rule calculations rather than brute-force placement on the farthest pin.
   int64_t farthest_dist = odb::Point::manhattanDistance(driver_loc, driver_loc);
+  odb::Rect bbox(driver_loc,driver_loc);
   for (auto& pin : pins) {
     if (pin != driver) {
       auto pin_loc = network.location(pin);
@@ -599,8 +748,35 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
       if (pin_dist > farthest_dist) {
         farthest_dist = pin_dist;
       }
+      bbox.merge(pin_loc);
     }
   }
+  bbox.bloat(std::max(bbox.dx(), bbox.dy()), bbox);
+
+  std::vector<cap_location> removed_decaps;
+  std::vector<sta::Instance*> need_removes;
+  auto insts = network->getDbNetwork()->block()->getInsts();
+  for (auto db_inst : insts) {
+    auto name = db_inst->getName();
+    if (name.find("DECAP") == std::variant_npos){
+      continue;
+    }
+    bool is_physical_only = db_inst->getModule() == nullptr;
+    if (!is_physical_only) {
+      continue;
+    }
+    auto loc = db_inst->getLocation();
+    if (bbox.intersects(loc)) {
+      auto sta_inst = (sta::Instance*)(db_inst);
+      removed_decaps.emplace_back(network.cell(sta_inst), name, db_inst->getBBox()->getBox(), loc, db_inst->getOrient());
+      need_removes.push_back(sta_inst);
+    }
+  }
+
+  for (auto sta_inst : need_removes) {
+    modifier->removeInst((sta::Instance*)(sta_inst));
+  }
+
   auto threshold = farthest_dist / 2;
   bool inserted = false;
   for (auto& pin : pins) {
@@ -620,7 +796,16 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
         }
         modifier->insertRepeator(buffer, valid_loc.value().point, n, {pin}, valid_loc.value().orient.getValue());
         inserted = true;
+        logger->info(utl::BY,13,"Insert buffer between\n\tpin: {}\n\tdriver: {}\nexpect position: ({},{}), actual position: ({},{})", network.name(pin), network.name(driver), center.x(), center.y(), valid_loc.value().point.x(),valid_loc.value().point.y());
       }
+    }
+  }
+  for (auto& decap : removed_decaps) {
+    r_tree fixed_instance;
+    auto block = network->getDbNetwork()->block();
+    load_fixed_instance(fixed_instance, block, decap.box);
+    if (!has_over_lap(block, decap.box, fixed_instance)) {
+      modifier->createPhyiscalOnlyInst(decap.cell, decap.loc, decap.name, true, decap.orient);
     }
   }
   return inserted;
@@ -748,8 +933,6 @@ int Banyan::repair_antennas(odb::dbMTerm* diode_mterm,
       for (auto& gate : pins) {
         if (!sepratePin(gate, lrlnw, modifier, logger_)) {
           logger_->info(utl::BY,12,"Can't insert buffer for pin {}",gate->getName());
-        } else {
-          logger_->info(utl::BY,13,"Insert buffer for pin {}",gate->getName());
         }
       }
       incrRoute(max_layer, ant_rpt, save_db, history_db);
