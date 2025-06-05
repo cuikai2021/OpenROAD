@@ -41,6 +41,7 @@
 #include "dpl/Opendp.h"
 #include "odb/dbShape.h"
 #include "utl/Logger.h"
+#include "lrl/CircuitModifier/ModifierTimeline.hh"
 
 namespace dpl {
 
@@ -294,16 +295,25 @@ void Opendp::insertDecapInPos(dbMaster* master,
                               const DbuY& pos_y)
 {
   // insert decap inst
+  lrl::timeline::History history;
+  lrl::STANetwork network(ord::OpenRoad::openRoad());
+  auto modi = history.modifier(network);
   string inst_name = "DECAP_" + to_string(decap_count_);
-  dbInst* inst = dbInst::create(block_,
-                                master,
-                                inst_name.c_str(),
-                                /* physical_only */ true);
+  auto db_network = network->getDbNetwork();
+  auto master_name = master->getName();
+  auto lib_cell = db_network->findLibertyCell(master_name.c_str());
+  // dbInst* inst = dbInst::create(block_,
+  //                               master,
+  //                               inst_name.c_str(),
+  //                               /* physical_only */ true);
   const Rect core = grid_->getCore();
   const GridX grid_x = grid_->gridX(pos_x - core.xMin());
   const GridY grid_y = grid_->gridSnapDownY(pos_y - core.yMin());
   const Pixel* pixel = grid_->gridPixel(grid_x, grid_y);
   const dbOrientType orient = pixel->sites.at(master->getSite());
+  auto instance = modi->createPhyiscalOnlyInst(lib_cell, {pos_x.v, pos_y.v}, inst_name);
+  auto inst = db_network->staToDb(instance);
+  // TODO : Check this.
   inst->setOrient(orient);
   inst->setLocation(pos_x.v, pos_y.v);
   inst->setPlacementStatus(dbPlacementStatus::PLACED);

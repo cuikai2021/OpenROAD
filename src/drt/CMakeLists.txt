@@ -199,6 +199,7 @@ if(ENABLE_TESTS)
     ord
     drt
     odb
+    linden
   )
 
   # Use the shared library if found.  We need to pass this info to

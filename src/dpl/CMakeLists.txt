@@ -57,6 +57,10 @@ target_link_libraries(dpl_lib
   PUBLIC
     odb
     OpenSTA
+    Laurel
+    dbSta
+    rsz
+    linden
   PRIVATE
     utl_lib
 )
