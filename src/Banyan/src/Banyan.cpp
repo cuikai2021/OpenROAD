@@ -684,13 +684,36 @@ void Banyan::loadRoutingCongestion(std::string path)
   ord::OpenRoad::openRoad()->getGlobalRouter()->updateHeatmap();
 }
 
+static odb::dbSite* get_smallest_site()
+{
+    odb::dbSite* smallest_site = nullptr;
+    int64_t smallest_site_area = std::numeric_limits<int64_t>::max();  
+    odb::dbBlock* block = ::ord::OpenRoad::openRoad()->getDb()->getChip()->getBlock();
+    for (auto row : block->getRows()) {
+        auto site = row->getSite();
+        int64_t w = site->getWidth();
+        int64_t h = site->getHeight();
+        int64_t a = w * h;
+        if (a < smallest_site_area) {
+            smallest_site_area = a;
+            smallest_site = site;
+        }
+    }
+    return smallest_site;
+}
+
 bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::shared_ptr<lrl::AutoRecordModifier>& modifier, utl::Logger* logger) {
+  linden::EcoPlacer eco_placer;
   struct cap_location{
     sta::LibertyCell* cell;
     std::string name;
     odb::Rect box;
     odb::Point loc;
     odb::dbOrientType orient;
+  };
+  struct inst_loc {
+    odb::dbInst* inst;
+    odb::Point loc;
   };
 
   FASSERT(network.dbType(iterm) == odb::dbITermObj);
@@ -751,13 +774,24 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
       bbox.merge(pin_loc);
     }
   }
-  bbox.bloat(std::max(bbox.dx(), bbox.dy()), bbox);
+
+  odb::dbSite* smallest_site = get_smallest_site();
+  int row_height = smallest_site->getHeight();
+  bbox.bloat(row_height, bbox);
 
   std::vector<cap_location> removed_decaps;
   std::vector<sta::Instance*> need_removes;
+  std::vector<inst_loc> spare_cells;
   auto insts = network->getDbNetwork()->block()->getInsts();
   for (auto db_inst : insts) {
     auto name = db_inst->getName();
+    auto loc = db_inst->getLocation();
+    if (db_inst->getGroup() != nullptr) { // is spare cell
+      spare_cells.emplace_back(db_inst, loc);
+      modifier->moveInst((sta::Instance*)db_inst, odb::Point(-10000, -10000), odb::dbOrientType::DEFAULT);
+      eco_placer.remove_cell(db_inst->getName());
+      continue;
+    }
     if (name.find("DECAP") == std::variant_npos){
       continue;
     }
@@ -765,11 +799,11 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
     if (!is_physical_only) {
       continue;
     }
-    auto loc = db_inst->getLocation();
     if (bbox.intersects(loc)) {
       auto sta_inst = (sta::Instance*)(db_inst);
       removed_decaps.emplace_back(network.cell(sta_inst), name, db_inst->getBBox()->getBox(), loc, db_inst->getOrient());
       need_removes.push_back(sta_inst);
+      eco_placer.remove_cell(db_inst->getName());
     }
   }
 
@@ -779,6 +813,7 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
 
   auto threshold = farthest_dist / 2;
   bool inserted = false;
+  int cnt = 0;
   for (auto& pin : pins) {
     if (pin != driver) {
       auto pin_loc = network.location(pin);
@@ -787,18 +822,28 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
         odb::Point center(
           (driver_loc.x()+pin_loc.x())/2,
           (driver_loc.y()+pin_loc.y())/2);
-        // TODO: Reuse one EcoPlacer instance with modification tracking to avoid repeated reconstruction.
-        linden::EcoPlacer eco_placer;
         auto place_iter = linden::PlaceIterator(eco_placer, buffer->name(), center);
         auto valid_loc = place_iter.next();
         if (!valid_loc.has_value()) {
           continue;
         }
         modifier->insertRepeator(buffer, valid_loc.value().point, n, {pin}, valid_loc.value().orient.getValue());
+        eco_placer.insert_cell("ant_buffer"+std::to_string(cnt++), buffer->name(), valid_loc.value());
         inserted = true;
         logger->info(utl::BY,13,"Insert buffer between\n\tpin: {}\n\tdriver: {}\nexpect position: ({},{}), actual position: ({},{})", network.name(pin), network.name(driver), center.x(), center.y(), valid_loc.value().point.x(),valid_loc.value().point.y());
       }
     }
+  }
+
+  for (auto& inst_loc : spare_cells) {
+    auto place_iter = linden::PlaceIterator(eco_placer, network.cell((sta::Instance*)inst_loc.inst)->name(), inst_loc.loc);
+    auto valid_loc = place_iter.next();
+    if (!valid_loc.has_value()) {
+      logger->error(utl::BY, 14, "Can't recover spare cell {}",inst_loc.inst->getName());
+    }
+    auto inst = (sta::Instance*)inst_loc.inst;
+    modifier->moveInst(inst, valid_loc->point, valid_loc->orient);
+    eco_placer.insert_cell(inst_loc.inst->getName(), network.cell(inst)->name(), valid_loc.value());
   }
   for (auto& decap : removed_decaps) {
     r_tree fixed_instance;
