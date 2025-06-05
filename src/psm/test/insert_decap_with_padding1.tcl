@@ -15,6 +15,8 @@ set_placement_padding -global -left 1 -right 1
 
 insert_decap -net VDD -targets { ( 6.440, 29.920 ) 1.5 ( 32.200, 59.920 ) 10 (58.420, 2.720) 2 } -cells {"sky130_fd_sc_hd__decap_3" 0.93 "sky130_fd_sc_hd__decap_4" 0.124 "sky130_fd_sc_hd__decap_6" 0.186 "sky130_fd_sc_hd__decap_8" 0.248 "sky130_fd_sc_hd__decap_12" 0.362}  -h 2 -v 2
 
+insert_decap -net VDD -region_count {3 3} -region_target 5  -cells {"sky130_fd_sc_hd__decap_3" 0.93 "sky130_fd_sc_hd__decap_4" 0.124 "sky130_fd_sc_hd__decap_6" 0.186 "sky130_fd_sc_hd__decap_8" 0.248 "sky130_fd_sc_hd__decap_12" 0.362}
+
 # Reset padding to check placement
 set_placement_padding -global -left 0 -right 0
 

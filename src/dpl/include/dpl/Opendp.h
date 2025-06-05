@@ -171,7 +171,7 @@ class Opendp
 
   // Find a cluster of instances that are touching each other
   std::vector<dbInst*> getAdjacentInstancesCluster(dbInst* inst) const;
-
+  std::vector<std::pair<std::string, double>> decapMasters() const;
  private:
   using bgPoint
       = boost::geometry::model::d2::point_xy<int,

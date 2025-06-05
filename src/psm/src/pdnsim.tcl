@@ -178,13 +178,15 @@ if 0 {
 
 sta::define_cmd_args "insert_decap" { -targets location_cap_pairs\
                                       -cells cell_info\
+                                      -region_count region_xy_count\
+                                      -region_target region_target\
                                       [-net net_name]\
                                       [-h x_step]\
                                       [-v y_step]\
                                     }
 proc insert_decap { args } {
   sta::parse_key_args "insert_decap" args \
-    keys {-targets -cells -net -h -v} flags {}
+    keys {-targets -cells -net -region_count -region_target -h -v} flags {}
 
   # Check even size
   set cells_and_decap $keys(-cells)
@@ -197,7 +199,6 @@ proc insert_decap { args } {
   foreach {cell_name decap} $cells_and_decap {
     set decap_value $decap
     sta::check_positive_float "-cells" $decap_value
-    # F
     set decap_value [expr [sta::capacitance_ui_sta $decap_value]]
     # Find master with cell_name
     set matched 0
@@ -224,6 +225,20 @@ proc insert_decap { args } {
   set targets ""
   if { [info exist keys(-targets)] } {
     set targets $keys(-targets)
+  }
+
+  set region_count ""
+  set region_target ""
+  if { [info exist keys(-region_count)] && [info exist keys(-region_target)] } {
+    set region_count $keys(-region_count)
+    set region_target $keys(-region_target)
+    if { ![lrl::set_decap_region $region_count] } {
+      puts "\[insert_decap\] parse parameter -region_target failed"
+      return
+    }
+    lrl::set_decap_region_target [sta::capacitance_ui_sta $region_target]
+
+    return [lrl::lrl_insert_decap_opt]
   }
 
   set x_step 1

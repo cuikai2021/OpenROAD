@@ -361,4 +361,13 @@ void Opendp::findGapsInRow(GridY row, DbuY row_height)
   }
 }
 
+std::vector<std::pair<std::string, double>> Opendp::decapMasters() const {
+  std::vector<std::pair<std::string, double>> decap_cells;
+  decap_cells.reserve(decap_masters_.size());
+for (auto dm: decap_masters_) {
+    decap_cells.emplace_back(dm->master->getConstName(), dm->capacitance);
+  }
+  return decap_cells;
+}
+
 }  // namespace dpl
