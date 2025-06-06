@@ -2983,6 +2983,14 @@ void Resizer::initDesignArea()
 {
   design_area_ = 0.0;
   for (dbInst* inst : block_->getInsts()) {
+    // TEMP
+    // Todo : check this logic
+    if (inst->getSourceType() == odb::dbSourceType::DIST) {
+      continue;
+    }
+    if (db_network_->hasHierarchy() && inst->getModule() == nullptr) {
+      continue;
+    }
     dbMaster* master = inst->getMaster();
     // Don't count fillers otherwise you'll always get 100% utilization
     if (!master->isFiller() && !master->isPad()) {
