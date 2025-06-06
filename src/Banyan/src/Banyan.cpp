@@ -850,7 +850,9 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
     auto block = network->getDbNetwork()->block();
     load_fixed_instance(fixed_instance, block, decap.box);
     if (!has_over_lap(block, decap.box, fixed_instance)) {
-      modifier->createPhyiscalOnlyInst(decap.cell, decap.loc, decap.name, true, decap.orient);
+      auto new_instance = modifier->createPhyiscalOnlyInst(decap.cell, decap.loc, decap.name, true, decap.orient);
+      auto new_dbinstance = network->getDbNetwork()->staToDb(new_instance);
+      new_dbinstance->setSourceType(odb::dbSourceType::DIST);
     }
   }
   return inserted;
