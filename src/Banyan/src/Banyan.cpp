@@ -845,16 +845,21 @@ bool sepratePin(odb::dbITerm* iterm, const lrl::STANetwork& network, const std::
     modifier->moveInst(inst, valid_loc->point, valid_loc->orient);
     eco_placer.insert_cell(inst_loc.inst->getName(), network.cell(inst)->name(), valid_loc.value());
   }
+
+  int discard = 0;
   for (auto& decap : removed_decaps) {
-    r_tree fixed_instance;
-    auto block = network->getDbNetwork()->block();
-    load_fixed_instance(fixed_instance, block, decap.box);
-    if (!has_over_lap(block, decap.box, fixed_instance)) {
-      auto new_instance = modifier->createPhyiscalOnlyInst(decap.cell, decap.loc, decap.name, true, decap.orient);
-      auto new_dbinstance = network->getDbNetwork()->staToDb(new_instance);
-      new_dbinstance->setSourceType(odb::dbSourceType::DIST);
+    auto place_iter = linden::PlaceIterator(eco_placer, decap.cell->name(), decap.loc);
+    auto valid_loc = place_iter.next();
+    if (!valid_loc.has_value() || (valid_loc->point != decap.loc || valid_loc->orient != decap.orient)) {
+      discard++;
+      continue;
     }
+    auto new_instance = modifier->createPhyiscalOnlyInst(decap.cell, decap.loc, decap.name, true, decap.orient);
+    auto new_dbinstance = network->getDbNetwork()->staToDb(new_instance);
+    new_dbinstance->setSourceType(odb::dbSourceType::DIST);
+    eco_placer.insert_cell(decap.name, decap.cell->name(), valid_loc.value());
   }
+  logger->info(utl::BY,15,"Discard {} DECAP cells to facilitate antenna repair.", discard);
   return inserted;
 }
 
